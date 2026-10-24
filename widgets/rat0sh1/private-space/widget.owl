@@ -3,9 +3,9 @@ widget "private space" {
   minSize: 2x2
   requires { pacman: ["android-tools", "iproute2", "python", "coreutils"] }
   meta {
-    owl: 9
+    owl: 10
     description: "Control and open your Android 15+ Private Space apps via local ADB"
-    version: "2.5"
+    version: "2.6"
     license: "MIT"
     category: "system"
   }
@@ -44,7 +44,7 @@ PRETTY_NAMES = {
     "com.google.android.apps.messaging": "Messages",
     "com.google.android.contacts": "Contacts",
     "com.google.android.dialer": "Phone",
-    "com.android.privatespace": "Instalar apps",
+    "com.android.privatespace": "Install apps",
     "com.google.android.googlequicksearchbox": "Google",
     "com.google.android.apps.adm": "Find Device",
 }
@@ -198,7 +198,7 @@ def pair_adb(arg_str):
     host = get_wlan_ip()
     nums = re.findall(r"\d+", arg_str)
     if not nums:
-        return {"adb": False, "error": "Ingresa el código de 6 dígitos"}
+        return {"adb": False, "error": "Enter the 6-digit code"}
     if len(nums) >= 2:
         ports = [int(nums[0])]
         code = nums[1]
@@ -210,7 +210,7 @@ def pair_adb(arg_str):
         if "Successfully paired" in o:
             ensure_adb()
             return status()
-    return {"adb": False, "error": f"No se pudo vincular con código {code} (puertos detectados: {ports})"}
+    return {"adb": False, "error": f"Couldn't pair with code {code} (ports found: {ports})"}
 
 
 def find_private_user(dev):
@@ -396,7 +396,6 @@ python3 "$d/ctl.py" status
         text: !adbOk ? (ps.mode == "tcp5555" ? "offline" : "pair") : !hasUser ? "no profile" : unlocked ? "${len(privApps)} apps" : "locked"
         style: small
         color: !adbOk ? yellow : unlocked ? green : muted
-        width: 64
         align: end
         maxLines: 1
       }
@@ -445,7 +444,7 @@ python3 "$d/ctl.py" status
       }
     } else {
       Text {
-        text: !unlocked ? "Espacio privado bloqueado" : "Sin accesos directos"
+        text: !unlocked ? "Private space locked" : "No shortcuts"
         style: small
         color: muted
         maxLines: 1
@@ -514,14 +513,14 @@ python3 "$d/ctl.py" status
           background: surface
           border: 1
           borderColor: border
-          Text { text: "Vincular Depuración inalámbrica (1 sola vez)"; style: body; bold: true; color: yellow }
+          Text { text: "Pair wireless debugging (one time only)"; style: body; bold: true; color: yellow }
           Text {
-            text: "1. Abre Ajustes → Opciones para desarrolladores → Depuración inalámbrica.\n2. Pon Ajustes en Pantalla dividida junto con Omalauncher.\n3. Toca 'Vincular dispositivo con código de vinculación'.\n4. Escribe aquí abajo solo el código de 6 dígitos (el puerto se detecta solo):"
+            text: "1. Open Settings → Developer options → Wireless debugging.\n2. Put Settings in split screen next to Omalauncher.\n3. Tap 'Pair device with pairing code'.\n4. Type just the 6-digit code below (the port is found automatically):"
             style: small
             color: foreground
           }
           Input {
-            placeholder: "Escribe el código de 6 dígitos (ej. 123456)…"
+            placeholder: "Type the 6-digit code (e.g. 123456)…"
             clear: true
             focus: true
             onSubmit: {
@@ -550,13 +549,13 @@ python3 "$d/ctl.py" status
             gap: 2
             weight: 1
             Text {
-              text: unlocked ? "Espacio privado desbloqueado" : "Espacio privado bloqueado"
+              text: unlocked ? "Private space unlocked" : "Private space locked"
               style: body
               bold: true
               color: unlocked ? green : yellow
             }
             Text {
-              text: hasUser ? "Perfil privado #${ps.user} • ${len(privApps)} apps disponibles" : "No se encontró un perfil privado"
+              text: hasUser ? "Private profile #${ps.user} • ${len(privApps)} apps available" : "No private profile found"
               style: small
               color: muted
             }
@@ -589,13 +588,13 @@ python3 "$d/ctl.py" status
             gap: 2
             weight: 1
             Text {
-              text: ps.mode == "tcp5555" ? "Modo sin Wi-Fi (TCP 5555)" : "Depuración inalámbrica TLS"
+              text: ps.mode == "tcp5555" ? "No Wi-Fi mode (TCP 5555)" : "Wireless debugging (TLS)"
               style: body
               bold: true
               color: ps.mode == "tcp5555" ? yellow : green
             }
             Text {
-              text: !adbOk ? (ps.mode == "tcp5555" ? "Modo offline guardado • Toca para conectar localmente" : "Permite usar Espacio privado fuera de Wi-Fi con puerto 5555") : (ps.mode == "tcp5555" ? "Puerto 5555 activo en 127.0.0.1 • Funciona sin Wi-Fi" : "Conexión cifrada TLS directa (${ps.device})")
+              text: !adbOk ? (ps.mode == "tcp5555" ? "Offline mode saved • Tap to connect locally" : "Lets you use Private space off Wi-Fi via port 5555") : (ps.mode == "tcp5555" ? "Port 5555 active on 127.0.0.1 • Works without Wi-Fi" : "Direct encrypted TLS connection (${ps.device})")
               style: small
               color: muted
             }
@@ -640,9 +639,9 @@ python3 "$d/ctl.py" status
               Column {
                 gap: 2
                 weight: 1
-                Text { text: "Accesos directos en el widget"; style: body; bold: true; color: foreground }
+                Text { text: "Widget shortcuts"; style: body; bold: true; color: foreground }
                 Text {
-                  text: len(shortcutApps) == 0 ? "Ninguno activo (usa '+ widget' abajo para elegir hasta 2)" : "${len(shortcutApps)} de 2 activos en el inicio"
+                  text: len(shortcutApps) == 0 ? "None set (use '+ Widget' below to pick up to 2)" : "${len(shortcutApps)} of 2 on home"
                   style: small
                   color: muted
                 }
@@ -677,7 +676,7 @@ python3 "$d/ctl.py" status
             }
           }
 
-          Text { text: "Tus apps instaladas en Espacio privado"; style: label }
+          Text { text: "Your apps in Private space"; style: label }
           for a in privApps.filter(x => x.userApp) key a.package {
             let isPinned = any(shortcuts, p => p == a.package)
             Row {
@@ -722,7 +721,7 @@ python3 "$d/ctl.py" status
             }
           }
 
-          Text { text: "Apps del sistema en Espacio privado"; style: label }
+          Text { text: "System apps in Private space"; style: label }
           for a in privApps.filter(x => !x.userApp) key a.package {
             let isPinned = any(shortcuts, p => p == a.package)
             Row {
@@ -774,7 +773,7 @@ python3 "$d/ctl.py" status
             border: 1
             borderColor: border
             Text {
-              text: "Toca 'Unlock' arriba para abrir la pantalla de autenticación y ver tus apps."
+              text: "Tap 'Unlock' above to open the authentication screen and see your apps."
               style: small
               color: muted
             }
