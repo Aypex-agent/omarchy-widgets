@@ -7,8 +7,8 @@ widget "jinja" {
   // so waves drift, ripples spread, rock foam blinks and gulls cross the sky.
   // Tap the tile: settings for playback, 24 fps, brightness, contrast, an RGB
   // tint, black replacement and hue.
-  meta { owl: 9; description: "A torii in the sunset sea as animated block glyphs, drawn by a shader. Tap for playback, fps, brightness, contrast, RGB tint, black-color and hue controls"; version: "1.1.1"; license: "MIT"; category: "fun" }
-  size: 4x4
+  meta { owl: 9; description: "A torii in the sunset sea as animated block glyphs, drawn by a shader. Tap for playback, fps, brightness, contrast, RGB tint, black-color and hue controls"; version: "1.1.2"; license: "MIT"; category: "fun" }
+  size: 4x3
   source sys = android.system every 5s
   let ja = startsWith(str(sys.locale ?? "en"), "ja")
   state fps24 = 0 persist
