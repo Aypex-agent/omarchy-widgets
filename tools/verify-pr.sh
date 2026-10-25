@@ -65,6 +65,9 @@ for dir in $(echo "$folders" | tr ' ' '\n' | sort -u); do
   while read -r mode type _ path; do
     case "$path" in
       */$kind.owl|*/preview.png|*/README.md|*/previews/*.webp) ;;
+      # A face's other pages, and their pictures in each theme.
+      faces/*/page-[2-9].owl|faces/*/page-[1-9][0-9].owl|faces/*/screens/[0-9]*/*.webp) ;;
+      faces/*) fail "$path" "a face folder holds only face.owl, page-2.owl, page-3.owl, ..., preview.png, README.md, previews/<theme>.webp and screens/<page>/<theme>.webp"; continue ;;
       *) fail "$path" "a $kind folder holds only $kind.owl, preview.png, README.md and previews/<theme>.webp"; continue ;;
     esac
     # Symlinks and submodules would publish whatever they point at.
@@ -83,7 +86,7 @@ for dir in $(echo "$folders" | tr ' ' '\n' | sort -u); do
       *.webp)
         [ "$size" -le 102400 ] || fail "$path" "a themed preview is over 100 KB"
         case "$magic" in RIFF*WEBP) ;; *) fail "$path" "$(basename "$path") isn't a WebP image" ;; esac ;;
-      */widget.owl | */face.owl | */app.owl)
+      */widget.owl | */face.owl | */app.owl | faces/*/page-*.owl)
         case "$path" in apps/*) apps="$apps $path" ;; *) owls="$owls $path" ;; esac
         if git cat-file -e "$base:$path" 2>/dev/null; then
           mkdir -p "$out/base/$(dirname "$path")"
@@ -100,6 +103,16 @@ for dir in $(echo "$folders" | tr ' ' '\n' | sort -u); do
         fi ;;
     esac
   done < <(git ls-tree -r "$head" -- "$dir/")
+  # A face's page that's gone: review says so, and that face.owl's version has to go up for it.
+  if [ "$kind" = face ]; then
+    while read -r _ _ _ path; do
+      case "$path" in faces/*/page-*.owl) ;; *) continue ;; esac
+      git cat-file -e "$head:$path" 2>/dev/null && continue
+      mkdir -p "$out/base/$(dirname "$path")"
+      git cat-file blob "$base:$path" > "$out/base/$path"
+      owls="$owls $path"
+    done < <(git ls-tree -r "$base" -- "$dir/")
+  fi
 done
 
 if [ -n "$owls$apps" ]; then
@@ -109,6 +122,7 @@ fi
 # Themed previews come from the launcher, which runs the widget to draw them: an emulator's job, after
 # this review, never a phone's. In the summary, so the maintainer sees what's left before merging.
 for owl in $owls $apps; do
+  case "$owl" in faces/*/page-*.owl) continue ;; esac
   dir=$(dirname "$out/$owl")
   n=$({ ls "$dir/previews" 2>/dev/null || true; } | wc -l | tr -d ' ')
   if [ "$n" -lt 22 ]; then
@@ -120,6 +134,7 @@ done
 # sized in cells can mean it.
 grid='(^|[^A-Za-z0-9_.])(rows|cols)([ \t]*\?\?[ \t]*[0-9]+\))?[ \t]*([<>]=?|[=!]=)[ \t]*[0-9]|[0-9][ \t]*([<>]=?|[=!]=)[ \t]*\(?(rows|cols)([^A-Za-z0-9_]|$)'
 for owl in $owls $apps; do
+  [ -f "$out/$owl" ] || continue
   cmp -s "$out/$owl" "$out/base/$owl" && continue
   n=$(grep -nE "$grid" "$out/$owl" | head -1 | cut -d: -f1 || true)
   if [ -n "$n" ]; then
@@ -127,6 +142,7 @@ for owl in $owls $apps; do
   fi
 done
 
-echo "$owls $apps" | tr ' ' '\n' | grep . > "$out/owls.txt" || true
+# The files there are, for the package check after this; a removed page isn't.
+for owl in $owls $apps; do [ -f "$out/$owl" ] && echo "$owl"; done > "$out/owls.txt"
 echo "files are in $out" >&2
 exit $bad
