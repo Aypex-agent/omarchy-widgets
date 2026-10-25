@@ -1,0 +1,9 @@
+widget "x" {
+  meta { owl: 14 }
+  component Key(label) {
+    Text { text: label
+      onTap: {} }
+  }
+  Key { label: "a"
+    ripple: false }
+}

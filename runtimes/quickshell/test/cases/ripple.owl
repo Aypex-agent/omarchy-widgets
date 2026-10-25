@@ -1,0 +1,6 @@
+widget "x" {
+  meta { owl: 14 }
+  Box { ripple: false
+    onTap: {}
+    Text { text: "a" } }
+}

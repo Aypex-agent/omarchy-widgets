@@ -2603,7 +2603,7 @@ var OPERATORS = {
 
 // ---------------------------------------------------------------- compiler
 
-var LEVEL = 13
+var LEVEL = 14
 var MAX_NODES = 500
 var MAX_SCREEN_NODES = 1000
 var MAX_ASSET_BYTES = 2097152
@@ -2633,7 +2633,7 @@ var KINDS = {
 }
 var KIND_NAMES = Object.keys(KINDS)
 var COMMON = ["width", "height", "size", "fill", "weight", "padding", "background", "border", "borderColor",
-  "radius", "opacity", "rotation", "scale", "offset", "clip", "visible", "frost", "repeats", "drag"]
+  "radius", "opacity", "rotation", "scale", "offset", "clip", "visible", "frost", "repeats", "drag", "ripple"]
 var ANIMATABLE = ["opacity", "rotation", "scale", "offset", "value", "color", "background"]
 var ALIGN = ["start", "center", "end", "top", "bottom", "topStart", "topEnd", "bottomStart", "bottomEnd"]
 var ENUMS = {
@@ -2722,6 +2722,10 @@ var TORCH_LEVEL = "torch(level)"
   PANEL_OPACITY, "android.network", "android.sim", "dnd", "notification(\"snooze\")", "notification(\"snoozeAll\")",
   "notification(\"unsnooze\")", "notification(\"unsnoozeAll\")", ANIMATE_OFFSET, TORCH_LEVEL, "tileOpacity", "tileFrost"]
   .forEach(function(k) { SINCE[k] = 13 })
+var FACE_EDGE = "a face's edge"
+// owl 14: a face whose nodes run on under the status bar and the camera cutout, which screenTop, screenLeft and
+// screenRight measure; no ripple under the finger, for a node that shows its press itself.
+;[FACE_EDGE, "screenLeft", "screenRight", "ripple"].forEach(function(k) { SINCE[k] = 14 })
 
 var MANAGERS = { pacman: /^[a-z0-9@_+][a-z0-9@._+-]*$/ }
 // onLongPress only off the home grid: on a tile, long-press belongs to the home screen, which lifts it to move it.
@@ -2835,11 +2839,11 @@ function javaSetOrder(names) {
   return names.map(function(n, i) { return [bucket(n), i, n] })
     .sort(function(a, b) { return a[0] - b[0] || a[1] - b[1] }).map(function(x) { return x[2] })
 }
-var TILE = ["cols", "rows", "tileWidth", "tileHeight", "screenWidth", "screenHeight", "screenInset", "screenTop", "corners", "gapsIn",
-  "gapsOut", "borderWidth", "tileOpacity", "tileFrost"]
+var TILE = ["cols", "rows", "tileWidth", "tileHeight", "screenWidth", "screenHeight", "screenInset", "screenTop", "screenLeft", "screenRight",
+  "corners", "gapsIn", "gapsOut", "borderWidth", "tileOpacity", "tileFrost"]
 var WIDGET_PROPS = ["size", "minSize", "page", "order", "padding", "background"]
 // A face has no tile's size; it says where it goes and whether the status bar stays over it.
-var FACE_PROPS = ["page", "order", "padding", "background", "statusBar"]
+var FACE_PROPS = ["page", "order", "padding", "background", "statusBar", "edge"]
 
 // An evaluator: `c` is set when the value is known at compile time.
 function Ev(f, constant, hasConst) {
@@ -2928,6 +2932,9 @@ function Compiler(ast) {
   // A face: it runs under the navigation bar, so its nodes may read screenInset. Known from the file's
   // first word, so its lets and components see it too.
   this.isFace = ast.kind === "face"
+  // A face with `edge: true`, which runs under the status bar and a cutout and may read how much they cover. Known
+  // up front, like isFace.
+  this.edgeFace = this.isFace && ast.body.props.some(function(p) { return p.name === "edge" && p.value.k === "lit" && p.value.v === true })
   // Compiling a handler or a state's first value, which run once when they run: the only places a
   // value may come out different each time, as random() does.
   this.chance = false
@@ -3167,6 +3174,13 @@ Compiler.prototype = {
     }
     // Whether the status bar stays over a face, read as it changes: a face can hide it for a game and bring it back.
     var statusBar = props.statusBar ? this.ex(props.statusBar.value, this.root) : null
+    // Drawn under the status bar and a camera cutout: fixed in the file, since the whole face moves when it changes.
+    var edge = false
+    if (props.edge) {
+      this.since(FACE_EDGE, props.edge.pos)
+      if (props.edge.value.k !== "lit" || typeof props.edge.value.v !== "boolean") this.fail("edge is true or false, not an expression", props.edge.pos)
+      edge = props.edge.value.v
+    }
     if (this.needs && level < this.needs[0])
       this.fail(this.needs[1] + " needs owl " + this.needs[0] + ": add meta { owl: " + this.needs[0] + " }", this.needs[2])
     var padding = 12
@@ -3182,6 +3196,7 @@ Compiler.prototype = {
       minSize: props.minSize ? this.cells(props.minSize) : [1, 1],
       isFace: this.isFace,
       statusBar: statusBar,
+      edge: edge,
       kind: this.ast.kind,
       // A face goes left of page 1 by default: 0, and -1, -2, ... further left. A tile never does.
       page: props.page ? clampNum(this.constInt(props.page), this.isFace ? -MAX_PAGE : 1, MAX_PAGE) : this.isFace ? 0 : 1,
@@ -3526,6 +3541,11 @@ Compiler.prototype = {
         if (p.value.k !== "name" || ENUMS.drag.indexOf(p.value.name) < 0) self.fail("drag is " + ENUMS.drag.join(" or "), p.pos)
         if (!body.handlers.some(function(h) { return h.name === "onDrag" })) self.fail("drag picks the direction onDrag follows: add onDrag", p.pos)
       }
+      if (p.name === "ripple") {
+        self.since("ripple", p.pos)
+        if (!body.handlers.some(function(h) { return h.name === "onTap" || h.name === "onLongPress" }))
+          self.fail("ripple is the press shown on a node that takes taps: add onTap", p.pos)
+      }
       if (p.name === "repeats") {
         self.since("repeats", p.pos)
         if (!body.handlers.some(function(h) { return h.name === "onPress" }))
@@ -3607,6 +3627,8 @@ Compiler.prototype = {
     if (frost) this.since("frost", frost.pos)
     var drag = body.props.filter(function(p) { return p.name === "drag" && c.params.indexOf(p.name) < 0 })[0]
     if (drag) this.fail("drag goes on the node inside " + n.type + " that has onDrag", drag.pos)
+    var ripple = body.props.filter(function(p) { return p.name === "ripple" && c.params.indexOf(p.name) < 0 })[0]
+    if (ripple) this.fail("ripple goes on the node inside " + n.type + " that has onTap", ripple.pos)
     return { t: "use", component: n.type, args: args, wrapper: wrapper, body: c.body, pos: n.pos }
   },
 
@@ -4008,9 +4030,13 @@ Compiler.prototype = {
     // no navigation bar under a face, so it's 0 here.
     if (e.name === "screenInset" && !(this.isFace && this.inScreen !== true))
       this.fail("screenInset is for apps with edge: true and faces; a widget's screen ends above the navigation bar", e.pos)
-    // Only an app runs up to the top edge, with statusBar: false; a face and a widget's screen stay clear of the cutout.
-    if (e.name === "screenTop")
-      this.fail("screenTop is for apps with statusBar: false; a face and a widget's screen start below the camera", e.pos)
+    // Only an app with statusBar: false and a face with edge: true run up to the top edge; a widget's screen stays
+    // clear of it. This runtime has no apps, and no status bar or cutout over a face, so they're 0 here.
+    if (e.name === "screenTop" && !(this.edgeFace && this.inScreen !== true))
+      this.fail("screenTop is for apps with statusBar: false and faces with edge: true; anything else starts below the status bar", e.pos)
+    // Only a face with edge: true runs under a cutout or navigation bar at the side.
+    if ((e.name === "screenLeft" || e.name === "screenRight") && !(this.edgeFace && this.inScreen !== true))
+      this.fail(e.name + " is for faces with edge: true, which run under a camera cutout or navigation bar at the side", e.pos)
     if (TILE.indexOf(e.name) >= 0 || e.name === "linux") {
       this.since(e.name, e.pos)
       var tn = e.name

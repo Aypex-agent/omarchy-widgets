@@ -1,0 +1,4 @@
+face "x" {
+  meta { owl: 14 }
+  Text { text: screenLeft }
+}

@@ -213,6 +213,8 @@ Item {
       if (name === "screenHeight") return root.screenHeight / root.dp
       // What a navigation bar covers of a face: there is none here.
       if (name === "screenInset") return 0
+      // What the status bar, a cutout or a navigation bar at the side covers of an edge face (owl 14): none here.
+      if (name === "screenTop" || name === "screenLeft" || name === "screenRight") return 0
       // Omarchy's corners are square.
       if (name === "corners") return 0
       // The board's gaps and borders, and its tiles' glass (owl 12 and 13).

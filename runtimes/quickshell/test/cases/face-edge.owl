@@ -1,0 +1,8 @@
+face "x" {
+  meta { owl: 14 }
+  edge: true
+  Column {
+    padding: screenTop
+    Text { text: "${screenLeft} ${screenRight}" }
+  }
+}

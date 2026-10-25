@@ -1,0 +1,6 @@
+face "x" {
+  meta { owl: 14 }
+  state on = true
+  edge: on
+  Text { text: "hi" }
+}

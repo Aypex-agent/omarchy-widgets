@@ -1,0 +1,9 @@
+face "x" {
+  meta { owl: 14 }
+  edge: true
+  Text { text: "hi"
+    onTap: { screen() } }
+  screen {
+    Text { text: screenTop }
+  }
+}
