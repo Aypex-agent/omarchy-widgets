@@ -97,10 +97,20 @@ pictures of the whole page at a phone's size, which `scripts/store-previews.sh` 
 uses theme colors gets `previews/<theme>.webp` like a widget, not only `preview.png`. Launchers from before faces (0.8.1 and older) only read
 `index.json` and `apps.json`, so they never see one.
 
+A face can have several pages, installed side by side: its others go beside `face.owl` as
+`page-2.owl`, `page-3.owl`, ..., numbered without gaps, and land right of page 1 in that order. Each
+is a face of its own (`face "name" { }`), but only `face.owl`'s meta describes the face: a page needs
+no description, version or license, just the `owl` level it uses. Every page is reviewed, the face's
+commands and packages are those of all its pages, and it needs owl 14 or the highest level a page uses.
+Adding, changing or removing a page needs `face.owl`'s version to go up. A page's pictures go in
+`screens/<page>/<theme>.webp`, which `scripts/store-previews.sh` draws in the same run as page 1.
+Check them all with `java -jar tools/owl.jar review . faces/<you>/<name>/*.owl`.
+
 ## Rules
 
 - One folder per widget, and only `widget.owl`, `preview.png`, `README.md` and `previews/<theme>.webp` in it
-  (`face.owl` for a face, `app.owl` for an app).
+  (`face.owl` for a face, with its `page-2.owl`, ... and `screens/<page>/<theme>.webp` if it has several pages;
+  `app.owl` for an app).
 - You can only add or change widgets, faces and apps under your own username.
 - `meta` needs a `description` (10-200 characters), a `version` and a `license`. Add a `category`
   (`news`, `dev`, `productivity`, `time`, `world`, `sport`, `finance`, `media`, `games`, `pets`, `fun`, `home` or `system`) so it shows under that tab in the store; without one it goes under "other".
@@ -132,6 +142,7 @@ widgets/<author>/<name>/widget.owl    the widget
 widgets/<author>/<name>/preview.png   optional screenshot
 widgets/<author>/<name>/previews/     optional screenshots per Omarchy theme (<theme>.webp)
 faces/<author>/<name>/face.owl        a face, with preview.png and previews/ like a widget's
+faces/<author>/<name>/page-2.owl      a face's second page, if it has more; its pictures in screens/2/
 apps/<author>/<name>/app.owl          an app, with preview.png and previews/ like a widget's
 order.txt                             the order of the store
 docs/LANGUAGE.md                      the widget language
