@@ -10,9 +10,13 @@ The tile needs a refresh token from [Tesla Auth](https://github.com/adriankumpf/
 
 The first numbers wait until the car is already awake. Refresh asks for one new reading only when the car is already awake.
 
+Copying the phone, or restoring a backup, does not bring `~/.config/omarchy-tesla/refresh-token`. The tile then says **no key** instead of looking offline. **Reset key** deletes the refresh token, the access token, and its expiry on this device only. It does not wake the car, and it does not remove a key that is still paired on the car. After that, paste a new refresh token.
+
 Miles or kilometers, Fahrenheit or Celsius, and psi or bar follow the car's own settings. Model 3, Y, S, X, Cybertruck, and Semi names are translated when Tesla sends a known type, and the raw trim code stays after a dash. Several cars on one account can be picked from the detail screen.
 
 ## What the review will flag
+
+Build on this file's `owl: 6`. Before the 1.5 update was approved, the launcher owner said the store review rejects a command built from widget values unless each value is `${sh(value)}`, outside any quotes. `sh()` keeps the value one shell word, so it cannot break out and run as code. A widget that fails that check is left out of the store. The VIN picker already passes the VIN that way. The new key check and the reset command are fixed shell text, with no widget values in them. Future changes need the same `sh()` form, and launchers older than 0.6.0 show "needs a newer launcher" until they update.
 
 The status command is the whole reader, inlined so the tile works on its own. Three warnings are expected:
 

@@ -3,7 +3,7 @@ widget "tesla" {
   minSize: 3x3
   meta {
     description: "Read-only Tesla status: battery, range, lock, climate, tires and charge limit. It never wakes the car."
-    version: "1.6"
+    version: "1.7"
     license: "MIT"
     category: "home"
     owl: 6
@@ -12,6 +12,9 @@ widget "tesla" {
 
   // The reader installs itself on first run. The selected car is a VIN file,
   // and refresh touches a force file. Nothing here calls wake_up.
+  // A missing refresh-token file is "no key", not a network failure. Moving
+  // phones or restoring a backup does not bring that file. Reset deletes only
+  // the token files on this device.
   state vin = "" persist
   source src = cmd("""
   # Installs ~/.local/bin/tesla-status from this file, then prints one status reading.
@@ -20,12 +23,12 @@ widget "tesla" {
   set -uo pipefail
   umask 077
   dest="$HOME/.local/bin/tesla-status"
-  marker="# tesla-status-widget 1.4"
+  marker="# tesla-status-widget 1.7"
   if ! grep -qxF "$marker" "$dest" 2>/dev/null; then
     mkdir -p "$HOME/.local/bin"
     cat > "$dest" << 'TESLA_STATUS_END'
   #!/bin/bash
-  # tesla-status-widget 1.4
+  # tesla-status-widget 1.7
   # Read-only Tesla status for the home-screen widget.
   #
   # Talks to Tesla's owner API. Never calls wake_up. A parked, awake car is
@@ -418,6 +421,11 @@ widget "tesla" {
     write_private "$CACHE_DIR/nonce" <<<"$nonce"
 
     if ! refresh_token >/dev/null && ! { [ -n "$(read_first_line "$CONFIG_DIR/access-token" 2>/dev/null || true)" ]; }; then
+      # An empty or absent file is a missing key, including after a phone move
+      # or a backup that did not bring ~/.config/omarchy-tesla/refresh-token.
+      if [ ! -s "$CONFIG_DIR/refresh-token" ]; then
+        fail_json "no key" "This device has no refresh token. A move or a backup does not bring it. Reset clears leftover token files here, then paste a new one."
+      fi
       fail_json "not signed in" "paste a refresh token with: tesla-status token"
     fi
 
@@ -508,9 +516,17 @@ widget "tesla" {
     emit "$reading" "$state" true 0 "" "$names" "" ""
   }
 
+  # Drops the plugin's token files on this device. Does not wake the car
+  # and does not remove a key that is still paired on the car.
+  cmd_reset() {
+    rm -f "$CONFIG_DIR/refresh-token" "$CONFIG_DIR/access-token" "$CONFIG_DIR/access-token-expires"
+    fail_json "no key" "Token files on this device were removed. Paste a new refresh token."
+  }
+
   case "${1:-status}" in
     status) shift; cmd_status "$@" ;;
     token) cmd_token ;;
+    reset) cmd_reset ;;
     *) fail_json "unknown command" ;;
   esac
   TESLA_STATUS_END
@@ -535,12 +551,15 @@ widget "tesla" {
   fi
   exec "$dest" status "$which" "$nonce"
   """) every 60s json timeout 25s status
+  // Presence only. The command prints present or missing, never the token.
+  source keyState = cmd('d=$HOME/.config/omarchy-tesla; if [ -n "$XDG_CONFIG_HOME" ]; then d=$XDG_CONFIG_HOME/omarchy-tesla; fi; if [ -s "$d/refresh-token" ]; then echo present; else echo missing; fi') every 60s
 
   // `status` reports whether the command ran. `ready` is the script's own flag,
   // kept off `ok` so a signed-out payload is not treated as a crashed command.
   let body = src != null && src.ok ? src.out : null
   let car = body != null && body.ready ? body : null
   let fault = src == null ? null : !src.ok ? (src.code == 124 ? "timed out" : "offline") : body == null ? "bad reading" : body.ready ? null : (body.error ?? "unavailable")
+  let noKey = keyState == "missing" || fault == "no key"
   let hint = body.hint
   let phase = car == null ? null : car.driving ? "driving" : car.charging == "Charging" ? "charging" : car.charging == "Complete" ? "charged" : car.state == "asleep" ? "asleep" : car.state == "offline" ? "offline" : car.state == "online" ? "parked" : (car.state ?? "…")
   let phaseColor = car == null ? muted : car.driving ? green : car.charging == "Charging" ? cyan : muted
@@ -660,8 +679,8 @@ widget "tesla" {
       fill: true
       justify: center
       Text { text: "tesla"; style: label; color: accent }
-      Text { text: fault ?? "…"; style: title; maxLines: 2 }
-      Text { text: fault == null ? "" : "tap for what to do"; style: small; color: muted; maxLines: 1 }
+      Text { text: noKey ? "no key" : (fault ?? "…"); style: title; maxLines: 2 }
+      Text { text: noKey ? "tap to set one up" : (fault == null ? "" : "tap for what to do"); style: small; color: muted; maxLines: 1 }
     }
   } else {
     Column {
@@ -725,9 +744,16 @@ widget "tesla" {
       gap: 14
       scroll: true
       if car == null {
-        Text { text: fault ?? "…"; style: title; maxLines: 2 }
-        if fault == "not signed in" {
-          Text { text: "This tile only reads the car, and it will not wake it. It needs a refresh token from Tesla Auth. That token is the whole Tesla account. You type your own password and MFA. Copy the refresh token, not the access token."; style: small }
+        Text { text: noKey ? "no key" : (fault ?? "…"); style: title; maxLines: 2 }
+        if noKey || fault == "not signed in" {
+          if noKey {
+            Text { text: "This phone has no Tesla key for the plugin. Moving devices, or restoring a backup, does not bring ~/.config/omarchy-tesla/refresh-token, so the key from the old device cannot be checked here."; style: small }
+            Text { text: "Reset clears leftover token files on this device only. It does not wake the car, and it does not remove a key from the car. Then sign in again. The new token is the whole Tesla account. Copy the refresh token, not the access token."; style: small }
+            Button { text: "reset key"; color: accent; onTap: run('d=$HOME/.config/omarchy-tesla; if [ -n "$XDG_CONFIG_HOME" ]; then d=$XDG_CONFIG_HOME/omarchy-tesla; fi; rm -f "$d/refresh-token" "$d/access-token" "$d/access-token-expires"') }
+          } else {
+            Text { text: "This tile only reads the car, and it will not wake it. It needs a refresh token from Tesla Auth. That token is the whole Tesla account. You type your own password and MFA. Copy the refresh token, not the access token."; style: small }
+            Button { text: "reset key"; onTap: run('d=$HOME/.config/omarchy-tesla; if [ -n "$XDG_CONFIG_HOME" ]; then d=$XDG_CONFIG_HOME/omarchy-tesla; fi; rm -f "$d/refresh-token" "$d/access-token" "$d/access-token-expires"') }
+          }
           Text { text: "On a computer"; style: label; color: accent }
           Text { text: "Download Tesla Auth for that computer, run it, and sign in on Tesla's own page. On the last window, copy the refresh token. Then paste it here."; style: small }
           Button { text: "Tesla Auth downloads"; onTap: url("https://github.com/adriankumpf/tesla_auth/releases/latest") }
