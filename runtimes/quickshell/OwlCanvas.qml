@@ -26,7 +26,16 @@ Canvas {
   renderTarget: Canvas.FramebufferObject
   renderStrategy: Canvas.Cooperative
 
-  readonly property var deps: [root.draw, root.width, root.height, root.widget ? root.widget.frame : 0,
+  // Whether the last drawing read `time`; until the first, it may have. Only
+  // then does the frame clock repaint this canvas: a gradient beside an
+  // animation was rasterised again every frame, for a picture that never moved.
+  property bool drawsTime: true
+  onDrawsTimeChanged: if (root.widget) root.widget.timeCanvases += root.drawsTime ? 1 : -1
+  Component.onCompleted: if (root.widget && root.drawsTime) root.widget.timeCanvases += 1
+  Component.onDestruction: if (root.widget && root.drawsTime) root.widget.timeCanvases -= 1
+
+  readonly property var deps: [root.draw, root.width, root.height,
+    root.widget && root.drawsTime ? root.widget.frame : 0,
     root.widget ? root.widget.palette : null, root.widget ? root.widget.fontsLoaded : 0]
   onDepsChanged: root.requestPaint()
 
@@ -48,7 +57,16 @@ Canvas {
     ctx.reset()
     if (!root.draw || width <= 0 || height <= 0) return
     ctx.scale(root.dp, root.dp)
+    // The instance's readsTime is what render() leaves for the tree; borrowed
+    // to ask the same question of this drawing, and handed back.
+    var inst = root.widget ? root.widget.instance : null
+    var was = inst ? inst.readsTime : false
+    if (inst) inst.readsTime = false
     var ops = root.draw(width / root.dp, height / root.dp)
+    if (inst) {
+      root.drawsTime = inst.readsTime
+      inst.readsTime = was
+    }
     L.paint(ctx, ops, {
       foreground: root.widget ? root.widget.ink("foreground") : "white",
       font: function(name) { return root.widget ? root.widget.fontFamily(name) : "sans-serif" }

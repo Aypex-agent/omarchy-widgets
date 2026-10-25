@@ -62,6 +62,8 @@ Item {
   property int generation: 0
   // Bumped every animation frame.
   property int frame: 0
+  // Canvases whose last drawing read `time`; each OwlCanvas counts itself in and out.
+  property int timeCanvases: 0
 
   readonly property string name: root.program ? root.program.name : root.fileName.replace(/\.owl$/, "")
   readonly property var size: root.program && root.program.size ? root.program.size : [3, 2]
@@ -345,12 +347,30 @@ Item {
 
   // -------------------------------------------------------- animation
 
-  // `time` is seconds since the frame clock started, like the launcher's,
-  // which a widget is written to expect: it restarts when the board reopens.
-  FrameAnimation {
-    running: root.active && !!root.program && root.program.animated && root.visible
+  // `time` is seconds since the board opened, like the launcher's, which a
+  // widget is written to expect: it restarts when the board reopens, and not
+  // when the clock below pauses, or every animation would jump back to its
+  // start each time something came into view.
+  property real clockStart: Date.now()
+  onActiveChanged: if (root.active) root.clockStart = Date.now()
+
+  // The clock runs only while something on screen reads `time`: the tree, or a
+  // canvas's drawing. A widget that animates some of the time -- a player's
+  // bars while music plays -- costs nothing the rest of it. It is the program
+  // that is `animated`, so without this a hidden branch kept the clock running:
+  // on a Pixel 3a, now-playing with nothing playing held 85% of a core, and
+  // 0.1% with it.
+  readonly property bool needsFrames: (!!root.tree && root.tree.readsTime) || root.timeCanvases > 0
+
+  // A Timer at the host's frame rate, not a FrameAnimation: a running
+  // FrameAnimation has the window drawn again every display frame whether or
+  // not a frame is taken, which measured a quarter of a core on its own.
+  Timer {
+    interval: Math.max(1, Math.round(1000 / Math.max(1, root.host.frameRate)))
+    repeat: true
+    running: root.active && !!root.program && root.program.animated && root.visible && root.needsFrames
     onTriggered: {
-      root.instance.frame(elapsedTime)
+      root.instance.frame((Date.now() - root.clockStart) / 1000)
       root.frame++
       if (root.tree && root.tree.readsTime) root.render()
     }

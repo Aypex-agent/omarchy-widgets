@@ -40,6 +40,10 @@ QtObject {
   property real tileOpacity: 1
   property real tileFrost: 0
 
+  // How many times a second an animated widget draws. The launcher draws at the display's rate; on a
+  // phone that is a core's worth of JavaScript for one busy Canvas, so a shell picks what it can carry.
+  property real frameRate: 30
+
   readonly property string home: Quickshell.env("HOME") || ""
   // Where `state ... persist` and `history(...) persist` are kept.
   property string stateDir: (Quickshell.env("XDG_STATE_HOME") || root.home + "/.local/state") + "/owl"

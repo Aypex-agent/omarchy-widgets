@@ -27,7 +27,11 @@ OWL_WIDGETS=~/my-widgets quickshell -p runtimes/quickshell     # a folder of you
 Quickshell draws everything; `Owl.js` decides what. Each widget is compiled
 once, its sources update values, and only a render tree of plain objects
 reaches QML, so a source that changes a number redraws that number. Sources
-run only while the widget is shown (`active`).
+run only while the widget is shown (`active`). An animated widget draws on a
+clock at the host's `frameRate`, and the clock runs only while something on
+screen reads `time` -- the tree, or a Canvas's drawing -- so a player's bars
+cost nothing while nothing plays. A Canvas whose drawing doesn't read `time`
+is not painted again by the clock.
 
 ## Embedding it
 
@@ -56,8 +60,8 @@ launcher's long-press editing.
 
 `OwlHost` is where a shell differs: fonts, the scale (`dp`), where persisted
 state lives, how `terminal()`/`app()`/`url()`/`launcher()` start things, what
-`android.media` reads (MPRIS by default), and a hook for an on-screen
-keyboard.
+`android.media` reads (MPRIS by default), how many frames a second an
+animated widget draws (`frameRate`, 30), and a hook for an on-screen keyboard.
 
 ## How faithful it is
 
