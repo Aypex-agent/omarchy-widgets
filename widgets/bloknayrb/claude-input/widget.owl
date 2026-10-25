@@ -2,9 +2,7 @@ widget "claude-input" {
   size: 6x3
   minSize: 3x2
 
-  meta { owl: 13; description: "Claude Code sessions (cloud or remote control) waiting on you, from the Claude app's notifications: tap one to open its conversation. Logs them to ~/.cache/claude-input.log."; version: "1.0"; license: "MIT"; category: "productivity" }
-
-  requires { pacman: ["coreutils"] }
+  meta { owl: 13; description: "Claude Code sessions (cloud or remote control) waiting on you, from the Claude app's notifications: tap one to open its conversation."; version: "1.0.1"; license: "MIT"; category: "productivity" }
 
   source n = android.notifications
   source now = clock every 30s
@@ -15,12 +13,6 @@ widget "claude-input" {
   let claude = n.items.filter(i => startsWith(i.package, "com.anthropic"))
   let waiting = claude.filter(i => match(lower("${i.title} ${i.text}"), "needs? (your )?(input|permission|approval|attention|response|answer)|waiting (for|on) (you|your)|permission|approv|allow|question|respond|review|plan (is )?ready|confirm|blocked|input") != null)
   let shown = showAll ? claude : waiting
-
-  // Every Claude notification goes to a log, to tune the words above against real ones.
-  let claudeKeys = join(claude.map(i => "${i.key}${i.text}"), ",")
-  on claudeKeys {
-    run("mkdir -p ~/.cache && printf '%s\n' ${sh(toJson(claude.map(i => {time: i.time, title: i.title, text: i.text, actions: i.actions})))} >> ~/.cache/claude-input.log")
-  }
 
   if !n.available {
     Column {
