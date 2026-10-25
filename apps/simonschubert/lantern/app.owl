@@ -12,7 +12,7 @@ app "lantern" {
   // `base`. A step that levels up or kills the player stops the film there, and the screen shows the
   // choice or the end without waiting for a handler.
 
-  meta { owl: 13; description: "A survivors-like in pixel art: steer a lamplighter with one thumb through a night meadow as ever bigger crowds close in; weapons fire on their own, and every level brings a choice of three upgrades"; version: "1.0"; license: "MIT"; category: "games" }
+  meta { owl: 13; description: "A survivors-like in pixel art: steer a lamplighter with one thumb through a night meadow as ever bigger crowds close in; weapons fire on their own, and every level brings a choice of three upgrades"; version: "1.1"; license: "MIT"; category: "games" }
 
   title: ""
   statusBar: false
@@ -83,6 +83,10 @@ app "lantern" {
   // Clear of a camera cutout and the navigation bar, and of the screen's rounded corners.
   let TOP = max(screenTop ?? 0, 12)
   let INS = max(screenInset ?? 0, 14)
+  // the sides: held sideways, the top bar runs into the rounded corners, which a cutout doesn't push it clear of
+  let SX = SW > SH ? 30 : 12
+  // a short screen (a phone held sideways) lays the title out from its edges in
+  let LOW = SH < 620
   // a world unit in dp: the player is about one across, and the screen some thirteen units wide
   let U = clamp(min(SW, SH) / 11.5, 28, 48)
   // an art pixel
@@ -155,7 +159,9 @@ app "lantern" {
   // far behind comes round ahead; more come out of the dark, faster as the night goes on, with a
   // ring of them every minute and a brute every 75 seconds; each weapon whose cooldown is up
   // strikes; the fallen drop gems; the dead that touch the player hurt them, and gems in reach are
-  // picked up.
+  // picked up. Past four minutes the dead hit harder, and past five they grow tougher and faster
+  // the longer the night goes, the rings bring skeletons and ghosts, and a brute comes every 30
+  // seconds, two at a time after ten minutes, so a run that has every weapon at its best still ends.
   let DT = 0.2
   let NS = 9
   let film = [base] + scan(range(NS), (S, j) => S.up || S.dead ? S :
@@ -170,17 +176,17 @@ app "lantern" {
           an: wl[2] > 0 ? atan2(n[1] - P[1], n[0] - P[0]) : 0
         }))[0])].map(mv =>
       // who comes: [kind, angle, distance]
-      [range(clamp(floor(0.7 * t1 + t1 * t1 / 90) - floor(0.7 * S.t + S.t * S.t / 90), 0, max(0, MAXE - len(mv)))).map(i => [hash(S.nid + i, 7)].map(h => [t1 >= 200 && h < 0.22 ? 3 : t1 >= 100 && h < 0.45 ? 2 : t1 >= 30 && h < 0.7 ? 1 : 0, hash(S.nid + i, 3) * 6.2832, RS])[0])
-        + (floor(t1 / 60) > floor(S.t / 60) ? range(min(36, 12 + 3 * floor(t1 / 60))).map(i => [floor(t1 / 60) % 2 == 1 ? 0 : 1, i / min(36, 12 + 3 * floor(t1 / 60)) * 6.2832, RS - 0.5]) : [])
-        + (floor(t1 / 75) > floor(S.t / 75) ? [[4, hash(S.nid, 11) * 6.2832, RS]] : [])
+      [range(clamp(floor(0.7 * t1 + t1 * t1 / 90) - floor(0.7 * S.t + S.t * S.t / 90), 0, max(0, MAXE - len(mv)))).map(i => [hash(S.nid + i, 7)].map(h => [t1 >= 200 && h < (t1 >= 420 ? 0.4 : 0.22) ? 3 : t1 >= 100 && h < 0.45 ? 2 : t1 >= 30 && h < 0.7 ? 1 : 0, hash(S.nid + i, 3) * 6.2832, RS])[0])
+        + (floor(t1 / 60) > floor(S.t / 60) ? range(min(36, 12 + 3 * floor(t1 / 60))).map(i => [floor(t1 / 60) % 2 == 1 ? (t1 >= 300 ? 3 : 0) : (t1 >= 300 ? 2 : 1), i / min(36, 12 + 3 * floor(t1 / 60)) * 6.2832, RS - 0.5]) : [])
+        + [t1 >= 300 ? 30 : 75].map(br => floor(t1 / br) > floor(S.t / br) ? range(t1 >= 600 ? 2 : 1).map(b => [4, hash(S.nid + b, 11) * 6.2832, RS]) : [])[0]
       ].map(sp => {
-        es: mv + sp.map((s, i) => {
+        es: mv + sp.map((s, i) => [ED[s[0]].hp * (1 + t1 / 150 + t1 * t1 / 90000 + max(0, t1 - 300) * max(0, t1 - 300) / 15000)].map(h0 => {
           i: S.nid + i, k: s[0], x: P[0] + cos(s[1]) * s[2], y: P[1] + sin(s[1]) * s[2], px: P[0] + cos(s[1]) * s[2], py: P[1] + sin(s[1]) * s[2],
-          hp: ED[s[0]].hp * (1 + t1 / 150 + t1 * t1 / 90000), ph: ED[s[0]].hp * (1 + t1 / 150 + t1 * t1 / 90000), mh: ED[s[0]].hp * (1 + t1 / 150 + t1 * t1 / 90000),
-          v: ED[s[0]].v * (0.9 + 0.2 * hash(S.nid + i, 4)), dmg: ED[s[0]].dmg, xp: ED[s[0]].xp, r: ED[s[0]].r,
+          hp: h0, ph: h0, mh: h0,
+          v: ED[s[0]].v * (0.9 + 0.2 * hash(S.nid + i, 4)) * min(1.5, 1 + max(0, t1 - 300) / 600), dmg: ED[s[0]].dmg * (1 + max(0, t1 - 240) / 300), xp: ED[s[0]].xp, r: ED[s[0]].r,
           ox: cos(hash(S.nid + i, 9) * 6.2832) * 0.8, oy: sin(hash(S.nid + i, 9) * 6.2832) * 0.8,
           dx: cos(s[1]) * s[2], dy: sin(s[1]) * s[2], d: s[2], an: s[1]
-        }),
+        })[0]),
         cd: S.cd, fx: [], nid: S.nid + len(sp)
       })[0])
       // spark: the nearest few
@@ -220,7 +226,7 @@ app "lantern" {
         [len(got) == 0 ? gm0 : gm0.filter(g => (g.x - P[0]) * (g.x - P[0]) + (g.y - P[1]) * (g.y - P[1]) >= MAG * MAG)].map(rest =>
         [3 + S.lv * 3 + floor(pow(S.lv, 1.5))].map(need =>
         [S.xp + sum(got.map(g => g.k == 0 ? g.v : g.k == 1 ? max(0, need - S.xp) : 0))].map(xp1 =>
-        [min(30, sum(live.filter(e => e.d < e.r + 0.35).map(e => e.dmg))) * DT].map(hurt =>
+        [min(30 * (1 + max(0, t1 - 240) / 300), sum(live.filter(e => e.d < e.r + 0.35).map(e => e.dmg))) * DT].map(hurt =>
         [clamp(S.hp - hurt + REG * DT + sum(got.map(g => g.k == 2 ? 30 : g.k == 1 ? 50 : 0)), -1, MHP)].map(hp1 => {
           t: t1, px: P[0], py: P[1],
           // in drawing order, top first; every third step is enough
@@ -672,7 +678,7 @@ app "lantern" {
       fill: true
       onPress: {
         downAt = [x, y]
-        stick = mode == "play" && !paused && !endF.dead && !endF.up && !(y < TOP + 30 && x > SW - 60)
+        stick = mode == "play" && !paused && !endF.dead && !endF.up && !(y < TOP + 30 && x > SW - SX - 48)
         if stick {
           held = true
           ox = x
@@ -781,7 +787,7 @@ app "lantern" {
             if o < 10 { wl = set(wl, o, wl[o] + 1) }
             haptic()
           }
-        } else if mode == "play" && y < TOP + 30 && x > SW - 60 && !endF.dead {
+        } else if mode == "play" && y < TOP + 30 && x > SW - SX - 48 && !endF.dead {
           let hl = FZ
           let hu = clamp((time - ev) / DT, 0, hl)
           let hj = floor(hu)
@@ -806,30 +812,30 @@ app "lantern" {
       let need = 3 + F.lv * 3 + floor(pow(F.lv, 1.5))
       if playing {
         // ---- experience along the top, the level at its end ----
-        let bw = SW - 24 - 52
-        rect(12, TOP + 2, bw, 16, radius: 4, fill: INK)
-        rect(14, TOP + 4, bw - 4, 12, radius: 3, fill: "#2a2440")
-        rect(14, TOP + 4, max(0, (bw - 4) * clamp(F.xp / need, 0, 1)), 12, radius: 3, fill: linear(0, TOP + 4, 0, TOP + 16, ["#9ad8ff", "#3a8ae8"]))
-        rect(16, TOP + 5, max(0, (bw - 8) * clamp(F.xp / need, 0, 1)), 2, fill: alpha("#ffffff", 0.35))
-        text("LV ${F.lv}", 12 + bw - 8, TOP + 11, size: 7, color: "#ffffff", font: press, align: end)
+        let bw = SW - 2 * SX - 52
+        rect(SX, TOP + 2, bw, 16, radius: 4, fill: INK)
+        rect(SX + 2, TOP + 4, bw - 4, 12, radius: 3, fill: "#2a2440")
+        rect(SX + 2, TOP + 4, max(0, (bw - 4) * clamp(F.xp / need, 0, 1)), 12, radius: 3, fill: linear(0, TOP + 4, 0, TOP + 16, ["#9ad8ff", "#3a8ae8"]))
+        rect(SX + 4, TOP + 5, max(0, (bw - 8) * clamp(F.xp / need, 0, 1)), 2, fill: alpha("#ffffff", 0.35))
+        text("LV ${F.lv}", SX + bw - 8, TOP + 11, size: 7, color: "#ffffff", font: press, align: end)
         // ---- the time and the toll, and below them what the player carries ----
         let ts = "${pad(floor(F.t / 60), 2, "0")}:${pad(floor(F.t % 60), 2, "0")}"
         text(ts, SW / 2 + 2, TOP + 38, size: 14, color: INK, font: press, align: center)
         text(ts, SW / 2, TOP + 36, size: 14, color: "#ffffff", font: press, align: center)
-        sprite(skullIcon, SW - 20 - len("${F.kills}") * 8 - 14, TOP + 30, 1.4, palette: ICONPAL)
-        text("${F.kills}", SW - 20, TOP + 36, size: 8, color: "#ffffff", font: press, align: end)
+        sprite(skullIcon, SW - SX - 8 - len("${F.kills}") * 8 - 14, TOP + 30, 1.4, palette: ICONPAL)
+        text("${F.kills}", SW - SX - 8, TOP + 36, size: 8, color: "#ffffff", font: press, align: end)
         let owned = range(10).filter(i => wl[i] > 0)
         for i, n in owned {
-          let ix = 12 + n * 26
+          let ix = SX + n * 26
           sprite(ICONS[i], ix, TOP + 52, 2, palette: ICONPAL)
           for p in range(wl[i]) { rect(ix + p * 3, TOP + 72, 2, 2, fill: GOLD) }
         }
         // the pause button
-        let pd = downAt[0] > SW - 60 && downAt[1] < TOP + 30 ? 2 : 0
-        rect(SW - 50, TOP + 1, 38, 22, radius: 4, fill: INK)
-        rect(SW - 48, TOP + 3 + pd, 34, 16, radius: 3, fill: "#4a4466")
-        rect(SW - 36, TOP + 6 + pd, 3, 10, fill: "#ffffff")
-        rect(SW - 29, TOP + 6 + pd, 3, 10, fill: "#ffffff")
+        let pd = downAt[0] > SW - SX - 48 && downAt[1] < TOP + 30 ? 2 : 0
+        rect(SW - SX - 38, TOP + 1, 38, 22, radius: 4, fill: INK)
+        rect(SW - SX - 36, TOP + 3 + pd, 34, 16, radius: 3, fill: "#4a4466")
+        rect(SW - SX - 24, TOP + 6 + pd, 3, 10, fill: "#ffffff")
+        rect(SW - SX - 17, TOP + 6 + pd, 3, 10, fill: "#ffffff")
         // ---- the stick, where the thumb is ----
         if held && !paused {
           circle(ox, oy, 48, fill: alpha("#ffffff", 0.06), stroke: alpha("#ffffff", 0.25), width: 2)
@@ -899,19 +905,24 @@ app "lantern" {
         }
       }
       // ---- the title ----
+      // the start button's top
+      let tby = LOW ? SH - INS - 58 : SH / 2 + 146
       if mode == "title" {
         rect(0, 0, SW, SH, fill: linear(0, 0, 0, SH, [alpha("#05030c", 0.55), alpha("#05030c", 0.1), alpha("#05030c", 0.7)]))
-        let ty = SH / 2 - 150
+        // on a short screen the name hangs from the top and the words stand on the button, the lamplighter between
+        let ty = LOW ? TOP + 36 : SH / 2 - 150
+        let iy = LOW ? tby - 52 : SH / 2 + 100
+        let hy = LOW ? (ty + 48 + iy - 6) / 2 : SH / 2
         let ls = min(30, (SW - 40) / 7)
         // the lamplighter, big, with bats circling
         let hs = 6
-        circle(SW / 2 + 5 * hs, SH / 2, 110, fill: radial(SW / 2 + 5 * hs, SH / 2, 110, [alpha("#ffd27a", 0.35 + 0.04 * sin(time * 9)), alpha("#ffd27a", 0.1), alpha("#ffd27a", 0)]))
-        rect(SW / 2 - 5 * hs, SH / 2 + 40, 10 * hs, 2.4 * hs, radius: 1.2 * hs, fill: alpha("#000000", 0.35))
-        image(floor(time * 3) % 2 == 0 ? heroR0 : heroR1, SW / 2 - 7 * hs, SH / 2 - 50, 14 * hs, 16 * hs)
+        circle(SW / 2 + 5 * hs, hy, 110, fill: radial(SW / 2 + 5 * hs, hy, 110, [alpha("#ffd27a", 0.35 + 0.04 * sin(time * 9)), alpha("#ffd27a", 0.1), alpha("#ffd27a", 0)]))
+        rect(SW / 2 - 5 * hs, hy + 40, 10 * hs, 2.4 * hs, radius: 1.2 * hs, fill: alpha("#000000", 0.35))
+        image(floor(time * 3) % 2 == 0 ? heroR0 : heroR1, SW / 2 - 7 * hs, hy - 50, 14 * hs, 16 * hs)
         for k in range(5) {
           let ba = time * 0.8 + k * 1.2566
           let bx = SW / 2 + cos(ba) * min(150, SW * 0.38)
-          let by = SH / 2 + sin(ba) * 80
+          let by = hy + sin(ba) * (LOW ? 70 : 80)
           image(floor(time * 8 + k) % 2 == 0 ? batA : batB, bx - 18, by - 12, 36, 24)
         }
         for d in [[-3, 0], [3, 0], [0, -3], [0, 3], [-2, -2], [2, -2], [-2, 2], [2, 2], [2, 6], [0, 6], [-2, 6]] { text("LANTERN", SW / 2 + d[0], ty + d[1], size: ls, color: INK, font: press, align: center) }
@@ -920,15 +931,15 @@ app "lantern" {
         rect(SW / 2 - 120, ty + 26, 240, 22, radius: 3, fill: "#5a3a8a", stroke: INK, width: 2)
         rect(SW / 2 - 117, ty + 29, 234, 2, fill: alpha("#ffffff", 0.3))
         text("SURVIVE THE NIGHT", SW / 2, ty + 37, size: 8, color: "#ffffff", font: press, align: center)
-        text("DRAG ANYWHERE TO WALK", SW / 2, SH / 2 + 100, size: 7, color: foreground, font: press, align: center)
-        text("WEAPONS FIRE ON THEIR OWN", SW / 2, SH / 2 + 116, size: 7, color: muted, font: press, align: center)
+        text("DRAG ANYWHERE TO WALK", SW / 2, iy, size: 7, color: foreground, font: press, align: center)
+        text("WEAPONS FIRE ON THEIR OWN", SW / 2, iy + 16, size: 7, color: muted, font: press, align: center)
         if bestT > 0 {
-          text("BEST ${pad(floor(bestT / 60), 2, "0")}:${pad(floor(bestT % 60), 2, "0")} · LEVEL ${bestLv}", SW / 2, SH / 2 + 222, size: 7, color: accent, font: press, align: center)
+          text("BEST ${pad(floor(bestT / 60), 2, "0")}:${pad(floor(bestT % 60), 2, "0")} · LEVEL ${bestLv}", SW / 2, LOW ? tby - 22 : SH / 2 + 222, size: 7, color: accent, font: press, align: center)
         }
       }
       // ---- the buttons, over everything: each is [x, y, width, height, colours, label], and sinks while pressed ----
       let pcy = SH * 0.42
-      let btns = mode == "title" ? [[round(SW / 2 - 105), round(SH / 2 + 146), 210, 48, "go", "TAP TO START"]]
+      let btns = mode == "title" ? [[round(SW / 2 - 105), round(tby), 210, 48, "go", "TAP TO START"]]
         : playing && paused ? [[round(SW / 2 - 100), round(pcy + 40), 200, 48, "go", "RESUME"], [round(SW / 2 - 100), round(pcy + 100), 200, 44, "off", "QUIT"]]
         : playing && endF.dead && u >= FZ && overT > 0 && time - overT > 0.8 ? [[round(SW / 2 - 110), round(SH * 0.24 + 196), 220, 44, "go", "TRY AGAIN"]]
         : []
