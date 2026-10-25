@@ -1,8 +1,13 @@
-face "tetris" {
-  meta { owl: 10; description: "Touch Tetris with theme colors, ghost pieces, seven-bag randomizer and saved best score"; version: "1.2"; license: "MIT"; category: "games" }
-  page: 0
-  padding: 16
-  background: background
+app "tetris" {
+  meta { owl: 10; description: "Touch Tetris with theme colors, ghost pieces, seven-bag randomizer and saved best score"; version: "1.3"; license: "MIT"; category: "games" }
+  // The header below is the title: no title row, and the keys run on under the navigation bar.
+  title: ""
+  edge: true
+  icon: """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round">
+    <path d="M6 30h12v-12h12v12h12v12H6z"/>
+    <path d="M18 30v12M30 30v12M18 30h12"/>
+    <path d="M24 6h12v12H24z"/>
+  </svg>"""
   requires { pacman: [] }
   let shapes = [[[{"x":0,"y":1},{"x":1,"y":1},{"x":2,"y":1},{"x":3,"y":1}],[{"x":2,"y":0},{"x":2,"y":1},{"x":2,"y":2},{"x":2,"y":3}],[{"x":3,"y":2},{"x":2,"y":2},{"x":1,"y":2},{"x":0,"y":2}],[{"x":1,"y":3},{"x":1,"y":2},{"x":1,"y":1},{"x":1,"y":0}]],[[{"x":1,"y":0},{"x":2,"y":0},{"x":1,"y":1},{"x":2,"y":1}],[{"x":1,"y":0},{"x":2,"y":0},{"x":1,"y":1},{"x":2,"y":1}],[{"x":1,"y":0},{"x":2,"y":0},{"x":1,"y":1},{"x":2,"y":1}],[{"x":1,"y":0},{"x":2,"y":0},{"x":1,"y":1},{"x":2,"y":1}]],[[{"x":1,"y":0},{"x":0,"y":1},{"x":1,"y":1},{"x":2,"y":1}],[{"x":2,"y":1},{"x":1,"y":0},{"x":1,"y":1},{"x":1,"y":2}],[{"x":1,"y":2},{"x":2,"y":1},{"x":1,"y":1},{"x":0,"y":1}],[{"x":0,"y":1},{"x":1,"y":2},{"x":1,"y":1},{"x":1,"y":0}]],[[{"x":1,"y":0},{"x":2,"y":0},{"x":0,"y":1},{"x":1,"y":1}],[{"x":2,"y":1},{"x":2,"y":2},{"x":1,"y":0},{"x":1,"y":1}],[{"x":1,"y":2},{"x":0,"y":2},{"x":2,"y":1},{"x":1,"y":1}],[{"x":0,"y":1},{"x":0,"y":0},{"x":1,"y":2},{"x":1,"y":1}]],[[{"x":0,"y":0},{"x":1,"y":0},{"x":1,"y":1},{"x":2,"y":1}],[{"x":2,"y":0},{"x":2,"y":1},{"x":1,"y":1},{"x":1,"y":2}],[{"x":2,"y":2},{"x":1,"y":2},{"x":1,"y":1},{"x":0,"y":1}],[{"x":0,"y":2},{"x":0,"y":1},{"x":1,"y":1},{"x":1,"y":0}]],[[{"x":0,"y":0},{"x":0,"y":1},{"x":1,"y":1},{"x":2,"y":1}],[{"x":2,"y":0},{"x":1,"y":0},{"x":1,"y":1},{"x":1,"y":2}],[{"x":2,"y":2},{"x":2,"y":1},{"x":1,"y":1},{"x":0,"y":1}],[{"x":0,"y":2},{"x":1,"y":2},{"x":1,"y":1},{"x":1,"y":0}]],[[{"x":2,"y":0},{"x":0,"y":1},{"x":1,"y":1},{"x":2,"y":1}],[{"x":2,"y":2},{"x":1,"y":0},{"x":1,"y":1},{"x":1,"y":2}],[{"x":0,"y":2},{"x":2,"y":1},{"x":1,"y":1},{"x":0,"y":1}],[{"x":0,"y":0},{"x":1,"y":2},{"x":1,"y":1},{"x":1,"y":0}]]]
   let palette = [cyan, yellow, magenta, green, red, blue, orange]
@@ -96,6 +101,7 @@ face "tetris" {
   }
   Column {
     fill: true
+    padding: 16
     gap: 10
     Row {
       align: center
