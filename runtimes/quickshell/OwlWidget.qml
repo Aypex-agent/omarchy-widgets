@@ -62,6 +62,14 @@ Item {
   property int generation: 0
   // Bumped every animation frame.
   property int frame: 0
+  // Bumped by every render, whether or not the tree changed: a Canvas whose node
+  // was kept still asks its drawing again, which may read what did change.
+  property int renders: 0
+  // The globals the Canvases' drawings read (slot -> true), added to by each
+  // OwlCanvas; with the tree's own, what a change has to touch to be drawn.
+  property var drawReads: ({})
+  // The next render is owed whatever changed: a resize, not a source.
+  property bool renderAll: true
   // Canvases whose last drawing read `time`; each OwlCanvas counts itself in and out.
   property int timeCanvases: 0
 
@@ -225,22 +233,77 @@ Item {
     renderLater.restart()
   }
 
-  // Coalesced: a handler that sets three states draws once.
+  // Coalesced: a handler that sets three states draws once. And a change that
+  // nothing on screen read -- a clock ticking every second for a widget that
+  // only uses it to time a fetch -- draws nothing: on a Pixel 3a that was the
+  // whole of fear-greed's cost, once a second, on the GUI thread.
   Timer {
     id: renderLater
     interval: 0
-    onTriggered: root.render()
+    onTriggered: {
+      if (!root.instance) return
+      var needed = root.instance.needsRender(root.drawReads)
+      if (needed || root.renderAll || !root.tree) root.render()
+    }
   }
 
+  // A render is merged into the tree on screen (share()), so only what changed
+  // reaches QML: a node whose object is kept costs nothing there, and a widget
+  // whose clock ticks every second while it shows the same thing hands over
+  // nothing at all. On a Pixel 3a, re-applying an identical tree was 26 ms of
+  // the GUI thread a second for one widget, in stalls of 100 ms.
   function render() {
     if (!root.instance) return
-    root.tree = root.instance.render(false)
-    if (root.screenOpen) root.screenTree = root.instance.render(true)
+    root.renderAll = false
+    var tree = root.share(root.tree, root.instance.render(false))
+    if (tree !== root.tree) root.tree = tree
+    if (root.screenOpen) {
+      var screen = root.share(root.screenTree, root.instance.render(true))
+      if (screen !== root.screenTree) root.screenTree = screen
+    }
+    root.renders++
+  }
+
+  // `b`, made of `a`'s objects wherever they hold the same values: the same
+  // keys, and equal values but for functions. A function is a handler or a
+  // drawing, made new by every render, so it decides nothing; where an object
+  // is kept, its functions are replaced in place with the new ones, so a tap
+  // runs this render's handler and a Canvas this render's drawing.
+  function share(a, b) {
+    if (a === b || a === null || b === null || typeof a !== "object" || typeof b !== "object") return b
+    if (Array.isArray(a) !== Array.isArray(b)) return b
+    var same = true
+    var out
+    if (Array.isArray(b)) {
+      same = a.length === b.length
+      out = new Array(b.length)
+      for (var i = 0; i < b.length; i++) {
+        out[i] = root.share(a[i], b[i])
+        if (out[i] !== a[i]) same = false
+      }
+      return same ? a : out
+    }
+    out = {}
+    var k
+    for (k in a) if (!(k in b)) same = false
+    for (k in b) {
+      if (!(k in a)) same = false
+      if (typeof b[k] === "function") {
+        if (typeof a[k] !== "function") same = false
+        out[k] = b[k]
+        continue
+      }
+      out[k] = root.share(a[k], b[k])
+      if (out[k] !== a[k] && !(out[k] !== out[k] && a[k] !== a[k])) same = false
+    }
+    if (!same) return out
+    for (k in b) if (typeof b[k] === "function") a[k] = b[k]
+    return a
   }
 
   // Tile size feeds tileWidth and tileHeight, which a widget may draw from.
-  onWidthChanged: if (root.instance) { root.instance.invalidate(); renderLater.restart() }
-  onHeightChanged: if (root.instance) { root.instance.invalidate(); renderLater.restart() }
+  onWidthChanged: if (root.instance) { root.instance.invalidate(); root.renderAll = true; renderLater.restart() }
+  onHeightChanged: if (root.instance) { root.instance.invalidate(); root.renderAll = true; renderLater.restart() }
 
   // --------------------------------------------------------------- fonts
 

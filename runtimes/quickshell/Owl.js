@@ -4134,6 +4134,15 @@ function Instance(program, host, persisted, secrets) {
   this.time = 0
   this.tracking = []
   this.readsTime = false
+  // What the host needs to skip work nobody would see: the globals a render,
+  // or a drawing inside reading(), read (`reads`, a set of slots while one
+  // records), what each cached let was made from (`letDeps`), and the globals
+  // that changed since the host last asked (`dirty`). Bookkeeping only: no
+  // value or render depends on it.
+  this.reads = null
+  this.renderReads = null
+  this.letDeps = []
+  this.dirty = {}
   this.triggerLast = []
   this.firing = 0
   this.budget = new Budget(200000)
@@ -4212,6 +4221,36 @@ Instance.prototype = {
     }
   },
 
+  noteRead: function(slot) {
+    if (this.reads) this.reads[slot] = true
+    for (var i = 0; i < this.tracking.length; i++) if (this.tracking[i].slots) this.tracking[i].slots[slot] = true
+  },
+
+  // The globals f() reads, also counted as read by whatever records around it.
+  reading: function(f) {
+    var outer = this.reads
+    this.reads = {}
+    try {
+      f()
+    } finally {
+      var got = this.reads
+      this.reads = outer
+      if (outer) for (var k in got) outer[k] = true
+    }
+    return got
+  },
+
+  // Whether a global that changed since the last ask was read by the last
+  // render, or is in `also` (what drawings read). Asking clears the changes.
+  needsRender: function(also) {
+    var hit = false
+    for (var k in this.dirty) {
+      if ((this.renderReads && this.renderReads[k]) || (also && also[k])) { hit = true; break }
+    }
+    this.dirty = {}
+    return hit
+  },
+
   markTime: function() {
     this.readsTime = true
     for (var i = 0; i < this.tracking.length; i++) this.tracking[i].time = true
@@ -4223,9 +4262,11 @@ Instance.prototype = {
       var cached = this.letCache[slot]
       if (cached !== undefined) {
         if (this.letTime[slot]) this.markTime()
+        var deps = this.letDeps[slot]
+        if (deps) for (var d = 0; d < deps.length; d++) this.noteRead(deps[d])
         return cached
       }
-      var frame = { time: false }
+      var frame = { time: false, slots: {} }
       this.tracking.push(frame)
       var v
       try {
@@ -4235,9 +4276,11 @@ Instance.prototype = {
       }
       this.letCache[slot] = v
       this.letTime[slot] = frame.time
+      this.letDeps[slot] = Object.keys(frame.slots).map(Number)
       if (frame.time) this.markTime()
       return v
     }
+    this.noteRead(slot)
     if (g.type === "sampled") {
       var samples = this.sampled[slot]
       if (g.prev) return samples.length >= 2 ? samples[samples.length - 2] : null
@@ -4253,6 +4296,7 @@ Instance.prototype = {
 
   write: function(slot, v) {
     if (equals(this.values[slot], v)) return
+    this.dirty[slot] = true
     this.values[slot] = v
     this.invalidate()
     this.changed()
@@ -4277,6 +4321,7 @@ Instance.prototype = {
         }
       }
     }
+    if (!equals(this.values[slot], v)) this.dirty[slot] = true
     this.values[slot] = v
     this.invalidate()
     this.sample()
@@ -4291,6 +4336,7 @@ Instance.prototype = {
       var samples = self.sampled[slot]
       samples.push(v)
       if (samples.length > g.keep) samples.splice(0, samples.length - g.keep)
+      self.dirty[slot] = true
     })
     this.invalidate()
   },
@@ -4416,6 +4462,8 @@ Instance.prototype = {
   render: function(screen) {
     var self = this
     this.readsTime = false
+    var outerReads = this.reads
+    this.reads = {}
     var out = []
     var nodes = screen ? this.program.screen : this.program.root
     this.guard("render", function() { self.nodes(nodes || [], self.env, out) }, null)
@@ -4429,6 +4477,10 @@ Instance.prototype = {
       onTap: this.program.onTap ? this.handlerFor(this.program.onTap, this.env) : null
     }
     if (screen) result.title = this.program.screenTitle ? text(this.evalSafe(this.program.screenTitle, this.env)) : this.program.name
+    // The screen's reads count with the tile's: either on show is reason to draw again.
+    if (screen && this.renderReads) for (var k in this.renderReads) this.reads[k] = true
+    this.renderReads = this.reads
+    this.reads = outerReads
     return result
   },
 
