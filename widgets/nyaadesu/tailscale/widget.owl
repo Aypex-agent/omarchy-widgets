@@ -1,21 +1,23 @@
 widget "tailscale" {
   size: 3x3
-  minSize: 2x2
-  meta { owl: 6; description: "Whether this phone's Tailscale VPN is on, its exit node and public IP (ipinfo.io), and your tailnet's devices via the Tailscale API. Approve exit nodes from the device list"; version: "1.0.1"; license: "MIT"; category: "system" }
+  minSize: 2x1
+  meta { owl: 12; description: "Whether this phone's Tailscale VPN is on, its exit node and public IP (ipinfo.io), and your tailnet's devices via the Tailscale API. Approve exit nodes from the device list"; version: "1.1"; license: "MIT"; category: "system" }
 
-  requires { pacman: ["iproute2", "iputils", "gawk", "curl"] }
+  requires { pacman: ["iproute2", "iputils", "gawk"] }
 
-  // An API access key from login.tailscale.com/admin/settings/keys, typed on the screen
-  // (or `owl-send <this file> set apiKey tskey-api-...`). Kept by the launcher, not in this file.
+  // An API access key from login.tailscale.com/admin/settings/keys, typed on the screen. Kept encrypted
+  // on the phone, never in this file or on Linux; it only ever goes to api.tailscale.com.
+  state token = null secret
+  // Where the key used to be kept, in plain launcher storage; a key found there is moved into token.
   state apiKey = "" persist
+  on apiKey first { if value != "" { token = value; apiKey = "" } }
   state draft = ""
   state keyMsg = ""   // why the last key typed wasn't saved
   state myId = "" persist   // the device marked as this phone, for phones where ip can't read the interfaces
-  state busy = ""   // the device whose exit node routes are being changed, or "failed"
+  state busy = ""   // the device whose exit node routes are being changed
+  state routeRes = null   // the routes endpoint's answer
 
-  // Only a well-formed key reaches the API and the shell commands, even one set with owl-send.
-  let key = match(apiKey, "^tskey-[A-Za-z0-9_-]+$") != null ? apiKey : ""
-  source api = http("https://api.tailscale.com/api/v2/tailnet/-/devices?fields=all", {Authorization: "Bearer ${key}"}) every 1m timeout 15s json status
+  source api = http(token == null ? null : "https://api.tailscale.com/api/v2/tailnet/-/devices?fields=all", {Authorization: "Bearer ${token}"}) every 1m timeout 15s json status
   // The Android app's VPN shows up here as an interface with a 100.64.0.0/10 address. Some phones don't let apps
   // read the interfaces (ip fails with "Cannot bind netlink socket"); then this says "unavailable".
   source local = cmd('if a=$(ip -br -4 addr 2>/dev/null); then echo "$a" | awk \'{split($3, a, "/"); split(a[1], o, "."); if (o[1] == 100 && o[2] >= 64 && o[2] < 128) {print a[1]; exit}}\'; else echo unavailable; fi') every 10s
@@ -24,7 +26,7 @@ widget "tailscale" {
   // Where the phone's traffic reaches the internet (through the exit node when one is used).
   source pub = http("https://ipinfo.io/json") every 5m timeout 10s json
 
-  let hasKey = key != ""
+  let hasKey = token != null
   // What was typed or pasted, with any spaces and line breaks taken out.
   let clean = join(words(draft), "")
   let draftError = clean == "" ? "Paste a key first."
@@ -54,10 +56,9 @@ widget "tailscale" {
     // An exit node advertises the default routes; the admin (this API) enables them.
     offersExit: contains(d.advertisedRoutes ?? [], "0.0.0.0/0"),
     exitOn: contains(d.enabledRoutes ?? [], "0.0.0.0/0"),
-    // The enabled routes with the exit routes added or removed, as JSON for the routes endpoint.
-    withExit: "{\"routes\":[" + join(unique((d.enabledRoutes ?? []) + exitRoutes).map(r => "\"${r}\""), ",") + "]}",
-    withoutExit: "{\"routes\":[" + join((d.enabledRoutes ?? []).filter(r => !contains(exitRoutes, r)).map(r => "\"${r}\""), ",") + "]}",
-    routesUrl: "https://api.tailscale.com/api/v2/device/" + d.id + "/routes"
+    // The enabled routes with the exit routes added or removed, for the routes endpoint.
+    withExit: unique((d.enabledRoutes ?? []) + exitRoutes),
+    withoutExit: (d.enabledRoutes ?? []).filter(r => !contains(exitRoutes, r))
   })
   let sorted = rows.sortBy(d => (d.phone ? "0" : d.on ? "1" : "2") + lower(d.name))
   let exits = rows.filter(d => d.offersExit)
@@ -72,40 +73,88 @@ widget "tailscale" {
 
   let problem = !hasKey ? "add an API key" : api == null ? null : rejected ? "API key rejected" : !api.ok ? "can't reach the API (${api.code})" : null
 
-  // Short tiles (landscape 3x3 is ~158dp tall) have no room for a separate "via" line while the exit line shows.
-  let compact = tileHeight < 180
-
   onTap: screen()
 
   component Dot(on) {
     Spacer { size: 8; radius: 4; background: on ? green : alpha(muted, 0.5) }
   }
 
+  // The tile packs the same facts tighter as it's resized smaller: one line at a single row, a short list at two.
+  let h = tileHeight ?? 999
+  // Secondary text: the theme's muted halfway to the text color, as some themes' muted is too faint to read.
+  let dim = mix(muted, foreground, 0.5)
+  let count = api == null ? "…" : "${online}/${len(devices)}"
+  let stateLabel = vpnOn ? "connected" : needPick ? "which?" : "off"
+
+  if h < 110 {
+    Column {
+      gap: 2
+      fill: true
+      justify: center
+      Row {
+        align: center
+        gap: 8
+        Dot { on: vpnOn }
+        Text { text: stateLabel; style: body; bold: true; color: vpnOn ? green : dim; maxLines: 1; weight: 1 }
+        Text { text: count; style: small; color: dim; maxLines: 1; width: 52; align: end }
+      }
+      Text { text: problem ?? (vpnOn ? "exit ${exitLabel}${pub.city == null ? "" : "  ·  " + pub.city}" : "VPN not running"); style: small; color: problem != null ? (hasKey ? red : yellow) : exitIp != "" ? accent : dim; maxLines: 1 }
+    }
+  } else if h < 230 {
+    Column {
+      gap: 4
+      fill: true
+      Row {
+        align: center
+        Text { text: "tailscale"; style: muted; color: dim; weight: 1 }
+        Dot { on: vpnOn }
+      }
+      Text { text: stateLabel; style: body; bold: true; color: vpnOn ? green : dim; maxLines: 1 }
+      if vpnOn {
+        Text { text: myIp; style: small; font: mono; maxLines: 1 }
+        Text { text: "exit: ${exitLabel}"; style: small; color: exitIp != "" ? accent : dim; maxLines: 1 }
+        Text { text: "${pub.city}, ${pub.country}"; style: small; color: dim; maxLines: 1; visible: pub.city != null }
+      } else if needPick {
+        Text { text: "tap: mark this phone"; style: small; color: dim; maxLines: 1 }
+      }
+      Spacer { weight: 1 }
+      if problem != null {
+        Text { text: problem; style: small; color: hasKey ? red : yellow; maxLines: 1 }
+      } else {
+        Text { text: "${count} online"; style: small; maxLines: 1 }
+      }
+      if !vpnOn && !needPick {
+        Button { text: "turn on"; color: accent; onTap: androidApp("com.tailscale.ipn") }
+      }
+    }
+  } else {
   Column {
-    gap: compact ? 4 : 6
+    gap: 6
     fill: true
     Row {
       align: center
-      Text { text: "tailscale"; style: muted; weight: 1 }
+      Text { text: "tailscale"; style: muted; color: dim; weight: 1 }
       Dot { on: vpnOn }
     }
-    Text { text: vpnOn ? "connected" : needPick ? "which?" : "off"; style: title; color: vpnOn ? green : muted }
-    Text { text: vpnOn ? myIp : needPick ? "tap: mark this phone" : "VPN not running"; style: small; font: mono; color: vpnOn ? foreground : muted }
+    Text { text: vpnOn ? "connected" : needPick ? "which?" : "off"; style: title; color: vpnOn ? green : dim }
+    Text { text: vpnOn ? myIp : needPick ? "tap: mark this phone" : "VPN not running"; style: small; font: mono; color: vpnOn ? foreground : dim }
     if vpnOn {
-      Text { text: "exit: ${exitLabel}" + (compact && pub.city != null ? " · ${pub.city}" : ""); style: small; color: exitIp != "" ? accent : muted; maxLines: 1 }
+      Text { text: "exit: ${exitLabel}"; style: small; color: exitIp != "" ? accent : dim; maxLines: 1 }
     }
-    Text { text: pub.city == null ? "" : "via ${pub.city}, ${pub.country}"; style: small; color: muted; maxLines: 1; visible: pub.city != null && !(compact && vpnOn) }
+    Text { text: pub.city == null ? "" : "via ${pub.city}, ${pub.country}"; style: small; color: dim; maxLines: 1; visible: pub.city != null }
     Spacer { weight: 1 }
     if problem != null {
       Text { text: problem; style: small; color: hasKey ? red : yellow; maxLines: 2 }
     } else {
       Text { text: "${api == null ? "…" : online}/${api == null ? "…" : len(devices)} devices online"; style: small }
     }
-    Button { text: vpnOn || needPick ? "open app" : "turn on"; color: vpnOn || needPick ? muted : accent; onTap: androidApp("com.tailscale.ipn") }
+    Button { text: vpnOn || needPick ? "open app" : "turn on"; color: vpnOn || needPick ? dim : accent; onTap: androidApp("com.tailscale.ipn") }
+  }
   }
 
   screen {
     title: "tailscale"
+    let dim = mix(muted, foreground, 0.5)
     Column {
       gap: 10
       fill: true
@@ -117,22 +166,22 @@ widget "tailscale" {
           gap: 0
           weight: 1
           Text { text: vpnOn ? "this phone is connected" : needPick ? "which device is this phone?" : "this phone's VPN is off"; style: body; bold: true }
-          Text { text: vpnOn ? myIp : needPick ? "This phone can't read its network interfaces. Tap \"mine\" on its entry below." : "turn it on in the Tailscale app"; style: small; font: mono; color: muted }
+          Text { text: vpnOn ? myIp : needPick ? "This phone can't read its network interfaces. Tap \"mine\" on its entry below." : "turn it on in the Tailscale app"; style: small; font: mono; color: dim }
         }
         Button { text: "open app"; onTap: androidApp("com.tailscale.ipn") }
       }
       Column {
         gap: 4
         Row {
-          Text { text: "exit node"; style: small; color: muted; width: 90 }
+          Text { text: "exit node"; style: small; color: dim; width: 90 }
           Text { text: !vpnOn && !needPick ? "—" : exitIp == "" ? exitLabel : exitDev == null ? exitIp : "${exitDev.name}  (${exitIp})"; style: small; font: mono; color: exitIp != "" ? accent : foreground; maxLines: 1; weight: 1 }
         }
         Row {
-          Text { text: "public IP"; style: small; color: muted; width: 90 }
+          Text { text: "public IP"; style: small; color: dim; width: 90 }
           Text { text: place != "" ? place : "…"; style: small; font: mono; maxLines: 1; weight: 1 }
         }
         Row {
-          Text { text: "network"; style: small; color: muted; width: 90 }
+          Text { text: "network"; style: small; color: dim; width: 90 }
           Text { text: pub.org ?? "…"; style: small; font: mono; maxLines: 1; weight: 1 }
         }
       }
@@ -140,24 +189,24 @@ widget "tailscale" {
 
       if !hasKey || rejected {
         if rejected {
-          Text { text: "Tailscale rejected the saved key (…${sub(key, len(key) - 4, len(key))}): ${apiSays != "" ? apiSays : "error ${api.code}"}. API access tokens expire (90 days by default). Paste a new one:"; style: small; color: red }
+          Text { text: "Tailscale rejected the saved key: ${apiSays != "" ? apiSays : "error ${api.code}"}. API access tokens expire (90 days by default). Paste a new one:"; style: small; color: red }
         } else {
           Text { text: "To list your tailnet's devices, generate an API access token (not an auth key) at login.tailscale.com/admin/settings/keys and paste it here:"; style: small }
         }
-        Input { placeholder: "tskey-api-..."; focus: !hasKey; onChange: { draft = value; keyMsg = "" }; onSubmit: { keyMsg = draftError; apiKey = draftError == "" ? clean : apiKey; refresh() } }
+        Input { placeholder: "tskey-api-..."; password: true; focus: !hasKey; onChange: { draft = value; keyMsg = "" }; onSubmit: { keyMsg = draftError; if draftError == "" { token = clean }; refresh() } }
         if keyMsg != "" {
           Text { text: keyMsg; style: small; color: yellow }
         }
         Row {
           gap: 8
-          Button { text: "save key"; onTap: { keyMsg = draftError; apiKey = draftError == "" ? clean : apiKey; refresh() } }
-          Button { text: "create key"; color: muted; onTap: url("https://login.tailscale.com/admin/settings/keys") }
+          Button { text: "save key"; onTap: { keyMsg = draftError; if draftError == "" { token = clean }; refresh() } }
+          Button { text: "create key"; color: dim; onTap: url("https://login.tailscale.com/admin/settings/keys") }
         }
       } else {
         Row {
           align: center
-          Text { text: problem ?? "${online} of ${len(devices)} devices online"; style: muted; color: problem == null ? muted : red; weight: 1 }
-          Button { text: "refresh"; color: muted; onTap: refresh() }
+          Text { text: problem ?? "${online} of ${len(devices)} devices online"; style: muted; color: problem == null ? dim : red; weight: 1 }
+          Button { text: "refresh"; color: dim; onTap: refresh() }
         }
         Column {
           gap: 6
@@ -178,34 +227,34 @@ widget "tailscale" {
                   gap: 0
                   weight: 1
                   Text { text: d.name + (d.phone ? "  (this phone)" : d.ip == exitIp ? "  (exit node in use)" : ""); style: body; bold: true; maxLines: 1 }
-                  Text { text: "${d.ip}  ·  ${d.os}${d.update ? "  ·  update" : ""}"; style: small; font: mono; color: muted; maxLines: 1 }
+                  Text { text: "${d.ip}  ·  ${d.os}${d.update ? "  ·  update" : ""}"; style: small; font: mono; color: dim; maxLines: 1 }
                 }
-                Text { text: d.on ? "online" : d.seen; style: small; color: d.on ? green : muted; width: 110; align: end; maxLines: 2 }
+                Text { text: d.on ? "online" : d.seen; style: small; color: d.on ? green : dim; width: 110; align: end; maxLines: 2 }
                 if !ipOk && (myDev == null || d.id == myId) {
-                  Button { text: d.id == myId ? "not mine" : "mine"; color: muted; onTap: myId = d.id == myId ? "" : d.id }
+                  Button { text: d.id == myId ? "not mine" : "mine"; color: dim; onTap: myId = d.id == myId ? "" : d.id }
                 }
               }
               if d.offersExit {
                 Row {
                   align: center
                   gap: 8
-                  Text { text: busy == d.id ? "exit node: saving…" : d.exitOn ? "exit node: allowed" : "exit node: offered, not approved"; style: small; color: d.exitOn ? accent : yellow; weight: 1 }
+                  Text { text: busy == d.id && routeRes == null ? "exit node: saving…" : d.exitOn ? "exit node: allowed" : "exit node: offered, not approved"; style: small; color: d.exitOn ? accent : yellow; weight: 1 }
                   if d.exitOn {
-                    Button { text: "disable"; color: muted; onTap: { busy = d.id; busy = run("printf 'Authorization: Bearer %s' ${sh(key)} | curl -sf -X POST -H @- -H 'Content-Type: application/json' -d ${sh(d.withoutExit)} ${sh(d.routesUrl)} >/dev/null || echo failed") } }
+                    Button { text: "disable"; color: dim; onTap: { busy = d.id; routeRes = null; routeRes = post("https://api.tailscale.com/api/v2/device/${enc(d.id)}/routes", {routes: d.withoutExit}, {Authorization: "Bearer ${token}"}) } }
                   } else {
-                    Button { text: "approve"; onTap: { busy = d.id; busy = run("printf 'Authorization: Bearer %s' ${sh(key)} | curl -sf -X POST -H @- -H 'Content-Type: application/json' -d ${sh(d.withExit)} ${sh(d.routesUrl)} >/dev/null || echo failed") } }
+                    Button { text: "approve"; onTap: { busy = d.id; routeRes = null; routeRes = post("https://api.tailscale.com/api/v2/device/${enc(d.id)}/routes", {routes: d.withExit}, {Authorization: "Bearer ${token}"}) } }
                   }
                 }
               }
             }
           }
         }
-        Text { text: "Couldn't change the exit node: the API key may lack write access to devices."; style: small; color: red; visible: busy == "failed" }
-        Text { text: "Pick the exit node this phone uses in the Tailscale app; here you approve which devices may serve as one."; style: small; color: muted; visible: len(exits) > 0 }
+        Text { text: "Couldn't change the exit node: the API key may lack write access to devices."; style: small; color: red; visible: routeRes != null && routeRes.ok == false }
+        Text { text: "Pick the exit node this phone uses in the Tailscale app; here you approve which devices may serve as one."; style: small; color: dim; visible: len(exits) > 0 }
         Row {
           gap: 8
-          Text { text: "tap a device to copy its IP"; style: small; color: muted; weight: 1 }
-          Button { text: "forget key"; color: red; onTap: apiKey = "" }
+          Text { text: "tap a device to copy its IP"; style: small; color: dim; weight: 1 }
+          Button { text: "forget key"; color: red; onTap: token = null }
         }
       }
     }
