@@ -1,5 +1,5 @@
 app "OWL справочник" {
-  meta { owl: 11; description: "Русский справочник OWL: основы, примеры, шаблоны, версии и советы"; version: "1.4"; license: "MIT"; category: "dev" }
+  meta { owl: 11; description: "Русский справочник OWL: основы, примеры, шаблоны, версии и советы"; version: "1.5"; license: "MIT"; category: "dev" }
   icon: """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M24 11C18 6 10 6 4 8v31c7-2 14-1 20 4 6-5 13-6 20-4V8c-6-2-14-2-20 3v32"/><path d="m15 18-5 6 5 6m18-12 5 6-5 6"/></svg>"""
   state tab = "Основы" persist
   state query = ""
@@ -129,7 +129,7 @@ app "OWL справочник" {
     "cat": "Версии",
     "title": "OWL 9",
     "desc": "Даты, коллекции, случайность и обработчики",
-    "body": "Возможности OWL 9 остаются доступны в OWL 11. Объявляйте meta { owl: 9 } для новых функций.\n\nДаты и числа: parseTime, fmtAgo, fmtNum; fmtTime получил часовой пояс и язык. Коллекции: set, remove, merge, reduce, scan, groupBy; сериализация toJson. Также появились capitalize, asin, acos и глубина flatten.\n\nСлучайность: random, shuffle, hash. Обработчики поддерживают if и локальный let; on x first обрабатывает и первое значение источника. Подробные примеры ищите по названиям функций.",
+    "body": "Возможности OWL 9 остаются доступны в OWL 14. Объявляйте meta { owl: 9 } для новых функций.\n\nДаты и числа: parseTime, fmtAgo, fmtNum; fmtTime получил часовой пояс и язык. Коллекции: set, remove, merge, reduce, scan, groupBy; сериализация toJson. Также появились capitalize, asin, acos и глубина flatten.\n\nСлучайность: random, shuffle, hash. Обработчики поддерживают if и локальный let; on x first обрабатывает и первое значение источника. Подробные примеры ищите по названиям функций.",
     "code": "meta { owl: 9 }"
   },
   {
@@ -137,7 +137,7 @@ app "OWL справочник" {
     "cat": "Версии",
     "title": "OWL 8",
     "desc": "Приложения, сеть и мультимедиа",
-    "body": "app-файлы с иконкой и отдельным окном; android.apps со списком приложений, профилем и историей запусков; enc для значений в URL; post для HTTP POST; изображения с HTTPS; sound для коротких звуков; screenInset для нижнего системного отступа.\n\nedge: true позволяет содержимому приложения идти под панель навигации. Держите кнопки выше screenInset, а прокручиваемый список завершайте Spacer соответствующей высоты. Эти возможности требуют минимум OWL 8.",
+    "body": "app-файлы с иконкой и отдельным окном; android.apps со списком приложений, профилем и историей запусков; enc для значений в URL; post для HTTP POST; изображения с HTTPS; sound для коротких звуков; screenInset для нижнего системного отступа.\n\nedge: true позволяет содержимому приложения идти под панель навигации. Держите кнопки выше screenInset, а прокручиваемый список завершайте Spacer соответствующей высоты. Эти возможности требуют минимум OWL 8; текущий локальный README описывает OWL 14.",
     "code": "meta { owl: 8 }"
   },
   {
@@ -169,7 +169,7 @@ app "OWL справочник" {
     "cat": "Советы",
     "title": "Проверка и зависимости",
     "desc": "owl-check, pacman и предпросмотр",
-    "body": "После сохранения запустите owl-check имя.owl. Он ждёт загрузки сохранённой версии, печатает ошибки и путь к PNG с живыми данными. Откройте изображение: проверьте переносы, размеры, прокрутку и кнопки. Для виджета с экраном будет два PNG, для приложения — полный вид.\n\nВсе нужные командам пакеты перечисляйте в requires { pacman: [\"jq\"] } и устанавливайте pacman -S --needed jq. Имя пакета может отличаться от команды: dig входит в bind. Базовые coreutils, grep, sed и bash объявлять необязательно. Примеры в справочнике копируются в буфер и не исполняются.",
+    "body": "После сохранения запустите owl-check имя.owl. Он ждёт загрузки сохранённой версии, печатает ошибки и путь к PNG с живыми данными. Откройте изображение: проверьте переносы, размеры, прокрутку и кнопки. Для виджета с экраном будет два PNG, для приложения — полный вид.\n\nВсе нужные командам пакеты перечисляйте в requires { pacman: [\"jq\"] } и устанавливайте pacman -S --needed jq. Имя пакета может отличаться от команды: dig входит в bind. Базовые coreutils, grep, sed и bash объявлять необязательно. Примеры в справочнике копируются в буфер и не исполняются.\n\nСам справочник не исполняет shell-команды: примеры показываются как текст и копируются в буфер. Поэтому его requires.pacman пуст; пакеты из примеров нужны только при запуске соответствующих файлов.",
     "code": "owl-check my-app.owl\npacman -S --needed jq"
   },
   {
@@ -249,7 +249,7 @@ app "OWL справочник" {
     "cat": "Основы",
     "title": "Домашние страницы: face",
     "desc": "Размещение, системные панели и размеры",
-    "body": "face пишется как widget, но без size и minSize; требуется OWL 10. page: 0 размещает её слева от страницы 1, −1 и −2 — ещё левее. Перемещайте страницы в настройках launcher › pages.\n\nФон прозрачен: видны обои. statusBar может быть выражением; false скрывает строку состояния. Добавьте Spacer высотой screenInset над навигацией и клавиатурой.\n\ncols и rows описывают сетку, tileWidth и tileHeight — размер страницы в dp. Жест вверх открывает список приложений; для содержимого используйте вертикальную прокрутку. Пример: examples/00-start.owl.",
+    "body": "face — целая домашняя страница без size и minSize; требуется OWL 10. page: 0 размещает её слева от страницы 1, −1 и −2 — ещё левее. Свободную страницу справа тоже можно занять face. Перемещение — в settings › pages.\n\nПо умолчанию содержимое обходит строку состояния и вырез камеры. statusBar: false скрывает строку состояния. С edge: true (OWL 14) содержимое идёт под верхнюю панель и боковые системные области; screenTop, screenLeft и screenRight задают безопасные отступы. edge задаётся постоянным true или false.\n\nface всегда идёт под нижнюю навигацию. Spacer высотой screenInset поднимает последний элемент над ней, а при вводе — над клавиатурой. cols и rows описывают сетку, tileWidth и tileHeight — размер страницы в dp. Для планшета и складного телефона учитывайте горизонтальную ориентацию.\n\nФон прозрачен: видны обои. background: alpha(background, tileOpacity) и frost: tileFrost повторяют оформление плиток (OWL 13).",
     "code": ""
   },
   {
@@ -293,12 +293,84 @@ app "OWL справочник" {
     "code": "owl-send build.owl set status passing\nowl-send build.owl set info - < info.json\nowl-send build.owl refresh"
   },
   {
+    "id": "34",
+    "cat": "Версии",
+    "title": "OWL 12",
+    "desc": "Клавиши, секреты и системные отступы",
+    "body": "OWL 12 добавляет screenTop для приложения, gapsIn, gapsOut и borderWidth для оформления под настройки пользователя.\n\nДля клавиатуры: keybar, pressKey, typeText, latch, android.modifiers, onPress, onRelease и repeats. Для запросов и секретов: post с method, toBase64, fromBase64, state secret и Input.password.\n\nОтступы screenTop, screenLeft и screenRight в face с edge: true требуют OWL 14.",
+    "code": "meta { owl: 12 }"
+  },
+  {
+    "id": "35",
+    "cat": "Версии",
+    "title": "OWL 13",
+    "desc": "Системные действия, сеть и жесты",
+    "body": "OWL 13 добавляет settings для системных панелей, dnd, яркость фонарика torch(level), выбор потока volume и сведения об аудиовыходе. android.modes получил радиомодули, геолокацию, поворот, тёмную тему, яркость, dndAllows и torchLevel.\n\nНовые источники: android.network и android.sim. Уведомления поддерживают clear, action, reply, snooze, snoozeAll, unsnooze и unsnoozeAll. Для жестов появились drag, onDragEnd и animate offset; для оформления — tileOpacity и tileFrost. У панели появилось opacity.\n\nДля регулировки фонарика через Slider явно указывайте owl: 13: проверка не может отличить переменную яркость от обычного включения.",
+    "code": "meta { owl: 13 }"
+  },
+  {
     "id": "36",
     "cat": "Основы",
     "title": "Панели и поиск приложений",
     "desc": "panel, android.drawer, rank и lazy",
     "body": "panel — отдельный файл, открываемый жестом. Панели назначаются в настройках gestures; drawer.owl — список приложений.\n\nПанель снизу получает query из строки ввода и onSubmit с value. rank(d.apps, query) ранжирует приложения; strongMatch помогает выбрать между запуском и вопросом агенту. Для длинных списков используйте lazy: true. Панель сверху не получает ввод строки.",
     "code": "panel \"Приложения\" {\n  meta { owl: 11 }\n  source d = android.drawer\n  Grid {\n    columns: 4\n    lazy: true\n    weight: 1\n    for a in rank(d.apps, query) key a.key {\n      Button { text: a.name; onTap: open(a.key) }\n    }\n  }\n}"
+  },
+  {
+    "id": "37",
+    "cat": "Шаблоны",
+    "title": "Дополнительные клавиши",
+    "desc": "keybar, onPress и pressKey",
+    "body": "keybar.owl задаёт полосу над экранной клавиатурой. Клавиши не забирают фокус. onPress срабатывает при нажатии; repeats повторяет удерживаемую стрелку. latch удерживает модификатор, typeText вводит текст в Linux-окно.",
+    "code": "keybar \"Клавиши\" {\n  meta { owl: 12 }\n  Row {\n    Button { text: \"Esc\"; onPress: pressKey(\"esc\") }\n    Button { text: \"↑\"; repeats: true; onPress: pressKey(\"up\") }\n    Button { text: \"Ctrl\"; onTap: latch(\"ctrl\") }\n  }\n}"
+  },
+  {
+    "id": "38",
+    "cat": "Советы",
+    "title": "Токены и пароли",
+    "desc": "secret, password и HTTP method",
+    "body": "Храните токены в state token = null secret: они сохраняются на телефоне зашифрованно отдельно от persist. Секрет разрешён в заголовках http/post, теле post и в URL строго через enc(token). Сервер должен быть записан явно и использовать HTTPS. Предпочитайте заголовок: URL может попасть в журналы сервера.\n\nСекрет нельзя выводить, копировать, передавать в shell, сохранять в let или другое state, отслеживать триггером. Можно проверить наличие через token == null, token != null или token != \"\". Input с password: true скрывает ввод; token = null выполняет выход. owl-send не может установить секрет.\n\nДо ввода токена приостанавливайте http с помощью null URL. post поддерживает фиксированный method: \"PUT\", \"PATCH\" или \"DELETE\" (OWL 12). Base64 — кодирование, а не шифрование.",
+    "code": "state token = null secret\nInput { password: true; placeholder: \"Токен\"; onSubmit: token = value }"
+  },
+  {
+    "id": "39",
+    "cat": "Основы",
+    "title": "Сеть и SIM-карта",
+    "desc": "android.network, android.sim и скорость",
+    "body": "android.network (OWL 13) возвращает rx, tx, mobileRx, mobileTx и uptime: байты с загрузки телефона и время замера в секундах с начала работы. Неподдерживаемые счётчики равны null. Скорость — разность байтов, делённая на разность uptime, а не на интервал every: вне экрана опрос останавливается. После перезагрузки счётчики сбрасываются.\n\nandroid.sim возвращает available, present, carrier, signal (0–4), data и roaming. На планшете available равен false; без SIM часть полей null. Источники не требуют разрешений. Тип сети LTE/5G и выбор SIM эти данные не содержат.",
+    "code": "widget \"Скорость сети\" {\n  meta { owl: 13 }\n  size: 3x2\n  source net = android.network every 2s\n  state down = null\n  on net {\n    if old != null && value.rx != null && old.rx != null && value.rx >= old.rx && value.uptime > old.uptime {\n      down = (value.rx - old.rx) / (value.uptime - old.uptime)\n    } else { down = null }\n  }\n  Text { text: down == null ? \"…\" : fmtBytes(down) + \"/s\" }\n}"
+  },
+  {
+    "id": "40",
+    "cat": "Основы",
+    "title": "Системные панели и режимы",
+    "desc": "settings, dnd, volume и torch",
+    "body": "settings(\"wifi\") открывает системную панель Android. Поддерживаются internet, wifi, bluetooth, airplane, data, location, cast, nfc, volume, output, sound, dnd, display, dark, battery и notifications (OWL 13).\n\nandroid.modes читает режимы, но радиомодули, яркость экрана, поворот и тёмную тему переключаются в системных настройках. dnd(true), dnd(false) и dnd(\"toggle\") управляют «Не беспокоить»; priority, alarms, none и all задают пропускаемые сигналы. На Android 15+ отключить можно только режим, включённый самим launcher; иначе откроются настройки.\n\nvolume(level, \"alarm\") меняет громкость будильника; также доступны ring и notification. android.volume.output содержит type и name выхода; settings(\"output\") открывает выбор устройства. torch(40) задаёт яркость фонарика, если телефон это поддерживает; torchLevel сообщает ближайшую доступную ступень.",
+    "code": "widget \"Wi-Fi\" {\n  meta { owl: 13 }\n  size: 2x2\n  source modes = android.modes\n  Button { text: modes.wifi ? \"Wi-Fi включён\" : \"Wi-Fi выключен\"; onTap: settings(\"wifi\") }\n}"
+  },
+  {
+    "id": "41",
+    "cat": "Версии",
+    "title": "OWL 14",
+    "desc": "Безопасные отступы домашней страницы",
+    "body": "Текущий launcher поддерживает OWL 14. Эта версия добавляет edge у face и отступы screenTop, screenLeft, screenRight в такой странице. Содержимое может рисоваться под строкой состояния, вырезом камеры и боковой навигацией; интерактивные элементы нужно размещать с учётом отступов.\n\nВерсия meta.owl — минимальное требование файла, а не номер установленного launcher. Используйте максимальную из версий возможностей, которые нужны вашему файлу.",
+    "code": "meta { owl: 14 }"
+  },
+  {
+    "id": "42",
+    "cat": "Шаблоны",
+    "title": "Face с безопасными отступами",
+    "desc": "edge, screenTop, screenLeft и screenRight",
+    "body": "Фон страницы доходит до краёв экрана. Отступы защищают текст сверху и по бокам, а screenInset — снизу, включая клавиатуру. Для этой страницы требуется OWL 14.",
+    "code": "face \"До краёв\" {\n  meta { owl: 14 }\n  edge: true\n  background: alpha(background, 0.7)\n  Column {\n    fill: true\n    padding: [screenLeft + 12, screenTop + 8, screenRight + 12, 0]\n    Text { text: \"Моя страница\"; style: title }\n    Spacer { weight: 1 }\n    Spacer { height: screenInset }\n  }\n}"
+  },
+  {
+    "id": "43",
+    "cat": "Основы",
+    "title": "Жесты и возврат с пружиной",
+    "desc": "drag, onDragEnd и animate offset",
+    "body": "С OWL 13 drag: horizontal ограничивает перетаскивание горизонталью, оставляя вертикальную прокрутку родительскому списку. onDrag получает dx, dy, x и y; onDragEnd завершает жест.\n\nanimate offset: spring() следует пальцу без задержки только тогда, когда offset, animate offset и onDrag находятся на одном узле. После отпускания можно вернуть смещение к нулю: оно плавно восстановится.",
+    "code": "widget \"Жест\" {\n  meta { owl: 13 }\n  size: 3x2\n  state shift = 0\n  Box {\n    offset: [shift, 0]\n    animate offset: spring()\n    drag: horizontal\n    onDrag: shift = shift + dx\n    onDragEnd: shift = 0\n    Text { text: \"Потяните в сторону\" }\n  }\n}"
   }
 ]
 
@@ -318,7 +390,7 @@ app "OWL справочник" {
           if query != "" { Text { text: "×"; width: 32; align: center; onTap: query = "" } }
         }
         Row {
-          Text { text: "OWL 1–11 · офлайн"; style: small; color: mix(muted, foreground, 0.45); weight: 1 }
+          Text { text: "OWL 1–14 · офлайн"; style: small; color: mix(muted, foreground, 0.45); weight: 1 }
           Text { text: onlySaved ? "★ Избранное" : "☆ Избранное"; style: small; color: onlySaved ? accent : mix(muted, foreground, 0.45); width: 130; align: end; onTap: onlySaved = !onlySaved }
         }
       }
@@ -345,7 +417,7 @@ app "OWL справочник" {
             if trim(query) != "" { Text { text: a.cat; style: small; color: accent } }
           }
         }
-        Text { text: "Источник: README.md и docs/ · OWL 11 · 23.10.2026"; style: small; color: mix(muted, foreground, 0.45); padding: [0, 12] }
+        Text { text: "Источник: README.md и docs/ · OWL 14 · 25.10.2026"; style: small; color: mix(muted, foreground, 0.45); padding: [0, 12] }
       }
       Box { height: 1; fill: width; background: alpha(muted, 0.25) }
       Row {
