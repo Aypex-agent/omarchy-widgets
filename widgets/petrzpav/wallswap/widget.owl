@@ -3,7 +3,7 @@ widget "wallswap" {
   order: 5
   size: 3x3
   minSize: 2x2
-  meta { owl: 13; description: "Keeps the wallpaper fresh: a new image from NASA APOD, Bing, Wikimedia Commons or Wallhaven once a day, cropped to the phone, with a preview, credits, previous and keep"; version: "1.3.0"; license: "MIT"; category: "media" }
+  meta { owl: 13; description: "Keeps the wallpaper fresh: a new image from NASA APOD, Bing, Wikimedia Commons or Wallhaven once a day, cropped to the phone, with a preview, credits, previous and keep"; version: "1.4.0"; license: "MIT"; category: "media" }
 
   requires { pacman: ["curl", "jq", "file", "imagemagick", "iproute2"] }
 
@@ -455,9 +455,13 @@ esac
   state interval = 1440 persist
   state query = "" persist
   state wifiOnly = true persist
+  state notAsleep = true persist
 
   source sys = android.system every 10m
   source now = clock every 30s
+  // Bedtime mode turns on Do Not Disturb: while it's on, automatic swaps wait.
+  source modes = android.modes
+  let asleep = notAsleep && modes != null && modes.dnd == true
   let cfg = toJson({sources: sources, interval: interval, query: query, wifiOnly: wifiOnly, screen: sys == null ? null : [sys.display.width, sys.display.height], theme: sys == null ? null : sys.theme})
   source st = cmd("bash -c ${sh(ws)} wallswap info ${sh(cfg)}") every 1m json
 
@@ -468,7 +472,7 @@ esac
   state out = ""
   at nextAt {
     nextAt = 0
-    if !busy {
+    if !busy && !asleep {
       busy = true
       out = run("bash -c ${sh(ws)} wallswap tick ${sh(cfg)} 2>&1 | tail -1; date +%s%N")
     }
@@ -476,6 +480,11 @@ esac
   // The date makes every run's output differ, so this fires each time one finishes.
   on out { busy = false }
   on st first { if !busy { nextAt = value.nextAt ?? 0 } }
+  // A swap that came due while asleep runs on waking; tick does nothing when none is due.
+  on asleep { if !value && !busy {
+    busy = true
+    out = run("bash -c ${sh(ws)} wallswap tick ${sh(cfg)} 2>&1 | tail -1; date +%s%N")
+  } }
 
   let hasImg = st != null && st.bg != null
   let err = st == null ? "" : st.error ?? ""
@@ -483,7 +492,7 @@ esac
   let waitingWifi = st != null && st.waitingWifi == true
   let intervals = [15, 30, 60, 180, 360, 1440, 0]
   let everyLabel = interval <= 0 ? "only when you ask" : interval % 1440 == 0 ? "once a day" : interval % 60 == 0 ? (interval == 60 ? "every hour" : "every ${interval / 60} hours") : "every ${interval} minutes"
-  let statusText = busy ? "fetching a new wallpaper…" : err != "" ? err : paused ? "paused" : interval <= 0 ? "swaps only when you ask" : waitingWifi ? "waiting for Wi-Fi" : st == null || now == null || st.nextAt <= 0 ? "" : st.nextAt <= now ? "swapping soon" : "next swap ${fmtAgo(st.nextAt, now)}"
+  let statusText = busy ? "fetching a new wallpaper…" : err != "" ? err : paused ? "paused" : interval <= 0 ? "swaps only when you ask" : waitingWifi ? "waiting for Wi-Fi" : asleep && st != null && now != null && st.nextAt > 0 && st.nextAt <= now ? "waiting until Do Not Disturb is off" : st == null || now == null || st.nextAt <= 0 ? "" : st.nextAt <= now ? "swapping soon" : "next swap ${fmtAgo(st.nextAt, now)}"
   let allSources = [
     {id: "apod", label: "NASA APOD", detail: "Astronomy Picture of the Day"},
     {id: "bing", label: "Bing", detail: "Image of the day, in the phone's size"},
@@ -636,6 +645,21 @@ esac
           Text { text: wifiOnly ? "automatic swaps wait for Wi-Fi; next always swaps" : "on mobile data too"; style: small; color: muted }
         }
         Box { width: 44; height: 24; radius: 12; padding: 3; background: wifiOnly ? accent : alpha(muted, 0.35); align: wifiOnly ? "end" : "start"
+          Box { width: 18; height: 18; radius: 9; background: background }
+        }
+      }
+      Row {
+        gap: 12
+        align: center
+        padding: [0, 4]
+        onTap: { haptic(); notAsleep = !notAsleep }
+        Column {
+          gap: 0
+          weight: 1
+          Text { text: "Not while sleeping" }
+          Text { text: notAsleep ? "automatic swaps wait during Do Not Disturb" : "also during Do Not Disturb"; style: small; color: muted }
+        }
+        Box { width: 44; height: 24; radius: 12; padding: 3; background: notAsleep ? accent : alpha(muted, 0.35); align: notAsleep ? "end" : "start"
           Box { width: 18; height: 18; radius: 9; background: background }
         }
       }

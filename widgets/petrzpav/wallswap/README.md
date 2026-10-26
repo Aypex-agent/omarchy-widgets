@@ -14,4 +14,6 @@ https://github.com/petrzpav/omalauncher-wallswap
   `~/.config/omalauncher/style/style.toml` names it. Keep copies it there under its own name.
 - HTTPS only, no redirects, size and time limits, and each source may only return images from its own
   host. Cache in `~/.cache/wallswap/`, state in `~/.local/state/wallswap/`.
-- Needs `curl`, `jq`, `file` and `imagemagick`.
+- Automatic swaps wait for Wi-Fi and while Do Not Disturb or Bedtime mode is on (both switchable);
+  **next** always swaps.
+- Needs `curl`, `jq`, `file`, `imagemagick` and `iproute2`.
