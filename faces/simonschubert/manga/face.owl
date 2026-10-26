@@ -6,7 +6,7 @@ face "manga" {
   meta {
     owl: 14
     description: "A manga page: a halftone city that follows the hour and the weather, your newest notification, a close-up, fastfetch and Hacker News"
-    version: "1.1"
+    version: "1.2"
     license: "MIT"
     category: "fun"
   }
@@ -138,7 +138,12 @@ face "manga" {
       return clamp(dot(p - a, ba) / dot(ba, ba), 0.0, 1.0);
     }
     float cover(float d, float w, float aa) { return 1.0 - smoothstep(w - aa, w + aa, d); }
-    half4 inked(float k) { return mix(paper, ink, clamp(k, 0.0, 1.0)); }
+    // The art is printed dark on light whatever the theme: on a dark one its foreground is the paper and its background the ink,
+    // or every picture would come out as its negative.
+    half4 inked(float k) {
+      bool dark = dot(paper.rgb, half3(0.2126, 0.7152, 0.0722)) < dot(ink.rgb, half3(0.2126, 0.7152, 0.0722));
+      return mix(dark ? ink : paper, dark ? paper : ink, clamp(k, 0.0, 1.0));
+    }
   """
 
   let city = """
