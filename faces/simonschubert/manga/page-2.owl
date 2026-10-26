@@ -6,7 +6,7 @@ face "boulevard" {
   meta {
     owl: 13
     description: "A seaside manga page: halftone palms by a pool, a drive-in's sign, what's playing with its cover, a stock and crypto watchlist and a cat under the stars"
-    version: "1.0"
+    version: "1.1"
     license: "MIT"
     category: "fun"
   }
@@ -20,6 +20,10 @@ face "boulevard" {
   source mk = http("https://query1.finance.yahoo.com/v8/finance/spark?symbols=BTC-USD,SPCX,TSLA,NVDA,ETH-USD,%5EGSPC&range=1d&interval=15m", {"User-Agent": "Mozilla/5.0"}) every 5m timeout 15s json
 
   state pick = "SPCX" persist
+  // A tap on the cat turns its face to you, and the next one back to the stars.
+  state facing = false
+  state turnAt = -100
+  state turnTap = 0
 
   let watch = [["BTC-USD", "BTC"], ["SPCX", "SPCX"], ["TSLA", "TSLA"], ["NVDA", "NVDA"], ["ETH-USD", "ETH"], ["^GSPC", "S&P"]]
   let heavy = "https://raw.githubusercontent.com/google/fonts/main/ofl/archivoblack/ArchivoBlack-Regular.ttf"
@@ -58,6 +62,12 @@ face "boulevard" {
   let rightW = CW - leftW
   let coinW = floor(CW * 0.6)
   let catW = CW - coinW - g
+
+  // A tap's `time` can be seconds behind the frame clock's, as it read the clock before the frames started again: so the tap
+  // only marks the turn as due (-1), and it starts on the first frame after, at that frame's time.
+  when turnAt == -1 && time != turnTap { turnAt = time }
+  // The turn is over: `time` is read only while the head moves. Or `time` restarted under a stale tap.
+  when turnAt >= 0 && (time > turnAt + 0.7 || time < turnAt - 1) { turnAt = -100 }
   let ink = foreground
   let paper = background
 
@@ -269,6 +279,7 @@ face "boulevard" {
   """
 
   let cat = """
+    uniform float turn;
     float side(float2 p, float2 a, float2 b) { return (p.x - b.x) * (a.y - b.y) - (a.x - b.x) * (p.y - b.y); }
     bool tri(float2 p, float2 a, float2 b, float2 c) {
       float d1 = side(p, a, b);
@@ -319,6 +330,45 @@ face "boulevard" {
       k = k || tri(u, c + float2(0.05, -0.3), c + float2(0.04, -0.39), c + float2(0.005, -0.33));
       float tail = min(seg(u, c + float2(0.06, -0.01), c + float2(0.15, 0.0)), min(seg(u, c + float2(0.15, 0.0), c + float2(0.2, -0.05)), seg(u, c + float2(0.2, -0.05), c + float2(0.195, -0.12))));
       if (k || tail < 0.016) { L = 1.0; P = 0.0; }
+      // Tapped, it looks round over its shoulder: the face comes round the head as turn goes from 0 to 1, each feature
+      // at its place on a ball seen from the side, narrowing toward the edge.
+      if (turn > 0.0) {
+        float2 hc = c + float2(-0.005, -0.285);
+        float rx = 0.068;
+        float face = 3.14159 * (1.0 - turn);
+        float2 h = u - hc;
+        bool head = length(h / float2(rx, 0.058)) < 1.0;
+        for (int i = 0; i < 2; i++) {
+          float lon = face + (i == 0 ? -0.5 : 0.5);
+          float cl = cos(lon);
+          if (cl > 0.05) {
+            float2 e = float2(rx * sin(lon), -0.006);
+            float2 d = (h - e) / float2(0.019 * cl, 0.015);
+            if (length(d) < 1.0) { P = 1.0; L = 0.0; if (abs(d.x) < 0.28 && abs(d.y) < 0.85) { P = 0.0; L = 1.0; } }
+          }
+        }
+        float cn = cos(face);
+        if (cn > 0.05) {
+          float nx = rx * sin(face);
+          float2 a = float2(nx - 0.009 * cn, 0.014);
+          float2 b = float2(nx + 0.009 * cn, 0.014);
+          float2 m = float2(nx, 0.024);
+          if (tri(h, a, b, m)) { P = 1.0; L = 0.0; }
+          float mo = min(seg(h, m, m + float2(-0.011 * cn, 0.009)), seg(h, m, m + float2(0.011 * cn, 0.009)));
+          if (head && mo < 0.0025) { P = 1.0; L = 0.0; }
+          // Whiskers: paper across the face, ink once they're out against the sky.
+          for (int j = 0; j < 3; j++) {
+            float wy = 0.016 + float(j) * 0.009;
+            float sp = 0.006 * (float(j) - 1.0);
+            for (int sd = 0; sd < 2; sd++) {
+              float dir = sd == 0 ? -1.0 : 1.0;
+              float2 w0 = float2(nx + dir * 0.016 * cn, wy);
+              float2 w1 = float2(nx + dir * (0.016 * cn + 0.075 * cn), wy - 0.008 + sp * 2.0);
+              if (seg(h, w0, w1) < 0.0018) { if (head) { P = 1.0; L = 0.0; } else { L = 1.0; P = 0.0; } }
+            }
+          }
+        }
+      }
       return inked(max(dots(q, tone, 3.0, aa), L) * (1.0 - P));
     }
   """
@@ -531,7 +581,8 @@ face "boulevard" {
     Box {
       width: catW
       fill: height
-      Shader { fill: true; fallback: muted; uniforms: { ink: ink, paper: paper, dpw: catW }; code: lib + cat }
+      onTap: { facing = !facing; turnTap = time; turnAt = -1 }
+      Shader { fill: true; fallback: muted; uniforms: { ink: ink, paper: paper, dpw: catW, turn: turnAt == -1 ? (facing ? 0 : 1) : turnAt < 0 ? (facing ? 1 : 0) : [clamp((time - turnAt) / 0.7, 0, 1)].map(t => (facing ? 1 : -1) * t * t * (3 - 2 * t) + (facing ? 0 : 1))[0] }; code: lib + cat }
       Frame { e: [0, 0, 0, 0, 0, 0, 0, 0]; art: true }
     }
   }

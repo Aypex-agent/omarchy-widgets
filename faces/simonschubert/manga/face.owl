@@ -6,7 +6,7 @@ face "manga" {
   meta {
     owl: 14
     description: "A manga page: a halftone city that follows the hour and the weather, your newest notification, a close-up, fastfetch and Hacker News"
-    version: "1.0"
+    version: "1.1"
     license: "MIT"
     category: "fun"
   }
@@ -29,6 +29,10 @@ face "manga" {
     . /etc/os-release
     printf '%s\t%s\t%s\n' "$PRETTY_NAME" "$(pacman -Qq | wc -l)" "$(basename "$SHELL")"
   """) every 1h optional
+
+  // A tap on the close-up: by day it blinks, at night it wakes, looks, and drifts off again.
+  state blinkAt = -100
+  state blinkTap = 0
 
   let heavy = "https://raw.githubusercontent.com/google/fonts/main/ofl/archivoblack/ArchivoBlack-Regular.ttf"
 
@@ -85,6 +89,16 @@ face "manga" {
   let fetchGauges = clamp(floor((fetchH - 66 - fetchLines * 18) / 25), 2, 3)
   let ink = foreground
   let paper = background
+  // How open the eye is: shut with sleep at night, and moving for a while after a tap, a blink by day. Only then is `time` read, so the
+  // page draws frames for the blink and none after it.
+  let lid = night > 0.5 ? 0.12 : 1
+  let blinkFor = night > 0.5 ? 2.4 : 0.32
+
+  // A tap's `time` can be seconds behind the frame clock's, as it read the clock before the frames started again: so the tap
+  // only marks the blink as due (-1), and it starts on the first frame after, at that frame's time.
+  when blinkAt == -1 && time != blinkTap { blinkAt = time }
+  // The blink is over: back to the still eye. Or `time` restarted under a stale tap.
+  when blinkAt >= 0 && (time > blinkAt + blinkFor || time < blinkAt - 1) { blinkAt = -100 }
 
   // Shared by the shaders: halftone dots on a 45° screen, noise, and strokes, all in dp.
   let lib = """
@@ -245,6 +259,7 @@ face "manga" {
 
   let eye = """
     uniform float open;
+    uniform float shut;
     uniform float look;
     half4 main(float2 p) {
       float s = size.x / dpw;
@@ -261,8 +276,9 @@ face "manga" {
       float hw = min(A * 0.44, 0.8);
       float t = (u.x - c.x) / hw;
       float bell = max(1.0 - t * t, 0.0);
-      float yU = c.y - 0.2 * open * bell * (1.0 + 0.25 * t);
       float yL = c.y + 0.09 * bell * (1.0 - 0.3 * t);
+      // A blink brings the upper lid down onto the lower one.
+      float yU = mix(c.y - 0.2 * open * bell * (1.0 + 0.25 * t), yL, shut);
       // Skin: a light screen, darker toward the edges.
       float tone = 0.12 + 0.3 * smoothstep(0.3, 0.8, length((u - float2(A * 0.5, 0.55)) / float2(A, 1.0)));
       // The brow, and the crease above the lid.
@@ -273,7 +289,7 @@ face "manga" {
         L = max(L, cover(abs(u.y - yB), th, ua));
         if (u.y < yB && u.y > yB - 0.05 && fract((u.x * 0.6 + u.y) * 60.0) < 0.3) { tone = max(tone, 0.5); }
       }
-      if (abs(t) < 0.9) { L = max(L, cover(abs(u.y - (yU - 0.06 * bell - 0.012)), 0.005 * bell, ua)); }
+      if (abs(t) < 0.9) { L = max(L, cover(abs(u.y - (c.y - 0.2 * open * bell * (1.0 + 0.25 * t) - 0.06 * bell - 0.012)), 0.005 * bell, ua)); }
       bool inside = abs(t) < 1.0 && u.y > yU && u.y < yL;
       if (inside) {
         tone = 0.45 * smoothstep(0.08, 0.0, u.y - yU);
@@ -299,7 +315,8 @@ face "manga" {
       // Lashes curling outward, and a flick at the outer corner.
       for (int i = 0; i < 11; i++) {
         float tt = -0.2 + float(i) * 0.115;
-        float2 base = float2(c.x + tt * hw, c.y - 0.2 * open * (1.0 - tt * tt) * (1.0 + 0.25 * tt));
+        float bt = 1.0 - tt * tt;
+        float2 base = float2(c.x + tt * hw, mix(c.y - 0.2 * open * bt * (1.0 + 0.25 * tt), c.y + 0.09 * bt * (1.0 - 0.3 * tt), shut));
         float2 dir = normalize(float2(0.25 + 0.9 * tt, -1.0));
         float len = 0.05 + 0.06 * max(tt, 0.0);
         float2 mid = base + dir * len * 0.6;
@@ -422,10 +439,11 @@ face "manga" {
     Box {
       width: eyeW
       fill: height
+      onTap: { blinkTap = time; blinkAt = -1 }
       Shader {
         fill: true
         fallback: muted
-        uniforms: { ink: ink, paper: paper, dpw: eyeW, open: night > 0.5 ? 0.12 : 1, look: hash(floor(now / 60)) * 2 - 1 }
+        uniforms: { ink: ink, paper: paper, dpw: eyeW, open: blinkAt < 0 || night <= 0.5 ? lid : [clamp((time - blinkAt) / blinkFor, 0, 1)].map(t => 0.12 + 0.88 * min(t * 8, 1) * min((1 - t) * 2.2, 1))[0], shut: blinkAt < 0 || night > 0.5 ? 0 : 1 - abs(1 - 2 * clamp((time - blinkAt) / blinkFor, 0, 1)), look: hash(floor(now / 60)) * 2 - 1 }
         code: lib + eye
       }
       Frame { e: [0, 0, 0, 0, 0, S, 0, S * (speechW + g) / CW]; art: true }
