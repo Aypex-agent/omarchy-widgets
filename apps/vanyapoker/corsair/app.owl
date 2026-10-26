@@ -2,7 +2,7 @@ app "corsair" {
   meta {
     owl: 13
     description: "A pirate survivors-like: upgrade your ship, sail five biomes, claim four relics and slay the Sea King."
-    version: "1.7"
+    version: "1.7.1"
     license: "MIT"
     category: "games"
   }
@@ -22,7 +22,8 @@ app "corsair" {
 
   // The game's clock: a line every ~0.12 s while the app is open. Each tick moves the world one
   // step; nodes tween their offset and rotation over a tick, so motion in between is smooth.
-  source tick = stream('while :; do date +%s%3N; sleep 0.11; done')
+  // Only while sailing: a null command stops the stream, so menus and pauses cost nothing.
+  source tick = stream(phase == "play" ? 'while :; do date +%s%3N; sleep 0.11; done' : null)
 
   state phase = "title"        // title, play, level, shop, pause, over
   state last = 0
@@ -109,7 +110,7 @@ app "corsair" {
   state wins = 0 persist
   state bestRelics = 0 persist
 
-  let VERSION = "1.7"           // bump with each change to the game (and meta's version with it); shown in the bottom corner
+  let VERSION = "1.7.1"          // bump with each change to the game (and meta's version with it); shown in the bottom corner
   let W = screenWidth
   let H = screenHeight
   let nRel = len(relics)
@@ -2059,6 +2060,7 @@ app "corsair" {
     if phase == "title" {
       Column {
         fill: true
+        scroll: true
         background: alpha(#0d1b2a, 0.55)
         align: center
         justify: center
@@ -2098,6 +2100,7 @@ app "corsair" {
     if phase == "level" {
       Column {
         fill: true
+        scroll: true
         background: alpha(#0d1b2a, 0.7)
         justify: center
         gap: 10
@@ -2135,6 +2138,7 @@ app "corsair" {
     if phase == "shop" && port != null {
       Column {
         fill: true
+        scroll: true
         background: alpha(#0d1b2a, 0.8)
         justify: center
         gap: 10
@@ -2181,6 +2185,7 @@ app "corsair" {
     if phase == "pause" {
       Column {
         fill: true
+        scroll: true
         background: alpha(#0d1b2a, 0.75)
         justify: center
         align: center
@@ -2220,6 +2225,7 @@ app "corsair" {
     if phase == "won" {
       Column {
         fill: true
+        scroll: true
         background: alpha(#1a1206, 0.78)
         justify: center
         align: center
@@ -2240,6 +2246,7 @@ app "corsair" {
     if phase == "harbor" {
       Column {
         fill: true
+        scroll: true
         background: alpha(#07121c, 0.88)
         justify: center
         gap: 8
@@ -2283,6 +2290,7 @@ app "corsair" {
     if phase == "over" {
       Column {
         fill: true
+        scroll: true
         background: alpha(#2a0d0d, 0.7)
         justify: center
         align: center
