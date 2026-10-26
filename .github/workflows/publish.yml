@@ -30,13 +30,19 @@ jobs:
           distribution: temurin
           java-version: 21
       - name: Order
-        # A new order for every push: the ids order.txt lists keep their place, and every other
-        # widget, face and app goes before its "..." in a shuffled order, so the middle of "all" isn't
-        # alphabetical. Seeded by the commit, so re-running a push publishes the same order.
+        # The ids order.txt lists keep their place, and every other widget, face and app goes before
+        # its "...": the widgets rank.txt rates best first (tools/rank.py), so "all" and every category
+        # tab open on the best, and in their middle whatever it hasn't rated yet, faces and apps too, in
+        # a new shuffled order for every push. Seeded by the commit, so re-running a push publishes the
+        # same order.
         run: |
           listed=$(sed 's/#.*//; s/[[:space:]]//g; /^$/d' order.txt)
-          rest=$(ls -d widgets/*/*/ faces/*/*/ apps/*/*/ | cut -d/ -f2,3 | grep -vxF -f <(echo "$listed") \
+          all=$(ls -d widgets/*/*/ faces/*/*/ apps/*/*/ | cut -d/ -f2,3 | grep -vxF -f <(echo "$listed"))
+          ranked=$(sed 's/#.*//; s/[[:space:]]//g; /^$/d' rank.txt | grep -xF -f <(echo "$all"))
+          unranked=$(echo "$all" | grep -vxF -f <(echo "$ranked") \
             | shuf --random-source=<(openssl enc -aes-256-ctr -pass pass:"$GITHUB_SHA" -nosalt </dev/zero 2>/dev/null))
+          half=$(( $(echo "$ranked" | grep -c .) / 2 ))
+          rest=$({ echo "$ranked" | head -n "$half"; echo "$unranked"; echo "$ranked" | tail -n +$((half + 1)); } | grep .)
           grep -qx '\.\.\.' order.txt || echo ... >> order.txt
           { sed '/^\.\.\.$/,$d' order.txt; echo "$rest"; sed -n '/^\.\.\.$/,$p' order.txt; } > order.tmp
           mv order.tmp order.txt
