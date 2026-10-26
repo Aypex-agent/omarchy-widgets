@@ -1,7 +1,7 @@
 app "readeck" {
   edge: true
 
-  meta { owl: 9; description: "A Readeck client for a server or an export: lists, labels, search, a reader, notes and bulk changes. Summary and tidy-up use Claude Code, which sends the text to Anthropic"; version: "1.3"; license: "MIT"; category: "news" }
+  meta { owl: 9; description: "A Readeck client for a server or an export: lists, labels, search, a reader, notes and bulk changes. Summary and tidy-up use Claude Code, which sends the text to Anthropic"; version: "1.4"; license: "MIT"; category: "news" }
 
   title: readId != "" ? item.title ?? "reading" : view == "setup" ? "connect" : view == "labels" ? "labels" : view == "search" ? "search" : label == "" ? view : label
   back: readId != "" || view == "labels" || view == "search" || view == "setup" || label != ""
@@ -636,6 +636,9 @@ echo ready""") every 1h
   // The server and an API token from its settings (made in its profile page). Either
   // "readeck.example.org" or "https://readeck.example.org" will do.
   state base = "" persist
+  // The server as it's being typed on the setup page; it becomes base on connect, so the
+  // token never goes to a half-typed address.
+  state typedBase = null
   state token = "" persist
   // As the server is written: the scheme added when it's missing, a trailing / dropped.
   let raw = base == "" ? "" : (contains(base, "://") ? base : "https://" + base)
@@ -701,7 +704,7 @@ echo ready""") every 1h
   // "connect", "sync now" and a change that worked (it is in the command, and owl runs a
   // command again as soon as what it reads changes). It also runs once when the app
   // opens, so a reconnect needs no tap at all.
-  source fetched = cmd(!helpers || server == "" || token == "" ? "echo waiting" : "n=${int(fetchN)}; owl-readeck fetch ${sh(server)} ${sh(token)} 50 >/dev/null 2>&1 && echo done || echo failed") every 15m
+  source fetched = cmd(!helpers || server == "" || token == "" ? "echo waiting" : "n=${int(fetchN)}; owl-readeck fetch ${sh(server)} ${sh(token)} 50 >/dev/null 2>&1 && echo done || echo failed") every 15m timeout 120s
   // Saves and changes go through the helper too: a tap sets todoMode, todoJson and
   // todoIds, and the source runs it (an empty todoMode does nothing).
   source ran = cmd(
@@ -710,7 +713,7 @@ echo ready""") every 1h
     : todoMode == "bulk" ? "owl-readeck bulk ${sh(server)} ${sh(token)} ${sh(todoJson)} ${sh(join(todoIds, " "))} && echo ok || echo failed"
     : todoMode == "add" ? "owl-readeck add ${sh(server)} ${sh(token)} ${sh(first(todoIds) ?? "")} && echo ok || echo failed"
     : todoMode == "labelrm" ? "owl-readeck labelrm ${sh(server)} ${sh(token)} ${sh(first(todoIds) ?? "")} && echo ok || echo failed"
-    : "echo idle") every 1m
+    : "echo idle") every 1m timeout 120s
   // "test the token" on the setup page: the script asks the server what it makes of it.
   source checked = cmd(!helpers || !connectCheck ? "echo" : "owl-readeck status ${sh(server)} ${sh(token)} | sed -e 's/^ok .*/ok/' -e 's/^error /error: /'") every 1m
   on checked {
@@ -759,9 +762,10 @@ echo ready""") every 1h
   // Two values, each its own shell word: "summary" or "pretty", and the article's id.
   let aiMode = first(split(aiWant, " "))
   let aiId = last(split(aiWant, " "))
-  source aiRan = cmd(!helpers || trim(aiWant ?? "") == "" ? "echo idle" : "owl-readeck ${sh(aiMode)} ${sh(aiId)} >/dev/null 2>&1 && echo ok || echo failed") every 1m
+  source aiRan = cmd(!helpers || trim(aiWant ?? "") == "" ? "echo idle" : "owl-readeck ${sh(aiMode)} ${sh(aiId)} >/dev/null 2>&1 && echo ok || echo failed") every 1m timeout 300s
+  // A run cut off by its timeout comes back empty: dropped too, so it isn't sent again every minute.
   on aiRan {
-    if value == "ok" || value == "failed" { aiWant = "" }
+    if value == "ok" || value == "failed" || value == "" { aiWant = "" }
   }
 
   // Off the server, or from the export (importing one writes its articles' text too).
@@ -831,6 +835,10 @@ echo ready""") every 1h
     } else if value == "failed" {
       lastErr = first(lines(fileErr)) ?? "couldn't do it"
       todoMode = ""
+    } else if value == "" {
+      lastErr = "the server took too long"
+      todoMode = ""
+      fetchN = fetchN + 1
     }
   }
   source fileErr = file("~/.cache/omalauncher/readeck-last.err")
@@ -1239,14 +1247,14 @@ echo ready""") every 1h
             padding: [12, 8]
             gap: 8
             Text { text: "Readeck server"; style: label; color: muted }
-            Input { text: base; placeholder: "readeck.example.org"; onChange: base = trim(value); onSubmit: base = trim(value) }
+            Input { text: typedBase ?? base; placeholder: "readeck.example.org"; onChange: typedBase = trim(value); onSubmit: { base = trim(value); typedBase = null } }
             Text { text: "In your Readeck, Settings → API tokens makes one for this app. Paste it here."; style: small; color: muted }
             Input { text: token; placeholder: "API token"; onChange: token = trim(value); onSubmit: token = trim(value) }
             Row {
               gap: 8
               wrap: true
-              Button { text: "connect"; onTap: { base = trim(base); token = trim(token); view = "unread"; fetchN = fetchN + 1; haptic() } }
-              Button { text: "test the token"; color: muted; onTap: { connectMsg = "checking…"; connectCheck = true; haptic() } }
+              Button { text: "connect"; onTap: { base = trim(typedBase ?? base); typedBase = null; token = trim(token); view = "unread"; fetchN = fetchN + 1; haptic() } }
+              Button { text: "test the token"; color: muted; onTap: { base = trim(typedBase ?? base); typedBase = null; connectMsg = "checking…"; connectCheck = true; haptic() } }
             }
             if connectMsg != "" {
               Text { text: connectMsg; style: small; color: startsWith(connectMsg, "ok") ? green : red }
