@@ -2,12 +2,12 @@ widget "reddit" {
   // Reddit on a tile: your front page (signed in with the private feed link Reddit gives every account at
   // old.reddit.com/prefs/feeds, read-only, no password), a subreddit or several (pics+aww), or a custom feed.
   // The feed token is kept as a secret on the phone; until it's set the front page shows r/popular.
-  // Settings (⚙ on the tile) pick the feed, title lines and thumbnails; NSFW posts are left to Reddit's own settings. They're kept per file,
+  // Settings (⚙ on the tile) pick the feed, title lines and thumbnails. They're kept per file,
   // so a copy of this file under another name is a second, independent tile: change the defaults below to
   // start it on another feed. Tapping a post opens it on reddit.com, which the Reddit app takes when installed.
-  // NSFW: the widget doesn't filter it; that's left to Reddit's mature content settings. Whether those reach
-  // these feeds is untested so far: if you don't want NSFW posts, stay off NSFW sources or check the feed first.
-  meta { owl: 12; description: "Your Reddit front page, a subreddit or a custom feed, with thumbnails; tap a post to open it on reddit.com"; version: "1.3"; license: "MIT"; category: "news" }
+  // NSFW: the feeds don't mark it, so the widget can't filter it. Subreddits and custom feeds are read without an
+  // account and show NSFW posts and thumbnails as Reddit serves them; r/popular leaves them out.
+  meta { owl: 12; description: "Your Reddit front page, a subreddit or a custom feed, with thumbnails; tap a post to open it on reddit.com"; version: "1.4"; license: "MIT"; category: "news" }
   size: 6x4
   minSize: 2x2
 
@@ -38,9 +38,16 @@ widget "reddit" {
       : token == null
       ? "https://www.reddit.com/r/popular/${enc(sort)}/.rss?limit=25&t=day"
       : "https://www.reddit.com/${enc(sort)}/.rss?feed=${enc(token)}&user=${enc(username)}&limit=25&t=day",
-    {"User-Agent": "android:omalauncher.reddit-widget:v1.3", Accept: "application/atom+xml"}) every 15m timeout 20s status
+    {"User-Agent": "android:omalauncher.reddit-widget:v1.4", Accept: "application/atom+xml"}) every 15m timeout 20s status
 
-  let entries = drop(split(feed.ok ? feed.out ?? "" : "", "<entry>"), 1)
+  // The last feed that came through, so a rate limit or a moment offline keeps the posts on screen; it's only
+  // used while the feed is still the same one.
+  let feedKey = join([feedKind, sub, customUser, customName, sort, token == null ? "" : username], "|")
+  state lastOut = ""
+  state lastKey = ""
+  on feed { if feed != null && feed.ok { lastOut = feed.out ?? ""; lastKey = feedKey } }
+
+  let entries = drop(split(feed != null && feed.ok ? feed.out ?? "" : lastKey == feedKey ? lastOut : "", "<entry>"), 1)
   let posts = entries.map(e => {
     id: last(match(e, "<id>t3_([A-Za-z0-9]+)</id>") ?? []),
     subreddit: last(match(e, "<category term=\"([^\"]+)\"") ?? []) ?? "",
@@ -324,7 +331,7 @@ widget "reddit" {
 
           Heading { name: "NSFW posts" }
           Text {
-            text: "This widget doesn't filter NSFW posts itself: it leaves that to Reddit's mature content settings. Whether those reach these feeds is untested so far, so if you don't want NSFW posts here, stay off NSFW sources, or check your feed first."
+            text: "Reddit's feeds don't mark NSFW posts, so this widget can't filter them. Subreddits and custom feeds are read without your account, so your mature content settings don't apply there: they show NSFW posts and their thumbnails as Reddit serves them. r/popular leaves them out; whether your front page follows your settings is untested."
             style: muted
           }
           Button { text: "open reddit's content settings"; onTap: url("https://www.reddit.com/settings/preferences") }
