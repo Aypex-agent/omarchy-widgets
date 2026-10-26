@@ -12,4 +12,4 @@ Dutch railways (NS) for your home screen: whether the off-peak discount is on, a
 1. Get a free API key: create an account at https://apiportal.ns.nl and subscribe to the **Ns-App** product.
 2. Tap the tile, paste the key and search for your station.
 
-The key stays on your phone and is only sent to NS. Works without Linux.
+The key is kept encrypted on your phone and is only sent to NS. Works without Linux.
