@@ -13,7 +13,7 @@ app "wanderlings" {
   // which is drawn again only after sixty cells have changed; the cells dug and built since are
   // drawn over it each frame.
 
-  meta { owl: 12; description: "A pixel-art puzzle after the old classic: walkers march blindly from a hatch; give them jobs to dig, bash, mine, build, block, climb, float or blow up, and lead them home through twelve levels"; version: "1.0"; license: "MIT"; category: "games" }
+  meta { owl: 14; description: "A pixel-art puzzle after the old classic: walkers march blindly from a hatch; give them jobs to dig, bash, mine, build, block, climb, float or blow up, and lead them home through twelve levels"; version: "1.0.1"; license: "MIT"; category: "games" }
 
   title: ""
   statusBar: false
@@ -695,6 +695,7 @@ app "wanderlings" {
       fill: true
       onPress: { downAt = [x, y] }
       onRelease: { downAt = [-1, -1] }
+      ripple: false
       onTap: {
         if mode == "title" {
           // a level, or carry on with the one under way
