@@ -9,7 +9,7 @@ app "fox lanes" {
   // the fox's lane or pose: from those follows the moment it next hits something (`dieAt`), so a
   // frame only has to draw.
 
-  meta { owl: 12; description: "A swipe runner in pixel art: a fox dashes down a forest path at dusk, changing lanes, jumping logs and sliding under boughs, gathering acorns"; version: "1.0"; license: "MIT"; category: "games" }
+  meta { owl: 14; description: "A swipe runner in pixel art: a fox dashes down a forest path at dusk, changing lanes, jumping logs and sliding under boughs, gathering acorns"; version: "1.0.1"; license: "MIT"; category: "games" }
 
   title: ""
   statusBar: false
@@ -585,6 +585,7 @@ app "fox lanes" {
     fill: true
     background: "#1c1440"
 
+    ripple: false
     onTap: {
       let T = time - t0
       if mode == "title" || (mode == "over" && T - dieAt > 0.8) {
