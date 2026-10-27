@@ -13,7 +13,7 @@ app "fireteam" {
   // action left, `on chk` plays the hostiles' whole turn in one go, each picking the tile it likes
   // best of those it can reach: one it can shoot from, in cover, near the squad.
 
-  meta { owl: 12; description: "Turn-based squad tactics in pixel art: lead a rifleman, a shotgunner and a sniper through eight operations; take cover, flank, set overwatch, throw grenades and blow up barrels"; version: "1.0"; license: "MIT"; category: "games" }
+  meta { owl: 14; description: "Turn-based squad tactics in pixel art: lead a rifleman, a shotgunner and a sniper through eight operations; take cover, flank, set overwatch, throw grenades and blow up barrels"; version: "1.0.1"; license: "MIT"; category: "games" }
 
   title: ""
   statusBar: false
@@ -673,6 +673,7 @@ app "fireteam" {
       fill: true
       onPress: { downAt = [x, y] }
       onRelease: { downAt = [-1, -1] }
+      ripple: false
       onTap: {
         if mode == "title" {
           if y >= TBY && y < TBY + 56 && abs(x - SW / 2) < 120 {
