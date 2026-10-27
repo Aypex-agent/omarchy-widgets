@@ -1,7 +1,7 @@
 face "minarchy" {
   // Distraction-free home page inspired by Olauncher. Heavily edited version based on minimal by Simon Schubert.
 
-  meta { owl: 13; description: "Distraction-free home page with digital clock, date/battery line, and customizable app list"; version: "1.0"; license: "MIT"; category: "productivity" }
+  meta { owl: 13; description: "Olauncher-inspired minimalist home page (based on minimal by Simon Schubert) with a customizable text app list, custom app renaming & emojis, settings sheet, and 20 languages"; version: "1.1"; license: "MIT"; category: "productivity" }
   requires { pacman: ["ttf-jetbrains-mono"] }
 
   state showStatusBar = false persist
@@ -94,7 +94,10 @@ face "minarchy" {
   let wide = (tileWidth ?? 0) > (tileHeight ?? 1)
   let clockRoom = wide ? ((tileWidth ?? 360) - 136) / 2 : (tileWidth ?? 360) - 48
 
-  let defaultSlots = ["slot:1", "slot:2", "slot:3", "slot:4", "slot:5", "slot:6"]
+  let phoneApp = (apps ?? []).find(a => a.profile == null && contains(["com.google.android.dialer", "com.samsung.android.dialer", "com.android.dialer", "org.fossify.phone"], a.package))
+  let msgsApp = (apps ?? []).find(a => a.profile == null && contains(["com.google.android.apps.messaging", "com.samsung.android.messaging", "com.android.mms", "com.android.messaging", "org.fossify.messages"], a.package))
+  let topApps = values(groupBy((apps ?? []).filter(a => (!a.system || a.score > 0) && a.package != phoneApp.package && a.package != msgsApp.package).sortBy(a => -a.score), a => a.name)).map(g => g[0].key)
+  let defaultSlots = ([phoneApp.key, msgsApp.key].filter(k => k != null) + topApps + ["slot:1", "slot:2", "slot:3", "slot:4", "slot:5", "slot:6"]).take(6)
   let activeSlots = (slots ?? defaultSlots).take(12)
 
   let allApps = (apps ?? []).filter(a => a.name != null && a.name != "").sortBy(a => lower(a.name))
@@ -104,7 +107,10 @@ face "minarchy" {
   let alignLabel = appAlignment == "Center" ? t[32] : (appAlignment == "Right" ? t[33] : t[31])
   let appWeight = boldFont ? 700 : 400
   let appSize = round(26 * textSize)
-  let clockSize = min(round(76 * textSize), round(clockRoom / 5))
+  let clockText = clockFormat == "24-hour" ? fmtTime(now, "HH:mm", null, localeArg) : (clockFormat == "12-hour" ? fmtTime(now, "h:mm", null, localeArg) : fmtTime(now, "h:mm a", null, localeArg))
+  let cjkClockExtra = clockFormat != "24-hour" && clockFormat != "12-hour" && contains(["zh", "ja", "ko"], activeLang) ? 2 : 0
+  let clockUnits = max(5, len(clockText) + cjkClockExtra)
+  let clockSize = min(round(76 * textSize), floor(clockRoom / (clockUnits * 0.64)))
   let subLine = (showDate ? fmtTime(now, "EEE, d MMM", null, localeArg) : "") + (showDate && showBattery && bat != null ? ", " : "") + (showBattery && bat != null ? "${bat.level}%" : "")
   let headerVisible = showHeader && (showTime || subLine != "")
   let headerH = headerVisible ? (showTime ? round(clockSize * 1.32) : 0) + (subLine != "" ? round(20 * textSize) : 0) + 36 : 0
@@ -129,7 +135,7 @@ face "minarchy" {
       }
       if showTime {
         Text {
-          text: clockFormat == "24-hour" ? fmtTime(now, "HH:mm", null, localeArg) : (clockFormat == "12-hour (AM/PM)" ? fmtTime(now, "h:mm a", null, localeArg) : fmtTime(now, "h:mm", null, localeArg))
+          text: clockText
           font: activeFont
           fontSize: clockSize
           fontWeight: appWeight
@@ -674,11 +680,11 @@ face "minarchy" {
             Box {
               onTap: {
                 haptic()
-                let formats = ["12-hour", "24-hour", "12-hour (AM/PM)"]
+                let formats = ["12-hour (AM/PM)", "12-hour", "24-hour"]
                 let idx = indexOf(formats, clockFormat)
                 clockFormat = formats[idx < 0 ? 0 : (idx + 1) % len(formats)]
               }
-              SettingRow { label: t[21]; valueText: clockFormat }
+              SettingRow { label: t[21]; valueText: contains(["12-hour (AM/PM)", "12-hour", "24-hour"], clockFormat) ? clockFormat : "12-hour (AM/PM)" }
             }
           }
 
