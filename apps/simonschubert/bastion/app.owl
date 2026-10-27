@@ -8,7 +8,7 @@ app "bastion" {
   // is in, sliding the monsters between steps. Once a second, and whenever a tower is built,
   // upgraded or sold, the step that has been reached becomes the new `base`.
 
-  meta { owl: 12; description: "An endless pixel-art tower defense: build archers, cannons, frost spires and tesla coils along a winding road and upgrade them without end"; version: "1.1"; license: "MIT"; category: "games" }
+  meta { owl: 14; description: "An endless pixel-art tower defense: build archers, cannons, frost spires and tesla coils along a winding road and upgrade them without end"; version: "1.1.1"; license: "MIT"; category: "games" }
 
   title: ""
   statusBar: false
@@ -755,6 +755,7 @@ app "bastion" {
 
     Canvas {
       fill: true
+      ripple: false
       onTap: {
         if mode == "title" || (mode == "over" && (time - overT > 1.2 || time < overT)) {
           towers = []
