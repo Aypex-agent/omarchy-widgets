@@ -12,7 +12,7 @@ app "runeclash" {
   // died. Both sides go through the same code: the foe's turn is one action at a time, each picked
   // by `AIP` (a card to play) or `AIA` (an attack) once the last one has finished playing.
 
-  meta { owl: 12; description: "A collectible card game in pixel art: summon minions, cast spells, beat eight foes on the ladder, open packs and build your deck; single player and offline"; version: "1.0"; license: "MIT"; category: "games" }
+  meta { owl: 14; description: "A collectible card game in pixel art: summon minions, cast spells, beat eight foes on the ladder, open packs and build your deck; single player and offline"; version: "1.0.1"; license: "MIT"; category: "games" }
 
   title: ""
   statusBar: false
@@ -1590,6 +1590,7 @@ app "runeclash" {
       fill: true
       onPress: { downAt = [x, y] }
       onRelease: { downAt = [-1, -1] }
+      ripple: false
       onTap: {
         let b = BT.find(z => !(z.dis ?? false) && x >= z.x && x < z.x + z.w && y >= z.y && y < z.y + z.h)
         if b != null {
