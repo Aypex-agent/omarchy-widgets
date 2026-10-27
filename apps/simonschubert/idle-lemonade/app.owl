@@ -6,7 +6,7 @@ app "idle lemonade" {
   // There's no game loop. The coins are `bank` plus what the businesses have made since `since`,
   // so they keep coming while the app is closed; a tap or a purchase settles them into `bank`.
 
-  meta { owl: 12; description: "An idle tycoon in pixel art: tap for coins, open a lemonade stand, a bakery, a diner, an arcade, a hotel and a bank, and level them up"; version: "1.0"; license: "MIT"; category: "games" }
+  meta { owl: 14; description: "An idle tycoon in pixel art: tap for coins, open a lemonade stand, a bakery, a diner, an arcade, a hotel and a bank, and level them up"; version: "1.0.1"; license: "MIT"; category: "games" }
 
   title: ""
   statusBar: false
@@ -285,6 +285,7 @@ app "idle lemonade" {
     fill: true
     background: "#1d1838"
 
+    ripple: false
     onTap: {
       let ax = (x - OX) / p
       let ay = y / p
