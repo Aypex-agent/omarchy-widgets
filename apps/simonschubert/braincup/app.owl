@@ -1,8 +1,8 @@
 app "braincup" {
   meta {
-    owl: 8
+    owl: 14
     description: "Train your math skills, memory and focus: thirteen brain games from the Braincup app, with levels, medals and best scores."
-    version: "1.0"
+    version: "1.0.1"
     license: "Apache-2.0"
     category: "games"
   }
@@ -497,6 +497,7 @@ app "braincup" {
     Box {
       height: tileW
       fill: width
+      ripple: false
       onTap: { game = g.id; demoT = 0; view = "intro"; haptic() }
       Canvas {
         // Braincup's prism: the face, a right facet at 70% and a bottom facet at 50%, chamfered
@@ -622,6 +623,7 @@ app "braincup" {
       height: 56
       fill: width
       align: center
+      ripple: false
       onTap: { typed = len(typed) < 4 ? typed + d : typed; haptic() }
       PKey { label: d; face: P_KEY }
     }
@@ -633,6 +635,7 @@ app "braincup" {
       height: 52
       fill: width
       align: center
+      ripple: false
       onTap: { bGuess = len(bGuess) < 4 && !contains(bGuess, d) && !contains(bOut, d) ? bGuess + d : bGuess; haptic() }
       PKey { label: d; h: 52; face: contains(bOut, d) || contains(bGuess, d) ? P_DIM : P_KEY; ink: contains(bOut, d) || contains(bGuess, d) ? P_DIM_INK : "#FFFFFF" }
     }
@@ -644,6 +647,7 @@ app "braincup" {
       height: 56
       fill: width
       align: center
+      ripple: false
       onTap: { moOps = moOps + [o]; haptic() }
       PKey { label: SIGN[o]; face: P_KEY; size: 28 }
     }
@@ -655,6 +659,7 @@ app "braincup" {
       height: 52
       fill: width
       align: center
+      ripple: false
       onTap: { sdVals = sdSel < 0 ? sdVals : sdVals.map((v, j) => j == sdSel ? d : v); haptic() }
       if d == 0 {
         Image { src: eraseIcon; size: 26; tint: muted }
@@ -989,6 +994,7 @@ app "braincup" {
       Box {
         height: 58
         fill: width
+        ripple: false
         onTap: { starting = true; haptic() }
         PKey { label: "Start"; face: P_START; h: 58; size: 22; d: 4 }
       }
@@ -1088,6 +1094,7 @@ app "braincup" {
             height: 56
             fill: width
             align: center
+            ripple: false
             onTap: typed = sub(typed, 0, max(len(typed) - 1, 0))
             Image { src: eraseIcon; size: 28; tint: muted }
           }
@@ -1105,6 +1112,7 @@ app "braincup" {
               height: 76
               fill: width
               PKey { label: "${o.a} ${SIGN[vOp]} ${o.b}"; face: P_KEY; h: 76; size: 32; d: 4 }
+              ripple: false
               onTap: {
                 ok = o.i == vWin.i
                 was = "${vWin.a} ${SIGN[vOp]} ${vWin.b}"
@@ -1146,6 +1154,7 @@ app "braincup" {
             height: 56
             fill: width
             align: center
+            ripple: false
             onTap: moOps = take(moOps, max(len(moOps) - 1, 0))
             Image { src: eraseIcon; size: 28; tint: muted }
           }
@@ -1182,6 +1191,7 @@ app "braincup" {
                 height: (BOARD - 18) / 4
                 fill: width
                 Prism { face: i == pW0.x ? P_ORANGE : P_GREY; d: 4 }
+                ripple: false
                 onTap: {
                   ok = i % 4 == pEnd.x && floor(i / 4) == pEnd.y
                   was = "column ${pEnd.x + 1}, row ${pEnd.y + 1}"
@@ -1212,6 +1222,7 @@ app "braincup" {
               Box {
                 height: (BOARD - 4 * (sdG - 1)) / sdG
                 fill: width
+                ripple: false
                 onTap: { sdSel = c.given ? sdSel : c.i; haptic() }
                 PKey {
                   label: c.v == 0 ? "" : "${c.v}"
@@ -1255,6 +1266,7 @@ app "braincup" {
                 height: (BOARD - 8 * (lG - 1)) / lG
                 fill: width
                 Prism { face: v ? P_ON : P_OFF; d: 5 }
+                ripple: false
                 onTap: {
                   lights = lights.map((w, j) => i == j || (floor(i / lG) == floor(j / lG) && abs(i - j) == 1) || abs(i - j) == lG ? !w : w)
                   moves = moves + 1
@@ -1284,6 +1296,7 @@ app "braincup" {
                 if v != 0 {
                   PKey { label: "${v}"; face: P_LAV; ink: P_LAV_INK; h: (BOARD - 6 * (sG - 1)) / sG; size: 30; d: 4 }
                 }
+                ripple: false
                 onTap: {
                   hMoved = (abs(i - sEmpty) == sG || (abs(i - sEmpty) == 1 && floor(i / sG) == floor(sEmpty / sG))) && v != 0
                   tiles = hMoved ? tiles.map((w, j) => j == sEmpty ? v : j == i ? 0 : w) : tiles
@@ -1315,6 +1328,7 @@ app "braincup" {
                 padding: [0, 8]
                 radius: 8 * corners
                 background: q == hSel ? alpha(accent, 0.15) : q == hRej ? alpha(red, 0.2) : alpha(foreground, 0.04)
+                ripple: false
                 onTap: {
                   hMoved = hSel >= 0 && hSel != q && len(pegs[hSel]) > 0 && (len(p) == 0 || last(p) > last(pegs[hSel]))
                   hRej = hSel >= 0 && hSel != q && !hMoved ? q : -1
@@ -1367,6 +1381,7 @@ app "braincup" {
             weight: 1
             height: 48
             align: center
+            ripple: false
             onTap: { gaveUp = true; result = len(bGuesses); newBest = false; view = "done" }
             PKey { label: "give up"; face: P_CARD; ink: P_INK; h: 48; size: 15 }
           }
@@ -1374,6 +1389,7 @@ app "braincup" {
             weight: 1
             height: 48
             align: center
+            ripple: false
             onTap: bGuess = sub(bGuess, 0, max(len(bGuess) - 1, 0))
             Prism { face: P_CARD }
             Image { src: eraseIcon; size: 24; tint: P_INK; offset: [-1.5, -1.5] }
@@ -1383,6 +1399,7 @@ app "braincup" {
             height: 48
             align: center
             PKey { label: "guess"; face: len(bGuess) == 4 ? P_START : P_DIM; ink: len(bGuess) == 4 ? "#FFFFFF" : P_DIM_INK; h: 48; size: 20 }
+            ripple: false
             onTap: {
               bGuesses = len(bGuess) == 4 ? bGuesses + [{g: bGuess, b: bBulls, c: bCows}] : bGuesses
               bGuess = len(bGuess) == 4 ? "" : bGuess
@@ -1409,6 +1426,7 @@ app "braincup" {
               height: 72
               fill: width
               Prism { face: c[1]; d: 5 }
+              ripple: false
               onTap: {
                 ok = i == inkI
                 answered = answered + 1
@@ -1436,6 +1454,7 @@ app "braincup" {
                 height: (BOARD - 18) / 4
                 fill: width
                 PKey { label: "${c.n}"; h: (BOARD - 18) / 4; size: 26; face: c.n == wrongN ? "#F6B8B0" : c.n < nextN ? P_DIM : P_CARD; ink: c.n < nextN ? P_DIM_INK : P_INK }
+                ripple: false
                 onTap: {
                   wrongN = c.n == nextN ? 0 : c.n
                   nextN = nextN + (c.n == nextN ? 1 : 0)
@@ -1486,12 +1505,14 @@ app "braincup" {
         Box {
           weight: 1
           height: 56
+          ripple: false
           onTap: view = "menu"
           PKey { label: "menu"; face: P_CARD; ink: P_INK; size: 20; d: 4 }
         }
         Box {
           weight: 1
           height: 56
+          ripple: false
           onTap: { starting = true; haptic() }
           PKey { label: kind == "level" ? "next level" : "play again"; face: P_START; size: 20; d: 4 }
         }
