@@ -10,7 +10,7 @@ app "gemblade" {
   // frame clock when the move began) for the canvases to play. Swaps (`on swN`) and spells
   // (`on spN`) set up `pend`, the board to resolve, and what happens before it.
 
-  meta { owl: 12; description: "Match-3 with a sword arm, in pixel art: swap gems to strike monsters, raise armor, heal and charge spells; ten foes and a dragon, a camp between fights, then round again"; version: "1.0"; license: "MIT"; category: "games" }
+  meta { owl: 14; description: "Match-3 with a sword arm, in pixel art: swap gems to strike monsters, raise armor, heal and charge spells; ten foes and a dragon, a camp between fights, then round again"; version: "1.0.1"; license: "MIT"; category: "games" }
 
   title: ""
   statusBar: false
@@ -1057,6 +1057,7 @@ app "gemblade" {
           }
         }
       }
+      ripple: false
       onTap: {
         if swiped {
           swiped = false
