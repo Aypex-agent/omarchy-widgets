@@ -10,7 +10,7 @@ app "pixel cafe" {
   // into `bank`. The customers are worked out from the clock: every seat has a round of 30
   // seconds, and in each one a customer comes or doesn't, as many as the café can serve.
 
-  meta { owl: 12; description: "A pixel art café: buy tables, a coffee machine, an oven and decor, hire cooks and waiters, and watch the customers come in, eat and pay"; version: "1.0"; license: "MIT"; category: "games" }
+  meta { owl: 14; description: "A pixel art café: buy tables, a coffee machine, an oven and decor, hire cooks and waiters, and watch the customers come in, eat and pay"; version: "1.0.1"; license: "MIT"; category: "games" }
 
   title: ""
   statusBar: false
@@ -318,6 +318,7 @@ app "pixel cafe" {
     fill: true
     background: background
 
+    ripple: false
     onTap: {
       let ax = floor((x - FX) / C)
       let ay = floor((y - FY) / C)
