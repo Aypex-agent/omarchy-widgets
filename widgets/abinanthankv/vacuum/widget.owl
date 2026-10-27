@@ -1,5 +1,5 @@
 widget "vacuum" {
-  meta { description: "Your Xiaomi robot vacuum over your own wi-fi: battery, state, start, stop, dock, modes, a drive pad, and its floor plan drawn on the phone with rooms you tap to clean. A Mi login fetches the map."; version: "1.1.0"; license: "MIT"; category: "home"; owl: 6 }
+  meta { description: "Your Xiaomi robot vacuum over your own wi-fi: battery, state, start, stop, dock, modes, a drive pad, and its floor plan drawn on the phone with rooms you tap to clean. A Mi login fetches the map."; version: "1.2.1"; license: "MIT"; category: "home"; owl: 9 }
   size: 6x4
   minSize: 2x2
 
@@ -27,7 +27,7 @@ if [ ! -f "$f" ]; then
 fi
 d=~/.cache/omarchy-vacuum
 mkdir -p "$d"
-if [ "$(cat "$d/tag" 2>/dev/null)" != "a7c1f04e9b21" ]; then
+if [ "$(cat "$d/tag" 2>/dev/null)" != "57f4643fcadd" ]; then
   cat > "$d/vacuum.py" <<'OMARCHY_VACUUM_PY'
 #!/usr/bin/env python3
 # vacuum.py - dependency-free LAN client for Xiaomi "ijai" robot vacuums.
@@ -71,6 +71,8 @@ if [ "$(cat "$d/tag" 2>/dev/null)" != "a7c1f04e9b21" ]; then
 #     vacuum.py mapdata                the floor plan as geometry, for the widget
 #     vacuum.py mapdata --file blob    decode an encrypted map blob already on disk
 #     vacuum.py mapdata --refresh      fetch the live blob with the account session
+#     vacuum.py mapdata --refit        recrop an existing cache, and redraw its picture
+#     vacuum.py mapdata --png          redraw the picture from the cached blob
 #     vacuum.py live --save            cache the newest 10/5 path chunk for the map
 #     vacuum.py login --user you@x     sign in to the Mi account (password on stdin)
 #     vacuum.py login --code 123456    finish an emailed-code or captcha gate
@@ -835,21 +837,55 @@ def parse_map(proto: bytes) -> dict:
     }
 
 
-def _rect_cover(grid: bytes, sx: int, sy: int, step: int,
+def _rect_cover(grid: bytes, sx: int, sy: int,
                 max_rects: int) -> dict[int, list[list[int]]]:
     '''Every room's cells as a short list of rectangles (x, y, w, h in cells).
 
-    One pass over the grid, every `step`th cell, merging a run of the same room
-    with the identical run on the row above. Rooms are blocks, so this lands on
-    a handful of rectangles each - few enough for a widget to draw directly.
+    One pass over the grid, one row at a time, letting a room's rectangle grow
+    downwards only while the next run's left and right edges stay within a few
+    cells of the rectangle's *first* run and the union still holds only this
+    room. The first-run anchor stops a slow drift from walking a rectangle
+    across its neighbour; the grid check stops a small tolerance from covering
+    a doorway or the gap in an L-, T- or U-shaped room. Anything else starts a
+    new rectangle.
+
+    The earlier version continued a rectangle whenever a lower run overlapped
+    it, and grew it to the union. A hallway that wraps around the living room
+    has a full-width top row, so both lower arms overlapped it and the whole
+    hallway became one box around the living room; a tap in a corner then chose
+    the hallway. With the edge and grid checks the arms stay separate and a
+    tap can only select the room actually under it.
+
+    These rectangles are the fallback drawing and the map's hit test; the
+    picture itself is rendered from the grid (see `render_plan_png`).
     '''
+    edge_tol = 2                         # map cells, not screen pixels
     rects: dict[int, list[list[int]]] = {}
-    open_runs: dict[tuple[int, int, int], list[int]] = {}
-    for y in range(0, sy, step):
+    # Each entry keeps the rectangle's first run, which is the anchor its later
+    # rows are compared with.
+    last: dict[int, list[tuple[list[int], int, int]]] = {}
+
+    def same_room(rid: int, x0: int, x1: int, y0: int, y1: int) -> bool:
+        '''True when every cell in this half-open box is still this room.'''
+        for yy in range(y0, y1):
+            base = yy * sx
+            for xx in range(x0, x1):
+                cell = grid[base + xx]
+                if ROOM_MIN <= cell <= ROOM_MAX:
+                    got = cell
+                elif CLEAN_MIN <= cell <= CLEAN_MAX:
+                    got = cell - CLEAN_MIN + ROOM_MIN
+                else:
+                    got = -1
+                if got != rid:
+                    return False
+        return True
+
+    for y in range(sy):
         row = y * sx
         runs: list[tuple[int, int, int]] = []
         prev, start = -1, 0
-        for x in range(0, sx, step):
+        for x in range(sx):
             cell = grid[row + x]
             if ROOM_MIN <= cell <= ROOM_MAX:
                 rid = cell
@@ -864,35 +900,62 @@ def _rect_cover(grid: bytes, sx: int, sy: int, step: int,
         if prev >= 0:
             runs.append((prev, start, sx))
 
-        still: dict[tuple[int, int, int], list[int]] = {}
+        cur: dict[int, list[tuple[list[int], int, int]]] = {}
         for rid, x0, x1 in runs:
-            key = (rid, x0, x1)
-            rect = open_runs.get(key)
-            if rect is not None:
-                rect[3] = y + step - rect[1]
+            items = last.get(rid, [])
+            best: tuple[int, int, list[int], int, int] | None = None
+            for i, (rect, ax0, ax1) in enumerate(items):
+                if abs(x0 - ax0) > edge_tol or abs(x1 - ax1) > edge_tol:
+                    continue
+                over = min(x1, rect[0] + rect[2]) - max(x0, rect[0])
+                if over <= 0:
+                    continue
+                # Only the strips the old rectangle did not already prove are
+                # this room need checking: new columns above, and old columns
+                # outside the current run.
+                left, right = min(x0, rect[0]), max(x1, rect[0] + rect[2])
+                if not (same_room(rid, left, rect[0], rect[1], y)
+                        and same_room(rid, rect[0] + rect[2], right, rect[1], y)
+                        and same_room(rid, left, x0, y, y + 1)
+                        and same_room(rid, x1, right, y, y + 1)):
+                    continue
+                if best is None or over > best[0]:
+                    best = (over, i, rect, ax0, ax1)
+            if best is not None:                         # continue that rectangle
+                _, i, rect, ax0, ax1 = best
+                items.pop(i)                 # one run may feed only one rect
+                left, right = min(x0, rect[0]), max(x1, rect[0] + rect[2])
+                rect[0], rect[2], rect[3] = left, right - left, y + 1 - rect[1]
+                cur.setdefault(rid, []).append((rect, ax0, ax1))
             elif len(rects.get(rid, [])) < max_rects:
-                rect = [x0, y, x1 - x0, step]
+                rect = [x0, y, x1 - x0, 1]
                 rects.setdefault(rid, []).append(rect)
-            else:
-                continue                     # this room is already detailed enough
-            still[key] = rect
-        open_runs = still
+                cur.setdefault(rid, []).append((rect, x0, x1))
+            # else: this room already has enough rectangles to hit-test with
+        last = cur
     return rects
 
 
-def _fit_geometry(geo: dict, pad: float = 0.035) -> dict:
-    '''Crop a decoded map to the part the robot actually uses, in a square view.
+# Bumped when the view window changes shape. A cache written by an older build
+# (a square window) is refitted once, which is what `mapdata --refit` does.
+FIT = 2
 
-    The blob's header bounds cover the whole grid, including empty margins. The
-    app crops to the rooms, which is why its floor plan fills the card while the
-    same blob drawn 0..1 can be a postage stamp in the middle. This maps every
-    normalised coordinate through one square raw-metre window, so x and y keep
-    their real aspect ratio instead of being stretched to the Canvas.
 
-    `bounds` is rewritten to the same raw window because the live 10/5 pose is
-    placed with those raw metres, not with the normalised room coordinates.
+def _fit_geometry(geo: dict, pad: float = 0.03) -> dict:
+    '''Crop a decoded map to the part the robot actually uses.
+
+    The blob's header bounds cover the whole 800x800 grid, including empty
+    margins, so a map drawn 0..1 is a postage stamp in the middle. The app
+    crops to the rooms. This does the same, but keeps x and y at their real
+    ratio: the window is as wide as the plan and as tall as the plan, not a
+    square. A portrait floor plan in a square frame wasted a third of the width,
+    which is why the rooms looked small and squeezed to one side. `view` records
+    the window's metres so the widget can give the picture the same shape.
+
+    `bounds` is rewritten to the same raw-metre window because the live 10/5
+    pose is placed with those raw metres, not with the normalised coordinates.
     '''
-    if geo.get("fitted"):
+    if geo.get("fit") == FIT:
         return geo
     b = geo.get("bounds")
     if not b or len(b) < 4:
@@ -937,14 +1000,15 @@ def _fit_geometry(geo: dict, pad: float = 0.035) -> dict:
     y0, y1 = min(ys), max(ys)
     if x1 - x0 < 1e-6 or y1 - y0 < 1e-6:
         return geo
-    span = max(x1 - x0, y1 - y0) * (1 + 2 * pad)
+    win_w = (x1 - x0) * (1 + 2 * pad)
+    win_h = (y1 - y0) * (1 + 2 * pad)
     cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
 
     def nx(x: float) -> float:
-        return 0.5 + (float(x) - cx) / span
+        return 0.5 + (float(x) - cx) / win_w
 
     def ny(y: float) -> float:
-        return 0.5 - (float(y) - cy) / span
+        return 0.5 - (float(y) - cy) / win_h
 
     def tpoint(p) -> list[float]:
         return [round(nx(minx + float(p[0]) * span_x), 4),
@@ -954,8 +1018,8 @@ def _fit_geometry(geo: dict, pad: float = 0.035) -> dict:
         x, y, w, h = (float(v) for v in q[:4])
         return [round(nx(minx + x * span_x), 4),
                 round(ny(maxy - y * span_y), 4),
-                round(w * span_x / span, 4),
-                round(h * span_y / span, 4)]
+                round(w * span_x / win_w, 4),
+                round(h * span_y / win_h, 4)]
 
     for r in geo.get("rooms", []):
         r["parts"] = [tbox(p) for p in r.get("parts", [])]
@@ -976,16 +1040,118 @@ def _fit_geometry(geo: dict, pad: float = 0.035) -> dict:
     for n in geo.get("navigation", []):
         if n.get("at"):
             n["at"] = tpoint(n["at"])
-    geo["bounds"] = [round(cx - span / 2, 4), round(cx + span / 2, 4),
-                     round(cy - span / 2, 4), round(cy + span / 2, 4)]
+    geo["bounds"] = [round(cx - win_w / 2, 4), round(cx + win_w / 2, 4),
+                     round(cy - win_h / 2, 4), round(cy + win_h / 2, 4)]
+    geo["view"] = [round(win_w, 3), round(win_h, 3)]
     geo["hits"] = sorted([{"id": r["id"], "box": p}
                           for r in geo.get("rooms", []) for p in r.get("parts", [])],
                          key=lambda h: h["box"][2] * h["box"][3])
+    geo["fit"] = FIT
     geo["fitted"] = True
     return geo
 
 
-def map_geometry(proto: bytes, step: int = 2, max_rects: int = 24,
+def _hex_rgb(name: str) -> tuple[int, int, int]:
+    s = str(name).lstrip("#")
+    try:
+        return (int(s[0:2], 16), int(s[2:4], 16), int(s[4:6], 16))
+    except (ValueError, IndexError):
+        return (128, 128, 128)
+
+
+def _write_png(path: Path, w: int, h: int, rows: list[bytes],
+               palette: list[tuple[int, int, int, int]]) -> None:
+    '''A palette PNG from index rows, with no imaging library at all.'''
+    def chunk(tag: bytes, data: bytes) -> bytes:
+        body = tag + data
+        return (struct.pack(">I", len(data)) + body
+                + struct.pack(">I", zlib.crc32(body) & 0xFFFFFFFF))
+
+    raw = b"".join(b"\x00" + row for row in rows)
+    png = (b"\x89PNG\r\n\x1a\n"
+           + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 3, 0, 0, 0))
+           + chunk(b"PLTE", b"".join(bytes(c[:3]) for c in palette))
+           + chunk(b"tRNS", bytes(c[3] for c in palette))
+           + chunk(b"IDAT", zlib.compress(raw, 6))
+           + chunk(b"IEND", b""))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + ".part")
+    tmp.write_bytes(png)
+    tmp.replace(path)
+
+
+def render_plan_png(m: dict, geo: dict) -> Path | None:
+    '''The blob's own grid as a picture, in the widget's colours.
+
+    This is what the map tab shows: one pixel block per map cell, so walls,
+    doorways and the real room shapes are there instead of a handful of
+    rectangles. Every coordinate in `geo` already lives in the window
+    `geo["bounds"]` describes, so the same window is used for the cells; the
+    Canvas over it then lines up with the picture exactly.
+
+    The file name carries a stamp and the previous picture is removed, so the
+    launcher never keeps showing a cached image with the same path.
+    '''
+    b = geo.get("bounds")
+    sx, sy = m.get("sizeX") or 0, m.get("sizeY") or 0
+    grid = m.get("grid") or b""
+    if not b or len(b) < 4 or sx <= 0 or sy <= 0 or len(grid) < sx * sy:
+        return None
+    minx, maxx, miny, maxy = (float(v) for v in b[:4])
+    cell_w = (m["maxX"] - m["minX"]) / sx or 1.0
+    cell_h = (m["maxY"] - m["minY"]) / sy or 1.0
+    # The grid's own rows run from minY up (row 0 is minY, the bottom of the
+    # drawing), which is why a higher row is higher on the picture.
+    gx0 = max(0, int(math.floor((minx - m["minX"]) / cell_w)))
+    gx1 = min(sx, int(math.ceil((maxx - m["minX"]) / cell_w)))
+    gy0 = max(0, int(math.floor((miny - m["minY"]) / cell_h)))
+    gy1 = min(sy, int(math.ceil((maxy - m["minY"]) / cell_h)))
+    if gx1 <= gx0 or gy1 <= gy0:
+        return None
+    cw, ch = gx1 - gx0, gy1 - gy0
+    scale = max(1, min(6, round(1000 / max(cw, ch))))
+
+    palette: list[tuple[int, int, int, int]] = []
+    index: dict[tuple[int, int, int, int], int] = {}
+
+    def colour(v: int) -> int:
+        if v in (127, 128) or v == CELL_WALL:
+            rgba = (126, 132, 145, 255)
+        elif ROOM_MIN <= v <= ROOM_MAX:
+            rgba = (*_hex_rgb(room_color(v)), 205)
+        elif CLEAN_MIN <= v <= CLEAN_MAX:                 # already cleaned
+            rgb = _hex_rgb(room_color(v - CLEAN_MIN + ROOM_MIN))
+            rgba = (*[min(255, c + 40) for c in rgb], 230)
+        elif v == 0:                                      # outside the flat
+            rgba = (0, 0, 0, 0)
+        else:                                             # obstacles, oddities
+            rgba = (105, 111, 124, 255)
+        got = index.get(rgba)
+        if got is None:
+            got = index[rgba] = len(palette)
+            palette.append(rgba)
+        return got
+
+    rows: list[bytes] = []
+    for gy in range(gy1 - 1, gy0 - 1, -1):          # top of the picture first
+        base = gy * sx
+        line = bytes(colour(grid[base + gx]) for gx in range(gx0, gx1))
+        if scale > 1:
+            line = b"".join(bytes((v,)) * scale for v in line)
+        rows.extend([line] * scale)
+
+    path = MAP_CACHE.with_name(f"plan-{int(time.time())}.png")
+    _write_png(path, cw * scale, ch * scale, rows, palette)
+    for old in MAP_CACHE.parent.glob("plan-*.png"):
+        if old != path:
+            try:
+                old.unlink()
+            except OSError:
+                pass
+    return path
+
+
+def map_geometry(proto: bytes, max_rects: int = 64,
                  max_path: int = 400) -> dict:
     '''The protobuf as geometry the widget can draw: rooms, path, poses, 0..1.'''
     m = parse_map(proto)
@@ -1001,7 +1167,7 @@ def map_geometry(proto: bytes, step: int = 2, max_rects: int = 24,
     def ny(y: float) -> float:          # map y -> 0..1 down, flipped for the screen
         return min(1.0, max(0.0, 1.0 - (y - m["minY"]) / span_y))
 
-    covers = _rect_cover(m["grid"], sx, sy, step, max_rects)
+    covers = _rect_cover(m["grid"], sx, sy, max_rects)
     cleaned = sorted({v - CLEAN_MIN + ROOM_MIN
                       for v in set(m["grid"]) if CLEAN_MIN <= v <= CLEAN_MAX})
     # Cell counts give the real cleanable area of an L-shaped room; width and
@@ -1102,7 +1268,17 @@ def map_geometry(proto: bytes, step: int = 2, max_rects: int = 24,
                    "objects": len(objects), "furniture": len(furniture),
                    "virtual_walls": len(virtual_walls), "areas": len(areas)},
     }
-    return _fit_geometry(geo)
+    geo = _fit_geometry(geo)
+    # The picture the map tab shows. Rendering it here keeps it next to the
+    # geometry it is made from: a fetch, a decode or a refit all leave a fresh
+    # one behind, and a failure (a read-only cache, say) only costs the picture.
+    try:
+        plan = render_plan_png(m, geo)
+        if plan is not None:
+            geo["plan"] = str(plan)
+    except Exception:                                      # noqa: BLE001
+        pass
+    return geo
 
 
 def cmd_mapdata(cfg: dict, source: str | None, refresh: bool,
@@ -1139,12 +1315,15 @@ def cmd_mapdata(cfg: dict, source: str | None, refresh: bool,
     return 0
 
 
-def cmd_map_refit() -> int:
-    '''Crop an existing map cache to its content exactly once.
+def cmd_map_refit(cfg: dict) -> int:
+    '''Re-decode the cached blob into the current view, and draw its picture.
 
-    A widget update can change the view without changing the map. This lets the
-    new widget fix an old, correctly fetched cache on the phone without asking
-    Xiaomi for the blob again. The `fitted` marker makes it a one-shot migration.
+    A widget update can change the view without changing the map: the window
+    used to be square, which wasted the empty side margins and drew a portrait
+    floor plan small, the room rectangles need their edge checks rebuilt, and
+    older caches carry no picture of their own. The blob is still on disk, so
+    the whole geometry is decoded again from it - nothing goes to the network -
+    and `fit` makes it a one-shot migration.
     '''
     if not MAP_JSON.is_file():
         print(json.dumps({"ok": False, "error": "no map cache to refit"}))
@@ -1157,11 +1336,48 @@ def cmd_map_refit() -> int:
     if not isinstance(geo, dict):
         print(json.dumps({"ok": False, "error": "map cache is not an object"}))
         return 1
-    if not geo.get("fitted"):
-        geo = _fit_geometry(geo)
-        _write_json(MAP_JSON, geo)
+    need = ("sn", "user_id", "did", "model", "mac")
+    done = False
+    if MAP_BLOB.is_file() and all(cfg.get(k) for k in need):
+        try:
+            geo = map_geometry(map_decrypt(MAP_BLOB.read_bytes(),
+                                           *[cfg[k] for k in need]))
+            done = True
+        except Exception:                                  # noqa: BLE001
+            pass
+    if not done and geo.get("fit") != FIT:
+        geo = _fit_geometry(geo)              # no blob: recrop what is cached
+    _write_json(MAP_JSON, geo)
     print(json.dumps(geo))
     return 0
+
+
+def cmd_map_png(cfg: dict) -> int:
+    '''Draw the picture for a cached map, from the cached blob.'''
+    if not MAP_JSON.is_file():
+        return _out({"ok": False, "error": "no map cache: tap fetch first"})
+    try:
+        geo = json.loads(MAP_JSON.read_text())
+    except Exception as exc:                                  # noqa: BLE001
+        return _out({"ok": False, "error": f"map cache is not json: {exc}"})
+    if geo.get("fit") != FIT:
+        geo = _fit_geometry(geo)
+    need = ("sn", "user_id", "did", "model", "mac")
+    missing = [k for k in need if not cfg.get(k)]
+    if missing:
+        return _out({"ok": False, "error": "the config has no " + ", ".join(missing)})
+    if not MAP_BLOB.is_file():
+        return _out({"ok": False, "error": "the map blob is not on the phone: tap fetch"})
+    try:
+        m = parse_map(map_decrypt(MAP_BLOB.read_bytes(), *[cfg[k] for k in need]))
+        plan = render_plan_png(m, geo)
+    except Exception as exc:                                  # noqa: BLE001
+        return _out({"ok": False, "error": str(exc)})
+    if plan is None:
+        return _out({"ok": False, "error": "this map has no drawable grid"})
+    geo["plan"] = str(plan)
+    _write_json(MAP_JSON, geo)
+    return _out({"ok": True, "plan": str(plan), "view": geo.get("view")})
 
 
 def cmd_live(v: Vacuum, save: bool = False) -> int:
@@ -2399,7 +2615,9 @@ def main(argv=None) -> int:
     ap.add_argument("--refresh", action="store_true",
                     help="mapdata: fetch the live blob from the cloud again")
     ap.add_argument("--refit", action="store_true",
-                    help="mapdata: crop an existing cache to its content once")
+                    help="mapdata: recrop an existing cache to its content")
+    ap.add_argument("--png", action="store_true",
+                    help="mapdata: redraw the floor-plan picture from the cached blob")
     ap.add_argument("--save", action="store_true",
                     help="live: also cache the chunk for the map tab")
     ap.add_argument("--user", help="login: the Mi account name (email or phone)")
@@ -2448,7 +2666,9 @@ def main(argv=None) -> int:
         if args.command == "mapdata":
             # Also no device needed: the blob comes from the cloud or a file.
             if args.refit:
-                return cmd_map_refit()
+                return cmd_map_refit(load_config(config_path(args.config)))
+            if args.png:
+                return cmd_map_png(load_config(config_path(args.config)))
             return cmd_mapdata(load_config(config_path(args.config)),
                                args.file or args.url, args.refresh,
                                config_path(args.config))
@@ -2529,7 +2749,7 @@ def main(argv=None) -> int:
 if __name__ == "__main__":
     sys.exit(main())
 OMARCHY_VACUUM_PY
-  printf '%s' 'a7c1f04e9b21' > "$d/tag"
+  printf '%s' '57f4643fcadd' > "$d/tag"
 fi
 python3 "$d/vacuum.py" status
   """) every 30s json timeout 60s
@@ -2546,10 +2766,17 @@ python3 "$d/vacuum.py" status
 d=~/.cache/omarchy-vacuum
 f=$d/map.json
 # A widget update can change the view without changing the map. Refit an old
-# cache once (the helper marks it `fitted`) so a correctly fetched phone map is
+# cache once (the helper marks it `fit`) so a correctly fetched phone map is
 # not replaced just to fix its scale.
 if [ -f "$f" ] && [ -f "$d/vacuum.py" ] && [ -f "$d/tag" ] && [ "$f" -ot "$d/tag" ]; then
   python3 "$d/vacuum.py" mapdata --refit >/dev/null 2>&1 || true
+fi
+# An older cache has no picture of its own; draw it once from the blob that
+# was already downloaded. The marker stops a map the phone cannot decrypt from
+# spawning python every ten seconds.
+if [ -f "$f" ] && ! ls "$d"/plan-*.png >/dev/null 2>&1 && [ ! -f "$d/plan.tried" ]; then
+  : > "$d/plan.tried"
+  python3 "$d/vacuum.py" mapdata --png >/dev/null 2>&1 || true
 fi
 if [ ! -f "$f" ]; then
   echo '{"ok":false,"error":"no floor plan on the phone yet - tap fetch"}'
@@ -3087,7 +3314,6 @@ echo no
           Text { text: "the map"; style: label; color: accent; weight: 1; maxLines: 1 }
           Button { text: "fetch"; color: muted; onTap: run("python3 $HOME/.cache/omarchy-vacuum/vacuum.py mapdata --refresh") }
           Button { text: "live"; color: muted; onTap: run("python3 $HOME/.cache/omarchy-vacuum/vacuum.py live --save") }
-          Button { text: "fit"; color: muted; onTap: run("python3 $HOME/.cache/omarchy-vacuum/vacuum.py mapdata --refit") }
         }
 
         // The app's three numbers, in the app's order: what was cleaned, how
@@ -3121,83 +3347,109 @@ echo no
         }
 
         if mdok {
-          // 300 dp square, drawn in the theme's colours, not a baked picture:
-          // the rooms are rectangles here, so they can change colour when they
-          // are picked. `onTap` gives dp coordinates, so the hit test uses the
-          // same 300 the drawing does. `md.hits` is every room part, smallest
-          // first, so an L-shaped room and an overlapping neighbour resolve to
-          // the room under the finger rather than to whichever bbox came first.
-          Canvas {
+          // The floor plan is a picture now: `mapdata` renders the blob's own
+          // grid to a PNG on the phone, so walls, doorways and the real room
+          // shapes are there instead of a handful of rectangles. The box takes
+          // the plan's own shape from `view`, so a portrait flat is not squeezed
+          // into a square, and the Canvas over the picture draws only what
+          // changes: picked rooms, the live path, the poses and the labels.
+          // `onTap` gives dp coordinates inside the Canvas, which is exactly the
+          // picture's box; `md.hits` is every room part, smallest first, so an
+          // L-shaped room and a neighbour under the finger resolve to the room
+          // really there.
+          Box {
             width: 300
-            height: 300
-            onTap: sel = find(md.hits ?? md.rooms, h => x >= h.box[0] * 300 && x <= (h.box[0] + h.box[2]) * 300 && y >= h.box[1] * 300 && y <= (h.box[1] + h.box[3]) * 300) == null ? sel : (contains(sel, find(md.hits ?? md.rooms, h => x >= h.box[0] * 300 && x <= (h.box[0] + h.box[2]) * 300 && y >= h.box[1] * 300 && y <= (h.box[1] + h.box[3]) * 300).id) ? sel.filter(i => i != find(md.hits ?? md.rooms, h => x >= h.box[0] * 300 && x <= (h.box[0] + h.box[2]) * 300 && y >= h.box[1] * 300 && y <= (h.box[1] + h.box[3]) * 300).id) : sel + [find(md.hits ?? md.rooms, h => x >= h.box[0] * 300 && x <= (h.box[0] + h.box[2]) * 300 && y >= h.box[1] * 300 && y <= (h.box[1] + h.box[3]) * 300).id])
-            rect(0, 0, 300, 300, radius: 10, fill: alpha(muted, 0.08))
-            // Draw the largest box first, so a smaller room's footprint sits on
-            // top of a larger room's bounding box. Exact outlines come from the
-            // cloud blob; a fallback map only has these boxes.
-            for r in md.rooms.sortBy(r => -(r.dims != null ? r.dims.bbox_area : 0)) {
-              for p in r.parts {
-                rect(p[0] * 300, p[1] * 300, p[2] * 300, p[3] * 300, radius: 2, fill: alpha(r.color ?? accent, contains(sel, r.id) ? 0.95 : 0.68), stroke: alpha(foreground, 0.22), width: 1)
-              }
-            }
-            // The blob's own path goes over the room fills, or a selected room
-            // would hide the cleaned line.
-            if len(md.path) > 1 {
-              path(md.path.map(q => [q[0] * 300, q[1] * 300]), stroke: alpha(accent, 0.4), width: 1)
-            }
-            // The obstacle layer from RobotMap fields 9/10/11/15/16: furniture
-            // outlines, no-go/virtual-wall polygons, detected-object dots and
-            // waypoints. A map without those layers has empty lists here.
-            for f in (md.furniture ?? []) {
-              if len(f.points) > 1 {
-                path(f.points.map(q => [q[0] * 300, q[1] * 300]), stroke: alpha(foreground, 0.45), width: 1)
-              }
-            }
-            for z in (md.virtual_walls ?? []) {
-              if len(z.points) > 1 {
-                path((z.points + [z.points[0]]).map(q => [q[0] * 300, q[1] * 300]), stroke: alpha(red, 0.8), width: 1)
-              }
-            }
-            for z in (md.areas ?? []) {
-              if len(z.points) > 1 {
-                path((z.points + [z.points[0]]).map(q => [q[0] * 300, q[1] * 300]), stroke: alpha(red, 0.8), width: 1)
-              }
-            }
-            for o in (md.objects ?? []) {
-              if o.notShow != 1 {
-                circle(o.at[0] * 300, o.at[1] * 300, 3, fill: alpha(foreground, 0.8))
-              }
-            }
-            for p in (md.navigation ?? []) {
-              path([[p.at[0] * 300 - 3, p.at[1] * 300], [p.at[0] * 300 + 3, p.at[1] * 300]], stroke: accent, width: 1)
-              path([[p.at[0] * 300, p.at[1] * 300 - 3], [p.at[0] * 300, p.at[1] * 300 + 3]], stroke: accent, width: 1)
-            }
-            // The newest 10/5 chunk, if the live button cached one. Travel (flag
-            // 0) is dim; cleaned (flag 1) is bright; the green dot is the pose.
-            if md.bounds != null && len(lvtravel) > 1 {
-              path(lvtravel.map(q => [(q[0] - md.bounds[0]) / (md.bounds[1] - md.bounds[0]) * 300, (1 - (q[1] - md.bounds[2]) / (md.bounds[3] - md.bounds[2])) * 300]), stroke: alpha(muted, 0.35), width: 1)
-            }
-            if md.bounds != null && len(lvclean) > 1 {
-              path(lvclean.map(q => [(q[0] - md.bounds[0]) / (md.bounds[1] - md.bounds[0]) * 300, (1 - (q[1] - md.bounds[2]) / (md.bounds[3] - md.bounds[2])) * 300]), stroke: alpha(foreground, 0.85), width: 2)
-            }
-            if md.bounds != null && lvlast != null {
-              if lv.head != null {
-                path([[(lvlast[0] - md.bounds[0]) / (md.bounds[1] - md.bounds[0]) * 300, (1 - (lvlast[1] - md.bounds[2]) / (md.bounds[3] - md.bounds[2])) * 300], [(lvlast[0] + lv.head[0] * 0.4 - md.bounds[0]) / (md.bounds[1] - md.bounds[0]) * 300, (1 - (lvlast[1] + lv.head[1] * 0.4 - md.bounds[2]) / (md.bounds[3] - md.bounds[2])) * 300]], stroke: green, width: 2)
-              }
-              circle((lvlast[0] - md.bounds[0]) / (md.bounds[1] - md.bounds[0]) * 300, (1 - (lvlast[1] - md.bounds[2]) / (md.bounds[3] - md.bounds[2])) * 300, 4, fill: green)
-            }
-            circle(md.charger[0] * 300, md.charger[1] * 300, 4, fill: green)
-            if lvlast == null {
-              circle(md.vacuum[0] * 300, md.vacuum[1] * 300, 5, fill: accent)
-            }
-            for r in md.rooms {
-              if r.dims != null {
-                text(r.name, r.label[0] * 300, r.label[1] * 300 - 4, size: 9, align: center, color: foreground)
-                if r.box[2] * 300 > 48 && r.box[3] * 300 > 30 {
-                  text((r.dims.estimated == true ? "~" : "") + (r.dims.actual ?? r.dims.area) + "m2", r.label[0] * 300, r.label[1] * 300 + 8, size: 7, align: center, color: alpha(foreground, 0.8))
+            height: md.view != null ? 300 * md.view[1] / md.view[0] : 300
+            radius: 10
+            clip: true
+            background: alpha(muted, 0.08)
+
+            Image { src: md.plan ?? "~/.cache/omarchy-vacuum/plan.png"; fill: true; fit: contain }
+
+            Canvas {
+              onTap: {
+                let ph = md.view != null ? 300 * md.view[1] / md.view[0] : 300
+                let hit = find(md.hits ?? md.rooms, h => x >= h.box[0] * 300 && x <= (h.box[0] + h.box[2]) * 300 && y >= h.box[1] * ph && y <= (h.box[1] + h.box[3]) * ph)
+                if hit != null {
+                  sel = contains(sel, hit.id) ? sel.filter(i => i != hit.id) : sel + [hit.id]
                 }
-              } else {
-                text(r.name, r.label[0] * 300, r.label[1] * 300, size: 9, align: center, color: foreground)
+              }
+              // Until the picture is there (an older cache, or a fetch in
+              // flight) the rectangles still say what the rooms are.
+              if md.plan == null {
+                for r in md.rooms.sortBy(r => -(r.dims != null ? r.dims.bbox_area : 0)) {
+                  for p in r.parts {
+                    rect(p[0] * width, p[1] * height, p[2] * width, p[3] * height, radius: 2, fill: alpha(r.color ?? accent, 0.68), stroke: alpha(foreground, 0.22), width: 1)
+                  }
+                }
+              }
+              // A picked room is tinted over the picture, so a tap shows at once.
+              for r in md.rooms {
+                if contains(sel, r.id) {
+                  for p in r.parts {
+                    rect(p[0] * width, p[1] * height, p[2] * width, p[3] * height, radius: 2, fill: alpha(r.color ?? accent, 0.35), stroke: r.color ?? accent, width: 2)
+                  }
+                }
+              }
+              // The blob's own path goes over the room fills, or a selected room
+              // would hide the cleaned line.
+              if len(md.path) > 1 {
+                path(md.path.map(q => [q[0] * width, q[1] * height]), stroke: alpha(accent, 0.4), width: 1)
+              }
+              // The obstacle layer from RobotMap fields 9/10/11/15/16: furniture
+              // outlines, no-go/virtual-wall polygons, detected-object dots and
+              // waypoints. A map without those layers has empty lists here.
+              for f in (md.furniture ?? []) {
+                if len(f.points) > 1 {
+                  path(f.points.map(q => [q[0] * width, q[1] * height]), stroke: alpha(foreground, 0.45), width: 1)
+                }
+              }
+              for z in (md.virtual_walls ?? []) {
+                if len(z.points) > 1 {
+                  path((z.points + [z.points[0]]).map(q => [q[0] * width, q[1] * height]), stroke: alpha(red, 0.8), width: 1)
+                }
+              }
+              for z in (md.areas ?? []) {
+                if len(z.points) > 1 {
+                  path((z.points + [z.points[0]]).map(q => [q[0] * width, q[1] * height]), stroke: alpha(red, 0.8), width: 1)
+                }
+              }
+              for o in (md.objects ?? []) {
+                if o.notShow != 1 {
+                  circle(o.at[0] * width, o.at[1] * height, 3, fill: alpha(foreground, 0.8))
+                }
+              }
+              for p in (md.navigation ?? []) {
+                path([[p.at[0] * width - 3, p.at[1] * height], [p.at[0] * width + 3, p.at[1] * height]], stroke: accent, width: 1)
+                path([[p.at[0] * width, p.at[1] * height - 3], [p.at[0] * width, p.at[1] * height + 3]], stroke: accent, width: 1)
+              }
+              // The newest 10/5 chunk, if the live button cached one. Travel (flag
+              // 0) is dim; cleaned (flag 1) is bright; the green dot is the pose.
+              if md.bounds != null && len(lvtravel) > 1 {
+                path(lvtravel.map(q => [(q[0] - md.bounds[0]) / (md.bounds[1] - md.bounds[0]) * width, (1 - (q[1] - md.bounds[2]) / (md.bounds[3] - md.bounds[2])) * height]), stroke: alpha(muted, 0.35), width: 1)
+              }
+              if md.bounds != null && len(lvclean) > 1 {
+                path(lvclean.map(q => [(q[0] - md.bounds[0]) / (md.bounds[1] - md.bounds[0]) * width, (1 - (q[1] - md.bounds[2]) / (md.bounds[3] - md.bounds[2])) * height]), stroke: alpha(foreground, 0.85), width: 2)
+              }
+              if md.bounds != null && lvlast != null {
+                if lv.head != null {
+                  path([[(lvlast[0] - md.bounds[0]) / (md.bounds[1] - md.bounds[0]) * width, (1 - (lvlast[1] - md.bounds[2]) / (md.bounds[3] - md.bounds[2])) * height], [(lvlast[0] + lv.head[0] * 0.4 - md.bounds[0]) / (md.bounds[1] - md.bounds[0]) * width, (1 - (lvlast[1] + lv.head[1] * 0.4 - md.bounds[2]) / (md.bounds[3] - md.bounds[2])) * height]], stroke: green, width: 2)
+                }
+                circle((lvlast[0] - md.bounds[0]) / (md.bounds[1] - md.bounds[0]) * width, (1 - (lvlast[1] - md.bounds[2]) / (md.bounds[3] - md.bounds[2])) * height, 4, fill: green)
+              }
+              circle(md.charger[0] * width, md.charger[1] * height, 4, fill: green)
+              if lvlast == null {
+                circle(md.vacuum[0] * width, md.vacuum[1] * height, 5, fill: accent)
+              }
+              for r in md.rooms {
+                if r.dims != null {
+                  text(r.name, r.label[0] * width, r.label[1] * height - 4, size: 9, align: center, color: foreground)
+                  if r.box[2] * width > 48 && r.box[3] * height > 30 {
+                    text((r.dims.estimated == true ? "~" : "") + (r.dims.actual ?? r.dims.area) + "m2", r.label[0] * width, r.label[1] * height + 8, size: 7, align: center, color: alpha(foreground, 0.8))
+                  }
+                } else {
+                  text(r.name, r.label[0] * width, r.label[1] * height, size: 9, align: center, color: foreground)
+                }
               }
             }
           }
@@ -3205,7 +3457,7 @@ echo no
           if md.proof == true {
             Text { text: "this floor plan came from an older fallback cache. exact outlines, cell-count areas and the obstacle layer need the signed cloud map."; style: small; color: muted; maxLines: 4 }
           } else {
-            Text { text: "the robot's own map file, decoded on the phone - no picture came from a server. obstacle layer: " + (md.counts.objects ?? 0) + " objects, " + (md.counts.furniture ?? 0) + " furniture, " + ((md.counts.virtual_walls ?? 0) + (md.counts.areas ?? 0)) + " no-go zones."; style: small; color: muted; maxLines: 4 }
+            Text { text: "the robot's own map file, drawn on the phone - no picture came from a server. obstacle layer: " + (md.counts.objects ?? 0) + " objects, " + (md.counts.furniture ?? 0) + " furniture, " + ((md.counts.virtual_walls ?? 0) + (md.counts.areas ?? 0)) + " no-go zones."; style: small; color: muted; maxLines: 4 }
           }
           if lv != null && lv.ok == true {
             Text { text: lv.idle == true ? "live pose: robot idle (10/5 is just a timestamp)" : "live pose: " + len(lvp) + " points from 10/5"; style: small; color: muted; maxLines: 2 }

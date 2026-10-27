@@ -57,12 +57,26 @@ token is per device and does not rotate on its own.
 
 Status and control stay on the LAN. The floor plan is the one part that needs the
 account: Xiaomi stores the map blob behind a signed URL. Tap **log in** in setup, then
-**fetch**. The widget decrypts the blob locally, crops it to the rooms, and writes only
-the resulting geometry to:
+**fetch**. The widget decrypts the blob locally, crops it to the plan, and writes the
+resulting geometry to:
 
 ```sh
 ~/.cache/omarchy-vacuum/map.json
 ```
+
+and the floor plan itself as a picture beside it:
+
+```sh
+~/.cache/omarchy-vacuum/plan-<stamp>.png
+```
+
+That picture is drawn from the robot's own grid on the phone: walls, doorways, the real
+room shapes and the cells it has already cleaned, in the theme's room colours. Nothing
+is rendered by a server, and no imaging library is installed — the PNG is written with
+`zlib`, which Python already has. The map tab shows it at the plan's own proportions
+with the room names, the cleaned path and the two poses over it. After a widget update
+the cached blob is re-decoded once and the picture redrawn by itself; `mapdata --refit`
+does the same from the command line.
 
 The Mi password itself is not written to disk. During a login step the widget keeps
 temporary state in `~/.config/omarchy-proot/vacuum-login.json` (mode `600`), including a
