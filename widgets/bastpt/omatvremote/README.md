@@ -54,9 +54,23 @@ seconds rather than waiting forever. From then on the widget says so, and a tap 
 arrives while the TV is missed is held for 20 seconds in case the connection comes back,
 then reported as never answered rather than counted as sent.
 
-While the TV is asleep or out of reach the keys dim and answer nothing, since a TV that
-isn't listening would swallow every one. Only power stays lit, and the line at the
-bottom of the view says which of the three the remote is in.
+What it then says depends on what the address does, which is worth telling apart. A box
+whose network is up but whose remote service is not — one in standby, or a television that
+switched its panel off around a box still running — refuses the port, and the widget says
+`asleep`. One that answers nobody, switched off at the socket or gone from this network,
+waits out the network's own timeout, and the widget says `off the network`. In both the
+keys dim and answer nothing, since with no session there is nowhere to send a key to,
+power included; the daemon keeps asking, so the remote lights itself back up the moment
+the TV's service comes back.
+
+That ceiling is the protocol's rather than this widget's. Nothing in it carries the state
+of a connected display, and the messages that would wake or sleep one are CEC, which an
+app cannot send without a privileged service. So a box that is fully off cannot be woken
+over the network at all, and a box that is awake behind a panel that is off keeps
+reporting itself awake, with its app, and takes every key — the remote is honest about the
+box, which is all the box is willing to say. On a television with Android TV or Google TV
+built in, where the box and the panel are one machine, the two states above are all there
+is, and a power key from this widget is what ends the standby one.
 
 ## Privacy
 

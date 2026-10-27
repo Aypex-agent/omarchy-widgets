@@ -24,7 +24,7 @@ widget "omatv remote" {
   // reaches it without stretching. The layout switch picks how much remote shows at all: simple
   // is the pad over a row of back, home and mute and two rows of transport and volume keys; full
   // is everything.
-  meta { owl: 11; description: "A remote for an Android TV or Google TV box over the TV's own remote-control service: pair once, then drive it from the tile"; version: "1.0"; license: "Apache-2.0"; category: "media" }
+  meta { owl: 11; description: "A remote for an Android TV or Google TV box over the TV's own remote-control service: pair once, then drive it from the tile"; version: "1.1"; license: "Apache-2.0"; category: "media" }
 
   size: 6x3
   minSize: 4x3
@@ -43,7 +43,9 @@ widget "omatv remote" {
   state play = false persist
   state typed = ""
 
-  // "nopair" until paired, then the daemon's state: "on|app", "off|", "asleep|", "waiting".
+  // "nopair" until paired, then the daemon's state: "on|app", "off|" for standby we still hold a
+  // session with, "asleep|" for a box whose service is not listening, "gone|" for an address that
+  // answers nobody, and "waiting" while the daemon is getting there.
   // While pairing it is "code|" (the TV shows a code), or "unpaired|" or "unreachable|", and
   // "need" until this file's copy of the client is where it should be.
   //
@@ -54,7 +56,7 @@ widget "omatv remote" {
 H=$HOME/.local/share/omatvremote
 mkdir -p "$H"
 touch "$H/beat"  # the daemon watches this and lets go of the TV once the tile stops asking
-[ "$(cat "$H/tag" 2>/dev/null)" = "f52ca6c94368" ] || { echo need; exit; }
+[ "$(cat "$H/tag" 2>/dev/null)" = "34f32acf6f97" ] || { echo need; exit; }
 now=$(date +%s)
 pf=$H/pairing
 if [ -f "$pf" ]; then
@@ -276,6 +278,16 @@ def shown(cmd, arg):
     return "text (%d chars)" % len(arg) if cmd == "text" else "%s %r" % (cmd, arg)
 
 
+def nobody_home(err):
+    '''True when nothing at that address is home. A box that is asleep still has its network up and
+    refuses the port outright, which means its service can come back and take us again without
+    anyone touching the phone; a box that is switched off, or off this network, answers nobody and
+    waits for the network's own long timeout to say so. Telling those apart is the difference
+    between a remote that says wait and one that says look at the box.'''
+    cause = err.__cause__ or err
+    return not isinstance(cause, ConnectionRefusedError)
+
+
 _lock = None
 
 
@@ -307,7 +319,7 @@ async def do_daemon(host):
     IDLE = 180   # how long the tile can stop asking before we let go of the TV
     QUEUE = 20.0  # how long a tap is worth remembering while the TV is out of reach
     CONNECT = 6.0  # how long to wait for the TV to answer before calling it out of reach
-    open(BEAT, "a").close()  # this run's own touch, whatever an older one left behind
+    os.utime(BEAT, None)  # this run's own touch, whatever an older one left behind
 
     answered = [True]  # whether the connection we hold still reaches a TV that listens
 
@@ -428,8 +440,11 @@ async def do_daemon(host):
                     started = True
                     delay = 1.0
                     drain(True)
-                except (CannotConnect, asyncio.TimeoutError):
-                    write_state("asleep|")
+                except (CannotConnect, asyncio.TimeoutError) as err:
+                    # asleep and gone are not the same thing to a user: one is a box whose network
+                    # answers but whose remote service does not, so a power key can still reach it
+                    # once it wakes, and the other is an address nobody is home at at all.
+                    write_state("gone|" if nobody_home(err) else "asleep|")
                 except InvalidAuth:
                     write_state("unpaired|")
                     return 2
@@ -2085,7 +2100,7 @@ with wave.open(sys.argv[1], "wb") as out:
     out.setframerate(rate)
     out.writeframes(bytes(frames))
 OMATV_TICK_PY
-printf f52ca6c94368 > "$H/tag"
+printf 34f32acf6f97 > "$H/tag"
 python3 "$H/tvremote.py" stop >/dev/null 2>&1
     """)
   }
@@ -2116,9 +2131,11 @@ python3 "$H/tvremote.py" stop >/dev/null 2>&1
   let mode = split(stat, "|")[0]
   let app = split(stat, "|")[1] ?? ""
   let pairing = mode == "code"
-  let paired = mode == "on" || mode == "off" || mode == "asleep" || mode == "waiting"
-  // Whether the TV is there to be driven. Asleep and out of reach answer no key at all, so the
-  // remote says so and lets the keys go quiet rather than light up over a TV that isn't listening.
+  let paired = mode == "on" || mode == "off" || mode == "asleep" || mode == "gone" || mode == "waiting"
+  // Whether the TV is there to be driven at all. A key only lands on a TV we hold a session open
+  // with, and standby is such a TV: it answers on the network and serves us a session, so power
+  // wakes the panel. Asleep and gone are not — there is nothing here to send to, and a remote that
+  // kept its power key lit over them would only be promising a thing it cannot do.
   let live = mode == "on" || mode == "off"
   let parts = split(app, ".")
   let last = count(parts) > 0 ? parts[count(parts) - 1] : app
@@ -2140,7 +2157,7 @@ python3 "$H/tvremote.py" stop >/dev/null 2>&1
   let lsay = split(lg, "|")[1] ?? ""
 
   // What the TV is doing, in the few words that fit beside the title.
-  let say = pairing ? "send the code above" : mode == "need" ? "setting up" : mode == "unreachable" ? "no answer — pair again" : !paired ? "pair to start" : mode == "on" ? "● " + (short == "" ? "on" : short) : mode == "off" ? "○ awake" : "○ " + mode
+  let say = pairing ? "send the code above" : mode == "need" ? "setting up" : mode == "unreachable" ? "no answer — pair again" : !paired ? "pair to start" : mode == "on" ? "● " + (short == "" ? "on" : short) : mode == "off" ? "○ standby" : mode == "asleep" ? "○ asleep" : mode == "gone" ? "○ off the network" : "asking the TV…"
 
   // One key: press is the TV's key name, g says what to draw, obeys is false for the keys a TV
   // only answers when the screen in front asks for them, size is the key's edge in dp, ring
@@ -2148,9 +2165,6 @@ python3 "$H/tvremote.py" stop >/dev/null 2>&1
   // over with the tap that asks the TV to change what it plays, and hold sends the same key held
   // down when it is pressed long, which is how a TV opens the menu an app keeps off the tap.
   component Key(press, g = "", big = false, hot = false, obeys = true, size = u, ring = 0, flip = false, hold = false) {
-    // The key that wakes a TV stays live even while nothing else answers, or a remote that thinks
-    // the TV is asleep would be the very reason it stays asleep.
-    let awake = live || press == "POWER"
     Box {
       size: big ? size * 1.28 : size
       radius: size * 0.3 * corners
@@ -2158,9 +2172,9 @@ python3 "$H/tvremote.py" stop >/dev/null 2>&1
       border: obeys ? ring : 1
       borderColor: muted
       align: center
-      opacity: awake ? 1 : 0.35
+      opacity: live ? 1 : 0.35
       onTap: {
-        if awake {
+        if live {
           if feel { haptic() }
           if click { sound("~/.local/share/omatvremote/tick.wav") }
           if flip { play = !play }
@@ -2168,7 +2182,7 @@ python3 "$H/tvremote.py" stop >/dev/null 2>&1
         }
       }
       onLongPress: {
-        if hold && awake {
+        if hold && live {
           if feel { haptic() }
           run("sh ~/.local/share/omatvremote/tvkey.sh " + sh("long " + press))
         }
@@ -2478,7 +2492,7 @@ python3 "$H/tvremote.py" stop >/dev/null 2>&1
         gap: 10
         align: center
         Text { text: live ? "hold ok = menu" : ""; style: small; color: muted; weight: 0; maxLines: 1 }
-        Text { text: live ? (short == "" ? "outlined keys depend on the app" : short + " ignores outlined") : mode == "asleep" ? "asleep — only power answers" : mode == "waiting" ? "asking the TV…" : paired ? "out of reach — the keys are off" : "the keys wake once a TV is paired"; style: small; color: muted; weight: 1; maxLines: 1 }
+        Text { text: live ? (short == "" ? "outlined keys depend on the app" : short + " ignores outlined") : mode == "asleep" ? "asleep — use the TV's own remote to wake it" : mode == "gone" ? "off the network — is the box still on it?" : mode == "waiting" ? "asking the TV…" : paired ? "no session — the keys can't reach it" : "the keys wake once a TV is paired"; style: small; color: muted; weight: 1; maxLines: 1 }
         Text { text: feel ? "" : "buzz needs the phone's own touch feedback on"; style: small; color: muted; weight: 0; maxLines: 1 }
       }
     }
