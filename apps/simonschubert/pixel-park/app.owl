@@ -9,7 +9,7 @@ app "pixel park" {
   // `bank`. The guests walking about are worked out from the clock: each one picks a ride for
   // every round of 22 seconds and walks there along the paths and back.
 
-  meta { owl: 12; description: "A pixel art theme park tycoon: lay paths, build carousels, teacups, a ferris wheel and a roller coaster, open food stalls, plant gardens and watch the guests come"; version: "1.0"; license: "MIT"; category: "games" }
+  meta { owl: 14; description: "A pixel art theme park tycoon: lay paths, build carousels, teacups, a ferris wheel and a roller coaster, open food stalls, plant gardens and watch the guests come"; version: "1.0.1"; license: "MIT"; category: "games" }
 
   title: ""
   statusBar: false
@@ -384,6 +384,7 @@ app "pixel park" {
     fill: true
     background: UI.bg
 
+    ripple: false
     onTap: {
       let ax = floor((x - MX) / C)
       let ay = floor((y - MY) / C)
