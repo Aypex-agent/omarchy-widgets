@@ -10,7 +10,7 @@ app "pixel farm" {
   // reeling the hook and the fish slide by formulas of the time since it was hooked, so a tap
   // only has to compare where both are.
 
-  meta { owl: 12; description: "A cozy pixel art farm: plant crops that grow in real time, even while the app is closed, harvest them for coins and fish the pond between harvests"; version: "1.0"; license: "MIT"; category: "games" }
+  meta { owl: 14; description: "A cozy pixel art farm: plant crops that grow in real time, even while the app is closed, harvest them for coins and fish the pond between harvests"; version: "1.0.1"; license: "MIT"; category: "games" }
 
   title: ""
   statusBar: false
@@ -456,6 +456,7 @@ app "pixel farm" {
       }
     }
 
+    ripple: false
     onTap: {
       let col = floor((x - FX) / C)
       let row = floor((y - FY) / C)
