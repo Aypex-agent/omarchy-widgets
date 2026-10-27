@@ -11,7 +11,7 @@ app "cryptdeck" {
   // `drawQ` draws `drawN` cards, `endQ` plays the enemies' turn, `winQ` hands out the spoils and
   // `gainQ` gives the relic `gainR`.
 
-  meta { owl: 12; description: "A deckbuilder roguelite in pixel art: climb three acts of a crypt with a deck of cards, pick your path on a branching map, collect relics and beat the bosses; taps only, nothing timed"; version: "1.0"; license: "MIT"; category: "games" }
+  meta { owl: 14; description: "A deckbuilder roguelite in pixel art: climb three acts of a crypt with a deck of cards, pick your path on a branching map, collect relics and beat the bosses; taps only, nothing timed"; version: "1.0.1"; license: "MIT"; category: "games" }
 
   title: ""
   statusBar: false
@@ -1855,6 +1855,7 @@ app "cryptdeck" {
       fill: true
       onPress: { downAt = [x, y] }
       onRelease: { downAt = [-1, -1] }
+      ripple: false
       onTap: {
         let b = BT.find(z => !(z.dis ?? false) && x >= z.x && x < z.x + z.w && y >= z.y && y < z.y + z.h)
         let rt = TB ? RLT.find(z => x >= z.x && x < z.x + z.w && y >= z.y && y < z.y + z.h) : null
