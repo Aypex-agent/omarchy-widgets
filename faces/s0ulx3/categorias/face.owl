@@ -1,0 +1,706 @@
+face "Categorías" {
+  // Apps elegidas a mano, en categorías que haces tú, cada una con su cuadrícula, plegable,
+  // y un abecedario a la derecha para enseñar solo las que empiezan por una letra.
+  // Vive en la página a la izquierda de las de inicio (page: -1).
+
+  meta {
+    owl: 14
+    description: "Las apps que elijas, como carpetas grandes: categorías que creas y ordenas tú, cada una con su cuadrícula y plegable, un abecedario para filtrar por letra y el menú de cada app al mantenerla"
+    version: "1.3"
+    license: "MIT"
+    category: "system"
+  }
+
+  page: -1
+  edge: true
+  padding: 0
+  background: linear(0, 0, 0, 1, [alpha(background, 0.88), alpha(background, 0.38), alpha(background, 0.46), alpha(background, 0.93)])
+
+  source d = android.drawer
+
+  // Las categorías, en orden: {id, name, apps: [keys]}. Cada app va en el orden en que la pusiste.
+  state cats = [] persist
+  // El número de la siguiente categoría, para que cada una tenga un id suyo.
+  state seq = 1 persist
+  // home, settings, cat (editar una categoría) o pick (elegir apps para ella).
+  state view = "home"
+  state editId = ""
+  state q = ""
+  // Para borrar una categoría hacen falta dos toques: el segundo confirma.
+  state confirming = ""
+  // El menú de una app, por key, y sus atajos.
+  state menu = ""
+  state menuShortcuts = null
+  // Qué categorías están plegadas, por id. Las que no están aquí siguen su tamaño.
+  state folded = {} persist
+  // La letra elegida en el abecedario de la derecha: "" enseña todas las apps.
+  state letter = ""
+  // Al salir de la página se quita el filtro.
+  on view { if view != "home" { letter = "" } }
+
+  let items = d.apps ?? []
+  let loaded = d != null && d.apps != null
+  // Cada key, a su app del lanzador: así una app desinstalada sigue en su categoría y vuelve si vuelve.
+  let byKey = groupBy(items, a => a.key)
+  let count = len(items.filter(a => any(cats, c => contains(c.apps, a.key))))
+  let results = q == "" ? items : rank(items, q)
+  let editCat = cats.find(c => c.id == editId)
+  let at = indexOf(cats.map(c => c.id), editId)
+
+  let wide = (tileWidth ?? 0) > (tileHeight ?? 1)
+  // El ancho de la página: la pantalla menos los márgenes. A la derecha queda la tira del abecedario.
+  let contentW = (tileWidth ?? 400) - screenLeft - screenRight - 40
+  let indexW = 26
+  let viewW = contentW - indexW
+  let cols = clamp(floor(contentW / 88), 3, 8)
+  let shelfCols = clamp(floor(viewW / 72), 3, 8)
+  let cell = viewW / shelfCols
+  // El abecedario del índice, y las letras con las que empieza cada app. # es lo que no empieza por letra.
+  let idx = ["#", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "Ñ", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]
+  // Lo que mide cada letra del índice, para que quepan todas en el alto de la pantalla.
+  let rowH = clamp(((tileHeight ?? 700) - 220) / len(idx), 9, 15)
+  let letterGroups = {A: "AÁÀÄÂ", C: "CÇ", E: "EÉÈËÊ", I: "IÍÌÏÎ", N: "N", Ñ: "Ñ", O: "OÓÒÖÔ", U: "UÚÙÜÛ"}
+  let lettersAll = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZÁÀÄÂÇÉÈËÊÍÌÏÎÓÒÖÔÚÙÜÛ"
+  let sel = indexOf(idx, letter)
+  // Las categorías que tienen alguna app de esa letra; con "" están todas.
+  let shownCats = cats.filter(c => letter == "" || any(c.apps.map(k => get(byKey, k, [])[0]).filter(x => x != null), a => letter == "#" ? !contains(lettersAll, upper(sub(a.name, 0, 1))) : contains(get(letterGroups, letter, letter), upper(sub(a.name, 0, 1)))))
+  let shownCount = letter == "" ? count : len(items.filter(a => any(shownCats, c => contains(c.apps, a.key)) && (letter == "#" ? !contains(lettersAll, upper(sub(a.name, 0, 1))) : contains(get(letterGroups, letter, letter), upper(sub(a.name, 0, 1))))))
+
+  let labels = {pin: "Añadir a inicio", info: "Info de la app", uninstall: "Desinstalar", remove: "Quitar", edit: "Editar", share: "Compartir"}
+
+  // El icono como lo dibuja el lanzador: el suyo, su silueta en una placa con iconos monocromos, o sus iniciales.
+  component AppIcon(a, s = 52) {
+    Box {
+      size: s
+      align: center
+      radius: s / 2 * corners
+      background: a.hasIcon && !d.monochrome ? transparent : alpha(surface, 0.55)
+      if a.hasIcon {
+        Image { src: a.icon; size: d.monochrome ? s * 0.7 : s; tint: d.monochrome ? accent : null; label: a.label }
+      } else {
+        Text { text: a.initials; fontSize: s * 0.32; color: accent }
+      }
+    }
+  }
+
+  // Una app de una categoría: se abre al tocarla, y al mantenerla sale su menú.
+  component App(a, cat, cw) {
+    Column {
+      width: cw
+      gap: 7
+      align: center
+      padding: [2, 8]
+      radius: 14 * corners
+      opacity: a.paused ? 0.45 : 1
+      onTap: open(a.key)
+      onLongPress: {
+        haptic()
+        menuShortcuts = null
+        menu = a.key
+        menuShortcuts = shortcuts(a.key)
+      }
+      AppIcon { a: a; s: 56 }
+      Text { text: a.name; fontSize: 13; fontWeight: 300; align: center; maxLines: 2; minLines: 2; fill: width }
+      // El menú se hace solo al abrirse, no vive en cada app.
+      if menu == a.key && menuShortcuts != null {
+        Popup {
+          visible: true
+          position: above
+          onDismiss: menu = ""
+          width: 232
+          gap: 0
+          Text {
+            text: "Quitar de ${cat.name}"
+            fontSize: 15
+            color: red
+            fill: width
+            padding: [14, 12]
+            onTap: {
+              let list = cat.apps
+              if contains(list, a.key) {
+                cats = cats.map(c => c.id == cat.id ? merge(c, {apps: remove(list, indexOf(list, a.key))}) : c)
+              }
+              menu = ""
+            }
+          }
+          Spacer { height: 1; fill: width; background: alpha(foreground, 0.18) }
+          // Sus atajos, como el menú de una app en el lanzador: se abren al tocarlos, + los pone en inicio.
+          for s in menuShortcuts key s.key {
+            Row {
+              gap: 10
+              align: center
+              fill: width
+              padding: [12, 8]
+              onTap: { menu = ""; open(s.key) }
+              Image { src: s.icon; size: 22; tint: d.monochrome ? accent : null; label: s.name }
+              Text { text: s.name; weight: 1; maxLines: 1 }
+              Text { text: "[+]"; color: accent; onTap: { menu = ""; appAction("pin", s.key) } }
+            }
+          }
+          if len(menuShortcuts) > 0 {
+            Spacer { height: 1; fill: width; background: alpha(foreground, 0.18) }
+          }
+          for w in a.actions {
+            Text { text: get(labels, w, w); fontSize: 15; fill: width; padding: [14, 10]; onTap: { menu = ""; appAction(w, a.key) } }
+          }
+        }
+      }
+    }
+  }
+
+  // Una categoría: su nombre, y sus apps en filas que envuelven, todas a la vista.
+  component Shelf(cat) {
+    Column {
+      fill: width
+      gap: 8
+      // Solo las que siguen instaladas, en el orden de la categoría.
+      let list = cat.apps.map(k => get(byKey, k, [])[0]).filter(x => x != null)
+      // Con una letra elegida, solo las suyas; y se abren aunque estuvieran plegadas.
+      let shown = letter == "" ? list : list.filter(a => letter == "#" ? !contains(lettersAll, upper(sub(a.name, 0, 1))) : contains(get(letterGroups, letter, letter), upper(sub(a.name, 0, 1))))
+      let isFolded = letter != "" ? false : get(folded, cat.id, len(list) > 8)
+      Row {
+        gap: 8
+        align: center
+        fill: width
+        padding: [4, 6]
+        radius: 10 * corners
+        onTap: {
+          folded = set(folded, cat.id, !isFolded)
+          haptic()
+        }
+        Text { text: isFolded ? "▸" : "▾"; fontSize: 13; color: alpha(foreground, 0.5); width: 14; align: center }
+        Text { text: upper(cat.name); fontSize: 11; fontWeight: 500; letterSpacing: 3; color: muted; weight: 1; maxLines: 1 }
+        Text { text: len(shown) == 1 ? "1" : "${len(shown)}"; fontSize: 10; color: alpha(foreground, 0.4); maxLines: 1 }
+        Text {
+          text: "Editar"
+          fontSize: 10
+          letterSpacing: 2
+          color: alpha(accent, 0.85)
+          padding: [8, 4]
+          onTap: { editId = cat.id; confirming = ""; view = "cat" }
+        }
+      }
+      if !isFolded {
+        Flow {
+          fill: width
+          gap: 0
+          for a in shown key a.key {
+            App { a: a; cat: cat; cw: cell }
+          }
+        }
+      }
+    }
+  }
+
+  // Crea una categoría y la abre para ponerle nombre y apps.
+  component NewCat(label) {
+    Text {
+      text: label
+      fontSize: 12
+      letterSpacing: 3
+      color: accent
+      align: center
+      padding: [16, 10]
+      border: 1
+      borderColor: alpha(accent, 0.45)
+      radius: 22 * corners
+      onTap: {
+        let id = "${seq}"
+        cats = flatten([cats, [{id: id, name: "Categoría ${seq}", apps: []}]])
+        seq = seq + 1
+        editId = id
+        confirming = ""
+        view = "cat"
+        haptic()
+      }
+    }
+  }
+
+  // La página: las categorías, una debajo de otra, y el abecedario a la derecha.
+  component Home() {
+    Box {
+      fill: true
+      align: end
+      Column {
+        fill: true
+        gap: 14
+        padding: [screenLeft + 20, screenTop + 10, screenRight + 20 + indexW, 0]
+        Row {
+          gap: 12
+          align: bottom
+          Column {
+            gap: 2
+            weight: 1
+            Text { text: "Categorías"; fontSize: wide ? 48 : 40; fontWeight: 200; letterSpacing: -2; maxLines: 1 }
+            Row {
+              gap: 8
+              align: center
+              Text {
+                text: loaded ? (letter != "" ? "${shownCount} apps · «${letter}»" : (len(cats) == 1 ? "${count} Apps · 1 Categoría" : "${count} Apps · ${len(cats)} Categorías")) : "…"
+                fontSize: 11
+                letterSpacing: 4
+                color: muted
+                maxLines: 1
+              }
+              Text {
+                visible: letter != ""
+                text: "Quitar"
+                fontSize: 10
+                letterSpacing: 2
+                color: accent
+                padding: [6, 2]
+                onTap: { letter = ""; haptic() }
+              }
+            }
+          }
+          Text {
+            text: "Ajustes"
+            fontSize: 12
+            letterSpacing: 3
+            color: accent
+            padding: [8, 10]
+            onTap: { view = "settings"; haptic() }
+          }
+        }
+        Spacer { height: 1; fill: width; background: alpha(foreground, 0.16) }
+        if !loaded {
+          Column {
+            weight: 1
+            align: center
+            Spacer { weight: 1 }
+            Text { text: "cargando…"; fontSize: 13; letterSpacing: 2; color: muted; align: center }
+            Spacer { weight: 1 }
+          }
+        } else if len(cats) == 0 {
+          Column {
+            weight: 1
+            align: center
+            gap: 12
+            Spacer { weight: 1 }
+            Text { text: "Sin categorías"; fontSize: 34; fontWeight: 200; letterSpacing: -1; align: center }
+            Text { text: "Haz grupos de apps, como carpetas grandes"; fontSize: 14; color: muted; align: center }
+            Row {
+              justify: center
+              NewCat { label: "Crear la primera" }
+            }
+            Spacer { weight: 1 }
+          }
+        } else if letter != "" && len(shownCats) == 0 {
+          Column {
+            weight: 1
+            align: center
+            Spacer { weight: 1 }
+            Text { text: "nada con «${letter}»"; fontSize: 26; fontWeight: 200; align: center }
+            Text { text: "toca «Quitar» arriba"; fontSize: 13; color: muted; align: center; padding: [10, 0] }
+            Spacer { weight: 1 }
+          }
+        } else {
+          Column {
+            weight: 1
+            fill: width
+            gap: 26
+            lazy: true
+            scroll: true
+            for cat in shownCats key cat.id {
+              Shelf { cat: cat }
+            }
+            Spacer { height: 8 }
+          }
+        }
+        Spacer { height: screenInset }
+      }
+      // El abecedario: se toca o se desliza por él; la letra elegida y las de al lado se abren en abanico.
+      Box {
+        align: end
+        width: indexW + screenRight
+        padding: [0, 6, screenRight + 2, 6]
+        onPress: {
+          let i = clamp(floor((y - 6) / rowH), 0, len(idx) - 1)
+          letter = letter == idx[i] ? "" : idx[i]
+          haptic()
+        }
+        onDrag: {
+          let i = clamp(floor((y - 6) / rowH), 0, len(idx) - 1)
+          letter = idx[i]
+        }
+        drag: vertical
+        Column {
+          gap: 0
+          for l, i in idx key l {
+            let d = sel < 0 ? 99 : abs(i - sel)
+            let push = d < 4 ? cos(d / 4 * 1.5708) : 0
+            Text {
+              text: l
+              fontSize: 10
+              fontWeight: d == 0 ? 600 : 400
+              width: 16
+              height: rowH
+              align: center
+              maxLines: 1
+              color: d == 0 ? accent : alpha(foreground, 0.45 + push * 0.45)
+              offset: [-push * 12, 0]
+              scale: 1 + push * 0.85
+              animate offset: tween(120ms, "out")
+              animate scale: tween(120ms, "out")
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Ajustes: las categorías en su orden, para abrirlas, subirlas, bajarlas o crear otra.
+  component Settings() {
+    Column {
+      fill: true
+      gap: 12
+      padding: [screenLeft + 20, screenTop + 10, screenRight + 20, 0]
+      Row {
+        gap: 12
+        align: bottom
+        Column {
+          gap: 2
+          weight: 1
+          Text { text: "Ajustes"; fontSize: wide ? 48 : 40; fontWeight: 200; letterSpacing: -1.5; maxLines: 1 }
+          Text { text: len(cats) == 1 ? "1 Categoría" : "${len(cats)} Categorías"; fontSize: 11; letterSpacing: 4; color: muted; maxLines: 1 }
+        }
+        Text {
+          text: "Listo"
+          fontSize: 12
+          letterSpacing: 3
+          color: accent
+          padding: [8, 10]
+          onTap: { view = "home"; confirming = "" }
+        }
+      }
+      Spacer { height: 1; fill: width; background: alpha(foreground, 0.16) }
+      Column {
+        weight: 1
+        fill: width
+        gap: 6
+        lazy: true
+        scroll: true
+        for cat, i in cats key cat.id {
+          Row {
+            gap: 8
+            align: center
+            padding: [10, 6]
+            radius: 12 * corners
+            onTap: { editId = cat.id; confirming = ""; view = "cat" }
+            Text { text: cat.name; fontSize: 19; fontWeight: 300; weight: 1; maxLines: 1 }
+            Text { text: "${len(cat.apps)}"; fontSize: 11; color: muted }
+            Text {
+              text: "↑"
+              fontSize: 16
+              color: i > 0 ? alpha(foreground, 0.6) : alpha(foreground, 0.18)
+              padding: [6, 4]
+              onTap: {
+                if i > 0 {
+                  cats = flatten([cats.take(i - 1), [cats[i], cats[i - 1]], cats.drop(i + 1)])
+                  haptic()
+                }
+              }
+            }
+            Text {
+              text: "↓"
+              fontSize: 16
+              color: i < len(cats) - 1 ? alpha(foreground, 0.6) : alpha(foreground, 0.18)
+              padding: [6, 4]
+              onTap: {
+                if i < len(cats) - 1 {
+                  cats = flatten([cats.take(i), [cats[i + 1], cats[i]], cats.drop(i + 2)])
+                  haptic()
+                }
+              }
+            }
+          }
+        }
+        NewCat { label: "Nueva categoría" }
+      }
+      Spacer { height: screenInset }
+    }
+  }
+
+  // Una categoría: su nombre, su orden entre las demás, y sus apps en orden, que se mueven con las flechas.
+  component Editor() {
+    Column {
+      fill: true
+      gap: 12
+      padding: [screenLeft + 20, screenTop + 10, screenRight + 20, 0]
+      if editCat != null {
+        Row {
+          gap: 12
+          align: bottom
+          Column {
+            gap: 2
+            weight: 1
+            Text { text: editCat.name; fontSize: wide ? 44 : 36; fontWeight: 200; letterSpacing: -1.5; maxLines: 1 }
+            Text { text: len(editCat.apps) == 1 ? "1 App · En orden" : "${len(editCat.apps)} Apps · En orden"; fontSize: 11; letterSpacing: 4; color: muted; maxLines: 1 }
+          }
+          Text {
+            text: "Listo"
+            fontSize: 12
+            letterSpacing: 3
+            color: accent
+            padding: [8, 10]
+            onTap: { view = "settings"; confirming = "" }
+          }
+        }
+        Input {
+          placeholder: "Nuevo nombre, y enter"
+          fontSize: 15
+          clear: true
+          onSubmit: {
+            if trim(value) != "" {
+              let n = trim(value)
+              cats = cats.map(c => c.id == editId ? merge(c, {name: n}) : c)
+              haptic()
+            }
+          }
+        }
+        Row {
+          gap: 10
+          align: center
+          Text {
+            text: "↑ Antes"
+            fontSize: 11
+            letterSpacing: 2
+            color: at > 0 ? alpha(foreground, 0.6) : alpha(foreground, 0.18)
+            padding: [6, 4]
+            onTap: {
+              if at > 0 {
+                cats = flatten([cats.take(at - 1), [cats[at], cats[at - 1]], cats.drop(at + 1)])
+                haptic()
+              }
+            }
+          }
+          Text {
+            text: "↓ Después"
+            fontSize: 11
+            letterSpacing: 2
+            color: at < len(cats) - 1 ? alpha(foreground, 0.6) : alpha(foreground, 0.18)
+            padding: [6, 4]
+            onTap: {
+              if at < len(cats) - 1 {
+                cats = flatten([cats.take(at), [cats[at + 1], cats[at]], cats.drop(at + 2)])
+                haptic()
+              }
+            }
+          }
+          Spacer { weight: 1 }
+          Text {
+            text: confirming == editId ? "Borrar de verdad" : "Borrar"
+            fontSize: 11
+            letterSpacing: 2
+            color: red
+            padding: [6, 4]
+            onTap: {
+              if confirming == editId {
+                cats = cats.filter(c => c.id != editId)
+                editId = ""
+                confirming = ""
+                view = "settings"
+                haptic()
+              } else {
+                confirming = editId
+              }
+            }
+          }
+        }
+        Spacer { height: 1; fill: width; background: alpha(foreground, 0.16) }
+        Column {
+          weight: 1
+          fill: width
+          gap: 2
+          lazy: true
+          scroll: true
+          if len(editCat.apps) == 0 {
+            Text { text: "Todavía no hay apps"; fontSize: 14; color: muted; align: center; padding: [24, 10] }
+          } else {
+            for k, i in editCat.apps key k {
+              Row {
+                gap: 10
+                align: center
+                fill: width
+                padding: [7, 4]
+                let a = get(byKey, k, [])[0]
+                if a != null {
+                  Image { src: a.icon; size: 30; tint: d.monochrome ? accent : null; label: a.label }
+                } else {
+                  Text { text: "?"; fontSize: 12; color: muted; width: 30; align: center }
+                }
+                Text { text: a != null ? a.name : k; fontSize: 14; weight: 1; maxLines: 1 }
+                Text {
+                  text: "←"
+                  fontSize: 17
+                  color: i > 0 ? alpha(foreground, 0.6) : alpha(foreground, 0.18)
+                  padding: [6, 5]
+                  onTap: {
+                    if i > 0 {
+                      let list = editCat.apps
+                      cats = cats.map(c => c.id == editId ? merge(c, {apps: flatten([list.take(i - 1), [list[i], list[i - 1]], list.drop(i + 1)])}) : c)
+                      haptic()
+                    }
+                  }
+                }
+                Text {
+                  text: "→"
+                  fontSize: 17
+                  color: i < len(editCat.apps) - 1 ? alpha(foreground, 0.6) : alpha(foreground, 0.18)
+                  padding: [6, 5]
+                  onTap: {
+                    if i < len(editCat.apps) - 1 {
+                      let list = editCat.apps
+                      cats = cats.map(c => c.id == editId ? merge(c, {apps: flatten([list.take(i), [list[i + 1], list[i]], list.drop(i + 2)])}) : c)
+                      haptic()
+                    }
+                  }
+                }
+                Text {
+                  text: "✕"
+                  fontSize: 15
+                  color: red
+                  padding: [6, 5]
+                  onTap: {
+                    cats = cats.map(c => c.id == editId ? merge(c, {apps: remove(editCat.apps, i)}) : c)
+                    haptic()
+                  }
+                }
+              }
+            }
+          }
+        }
+        Text {
+          text: "＋ Añadir apps"
+          fontSize: 12
+          letterSpacing: 3
+          color: accent
+          align: center
+          padding: [16, 10]
+          border: 1
+          borderColor: alpha(accent, 0.45)
+          radius: 22 * corners
+          onTap: { view = "pick"; q = ""; haptic() }
+        }
+      }
+      Spacer { height: screenInset }
+    }
+  }
+
+  // El buscador de una categoría: tocar una app la mete o la saca de ella.
+  component Pick(a) {
+    Column {
+      gap: 6
+      align: center
+      padding: [4, 6]
+      radius: 12 * corners
+      onTap: {
+        if editCat != null {
+          let list = editCat.apps
+          if contains(list, a.key) {
+            cats = cats.map(c => c.id == editId ? merge(c, {apps: remove(list, indexOf(list, a.key))}) : c)
+          } else {
+            cats = cats.map(c => c.id == editId ? merge(c, {apps: flatten([list, [a.key]])}) : c)
+          }
+          haptic()
+        }
+      }
+      Box {
+        size: 52
+        align: center
+        radius: 26 * corners
+        border: editCat != null && contains(editCat.apps, a.key) ? 2 : 0
+        borderColor: accent
+        background: editCat != null && contains(editCat.apps, a.key) ? alpha(accent, 0.14) : transparent
+        AppIcon { a: a; s: 44 }
+        // Una marca en la esquina, para que lo elegido se vea de un vistazo.
+        if editCat != null && contains(editCat.apps, a.key) {
+          Box {
+            size: 17
+            offset: [15, -15]
+            radius: 9
+            background: accent
+            Text { text: "✓"; fontSize: 10; color: background; align: center }
+          }
+        }
+      }
+      Text {
+        text: a.name
+        fontSize: 12
+        fontWeight: editCat != null && contains(editCat.apps, a.key) ? 600 : 400
+        color: editCat != null && contains(editCat.apps, a.key) ? accent : foreground
+        align: center
+        maxLines: 2
+        minLines: 2
+        fill: width
+      }
+    }
+  }
+
+  component Picker() {
+    Column {
+      fill: true
+      gap: 12
+      padding: [screenLeft + 20, screenTop + 10, screenRight + 20, 0]
+      Row {
+        gap: 12
+        align: bottom
+        Column {
+          gap: 2
+          weight: 1
+          Text { text: editCat != null ? editCat.name : "elegir"; fontSize: wide ? 44 : 36; fontWeight: 200; letterSpacing: -1.5; maxLines: 1 }
+          Text { text: editCat == null ? "" : (len(editCat.apps) == 1 ? "1 App en esta categoría" : "${len(editCat.apps)} Apps en esta categoría"); fontSize: 11; letterSpacing: 4; color: muted; maxLines: 1 }
+        }
+        Text {
+          text: "Listo"
+          fontSize: 12
+          letterSpacing: 3
+          color: accent
+          padding: [8, 10]
+          onTap: { view = "cat"; q = "" }
+        }
+      }
+      Input {
+        placeholder: "Buscar apps…"
+        fontSize: 16
+        onChange: q = value
+        onSubmit: q = value
+      }
+      Spacer { height: 1; fill: width; background: alpha(foreground, 0.16) }
+      if !loaded {
+        Spacer { weight: 1 }
+        Text { text: "Cargando…"; fontSize: 13; letterSpacing: 2; color: muted; align: center }
+        Spacer { weight: 1 }
+      } else if len(results) == 0 {
+        Spacer { weight: 1 }
+        Text { text: "nada con «${q}»"; fontSize: 14; color: muted; align: center }
+        Spacer { weight: 1 }
+      } else {
+        Grid {
+          columns: cols
+          gap: 4
+          lazy: true
+          weight: 1
+          fill: width
+          for a in results key a.key {
+            Pick { a: a }
+          }
+        }
+      }
+      Spacer { height: screenInset }
+    }
+  }
+
+  Box {
+    fill: true
+    if view == "settings" {
+      Settings { }
+    } else if view == "cat" {
+      Editor { }
+    } else if view == "pick" {
+      Picker { }
+    } else {
+      Home { }
+    }
+  }
+}
