@@ -1,0 +1,2 @@
+# The store's preview: ball 2 on the plunger on the Comet table, two lanes and two targets lit (scripts/store-previews.sh).
+booted = true; mode = "play"; ball = 2; tb = 0; lvl = 0; best = 126400; msgT = -10; seg = {"x":96.5,"y":167.5,"vx":0,"vy":0,"st":3,"sc":48250,"ln":[1,0,1],"tg":[1,1,0],"mu":2,"jp":false,"kb":true,"bs":true,"gl":true,"gt":false,"wp":false,"sn":0,"hk":0,"hc":0,"sk":1,"ag":0,"fb":-1,"fk":-999,"em":0,"ek":-999,"aL":30,"hL":false,"aR":30,"hR":false}

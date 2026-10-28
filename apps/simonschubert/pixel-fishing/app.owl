@@ -13,7 +13,7 @@ app "pixel fishing" {
   // fight is right then (on the next frame, as a touch's own time can be off the frame clock), and
   // so does the end of a film while the fight goes on. When the fish runs is fixed by `fseed`.
 
-  meta { owl: 14; description: "Pixel art fishing: cast, wait for the bite and reel in against the line's tension; five places from a pond to the open sea, 30 fish to log, rods, reels and lures to buy, by day and night"; version: "1.0"; license: "MIT"; category: "games" }
+  meta { owl: 14; description: "Pixel art fishing: cast, wait for the bite and reel in against the line's tension; five places from a pond to the open sea, 30 fish to log, rods, reels and lures to buy, by day and night"; version: "1.0.1"; license: "MIT"; category: "games" }
 
   title: ""
   statusBar: false
@@ -212,7 +212,8 @@ app "pixel fishing" {
   // Reloading the file starts the clock again, but keeps the times kept here.
   when segT > time + 1 { segT = time }
   when castT > time + 1 { castT = time - 9 }
-  when biteAt > time + 30 { biteAt = time + 3 }
+  // (A bite kept for ever, as in the store's preview, is left alone.)
+  when biteAt > time + 30 && biteAt < 999999999 { biteAt = time + 3 }
   when msgT > time + 5 { msgT = -9 }
   when cardT > time + 1 { cardT = time - 1 }
 

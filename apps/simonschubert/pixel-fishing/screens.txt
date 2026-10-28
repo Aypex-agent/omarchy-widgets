@@ -1,0 +1,8 @@
+# The store's preview: on the river at the second level of gear, the bobber out and waiting (scripts/store-previews.sh).
+mode = "play"; spot = 1; owned = [1,1,0,0,0]; coins = 1240; rod = 1; reel = 1; lure = 1; got = [4, 3, 2, 1, 1, 0, 6, 4, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; best = [19, 27, 64, 71, 88, 0, 33, 48, 41, 77, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; phase = "wait"; castT = -9; castP = 0.71; bobX = 74; castD = 0.71; biteAt = 999999999; msgT = -9
+# A legend on the line and landed: the River King's card.
+phase = "card"; card = {"fi":11,"sz":196,"pr":812,"nw":true,"rec":false}; cardOk = true
+# The log, with the Salmon picked.
+mode = "log"; phase = "idle"; sel = 9
+# The shop.
+mode = "shop"

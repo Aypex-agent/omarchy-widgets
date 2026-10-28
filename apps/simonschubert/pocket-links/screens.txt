@@ -1,0 +1,2 @@
+# The store's preview: hole 6, Pinball, one stroke in, with five holes on the card (scripts/store-previews.sh).
+mode = "play"; started = true; hole = 5; strokes = 1; cards = [2,3,2,4,2,0,0,0,0]; best = 31; bx = 62; by = 84; shot = null; rolling = false
