@@ -1,0 +1,696 @@
+face "broadsheet" {
+  // A broadsheet of the 1890s. The masthead has today as the issue, its volume counted from 1890 and its number the day of
+  // the year, and the edition by the hour. Hacker News' front page leads, its first story under an engraving of the town
+  // that follows the hour, the sun and the moon and the weather; BBC World's wires and Arch Linux's notices run in the
+  // next column. The weather is a woodcut in the masthead's ear, your notifications are classified advertisements and
+  // the phone's fastfetch is the stock exchange. The paper is the theme's background, printed in its foreground.
+
+  meta {
+    owl: 14
+    description: "A broadsheet of the 1890s: Hacker News, BBC World and Arch news in columns, an engraving of the town, the weather as a woodcut, notices as classified ads and fastfetch as the stock tables"
+    version: "1.0"
+    license: "MIT"
+    category: "news"
+  }
+
+  background: background
+  padding: 0
+
+  source now = clock every 1m
+  source n = android.notifications
+  source dev = android.device
+  source sys = android.system every 1m
+  source bat = android.battery
+  source hn = http("https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=20") every 15m timeout 15s json
+  source bbc = http("https://feeds.bbci.co.uk/news/world/rss.xml") every 30m timeout 15s
+  source arch = http("https://archlinux.org/feeds/news/") every 6h timeout 15s
+  source wx = http("https://wttr.in/?format=j1") every 30m timeout 10s json
+  // Arch, once Linux is installed; base tools only, so the page still works without it.
+  source lx = cmd("""
+    . /etc/os-release
+    printf '%s\t%s\n' "$PRETTY_NAME" "$(pacman -Qq | wc -l)"
+  """) every 1h optional
+
+  let fraktur = "https://raw.githubusercontent.com/google/fonts/main/ofl/unifrakturmaguntia/UnifrakturMaguntia-Book.ttf"
+  let roman = "https://raw.githubusercontent.com/google/fonts/main/ofl/oldstandardtt/OldStandard-Regular.ttf"
+  let bold = "https://raw.githubusercontent.com/google/fonts/main/ofl/oldstandardtt/OldStandard-Bold.ttf"
+  let italic = "https://raw.githubusercontent.com/google/fonts/main/ofl/oldstandardtt/OldStandard-Italic.ttf"
+  let ink = foreground
+  let paper = background
+
+  // The issue: volume 1 was 1890, the number is the day of the year.
+  let year = num(fmtTime(now, "yyyy"))
+  let vol = year - 1889
+  let rom = [["", "C", "CC", "CCC"][floor(vol / 100) % 4], ["", "X", "XX", "XXX", "XL", "L", "LX", "LXX", "LXXX", "XC"][floor(vol / 10) % 10], ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"][vol % 10]]
+  let h = num(fmtTime(now, "H")) + num(fmtTime(now, "m")) / 60
+  let edition = h < 5 ? "Night Edition" : h < 12 ? "Morning Edition" : h < 17 ? "Afternoon Edition" : h < 21 ? "Evening Edition" : "Late Edition"
+  let title = h >= 5 && h < 12 ? "The Morning Herald" : "The Evening Herald"
+
+  // The weather, in the words of the day's forecasts.
+  let cur = wx.current_condition[0]
+  let code = cur.weatherCode ?? "113"
+  let rain = contains(["176", "263", "266", "281", "284", "293", "296", "299", "302", "305", "308", "311", "314", "353", "356", "359"], code) ? 1 : 0
+  let storm = contains(["200", "386", "389", "392", "395"], code) ? 1 : 0
+  let snow = contains(["179", "182", "185", "227", "230", "317", "320", "323", "326", "329", "332", "335", "338", "350", "362", "365", "368", "371", "374", "377"], code) ? 1 : 0
+  let fog = contains(["143", "248", "260"], code) ? 1 : 0
+  let cloud = code == "113" ? 0.0 : code == "116" ? 0.5 : 1.0
+  let ast = wx.weather[0].astronomy[0]
+  let sun = [ast.sunrise, ast.sunset].map(s => [match(s ?? "", "([0-9]+):([0-9]+) (AM|PM)")].map(g => g == null ? null : num(g[0]) % 12 + (g[2] == "PM" ? 12 : 0) + num(g[1]) / 60)[0])
+  let rise = sun[0] ?? 6.5
+  let set = sun[1] ?? 18.5
+  let day = h > rise && h < set
+  let phase = ((now - 947182440) / 86400 % 29.530588853) / 29.530588853
+  let sky = storm ? "thunder" : snow ? "snow" : rain ? (code == "176" || code == "353" || code == "263" || code == "266" ? "showers" : "rain") : fog ? "fog" : cloud > 0.9 ? (code == "119" ? "cloudy" : "overcast") : cloud > 0.4 ? (day ? "fair to cloudy" : "clouding over") : (day ? "fair" : "clear")
+  let glyph = storm || rain ? "rain" : snow ? "snow" : fog ? "fog" : cloud > 0.9 ? "cloud" : cloud > 0.4 ? "part" : day ? "sun" : "moon"
+  let wind = cur == null ? null : "wind ${cur.winddir16Point}, ${num(cur.windspeedKmph) < 6 ? "calm" : num(cur.windspeedKmph) < 20 ? "light" : num(cur.windspeedKmph) < 40 ? "fresh" : "a gale"}"
+
+  // The news. Hacker News' front page, then the wires: an RSS item's title and description, CDATA or escaped.
+  let stories = (hn.hits ?? []).filter(x => x.title != null).map(x => {
+    title: x.title, id: x.objectID, by: x.author, pts: x.points ?? 0, com: x.num_comments ?? 0,
+    link: x.url ?? "https://news.ycombinator.com/item?id=${x.objectID}",
+    host: (match(x.url ?? "", "https?://(?:www\\.)?([^/:?]+)") ?? [])[0] ?? "news.ycombinator.com"
+  })
+  let lead = stories[0]
+  // Entities are decoded over the whole feed first, &amp; last; an Arch notice's escaped HTML is never shown.
+  let feeds = [bbc, arch].map(f => replace(replace(replace(replace(replace(replace(replace(replace(replace(f ?? "", "&lt;", "<"), "&gt;", ">"), "&quot;", "\""), "&#39;", "'"), "&#x27;", "'"), "&rsquo;", "’"), "&lsquo;", "‘"), "&nbsp;", " "), "&amp;", "&")).map(f => matchAll(f, "<item>([\\s\\S]*?)</item>").map(m => m[0]).map(it => {
+    title: trim((match(it, "<title>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?</title>") ?? [])[0] ?? ""),
+    text: trim((match(it, "<description>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?</description>") ?? [])[0] ?? ""),
+    link: (match(it, "<link>(?:<!\\[CDATA\\[)?\\s*(https?://[^<\\]\\s]+)") ?? [])[0],
+    at: match(it, "<pubDate>[^<]*?(\\d{1,2} \\w{3})[^<]*?(\\d\\d:\\d\\d)") ?? []
+  }).filter(i => i.title != ""))
+  let wires = feeds[0].take(8).map(i => { title: i.title, text: i.text, link: i.link, time: i.at[1] })
+  let notices = feeds[1].take(3).map(i => { title: i.title, link: i.link, date: i.at[0] })
+
+  // The exchange: the phone's fastfetch, at the minute's close against the minute before.
+  let lxs = lx == null || lx == "" ? null : split(lx, "\t")
+  let memPct = sys.memory == null || !sys.memory.total ? null : sys.memory.used / sys.memory.total * 100
+  let diskPct = sys.storage == null || !sys.storage.total ? null : sys.storage.used / sys.storage.total * 100
+  let memWas = prev(memPct)
+  let diskWas = prev(diskPct)
+  let batWas = prev(bat.level)
+  let stocks = [
+    ["Memory", memPct == null ? null : "${round(memPct)}%", memPct == null || memWas == null ? 0 : memPct - memWas],
+    ["Storage", diskPct == null ? null : "${round(diskPct)}%", diskPct == null || diskWas == null ? 0 : diskPct - diskWas],
+    ["Battery", bat.level == null ? null : "${bat.level}%", bat.level == null || batWas == null ? 0 : bat.level - batWas],
+    ["Uptime", sys.uptime == null ? null : fmtDuration(sys.uptime), null],
+    linux && lxs != null ? ["Pacman", "${fmtNum(num(lxs[1]))} pkgs", null] : ["Apps", sys.apps == null ? null : "${sys.apps}", null],
+    ["Kernel", sys.kernel == null ? null : first(split(sys.kernel, "-")), null],
+    ["Android", dev == null ? null : "${dev.android}", null],
+    ["Chip", sys.cpu == null ? null : (sys.cpu.soc == "" || sys.cpu.soc == null ? sys.cpu.hardware : sys.cpu.soc), null],
+    ["Theme", sys.theme == null ? null : lower(sys.theme), null]
+  ]
+
+  // The page, laid out by its size: two columns of news on a phone, four on a wide screen.
+  let W = tileWidth ?? 412
+  let H = tileHeight ?? 900
+  let wide = W > H
+  let m = 12
+  let CW = W - 2 * m
+  let plateW = wide ? floor(CW * 0.3) : floor(CW * 0.56)
+  // On its side a phone is short: the plate takes what the masthead and the headline leave.
+  let plateH = wide ? floor(clamp(H - 310 - screenInset, 70, plateW * 0.62)) : floor(plateW * 0.7)
+  // What the columns have left, under the masthead (about 150), the lead and above the advertisements (about 190), at
+  // about 60 dp a story, as an estimate: a column is clipped below anyway.
+  let colH = H - 24 - screenInset - 150 - (wide ? 0 : plateH + 80) - (wide ? 0 : 200)
+  let nStories = clamp(floor(colH / 62), 2, 12)
+  let ads = n.available ? n.items.take(wide ? 4 : 3) : []
+
+  let plate = """
+    uniform half4 paper;
+    uniform half4 ink;
+    uniform float dpw;
+    uniform float hour;
+    uniform float rise;
+    uniform float sset;
+    uniform float cloud;
+    uniform float rain;
+    uniform float snow;
+    uniform float fog;
+    uniform float phase;
+    uniform float seed;
+    float h1(float n) { return fract(sin(n * 12.9898) * 43758.5453); }
+    float h2(float2 p) { return fract(sin(dot(p, float2(127.1, 311.7))) * 43758.5453); }
+    float vn(float2 p) {
+      float2 i = floor(p);
+      float2 f = fract(p);
+      float2 u = f * f * (3.0 - 2.0 * f);
+      return mix(mix(h2(i), h2(i + float2(1.0, 0.0)), u.x), mix(h2(i + float2(0.0, 1.0)), h2(i + float2(1.0, 1.0)), u.x), u.y);
+    }
+    float fbm(float2 p) {
+      float v = 0.0;
+      float a = 0.5;
+      for (int i = 0; i < 4; i++) { v += a * vn(p); p = p * 2.03 + float2(17.0, 9.0); a *= 0.5; }
+      return v;
+    }
+    // Parallel lines at an angle, sp dp apart, as thick as the tone asks: the engraver's whole palette.
+    float hatch(float2 q, float ang, float sp, float tone, float aa) {
+      float d = abs(fract(dot(q, float2(cos(ang), sin(ang))) / sp) - 0.5) * sp;
+      float w = clamp(tone, 0.0, 1.0) * sp * 0.5;
+      return 1.0 - smoothstep(w - aa, w + aa, d);
+    }
+    // Darker tones take a second layer across the first, the darkest a third.
+    float engrave(float2 q, float tone, float ang, float aa) {
+      float k = hatch(q, ang, 2.4, tone * 1.2, aa);
+      if (tone > 0.5) { k = max(k, hatch(q, ang + 1.5708, 2.4, (tone - 0.5) * 1.5, aa)); }
+      if (tone > 0.8) { k = max(k, hatch(q, ang + 0.7854, 2.4, (tone - 0.8) * 2.5, aa)); }
+      return k;
+    }
+    float cover(float d, float w, float aa) { return 1.0 - smoothstep(w - aa, w + aa, d); }
+    half4 main(float2 p) {
+      float s = size.x / dpw;
+      float2 q = p / s;
+      float W = dpw;
+      float H = size.y / s;
+      float aa = 0.55 / s;
+      float day = smoothstep(rise - 0.6, rise + 0.6, hour) * (1.0 - smoothstep(sset - 0.6, sset + 0.6, hour));
+      float wet = max(rain, snow);
+      float hz = H * 0.66;
+      float L = 0.0;
+
+      // The sky in level lines, heavier towards the top, and heavy all over by night.
+      float t = clamp(q.y / hz, 0.0, 1.0);
+      float tone = mix(mix(0.7, 0.42, t), mix(0.34, 0.04, t), day);
+      tone = mix(tone, max(tone, 0.5 - 0.2 * t), wet * 0.8);
+      // Clouds are left as paper, shaded underneath and outlined.
+      float cf = fbm(float2(q.x * 0.018 + seed, q.y * 0.045));
+      float lim = 0.62 - 0.22 * cloud - 0.1 * wet;
+      float inC = smoothstep(lim, lim + 0.03, cf) * step(q.y, hz * 0.85) * step(0.2, cloud + wet);
+      // Shaded where the cloud thins going down: its underside.
+      float ctone = mix(0.04, 0.42, clamp((cf - fbm(float2(q.x * 0.018 + seed, (q.y + 4.0) * 0.045))) * 8.0 + 0.2, 0.0, 1.0));
+      ctone = mix(ctone * 0.6 + 0.18, ctone, day);
+      tone = mix(tone, ctone, inC);
+      float skyL = hatch(q + float2(0.0, 0.5 * sin(q.x * 0.04)), 1.5708, 2.2, tone, aa);
+
+      // The sun crosses from sunrise to sunset with its rays ruled round it, the moon from sunset to sunrise in its phase.
+      float dp = clamp((hour - rise) / max(sset - rise, 1.0), 0.0, 1.0);
+      float np = clamp(mod(hour - sset + 24.0, 24.0) / max(24.0 - (sset - rise), 1.0), 0.0, 1.0);
+      float pr = day > 0.5 ? dp : np;
+      float2 c = float2(W * (0.12 + 0.5 * pr), hz - hz * 0.72 * sin(3.14159 * pr));
+      float r = H * 0.085;
+      float2 dv = q - c;
+      float d = length(dv);
+      float vis = 1.0 - 0.85 * max(wet, step(0.9, cloud));
+      if (day > 0.5) {
+        if (d < r * 2.4 && vis > 0.5) {
+          // 30 rays, each a wedge narrowing outwards.
+          float f = abs(fract(atan(dv.y, dv.x) * 4.7746) - 0.5);
+          skyL = d < r * 1.3 ? 0.0 : max(skyL * smoothstep(r * 1.3, r * 2.4, d), cover(f * d, 0.4, aa) * smoothstep(r * 2.4, r * 1.4, d));
+        }
+        L = max(L, cover(abs(d - r), 0.45, aa) * vis);
+      } else if (vis > 0.5) {
+        if (d < r) {
+          float2 mq = dv / r;
+          float k = cos(6.2831853 * phase);
+          float ry = sqrt(max(1.0 - mq.y * mq.y, 0.0));
+          float lit = phase < 0.5 ? step(k * ry, mq.x) : step(mq.x, -k * ry);
+          skyL = (1.0 - lit) * hatch(q, 0.7854, 1.8, 0.55, aa);
+        }
+        L = max(L, cover(abs(d - r), 0.4, aa));
+        // A few stars: crosses left in the lines.
+        float2 cell = floor(q / 13.0);
+        float2 sc = (cell + 0.3 + 0.4 * float2(h2(cell + seed), h2(cell + 5.0))) * 13.0;
+        if (h2(cell + 9.0) > 0.8 - 0.4 * (1.0 - cloud) && q.y < hz * 0.7 && inC < 0.5) {
+          float2 e = abs(q - sc);
+          if (min(e.x, e.y) < 0.4 && max(e.x, e.y) < 1.8) { skyL = 0.0; }
+        }
+      }
+      L = max(L, skyL);
+
+      // Far hills, hatched on the slant; fog thins them to nothing.
+      float yh = hz - H * (0.05 + 0.13 * fbm(float2(q.x * 0.012 + seed * 0.7, 1.0)));
+      if (q.y > yh && q.y < hz) {
+        L = engrave(q, (0.42 + 0.2 * (q.y - yh) / max(hz - yh, 1.0)) * (1.0 - 0.75 * fog) * mix(1.25, 1.0, day), 0.52, aa);
+        L = max(L, cover(abs(q.y - yh), 0.45, aa) * (1.0 - fog * 0.7));
+      }
+
+      // The town on the far bank: roofs, a spire and chimneys, the walls in upright lines, dark in their shadow; by
+      // night the windows are lit.
+      float x0 = W * 0.36;
+      float bw = 11.0;
+      float bi = floor((q.x - x0) / bw);
+      float bx = fract((q.x - x0) / bw);
+      if (q.x > x0 && q.x < W * 0.97) {
+        float bh = H * (0.07 + 0.1 * h1(bi + seed * 1.3));
+        float roof = H * 0.05 * h1(bi * 3.1 + 2.0) * (1.0 - abs(bx * 2.0 - 1.0));
+        float top = hz - bh - roof;
+        bool spire = mod(bi, 9.0) == 4.0;
+        if (spire) { top = hz - bh - H * 0.26 * (1.0 - smoothstep(0.0, 0.5, abs(bx - 0.5))); }
+        bool chim = !spire && h1(bi * 7.7 + seed) > 0.6 && abs(bx - 0.3) < 0.08;
+        float topC = chim ? hz - bh - H * 0.04 : top;
+        if (q.y > min(top, topC) && q.y < hz) {
+          float shade = bx < 0.28 ? 0.78 : 0.3;
+          float tn = mix(shade + 0.25, shade, day);
+          L = engrave(q, tn, 0.0, aa);
+          // Windows in rows.
+          float2 wc = float2(floor(bx * 3.0), floor((hz - q.y) / 6.0));
+          bool win = !spire && bx > 0.3 && fract(bx * 3.0) > 0.35 && fract(bx * 3.0) < 0.75 && fract((hz - q.y) / 6.0) > 0.35 && fract((hz - q.y) / 6.0) < 0.75 && q.y > top + 4.0 && hz - q.y > 2.0;
+          if (win) { L = day > 0.5 ? 1.0 : (h2(wc + bi + seed) > 0.45 ? 0.0 : 1.0); }
+          L = max(L, cover(abs(q.y - top), 0.45, aa));
+          L = max(L, cover(abs(bx) * bw, 0.4, aa));
+        }
+      }
+
+      // The river: level strokes broken into lengths, closer towards the far bank, the sun's or moon's light a broken
+      // path down it, the town upside down in it.
+      if (q.y >= hz) {
+        float st = clamp((q.y - hz) / (H - hz), 0.0, 1.0);
+        float sp = 1.5 + 2.3 * st;
+        float row = (q.y - hz) / sp;
+        float ri = floor(row);
+        // Strokes of random lengths, swelling in the middle and tapering at the ends.
+        float len = 10.0 + 28.0 * st;
+        float sx = q.x / len + h1(ri + seed) * 7.0;
+        float brk = step(0.22, h1(floor(sx) * 1.3 + ri * 7.7 + seed)) * (0.35 + 0.65 * sin(3.14159 * fract(sx)));
+        float wt = mix(mix(0.5, 0.32, day), mix(0.36, 0.2, day), st);
+        float path = exp(-pow((q.x - c.x) / (r * (0.9 + 1.5 * st)), 2.0)) * vis;
+        wt *= 1.0 - 0.85 * path;
+        float my = hz - (q.y - hz) * 1.2;
+        if (q.x > x0 && q.x < W * 0.97 && my > hz - H * 0.15 * (0.5 + h1(bi + seed * 1.3))) { wt = max(wt, 0.7 * (1.0 - st)); }
+        L = cover(abs(fract(row) - 0.5), wt * 0.5 * brk, aa / sp);
+        L = max(L, cover(abs(q.y - hz), 0.5, aa));
+      }
+
+      // Rain in ruled slants, snow as flakes left white.
+      if (rain > 0.5) {
+        float lane = (q.x - q.y * 0.35) / 4.0;
+        float li = floor(lane);
+        if (abs(fract(lane) - 0.5) < 0.09 && fract(q.y / (14.0 + 10.0 * h1(li)) + h1(li * 1.7 + seed)) < 0.5) { L = 1.0; }
+      }
+      if (snow > 0.5) {
+        float2 cell = floor(q / 9.0);
+        float2 fc = (cell + 0.2 + 0.6 * float2(h2(cell), h2(cell + 7.0))) * 9.0;
+        if (length(q - fc) < 1.1 + 0.6 * h2(cell + 3.0)) { L = 0.0; }
+      }
+
+      float3 P = float3(paper.rgb);
+      float3 K = float3(ink.rgb);
+      float3 col = mix(P, K, clamp(L, 0.0, 1.0) * (0.9 + 0.1 * h2(floor(q * 1.7))));
+      return half4(half3(col), 1.0);
+    }
+  """
+
+  component Rule(weight = 0.75) {
+    Box { height: weight; fill: width; background: ink }
+  }
+
+  // A thick rule over a thin one, as under a masthead.
+  component DoubleRule() {
+    Column {
+      gap: 2
+      fill: width
+      Box { height: 2.5; fill: width; background: ink }
+      Box { height: 0.75; fill: width; background: ink }
+    }
+  }
+
+  component VRule() {
+    Box { width: 0.75; fill: height; background: ink }
+  }
+
+  component Head(text) {
+    Column {
+      gap: 3
+      fill: width
+      Rule {}
+      Text { text: upper(text); font: bold; fontSize: 10; letterSpacing: 1.6; color: ink; align: center; maxLines: 1 }
+      Rule {}
+    }
+  }
+
+  // The woodcut: a cut block, heavy black with white gouges, under the weather in words.
+  component Woodcut() {
+    Column {
+      gap: 0
+      padding: 2
+      border: 1.5
+      borderColor: ink
+      onTap: url("https://wttr.in/")
+      Column {
+        gap: 1
+        padding: [6, 4]
+        border: 0.75
+        borderColor: ink
+        align: center
+        Canvas {
+          width: 64
+          height: 30
+          let cx = 32
+          let cy = 15
+          if glyph == "sun" {
+            for i in range(12) {
+              rotate(i * 30, cx, cy) { path([[cx - 2.6, cy - 9], [cx, cy - 15], [cx + 2.6, cy - 9]], closed: true, fill: ink) }
+            }
+            circle(cx, cy, 8, fill: ink)
+            circle(cx, cy, 5, stroke: paper, width: 1)
+            circle(cx, cy, 2, fill: paper)
+          } else if glyph == "moon" {
+            circle(cx, cy, 11, fill: ink)
+            circle(cx + 6, cy - 3, 10, fill: paper)
+            for s in [[10, 6], [52, 9], [58, 23], [6, 24]] { line(s[0] - 2.5, s[1], s[0] + 2.5, s[1], stroke: ink, width: 1.2); line(s[0], s[1] - 2.5, s[0], s[1] + 2.5, stroke: ink, width: 1.2) }
+          } else {
+            if glyph == "part" {
+              for i in range(7) {
+                rotate(i * 30 - 90, cx + 9, cy - 3) { path([[cx + 7, cy - 11], [cx + 9, cy - 16], [cx + 11, cy - 11]], closed: true, fill: ink) }
+              }
+              circle(cx + 9, cy - 3, 7, fill: ink)
+            }
+            if glyph != "fog" {
+              let cy2 = glyph == "rain" || glyph == "snow" ? cy - 4 : cy + 1
+              // The cloud: four puffs on a flat foot, with a white gouge along each.
+              circle(cx - 10, cy2 + 2, 7, fill: ink)
+              circle(cx - 2, cy2 - 3, 9, fill: ink)
+              circle(cx + 9, cy2, 7.5, fill: ink)
+              rect(cx - 17, cy2 + 2, 33, 7, fill: ink)
+              arc(cx - 2, cy2 - 3, 6, 290, 80, stroke: paper, width: 1.1)
+              arc(cx + 9, cy2, 4.5, 330, 70, stroke: paper, width: 1)
+              line(cx - 13, cy2 + 6, cx + 12, cy2 + 6, stroke: paper, width: 0.9)
+              if glyph == "rain" {
+                for i in range(6) { line(cx - 14 + i * 5.6, cy2 + 12, cx - 17 + i * 5.6, cy2 + 19, stroke: ink, width: 1.6, cap: round) }
+              }
+              if glyph == "snow" {
+                for i in range(4) {
+                  let fx = cx - 12 + i * 8
+                  let fy = cy2 + 15 + (i % 2) * 3
+                  line(fx - 2.5, fy, fx + 2.5, fy, stroke: ink, width: 1.1)
+                  line(fx - 1.3, fy - 2.2, fx + 1.3, fy + 2.2, stroke: ink, width: 1.1)
+                  line(fx + 1.3, fy - 2.2, fx - 1.3, fy + 2.2, stroke: ink, width: 1.1)
+                }
+              }
+            } else {
+              for i in range(4) { rect(4 + (i % 2) * 6, 4 + i * 6.5, 50, 3.2, fill: ink) }
+            }
+          }
+        }
+        Text { text: cur == null ? "…" : "${upper(sub(sky, 0, 1))}${sub(sky, 1, len(sky))}, ${cur.temp_C}°"; font: bold; fontSize: 11; color: ink; align: center; maxLines: 2 }
+        Text { text: wind ?? ""; font: italic; fontSize: 9; color: ink; align: center; maxLines: 1 }
+      }
+    }
+  }
+
+  // The right-hand ear: the edition, the hour and the price.
+  component Ear() {
+    Column {
+      gap: 1
+      padding: [4, 6]
+      border: 0.75
+      borderColor: ink
+      align: center
+      onTap: refresh()
+      Text { text: upper(edition); font: bold; fontSize: 7.5; letterSpacing: 0.5; color: ink; align: center; maxLines: 1 }
+      Text { text: fmtTime(now, "HH:mm"); font: bold; fontSize: 24; color: ink; align: center }
+      Text { text: "One Penny"; font: italic; fontSize: 10; color: ink; align: center; maxLines: 1 }
+    }
+  }
+
+  component Masthead() {
+    Column {
+      gap: 4
+      fill: width
+      Row {
+        fill: width
+        align: center
+        gap: 6
+        Woodcut { width: 92 }
+        Column {
+          weight: 1
+          gap: 2
+          align: center
+          Text { text: "“All the News that Fits the Screen.”"; font: italic; fontSize: 10.5; color: ink; align: center; maxLines: 2 }
+          if wide { Text { text: title; font: fraktur; fontSize: 40; color: ink; align: center; maxLines: 1 } }
+          Text { text: "ESTABLISHED 1890"; font: roman; fontSize: 8; letterSpacing: 2; color: ink; align: center; maxLines: 1 }
+        }
+        Ear { width: 92 }
+      }
+      if !wide { Text { text: title; font: fraktur; fontSize: min(46, CW / 8.2); color: ink; align: center; maxLines: 1; fill: width } }
+      DoubleRule {}
+      Row {
+        fill: width
+        align: center
+        Text { text: "VOL. ${join(rom, "")}"; font: bold; fontSize: 9; letterSpacing: 0.6; color: ink; maxLines: 1 }
+        Text { text: upper(fmtTime(now, "EEEE, MMMM d, yyyy")); font: bold; fontSize: 9; letterSpacing: 0.6; color: ink; align: center; weight: 1; maxLines: 1 }
+        Text { text: "No. ${fmtTime(now, "D")}"; font: bold; fontSize: 9; letterSpacing: 0.6; color: ink; maxLines: 1 }
+      }
+      Rule {}
+    }
+  }
+
+  // The engraving, framed, with its caption.
+  component Plate() {
+    Column {
+      gap: 3
+      align: center
+      Box {
+        padding: 2
+        border: 0.75
+        borderColor: ink
+        Shader {
+          width: plateW - 4
+          height: plateH
+          fallback: paper
+          uniforms: { paper: paper, ink: ink, dpw: plateW - 4, hour: h, rise: rise, sset: set, cloud: cloud, rain: max(rain, storm), snow: snow, fog: fog, phase: phase, seed: floor(now / 86400) % 53 }
+          code: plate
+        }
+      }
+      Text {
+        text: "VIEW OF THE TOWN ${h < 5 ? "BY NIGHT" : h < rise + 1 ? "AT DAWN" : h < 11 ? "THIS MORNING" : h < 14 ? "AT NOON" : h < set - 1 ? "THIS AFTERNOON" : h < set + 1 ? "AT DUSK" : "BY NIGHT"}.—From a Drawing by Our Artist."
+        font: roman
+        fontSize: 8.5
+        color: ink
+        align: center
+        maxLines: 2
+        width: plateW
+      }
+    }
+  }
+
+  // The lead: Hacker News' first story in a headline in decks, and the correspondent's account of it.
+  component Lead() {
+    Column {
+      gap: 5
+      fill: width
+      onTap: url(lead.link)
+      onLongPress: url("https://news.ycombinator.com/item?id=${lead.id}")
+      Text { text: lead == null ? "THE PRESSES ARE RUNNING." : upper(lead.title); font: bold; fontSize: wide ? 17 : 19; color: ink; align: center; maxLines: 3 }
+      Text { text: lead == null ? "Our first edition is on its way from the wire." : "A Matter from ${lead.host} Heads the Front Page"; font: italic; fontSize: wide ? 10.5 : 12; color: ink; align: center; maxLines: wide ? 2 : 1 }
+      Box { width: 60; height: 0.75; background: ink }
+      // Wide, the column is the plate's width, and the account gives way to it.
+      if wide { Plate {} } else {
+      Row {
+        fill: width
+        gap: 10
+        align: top
+        Plate {}
+        Text {
+          weight: 1
+          spans: [
+            {text: "SPECIAL TO THE HERALD.", font: bold, letterSpacing: 0.4},
+            lead == null ? "—The wires are quiet, and our correspondents await the morning's despatches." : "—The matter, laid before the readers of the Hacker News by Mr. ${lead.by}, had by this hour drawn ${fmtNum(lead.pts)} votes and ${fmtNum(lead.com)} remarks, and stands at the head of the front page. The full account may be had at ${lead.host}; the remarks of readers, by a long press upon this column."
+          ]
+          font: roman
+          fontSize: 11
+          color: ink
+          maxLines: floor(plateH / 13)
+        }
+      }
+      }
+    }
+  }
+
+  component Story(s) {
+    Column {
+      gap: 2
+      fill: width
+      onTap: url(s.link)
+      onLongPress: url("https://news.ycombinator.com/item?id=${s.id}")
+      Text { text: upper(s.title); font: bold; fontSize: 11; color: ink; align: center; maxLines: 3 }
+      Text { text: "${s.host} · ${fmtNum(s.pts)} votes · ${fmtNum(s.com)} remarks"; font: italic; fontSize: 9; color: ink; align: center; maxLines: 1 }
+      Box { width: 26; height: 0.75; background: ink; offset: [0, 3] }
+    }
+  }
+
+  component Wire(w) {
+    Column {
+      gap: 1
+      fill: width
+      onTap: url(w.link ?? "https://www.bbc.co.uk/news/world")
+      Text { text: upper(w.title); font: bold; fontSize: 10.5; color: ink; align: center; maxLines: 3 }
+      Text {
+        spans: [{text: w.time == null ? "LONDON.—" : "LONDON, ${w.time}.—", font: bold, fontSize: 8.5, letterSpacing: 0.4}, w.text ?? ""]
+        font: roman
+        fontSize: 10
+        color: ink
+        maxLines: 3
+      }
+    }
+  }
+
+  component HNColumn(list, head) {
+    Column {
+      gap: 9
+      clip: true
+      Head { text: head }
+      if len(list) == 0 { Text { text: "The wire from Mountain View is late this hour."; font: italic; fontSize: 10.5; color: ink; align: center } }
+      for s in list key s.id { Story { s: s } }
+    }
+  }
+
+  component WireColumn() {
+    Column {
+      gap: 9
+      clip: true
+      Head { text: "By Telegraph" }
+      if len(wires) == 0 { Text { text: "The cable is silent; despatches are expected hourly."; font: italic; fontSize: 10.5; color: ink; align: center } }
+      for w in wires.take(wide ? 6 : max(2, nStories - 2)) { Wire { w: w } }
+      if len(notices) > 0 {
+        Head { text: "Official Notices" }
+        for o in notices {
+          Text {
+            onTap: url(o.link ?? "https://archlinux.org/news/")
+            spans: [{text: "ARCH LINUX", font: bold, fontSize: 8.5, letterSpacing: 0.4}, o.date == null ? ".—" : ", ${o.date}.—", o.title]
+            font: roman
+            fontSize: 10
+            color: ink
+            maxLines: 3
+          }
+        }
+      }
+    }
+  }
+
+  // The classified advertisements: each notification boxed, its app the heading.
+  component Classifieds() {
+    Column {
+      gap: 6
+      clip: true
+      Head { text: "Advertisements" }
+      if !n.available {
+        Column {
+          gap: 1
+          padding: 5
+          border: 0.75
+          borderColor: ink
+          fill: width
+          onTap: notification("open", "")
+          Text { text: "WANTED."; font: bold; fontSize: 10; letterSpacing: 1; color: ink; align: center }
+          Text { text: "A Reader of Notices, of good character, to bring the Public's letters to this column. Apply by a tap."; font: roman; fontSize: 10; color: ink; align: center }
+        }
+      } else if len(ads) == 0 {
+        Text { text: "No advertisements have been received at this office today."; font: italic; fontSize: 10.5; color: ink; align: center }
+      } else {
+        for a in ads key a.key {
+          Column {
+            gap: 0
+            padding: [5, 3]
+            border: 0.75
+            borderColor: ink
+            fill: width
+            onTap: notification("open", a.key)
+            onLongPress: { haptic(); notification("dismiss", a.key) }
+            Text { text: upper(a.app ?? "notice"); font: bold; fontSize: 9; letterSpacing: 1.2; color: ink; align: center; maxLines: 1 }
+            Text {
+              spans: [{text: a.title ?? "", font: bold}, a.text == null || a.text == "" ? "" : "—${a.text}", {text: "  ${fmtAgo(a.time, now)}", font: italic}]
+              font: roman
+              fontSize: 10
+              color: ink
+              maxLines: 2
+            }
+          }
+        }
+        if n.count > len(ads) { Text { text: "${n.count - len(ads)} more within."; font: italic; fontSize: 9; color: ink; align: end; fill: width } }
+      }
+    }
+  }
+
+  // The stock exchange: the phone's fastfetch at the close, the movers marked up and down.
+  component Exchange(rows = 9) {
+    Column {
+      gap: 2
+      clip: true
+      Head { text: "The Exchange" }
+      Row {
+        fill: width
+        Text { text: "STOCK"; font: bold; fontSize: 8; letterSpacing: 0.8; color: ink; weight: 1 }
+        Text { text: "CLOSE"; font: bold; fontSize: 8; letterSpacing: 0.8; color: ink }
+        Text { text: "CHG."; font: bold; fontSize: 8; letterSpacing: 0.8; color: ink; width: 34; align: end }
+      }
+      Rule { weight: 0.5 }
+      for s in stocks.filter(x => x[1] != null).take(rows) {
+        Row {
+          fill: width
+          align: bottom
+          gap: 3
+          Text { text: s[0]; font: roman; fontSize: 10; color: ink }
+          // Leaders between the name and its price.
+          Text { text: "....................................................."; font: roman; fontSize: 10; color: ink; weight: 1; maxLines: 1 }
+          Text { text: s[1]; font: bold; fontSize: 10; color: ink; maxLines: 1 }
+          Text {
+            text: s[2] == null ? "" : abs(s[2]) < 0.5 ? "unch." : "${s[2] > 0 ? "▲" : "▼"}${round(abs(s[2]))}"
+            font: roman
+            fontSize: 9.5
+            color: ink
+            width: 34
+            align: end
+          }
+        }
+      }
+    }
+  }
+
+  Column {
+    fill: true
+    gap: 8
+    padding: [m, 6, m, 0]
+    Masthead {}
+    if wide {
+      Row {
+        weight: 1
+        fill: width
+        gap: 8
+        align: top
+        Column {
+          width: plateW + 16
+          fill: height
+          gap: 8
+          Lead {}
+        }
+        VRule {}
+        HNColumn { list: stories.drop(1).take(nStories); head: "Hacker News"; weight: 1; fill: height }
+        VRule {}
+        HNColumn { list: stories.drop(1 + nStories).take(nStories); head: "Continued"; weight: 1; fill: height }
+        VRule {}
+        WireColumn { weight: 1; fill: height }
+        VRule {}
+        Column {
+          width: 160
+          fill: height
+          gap: 8
+          Exchange { rows: H < 560 ? 4 : 9 }
+          Classifieds { weight: 1 }
+        }
+      }
+    } else {
+      Lead {}
+      DoubleRule {}
+      Row {
+        weight: 1
+        fill: width
+        gap: 8
+        align: top
+        HNColumn { list: stories.drop(1).take(nStories); head: "From the Hacker News"; weight: 1; fill: height }
+        VRule {}
+        WireColumn { weight: 1; fill: height }
+      }
+      DoubleRule {}
+      Row {
+        fill: width
+        height: 160
+        gap: 8
+        align: top
+        Classifieds { weight: 1; fill: height }
+        VRule {}
+        Exchange { weight: 1; fill: height }
+      }
+    }
+    Spacer { height: screenInset + 4 }
+  }
+}
