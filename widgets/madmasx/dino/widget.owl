@@ -1,0 +1,507 @@
+widget "dino" {
+  meta {
+    owl: 12
+    description: "Google Chrome T-Rex Dino Runner game. Tap to jump, tap DUCK to crouch under pterodactyls, and beat your high score"
+    version: "1.1"
+    author: "Madmasx"
+    license: "MIT"
+    category: "games"
+  }
+  page: 1
+  order: 4
+  size: 6x3
+  minSize: 3x2
+  padding: 0
+
+  state startAt = 0
+  state jumpAt = -10
+  state prevJumpAt = -10
+  state duckAt = -10
+  state clearedIdx = -1
+  state seed = 19
+  state hiScore = 0 persist
+  state lastScore = 0 persist
+  state lastPressAt = -10
+
+  let press = "https://raw.githubusercontent.com/google/fonts/main/ofl/pressstart2p/PressStart2P-Regular.ttf"
+  let jumpDur = 0.58
+  let duckDur = 0.60
+
+  // Next obstacle index that the player must clear in an active run.
+  let nextK = clearedIdx + 1
+  let nextH = hash(seed * 997 + nextK, 2)
+  let nextKind = nextK == 0 ? 0 : nextK == 3 ? 2 : nextK == 4 ? 4 : (
+    nextH < 0.25 ? 0 :
+    nextH < 0.48 ? 1 :
+    nextH < 0.68 ? 2 :
+    nextH < 0.82 || nextK < 2 ? 3 : 4
+  )
+  let nextHalfW = [0.04, 0.045, 0.06, 0.075, 0.055][nextKind]
+  let nextTHit = 1.6 + nextK * 1.20 + (hash(seed * 997 + nextK, 1) - 0.5) * 0.26
+  let nextTEnter = nextTHit - nextHalfW
+
+  // Active jump / duck times relative to startAt.
+  let tJump = jumpAt - startAt
+  let j0 = tJump + 0.04
+  let j1 = tJump + 0.54
+  let tCrash = nextTEnter >= j0 && nextTEnter <= j1 ? j1 : nextTEnter
+
+  // Sprites: 15x16 standing/running Chrome T-Rex
+  let dinoBody = [
+    ".......ddddddd.",
+    "......dd.dddddd",
+    "......ddddddddd",
+    "......ddddddddd",
+    "......ddddd....",
+    "d.....ddddddd..",
+    "d....dddddd....",
+    "dd..dddddddddd.",
+    "ddd.ddddddd..d.",
+    "ddddddddddd....",
+    ".dddddddddd....",
+    "..ddddddddd....",
+    "...dddd.ddd...."
+  ]
+  let dinoDeadBody = [
+    ".......ddddddd.",
+    "......ddedddddd",
+    "......ddedddddd",
+    "......ddddddddd",
+    "......ddddd....",
+    "d.....ddddddd..",
+    "d....dddddd....",
+    "dd..dddddddddd.",
+    "ddd.ddddddd..d.",
+    "ddddddddddd....",
+    ".dddddddddd....",
+    "..ddddddddd....",
+    "...dddd.ddd...."
+  ]
+  let legsStand = [
+    "...dd....dd....",
+    "...dd....dd....",
+    "...ddd...ddd..."
+  ]
+  let legsRun1 = [
+    "...dd....ddd...",
+    "...dd..........",
+    "...ddd........."
+  ]
+  let legsRun2 = [
+    "...ddd...dd....",
+    ".........dd....",
+    ".........ddd..."
+  ]
+  // 18x10 crouching T-Rex
+  let dinoDuck1 = [
+    "d.................",
+    "dd....ddddddddddd.",
+    "ddd..ddddddd.ddddd",
+    "dddddddddddddddddd",
+    ".ddddddddddddddddd",
+    "..ddddddddddd.ddd.",
+    "...dddddddddd..d..",
+    "....dd....ddd.....",
+    "....dd............",
+    "....ddd..........."
+  ]
+  let dinoDuck2 = [
+    "d.................",
+    "dd....ddddddddddd.",
+    "ddd..ddddddd.ddddd",
+    "dddddddddddddddddd",
+    ".ddddddddddddddddd",
+    "..ddddddddddd.ddd.",
+    "...dddddddddd..d..",
+    "....ddd...dd......",
+    "..........dd......",
+    "..........ddd....."
+  ]
+
+  // Cacti & Pterodactyl sprites
+  let cactusSmall = [
+    "..cc...",
+    "..cc...",
+    "c.cc...",
+    "c.cc..c",
+    "c.cc..c",
+    "ccccc.c",
+    ".cccccc",
+    "..cc...",
+    "..cc...",
+    "..cc...",
+    "..cc..."
+  ]
+  let cactusTall = [
+    "...ccc...",
+    "...ccc...",
+    "c..ccc...",
+    "cc.ccc..c",
+    "cc.ccc.cc",
+    "cc.ccc.cc",
+    "cccccc.cc",
+    ".cccccccc",
+    "...ccc...",
+    "...ccc...",
+    "...ccc...",
+    "...ccc...",
+    "...ccc...",
+    "...ccc..."
+  ]
+  let cactusDouble = [
+    "...ccc......cc.",
+    "...ccc......cc.",
+    "c..ccc....c.cc.",
+    "cc.ccc..c.c.ccc",
+    "cc.ccc.cc.ccccc",
+    "cccccc.cc..cccc",
+    ".cccccccc...cc.",
+    "...ccc......cc.",
+    "...ccc......cc.",
+    "...ccc......cc.",
+    "...ccc......cc.",
+    "...ccc......cc."
+  ]
+  let cactusTriple = [
+    "..cc....ccc.....cc.",
+    "..cc....ccc.....cc.",
+    "c.cc..c.ccc...c.cc.",
+    "c.ccc.cc.ccc.cc.ccc",
+    "ccccc.cccccc.cccccc",
+    ".cccc..ccccc..ccccc",
+    "..cc....ccc.....cc.",
+    "..cc....ccc.....cc.",
+    "..cc....ccc.....cc.",
+    "..cc....ccc.....cc.",
+    "..cc....ccc.....cc."
+  ]
+  let pteroUp = [
+    ".....pp.......",
+    "....ppp.......",
+    "...pppp.......",
+    ".ppppppppp....",
+    "pppppppppppp..",
+    "...ppppppppppp",
+    ".....pppppp...",
+    "......pp.pp..."
+  ]
+  let pteroDown = [
+    "...pppp.......",
+    ".ppppppppp....",
+    "pppppppppppp..",
+    "...ppppppppppp",
+    ".....pppppp...",
+    ".....pppp.....",
+    "....ppp.pp....",
+    "...pp........."
+  ]
+  let cloudArt = [
+    "....wwwwwww.....",
+    "..wwwwwwwwwwww..",
+    ".wwwwwwwwwwwwww.",
+    "wwwwwwwwwwwwwwww"
+  ]
+  let restartArt = [
+    "...rrrrr...",
+    "..rrrrrrr..",
+    ".rr.....rr.",
+    "rr.......rr",
+    "rr....rrrrr",
+    "rr.....rrrr",
+    "rr......rrr",
+    ".rr........",
+    "..rrrrrrr..",
+    "...rrrrr..."
+  ]
+
+  // Pixel-art X & GitHub/Git icons for the occasional top-left "by Madmasx" credit
+  let xPixelArt = [
+    "xx...xx",
+    ".xx.xx.",
+    "..xxx..",
+    "...x...",
+    "..xxx..",
+    ".xx.xx.",
+    "xx...xx"
+  ]
+  let gitPixelArt = [
+    ".gg...gg.",
+    ".ggggggg.",
+    "ggggggggg",
+    "gg.ggg.gg",
+    "ggggggggg",
+    ".ggggggg.",
+    "..ggggg..",
+    ".gg.g.gg."
+  ]
+
+  Canvas {
+    fill: true
+    onPress: {
+      lastPressAt = time
+      let valid = startAt > 0 && time >= startAt - 0.05
+      let raw = valid ? max(0, time - startAt) : 0
+      let isAlive = valid && raw < tCrash
+      let showCred = (time % 18) < 4.5
+      let narrowTile = (tileWidth ?? 300) < 240
+      let hitXLink = showCred && !isAlive && (narrowTile ? (x >= 10 && x <= 30 && y >= 20 && y <= 40) : (x >= 88 && x <= 110 && y <= 26))
+      let hitGitLink = showCred && !isAlive && (narrowTile ? (x > 30 && x <= 88 && y >= 20 && y <= 40) : (x > 110 && x <= 168 && y <= 26))
+      if hitXLink {
+        url("https://x.com/Madmasx")
+      } else if hitGitLink {
+        url("https://github.com/Madmasx")
+      } else if !isAlive {
+        let finalScore = valid ? floor(tCrash * 10) : 0
+        if finalScore > hiScore {
+          hiScore = finalScore
+        }
+        if finalScore > 0 {
+          lastScore = finalScore
+        }
+        startAt = time
+        jumpAt = time
+        prevJumpAt = -10
+        duckAt = -10
+        clearedIdx = -1
+        seed = random(1, 99999)
+        haptic()
+      } else {
+        let curScore = floor(raw * 10)
+        if curScore > hiScore {
+          hiScore = curScore
+        }
+        let hitDuckZone = x > (tileWidth ?? 300) - 78 && y > (tileHeight ?? 150) - 34
+        if hitDuckZone {
+          duckAt = time
+          let nd = time - startAt
+          if nextKind == 4 && nextTHit >= nd - 0.05 && nextTHit <= nd + duckDur {
+            clearedIdx = nextK
+          }
+          haptic()
+        } else {
+          let canJump = time >= jumpAt + jumpDur * 0.72 && (time >= jumpAt + jumpDur || jumpAt + jumpDur < startAt + tCrash)
+          if canJump {
+            let newJumpAt = max(time, jumpAt + jumpDur)
+            prevJumpAt = jumpAt
+            jumpAt = newJumpAt
+            duckAt = -10
+            let nj = newJumpAt - startAt
+            if nextTHit >= nj + 0.04 && nextTHit <= nj + 0.54 {
+              clearedIdx = nextK
+            } else {
+              let k2 = nextK + 1
+              let tHit2 = 1.6 + k2 * 1.20 + (hash(seed * 997 + k2, 1) - 0.5) * 0.26
+              if tHit2 >= nj + 0.04 && tHit2 <= nj + 0.54 {
+                clearedIdx = k2
+              }
+            }
+            haptic()
+          }
+        }
+      }
+    }
+    onTap: {
+      if abs(time - lastPressAt) > 0.35 {
+        let valid = startAt > 0 && time >= startAt - 0.05
+        let raw = valid ? max(0, time - startAt) : 0
+        let isAlive = valid && raw < tCrash
+        if !isAlive {
+          let finalScore = valid ? floor(tCrash * 10) : 0
+          if finalScore > hiScore {
+            hiScore = finalScore
+          }
+          if finalScore > 0 {
+            lastScore = finalScore
+          }
+          startAt = time
+          jumpAt = time
+          prevJumpAt = -10
+          duckAt = -10
+          clearedIdx = -1
+          seed = random(1, 99999)
+          haptic()
+        } else {
+          let canJump = time >= jumpAt + jumpDur * 0.72 && (time >= jumpAt + jumpDur || jumpAt + jumpDur < startAt + tCrash)
+          if canJump {
+            let newJumpAt = max(time, jumpAt + jumpDur)
+            prevJumpAt = jumpAt
+            jumpAt = newJumpAt
+            duckAt = -10
+            let nj = newJumpAt - startAt
+            if nextTHit >= nj + 0.04 && nextTHit <= nj + 0.54 {
+              clearedIdx = nextK
+            }
+            haptic()
+          }
+        }
+      }
+    }
+
+    let validRun = startAt > 0 && time >= startAt - 0.05
+    let rawElapsed = validRun ? max(0, time - startAt) : 0
+    let alive = validRun && rawElapsed < tCrash
+    let gameOver = validRun && rawElapsed >= tCrash
+
+    // Demo mode runs at an offset so cacti, a pterodactyl and a mid-air jump are visible right away.
+    let demoElapsed = time + 4.62
+    let gameTime = !validRun ? demoElapsed : alive ? rawElapsed : tCrash
+
+    let score = validRun ? floor(gameTime * 10) : floor(((time + 12.8) * 10) % 1000)
+    let best = max(hiScore, validRun ? score : max(lastScore, 435))
+    let night = validRun && (floor(score / 500) % 2 == 1)
+
+    let bgCol = night ? mix(color0, background, 0.25) : background
+    let fgCol = night ? mix(foreground, yellow, 0.1) : foreground
+    let mutedCol = mix(fgCol, bgCol, 0.55)
+    let cactusCol = night ? mix(green, foreground, 0.35) : mix(green, foreground, 0.45)
+    let dinoCol = validRun && !alive ? red : accent
+
+    rect(0, 0, width, height, fill: bgCol)
+
+    let px = clamp(floor(min(width / 95, height / 42)), 2, 4)
+    let groundY = floor((height - 7 * px) / px) * px
+    let dinoX = 10 * px
+    let dinoCenterX = dinoX + 6 * px
+    let speed = (36 + min(gameTime * 0.7, 24)) * px
+    let jumpH = 14 * px
+
+    // Sky: twinkling stars and drifting pixel clouds
+    for s in range(10) {
+      let sx = floor(((hash(s, 11) * width - gameTime * 6 + width * 10) % width) / px) * px
+      let sy = floor((20 + hash(s, 12) * (groundY * 0.45)) / px) * px
+      let twinkle = 0.25 + 0.45 * abs(sin(gameTime * 1.5 + s))
+      rect(sx, sy, px, px, fill: alpha(mutedCol, night ? twinkle * 1.4 : twinkle * 0.5))
+    }
+
+    for c in range(3) {
+      let span = width + 24 * px
+      let cx = floor(((hash(c, 5) * span - gameTime * (14 + c * 4)) % span + span) % span - 18 * px)
+      let cy = floor((22 + hash(c, 6) * (groundY * 0.35)) / px) * px
+      sprite(cloudArt, cx, cy, px, palette: {w: alpha(mutedCol, 0.35)})
+    }
+
+    // Ground horizon line and scrolling desert pebbles/bumps
+    rect(0, groundY, width, px, fill: mutedCol)
+    for g in range(28) {
+      let span = width + 16 * px
+      let gx = floor(((g * (span / 28) - gameTime * speed) % span + span) % span - 8 * px)
+      let gy = groundY + (2 + floor(hash(g, 9) * 3)) * px
+      let gw = (1 + floor(hash(g, 10) * 3)) * px
+      rect(gx, gy, gw, px, fill: alpha(mutedCol, 0.6))
+    }
+
+    // Obstacles in view around gameTime
+    let baseI = max(0, floor((gameTime - 1.6) / 1.20))
+    for i in range(max(0, baseI - 1), baseI + 5) {
+      let tHit = 1.6 + i * 1.20 + (hash(seed * 997 + i, 1) - 0.5) * 0.26
+      let hKind = hash(seed * 997 + i, 2)
+      let kind = i == 0 ? 0 : i == 3 ? 2 : i == 4 ? 4 : (
+        hKind < 0.25 ? 0 :
+        hKind < 0.48 ? 1 :
+        hKind < 0.68 ? 2 :
+        hKind < 0.82 || i < 2 ? 3 : 4
+      )
+      let ox = floor((dinoCenterX + (tHit - gameTime) * speed) / px) * px
+      if ox > -22 * px && ox < width + 22 * px {
+        if kind == 0 {
+          sprite(cactusSmall, ox, groundY - 11 * px + px, px, palette: {c: cactusCol})
+        } else if kind == 1 {
+          sprite(cactusTall, ox, groundY - 14 * px + px, px, palette: {c: cactusCol})
+        } else if kind == 2 {
+          sprite(cactusDouble, ox, groundY - 12 * px + px, px, palette: {c: cactusCol})
+        } else if kind == 3 {
+          sprite(cactusTriple, ox, groundY - 11 * px + px, px, palette: {c: cactusCol})
+        } else {
+          let flap = floor(gameTime * 7) % 2 == 0
+          let py = groundY - 16 * px
+          sprite(flap ? pteroUp : pteroDown, ox, py, px, palette: {p: orange})
+        }
+      }
+    }
+
+    // Compute Dino vertical offset (real jump in active run, auto-jump over nearest obstacle in demo mode)
+    let demoNearI = max(0, round((demoElapsed - 1.6) / 1.20))
+    let demoTHit = 1.6 + demoNearI * 1.20 + (hash(seed * 997 + demoNearI, 1) - 0.5) * 0.26
+    let demoU = (demoElapsed - (demoTHit - 0.29)) / jumpDur
+    let demoJumpY = demoU > 0 && demoU < 1 ? 4 * jumpH * demoU * (1 - demoU) : 0
+
+    let activeJumpStart = (time < jumpAt ? prevJumpAt : jumpAt) - startAt
+    let playU = (gameTime - activeJumpStart) / jumpDur
+    let playJumpY = playU > 0 && playU < 1 ? 4 * jumpH * playU * (1 - playU) : 0
+
+    let dy = floor((validRun ? playJumpY : demoJumpY) / px) * px
+    let inAir = dy > 0
+    let isDucking = validRun && alive && !inAir && (time - duckAt >= 0 && time - duckAt < duckDur)
+    let stride = floor(gameTime * 12) % 2 == 0
+
+    // Shadow under the Dino
+    let shadowW = clamp(10 - floor(dy / (3 * px)), 4, 10) * px
+    rect(dinoX + 2 * px, groundY + px, shadowW, px, fill: alpha(mutedCol, 0.35))
+
+    // Draw the Chrome T-Rex
+    let dinoY = groundY - 16 * px + px - dy
+    if isDucking {
+      sprite(stride ? dinoDuck1 : dinoDuck2, dinoX, groundY - 10 * px + px, px, palette: {d: dinoCol})
+    } else if gameOver {
+      sprite(dinoDeadBody, dinoX, dinoY, px, palette: {d: dinoCol, e: bgCol})
+      sprite(legsStand, dinoX, dinoY + 13 * px, px, palette: {d: dinoCol})
+    } else {
+      sprite(dinoBody, dinoX, dinoY, px, palette: {d: dinoCol})
+      sprite(inAir ? legsStand : stride ? legsRun1 : legsRun2, dinoX, dinoY + 13 * px, px, palette: {d: dinoCol})
+    }
+
+    // Running dust particles when on the ground
+    if !inAir && !gameOver {
+      for p in range(3) {
+        let pt = (gameTime * 5 + p * 0.33) % 1
+        let ppx = floor((dinoX - pt * 8 * px) / px) * px
+        let ppy = floor((groundY - pt * 3 * px) / px) * px
+        rect(ppx, ppy, px, px, fill: alpha(mutedCol, (1 - pt) * 0.6))
+      }
+    }
+
+    // HUD: High Score and Current Score (top-right, classic 5-digit format)
+    let hudText = width > 220 ? "HI ${pad(best, 5, "0")}  ${pad(score, 5, "0")}" : pad(score, 5, "0")
+    text(hudText, width - 10, 14, size: 8, font: press, align: end, color: fgCol)
+
+    // Top-left occasional "by Madmasx" + pixel X & Git badge (appears for ~4.2s every 18s)
+    let credPhase = time % 18
+    let showCredits = credPhase < 4.2
+    let credAlpha = credPhase < 0.3 ? credPhase / 0.3 : credPhase > 3.7 ? clamp((4.2 - credPhase) / 0.5, 0, 1) : 1
+
+    if showCredits {
+      layer(credAlpha) {
+        text("by Madmasx", 10, 14, size: 7, font: press, align: start, color: accent)
+        let bx = width < 240 ? 10 : 88
+        let by = width < 240 ? 21 : 5
+        // Pixel X icon chip
+        rect(bx, by, 18, 17, radius: 3 * corners, fill: alpha(surface, 0.9))
+        sprite(xPixelArt, bx + 2, by + 2, 2, palette: {x: fgCol})
+        // Pixel GitHub Octocat + GIT chip
+        rect(bx + 22, by, 50, 17, radius: 3 * corners, fill: alpha(surface, 0.9))
+        sprite(gitPixelArt, bx + 25, by + 1, 2, palette: {g: accent})
+        text("GIT", bx + 47, by + 9, size: 6, font: press, align: start, color: fgCol)
+      }
+    } else if !validRun {
+      text("CHROME DINO", 10, 14, size: 7, font: press, align: start, color: accent)
+    }
+
+    // Status badges & overlays
+    if !validRun {
+      let blink = floor(time * 2) % 2 == 0
+      let playY = width < 240 && showCredits ? 46 : 28
+      rect(width / 2 - 52, playY, 104, 18, radius: 4 * corners, fill: alpha(surface, 0.85))
+      text("TAP TO PLAY", width / 2, playY + 9, size: 7, font: press, align: center, color: blink ? fgCol : mutedCol)
+    } else if gameOver {
+      rect(width / 2 - 74, height / 2 - 28, 148, 52, radius: 6 * corners, fill: alpha(surface, 0.92))
+      text("G A M E  O V E R", width / 2, height / 2 - 14, size: 8, font: press, align: center, color: red)
+      let rx = floor(width / 2 - 5.5 * px)
+      let ry = floor(height / 2 - 2)
+      sprite(restartArt, rx, ry, px, palette: {r: accent})
+    } else {
+      // Duck zone button in bottom-right during active gameplay
+      rect(width - 68, height - 24, 60, 18, radius: 4 * corners, fill: alpha(surface, 0.8))
+      text("DUCK ▼", width - 38, height - 15, size: 6, font: press, align: center, color: isDucking ? accent : mutedCol)
+    }
+  }
+}
