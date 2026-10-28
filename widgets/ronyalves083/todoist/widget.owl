@@ -1,0 +1,468 @@
+widget "Todoist" {
+  meta { owl: 12; description: "Community Todoist list: filters, priorities, due dates, adding and completing tasks."; version: "0.5.1"; license: "MIT"; category: "productivity" }
+  size: 6x5
+  minSize: 4x4
+  // Native Android HTTP only: no shell commands or pacman packages required.
+  asset addIcon = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiA0NCI+PHBhdGggZD0iTTExIDIyaDEwTTE2IDE3djEwIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjwvc3ZnPg=="
+  asset menuIcon = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiA0NCI+PGcgZmlsbD0iY3VycmVudENvbG9yIj48Y2lyY2xlIGN4PSIxNiIgY3k9IjE4IiByPSIxLjEiLz48Y2lyY2xlIGN4PSIxNiIgY3k9IjIyIiByPSIxLjEiLz48Y2lyY2xlIGN4PSIxNiIgY3k9IjI2IiByPSIxLjEiLz48L2c+PC9zdmc+"
+  asset checkIcon = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzNiAzNiI+PGNpcmNsZSBjeD0iMTgiIGN5PSIxOCIgcj0iOS41IiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIxLjUiIGZpbGw9Im5vbmUiLz48L3N2Zz4="
+  state token = null secret
+  state query = "today | overdue" persist
+  state compact = true persist
+  state customTitle = "" persist
+  state textScale = 0 persist
+  state showDates = true persist
+  state language = "auto" persist
+  state settingsSection = "list"
+  state tab = "settings"
+  state demo = false
+  state pageCursor = ""
+  state previous = []
+  state busy = false
+  state completed = []
+  state pendingTask = null
+  state result = 0
+  state message = ""
+  state draft = ""
+  state menuOpen = false
+  state selected = null
+  source installedApps = android.apps
+  source device = android.system every 1m
+  source now = clock every 1m
+  // Resolve Inbox by its ID, independent of the Todoist account language.
+  source account = http(token == null || query != "#Inbox" ? null : "https://api.todoist.com/api/v1/user", {Authorization: "Bearer ${token}"}) every 10m timeout 20s json status
+  source taskFetch = http(token == null ? null : query == "#Inbox" ? (account.out.inbox_project_id == null ? null : "https://api.todoist.com/api/v1/tasks?project_id=${enc(account.out.inbox_project_id)}&limit=15${pageCursor == "" ? "" : "&cursor=" + enc(pageCursor)}") : "https://api.todoist.com/api/v1/tasks/filter?query=${enc(query == "all" ? "view all" : query)}&lang=en&limit=15${pageCursor == "" ? "" : "&cursor=" + enc(pageCursor)}", {Authorization: "Bearer ${token}"}) every 1m timeout 20s json status
+  let tasks = query == "#Inbox" && account.ok == false ? account : query == "#Inbox" && account.out.inbox_project_id == null ? null : taskFetch
+  // Translation catalog. Keep filter values and task content independent of UI language.
+  let translations = {
+    pt: {
+      appTitle: "Todoist",
+      todayOverdue: "Hoje e atrasadas",
+      inbox: "Caixa de entrada",
+      next7: "Próximos 7 dias",
+      all: "Todas as tarefas",
+      noDate: "Sem data",
+      overdue: "Atrasadas",
+      today: "Hoje",
+      upcoming: "Próximas",
+      yesterday: "Ontem",
+      tomorrow: "Amanhã",
+      late: " · atrasada",
+      saved: "Salvo no Todoist.",
+      saveError: 'Não foi possível salvar (${value.code}). Atualize antes de tentar novamente.',
+      saving: "Salvando…",
+      demo: "DEMONSTRAÇÃO · dados fictícios",
+      loading: "Carregando…",
+      reconnect: "Conecte sua conta novamente pelo menu ⋮.",
+      rateLimit: "O Todoist limitou as requisições. Aguarde um pouco antes de atualizar novamente.",
+      fetchError: 'Não foi possível atualizar (${tasks.code}). Veja o menu ⋮.',
+      empty: "Tudo em dia.",
+      previous: "‹ Anteriores",
+      more: "Mais tarefas ›",
+      refresh: "Atualizar",
+      settings: "Configurações",
+      openApp: "Abrir Todoist",
+      welcome: "Suas tarefas, aqui.",
+      connectHint: "Conecte sua conta para começar.",
+      connect: "Conectar",
+      showDemo: "Ver demonstração",
+      list: "Lista",
+      appearance: "Aparência",
+      account: "Conta",
+      connectAccount: "Conectar sua conta",
+      tokenHelp: "No Todoist, copie seu token em Configurações → Integrações → Desenvolvedor. Cole abaixo e envie pelo teclado. Ele fica criptografado neste celular.",
+      tokenSettings: "Abrir configurações do Todoist",
+      token: "Token da API do Todoist",
+      replaceToken: "Substituir token",
+      notConnected: "Conta ainda não conectada",
+      tokenSaved: "Token salvo · confira a lista na tela inicial",
+      apiResponse: 'Resposta do Todoist (${tasks.code})',
+      noDetails: "Sem detalhes",
+      disconnect: "Desconectar conta",
+      unofficial: "Integração comunitária, sem vínculo oficial com o Todoist. Nenhuma credencial é incluída no arquivo compartilhado.",
+      view: "Visualização",
+      currentFilter: 'Filtro atual: ${query}',
+      filterHint: "Filtro: #Projeto, @etiqueta, p1…",
+      filterHelp: "Combine condições com | (OU) e & (E) em um único filtro. A vírgula, usada para criar listas separadas no Todoist, não é aceita aqui.",
+      listName: "Nome da lista",
+      autoName: 'Automático: ${automaticHeading}',
+      currentName: 'Nome: ${customTitle}',
+      nameHint: "Ex.: Trabalho · envie para salvar",
+      resetName: "Usar nome automático",
+      density: "Densidade",
+      compactHelp: "Compacta: menos espaço entre tarefas.",
+      comfortableHelp: "Confortável: mais espaço e títulos maiores.",
+      compact: "Compacta",
+      comfortable: "Confortável",
+      textSize: "Tamanho do texto",
+      small: "Pequeno",
+      standard: "Padrão",
+      large: "Grande",
+      sizeHelp: " · aplicado à lista e ao cabeçalho",
+      datesOn: "Datas: visíveis",
+      datesOff: "Datas: ocultas",
+      appearanceHelp: "A fonte e as cores acompanham o Omalauncher. A densidade e o tamanho do texto podem ser combinados. Toque no título da tarefa para ler tudo, ou no círculo para concluir.",
+      exitDemo: "Sair da demonstração",
+      openTask: "Abrir no Todoist",
+      complete: "Concluir tarefa",
+      add: "Adicionar tarefa",
+      connectToAdd: "Conecte a conta e saia da demonstração para adicionar tarefas.",
+      addHelp: "A tarefa será criada na Caixa de entrada. O título é enviado como texto, sem interpretar datas ou #projetos.",
+      taskName: "Nome da tarefa",
+      addInbox: "Adicionar à Caixa de entrada",
+      backHome: "Voltar à tela inicial",
+      samplePlan: "Planejar a semana",
+      sampleRead: "Ler um capítulo",
+      sampleIdeas: "Organizar ideias para o projeto",
+      language: "Idioma",
+      automatic: "Automático",
+      languageHelp: "O modo automático segue o idioma do celular. Idiomas sem tradução usam inglês. Os filtros usam a sintaxe em inglês, sem alterar tarefas ou nomes personalizados. Quer ver seu idioma aqui? Contribuições da comunidade com novas traduções e melhorias são bem-vindas!",
+      menu: "Menu de ações",
+      englishFilters: "Escreva os filtros em inglês, como today | overdue.",
+      priority: "Prioridade"
+    },
+    en: {
+      appTitle: "Todoist",
+      todayOverdue: "Today & overdue",
+      inbox: "Inbox",
+      next7: "Next 7 days",
+      all: "All tasks",
+      noDate: "No date",
+      overdue: "Overdue",
+      today: "Today",
+      upcoming: "Upcoming",
+      yesterday: "Yesterday",
+      tomorrow: "Tomorrow",
+      late: " · overdue",
+      saved: "Saved to Todoist.",
+      saveError: 'Could not save (${value.code}). Refresh before trying again.',
+      saving: "Saving…",
+      demo: "DEMO · sample data",
+      loading: "Loading…",
+      reconnect: "Reconnect your account from the ⋮ menu.",
+      rateLimit: "Todoist has limited requests. Wait a little before refreshing again.",
+      fetchError: 'Could not refresh (${tasks.code}). See the ⋮ menu.',
+      empty: "All caught up.",
+      previous: "‹ Previous",
+      more: "More tasks ›",
+      refresh: "Refresh",
+      settings: "Settings",
+      openApp: "Open Todoist",
+      welcome: "Your tasks, here.",
+      connectHint: "Connect your account to get started.",
+      connect: "Connect",
+      showDemo: "Show demo",
+      list: "List",
+      appearance: "Appearance",
+      account: "Account",
+      connectAccount: "Connect your account",
+      tokenHelp: "In Todoist, copy your token from Settings → Integrations → Developer. Paste it below and submit with the keyboard. It stays encrypted on this phone.",
+      tokenSettings: "Open Todoist settings",
+      token: "Todoist API token",
+      replaceToken: "Replace token",
+      notConnected: "Account not connected",
+      tokenSaved: "Token saved · check the home-screen list",
+      apiResponse: 'Todoist response (${tasks.code})',
+      noDetails: "No details",
+      disconnect: "Disconnect account",
+      unofficial: "Community integration, not affiliated with Todoist. Credentials are never included in the shared file.",
+      view: "View",
+      currentFilter: 'Current filter: ${query}',
+      filterHint: "Filter: #Project, @label, p1…",
+      filterHelp: "Combine conditions with | (OR) and & (AND) in one filter. Commas, used to create separate lists in Todoist, are not supported here.",
+      listName: "List name",
+      autoName: 'Automatic: ${automaticHeading}',
+      currentName: 'Name: ${customTitle}',
+      nameHint: "E.g. Work · submit to save",
+      resetName: "Use automatic name",
+      density: "Density",
+      compactHelp: "Compact: less space between tasks.",
+      comfortableHelp: "Comfortable: more space and larger titles.",
+      compact: "Compact",
+      comfortable: "Comfortable",
+      textSize: "Text size",
+      small: "Small",
+      standard: "Standard",
+      large: "Large",
+      sizeHelp: " · applies to the list and header",
+      datesOn: "Dates: shown",
+      datesOff: "Dates: hidden",
+      appearanceHelp: "Font and colors follow Omalauncher. Combine density and text size as you prefer. Tap a task title for details, or its circle to complete it.",
+      exitDemo: "Exit demo",
+      openTask: "Open in Todoist",
+      complete: "Complete task",
+      add: "Add task",
+      connectToAdd: "Connect your account and exit demo mode to add tasks.",
+      addHelp: "The task will be created in Inbox. Its title is sent as plain text, without parsing dates or #projects.",
+      taskName: "Task name",
+      addInbox: "Add to Inbox",
+      backHome: "Back to home screen",
+      samplePlan: "Plan the week",
+      sampleRead: "Read a chapter",
+      sampleIdeas: "Organize project ideas",
+      language: "Language",
+      automatic: "Automatic",
+      languageHelp: "Automatic follows the phone language. Unsupported languages use English. Filters use English syntax; task content and custom names stay unchanged. Want to see your language here? Community contributions with new translations and improvements are welcome!",
+      menu: "Actions menu",
+      englishFilters: "Write filters in English, for example today | overdue.",
+      priority: "Priority"
+    }
+  }
+  let uiLanguage = language == "auto" ? (startsWith(lower(device.locale ?? "en"), "pt") ? "pt" : "en") : language == "pt" ? "pt" : "en"
+  let dateLocale = uiLanguage == "pt" ? "pt-BR" : "en"
+  let tr = get(translations, uiLanguage, translations.en)
+  let samples = [{id: "demo1", content: tr.samplePlan, priority: 4, due: {date: fmtTime(now, "yyyy-MM-dd")}}, {id: "demo2", content: tr.sampleRead, priority: 2, due: {date: fmtTime(now, "yyyy-MM-dd")}}, {id: "demo3", content: tr.sampleIdeas, priority: 1}]
+  let todoistApp = find(installedApps ?? [], a => a.package == "com.todoist" && a.profile == null) ?? find(installedApps ?? [], a => a.package == "com.todoist")
+  let items = (demo ? samples : (tasks.out.results ?? [])).filter(t => !contains(completed, t.id + toJson(t.due)))
+  let automaticHeading = query == "today | overdue" ? tr.todayOverdue : query == "#Inbox" ? tr.inbox : query == "7 days" ? tr.next7 : query == "all" ? tr.all : query
+  let heading = customTitle != "" ? customTitle : automaticHeading
+  // Readable secondary and warning colors derived from the active theme.
+  let secondaryText = mix(background, foreground, 0.85)
+  let warningText = mix(red, foreground, 0.5)
+  let actionColor = mix(accent, foreground, 0.5)
+  let today = fmtTime(now, "yyyy-MM-dd")
+  let yesterday = fmtTime(parseTime(today) - 1, "yyyy-MM-dd")
+  let tomorrow = fmtTime(parseTime(today) + 129600, "yyyy-MM-dd")
+  let ordered = items.sortBy(t => t.due == null ? "9999" : sub(t.due.date, 0, 10))
+  let sections = groupBy(ordered, t => t.due == null ? tr.noDate : sub(t.due.date, 0, 10) < today ? tr.overdue : sub(t.due.date, 0, 10) == today ? tr.today : tr.upcoming)
+  on result {
+    busy = false
+    message = value.ok ? tr.saved : value.code == 429 ? tr.rateLimit : replace(tr.saveError, '${value.code}', str(value.code))
+    if value.ok {
+      draft = ""
+      if pendingTask != null {
+        completed = take([pendingTask] + completed, 60)
+        selected = null
+        if tab == "detail" { close(); tab = "settings" }
+      }
+      refresh()
+    }
+    pendingTask = null
+  }
+
+  // Render Markdown link labels without displaying their raw URLs.
+  component TaskTitle(content, textSize = 13, linesLimit = 3) {
+    Column {
+      let links = matchAll(content, "\\[([^\\]]+)\\]\\(([^)]+)\\)")
+      let clean = reduce(links, (textValue, link) => replace(textValue, "[" + link[0] + "](" + link[1] + ")", link[0]), content)
+      Text { text: clean; fontSize: textSize; maxLines: linesLimit; color: foreground }
+    }
+  }
+
+  component DueDate(task) {
+    Column {
+      let day = sub(task.due.date, 0, 10)
+      let late = day < today
+      let dateLabel = day == today ? tr.today : day == yesterday ? tr.yesterday : day == tomorrow ? tr.tomorrow : fmtTime(parseTime(day), uiLanguage == "pt" ? "d MMM" : "MMM d", null, dateLocale)
+      if task.due != null {
+        Text { text: "${task.due.is_recurring == true ? "↻  " : ""}${dateLabel}${late ? tr.late : ""}"; fontSize: 9 + textScale; color: late ? warningText : secondaryText }
+      }
+    }
+  }
+
+  component TaskRow(task) {
+    Row {
+      align: top
+      padding: [0, compact ? 7 : 10]
+      gap: 8
+      Image {
+        src: checkIcon
+        width: 36
+        height: 36
+        tint: task.priority == 4 ? mix(red, foreground, 0.3) : task.priority == 3 ? mix(orange, foreground, 0.3) : task.priority == 2 ? mix(blue, foreground, 0.3) : secondaryText
+        label: "${tr.complete}: ${task.content}. ${tr.priority} ${5 - task.priority}"
+        onTap: {
+          if !demo && !busy && token != null {
+            busy = true
+            message = tr.saving
+            pendingTask = task.id + toJson(task.due)
+            result = post("https://api.todoist.com/api/v1/tasks/${enc(task.id)}/close", null, {Authorization: "Bearer ${token}"})
+          }
+        }
+      }
+      Column {
+        weight: 1
+        gap: 4
+        padding: [0, 6, 0, 0]
+        onTap: { selected = task; tab = "detail"; screen() }
+        TaskTitle { content: task.content; textSize: (compact ? 11 : 13) + textScale }
+        if showDates { DueDate { task: task } }
+      }
+    }
+  }
+
+  component TaskList() {
+    Column {
+      gap: 4
+      if demo { Text { text: tr.demo; fontSize: 8; color: secondaryText } }
+      if !demo && tasks == null { Text { text: tr.loading; color: secondaryText } }
+      if !demo && tasks != null && tasks.ok != true {
+        Text { text: tasks.code == 401 ? tr.reconnect : tasks.code == 429 ? tr.rateLimit : replace(tr.fetchError, '${tasks.code}', str(tasks.code)); fontSize: 10; color: warningText }
+      }
+      if !demo && tasks.ok == true && len(items) == 0 { Text { text: tr.empty; fontSize: 14; color: secondaryText; padding: [0, 20] } }
+      Column {
+        weight: 1
+        scroll: true
+        gap: 8
+        for section in keys(sections) {
+          Column {
+            gap: 0
+            Row {
+              padding: [8, 10]
+              Text { text: section; fontSize: 10 + textScale; bold: true; color: section == tr.overdue ? warningText : secondaryText; weight: 1 }
+              Text { text: "${len(get(sections, section))}"; fontSize: 9; color: secondaryText }
+            }
+            Box { height: 1; fill: width; background: alpha(muted, 0.15) }
+            for task in get(sections, section) key task.id { TaskRow { task: task } }
+          }
+        }
+      }
+      if !demo && (len(previous) > 0 || tasks.out.next_cursor != null) {
+        Row {
+          if len(previous) > 0 { Text { text: tr.previous; fontSize: 10; color: actionColor; padding: 8; onTap: { pageCursor = previous[len(previous) - 1]; previous = take(previous, len(previous) - 1) } } }
+          Spacer { weight: 1 }
+          if tasks.out.next_cursor != null && tasks.ok == true { Text { text: tr.more; fontSize: 10; color: actionColor; padding: 8; onTap: { previous = previous + [pageCursor]; pageCursor = tasks.out.next_cursor } } }
+        }
+      }
+    }
+  }
+
+  Column {
+    gap: 4
+    padding: [8, 0]
+    Row {
+      align: center
+      gap: 4
+      Text { text: "${heading} ▾"; fontSize: 16 + textScale; bold: true; weight: 1; maxLines: 1; padding: [4, 12]; onTap: { tab = "settings"; screen() } }
+      Image { src: addIcon; width: 32; height: 44; tint: foreground; label: tr.add; onTap: { tab = "add"; screen() } }
+      Box {
+        width: 32
+        height: 44
+        Image { src: menuIcon; width: 32; height: 44; tint: foreground; label: tr.menu; onTap: menuOpen = true }
+        Popup {
+          width: 152
+          align: end
+          visible: menuOpen
+          onDismiss: menuOpen = false
+          Column {
+            Text { text: tr.refresh; fontSize: 13; padding: [12, 10]; onTap: { menuOpen = false; refresh() } }
+            Text { text: tr.settings; fontSize: 13; padding: [12, 10]; onTap: { menuOpen = false; tab = "settings"; screen() } }
+            Text { text: tr.openApp; fontSize: 13; padding: [12, 10]; onTap: { menuOpen = false; if todoistApp != null { androidApp(todoistApp.key) } else { url("https://app.todoist.com") } } }
+          }
+        }
+      }
+    }
+    if token == null && !demo {
+      Column {
+        weight: 1
+        justify: center
+        gap: 12
+        Text { text: tr.welcome; fontSize: 20; bold: true }
+        Text { text: tr.connectHint; fontSize: 12; color: secondaryText }
+        Button { text: tr.connect; onTap: { settingsSection = "account"; tab = "settings"; screen() } }
+        Text { text: tr.showDemo; fontSize: 10; color: actionColor; padding: 8; onTap: demo = true }
+      }
+    } else { TaskList { weight: 1 } }
+    if busy || (result != 0 && result.ok == false && !(tasks.ok == false && result.code == tasks.code)) { Text { text: message; fontSize: 9; color: busy ? secondaryText : warningText; maxLines: 3 } }
+  }
+
+  screen {
+    title: tr.appTitle
+    Column {
+      padding: 16
+      gap: 14
+      Column {
+        scroll: true
+        weight: 1
+        gap: 14
+        if tab == "settings" {
+          Flow {
+            gap: 6
+            Button { text: settingsSection == "list" ? "• ${tr.list}" : tr.list; onTap: settingsSection = "list" }
+            Button { text: settingsSection == "appearance" ? "• ${tr.appearance}" : tr.appearance; onTap: settingsSection = "appearance" }
+            Button { text: settingsSection == "account" ? "• ${tr.account}" : tr.account; onTap: settingsSection = "account" }
+          }
+          if settingsSection == "account" {
+          Text { text: tr.connectAccount; style: title }
+          Text { text: tr.tokenHelp; style: muted; color: secondaryText }
+          Button { text: tr.tokenSettings; onTap: url("https://app.todoist.com/app/settings/integrations/developer") }
+          Text { text: tr.token; style: small; color: secondaryText }
+          Input { placeholder: token == null ? tr.token : tr.replaceToken; password: true; clear: true; onSubmit: { if trim(value) != "" { token = trim(value); demo = false; pageCursor = ""; previous = []; message = ""; refresh() } } }
+          Text { text: token == null ? tr.notConnected : tr.tokenSaved; style: small; color: secondaryText }
+          if tasks.ok == false {
+            if tasks.code == 429 { Text { text: tr.rateLimit; color: warningText; fontSize: 12 } }
+            Text { text: replace(tr.apiResponse, '${tasks.code}', str(tasks.code)); color: warningText; style: small }
+            Text { text: str(tasks.out ?? tasks.err ?? tr.noDetails); style: small; maxLines: 8 }
+          }
+            if token != null { Button { text: tr.disconnect; onTap: { token = null; demo = false; selected = null; completed = []; pageCursor = ""; previous = []; message = ""; draft = "" } } }
+            Text { text: tr.unofficial; style: muted; color: secondaryText }
+          } else if settingsSection == "list" {
+          Text { text: tr.view; style: title }
+          Button { text: tr.todayOverdue; onTap: { query = "today | overdue"; pageCursor = ""; previous = [] } }
+          Button { text: tr.inbox; onTap: { query = "#Inbox"; pageCursor = ""; previous = [] } }
+          Button { text: tr.next7; onTap: { query = "7 days"; pageCursor = ""; previous = [] } }
+          Text { text: replace(tr.currentFilter, '${query}', str(query)); style: small; color: secondaryText }
+          Input { placeholder: tr.filterHint; clear: true; onSubmit: { if trim(value) != "" { query = trim(value); pageCursor = ""; previous = [] } } }
+          Text { text: "${tr.filterHelp} ${tr.englishFilters}"; style: muted; color: secondaryText }
+          Text { text: tr.listName; style: title }
+          Text { text: customTitle == "" ? replace(tr.autoName, '${automaticHeading}', str(automaticHeading)) : replace(tr.currentName, '${customTitle}', str(customTitle)); style: small; color: secondaryText }
+          Input { placeholder: tr.nameHint; clear: true; onSubmit: customTitle = trim(value) }
+          if customTitle != "" { Button { text: tr.resetName; onTap: customTitle = "" } }
+          } else {
+            Text { text: tr.language; style: title }
+            Flow {
+              gap: 8
+              Button { text: language == "auto" ? "• ${tr.automatic}" : tr.automatic; onTap: language = "auto" }
+              Button { text: language == "pt" ? "• Português" : "Português"; onTap: language = "pt" }
+              Button { text: language == "en" ? "• English" : "English"; onTap: language = "en" }
+            }
+            Text { text: tr.languageHelp; style: muted; color: secondaryText }
+            Text { text: tr.density; style: title }
+            Text { text: compact ? tr.compactHelp : tr.comfortableHelp; style: small; color: secondaryText }
+            Flow {
+              gap: 8
+              Button { text: compact ? "• ${tr.compact}" : tr.compact; onTap: compact = true }
+              Button { text: compact ? tr.comfortable : "• ${tr.comfortable}"; onTap: compact = false }
+            }
+            Text { text: tr.textSize; style: title }
+            Text { text: "${textScale == 0 ? tr.small : textScale == 2 ? tr.standard : tr.large}${tr.sizeHelp}"; style: small; color: secondaryText }
+            Flow {
+              gap: 8
+              Button { text: textScale == 0 ? "• ${tr.small}" : tr.small; onTap: textScale = 0 }
+              Button { text: textScale == 2 ? "• ${tr.standard}" : tr.standard; onTap: textScale = 2 }
+              Button { text: textScale == 4 ? "• ${tr.large}" : tr.large; onTap: textScale = 4 }
+            }
+            Button { text: showDates ? tr.datesOn : tr.datesOff; onTap: showDates = !showDates }
+            Text { text: tr.appearanceHelp; style: muted; color: secondaryText }
+            Button { text: demo ? tr.exitDemo : tr.showDemo; onTap: demo = !demo }
+          }
+        } else if tab == "detail" {
+          if selected != null {
+            TaskTitle { content: selected.content; textSize: 20; linesLimit: 100 }
+            DueDate { task: selected }
+            Text { text: "${tr.priority} ${5 - selected.priority}"; style: small; color: secondaryText }
+            if selected.description != null && selected.description != "" { Text { text: selected.description; fontSize: 12 } }
+            for link in matchAll(selected.content, "\\[([^\\]]+)\\]\\((https://[^)]+)\\)") {
+              Text { text: "↗ ${link[0]}"; color: actionColor; padding: 12; onTap: url(link[1]) }
+            }
+            if !demo {
+              Button { text: tr.openTask; onTap: url("https://app.todoist.com/app/task/${enc(selected.id)}") }
+              Button { text: busy ? tr.saving : tr.complete; onTap: { if !busy && token != null { busy = true; message = tr.saving; pendingTask = selected.id + toJson(selected.due); result = post("https://api.todoist.com/api/v1/tasks/${enc(selected.id)}/close", null, {Authorization: "Bearer ${token}"}) } } }
+            }
+          }
+        } else {
+          Text { text: tr.add; style: title }
+          if token == null || demo {
+            Text { text: tr.connectToAdd; style: muted; color: secondaryText }
+          } else {
+            Text { text: tr.addHelp; style: muted; color: secondaryText }
+            Input { text: draft; placeholder: tr.taskName; onChange: draft = value }
+            Button { text: busy ? tr.saving : tr.addInbox; onTap: { if !busy && token != null && trim(draft) != "" { busy = true; pendingTask = null; message = tr.saving; result = post("https://api.todoist.com/api/v1/tasks", {content: trim(draft)}, {Authorization: "Bearer ${token}"}) } } }
+          }
+        }
+        if message != "" { Text { text: message; style: small; color: secondaryText } }
+      }
+      Button { text: tr.backHome; onTap: close() }
+    }
+  }
+}
