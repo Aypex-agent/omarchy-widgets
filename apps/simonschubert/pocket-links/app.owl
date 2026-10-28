@@ -1,0 +1,643 @@
+app "pocket links" {
+  // Mini golf in pixel art: nine holes, each one screen seen from above. Drag back from anywhere
+  // and let go to putt, like a slingshot; the further back, the harder. Walls and stones bounce
+  // the ball, corner pieces bank it, bumpers kick it back faster, sand slows it, slopes push it,
+  // and water costs a stroke and puts it back where it was played from.
+  //
+  // There's no game loop. A putt is worked out in one go when it's played: `film` steps the ball
+  // forward 60 times a second for up to ten seconds, and the canvas draws the step the clock is
+  // in. When the film has stopped, a trigger settles the stroke.
+
+  meta { owl: 14; description: "Pixel art mini golf: nine holes of walls, corner banks, bumpers, sand, slopes and water; drag back to aim, let go to putt, and beat your best round"; version: "1.0"; license: "MIT"; category: "games" }
+
+  title: ""
+  statusBar: false
+  edge: true
+  icon: """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" shape-rendering="crispEdges">
+    <rect width="256" height="256" rx="56" fill="#5cb85c"/>
+    <rect x="104" y="176" width="64" height="24" fill="#1d2b1f"/>
+    <rect x="96" y="184" width="80" height="8" fill="#1d2b1f"/>
+    <rect x="128" y="40" width="12" height="148" fill="#f2efe6"/>
+    <rect x="140" y="40" width="16" height="56" fill="#e8483f"/>
+    <rect x="156" y="48" width="16" height="40" fill="#e8483f"/>
+    <rect x="172" y="56" width="16" height="24" fill="#e8483f"/>
+    <rect x="188" y="64" width="12" height="8" fill="#e8483f"/>
+    <rect x="140" y="80" width="32" height="16" fill="#b8302a"/>
+    <rect x="52" y="148" width="40" height="40" fill="#ffffff"/>
+    <rect x="44" y="156" width="56" height="24" fill="#ffffff"/>
+    <rect x="60" y="140" width="24" height="56" fill="#ffffff"/>
+    <rect x="76" y="172" width="16" height="16" fill="#d6dbe0"/>
+    <rect x="84" y="164" width="8" height="8" fill="#d6dbe0"/>
+    <rect x="60" y="156" width="8" height="8" fill="#ffffff"/>
+  </svg>"""
+
+  // "title", "play", "holed" (the card after a hole) or "round" (the scorecard after the ninth)
+  state mode = "title" persist
+  // a round under way, which the title offers to go on with
+  state started = false persist
+  state hole = 0 persist
+  state strokes = 0 persist
+  // strokes on each hole, 0 for one not played yet
+  state cards = [0, 0, 0, 0, 0, 0, 0, 0, 0] persist
+  state best = 0 persist
+  // the ball, in art pixels
+  state bx = 0 persist
+  state by = 0 persist
+  // the putt rolling now: where from, and how fast which way; and when it was played on the frame
+  // clock (-1 until the next frame, as a touch's own time can be off the frame clock)
+  state shot = null persist
+  state rolling = false persist
+  state shotT = 0
+  state tapT = 0
+  // the drag that aims: where it began and where the finger is
+  state aiming = false
+  state ax0 = 0
+  state ay0 = 0
+  state ax1 = 0
+  state ay1 = 0
+
+  // ---- the course ------------------------------------------------------------------------------
+  // Each hole is 12 by 18 tiles of 8 art pixels. "#" wall, " " rough beyond the walls, "." green,
+  // "T" the tee, "H" the cup, "b" a stone, "*" a bumper, "s" sand, "w" water, "> < ^ v" slopes
+  // falling that way, and "A B C D" corner pieces solid at the top left, top right, bottom right
+  // and bottom left.
+  let HOLES = [
+    {name: "FIRST PUTT", par: 2, rows: [
+      "  ########  ",
+      "  #A....B#  ",
+      "  #......#  ",
+      "  #..H...#  ",
+      "  #......#  ",
+      "  #......#  ",
+      "  #......#  ",
+      "  #..bb..#  ",
+      "  #......#  ",
+      "  #......#  ",
+      "  #......#  ",
+      "  #......#  ",
+      "  #......#  ",
+      "  #......#  ",
+      "  #...T..#  ",
+      "  #......#  ",
+      "  #D....C#  ",
+      "  ########  "
+    ]},
+    {name: "DOGLEG", par: 3, rows: [
+      "############",
+      "#A........B#",
+      "#.......H..#",
+      "#..........#",
+      "#....D.....#",
+      "#....#######",
+      "#....#      ",
+      "#....#      ",
+      "#....#      ",
+      "#....#      ",
+      "#....#      ",
+      "#....#      ",
+      "#....#      ",
+      "#....#      ",
+      "#..T.#      ",
+      "#....#      ",
+      "#D..C#      ",
+      "######      "
+    ]},
+    {name: "SAND TRAP", par: 3, rows: [
+      "############",
+      "#A........B#",
+      "#...ssss...#",
+      "#..ss.Hss..#",
+      "#...ssss...#",
+      "#..........#",
+      "#..........#",
+      "####b..b####",
+      "#..........#",
+      "#..........#",
+      "#....ss....#",
+      "#..........#",
+      "#..........#",
+      "#..........#",
+      "#.....T....#",
+      "#..........#",
+      "#D........C#",
+      "############"
+    ]},
+    {name: "THE CREEK", par: 3, rows: [
+      "############",
+      "#A........B#",
+      "#........H.#",
+      "#..........#",
+      "#..........#",
+      "#..b.......#",
+      "#wwwww..www#",
+      "#wwwww..www#",
+      "#wwwww..www#",
+      "#..........#",
+      "#......b...#",
+      "#..........#",
+      "#..........#",
+      "#..........#",
+      "#..T.......#",
+      "#..........#",
+      "#D........C#",
+      "############"
+    ]},
+    {name: "ROLLING HILLS", par: 3, rows: [
+      "############",
+      "#A...H....B#",
+      "#..........#",
+      "#..........#",
+      "#>>>>>>>>>>#",
+      "#>>>>>>>>>>#",
+      "#..........#",
+      "#..........#",
+      "#<<<<<<<<<<#",
+      "#<<<<<<<<<<#",
+      "#..........#",
+      "#..........#",
+      "#..........#",
+      "#..........#",
+      "#......T...#",
+      "#..........#",
+      "#D........C#",
+      "############"
+    ]},
+    {name: "PINBALL", par: 3, rows: [
+      "############",
+      "#A...H....B#",
+      "#..........#",
+      "#..*....*..#",
+      "#..........#",
+      "#....*.....#",
+      "#..........#",
+      "#.*.....*..#",
+      "#..........#",
+      "#.....*....#",
+      "#..........#",
+      "#..*.....*.#",
+      "#..........#",
+      "#..........#",
+      "#....T.....#",
+      "#..........#",
+      "#D........C#",
+      "############"
+    ]},
+    {name: "SWITCHBACK", par: 4, rows: [
+      "############",
+      "#A........B#",
+      "#.H........#",
+      "#..........#",
+      "#D.........#",
+      "#######....#",
+      "#######....#",
+      "#A.........#",
+      "#..........#",
+      "#.........C#",
+      "#....#######",
+      "#....#######",
+      "#.........B#",
+      "#..........#",
+      "#.......T..#",
+      "#..........#",
+      "#D........C#",
+      "############"
+    ]},
+    {name: "ISLAND GREEN", par: 3, rows: [
+      "############",
+      "#A........B#",
+      "#..........#",
+      "#.wwwwwwww.#",
+      "#.ww....ww.#",
+      "#.w..H...w.#",
+      "#.ww....ww.#",
+      "#.www..www.#",
+      "#..........#",
+      "#..........#",
+      "#....bb....#",
+      "#..........#",
+      "#..........#",
+      "#..........#",
+      "#.....T....#",
+      "#..........#",
+      "#D........C#",
+      "############"
+    ]},
+    {name: "GRAND FINALE", par: 4, rows: [
+      "############",
+      "#A...H....B#",
+      "#...sss....#",
+      "#..........#",
+      "#.*......*.#",
+      "#..........#",
+      "#vvvv..vvvv#",
+      "#vvvv..vvvv#",
+      "#..........#",
+      "#ww......ww#",
+      "#ww..**..ww#",
+      "#ww......ww#",
+      "#..........#",
+      "#..........#",
+      "#....T.....#",
+      "#..........#",
+      "#D........C#",
+      "############"
+    ]}
+  ]
+  let PARS = HOLES.map(h => h.par)
+  let PAR = sum(PARS)
+  let TEES = HOLES.map(h => range(216).filter(i => sub(h.rows[floor(i / 12)], i % 12, i % 12 + 1) == "T")[0]).map(i => {x: i % 12 * 8 + 4, y: floor(i / 12) * 8 + 4})
+  let G = range(216).map(i => sub(HOLES[hole].rows[floor(i / 12)], i % 12, i % 12 + 1))
+  let CUP = indexOf(G, "H")
+  let HX = CUP % 12 * 8 + 4
+  let HY = floor(CUP / 12) * 8 + 4
+  let WATER = range(216).filter(i => G[i] == "w")
+
+  // ---- the putt --------------------------------------------------------------------------------
+  // per second: the steps, rolling friction on the green and in sand, a slope's push, the cup's
+  // pull; the hardest putt; walls give back 70% and bumpers 125%; the ball's radius
+  let NS = 600
+  let DT = 1 / 60
+  let FG = 75
+  let FS = 420
+  let SL = 150
+  let PULL = 160
+  let VMAX = 240
+  let R = 1.5
+  // Each step: in the cup if it's over it slowly enough; in the water if it's on it; stopped when
+  // it's all but still where nothing pushes it (or a slope pushes it into a wall); else the slope
+  // and the cup's pull speed it up, friction slows it, and it moves. A move into a corner piece
+  // bounces off the slant; into anything else, off whichever side it ran into.
+  let film = shot == null ? [] : scan(range(NS), (s, k) => s.st != 0 ? s
+    : [[G[floor((s.y) / 8) * 12 + floor((s.x) / 8)], sqrt(s.vx * s.vx + s.vy * s.vy), sqrt(pow(s.x - HX, 2) + pow(s.y - HY, 2))]].map(a =>
+      a[2] < 3.5 && a[1] < 130 ? {x: HX, y: HY, vx: 0, vy: 0, st: 2}
+      : a[0] == "w" ? merge(s, {st: 3})
+      : [[a[0] == ">" ? SL : a[0] == "<" ? -SL : 0, a[0] == "v" ? SL : a[0] == "^" ? -SL : 0]].map(g =>
+        a[1] < 4 && ((g[0] == 0 && g[1] == 0) || [[G[floor((s.y + sign(g[1]) * (R + 1)) / 8) * 12 + floor((s.x + sign(g[0]) * (R + 1)) / 8)], ((s.x + sign(g[0]) * (R + 1)) % 8) / 8, ((s.y + sign(g[1]) * (R + 1)) % 8) / 8]].map(c => c[0] == null || c[0] == "#" || c[0] == " " || c[0] == "b" || c[0] == "*" || (c[0] == "A" && c[1] + c[2] < 1) || (c[0] == "B" && c[1] > c[2]) || (c[0] == "C" && c[1] + c[2] > 1) || (c[0] == "D" && c[2] > c[1]))[0]) ? merge(s, {vx: 0, vy: 0, st: 1})
+        : [[s.vx + (g[0] + (a[2] < 7 ? (HX - s.x) / max(a[2], 0.5) * PULL : 0)) * DT, s.vy + (g[1] + (a[2] < 7 ? (HY - s.y) / max(a[2], 0.5) * PULL : 0)) * DT, (a[0] == "s" ? FS : FG) * DT]].map(v =>
+          [sqrt(v[0] * v[0] + v[1] * v[1])].map(sp => [sp <= v[2] ? 0 : (sp - v[2]) / sp].map(kf =>
+            [[v[0] * kf, v[1] * kf]].map(V =>
+              [[s.x + V[0] * DT, s.y + V[1] * DT, sign(V[0]) * R, sign(V[1]) * R]].map(m =>
+                ![[G[floor((m[1] + m[3]) / 8) * 12 + floor((m[0] + m[2]) / 8)], ((m[0] + m[2]) % 8) / 8, ((m[1] + m[3]) % 8) / 8]].map(c => c[0] == null || c[0] == "#" || c[0] == " " || c[0] == "b" || c[0] == "*" || (c[0] == "A" && c[1] + c[2] < 1) || (c[0] == "B" && c[1] > c[2]) || (c[0] == "C" && c[1] + c[2] > 1) || (c[0] == "D" && c[2] > c[1]))[0] ? {x: m[0], y: m[1], vx: V[0], vy: V[1], st: 0}
+                : [G[floor((m[1] + m[3]) / 8) * 12 + floor((m[0] + m[2]) / 8)]].map(h =>
+                  (h == "A" || h == "C") && ![[G[floor((s.y + m[3]) / 8) * 12 + floor((s.x + m[2]) / 8)], ((s.x + m[2]) % 8) / 8, ((s.y + m[3]) % 8) / 8]].map(c => c[0] == null || c[0] == "#" || c[0] == " " || c[0] == "b" || c[0] == "*" || (c[0] == "A" && c[1] + c[2] < 1) || (c[0] == "B" && c[1] > c[2]) || (c[0] == "C" && c[1] + c[2] > 1) || (c[0] == "D" && c[2] > c[1]))[0] ? {x: s.x, y: s.y, vx: -V[1] * 0.85, vy: -V[0] * 0.85, st: 0}
+                  : (h == "B" || h == "D") && ![[G[floor((s.y + m[3]) / 8) * 12 + floor((s.x + m[2]) / 8)], ((s.x + m[2]) % 8) / 8, ((s.y + m[3]) % 8) / 8]].map(c => c[0] == null || c[0] == "#" || c[0] == " " || c[0] == "b" || c[0] == "*" || (c[0] == "A" && c[1] + c[2] < 1) || (c[0] == "B" && c[1] > c[2]) || (c[0] == "C" && c[1] + c[2] > 1) || (c[0] == "D" && c[2] > c[1]))[0] ? {x: s.x, y: s.y, vx: V[1] * 0.85, vy: V[0] * 0.85, st: 0}
+                  : [[[[G[floor((s.y) / 8) * 12 + floor((m[0] + m[2]) / 8)], ((m[0] + m[2]) % 8) / 8, ((s.y) % 8) / 8]].map(c => c[0] == null || c[0] == "#" || c[0] == " " || c[0] == "b" || c[0] == "*" || (c[0] == "A" && c[1] + c[2] < 1) || (c[0] == "B" && c[1] > c[2]) || (c[0] == "C" && c[1] + c[2] > 1) || (c[0] == "D" && c[2] > c[1]))[0], [[G[floor((m[1] + m[3]) / 8) * 12 + floor((s.x) / 8)], ((s.x) % 8) / 8, ((m[1] + m[3]) % 8) / 8]].map(c => c[0] == null || c[0] == "#" || c[0] == " " || c[0] == "b" || c[0] == "*" || (c[0] == "A" && c[1] + c[2] < 1) || (c[0] == "B" && c[1] > c[2]) || (c[0] == "C" && c[1] + c[2] > 1) || (c[0] == "D" && c[2] > c[1]))[0], h == "*" ? 1.25 : 0.7]].map(w =>
+                    [[w[0] || !w[1], w[1] || !w[0]]].map(f => {
+                      x: f[0] ? s.x : m[0], y: f[1] ? s.y : m[1],
+                      vx: clamp(f[0] ? -V[0] * w[2] : V[0], -300, 300), vy: clamp(f[1] ? -V[1] * w[2] : V[1], -300, 300), st: 0
+                    })[0])[0])[0])[0])[0])[0])[0])[0])[0])[0]
+    , {x: shot.x, y: shot.y, vx: shot.vx, vy: shot.vy, st: 0})
+  // the steps it rolls, where it ends (st 1 stopped, 2 in the cup, 3 in the water, 0 still going
+  // after ten seconds), and when the stroke is over on the frame clock
+  let rolled = count(film, f => f.st == 0)
+  let fin = len(film) == NS ? film[NS - 1] : null
+  let rollEnd = shotT + rolled / 60 + (fin == null ? 0 : fin.st == 2 ? 0.6 : fin.st == 3 ? 0.8 : 0.1)
+
+  // the strokes over or under par on the holes played
+  let rel = sum(range(9).map(i => cards[i] > 0 ? cards[i] - PARS[i] : 0))
+  let relText = rel == 0 ? "E" : rel > 0 ? "+${rel}" : "${rel}"
+
+  when shotT == -1 && time != tapT { shotT = time }
+  // The putt is over: in the cup the hole is done; in the water it costs a stroke and the ball
+  // goes back; otherwise it lies where it stopped. Ten strokes picks it up.
+  when rolling && shotT >= 0 && (time >= rollEnd || time < shotT) {
+    rolling = false
+    if fin != null && fin.st == 2 {
+      cards = set(cards, hole, strokes)
+      mode = "holed"
+      haptic()
+    } else {
+      if fin != null && fin.st == 3 {
+        strokes = strokes + 1
+      } else if fin != null {
+        bx = fin.x
+        by = fin.y
+      }
+      if strokes >= 10 {
+        cards = set(cards, hole, 10)
+        mode = "holed"
+      }
+    }
+  }
+
+  // ---- the screen --------------------------------------------------------------------------------
+  // An art pixel is q dp, in quarter steps; the hole sits under a bar of its own, with a line
+  // under it for the stroke count and the power of the putt being aimed.
+  let SW = screenWidth ?? 400
+  let SH = screenHeight ?? 800
+  let TOP = screenTop ?? 0
+  let INS = screenInset ?? 0
+  let q = max(1, floor(min((SW - 8) / 96, (SH - TOP - INS - 8) / 176) * 4) / 4)
+  let T8 = 8 * q
+  let CW = 96 * q
+  let CH = 144 * q
+  let OX = floor((SW - CW) / 2)
+  let OY = TOP + floor(max(0, SH - TOP - INS - 176 * q) / 2) + 16 * q
+  // the title's two buttons
+  let BW = 64 * q
+  let BH = 13 * q
+  let B1Y = OY + 84 * q
+  let B2Y = OY + 102 * q
+  let press = "https://raw.githubusercontent.com/google/fonts/main/ofl/pressstart2p/PressStart2P-Regular.ttf"
+  let INK = "#13201a"
+  let WOOD = ["#e0b17c", "#b9844f", "#8a5a33", "#5a3820"]
+
+  Box {
+    fill: true
+    background: INK
+
+    // ---- the hole: drawn again only when the hole changes ----
+    Canvas {
+      fill: true
+      rect(0, 0, SW, SH, fill: "#24502f")
+      for c in range(216) {
+        let k = G[c]
+        let cx = c % 12
+        let cy = floor(c / 12)
+        let x0 = OX + cx * T8
+        let y0 = OY + cy * T8
+        let up = cy > 0 ? G[c - 12] : " "
+        let lf = cx > 0 ? G[c - 1] : " "
+        let dn = cy < 17 ? G[c + 12] : " "
+        if k == " " {
+          // the rough: tufts, flowers and bushes
+          rect(x0, y0, T8, T8, fill: (cx + cy) % 2 == 0 ? "#2a5a35" : "#285633")
+          let r = hash(hole, c)
+          if r < 0.18 {
+            circle(x0 + 4 * q, y0 + 4.5 * q, 3.5 * q, fill: "#1b3f25")
+            circle(x0 + 4 * q, y0 + 4 * q, 3.2 * q, fill: "#2f7a3c")
+            rect(x0 + 2.5 * q, y0 + 2 * q, 1.5 * q, q, fill: "#4c9a52")
+          } else if r < 0.4 {
+            rect(x0 + floor(1 + hash(c, 2) * 5) * q, y0 + floor(1 + hash(c, 3) * 5) * q, q, q, fill: r < 0.3 ? "#f4e27a" : "#f2a0b4")
+            rect(x0 + floor(1 + hash(c, 4) * 5) * q, y0 + floor(1 + hash(c, 5) * 5) * q, q, q, fill: "#3d7a45")
+          } else if r < 0.7 {
+            rect(x0 + floor(1 + hash(c, 6) * 5) * q, y0 + floor(2 + hash(c, 7) * 4) * q, q, 2 * q, fill: "#3a7444")
+          }
+        } else if k == "#" {
+          // a wooden rail: lit along the top where it faces the green, dark along the bottom
+          rect(x0, y0, T8, T8, fill: WOOD[1])
+          rect(x0 + (cy % 2 == 0 ? 3 : 7) * q, y0, q * 0.6, T8, fill: WOOD[2])
+          if up != "#" { rect(x0, y0, T8, 1.5 * q, fill: WOOD[0]) }
+          if dn != "#" {
+            rect(x0, y0 + 6 * q, T8, 2 * q, fill: WOOD[2])
+            rect(x0, y0 + 7.4 * q, T8, 0.6 * q, fill: WOOD[3])
+          }
+        } else {
+          // the green, mown in stripes; sand, water and slopes on top of it
+          rect(x0, y0, T8, T8, fill: cy % 2 == 0 ? "#5cb85c" : "#53ab53")
+          if hash(hole, c, 9) < 0.3 { rect(x0 + floor(hash(c, 8) * 7) * q, y0 + floor(hash(c, 10) * 7) * q, q, q, fill: cy % 2 == 0 ? "#66c266" : "#5db55d") }
+          if k == "s" {
+            rect(x0, y0, T8, T8, fill: "#ead39b")
+            for j in range(3) { rect(x0 + floor(hash(c, j, 1) * 7) * q, y0 + floor(hash(c, j, 2) * 7) * q, q, q, fill: "#d3b77a") }
+            if up != "s" && up != "#" { rect(x0, y0, T8, 0.6 * q, fill: "#c9a96a") }
+          } else if k == "w" {
+            rect(x0, y0, T8, T8, fill: "#3b7ac9")
+            rect(x0, y0 + 4 * q, T8, 4 * q, fill: "#356fb9")
+            if up != "w" { rect(x0, y0, T8, 1.2 * q, fill: "#2a5a9a") }
+          } else if k == ">" || k == "<" || k == "^" || k == "v" {
+            rect(x0, y0, T8, T8, fill: cy % 2 == 0 ? "#68c466" : "#60b95e")
+            rotate(k == ">" ? 90 : k == "v" ? 180 : k == "<" ? 270 : 0, x0 + 4 * q, y0 + 4 * q) {
+              path([[x0 + 1.5 * q, y0 + 5 * q], [x0 + 4 * q, y0 + 2.5 * q], [x0 + 6.5 * q, y0 + 5 * q]], stroke: "#8fdc8a", width: q, cap: square)
+            }
+          } else if k == "A" || k == "B" || k == "C" || k == "D" {
+            let tri = k == "A" ? [[0, 0], [8, 0], [0, 8]] : k == "B" ? [[0, 0], [8, 0], [8, 8]] : k == "C" ? [[8, 0], [8, 8], [0, 8]] : [[0, 0], [8, 8], [0, 8]]
+            path(tri.map(p => [x0 + p[0] * q, y0 + p[1] * q]), closed: true, fill: WOOD[1])
+            let edge = k == "A" || k == "C" ? [[8, 0], [0, 8]] : [[0, 0], [8, 8]]
+            path(edge.map(p => [x0 + p[0] * q, y0 + p[1] * q]), stroke: k == "A" || k == "B" ? WOOD[2] : WOOD[0], width: 1.2 * q)
+          } else if k == "b" {
+            rect(x0 + 0.5 * q, y0 + 0.5 * q, 7 * q, 7.5 * q, radius: q, fill: "#4e4b5a")
+            rect(x0 + 0.5 * q, y0, 7 * q, 6.5 * q, radius: q, fill: "#9c98aa")
+            rect(x0 + 1.5 * q, y0 + q, 3 * q, q, fill: "#c4c0d0")
+            rect(x0 + 5 * q, y0 + 3.5 * q, q, q, fill: "#7a7688")
+          } else if k == "*" {
+            circle(x0 + 4 * q, y0 + 4.6 * q, 3.8 * q, fill: alpha("#000000", 0.25))
+            circle(x0 + 4 * q, y0 + 4 * q, 3.8 * q, fill: "#d63a3a")
+            circle(x0 + 4 * q, y0 + 4 * q, 2.6 * q, fill: "#fff4e0")
+            circle(x0 + 4 * q, y0 + 4 * q, 1.6 * q, fill: "#ffc93c")
+            rect(x0 + 2 * q, y0 + 1.2 * q, 1.5 * q, 0.8 * q, fill: "#ff8a7a")
+          } else if k == "T" {
+            rect(x0 + q, y0 + 1.5 * q, 6 * q, 5 * q, fill: "#3f8f45")
+            rect(x0 + q, y0 + 1.5 * q, 6 * q, 0.6 * q, fill: "#2f6f35")
+          } else if k == "H" {
+            circle(x0 + 4 * q, y0 + 4 * q, 2.8 * q, fill: "#3c8a3c")
+            circle(x0 + 4 * q, y0 + 4.3 * q, 2.3 * q, fill: "#0e1a10")
+          }
+          // the shade of the rail or stone above and to the left
+          if up == "#" || up == "b" || up == " " { rect(x0, y0, T8, 1.2 * q, fill: alpha("#000000", 0.18)) }
+          if lf == "#" || lf == "b" || lf == " " { rect(x0, y0, 1.2 * q, T8, fill: alpha("#000000", 0.14)) }
+        }
+      }
+    }
+
+    // ---- what moves, the words, and every touch ----
+    Canvas {
+      fill: true
+      ripple: false
+      onPress: {
+        if mode == "play" && !rolling {
+          aiming = true
+          ax0 = x
+          ay0 = y
+          ax1 = x
+          ay1 = y
+        }
+      }
+      onDrag: {
+        if aiming {
+          ax1 = x
+          ay1 = y
+        }
+      }
+      // Let go to putt; a drag back to where it began calls it off.
+      onDragEnd: {
+        if aiming && mode == "play" && !rolling {
+          let ddx = ax0 - ax1
+          let ddy = ay0 - ay1
+          let dl = sqrt(ddx * ddx + ddy * ddy)
+          let pw = min(1, dl / (min(SW, SH) * 0.42))
+          if pw > 0.06 {
+            shot = {x: bx, y: by, vx: ddx / dl * pw * VMAX, vy: ddy / dl * pw * VMAX}
+            strokes = strokes + 1
+            rolling = true
+            tapT = time
+            shotT = -1
+            haptic()
+          }
+        }
+        aiming = false
+      }
+      onTap: {
+        aiming = false
+        if mode == "title" {
+          if started && y >= B1Y && y < B1Y + BH {
+            mode = "play"
+          } else if !started || (y >= B2Y && y < B2Y + BH) {
+            started = true
+            hole = 0
+            strokes = 0
+            cards = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+            bx = TEES[0].x
+            by = TEES[0].y
+            shot = null
+            rolling = false
+            mode = "play"
+          }
+        } else if mode == "holed" {
+          if hole >= 8 {
+            best = best == 0 ? sum(cards) : min(best, sum(cards))
+            started = false
+            mode = "round"
+          } else {
+            hole = hole + 1
+            strokes = 0
+            bx = TEES[hole].x
+            by = TEES[hole].y
+            shot = null
+            mode = "play"
+          }
+        } else if mode == "round" {
+          started = true
+          hole = 0
+          strokes = 0
+          cards = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+          bx = TEES[0].x
+          by = TEES[0].y
+          shot = null
+          rolling = false
+          mode = "play"
+        } else if mode == "play" && y < OY && x > SW - 40 * q {
+          mode = "title"
+        }
+      }
+
+      let tt = time
+      let X = OX
+      let Y = OY
+      // the water ripples and the flag flutters
+      for c in WATER {
+        let ph = (tt * 0.5 + hash(hole, c)) % 1
+        rect(X + (c % 12 * 8 + floor(ph * 6)) * q, Y + (floor(c / 12) * 8 + 1 + floor(hash(c, 2) * 5)) * q, 2 * q, 0.8 * q, fill: alpha("#cfe8ff", 0.6 * sin(ph * 3.1416)))
+      }
+      let fy = HY - 13
+      rect(X + (HX - 0.4) * q, Y + fy * q, 0.8 * q, 13 * q, fill: "#f2efe6")
+      path([[X + (HX + 0.4) * q, Y + fy * q], [X + (HX + 6.5) * q, Y + (fy + 2 + sin(tt * 5) * 0.7) * q], [X + (HX + 0.4) * q, Y + (fy + 4.5) * q]], closed: true, fill: "#e8483f")
+
+      // ---- the ball ----
+      let live = rolling && len(film) == NS && shotT >= 0 && tt >= shotT
+      let i = live ? clamp(floor((tt - shotT) * 60), 0, NS - 1) : 0
+      let b = live ? film[i] : rolling && shot != null ? {x: shot.x, y: shot.y, st: 0} : {x: bx, y: by, st: 0}
+      let endT = shotT + rolled / 60
+      if mode == "play" || (mode == "title" && started) {
+        if b.st == 2 {
+          // into the cup, and a burst of sparks
+          let e = clamp((tt - endT) / 0.25, 0, 1)
+          if e < 1 { circle(X + HX * q, Y + HY * q, R * (1 - e) * q, fill: "#ffffff") }
+          let e2 = clamp((tt - endT) / 0.6, 0, 1)
+          for a in range(8) { rect(X + (HX + cos(a * 0.785) * e2 * 9) * q - 0.5 * q, Y + (HY + sin(a * 0.785) * e2 * 9) * q - 0.5 * q, q, q, fill: alpha(a % 2 == 0 ? "#ffe46b" : "#ffffff", 1 - e2)) }
+        } else if b.st == 3 {
+          // a splash
+          let e = clamp((tt - endT) / 0.7, 0, 1)
+          circle(X + b.x * q, Y + b.y * q, (1 + e * 6) * q, stroke: alpha("#ffffff", 1 - e), width: 0.8 * q)
+          circle(X + b.x * q, Y + b.y * q, (e * 3.5) * q, stroke: alpha("#ffffff", 0.7 * (1 - e)), width: 0.6 * q)
+          for a in range(5) { rect(X + (b.x + (a - 2) * 1.6 * e) * q, Y + (b.y - 6 * e + 9 * e * e + abs(a - 2) * e) * q, 0.8 * q, 0.8 * q, fill: alpha("#cfe8ff", 1 - e)) }
+        } else {
+          if live && i > 4 {
+            circle(X + film[i - 4].x * q, Y + film[i - 4].y * q, 0.9 * q, fill: alpha("#ffffff", 0.18))
+            circle(X + film[i - 2].x * q, Y + film[i - 2].y * q, 1.2 * q, fill: alpha("#ffffff", 0.3))
+          }
+          circle(X + (b.x + 0.5) * q, Y + (b.y + 0.7) * q, R * q, fill: alpha("#000000", 0.3))
+          circle(X + b.x * q, Y + b.y * q, R * q, fill: "#ffffff")
+          rect(X + (b.x - 0.8) * q, Y + (b.y - 0.8) * q, 0.7 * q, 0.7 * q, fill: "#ffffff")
+          circle(X + (b.x + 0.4) * q, Y + (b.y + 0.4) * q, 0.6 * q, fill: "#d6dbe0")
+        }
+      }
+
+      // ---- the aim: dots the way it will go, longer for a harder putt ----
+      let adx = ax0 - ax1
+      let ady = ay0 - ay1
+      let adl = sqrt(adx * adx + ady * ady)
+      let pw = min(1, adl / (min(SW, SH) * 0.42))
+      if aiming && mode == "play" && !rolling && pw > 0.06 {
+        for j in range(1, 9) {
+          let d = j * (2.5 + pw * 5)
+          circle(X + (bx + adx / adl * d) * q, Y + (by + ady / adl * d) * q, (0.9 - j * 0.05) * q, fill: alpha(mix("#ffffff", "#ff5a3c", pw), 1 - j * 0.09))
+        }
+      }
+
+      // ---- the bars ----
+      let hy = OY - 8 * q
+      let ly = OY + CH + 7 * q
+      text("HOLE ${hole + 1}", OX + 2 * q, hy, size: 4 * q, color: "#f4f0dc", font: press)
+      text(HOLES[hole].name, SW / 2 + 6 * q, hy, size: 2.6 * q, color: "#8fbf8f", font: press, align: center)
+      rect(OX + CW - 16 * q, hy - 4 * q, 14 * q, 8 * q, radius: q, fill: "#24402c")
+      for j in range(3) { rect(OX + CW - 12.5 * q, hy - 2.4 * q + j * 2 * q, 7 * q, 0.8 * q, fill: "#c8e0c0") }
+      text("PAR ${HOLES[hole].par}", OX + 2 * q, ly, size: 3 * q, color: "#8fbf8f", font: press)
+      text("STROKE ${strokes}", OX + CW - 2 * q, ly, size: 3 * q, color: "#f4f0dc", font: press, align: end)
+      if aiming && mode == "play" && !rolling {
+        rect(SW / 2 - 16 * q, ly - 1.5 * q, 32 * q, 3 * q, radius: q, fill: "#24402c")
+        rect(SW / 2 - 16 * q, ly - 1.5 * q, 32 * q * pw, 3 * q, radius: q, fill: mix("#8fdc8a", "#ff5a3c", pw))
+      } else {
+        text(relText, SW / 2, ly, size: 3 * q, color: rel < 0 ? "#ffe46b" : rel > 0 ? "#ff9a8a" : "#c8e0c0", font: press, align: center)
+      }
+      if mode == "play" && hole == 0 && strokes == 0 && !aiming {
+        text("DRAG BACK, LET GO TO PUTT", SW / 2, OY + CH - 6 * q, size: 2.6 * q, color: alpha("#ffffff", 0.55 + 0.35 * sin(tt * 3)), font: press, align: center)
+      }
+
+      // ---- the card after a hole ----
+      if mode == "holed" {
+        let n = cards[hole]
+        let d = n - HOLES[hole].par
+        let word = n >= 10 ? "PICKED UP" : n == 1 ? "HOLE IN ONE!" : d <= -3 ? "ALBATROSS!" : d == -2 ? "EAGLE!" : d == -1 ? "BIRDIE!" : d == 0 ? "PAR" : d == 1 ? "BOGEY" : d == 2 ? "DOUBLE BOGEY" : "+${d}"
+        rect(0, 0, SW, SH, fill: alpha(INK, 0.45))
+        rect(OX + 8 * q, OY + 44 * q, CW - 16 * q, 48 * q, radius: 2 * q, fill: "#1b2a20")
+        rect(OX + 8 * q, OY + 44 * q, CW - 16 * q, 48 * q, radius: 2 * q, stroke: WOOD[1], width: q)
+        text(word, SW / 2 + 0.6 * q, OY + 58 * q + 0.6 * q, size: 6 * q, color: INK, font: press, align: center)
+        text(word, SW / 2, OY + 58 * q, size: 6 * q, color: d < 0 ? "#ffe46b" : d == 0 ? "#8fdc8a" : "#ff9a8a", font: press, align: center)
+        text("${n} STROKE${n == 1 ? "" : "S"} - PAR ${HOLES[hole].par}", SW / 2, OY + 70 * q, size: 3 * q, color: "#f4f0dc", font: press, align: center)
+        if tt % 1.2 < 0.85 { text(hole >= 8 ? "TAP FOR THE SCORECARD" : "TAP FOR HOLE ${hole + 2}", SW / 2, OY + 82 * q, size: 2.6 * q, color: "#8fbf8f", font: press, align: center) }
+      }
+
+      // ---- the scorecard after the ninth ----
+      if mode == "round" {
+        let tot = sum(cards)
+        let rd = tot - PAR
+        rect(0, 0, SW, SH, fill: alpha(INK, 0.55))
+        rect(OX + 3 * q, OY + 30 * q, CW - 6 * q, 80 * q, radius: 2 * q, fill: "#1b2a20")
+        rect(OX + 3 * q, OY + 30 * q, CW - 6 * q, 80 * q, radius: 2 * q, stroke: WOOD[1], width: q)
+        text("SCORECARD", SW / 2, OY + 40 * q, size: 5 * q, color: "#f4f0dc", font: press, align: center)
+        for j in range(9) {
+          let cx = OX + (7 + j * 9.5 + 4.5) * q
+          let d = cards[j] - PARS[j]
+          text("${j + 1}", cx, OY + 52 * q, size: 2.6 * q, color: "#8fbf8f", font: press, align: center)
+          text("${PARS[j]}", cx, OY + 59 * q, size: 2.6 * q, color: "#6a8a6a", font: press, align: center)
+          rect(cx - 4 * q, OY + 62.5 * q, 8 * q, 8 * q, radius: q, fill: d < 0 ? "#3d5a1e" : d == 0 ? "#24402c" : "#4a2626")
+          text("${cards[j]}", cx, OY + 66.5 * q, size: 3 * q, color: d < 0 ? "#ffe46b" : d == 0 ? "#f4f0dc" : "#ff9a8a", font: press, align: center)
+        }
+        text("${tot} - ${rd == 0 ? "EVEN" : rd > 0 ? "+${rd}" : "${rd}"}", SW / 2, OY + 81 * q, size: 5 * q, color: rd < 0 ? "#ffe46b" : rd == 0 ? "#8fdc8a" : "#ff9a8a", font: press, align: center)
+        text(best == tot ? "BEST ROUND!" : "BEST ${best}", SW / 2, OY + 91 * q, size: 3 * q, color: best == tot ? "#ffe46b" : "#8fbf8f", font: press, align: center)
+        if tt % 1.2 < 0.85 { text("TAP TO PLAY AGAIN", SW / 2, OY + 102 * q, size: 2.6 * q, color: "#c8e0c0", font: press, align: center) }
+      }
+
+      // ---- the title ----
+      if mode == "title" {
+        rect(0, 0, SW, SH, fill: alpha(INK, 0.62))
+        text("POCKET", SW / 2 + q, OY + 34 * q + q, size: 10 * q, color: INK, font: press, align: center)
+        text("POCKET", SW / 2, OY + 34 * q, size: 10 * q, color: "#f4f0dc", font: press, align: center)
+        text("LINKS", SW / 2 + q, OY + 48 * q + q, size: 10 * q, color: INK, font: press, align: center)
+        text("LINKS", SW / 2, OY + 48 * q, size: 10 * q, color: "#8fdc8a", font: press, align: center)
+        text("NINE HOLES OF MINI GOLF", SW / 2, OY + 62 * q, size: 2.6 * q, color: "#c8e0c0", font: press, align: center)
+        if best > 0 { text("BEST ROUND ${best} - PAR ${PAR}", SW / 2, OY + 70 * q, size: 2.6 * q, color: "#ffe46b", font: press, align: center) }
+        if started {
+          for bt, j in [["CONTINUE", B1Y, WOOD[1]], ["NEW ROUND", B2Y, "#3f6f45"]] {
+            rect(SW / 2 - BW / 2, bt[1] + q, BW, BH, radius: 2 * q, fill: INK)
+            rect(SW / 2 - BW / 2, bt[1], BW, BH, radius: 2 * q, fill: bt[2])
+            text(bt[0], SW / 2, bt[1] + BH / 2, size: 3.5 * q, color: "#f4f0dc", font: press, align: center)
+          }
+          text("HOLE ${hole + 1} - ${relText}", SW / 2, B2Y + BH + 8 * q, size: 2.6 * q, color: "#8fbf8f", font: press, align: center)
+        } else if tt % 1.2 < 0.85 {
+          text("TAP TO TEE OFF", SW / 2, B1Y + BH / 2, size: 3.5 * q, color: "#f4f0dc", font: press, align: center)
+        }
+      }
+    }
+  }
+}
