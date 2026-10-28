@@ -1,0 +1,1223 @@
+widget "sintonizador" {
+  size: 3x2
+  minSize: 3x2
+  meta {
+    owl: 13
+    description: "Control remoto de cliamp: radios del mundo por país con un dial para sintonizar, favoritas y búsqueda en YouTube"
+    version: "1.6"
+    license: "MIT"
+    category: "media"
+  }
+
+  // cliamp no está en los repos de Arch (solo AUR): el widget lo baja de su release en GitHub a
+  // ~/.cache/cliamp-sintonizador/bin, verificado con checksums.txt (o usa uno ya instalado en el PATH).
+  // Declaramos todos los paquetes que usan los comandos, el binario de cliamp (alsa-lib, glibc) y el audio.
+  requires { pacman: ["bash", "coreutils", "findutils", "procps-ng", "util-linux", "curl", "jq", "python", "quickjs-ng", "yt-dlp", "ffmpeg", "libpulse", "sed", "grep", "gawk", "glibc", "alsa-lib", "alsa-plugins", "pulseaudio-alsa"] }
+
+  let api = "https://de1.api.radio-browser.info/json"
+  let pathFix = 'export PATH="$HOME/.cache/cliamp-sintonizador/bin:/usr/local/bin:/usr/bin:/bin:$PATH"; '
+
+  source sys = android.system every 1h
+  source op = file("~/.cache/cliamp-sintonizador/state.json") json
+  source st = cmd('export PATH="$HOME/.cache/cliamp-sintonizador/bin:/usr/local/bin:/usr/bin:/bin:$PATH"; o=$(cliamp status --json 2>/dev/null) && printf "%s" "$o" || echo {}') every 5s json
+  // ¿Hay cliamp? "v2.3.0 propio" (bajado por el widget), "v2.3.0 sistema" o "none".
+  source clv = cmd('export PATH="$HOME/.cache/cliamp-sintonizador/bin:/usr/local/bin:/usr/bin:/bin:$PATH"; if p=$(command -v cliamp) && v=$(cliamp --version 2>/dev/null); then case "$p" in "$HOME"/.cache/*) o=propio;; *) o=sistema;; esac; echo "${v##* } $o"; else echo none; fi') every 1h timeout 15s
+  source ytv = cmd("""
+mkdir -p "$HOME/.cache/cliamp-sintonizador"
+f="$HOME/.cache/cliamp-sintonizador/ctl.sh"
+if ! grep -q "^# v2.4" "$f" 2>/dev/null; then
+cat > "$f.tmp" <<'SH'
+#!/usr/bin/env bash
+# v2.4
+export PATH="$HOME/.cache/cliamp-sintonizador/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+D="$HOME/.cache/cliamp-sintonizador"
+mkdir -p "$D"
+SF="$D/state.json"
+RF="$D/req.id"
+
+ACT="${1:-play}"
+URL="${2:-}"
+NAME="${3:-}"
+KIND="${4:-radio}"
+NONCE="${5:-0}"
+
+PF="$D/pause.id"
+AUTO_OFF=300
+
+# Apaga el motor del todo (lo mismo que el botón ⏹).
+kill_engine() {
+  printf 'stop-%s' "$(date +%s%N)" > "$RF"
+  rm -f "$PF"
+  pkill -x cliamp 2>/dev/null
+  sleep 0.3
+  pkill -9 -x cliamp 2>/dev/null
+  rm -f ~/.config/cliamp/cliamp.sock ~/.config/cliamp/cliamp.sock.pid
+}
+
+# Lo lanza la pausa: si a los 5 min sigue en pausa (y nadie volvió a tocar), apaga el motor.
+if [ "$ACT" = "autooff" ]; then
+  TOK="$URL"
+  sleep "$AUTO_OFF"
+  [ "$(cat "$PF" 2>/dev/null)" = "$TOK" ] || exit 0
+  ST=$(cliamp status --json 2>/dev/null | jq -r '.state // "stopped"')
+  [ "$ST" = "paused" ] || exit 0
+  OLD=$(cat "$SF" 2>/dev/null)
+  kill_engine
+  printf '%s' "$OLD" | jq -c '. + {nonce:0, phase:"stopped", msg:"Motor apagado solo tras 5 min en pausa · tocá ▶ para escuchar", err:""}' > "$SF.tmp" 2>/dev/null \
+    || printf '%s' '{"nonce":0,"phase":"stopped","url":"","name":"","kind":"","msg":"Motor apagado solo tras 5 min en pausa","err":""}' > "$SF.tmp"
+  mv -f "$SF.tmp" "$SF"
+  exit 0
+fi
+
+if [ "$ACT" = "toggle" ]; then
+  if cliamp status --json >/dev/null 2>&1; then
+    cliamp toggle >/dev/null 2>&1
+    sleep 0.15
+    ST=$(cliamp status --json 2>/dev/null | jq -r '.state // "stopped"')
+    if [ "$ST" = "playing" ]; then
+      rm -f "$PF"
+      jq -nc --arg url "$URL" --arg name "$NAME" --arg kind "$KIND" --argjson nonce "$NONCE" \
+        '{nonce:$nonce, phase:"playing", url:$url, name:$name, kind:$kind, msg:"Reproduciendo ahora", err:""}' > "$SF.tmp" && mv -f "$SF.tmp" "$SF"
+    else
+      jq -nc --arg url "$URL" --arg name "$NAME" --arg kind "$KIND" --argjson nonce "$NONCE" \
+        '{nonce:$nonce, phase:"paused", url:$url, name:$name, kind:$kind, msg:"En pausa · se apaga solo en 5 min si no tocás ▶", err:""}' > "$SF.tmp" && mv -f "$SF.tmp" "$SF"
+      TOK="p-$(date +%s%N)"
+      printf '%s' "$TOK" > "$PF"
+      (
+        exec 3>&- 4>&- 5>&- 6>&- 7>&- 8>&- 9>&- 2>/dev/null || true
+        setsid -f bash "$D/ctl.sh" autooff "$TOK" >/dev/null 2>&1 </dev/null
+      )
+    fi
+  fi
+  exit 0
+fi
+
+REQ="$$-$(date +%s%N)"
+printf '%s' "$REQ" > "$RF"
+rm -f "$PF"
+
+set_state() {
+  [ "$(cat "$RF" 2>/dev/null)" = "$REQ" ] || exit 0
+  jq -nc --arg phase "$1" --arg url "$URL" --arg name "$NAME" --arg kind "$KIND" --arg msg "$2" --arg err "$3" --argjson nonce "$NONCE" \
+    '{nonce:$nonce, phase:$phase, url:$url, name:$name, kind:$kind, msg:$msg, err:$err}' > "$SF.tmp" && mv -f "$SF.tmp" "$SF"
+}
+
+if ! command -v cliamp >/dev/null 2>&1; then
+  set_state "error" "" "Falta cliamp, el reproductor: tocá «⬇ instalar cliamp» para bajarlo."
+  exit 0
+fi
+
+if [ "$ACT" = "queue" ]; then
+  set_state "loading" "Espere, agregando a la cola: ${NAME}…" ""
+elif [ "$KIND" = "yt" ]; then
+  set_state "loading" "Espere, cargando audio de YouTube…" ""
+else
+  set_state "loading" "Espere, sintonizando ${NAME:-emisora}…" ""
+fi
+
+pactl set-sink-mute @DEFAULT_SINK@ 0 >/dev/null 2>&1 || true
+
+is_live() {
+  cliamp status --json >/dev/null 2>&1
+}
+
+if [ "$ACT" = "fresh" ]; then
+  pkill -x cliamp 2>/dev/null
+  sleep 0.25
+  rm -f ~/.config/cliamp/cliamp.sock ~/.config/cliamp/cliamp.sock.pid
+  ACT="play"
+fi
+
+ENC_URL=$(printf '%s' "$URL" | jq -sRr @uri)
+ERR_OUT=""
+RC=1
+
+start_daemon() {
+  local target="$1"
+  pkill -x cliamp 2>/dev/null
+  sleep 0.15
+  rm -f ~/.config/cliamp/cliamp.sock ~/.config/cliamp/cliamp.sock.pid
+  (
+    exec 3>&- 4>&- 5>&- 6>&- 7>&- 8>&- 9>&- 2>/dev/null || true
+    setsid -f cliamp --daemon --auto-play "$target" >"$D/daemon.log" 2>&1 </dev/null
+  )
+  for _ in $(seq 1 36); do
+    [ "$(cat "$RF" 2>/dev/null)" = "$REQ" ] || exit 0
+    [ -S ~/.config/cliamp/cliamp.sock ] && return 0
+    pgrep -x cliamp >/dev/null 2>&1 || break
+    sleep 0.25
+  done
+  [ -S ~/.config/cliamp/cliamp.sock ]
+}
+
+if is_live; then
+  ERR_OUT=$(cliamp open "cliamp://${ACT}?url=${ENC_URL}" 2>&1)
+  RC=$?
+  if [ $RC -ne 0 ] && printf '%s' "$ERR_OUT" | grep -qiE 'not running|no socket|no listener|connection refused'; then
+    if start_daemon "$URL"; then
+      RC=0
+      ERR_OUT=""
+    else
+      ERR_OUT=$(cat "$D/daemon.log" 2>/dev/null)
+      RC=1
+    fi
+  fi
+else
+  if start_daemon "$URL"; then
+    RC=0
+  else
+    ERR_OUT=$(cat "$D/daemon.log" 2>/dev/null)
+    RC=1
+  fi
+fi
+
+if [ $RC -ne 0 ] && [ "$KIND" = "yt" ]; then
+  set_state "loading" "Espere, extrayendo audio con yt-dlp…" ""
+  QJS=$(command -v qjs 2>/dev/null)
+  DIRECT=$(yt-dlp --no-playlist ${QJS:+--js-runtimes "quickjs:$QJS"} -f "ba[ext=m4a]/ba/b" -g "$URL" 2>"$D/yt.err" | head -n 1)
+  if [ -n "$DIRECT" ]; then
+    if is_live; then
+      ENC_D=$(printf '%s' "$DIRECT" | jq -sRr @uri)
+      ERR_OUT=$(cliamp open "cliamp://${ACT}?url=${ENC_D}" 2>&1)
+      RC=$?
+    else
+      if start_daemon "$DIRECT"; then
+        RC=0
+      else
+        ERR_OUT=$(cat "$D/daemon.log" 2>/dev/null)
+        RC=1
+      fi
+    fi
+  else
+    YT_ERR=$(tail -n 1 "$D/yt.err" 2>/dev/null)
+    [ -n "$YT_ERR" ] && ERR_OUT="$YT_ERR"
+  fi
+fi
+
+format_err() {
+  local raw="$1"
+  if printf '%s' "$raw" | grep -qi '429'; then
+    echo "No se puede reproducir: YouTube limitó las conexiones temporalmente (HTTP 429). Intentá de nuevo en unos segundos."
+  elif printf '%s' "$raw" | grep -qiE 'no está disponible|not available|unavailable|private video|video privado'; then
+    echo "No se puede reproducir: este video o audio no está disponible o es privado."
+  elif printf '%s' "$raw" | grep -qiE 'sign in|age|confirm your age|iniciar sesión'; then
+    echo "No se puede reproducir: el video requiere iniciar sesión o verificación de edad."
+  elif printf '%s' "$raw" | grep -qiE 'connection refused|no route|timeout|timed out|network|lookup|resolve host'; then
+    echo "No se puede reproducir: error de red al conectar con el servidor de audio."
+  else
+    local clean
+    clean=$(printf '%s' "$raw" | tr '\n' ' ' | sed -E 's/.*reason: //I; s/.*operation failed \((.*)\)/\1/; s/^[[:space:]]+//; s/[[:space:]]+$//' | cut -c1-140)
+    if [ -n "$clean" ]; then
+      echo "No se puede reproducir: $clean"
+    else
+      echo "No se puede reproducir: el servidor de audio no respondió."
+    fi
+  fi
+}
+
+if [ $RC -ne 0 ]; then
+  set_state "error" "" "$(format_err "$ERR_OUT")"
+  exit 0
+fi
+
+if [ "$ACT" = "queue" ]; then
+  set_state "playing" "Agregado a la cola: ${NAME}" ""
+  exit 0
+fi
+
+STOP_COUNT=0
+for _ in $(seq 1 28); do
+  [ "$(cat "$RF" 2>/dev/null)" = "$REQ" ] || exit 0
+  RS=$(cliamp remote state 2>/dev/null)
+  ST=$(printf '%s' "$RS" | jq -r '.snapshot.state // empty' 2>/dev/null)
+  HAS_TR=$(printf '%s' "$RS" | jq -r 'if .snapshot.track != null then "1" else "0" end' 2>/dev/null)
+  if [ "$ST" = "playing" ] && [ "$HAS_TR" = "1" ]; then
+    set_state "playing" "Reproduciendo ahora" ""
+    exit 0
+  elif [ "$ST" = "paused" ] && [ "$HAS_TR" = "1" ]; then
+    cliamp play >/dev/null 2>&1
+    set_state "playing" "Reproduciendo ahora" ""
+    exit 0
+  elif [ "$ST" = "stopped" ]; then
+    STOP_COUNT=$((STOP_COUNT + 1))
+    if [ "$STOP_COUNT" -ge 4 ]; then
+      break
+    fi
+  fi
+  sleep 0.3
+done
+
+HTTP_CODE=$(curl -s -L -I -m 4 -o /dev/null -w '%{http_code}' "$URL" 2>/dev/null)
+if [ "$HTTP_CODE" = "000" ]; then
+  REASON="No se puede reproducir: la emisora no responde o está fuera de línea."
+elif [ "$HTTP_CODE" = "404" ] || [ "$HTTP_CODE" = "410" ]; then
+  REASON="No se puede reproducir: transmisión no encontrada (HTTP $HTTP_CODE)."
+elif [ "$HTTP_CODE" = "403" ] || [ "$HTTP_CODE" = "401" ]; then
+  REASON="No se puede reproducir: acceso denegado por la emisora (HTTP $HTTP_CODE)."
+elif [ "${HTTP_CODE#5}" != "$HTTP_CODE" ]; then
+  REASON="No se puede reproducir: error en el servidor de la emisora (HTTP $HTTP_CODE)."
+else
+  REASON="No se puede reproducir: la emisora cortó la conexión o su formato no es compatible."
+fi
+set_state "error" "" "$REASON"
+SH
+chmod 755 "$f.tmp" && mv -f "$f.tmp" "$f"
+fi
+b="$HOME/.cache/cliamp-sintonizador/bin/yt-dlp"
+if [ -x "$b" ] && v=$("$b" --version 2>/dev/null); then echo "$v propio"; else echo "$(yt-dlp --version) sistema"; fi
+""") every 6h timeout 30s
+
+  state cc = "" persist            // país elegido; vacío = el del teléfono
+  state tag = "" persist           // género
+  state rq = ""                    // filtro en vivo de radios
+  state rSearch = ""               // búsqueda por nombre en la API de radios
+  state rWorld = false             // buscar en todo el mundo o en el país elegido
+  state cur = null persist         // última emisora/tema: {id, name, url, cc, kind, sub}
+  state curIdx = -1 persist        // su lugar en la banda
+  state src = "pais" persist       // la banda que recorren ⏮ ⏭: "pais" o "favs"
+  state favs = [] persist
+  state recent = [] persist        // búsquedas de YouTube
+  state tab = "radio"
+  state view = "stations"
+  state countryQuery = ""
+  state dialPos = 0
+  state want = null                // lo que hay que poner a sonar (ver on want first)
+  state reqNonce = 0               // identificador de toque para mostrar "cargando" al instante
+  state ytq = ""
+  state ytOut = null
+  state ytBusy = false
+  state queuedId = ""
+  state upd = null                 // salida de "actualizar yt-dlp"
+  state updBusy = false
+  let ytVer = ytv != null ? words(ytv)[0] : null
+  let ytOwn = ytv != null && words(ytv)[1] == "propio"
+  let updWait = updBusy && upd == null
+
+  // cliamp: el reproductor que usa todo el widget.
+  state clOut = null               // salida de "instalar/actualizar cliamp": "ok v2.3.0" o "err motivo"
+  state clBusy = false
+  let clMissing = clv != null && words(clv)[0] == "none"
+  let clVer = clv != null && !clMissing ? words(clv)[0] : null
+  let clOwn = clv != null && words(clv)[1] == "propio"
+  let clWait = clBusy && clOut == null
+  let clErr = clOut != null && startsWith(clOut, "err")
+  let clErrMsg = clErr ? trim(sub(trim(clOut), 3, len(trim(clOut)))) : ""
+  // Baja el último cliamp-linux-<arquitectura> de bjarneo/cliamp, lo verifica contra el
+  // checksums.txt de esa misma versión y recién entonces lo deja en la carpeta del widget.
+  let clInstCmd = """
+d="$HOME/.cache/cliamp-sintonizador/bin"; mkdir -p "$d"
+m=$(uname -m)
+if [ "$m" = aarch64 ] || [ "$m" = arm64 ]; then a=arm64
+elif [ "$m" = x86_64 ] || [ "$m" = amd64 ]; then a=amd64
+else echo "err arquitectura $m no soportada"; exit 0
+fi
+f="cliamp-linux-$a"
+t=$(curl -fsSLI -o /dev/null -m 30 -w '%{url_effective}' https://github.com/bjarneo/cliamp/releases/latest) || { echo "err sin conexión con GitHub"; exit 0; }
+t=$(basename "$t")
+[ "$(printf '%s' "$t" | cut -c1)" = v ] || { echo "err no se encontró la última versión"; exit 0; }
+u="https://github.com/bjarneo/cliamp/releases/download/$t"
+sums=$(curl -fsSL --retry 2 -m 60 "$u/checksums.txt") || { echo "err no se pudo bajar checksums.txt"; exit 0; }
+want=$(printf '%s\n' "$sums" | awk -v f="$f" '$2 == f || $2 == "*" f { print $1 }' | head -n 1)
+[ -n "$want" ] || { echo "err $f no figura en checksums.txt"; exit 0; }
+curl -fsSL --retry 2 -m 300 "$u/$f" -o "$d/cliamp.part" || { rm -f "$d/cliamp.part"; echo "err falló la descarga de $f"; exit 0; }
+got=$(sha256sum "$d/cliamp.part" | awk '{ print $1 }')
+[ "$got" = "$want" ] || { rm -f "$d/cliamp.part"; echo "err el checksum no coincide, descarga descartada"; exit 0; }
+chmod 755 "$d/cliamp.part"
+v=$("$d/cliamp.part" --version 2>/dev/null | awk '{ print $NF }')
+[ -n "$v" ] || { rm -f "$d/cliamp.part"; echo "err el binario no arranca"; exit 0; }
+mv -f "$d/cliamp.part" "$d/cliamp"; echo "ok $v"
+"""
+  // Baja la última versión oficial de yt-dlp a la carpeta del widget, solo cuando el usuario lo pide.
+  let updCmd = """
+d="$HOME/.cache/cliamp-sintonizador/bin"; mkdir -p "$d"
+if curl -fsSL --retry 2 -m 150 https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o "$d/yt-dlp.part" && chmod 755 "$d/yt-dlp.part" && v=$("$d/yt-dlp.part" --version 2>/dev/null); then
+  mv -f "$d/yt-dlp.part" "$d/yt-dlp"; echo "ok $v"
+else
+  rm -f "$d/yt-dlp.part"; echo "err"
+fi
+"""
+
+  // Apaga el reproductor del todo (no solo pausa): mata el daemon de cliamp, corta cualquier
+  // carga en curso de ctl.sh (cambia req.id) y deja el estado en "stopped". Ahorra batería.
+  let stopCmd = """
+D="$HOME/.cache/cliamp-sintonizador"; mkdir -p "$D"
+printf 'stop-%s' "$(date +%s%N)" > "$D/req.id"
+rm -f "$D/pause.id"
+pkill -x cliamp 2>/dev/null
+pkill -f 'yt-dlp.*--no-playlist' 2>/dev/null
+sleep 0.3
+pkill -9 -x cliamp 2>/dev/null
+rm -f ~/.config/cliamp/cliamp.sock ~/.config/cliamp/cliamp.sock.pid
+printf '%s' '{"nonce":0,"phase":"stopped","url":"","name":"","kind":"","msg":"","err":""}' > "$D/state.json.tmp" && mv -f "$D/state.json.tmp" "$D/state.json"
+true
+"""
+
+  let rawCc = upper(match(sys.locale ?? "", "[A-Za-z]{2}$") ?? "")
+  let localCc = len(rawCc) == 2 && rawCc != "XX" ? rawCc : "US"
+  let country = cc != "" && cc != "XX" ? cc : localCc
+  let effCc = rWorld && rSearch != "" ? "" : country
+
+  source countries = http(view == "countries" ? "${api}/countries?hidebroken=true" : null) every 24h json timeout 25s status
+  source raw = http("${api}/stations/search?countrycode=${enc(effCc)}&tag=${enc(tag)}&name=${enc(rSearch)}&order=clickcount&reverse=true&hidebroken=true&limit=250") every 6h json timeout 25s status
+
+  let quick = ["AR", "UY", "CL", "MX", "ES", "CO", "PE", "BR", "US"]
+  let genres = [{l: "todas", t: ""}, {l: "pop", t: "pop"}, {l: "rock", t: "rock"}, {l: "noticias", t: "news"}, {l: "cumbia", t: "cumbia"}, {l: "jazz", t: "jazz"}, {l: "electrónica", t: "electronic"}, {l: "folk", t: "folk"}, {l: "clásica", t: "classical"}, {l: "deportes", t: "sports"}]
+  let moods = ["lofi para estudiar", "rock nacional", "cumbia", "reggaeton éxitos", "tango", "folklore", "synthwave", "jazz chill"]
+
+  let countryList = (countries != null && countries.ok ? (countries.out ?? []) : [])
+    .filter(c => c.stationcount > 0 && len(c.iso_3166_1) == 2 && upper(c.iso_3166_1) != "XX")
+    .map(c => {code: upper(c.iso_3166_1), name: c.name, count: c.stationcount})
+    .sortBy(c => lower(c.name))
+  let shownCountries = countryList.filter(c => countryQuery == "" || contains(lower(c.name), lower(countryQuery)) || lower(c.code) == lower(countryQuery))
+
+  let rawList = raw != null && raw.ok ? (raw.out ?? []) : []
+  let rawFailed = raw != null && !raw.ok
+  let allStations = rawList
+    .filter(s => startsWith(s.url_resolved ?? "", "http") && s.hls != 1)
+    .map(s => {
+      id: s.stationuuid,
+      name: trim(s.name),
+      url: s.url_resolved,
+      sub: join(take(split(s.tags ?? "", ","), 3), " · "),
+      kbps: s.bitrate,
+      cc: len(s.countrycode ?? "") == 2 && upper(s.countrycode ?? "") != "XX" ? upper(s.countrycode) : country,
+      kind: "radio"
+    })
+  let stations = rq == "" ? allStations : allStations.filter(s => contains(lower(s.name), lower(rq)) || contains(lower(s.sub), lower(rq)))
+  let band = src == "favs" ? favs : stations
+  let n = len(band)
+  let dialIdx = clamp(round(dialPos), 0, max(n - 1, 0))
+  let dialSt = n > 0 ? band[dialIdx] : null
+
+  let live = st.ok == true
+  let tr = st.track
+  let opMatchesCur = op != null && cur != null && op.url == cur.url
+  let ours = cur != null && tr != null && (tr.path == cur.url || (opMatchesCur && (op.phase == "playing" || op.phase == "paused")))
+  let pendingTap = reqNonce > 0 && (op == null || op.nonce != reqNonce)
+  let opLoading = op != null && op.phase == "loading" && (reqNonce == 0 || op.nonce == reqNonce)
+  let loading = pendingTap || (opLoading && !(live && st.state == "playing" && ours && !pendingTap))
+  let playing = !loading && live && st.state == "playing"
+  let paused = !loading && live && st.state == "paused"
+  let hasError = !loading && !playing && op != null && op.phase == "error" && (cur == null || op.url == cur.url)
+  let errMsg = hasError ? (op.err != null && op.err != "" ? op.err : "No se puede reproducir esta fuente.") : ""
+  let loadingMsg = pendingTap
+    ? (cur != null && cur.kind == "yt" ? "Espere, cargando audio de YouTube…" : "Espere, sintonizando ${cur != null ? cur.name : "emisora"}…")
+    : (op != null && op.msg != null && op.msg != "" ? op.msg : "Espere, cargando audio…")
+
+  let title = cur != null && (loading || hasError || ours || tr == null)
+    ? cur.name
+    : (tr != null ? (tr.title ?? (cur != null ? cur.name : "cliamp")) : (cur != null ? cur.name : "sintonizador"))
+
+  let posStr = st.duration != null && st.duration > 0
+    ? " · " + fmtTime(round(st.position ?? 0), st.duration >= 3600 ? "H:mm:ss" : "m:ss", "UTC") + " / " + fmtTime(round(st.duration), st.duration >= 3600 ? "H:mm:ss" : "m:ss", "UTC")
+    : ""
+
+  let line2 = loading ? loadingMsg
+    : hasError ? errMsg
+    : paused ? "En pausa · se apaga solo en 5 min si no tocás ▶"
+    : playing ? (
+        ours && cur.kind == "radio"
+          ? (tr.stream_title != null && tr.stream_title != "" ? "🎵 " + tr.stream_title : (cur.sub != null && cur.sub != "" ? "En vivo · " + cur.sub : "Reproduciendo transmisión en vivo"))
+          : ours
+            ? ((cur.sub ?? tr.artist ?? "YouTube") + posStr)
+            : ((tr.stream_title ?? tr.artist ?? "Reproduciendo en vivo") + posStr)
+      )
+    : !live && op != null && op.phase == "stopped" && (op.msg ?? "") != "" ? op.msg
+    : (cur != null ? "Detenido · tocá ▶ o una emisora para escuchar" : "Tocá una emisora o ▶ para empezar a escuchar")
+
+  let statusLabel = loading ? "⏳ ESPERE, CARGANDO…"
+    : hasError ? "⚠ NO SE PUDO REPRODUCIR"
+    : playing ? "● REPRODUCIENDO"
+    : paused ? "⏸ EN PAUSA"
+    : "⏹ DETENIDO"
+
+  // gris más legible que muted para textos secundarios
+  let soft = alpha(foreground, 0.62)
+
+  let statusColor = loading ? yellow
+    : hasError ? red
+    : playing ? green
+    : paused ? accent
+    : muted
+
+  let isFav = cur != null && favs.any(f => f.id == cur.id)
+  let ytRes = ytOut != null && ytOut != "" ? (parseJson(ytOut) ?? []) : []
+  let ytWait = ytBusy && ytOut == null
+
+  // on want first corre también en el PRIMER toque (cuando want pasa de null al primer valor).
+  on want first {
+    let act = value.fresh ? "fresh" : (value.queue ? "queue" : "play")
+    let k = value.kind ?? "radio"
+    let nm = value.name ?? ""
+    run("bash ~/.cache/cliamp-sintonizador/ctl.sh ${sh(act)} ${sh(value.url)} ${sh(nm)} ${sh(k)} ${int(value.nonce ?? 0)}")
+  }
+
+  onTap: screen()
+
+  component Ico(kind, c = foreground, s = 18) {
+    Canvas {
+      size: s
+      let w = width
+      let h = height
+      if kind == "play" {
+        path([[w * 0.22, h * 0.12], [w * 0.88, h * 0.5], [w * 0.22, h * 0.88]], closed: true, fill: c)
+      } else if kind == "pause" {
+        rect(w * 0.18, h * 0.12, w * 0.24, h * 0.76, radius: 1.5, fill: c)
+        rect(w * 0.58, h * 0.12, w * 0.24, h * 0.76, radius: 1.5, fill: c)
+      } else if kind == "prev" {
+        rect(w * 0.1, h * 0.15, w * 0.14, h * 0.7, radius: 1, fill: c)
+        path([[w * 0.9, h * 0.15], [w * 0.28, h * 0.5], [w * 0.9, h * 0.85]], closed: true, fill: c)
+      } else if kind == "next" {
+        rect(w * 0.76, h * 0.15, w * 0.14, h * 0.7, radius: 1, fill: c)
+        path([[w * 0.1, h * 0.15], [w * 0.72, h * 0.5], [w * 0.1, h * 0.85]], closed: true, fill: c)
+      } else if kind == "stop" {
+        rect(w * 0.2, h * 0.2, w * 0.6, h * 0.6, radius: 2, fill: c)
+      } else if kind == "star" || kind == "star-on" {
+        path([[w * 0.5, h * 0.05], [w * 0.62, h * 0.38], [w * 0.97, h * 0.38], [w * 0.69, h * 0.6], [w * 0.8, h * 0.95], [w * 0.5, h * 0.74], [w * 0.2, h * 0.95], [w * 0.31, h * 0.6], [w * 0.03, h * 0.38], [w * 0.38, h * 0.38]], closed: true, fill: kind == "star-on" ? yellow : null, stroke: kind == "star-on" ? yellow : c, width: 1.5)
+      }
+    }
+  }
+
+  component Key(kind, primary = false, h = 38) {
+    Box {
+      height: h
+      fill: width
+      background: primary ? (loading ? yellow : accent) : alpha(foreground, 0.09)
+      radius: 8 * corners
+      align: center
+      Ico { kind: kind; c: primary ? background : foreground; s: h * 0.45 }
+    }
+  }
+
+  component Badge(c, kind, s = 40) {
+    let code = c != null && len(c) == 2 && upper(c) != "XX" ? lower(c) : lower(country)
+    Box {
+      size: s
+      background: surface
+      radius: 8 * corners
+      align: center
+      clip: true
+      if kind == "yt" {
+        Box { width: s * 0.62; height: s * 0.44; background: red; radius: s * 0.12; align: center
+          Ico { kind: "play"; c: "#ffffff"; s: s * 0.24 }
+        }
+      } else {
+        Image { src: "https://flagcdn.com/${enc(code)}.svg"; width: s * 0.72; height: s * 0.5; fit: cover; radius: 3 * corners; clip: true }
+      }
+    }
+  }
+
+  // Ecualizador mientras suena. Animado solo con anim: true (en la pantalla abierta);
+  // en el tile queda quieto, porque leer `time` redibuja el widget a 60 Hz y gasta batería.
+  component Bars(c = green, anim = false) {
+    Canvas {
+      width: 14
+      height: 12
+      if anim {
+        for i in range(3) {
+          let bh = height * (0.3 + 0.7 * abs(sin(time * (3 + i * 1.7) + i)))
+          rect(i * 5, height - bh, 3.5, bh, radius: 1, fill: c)
+        }
+      } else {
+        for i in range(3) {
+          let bh = height * [0.55, 1, 0.75][i]
+          rect(i * 5, height - bh, 3.5, bh, radius: 1, fill: c)
+        }
+      }
+    }
+  }
+
+  // Indicador mientras carga o conecta (animado solo con anim: true, como Bars).
+  component Loader(c = yellow, anim = false) {
+    Canvas {
+      width: 16
+      height: 12
+      for i in range(3) {
+        if anim {
+          let a = 0.25 + 0.75 * (0.5 + 0.5 * sin(time * 5 - i * 1.1))
+          circle(3 + i * 5, height / 2, 2.2, fill: alpha(c, a))
+        } else {
+          circle(3 + i * 5, height / 2, 2.2, fill: alpha(c, [1, 0.65, 0.35][i]))
+        }
+      }
+    }
+  }
+
+  // El dial: la banda de emisoras como un FM 88–108; la aguja queda al medio.
+  component Dial(h = 70, spacing = 22, labels = true) {
+    Canvas {
+      height: h
+      fill: width
+      let cx = width / 2
+      let lo = max(0, floor(dialPos - cx / spacing) - 1)
+      let hi = min(n, ceil(dialPos + cx / spacing) + 2)
+      rect(0, 0, width, height, radius: 8 * corners, fill: alpha(foreground, 0.06))
+      for i in range(lo, hi) {
+        let x = cx + (i - dialPos) * spacing
+        let near = i == dialIdx
+        let fav = src != "favs" && favs.any(f => f.id == band[i].id)
+        line(x, height * (near ? 0.18 : 0.42), x, height * 0.72, stroke: near ? accent : (fav ? yellow : muted), width: near ? 3 : 1.5, cap: round)
+        if labels && i % 4 == 0 {
+          text(fmtNum(88 + i * 20 / max(n - 1, 1), 1), x, height * 0.87, size: 9, align: center, color: muted)
+        }
+      }
+      line(cx, 4, cx, height - 4, stroke: red, width: 2, cap: round)
+      circle(cx, 6, 3.5, fill: red)
+    }
+  }
+
+  // Botón que instala (o actualiza) cliamp desde GitHub.
+  component ClButton(label = "⬇ instalar cliamp", h = 38) {
+    Box {
+      height: h
+      fill: width
+      radius: 8 * corners
+      align: center
+      background: clWait ? alpha(yellow, 0.18) : accent
+      onTap: if !clWait { clOut = null; clBusy = true; clOut = run(clInstCmd) }
+      Row { gap: 6; align: center
+        if clWait { Loader { anim: true } }
+        Text { text: clWait ? "descargando cliamp…" : label; bold: true; color: clWait ? yellow : background; maxLines: 1 }
+      }
+    }
+  }
+
+  // ───────── el tile ─────────
+  Box {
+  fill: true
+  if clMissing {
+    // Sin cliamp no suena nada: en vez de un reproductor vacío, decimos qué falta.
+    Column {
+      fill: true
+      gap: 5
+      Row {
+        gap: 8
+        align: center
+        Box { size: 38; radius: 8 * corners; background: alpha(yellow, 0.16); align: center
+          Text { text: "📻"; align: center }
+        }
+        Column {
+          weight: 1
+          gap: 1
+          Text { text: "Falta cliamp"; bold: true; maxLines: 1 }
+          Text {
+            text: clWait ? "Bajándolo de github.com/bjarneo/cliamp y verificando…"
+              : clErr ? "⚠ ${clErrMsg}"
+              : "El reproductor no está en los repos de Arch: el widget lo baja de GitHub."
+            style: small
+            color: clWait ? yellow : clErr ? red : soft
+            maxLines: 2
+          }
+        }
+      }
+      Spacer { weight: 1 }
+      ClButton { label: clErr ? "↻ reintentar" : "⬇ instalar cliamp" }
+    }
+  } else {
+  Column {
+    fill: true
+    gap: 5
+    Row {
+      gap: 8
+      align: center
+      Badge { c: cur != null ? cur.cc : country; kind: cur != null ? cur.kind : "radio"; s: 38 }
+      Column {
+        weight: 1
+        gap: 1
+        Row { gap: 5; align: center
+          if loading { Loader { } } else if playing { Bars { } }
+          Text { text: title; bold: true; maxLines: 2; weight: 1 }
+          Text {
+            text: loading ? "CARGANDO" : hasError ? "ERROR" : playing ? (posStr != "" ? "▶" : "EN VIVO") : paused ? "PAUSA" : ""
+            style: label
+            bold: true
+            color: statusColor
+            maxLines: 1
+          }
+        }
+        Text {
+          text: line2
+          style: small
+          color: loading ? yellow : hasError ? red : playing ? foreground : soft
+          maxLines: 2
+        }
+      }
+    }
+    Spacer { weight: 1 }
+    // Franja del medio: avance del tema (YouTube) o el volumen (radio)
+    if live && st.duration != null && st.duration > 0 {
+      Progress { value: st.position ?? 0; max: st.duration; color: statusColor; height: 4; animate value: spring() }
+    } else if live {
+      Row { gap: 6; align: center
+        Text { text: "🔊"; style: label; color: soft }
+        Progress { value: (st.volume ?? 0) + 30; max: 36; color: statusColor; weight: 1; height: 4 }
+        Text { text: "${round(st.volume ?? 0)} dB"; style: label; color: soft; maxLines: 1 }
+      }
+    }
+    Row {
+      gap: 6
+      Box { weight: 1
+        onTap: if live && cur != null && cur.kind == "yt" {
+          run("${pathFix}cliamp prev")
+        } else if n > 0 {
+          let i = curIdx <= 0 ? n - 1 : min(curIdx, n) - 1
+          let rn = random(1000000) + 1
+          curIdx = i; dialPos = i; cur = band[i]; reqNonce = rn; want = merge(band[i], {nonce: rn})
+        }
+        Key { kind: "prev" }
+      }
+      Box { weight: 1
+        onTap: if !loading && !hasError && live && tr != null && (ours || cur == null) {
+          reqNonce = 0
+          run("bash ~/.cache/cliamp-sintonizador/ctl.sh toggle ${sh(cur != null ? cur.url : "")} ${sh(cur != null ? cur.name : "")} ${sh(cur != null ? cur.kind : "radio")} 0")
+        } else if cur != null {
+          let rn = random(1000000) + 1
+          reqNonce = rn; want = merge(cur, {nonce: rn})
+        } else if dialSt != null {
+          let rn = random(1000000) + 1
+          curIdx = dialIdx; cur = dialSt; reqNonce = rn; want = merge(dialSt, {nonce: rn})
+        } else {
+          screen()
+        }
+        Key { kind: playing ? "pause" : "play"; primary: true }
+      }
+      Box { weight: 1
+        onTap: if live && cur != null && cur.kind == "yt" {
+          run("${pathFix}cliamp next")
+        } else if n > 0 {
+          let i = curIdx < 0 || curIdx >= n - 1 ? 0 : curIdx + 1
+          let rn = random(1000000) + 1
+          curIdx = i; dialPos = i; cur = band[i]; reqNonce = rn; want = merge(band[i], {nonce: rn})
+        }
+        Key { kind: "next" }
+      }
+      if live || loading {
+        Box { weight: 1
+          onTap: { reqNonce = 0; run(stopCmd) }
+          Key { kind: "stop" }
+        }
+      }
+    }
+  }
+  }
+  }
+
+  // ───────── la pantalla ─────────
+  screen {
+    title: "sintonizador"
+    Column {
+      gap: 8
+
+      // Sin cliamp: qué falta y cómo conseguirlo
+      if clMissing {
+        Column {
+          gap: 8
+          padding: 12
+          radius: 10 * corners
+          background: alpha(yellow, 0.1)
+          Text { text: "⚠ Falta cliamp"; style: title; color: yellow; maxLines: 1 }
+          Text {
+            text: "cliamp es el reproductor que usa este widget para las radios y YouTube. No está en los repos de Arch (solo en el AUR), así que el widget puede bajar el binario oficial de github.com/bjarneo/cliamp, comprobarlo con su checksums.txt y guardarlo en ~/.cache/cliamp-sintonizador/bin."
+            style: small
+            color: foreground
+          }
+          if clErr {
+            Text { text: "⚠ ${clErrMsg}"; style: small; bold: true; color: red }
+          }
+          ClButton { label: clErr ? "↻ reintentar la descarga" : "⬇ instalar cliamp"; h: 44 }
+        }
+      }
+
+      // Lo que suena + indicador visual de estado (cargando / reproduciendo / pausa / error)
+      Column {
+        gap: 6
+        padding: 10
+        background: loading ? alpha(yellow, 0.1) : hasError ? alpha(red, 0.12) : playing ? alpha(green, 0.1) : alpha(accent, 0.08)
+        radius: 10 * corners
+        Row {
+          gap: 10
+          align: center
+          Badge { c: cur != null ? cur.cc : country; kind: cur != null ? cur.kind : "radio"; s: 52 }
+          Column {
+            weight: 1
+            gap: 3
+            Row {
+              gap: 6
+              align: center
+              Row {
+                gap: 5
+                align: center
+                padding: [7, 2]
+                radius: 6 * corners
+                background: alpha(statusColor, 0.18)
+                if loading { Loader { anim: true } } else if playing { Bars { anim: true } }
+                Text { text: statusLabel; style: label; bold: true; color: statusColor; maxLines: 1 }
+              }
+              if cur != null && cur.kbps != null && cur.kbps > 0 {
+                Text { text: "${cur.kbps} kbps"; style: label; color: muted; maxLines: 1 }
+              }
+            }
+            Text { text: title; style: title; maxLines: 2 }
+            Text {
+              text: line2
+              style: small
+              color: loading ? yellow : hasError ? red : playing ? foreground : soft
+              maxLines: 2
+            }
+          }
+          if cur != null && cur.kind == "radio" {
+            Box { size: 36; align: center
+              onTap: favs = isFav ? favs.filter(f => f.id != cur.id) : favs + [cur]
+              Ico { kind: isFav ? "star-on" : "star"; c: muted; s: 24 }
+            }
+          }
+        }
+        if hasError && cur != null {
+          Row {
+            gap: 8
+            align: center
+            padding: [8, 6]
+            radius: 8 * corners
+            background: alpha(red, 0.16)
+            Text { text: "Tocá otra emisora/audio o reintentá la conexión."; style: label; color: foreground; weight: 1; maxLines: 2 }
+            Text {
+              text: "↻ reintentar"
+              style: small
+              bold: true
+              padding: [10, 5]
+              radius: 8 * corners
+              background: red
+              color: background
+              onTap: {
+                let rn = random(1000000) + 1
+                reqNonce = rn
+                want = merge(cur, {nonce: rn, fresh: true})
+              }
+            }
+          }
+        }
+      }
+
+      Row {
+        gap: 8
+        align: center
+        Box { width: 52
+          onTap: if live && cur != null && cur.kind == "yt" {
+            run("${pathFix}cliamp prev")
+          } else if n > 0 {
+            let i = curIdx <= 0 ? n - 1 : min(curIdx, n) - 1
+            let rn = random(1000000) + 1
+            curIdx = i; dialPos = i; cur = band[i]; reqNonce = rn; want = merge(band[i], {nonce: rn})
+          }
+          Key { kind: "prev" }
+        }
+        Box { width: 52
+          onTap: if !loading && !hasError && live && tr != null && (ours || cur == null) {
+            reqNonce = 0
+            run("bash ~/.cache/cliamp-sintonizador/ctl.sh toggle ${sh(cur != null ? cur.url : "")} ${sh(cur != null ? cur.name : "")} ${sh(cur != null ? cur.kind : "radio")} 0")
+          } else if cur != null {
+            let rn = random(1000000) + 1
+            reqNonce = rn; want = merge(cur, {nonce: rn})
+          } else if dialSt != null {
+            let rn = random(1000000) + 1
+            curIdx = dialIdx; cur = dialSt; reqNonce = rn; want = merge(dialSt, {nonce: rn})
+          }
+          Key { kind: playing ? "pause" : "play"; primary: true }
+        }
+        Box { width: 52
+          onTap: if live && cur != null && cur.kind == "yt" {
+            run("${pathFix}cliamp next")
+          } else if n > 0 {
+            let i = curIdx < 0 || curIdx >= n - 1 ? 0 : curIdx + 1
+            let rn = random(1000000) + 1
+            curIdx = i; dialPos = i; cur = band[i]; reqNonce = rn; want = merge(band[i], {nonce: rn})
+          }
+          Key { kind: "next" }
+        }
+        if live || loading {
+          Box { width: 52
+            onTap: { reqNonce = 0; run(stopCmd) }
+            Key { kind: "stop" }
+          }
+        }
+        Column { weight: 1; gap: 0
+          Text { text: live ? "volumen ${round(st.volume ?? 0)} dB" : "volumen"; style: label; color: muted }
+          Slider { fill: width; value: st.volume ?? 0; min: -30; max: 6; step: 1; height: 26; onChange: if live { run("${pathFix}cliamp volume -- ${round(value)}") } }
+        }
+      }
+
+      // Pestañas
+      Row {
+        gap: 6
+        for t in [{k: "radio", l: "📻 radio"}, {k: "yt", l: "▶ YouTube"}, {k: "favs", l: "★ ${len(favs)}"}] key t.k {
+          Text {
+            text: t.l; align: center; weight: 1; maxLines: 1; padding: [6, 8]
+            background: tab == t.k ? accent : alpha(foreground, 0.09); color: tab == t.k ? background : foreground; radius: 8 * corners
+            onTap: { tab = t.k; view = "stations"; if t.k == "favs" { src = "favs"; curIdx = -1; dialPos = 0 } else if t.k == "radio" && src == "favs" { src = "pais"; curIdx = -1; dialPos = 0 } }
+          }
+        }
+      }
+
+      if tab == "radio" && view == "countries" {
+        Input { placeholder: "buscar entre ${len(countryList)} países…"; text: countryQuery; focus: true; onChange: countryQuery = value }
+        Column {
+          lazy: true
+          weight: 1
+          gap: 0
+          for c in shownCountries key c.code {
+            Row {
+              padding: [6, 9]
+              gap: 10
+              align: center
+              background: c.code == country ? alpha(accent, 0.15) : null
+              radius: 6 * corners
+              onTap: { cc = c.code; countryQuery = ""; view = "stations"; src = "pais"; curIdx = -1; dialPos = 0 }
+              Image { src: "https://flagcdn.com/${enc(lower(c.code))}.svg"; width: 26; height: 18; fit: cover; radius: 2 * corners; clip: true }
+              Text { text: c.name; maxLines: 1; weight: 1 }
+              Text { text: "${c.count}"; style: label; color: muted }
+            }
+          }
+        }
+        Text { text: "← volver"; color: accent; padding: [4, 6]; onTap: view = "stations" }
+      } else if tab == "radio" || tab == "favs" {
+        if tab == "radio" {
+          Row { gap: 6; align: center
+            Input {
+              placeholder: "buscá tu radio por nombre…"; text: rq; weight: 1
+              onChange: { rq = value; if value == "" { rSearch = "" } }
+              onSubmit: { let q = trim(value); rq = q; rSearch = q; src = "pais"; curIdx = -1; dialPos = 0 }
+            }
+            if rq != "" {
+              Text {
+                text: "✕"; style: small; padding: [8, 5]; radius: 12 * corners; background: alpha(foreground, 0.09)
+                onTap: { rq = ""; rSearch = ""; curIdx = -1; dialPos = 0 }
+              }
+            }
+            Text {
+              text: rSearch != "" && rSearch == trim(rq) ? "🌐 mundo" : "buscar"; style: small; maxLines: 1; padding: [10, 5]; radius: 12 * corners
+              background: (rSearch != "" && rWorld) ? accent : (trim(rq) != "" && rSearch != trim(rq) ? accent : alpha(foreground, 0.09))
+              color: (rSearch != "" && rWorld) || (trim(rq) != "" && rSearch != trim(rq)) ? background : foreground
+              onTap: if trim(rq) != "" {
+                let q = trim(rq)
+                if rSearch == q { rWorld = !rWorld } else { rSearch = q; rWorld = false }
+                src = "pais"; curIdx = -1; dialPos = 0
+              }
+            }
+          }
+          Flow {
+            gap: 5
+            for q in (any(quick, x => x == country) ? quick : [country] + quick) key q {
+              Row { gap: 4; align: center; padding: [7, 4]; radius: 12 * corners
+                background: q == country && !(rSearch != "" && rWorld) ? accent : alpha(foreground, 0.09)
+                onTap: { cc = q; rWorld = false; src = "pais"; curIdx = -1; dialPos = 0 }
+                Image { src: "https://flagcdn.com/${enc(lower(q))}.svg"; width: 16; height: 11; fit: cover; radius: 2 * corners; clip: true }
+                Text { text: q; style: small; bold: true; color: q == country && !(rSearch != "" && rWorld) ? background : foreground }
+              }
+            }
+            Text { text: "🌍 +países"; style: small; maxLines: 1; padding: [8, 4]; radius: 12 * corners; background: alpha(foreground, 0.09); onTap: view = "countries" }
+          }
+          Flow {
+            gap: 5
+            for g in genres key g.l {
+              Text { text: g.l; style: small; maxLines: 1; padding: [8, 4]; radius: 12 * corners; background: (tag == g.t) ? accent : alpha(foreground, 0.09); color: (tag == g.t) ? background : foreground; onTap: { tag = g.t; src = "pais"; curIdx = -1; dialPos = 0 } }
+            }
+          }
+        }
+
+        // El dial: arrastrá para recorrer la banda, soltá para sintonizar.
+        if n > 0 {
+          Column {
+            gap: 2
+            Box {
+              fill: width
+              drag: horizontal
+              onDrag: dialPos = clamp(dialPos - dx / 22, 0, n - 1)
+              onDragEnd: {
+                let i = clamp(round(dialPos - vx / 22 * 0.25), 0, n - 1)
+                let rn = random(1000000) + 1
+                dialPos = i; curIdx = i; cur = band[i]; reqNonce = rn; want = merge(band[i], {nonce: rn})
+              }
+              Dial { h: 58 }
+            }
+            Text {
+              text: dialSt != null ? "📡 ${dialSt.name} (tocá para sintonizar)" : ""
+              style: small
+              color: accent
+              align: center
+              maxLines: 1
+              onTap: if dialSt != null {
+                let rn = random(1000000) + 1
+                curIdx = dialIdx; cur = dialSt; reqNonce = rn; want = merge(dialSt, {nonce: rn})
+              }
+            }
+          }
+        }
+
+        if tab == "favs" && n == 0 {
+          Text { text: "Todavía no hay favoritas. Tocá ★ en una emisora para guardarla acá."; color: muted; padding: [4, 8] }
+        }
+        if tab == "radio" && raw == null {
+          Row { gap: 8; align: center; padding: [8, 8]
+            Loader { anim: true }
+            Text { text: "Espere, cargando lista de emisoras…"; color: yellow }
+          }
+        } else if tab == "radio" && rawFailed && n == 0 {
+          Row { gap: 8; align: center; padding: [8, 8]; radius: 8 * corners; background: alpha(red, 0.14)
+            Text { text: "⚠ No se pudo conectar al catálogo de radios (${raw.err ?? "tiempo de espera agotado"})."; style: small; color: red; weight: 1 }
+            Text { text: "↻ reintentar"; style: small; bold: true; padding: [8, 4]; radius: 6 * corners; background: red; color: background; onTap: refresh() }
+          }
+        } else if tab == "radio" && n == 0 && rq != "" {
+          Column { gap: 6; padding: [4, 8]
+            Text { text: rSearch == trim(rq) ? "No se encontró “${rq}” en ${rWorld ? "el mundo" : country}." : "“${rq}” no está en el dial cargado."; color: muted }
+            Row { gap: 8
+              if rSearch != trim(rq) {
+                Text {
+                  text: "🔎 buscar “${trim(rq)}” en todas las radios de ${country}"
+                  style: small; padding: [10, 6]; radius: 8 * corners; background: accent; color: background
+                  onTap: { rSearch = trim(rq); rWorld = false; src = "pais"; curIdx = -1; dialPos = 0 }
+                }
+              } else if !rWorld {
+                Text {
+                  text: "🌐 buscar “${trim(rq)}” en todo el mundo"
+                  style: small; padding: [10, 6]; radius: 8 * corners; background: accent; color: background
+                  onTap: { rWorld = true; src = "pais"; curIdx = -1; dialPos = 0 }
+                }
+              }
+            }
+          }
+        }
+
+        Column {
+          lazy: true
+          weight: 1
+          gap: 0
+          for s, i in band key s.id {
+            let active = cur != null && s.id == cur.id
+            let rowPlaying = playing && ((active && ours) || (tr != null && tr.path == s.url))
+            let rowPaused = paused && ((active && ours) || (tr != null && tr.path == s.url))
+            let rowCc = s.cc != null && len(s.cc) == 2 && upper(s.cc) != "XX" ? lower(s.cc) : lower(country)
+            Row {
+              padding: [6, 8]
+              gap: 10
+              align: center
+              radius: 6 * corners
+              background: active ? (loading ? alpha(yellow, 0.16) : hasError ? alpha(red, 0.16) : rowPlaying ? alpha(green, 0.15) : alpha(accent, 0.15)) : null
+              onTap: {
+                let rn = random(1000000) + 1
+                curIdx = i; dialPos = i; cur = s; reqNonce = rn; want = merge(s, {nonce: rn})
+              }
+              if tab == "favs" || (rSearch != "" && rWorld) {
+                Image { src: "https://flagcdn.com/${enc(rowCc)}.svg"; width: 22; height: 15; fit: cover; radius: 2 * corners; clip: true }
+              } else {
+                Text { text: fmtNum(88 + i * 20 / max(n - 1, 1), 1); font: mono; style: label; color: active ? statusColor : accent; width: 40 }
+              }
+              Column { weight: 1; gap: 0
+                Row { gap: 6; align: center
+                  Text { text: s.name; bold: active; maxLines: 1; weight: 1 }
+                  if active && loading {
+                    Text { text: "⏳ cargando…"; style: label; bold: true; color: yellow }
+                  } else if rowPlaying {
+                    Row { gap: 4; align: center
+                      Bars { anim: true }
+                      Text { text: "sonando"; style: label; bold: true; color: green }
+                    }
+                  } else if rowPaused {
+                    Text { text: "⏸ pausa"; style: label; color: accent }
+                  } else if active && hasError {
+                    Text { text: "⚠ error"; style: label; bold: true; color: red }
+                  }
+                }
+                if s.sub != "" { Text { text: s.sub; style: label; color: soft; maxLines: 1 } }
+              }
+              Box { size: 34; align: center
+                onTap: favs = favs.any(f => f.id == s.id) ? favs.filter(f => f.id != s.id) : favs + [s]
+                Ico { kind: favs.any(f => f.id == s.id) ? "star-on" : "star"; c: muted; s: 18 }
+              }
+            }
+          }
+        }
+      } else {
+        // YouTube
+        Row { gap: 8; align: center
+          Input {
+            placeholder: "buscar en YouTube: tema, artista, mix…"; text: ytq; weight: 1
+            onChange: ytq = value
+            onSubmit: if trim(value) != "" {
+              let q = trim(value)
+              ytq = q
+              recent = take([q] + recent.filter(r => r != q), 6)
+              ytOut = null; ytBusy = true
+              ytOut = run("${pathFix}yt-dlp --flat-playlist -j ${sh("ytsearch15:${q}")} 2>/dev/null | jq -sc 'map({id, title, ch: (.channel // .uploader), dur: .duration})'")
+            }
+          }
+          Text {
+            text: "buscar"; style: small; maxLines: 1; padding: [10, 5]; radius: 12 * corners; background: accent; color: background
+            onTap: if trim(ytq) != "" {
+              let q = trim(ytq)
+              recent = take([q] + recent.filter(r => r != q), 6)
+              ytOut = null; ytBusy = true
+              ytOut = run("${pathFix}yt-dlp --flat-playlist -j ${sh("ytsearch15:${q}")} 2>/dev/null | jq -sc 'map({id, title, ch: (.channel // .uploader), dur: .duration})'")
+            }
+          }
+        }
+        Flow {
+          gap: 6
+          for q in (len(recent) > 0 ? recent : moods) key q {
+            Text {
+              text: q; style: small; maxLines: 1; padding: [10, 5]; radius: 12 * corners; background: alpha(foreground, 0.09); color: foreground
+              onTap: {
+                ytq = q
+                recent = take([q] + recent.filter(r => r != q), 6)
+                ytOut = null; ytBusy = true
+                ytOut = run("${pathFix}yt-dlp --flat-playlist -j ${sh("ytsearch15:${q}")} 2>/dev/null | jq -sc 'map({id, title, ch: (.channel // .uploader), dur: .duration})'")
+              }
+            }
+          }
+        }
+        if ytWait {
+          Row {
+            gap: 8; align: center; padding: [10, 10]; radius: 8 * corners; background: alpha(yellow, 0.12)
+            Loader { anim: true }
+            Text { text: "Espere, buscando “${ytq}” en YouTube…"; color: yellow; weight: 1 }
+          }
+        } else if ytBusy && len(ytRes) == 0 {
+          Text { text: "⚠ Sin resultados para “${ytq}”. Probá con otras palabras."; color: red; padding: [4, 12] }
+        } else if !ytBusy {
+          Text { text: "Tocá un resultado para reproducirlo acá mismo, o + para sumarlo a la cola."; color: muted; padding: [4, 8] }
+        }
+        Column {
+          lazy: true
+          weight: 1
+          gap: 0
+          for r in ytRes key r.id {
+            let rUrl = "https://www.youtube.com/watch?v=${r.id}"
+            let active = cur != null && cur.id == r.id
+            let rowPlaying = playing && ((active && ours) || (tr != null && tr.path == rUrl))
+            let rowPaused = paused && ((active && ours) || (tr != null && tr.path == rUrl))
+            Row {
+              padding: [6, 8]
+              gap: 10
+              align: center
+              radius: 6 * corners
+              background: active ? (loading ? alpha(yellow, 0.16) : hasError ? alpha(red, 0.16) : rowPlaying ? alpha(green, 0.15) : alpha(accent, 0.15)) : null
+              onTap: {
+                let it = {id: r.id, name: r.title, url: rUrl, sub: r.ch ?? "YouTube", cc: null, kind: "yt"}
+                let rn = random(1000000) + 1
+                cur = it; queuedId = ""; reqNonce = rn; want = merge(it, {nonce: rn})
+              }
+              Image { src: "https://i.ytimg.com/vi/${enc(r.id)}/mqdefault.jpg"; width: 64; height: 36; fit: cover; radius: 4 * corners; clip: true }
+              Column { weight: 1; gap: 2
+                Text { text: r.title; bold: active; maxLines: 2; style: small }
+                Row { gap: 6; align: center
+                  Text { text: "${r.ch ?? ""}${r.dur ? " · " + fmtTime(r.dur, r.dur >= 3600 ? "H:mm:ss" : "m:ss", "UTC") : ""}"; style: label; color: soft; maxLines: 1; weight: 1 }
+                  if active && loading {
+                    Text { text: "⏳ cargando…"; style: label; bold: true; color: yellow }
+                  } else if rowPlaying {
+                    Row { gap: 4; align: center
+                      Bars { anim: true }
+                      Text { text: "reproduciendo"; style: label; bold: true; color: green }
+                    }
+                  } else if rowPaused {
+                    Text { text: "⏸ en pausa"; style: label; color: accent }
+                  } else if active && hasError {
+                    Text { text: "⚠ error"; style: label; bold: true; color: red }
+                  }
+                }
+              }
+              Box { size: 34; align: center; radius: 8 * corners; background: queuedId == r.id ? alpha(green, 0.2) : alpha(foreground, 0.07)
+                onTap: {
+                  let it = {id: r.id, name: r.title, url: rUrl, sub: r.ch ?? "YouTube", cc: null, kind: "yt"}
+                  let rn = random(1000000) + 1
+                  queuedId = r.id
+                  reqNonce = rn
+                  if !live || tr == null || (cur != null && cur.kind == "radio") {
+                    cur = it
+                    want = merge(it, {nonce: rn})
+                  } else {
+                    want = merge(it, {nonce: rn, queue: true})
+                  }
+                }
+                Text { text: queuedId == r.id ? "✓" : "+"; align: center; style: small; bold: true; color: queuedId == r.id ? green : accent }
+              }
+            }
+          }
+        }
+      }
+
+      // Pie: estado del motor de audio en segundo plano
+      Row { gap: 8; align: center
+        Text {
+          text: loading ? "⏳ conectando motor de audio…" : hasError ? "⚠ fallo al reproducir" : live ? "● motor activo" : "⏻ motor apagado · tocá ▶ para encender"
+          style: label
+          color: loading ? yellow : hasError ? red : live ? green : muted
+          weight: 1
+          maxLines: 1
+        }
+        if cur != null {
+          Text {
+            text: "↻ reiniciar audio"
+            style: small
+            maxLines: 1
+            padding: [10, 4]
+            radius: 12 * corners
+            background: alpha(foreground, 0.09)
+            onTap: {
+              let rn = random(1000000) + 1
+              reqNonce = rn
+              want = merge(cur, {nonce: rn, fresh: true})
+            }
+          }
+        }
+      }
+
+      // El reproductor (cliamp): versión y actualizar desde GitHub
+      if !clMissing {
+        Row { gap: 6; align: center
+          Text {
+            text: clWait ? "⏳ actualizando cliamp…"
+              : clErr ? "⚠ cliamp: ${clErrMsg}"
+              : clOut != null && startsWith(clOut, "ok") ? "✓ cliamp ${clVer ?? ""} actualizado"
+              : clVer != null ? "cliamp ${clVer}${clOwn ? " ✓" : " (sistema)"}" : ""
+            style: label
+            color: clWait ? yellow : clErr ? red : clOut != null ? green : alpha(foreground, 0.4)
+            maxLines: 1
+            weight: 1
+          }
+          if !clWait {
+            Text {
+              text: "⬆ actualizar"; style: label; color: accent; padding: [8, 3]; radius: 10 * corners; background: alpha(accent, 0.12)
+              onTap: { clOut = null; clBusy = true; clOut = run(clInstCmd) }
+            }
+          }
+        }
+      }
+
+      // Motor de YouTube (yt-dlp) + firma discreta
+      Row { gap: 6; align: center
+        Text {
+          text: updWait ? "⏳ actualizando yt-dlp…"
+            : upd != null && startsWith(upd, "ok") ? "✓ yt-dlp ${ytVer ?? ""} actualizado"
+            : upd != null && startsWith(upd, "err") ? "⚠ no se pudo actualizar (¿sin internet?)"
+            : ytVer != null ? "yt-dlp ${ytVer}${ytOwn ? " ✓" : ""}" : ""
+          style: label
+          color: updWait ? yellow : upd != null && startsWith(upd, "err") ? red : upd != null ? green : alpha(foreground, 0.4)
+          maxLines: 1
+          weight: 1
+        }
+        if !updWait {
+          Text {
+            text: "⬆ actualizar"; style: label; color: accent; padding: [8, 3]; radius: 10 * corners; background: alpha(accent, 0.12)
+            onTap: { upd = null; updBusy = true; upd = run(updCmd) }
+          }
+          if ytOwn {
+            Text {
+              text: "↺ sistema"; style: label; color: alpha(foreground, 0.5); padding: [8, 3]; radius: 10 * corners; background: alpha(foreground, 0.07)
+              onTap: { upd = null; updBusy = false; run("rm -f \"$HOME/.cache/cliamp-sintonizador/bin/yt-dlp\"") }
+            }
+          }
+        }
+        Text { text: "by nicomaure"; style: label; color: alpha(foreground, 0.38); padding: [4, 3]; onTap: url("https://github.com/nicomaure") }
+      }
+    }
+  }
+}
