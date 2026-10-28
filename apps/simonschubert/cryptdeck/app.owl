@@ -3,7 +3,9 @@ app "cryptdeck" {
   // map of fights, elites, campfires, shops, chests and strange rooms, with a boss at the top. Fights
   // are played with a deck of cards: three energy a turn, five cards drawn, and every enemy shows
   // what it means to do next. Won fights offer a card to add; elites and chests give relics, which
-  // change the rules for the rest of the run. Taps only, and nothing is timed.
+  // change the rules for the rest of the run. Every card taken also joins a collection that outlasts
+  // the run, from which the deck a run starts with is built, and a free pack of cards comes each
+  // day and with each boss beaten. Taps only, and nothing is timed.
   //
   // There's no game loop: a card or the end of a turn resolves at once, in a handler or a trigger,
   // and leaves timed events (`fx`) for the canvases to play: slashes, hits, blocks and banners.
@@ -11,14 +13,15 @@ app "cryptdeck" {
   // `drawQ` draws `drawN` cards, `endQ` plays the enemies' turn, `winQ` hands out the spoils and
   // `gainQ` gives the relic `gainR`.
 
-  meta { owl: 14; description: "A deckbuilder roguelite in pixel art: climb three acts of a crypt with a deck of cards, pick your path on a branching map, collect relics and beat the bosses; taps only, nothing timed"; version: "1.0.1"; license: "MIT"; category: "games" }
+  meta { owl: 14; description: "A deckbuilder roguelite in pixel art: climb three acts of a crypt with a deck of cards, pick your path on a branching map, collect relics and beat the bosses; build your deck from a collection that grows with every run and a free pack a day; taps only, nothing timed"; version: "1.1.0"; license: "MIT"; category: "games" }
 
   title: ""
   statusBar: false
   edge: true
   icon: """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" shape-rendering="crispEdges"><defs><clipPath id="t"><rect width="256" height="256" rx="56"/></clipPath></defs><g clip-path="url(#t)"><rect width="256" height="256" fill="#24202e"/><rect x="0" y="176" width="256" height="80" fill="#2e2a3a"/></g><rect x="40" y="36" width="120" height="168" rx="10" fill="#14121c" transform="rotate(-10 100 120)"/><rect x="48" y="44" width="104" height="152" rx="6" fill="#3a62a8" transform="rotate(-10 100 120)"/><rect x="96" y="40" width="124" height="172" rx="10" fill="#14121c"/><rect x="104" y="48" width="108" height="156" rx="6" fill="#ffd04a"/><rect x="110" y="54" width="96" height="144" rx="4" fill="#a83a3a"/><rect x="118" y="62" width="80" height="62" fill="#6a2026"/><rect x="116" y="134" width="84" height="56" rx="3" fill="#efe4c8"/><rect x="128" y="146" width="60" height="8" fill="#14121c"/><rect x="136" y="164" width="44" height="8" fill="#14121c"/><path fill="#14121c" d="M178 66h12v6h-6v6h-6v6h-6v6h-6v6h-6v6h-6v6h-6v6h6v6h-6v-6h-6v6h-6v-6h6v-6h6v-6h6v-6h6v-6h6v-6h6v-6h6v-6h6z"/><path fill="#eef2fa" d="M178 72h6v6h-6v6h-6v6h-6v6h-6v6h-6v6h-6v-6h6v-6h6v-6h6v-6h6v-6h6z"/><path fill="#c08a30" d="M136 114h6v6h-6zM130 120h6v6h-6z"/><circle cx="110" cy="56" r="18" fill="#14121c"/><circle cx="110" cy="56" r="14" fill="#ffd04a"/><rect x="106" y="48" width="8" height="16" fill="#14121c"/></svg>"""
 
-  // "title", "map", "fight", "reward", "rest", "shop", "chest", "event" or "end"
+  // "title", "map", "fight", "reward", "rest", "shop", "chest", "event", "end", "build" (the deck
+  // a run starts with) or "pack" (one being opened)
   state mode = "title" persist
   // where Continue on the title goes back to
   state rmode = "" persist
@@ -60,6 +63,17 @@ app "cryptdeck" {
   // the event, and what came of it
   state evt = 0 persist
   state evr = "" persist
+  // the cards owned for good, a count of each kind, and how many of each a new run starts with;
+  // empty is a new player's (see OWN and SD)
+  state coll = [] persist
+  state sdeck = [] persist
+  // a free pack a day (`packDay` is the day the last one was opened) and one for each boss beaten;
+  // `pk` is the pack being opened, and `bv` a card looked at while building the deck
+  state packDay = "" persist
+  state packs = 0 persist
+  state pk = [] persist
+  state bv = -1
+  source wall = clock every 1m
   // the deck shown over everything: "deck", "draw", "disc", "up" (pick one to upgrade) or "rm" (to remove)
   state dv = ""
   state dvs = -1
@@ -108,7 +122,8 @@ app "cryptdeck" {
   // i its picture. d damage (x times, to all), b block, dr draw, en energy, v vulnerable, w weak,
   // s strength, hp health lost, ex exhausts; ps strength each turn, pb block at the turn's end,
   // pt thorns, ft thorns this turn; sp: slam (damage = block), copy, dbl (double block), keep
-  // (block stays), x2 (double strength); sm strength counts that many times. u: what an upgrade changes.
+  // (block stays), x2 (double strength), exe (double on a foe below half health), drain (heals the
+  // damage that gets through); sm strength counts that many times. u: what an upgrade changes.
   let CD = [
     {n: "STRIKE", e: 1, t: 0, r: 0, i: 0, d: 6, u: {d: 9}},
     {n: "DEFEND", e: 1, t: 1, r: 0, i: 1, b: 5, u: {b: 8}},
@@ -141,10 +156,24 @@ app "cryptdeck" {
     {n: "BARRICADE", e: 3, t: 2, r: 3, i: 11, sp: "keep", u: {e: 2}},
     {n: "LIMIT BREAK", e: 1, t: 1, r: 3, i: 10, sp: "x2", ex: true, u: {ex: false}},
     {n: "THORN CAGE", e: 1, t: 2, r: 2, i: 14, pt: 3, u: {pt: 5}},
-    {n: "SLIMED", e: 1, t: 3, r: 4, i: 15, ex: true, u: {}}
+    {n: "SLIMED", e: 1, t: 3, r: 4, i: 15, ex: true, u: {}},
+    {n: "SOUL REND", e: 2, t: 0, r: 3, i: 16, d: 9, all: true, sp: "drain", u: {d: 12}},
+    {n: "EXECUTE", e: 1, t: 0, r: 2, i: 2, d: 8, sp: "exe", u: {d: 11}},
+    {n: "BLOOD OATH", e: 0, t: 2, r: 3, i: 9, hp: 4, ps: 1, u: {hp: 2}},
+    {n: "SPECTRAL BLADES", e: 1, t: 0, r: 1, i: 4, d: 3, x: 3, u: {d: 4}},
+    {n: "CRYPT LANTERN", e: 0, t: 1, r: 2, i: 17, en: 1, dr: 1, ex: true, u: {dr: 2}},
+    {n: "MIRROR WARD", e: 2, t: 1, r: 3, i: 1, b: 10, ft: 10, u: {b: 14, ft: 14}}
   ]
   // the cards a reward or a shop can offer, by rarity
-  let POOL = [[], range(31).filter(c => CD[c].r == 1), range(31).filter(c => CD[c].r == 2), range(31).filter(c => CD[c].r == 3)]
+  let POOL = [[], range(len(CD)).filter(c => CD[c].r == 1), range(len(CD)).filter(c => CD[c].r == 2), range(len(CD)).filter(c => CD[c].r == 3)]
+  // what a new player owns, and the deck a run starts with until it's changed: strikes, defends, a bash
+  let STARTC = [6, 5, 2, 1, 0, 1, 1, 1] + range(len(CD) - 8).map(c => 0)
+  let STARTD = [5, 4, 1] + range(len(CD) - 3).map(c => 0)
+  let OWN = range(len(CD)).map(c => c < len(coll) ? coll[c] : len(coll) == 0 ? STARTC[c] : 0)
+  let SD = range(len(CD)).map(c => min(OWN[c], c < len(sdeck) ? sdeck[c] : len(sdeck) == 0 ? STARTD[c] : 0))
+  let SDN = sum(SD)
+  let today = wall == null ? "" : fmtTime(wall, "yyyy-MM-dd")
+  let packN = packs + (today != "" && packDay != today ? 1 : 0)
 
   // ---- the relics -------------------------------------------------------------------------------
   let RL = [
@@ -360,6 +389,7 @@ app "cryptdeck" {
     let up = fk == 1 ? 0.45 : 0.36
     gold = gold + g
     rwG = g
+    if fk == 2 { packs = packs + 1 }
     hp = min(mhp, hp + (R[0] ? 6 : 0) + (R[22] ? 12 : 0))
     offer = reduce([random(), random(), random()].map(z => z < rp ? 3 : z < rp + up ? 2 : 1), (L, r) => L + [shuffle(POOL[r].filter(c => all(L, o => o.c != c)))[0]].map(c => {c: c, u: random() < act * 0.2}), [])
     let fr = shuffle(range(1, 20).filter(r => !R[r]))
@@ -397,10 +427,14 @@ app "cryptdeck" {
     }
   }
 
-  back: dv != "" || (mode == "fight" && sel >= 0)
+  back: dv != "" || (mode == "fight" && sel >= 0) || mode == "build" || mode == "pack"
   onBack: {
     if dv != "" {
       if dvs >= 0 { dvs = -1 } else { dv = "" }
+    } else if mode == "build" {
+      if bv >= 0 { bv = -1 } else if SDN >= 10 { mode = "title" }
+    } else if mode == "pack" {
+      mode = "title"
     } else {
       sel = -1
     }
@@ -918,6 +952,34 @@ app "cryptdeck" {
     ogLLLLLLLLgo
     .oggggggggo.
     ..oooooooo..
+    """,
+    """
+    ...oooooo...
+    ..oWWWWWWo..
+    .oWWWWWWWWo.
+    .oWooWWooWo.
+    .oWoRWWoRWo.
+    .oWWWooWWWo.
+    ..oWWWWWWo..
+    ...oWoWoWo..
+    ...oooooo...
+    .R........R.
+    ..R......R..
+    ...RR..RR...
+    """,
+    """
+    .....oo.....
+    ....o..o....
+    ...oooooo...
+    ..oGGGGGGo..
+    ..oGYYYYGo..
+    ..oGYWWYGo..
+    ..oGYWWYGo..
+    ..oGYYYYGo..
+    ..oGGGGGGo..
+    ...oooooo...
+    ....oGGo....
+    .....oo.....
     """
   ]
   let ICP = {o: INK, S: "#eef2fa", G: "#c08a30", K: "#4a7ad8", k: "#a8c8ff", H: "#a8b2c6", h: "#e2e8f2", R: "#e8504a", Y: "#ffd04a", W: "#fff8e0", A: "#a8b2c6", g: "#2e8a3e", l: "#b8f89a", T: "#6ac85a", L: "#5ac85a"}
@@ -1346,7 +1408,7 @@ app "cryptdeck" {
   // ---- what's on screen, for drawing and for taps -----------------------------------------------
   // the fight is drawn while it plays out, after it's won or lost
   let scene = mode == "fight" || (busy && (mode == "reward" || mode == "end") && len(en) > 0)
-  let TB = mode != "title" && mode != "end" && dv == ""
+  let TB = mode != "title" && mode != "end" && mode != "build" && mode != "pack" && dv == ""
   let RLT = relics.map((r, j) => {r: r, x: 10 + (j % floor((SW - 20) / 23)) * 23, y: TOP + 34 + floor(j / floor((SW - 20) / 23)) * 23, w: 21, h: 21})
   let canUp = any(deck, h => !h.u && CD[h.c].t != 3)
   let BW1 = min(SW - 48, 300)
@@ -1366,13 +1428,28 @@ app "cryptdeck" {
   let SHC = range(6).map(j => {x: SHX + (j % 3) * (SCW + 12), y: TOP + 84 + floor(j / 3) * (SCH + 30), w: SCW, h: SCH})
   let SRY = TOP + 84 + 2 * (SCH + 30) + 2
   let SHR = range(2).map(j => {x: 14 + j * ((SW - 38) / 2 + 10), y: SRY, w: (SW - 38) / 2, h: 64})
+  // a pack's cards, where a reward's go
+  let PKC = range(len(pk)).map(j => {x: SW / 2 - (240 * RWS + 20) / 2 + j * (80 * RWS + 10), y: RY + 176})
+  // building the deck: every kind of card owned, a row each with − and + at its ends
+  let BLC = range(len(CD)).filter(c => OWN[c] > 0).sortBy(c => CD[c].r * 100 + c)
+  let BCOL = LS ? 4 : 2
+  let BTW = (SW - 24 - (BCOL - 1) * 8) / BCOL
+  let BY0 = TOP + 70
+  let BRH = clamp(floor((SH - INS - 80 - BY0) / max(1, ceil(len(BLC) / BCOL))) - 6, 20, 40)
+  let BLT = range(len(BLC)).map(j => {c: BLC[j], x: 12 + (j % BCOL) * (BTW + 8), y: BY0 + floor(j / BCOL) * (BRH + 6), w: BTW, h: BRH})
+  // the title's deck and pack buttons: beside New Run when held sideways, under it otherwise
+  let TBW = LS ? min(200, BX1 - 30) : (BW1 - 10) / 2
+  let TBY = LS ? SH * 0.68 : SH * 0.68 + (rmode != "" ? 126 : 68)
   // a card looked at from the deck
   let PS = min(2.3, (SW - 80) / 80, (SH - TOP - INS - 240) / 112)
   let PVY = TOP + 70
   let BT = (dv != "" ? [{id: "dvx", x: SW - 58, y: TOP + 6, w: 46, h: 40, l: "X", p: "off"}] + (dvC != null && (dv == "up" || dv == "rm") ? [{id: "dvok", x: BX1, y: PVY + 112 * PS + 30, w: BW1, h: 52, l: dv == "up" ? "UPGRADE" : "REMOVE", p: dv == "up" ? "go" : "red"}] : [])
     : mode == "title" ? [{id: "new", x: BX1, y: SH * 0.68, w: BW1, h: 56, l: "NEW RUN", p: "go"}] + (rmode != "" ? [{id: "cont", x: BX1, y: SH * 0.68 + 68, w: BW1, h: 46, l: "CONTINUE", p: "blue"}] : [])
+      + [{id: "build", x: LS ? BX1 - 20 - TBW : BX1, y: TBY, w: TBW, h: 50, l: "DECK", l2: "${SDN} CARDS", p: "blue"}, {id: "pack", x: LS ? BX1 + BW1 + 20 : BX1 + TBW + 10, y: TBY, w: TBW, h: 50, l: "PACK", l2: packN > 1 ? "${packN} TO OPEN" : packN == 1 ? "1 TO OPEN" : "NEXT ONE TOMORROW", p: packN > 0 ? "go" : "off", dis: packN == 0}]
+    : mode == "build" ? (bv >= 0 ? [] : [{id: "title", x: BX1, y: SH - INS - 62, w: BW1, h: 54, l: "DONE", l2: SDN < 10 ? "A DECK NEEDS 10 CARDS" : "${SDN} CARDS", p: SDN < 10 ? "off" : "go", dis: SDN < 10}])
+    : mode == "pack" ? [{id: "title", x: BX1, y: SH - INS - 84, w: BW1, h: 56, l: "COLLECT", p: "go"}]
     : mode == "fight" ? (showHand && !busy ? [{id: "end", x: SW - 132, y: CTY - 2, w: 122, h: 50, l: "END TURN", p: "go"}] : []) + [{id: "pdraw", x: 62, y: CTY, w: 50, h: 46, l: "${len(drw)}", p: "off", fs: 9}, {id: "pdisc", x: 118, y: CTY, w: 50, h: 46, l: "${len(disc)}", p: "off", fs: 9}]
-    : mode == "reward" && !busy ? (len(offer) > 0 ? [{id: "skip", x: BX1, y: RY + 196 + 112 * RWS, w: BW1, h: 44, l: "SKIP", p: "off"}] : len(bossR) > 0 ? [] : [{id: "next", x: BX1, y: SH - INS - 84, w: BW1, h: 56, l: fk == 2 ? "ON TO ACT ${act + 2}" : "CONTINUE", p: "go"}])
+    : mode == "reward" && !busy ? (len(offer) > 0 ? [{id: "skip", x: BX1, y: RY + 196 + 112 * RWS, w: (BW1 - 10) / 2, h: 44, l: "SKIP", p: "off"}, {id: "rm", x: BX1 + (BW1 + 10) / 2, y: RY + 196 + 112 * RWS, w: (BW1 - 10) / 2, h: 44, l: "REMOVE ONE", l2: "INSTEAD", p: "red", dis: len(deck) <= 5}] : len(bossR) > 0 ? [] : [{id: "next", x: BX1, y: SH - INS - 84, w: BW1, h: 56, l: fk == 2 ? "ON TO ACT ${act + 2}" : "CONTINUE", p: "go"}])
     : mode == "rest" ? [{id: "rest", x: BX1, y: SH * 0.52, w: BW1, h: 58, l: "REST", l2: "HEAL ${min(mhp - hp, floor(mhp * 0.3) + (R[17] ? 15 : 0))} HP", p: "go"}, {id: "smith", x: BX1, y: SH * 0.52 + 70, w: BW1, h: 58, l: "SMITH", l2: canUp ? "UPGRADE A CARD" : "NOTHING TO UPGRADE", p: canUp ? "blue" : "off", dis: !canUp}, {id: "leave", x: BX1 + BW1 / 4, y: SH * 0.52 + 140, w: BW1 / 2, h: 40, l: "LEAVE", p: "off"}]
     : mode == "shop" ? [{id: "rm", x: SHC[5].x, y: SHC[5].y, w: SCW, h: SCH, l: "REMOVE", l2: rmDone ? "SOLD OUT" : "${rmc} GOLD", p: rmDone || gold < rmc ? "off" : "red", dis: rmDone || gold < rmc}, {id: "leave", x: BX1, y: SRY + 80, w: BW1, h: 50, l: "LEAVE", p: "go"}]
     : mode == "chest" ? [{id: "next", x: BX1, y: SH - INS - 84, w: BW1, h: 56, l: "CONTINUE", p: "go"}]
@@ -1384,6 +1461,8 @@ app "cryptdeck" {
     : mode == "fight" && showHand ? range(len(hand)).sortBy(j => j == sel ? 1 : 0).map(j => {h: hand[j], x: HL[j].x, y: HL[j].y, s: CW / 80, r: 0, dim: HV[j].e > pl.e, glow: j == sel})
     : mode == "reward" && !busy ? offer.map((o, j) => {h: o, x: RWC[j].x, y: RWC[j].y, s: RWS, r: 0, dim: false, glow: false})
     : mode == "shop" ? range(min(5, len(shop))).filter(j => !shop[j].sold).map(j => {h: {c: shop[j].c, u: false}, x: SHC[j].x, y: SHC[j].y, s: SHS, r: 0, dim: gold < shop[j].p, glow: false})
+    : mode == "build" ? (bv >= 0 ? [{h: {c: bv, u: false}, x: SW / 2 - 40 * PS, y: PVY, s: PS, r: 0, dim: false, glow: false}] : [])
+    : mode == "pack" ? pk.map((o, j) => {h: o, x: PKC[j].x, y: PKC[j].y, s: RWS, r: 0, dim: false, glow: false})
     : mode == "title" && !LS ? [{h: {c: 2, u: false}, x: SW / 2 - 128, y: SH * 0.42, s: 1, r: -14, dim: false, glow: false}, {h: {c: 1, u: false}, x: SW / 2 + 48, y: SH * 0.42, s: 1, r: 14, dim: false, glow: false}, {h: {c: 24, u: false}, x: SW / 2 - 40, y: SH * 0.40, s: 1, r: 0, dim: false, glow: false}]
     : []
 
@@ -1708,6 +1787,7 @@ app "cryptdeck" {
           text(RL[rwR].n, SW / 2 + 14, RY + 120, size: 6, color: foreground, font: press)
           text(RL[rwR].d, SW / 2 + 14, RY + 131, size: min(5, (SW / 2 - 24) / len(RL[rwR].d)), color: muted, font: press)
         }
+        if fk == 2 { text("+1 CARD PACK", SW / 2 + 14, RY + 125, size: 8, color: "#8aff7a", font: press) }
         if len(offer) > 0 {
           text("TAKE A CARD", SW / 2, RY + 160, size: 8, color: accent, font: press, align: center)
         } else if len(bossR) > 0 {
@@ -1791,6 +1871,32 @@ app "cryptdeck" {
         let bf = (best - 1) % 13 + 1
         text(wins > 0 ? "RUNS WON: ${wins}" : best > 0 ? "BEST: ACT ${ba}, FLOOR ${bf}" : "", SW / 2, SH * 0.68 - 22, size: 7, color: accent, font: press, align: center)
       }
+      if mode == "pack" {
+        text("A PACK OF CARDS", SW / 2, RY + 90, size: 12, color: accent, font: press, align: center)
+        text("THEY JOIN YOUR COLLECTION", SW / 2, RY + 118, size: 6, color: muted, font: press, align: center)
+        for o, j in pk {
+          if o.nw { text("NEW!", PKC[j].x + 40 * RWS, RY + 164, size: 8, color: "#8aff7a", font: press, align: center) }
+        }
+      }
+      if mode == "build" {
+        text("YOUR DECK", 14, TOP + 26, size: 12, color: accent, font: press)
+        text("WHAT A NEW RUN STARTS WITH. CARDS FROM", 14, TOP + 46, size: 5, color: muted, font: press)
+        text("RUNS AND PACKS LAND HERE. TAP A NAME TO SEE IT", 14, TOP + 56, size: 5, color: muted, font: press)
+        for t in BLT {
+          let V = CD[t.c]
+          let n = SD[t.c]
+          let sq = t.h - 4
+          rect(t.x, t.y, t.w, t.h, radius: 3, fill: n > 0 ? CDARK[V.t] : alpha(foreground, 0.05), stroke: CRIM[V.r], width: 1.5)
+          rect(t.x + 2, t.y + 2, sq, sq, radius: 3, fill: n > 0 ? "#b8333a" : alpha(foreground, 0.08))
+          text("-", t.x + t.h / 2 + 0.5, t.y + t.h / 2, size: 9, color: n > 0 ? "#ffffff" : muted, font: press, align: center)
+          rect(t.x + t.w - t.h + 2, t.y + 2, sq, sq, radius: 3, fill: n < OWN[t.c] ? "#3a8a3a" : alpha(foreground, 0.08))
+          text("+", t.x + t.w - t.h / 2 + 0.5, t.y + t.h / 2, size: 9, color: n < OWN[t.c] ? "#ffffff" : muted, font: press, align: center)
+          circle(t.x + t.h + 8, t.y + t.h / 2, 7, fill: "#ffd04a")
+          text("${V.e}", t.x + t.h + 8.5, t.y + t.h / 2 + 0.5, size: 6, color: INK, font: press, align: center)
+          text(V.n, t.x + t.h + 19, t.y + t.h / 2, size: min(6, (t.w - 2 * t.h - 56) / len(V.n)), color: n > 0 ? "#ffffff" : muted, font: press)
+          text("${n}/${OWN[t.c]}", t.x + t.w - t.h - 4, t.y + t.h / 2, size: 6, color: n > 0 ? "#ffd04a" : muted, font: press, align: end)
+        }
+      }
       // ---- the buttons ----
       if dv == "" {
         for b in BT {
@@ -1870,6 +1976,7 @@ app "cryptdeck" {
               deck = set(deck, dvC.i, merge(deck[dvC.i], {u: true}))
             } else {
               deck = remove(deck, dvC.i)
+              if mode == "reward" { offer = [] }
               if mode == "shop" {
                 gold = gold - rmc
                 rmc = rmc + 25
@@ -1904,7 +2011,7 @@ app "cryptdeck" {
             hp = 80
             mhp = 80
             gold = 99
-            deck = [0, 0, 0, 0, 0, 1, 1, 1, 1, 2].map(c => {c: c, u: false})
+            deck = SDN < 10 ? [0, 0, 0, 0, 0, 1, 1, 1, 1, 2].map(c => {c: c, u: false}) : reduce(range(len(CD)), (L, c) => L + range(SD[c]).map(z => {c: c, u: false}), [])
             relics = [0]
             seed = random(1, 999999)
             pos = -1
@@ -1920,6 +2027,17 @@ app "cryptdeck" {
             haptic()
           } else if b.id == "cont" {
             mode = rmode
+          } else if b.id == "build" {
+            bv = -1
+            mode = "build"
+          } else if b.id == "pack" {
+            // three cards, the last of them uncommon or better; the day's pack goes before a boss's
+            let P = reduce([random() < 0.1 ? 3 : random() < 0.35 ? 2 : 1, random() < 0.1 ? 3 : random() < 0.35 ? 2 : 1, random() < 0.3 ? 3 : 2], (L, r) => L + [shuffle(POOL[r].filter(c => all(L, o => o.c != c)))[0]].map(c => {c: c, u: false, nw: OWN[c] == 0}), [])
+            pk = P
+            coll = reduce(P, (C, o) => set(C, o.c, C[o.c] + 1), OWN)
+            if today != "" && packDay != today { packDay = today } else { packs = max(0, packs - 1) }
+            mode = "pack"
+            haptic()
           } else if b.id == "title" {
             mode = "title"
           } else if b.id == "end" {
@@ -1973,6 +2091,7 @@ app "cryptdeck" {
               let rc = POOL[3][random(len(POOL[3]))]
               gold = gold - 50
               deck = deck + [{c: rc, u: false}]
+              coll = set(OWN, rc, OWN[rc] + 1)
               evr = "YOU WIN ${CD[rc].n}"
             }
             haptic()
@@ -2039,12 +2158,13 @@ app "cryptdeck" {
             let wkm = pl.w > 0 ? 0.75 : 1
             let base = (V.sp == "slam" ? pl.b : V.d ?? 0) + pl.st * (V.sm ?? 1)
             let nh = V.x ?? 1
-            let en1 = en.map((e, i) => V.d == null || indexOf(tg, i) < 0 || e.hp <= 0 ? e : reduce(range(nh), (E, j) => E.hp <= 0 ? E : [max(0, floor(base * wkm * (E.v > 0 ? 1.5 : 1)))].map(d => merge(E, {b: max(0, E.b - d), hp: E.hp - max(0, d - E.b)}))[0], e))
+            let en1 = en.map((e, i) => V.d == null || indexOf(tg, i) < 0 || e.hp <= 0 ? e : reduce(range(nh), (E, j) => E.hp <= 0 ? E : [max(0, floor(base * wkm * (E.v > 0 ? 1.5 : 1) * (V.sp == "exe" && E.hp * 2 < E.mh ? 2 : 1)))].map(d => merge(E, {b: max(0, E.b - d), hp: E.hp - max(0, d - E.b)}))[0], e))
             let en2 = en1.map((e, i) => indexOf(tg, i) >= 0 && e.hp > 0 ? merge(e, {v: e.v + (V.v ?? 0), w: e.w + (V.w ?? 0)}) : e)
             let ac = pl.ac + (V.t == 0 ? 1 : 0)
             let nb = V.sp == "dbl" ? pl.b * 2 : pl.b + (V.b ?? 0)
             let nst = (V.sp == "x2" ? pl.st * 2 : pl.st + (V.s ?? 0)) + (R[7] && V.t == 0 && ac % 3 == 0 ? 1 : 0)
             let pz = (V.hp ?? 0) > 0 && R[15] && !pl.pz
+            let heal = V.sp == "drain" ? sum([0] + tg.map(i => en[i].hp - max(0, en1[i].hp))) : 0
             fx = [{k: "card", t: V.t, x: HL[sel].x, y: HL[sel].y, ti: len(tg) == 1 ? tg[0] : -1, t0: 0}]
               + (V.t == 0 ? [{k: "plunge", t0: 0.05}] : [])
               + (V.d == null ? [] : tg.map(i => {k: "slash", i: i, n: nh, t0: 0.1}) + tg.map(i => {k: "hit", i: i, d: en[i].hp - en1[i].hp, bl: en[i].b - en1[i].b, t0: 0.16}))
@@ -2055,9 +2175,10 @@ app "cryptdeck" {
               + ((V.hp ?? 0) > 0 ? [{k: "hit", i: -1, d: min(hp, V.hp), bl: 0, t0: 0.1}] : [])
               + ((V.en ?? 0) > 0 ? [{k: "txt", i: -1, s: "+${V.en} ENERGY", c: "#ffd04a", t0: 0.3}] : [])
               + (V.t == 2 ? [{k: "txt", i: -1, s: V.n, c: "#c8a0ff", t0: 0.15}] : [])
+              + (heal > 0 && hp < mhp ? [{k: "txt", i: -1, s: "+${min(mhp - hp, heal)} HP", c: "#6fe05a", t0: 0.35}] : [])
             en = en2
             pl = merge(pl, {e: pl.e - V.e + (V.en ?? 0), b: nb, st: nst, ps: pl.ps + (V.ps ?? 0), pb: pl.pb + (V.pb ?? 0), pt: pl.pt + (V.pt ?? 0), ft: pl.ft + (V.ft ?? 0), brr: pl.brr || V.sp == "keep", ac: ac, pz: pl.pz || pz})
-            hp = max(0, hp - (V.hp ?? 0))
+            hp = min(mhp, max(0, hp - (V.hp ?? 0)) + heal)
             hand = remove(hand, sel)
             if (V.ex ?? false) || V.t == 2 { exh = exh + [h] } else { disc = disc + [h] }
             if V.sp == "copy" { disc = disc + [{c: h.c, u: h.u}] }
@@ -2083,6 +2204,7 @@ app "cryptdeck" {
           let cj = range(len(offer)).find(j => x >= RWC[j].x && x < RWC[j].x + RWC[j].w && y >= RWC[j].y && y < RWC[j].y + RWC[j].h)
           if cj != null {
             deck = deck + [offer[cj]]
+            coll = set(OWN, offer[cj].c, OWN[offer[cj].c] + 1)
             offer = []
             haptic()
           } else if len(offer) == 0 && len(bossR) > 0 {
@@ -2100,6 +2222,7 @@ app "cryptdeck" {
             gold = gold - shop[sj].p
             if shop[sj].t == 0 {
               deck = deck + [{c: shop[sj].c, u: false}]
+              coll = set(OWN, shop[sj].c, OWN[shop[sj].c] + 1)
             } else {
               gainR = shop[sj].r
               gainQ = gainQ + 1
@@ -2107,9 +2230,31 @@ app "cryptdeck" {
             shop = set(shop, sj, merge(shop[sj], {sold: true}))
             haptic()
           }
+        } else if mode == "build" {
+          // − takes one out, + puts one in, the name shows the card
+          let t = BLT.find(z => x >= z.x && x < z.x + z.w && y >= z.y && y < z.y + z.h)
+          if bv >= 0 {
+            bv = -1
+          } else if t != null && x < t.x + t.h {
+            if SD[t.c] > 0 {
+              sdeck = set(SD, t.c, SD[t.c] - 1)
+              haptic()
+            }
+          } else if t != null && x >= t.x + t.w - t.h {
+            if SD[t.c] < OWN[t.c] {
+              sdeck = set(SD, t.c, SD[t.c] + 1)
+              haptic()
+            }
+          } else if t != null {
+            bv = t.c
+          }
         }
       }
       // ---- every card on screen ----
+      if mode == "build" && bv >= 0 {
+        rect(0, 0, SW, SH, fill: alpha(background, 0.94))
+        text("TAP ANYWHERE TO GO BACK", SW / 2, PVY + 112 * PS + 24, size: 6, color: muted, font: press, align: center)
+      }
       for k in CARDS {
         let V = k.h.u ? merge(CD[k.h.c], CD[k.h.c].u) : CD[k.h.c]
         let inF = mode == "fight" && dv == ""
@@ -2131,6 +2276,8 @@ app "cryptdeck" {
           + (V.en != null ? ["+${V.en} ENERGY"] : [])
           + (V.dr != null ? ["DRAW ${V.dr}"] : [])
           + (V.sp == "copy" ? ["A COPY GOES TO", "YOUR DISCARD"] : [])
+          + (V.sp == "exe" ? ["DOUBLE ON FOES", "BELOW HALF HP"] : [])
+          + (V.sp == "drain" ? ["HEAL THE DAMAGE", "THAT GETS THROUGH"] : [])
           + (V.t == 3 ? ["CLOGS YOUR HAND"] : [])
           + (V.ex ?? false ? ["EXHAUST"] : [])
         let nm = V.n + (k.h.u ? "+" : "")
