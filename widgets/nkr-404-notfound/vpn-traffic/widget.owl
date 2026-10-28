@@ -1,0 +1,59 @@
+// Generic Android VPN and network traffic monitor.
+//
+// Android's VPN clients normally create an active tun*, ppp*, ipsec*, wg* or
+// utun* interface. This reads the network stack directly, so it has no
+// dependency on Karing or another particular VPN app. The traffic counters
+// below are Android's whole-phone counters since boot, not one app's traffic.
+widget "VPN traffic" {
+  page: 1
+  order: 20
+  size: 6x3
+  minSize: 4x2
+
+  meta {
+    owl: 13
+    description: "Generic Android VPN interface status, live network speed and traffic totals."
+    version: "1.0"
+    license: "MIT"
+    category: "system"
+  }
+
+  requires { pacman: ["iproute2"] }
+
+  // Omalauncher's Linux environment sees Android's current network interfaces.
+  // Most Android VPN implementations use tun0; the other names cover common
+  // OpenVPN, WireGuard and IPsec implementations.
+  source links = cmd("ip -j link") every 3s json
+  source net = android.network every 2s
+  state down = 0
+  state up = 0
+
+  on net {
+    if old != null && value.uptime > old.uptime {
+      if value.rx >= old.rx { down = (value.rx - old.rx) / (value.uptime - old.uptime) }
+      if value.tx >= old.tx { up = (value.tx - old.tx) / (value.uptime - old.uptime) }
+    }
+  }
+
+  let tunnels = (links ?? []).filter(i =>
+    (startsWith(i.ifname, "tun") || startsWith(i.ifname, "ppp") || startsWith(i.ifname, "ipsec") || startsWith(i.ifname, "wg") || startsWith(i.ifname, "utun")) && contains(i.flags, "UP")
+  )
+  let active = len(tunnels) > 0
+  let interface = active ? tunnels[0].ifname : null
+  let downHistory = history(down, 36)
+
+  Column {
+    gap: 6
+    Row {
+      gap: 8
+      Text { text: "VPN"; style: label; weight: 1 }
+      Text { text: links == null ? "checking…" : active ? "connected · ${interface}" : "disconnected"; style: small; color: active ? accent : muted }
+    }
+    Row {
+      Text { text: "↓ ${fmtBytes(down)}/s"; style: title; color: cyan; weight: 1 }
+      Text { text: "↑ ${fmtBytes(up)}/s"; style: title; color: accent; weight: 1; align: end }
+    }
+    Text { text: "phone total since boot  ↓ ${fmtBytes(net.rx)}   ↑ ${fmtBytes(net.tx)}"; style: small; color: muted }
+    Sparkline { values: downHistory; min: 0; color: cyan; area: true; fill: width; weight: 1 }
+  }
+}
