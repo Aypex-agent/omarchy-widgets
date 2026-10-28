@@ -1,0 +1,650 @@
+face "ukiyo-e" {
+  // A woodblock print. A mountain over the sea under a graded sky, with a pine in front and bands of mist across: the
+  // sky follows the hour, from sunrise to sunset as the weather reports them, the moon is in its real phase, rain falls
+  // in straight lines and snow in flakes, and the mountain's snow grows with the winter. The title cartouche names the
+  // season of the old Japanese calendar, one of 72 of about five days each; the page under the print has it in
+  // English, the weather, the sun and the moon, your newest notifications as letters and your most used apps.
+  // The print is the theme's paper and ink, with its blue, red and green for the inks between.
+
+  meta {
+    owl: 14
+    description: "A woodblock print that follows the hour, the weather and the moon, the 72 seasons of the old Japanese calendar, your letters and apps"
+    version: "1.0"
+    license: "MIT"
+    category: "fun"
+  }
+
+  background: background
+  padding: 0
+  edge: true
+
+  source now = clock every 1m
+  source n = android.notifications
+  source apps = android.apps
+  source wx = http("https://wttr.in/?format=j1") every 30m timeout 10s json
+
+  let mincho = "https://raw.githubusercontent.com/google/fonts/main/ofl/zenoldmincho/ZenOldMincho-Regular.ttf"
+  let garamond = "https://raw.githubusercontent.com/google/fonts/main/ofl/ebgaramond/EBGaramond%5Bwght%5D.ttf"
+  let garamondI = "https://raw.githubusercontent.com/google/fonts/main/ofl/ebgaramond/EBGaramond-Italic%5Bwght%5D.ttf"
+
+  // The 72 kō, each from its first day (month * 100 + day), as the almanac of 1874 names them, with the 24 sekki they
+  // fall in. The kanji are spaced, one a line in the cartouche.
+  let ko = [
+    [204, "東 風 解 凍", "harukaze kōri o toku", "East wind melts the ice"],
+    [209, "黄 鶯 睍 睆", "kōō kenkan su", "Bush warblers start singing in the mountains"],
+    [214, "魚 上 氷", "uo kōri o izuru", "Fish emerge from the ice"],
+    [219, "土 脉 潤 起", "tsuchi no shō uruoi okoru", "Rain moistens the soil"],
+    [224, "霞 始 靆", "kasumi hajimete tanabiku", "Mist starts to linger"],
+    [301, "草 木 萌 動", "sōmoku mebae izuru", "Grass sprouts, trees bud"],
+    [306, "蟄 虫 啓 戸", "sugomori mushi to o hiraku", "Hibernating insects surface"],
+    [311, "桃 始 笑", "momo hajimete saku", "First peach blossoms"],
+    [316, "菜 虫 化 蝶", "namushi chō to naru", "Caterpillars become butterflies"],
+    [321, "雀 始 巣", "suzume hajimete sukū", "Sparrows start to nest"],
+    [326, "桜 始 開", "sakura hajimete saku", "First cherry blossoms"],
+    [331, "雷 乃 発 声", "kaminari sunawachi koe o hassu", "Distant thunder"],
+    [405, "玄 鳥 至", "tsubame kitaru", "Swallows return"],
+    [410, "鴻 雁 北", "kōgan kaeru", "Wild geese fly north"],
+    [415, "虹 始 見", "niji hajimete arawaru", "First rainbows"],
+    [420, "葭 始 生", "ashi hajimete shōzu", "First reeds sprout"],
+    [425, "霜 止 出 苗", "shimo yamite nae izuru", "Last frost, rice seedlings grow"],
+    [430, "牡 丹 華", "botan hana saku", "Peonies bloom"],
+    [505, "蛙 始 鳴", "kawazu hajimete naku", "Frogs start singing"],
+    [510, "蚯 蚓 出", "mimizu izuru", "Worms surface"],
+    [515, "竹 笋 生", "takenoko shōzu", "Bamboo shoots sprout"],
+    [521, "蚕 起 食 桑", "kaiko okite kuwa o hamu", "Silkworms start feasting on mulberry leaves"],
+    [526, "紅 花 栄", "benibana sakau", "Safflowers bloom"],
+    [531, "麦 秋 至", "mugi no toki itaru", "Wheat ripens and is harvested"],
+    [606, "蟷 螂 生", "kamakiri shōzu", "Praying mantises hatch"],
+    [611, "腐 草 為 螢", "kusaretaru kusa hotaru to naru", "Rotten grass becomes fireflies"],
+    [616, "梅 子 黄", "ume no mi kibamu", "Plums turn yellow"],
+    [621, "乃 東 枯", "natsukarekusa karuru", "Self-heal withers"],
+    [627, "菖 蒲 華", "ayame hana saku", "Irises bloom"],
+    [702, "半 夏 生", "hange shōzu", "Crow-dipper sprouts"],
+    [707, "温 風 至", "atsukaze itaru", "Warm winds blow"],
+    [712, "蓮 始 開", "hasu hajimete hiraku", "First lotus blossoms"],
+    [717, "鷹 乃 学 習", "taka sunawachi waza o narau", "Hawks learn to fly"],
+    [723, "桐 始 結 花", "kiri hajimete hana o musubu", "Paulownia trees produce seeds"],
+    [729, "土 潤 溽 暑", "tsuchi uruōte mushiatsushi", "Earth is damp, air is humid"],
+    [803, "大 雨 時 行", "taiu tokidoki furu", "Great rains sometimes fall"],
+    [808, "涼 風 至", "suzukaze itaru", "Cool winds blow"],
+    [813, "寒 蝉 鳴", "higurashi naku", "Evening cicadas sing"],
+    [818, "蒙 霧 升 降", "fukaki kiri matō", "Thick fog descends"],
+    [823, "綿 柎 開", "wata no hana shibe hiraku", "Cotton flowers bloom"],
+    [828, "天 地 始 粛", "tenchi hajimete samushi", "Heat starts to die down"],
+    [902, "禾 乃 登", "kokumono sunawachi minoru", "Rice ripens"],
+    [908, "草 露 白", "kusa no tsuyu shiroshi", "Dew glistens white on grass"],
+    [913, "鶺 鴒 鳴", "sekirei naku", "Wagtails sing"],
+    [918, "玄 鳥 去", "tsubame saru", "Swallows leave"],
+    [923, "雷 乃 収 声", "kaminari sunawachi koe o osamu", "Thunder ceases"],
+    [928, "蟄 虫 坏 戸", "mushi kakurete to o fusagu", "Insects hole up underground"],
+    [1003, "水 始 涸", "mizu hajimete karuru", "Farmers drain the fields"],
+    [1008, "鴻 雁 来", "kōgan kitaru", "Wild geese return"],
+    [1013, "菊 花 開", "kiku no hana hiraku", "Chrysanthemums bloom"],
+    [1018, "蟋 蟀 在 戸", "kirigirisu to ni ari", "Crickets chirp around the door"],
+    [1023, "霜 始 降", "shimo hajimete furu", "First frost"],
+    [1028, "霎 時 施", "kosame tokidoki furu", "Light rains sometimes fall"],
+    [1102, "楓 蔦 黄", "momiji tsuta kibamu", "Maple leaves and ivy turn yellow"],
+    [1107, "山 茶 始 開", "tsubaki hajimete hiraku", "Camellias bloom"],
+    [1112, "地 始 凍", "chi hajimete kōru", "Land starts to freeze"],
+    [1117, "金 盞 香", "kinsenka saku", "Daffodils bloom"],
+    [1122, "虹 蔵 不 見", "niji kakurete miezu", "Rainbows hide"],
+    [1127, "朔 風 払 葉", "kitakaze konoha o harau", "North wind blows the leaves from the trees"],
+    [1202, "橘 始 黄", "tachibana hajimete kibamu", "Tachibana citrus trees turn yellow"],
+    [1207, "閉 塞 成 冬", "sora samuku fuyu to naru", "Cold sets in, winter begins"],
+    [1212, "熊 蟄 穴", "kuma ana ni komoru", "Bears start hibernating in their dens"],
+    [1216, "鱖 魚 群", "sake no uo muragaru", "Salmon gather and swim upstream"],
+    [1222, "乃 東 生", "natsukarekusa shōzu", "Self-heal sprouts"],
+    [1227, "麋 角 解", "sawashika no tsuno otsuru", "Deer shed their antlers"],
+    [101, "雪 下 出 麦", "yuki watarite mugi nobiru", "Wheat sprouts under snow"],
+    [105, "芹 乃 栄", "seri sunawachi sakau", "Parsley flourishes"],
+    [110, "水 泉 動", "shimizu atataka o fukumu", "Springs thaw"],
+    [115, "雉 始 雊", "kiji hajimete naku", "Pheasants start to call"],
+    [120, "款 冬 華", "fuki no hana saku", "Butterburs bud"],
+    [125, "水 沢 腹 堅", "sawamizu kōri tsumeru", "Ice thickens on the streams"],
+    [130, "鶏 始 乳", "niwatori hajimete toya ni tsuku", "Hens start laying eggs"]
+  ]
+  let sekki = [
+    [101, "冬至", "tōji", "winter solstice"], [105, "小寒", "shōkan", "lesser cold"], [120, "大寒", "daikan", "greater cold"],
+    [204, "立春", "risshun", "beginning of spring"], [219, "雨水", "usui", "rainwater"], [306, "啓蟄", "keichitsu", "insects awaken"],
+    [321, "春分", "shunbun", "spring equinox"], [405, "清明", "seimei", "pure and clear"], [420, "穀雨", "kokuu", "grain rain"],
+    [505, "立夏", "rikka", "beginning of summer"], [521, "小満", "shōman", "lesser ripening"], [606, "芒種", "bōshu", "grain in ear"],
+    [621, "夏至", "geshi", "summer solstice"], [707, "小暑", "shōsho", "lesser heat"], [723, "大暑", "taisho", "greater heat"],
+    [808, "立秋", "risshū", "beginning of autumn"], [823, "処暑", "shosho", "end of heat"], [908, "白露", "hakuro", "white dew"],
+    [923, "秋分", "shūbun", "autumn equinox"], [1008, "寒露", "kanro", "cold dew"], [1023, "霜降", "sōkō", "frost descends"],
+    [1107, "立冬", "rittō", "beginning of winter"], [1122, "小雪", "shōsetsu", "lesser snow"], [1207, "大雪", "taisetsu", "greater snow"],
+    [1222, "冬至", "tōji", "winter solstice"]
+  ]
+  let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+  let md = num(fmtTime(now, "M")) * 100 + num(fmtTime(now, "d"))
+  let kos = ko.sortBy(k => k[0])
+  let kNow = kos.filter(k => k[0] <= md).last() ?? kos[0]
+  let kNext = kos.find(k => k[0] > md) ?? kos[0]
+  let sNow = sekki.filter(k => k[0] <= md).last()
+
+  let h = num(fmtTime(now, "H")) + num(fmtTime(now, "m")) / 60
+  let cur = wx.current_condition[0]
+  let code = cur.weatherCode ?? "113"
+  let cloud = code == "113" ? 0.0 : code == "116" ? 0.5 : 1.0
+  let rain = contains(["176", "200", "263", "266", "281", "284", "293", "296", "299", "302", "305", "308", "311", "314", "353", "356", "359", "386", "389"], code) ? 1 : 0
+  let snow = contains(["179", "182", "185", "227", "230", "317", "320", "323", "326", "329", "332", "335", "338", "350", "362", "365", "368", "371", "374", "377", "392", "395"], code) ? 1 : 0
+  let fog = contains(["143", "248", "260"], code) ? 1 : 0
+  // Sunrise and sunset as the weather gives them, "07:02 AM", in hours and as 24-hour text.
+  let ast = wx.weather[0].astronomy[0]
+  let sun = [ast.sunrise, ast.sunset].map(s => [match(s ?? "", "([0-9]+):([0-9]+) (AM|PM)")].map(g => g == null ? null : [num(g[0]) % 12 + (g[2] == "PM" ? 12 : 0) + num(g[1]) / 60, "${pad(num(g[0]) % 12 + (g[2] == "PM" ? 12 : 0), 2, "0")}:${g[1]}"])[0])
+  let rise = sun[0][0] ?? 6.5
+  let set = sun[1][0] ?? 18.5
+  // The moon's age from a new moon on 6 January 2000, 18:14 UTC, as a share of its month of 29.53 days.
+  let phase = ((now - 947182440) / 86400 % 29.530588853) / 29.530588853
+  let lit = round((1 - cos(phase * 6.2831853)) / 2 * 100)
+  let moonName = phase < 0.03 || phase > 0.97 ? "new moon" : phase < 0.22 ? "waxing crescent" : phase < 0.28 ? "first quarter" : phase < 0.47 ? "waxing gibbous" : phase < 0.53 ? "full moon" : phase < 0.72 ? "waning gibbous" : phase < 0.78 ? "last quarter" : "waning crescent"
+  // Snow on the mountain: most in the coldest weeks, a cap in high summer.
+  let doy = num(fmtTime(now, "D"))
+  let cap = clamp(0.55 + 0.45 * cos((doy - 20) / 365 * 6.2831853) + snow * 0.3, 0.15, 1)
+
+  let letters = n.available ? n.items.take(6) : []
+  let top = (apps ?? []).filter(a => !a.system || a.score > 0).sortBy(a => -a.score).take(4)
+
+  let W = tileWidth ?? 412
+  let H = tileHeight ?? 900
+  let wide = W > H
+  let artW = wide ? floor(W / 2) : W
+  let m = 18
+
+  let print = """
+    uniform half4 paper;
+    uniform half4 ink;
+    uniform half4 blu;
+    uniform half4 red;
+    uniform half4 grn;
+    uniform float dpw;
+    uniform float hour;
+    uniform float rise;
+    uniform float sset;
+    uniform float cloud;
+    uniform float rain;
+    uniform float snow;
+    uniform float fog;
+    uniform float cap;
+    uniform float phase;
+    uniform float seed;
+    float h1(float n) { return fract(sin(n * 12.9898) * 43758.5453); }
+    float h2(float2 p) { return fract(sin(dot(p, float2(127.1, 311.7))) * 43758.5453); }
+    float vn(float2 p) {
+      float2 i = floor(p);
+      float2 f = fract(p);
+      float2 u = f * f * (3.0 - 2.0 * f);
+      return mix(mix(h2(i), h2(i + float2(1.0, 0.0)), u.x), mix(h2(i + float2(0.0, 1.0)), h2(i + float2(1.0, 1.0)), u.x), u.y);
+    }
+    float fbm(float2 p) {
+      float v = 0.0;
+      float a = 0.5;
+      for (int i = 0; i < 4; i++) { v += a * vn(p); p = p * 2.03 + float2(17.0, 9.0); a *= 0.5; }
+      return v;
+    }
+    float seg(float2 p, float2 a, float2 b) {
+      float2 pa = p - a;
+      float2 ba = b - a;
+      float t = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+      return length(pa - ba * t);
+    }
+    float cover(float d, float w, float aa) { return 1.0 - smoothstep(w - aa, w + aa, d); }
+    float lum(float3 c) { return dot(c, float3(0.2126, 0.7152, 0.0722)); }
+    // Seigaiha, the wave pattern of overlapping scales: rows a quarter cell apart, each over the row above, with
+    // four rings to a scale. Returns how much of a ring line covers p.
+    float seigaiha(float2 p, float cell, float aa) {
+      float2 g = p / cell;
+      float j0 = ceil(g.y * 4.0);
+      float bd = -1.0;
+      for (int k = 0; k < 2; k++) {
+        float jj = j0 + 1.0 - float(k);
+        float off = mod(jj, 2.0) * 0.5;
+        float cx = floor(g.x - off + 0.5) + off;
+        float d = length(g - float2(cx, jj * 0.25));
+        if (bd < 0.0 && d < 0.5) { bd = d; }
+      }
+      if (bd < 0.0) { return 0.0; }
+      float r = bd * 8.0;
+      float w = aa / cell * 8.0 + 0.09;
+      return 1.0 - smoothstep(w - 0.06, w, abs(r - floor(r + 0.5)));
+    }
+    half4 main(float2 p) {
+      float s = size.x / dpw;
+      float2 q = p / s;
+      float W = dpw;
+      float H = size.y / s;
+      float aa = 0.7 / s;
+      float2 u = float2(q.x / W, q.y / H);
+      // Printed light on dark whatever the theme: the lighter of its two colours is the paper.
+      bool dk = lum(paper.rgb) < lum(ink.rgb);
+      float3 P0 = dk ? float3(ink.rgb) : float3(paper.rgb);
+      float3 K = dk ? float3(paper.rgb) : float3(ink.rgb);
+      float3 washi = mix(P0, float3(0.95, 0.91, 0.82), 0.3);
+      float3 B = float3(blu.rgb);
+      float3 deep = mix(B, K, 0.5);
+      float3 pale = mix(washi, B, 0.38);
+      float3 R = float3(red.rgb);
+      float3 G = mix(float3(grn.rgb), K, 0.45);
+      float grain = fbm(float2(q.x * 0.004 + seed, q.y * 0.09));
+      float L = 0.0;
+
+      float day = smoothstep(rise - 0.6, rise + 0.6, hour) * (1.0 - smoothstep(sset - 0.6, sset + 0.6, hour));
+      float glow = max(exp(-pow(hour - rise, 2.0) / 0.7), exp(-pow(hour - sset, 2.0) / 0.7));
+      float hz = H * 0.6;
+
+      // The sky: a dark band along the top edge, graded down to the paper at the horizon; red at sunrise and sunset,
+      // indigo at night, grey under rain.
+      float t = clamp(q.y / hz, 0.0, 1.0);
+      float3 sky = mix(mix(B, washi, 0.2), mix(washi, B, 0.1), smoothstep(0.0, 1.0, t));
+      sky = mix(sky, deep, 1.0 - smoothstep(0.0, 0.13, u.y + 0.03 * (grain - 0.5)));
+      sky = mix(sky, mix(washi, R, 0.65), glow * smoothstep(0.3, 1.0, t) * 0.9);
+      float3 nsky = mix(mix(deep, K, 0.6), mix(deep, washi, 0.2), t * t);
+      sky = mix(nsky, sky, day);
+      sky = mix(sky, mix(K, washi, 0.55), max(rain, snow) * 0.5 * (1.0 - t * 0.5));
+      float3 col = sky;
+
+      // The sun crosses from sunrise to sunset, the moon from sunset to sunrise.
+      float dp = clamp((hour - rise) / max(sset - rise, 1.0), 0.0, 1.0);
+      float np = clamp(mod(hour - sset + 24.0, 24.0) / max(24.0 - (sset - rise), 1.0), 0.0, 1.0);
+      float rr = min(W, H) * 0.07;
+      float2 sc = float2(W * (0.3 + 0.5 * dp), hz - (hz - rr * 2.4) * sin(3.14159 * dp));
+      float2 mc = float2(W * (0.3 + 0.5 * np), hz - (hz - rr * 2.4) * sin(3.14159 * np));
+      float sd = length(q - sc);
+      col = mix(col, mix(R, washi, 0.15 * (1.0 - glow)), day * (1.0 - 0.75 * max(cloud, rain)) * cover(sd, rr, aa));
+      if (day < 1.0) {
+        float2 mq = (q - mc) / (rr * 0.85);
+        float d = length(mq);
+        if (d < 1.1) {
+          float k = cos(6.2831853 * phase);
+          float ry = sqrt(max(1.0 - mq.y * mq.y, 0.0));
+          float l = phase < 0.5 ? smoothstep(k * ry - 0.04, k * ry + 0.04, mq.x) : smoothstep(-k * ry + 0.04, -k * ry - 0.04, mq.x);
+          float3 mcol = mix(mix(col, washi, 0.12), mix(washi, float3(1.0, 0.94, 0.72), 0.3), l);
+          col = mix(col, mcol, (1.0 - day) * (1.0 - 0.6 * max(cloud, rain)) * cover(d, 1.0, aa / rr));
+        }
+        if (d > 1.3 && q.y < hz * 0.8 && h2(floor(q / 2.2) + seed) > 0.994) { col = mix(col, washi, (1.0 - day) * (1.0 - cloud)); }
+      }
+
+      // The mountain: concave slopes from a flat top, its snow running down in fingers, dark where it faces away.
+      float cx = W * 0.6;
+      float ypk = H * 0.19;
+      float dx = abs(q.x - cx);
+      float tt = clamp((dx - W * 0.035) / (W * 0.64), 0.0, 1.0);
+      float ym = ypk + (hz - ypk) * pow(tt, 0.62);
+      float tt2 = clamp((dx + 1.0 - W * 0.035) / (W * 0.64), 0.0, 1.0);
+      float slope = (hz - ypk) * (pow(tt2, 0.62) - pow(tt, 0.62));
+      if (q.y > ym) {
+        float mt = clamp((q.y - ypk) / (hz - ypk), 0.0, 1.0);
+        float3 mcol = mix(deep, mix(pale, washi, 0.35), smoothstep(0.05, 1.0, mt));
+        mcol = mix(mcol, deep, 0.3 * step(q.x, cx) * (1.0 - mt));
+        mcol = mix(mcol, mix(R, K, 0.25), glow * 0.6 * (1.0 - mt * 0.7));
+        // Fingers of snow down the gullies, pointed and of different lengths.
+        float fi = floor((q.x - cx) / 15.0);
+        float fing = pow(1.0 - abs(fract((q.x - cx) / 15.0) * 2.0 - 1.0), 1.8) * (0.3 + 0.7 * h1(fi + 4.0));
+        float sl = ypk + H * (0.03 + 0.12 * cap) * (0.45 + 1.1 * fing);
+        if (q.y < sl) {
+          mcol = mix(washi, pale, 0.15 + 0.35 * step(q.x, cx));
+          mcol = mix(mcol, mix(R, washi, 0.55), glow * 0.5);
+        }
+        mcol = mix(mcol, mix(deep, K, 0.35), (1.0 - day) * 0.6);
+        L = max(L, cover(abs(q.y - sl), 0.45, aa) * step(q.y, sl + 2.0) * 0.8);
+        // Ridges run down from the top in short strokes.
+        float ridge = fract((q.x - cx) / max(q.y - ypk + 30.0, 1.0) * 5.0 + 0.5);
+        if (q.y > sl + 6.0 && ridge < 0.04 && h1(floor((q.x - cx) / max(q.y - ypk + 30.0, 1.0) * 5.0 + 0.5)) > 0.4) { mcol = mix(mcol, deep, 0.35 * (1.0 - mt)); }
+        col = mcol;
+      }
+      L = max(L, cover(abs(q.y - ym) / sqrt(1.0 + slope * slope), 0.7, aa) * step(q.y, hz));
+
+      // The far shore: low green hills at the mountain's foot.
+      float yh = hz - H * (0.015 + 0.045 * fbm(float2(q.x * 0.011, 3.0 + seed)));
+      if (q.y > yh && q.y < hz) {
+        col = mix(mix(G, washi, 0.3), mix(G, K, 0.2), clamp((q.y - yh) / 10.0, 0.0, 1.0));
+        col = mix(col, mix(K, deep, 0.4), (1.0 - day) * 0.5);
+        if (snow > 0.5 && q.y < yh + 3.0) { col = washi; }
+      }
+      L = max(L, cover(abs(q.y - yh), 0.5, aa) * step(q.y, hz));
+
+      // Bands of mist across the mountain, more under cloud and fog; flushed at sunrise and sunset.
+      for (int i = 0; i < 4; i++) {
+        float fi = float(i);
+        if (fi < 1.0 + 3.0 * max(cloud * 0.7, fog)) {
+          float by = H * (0.28 + 0.085 * fi) + H * 0.02 * h1(fi + seed * 3.0);
+          float x0 = W * (h1(fi * 7.1 + seed) * 0.7 - 0.35);
+          float x1 = x0 + W * (0.5 + 0.35 * h1(fi * 3.1 + seed));
+          float bh = H * (0.014 + 0.01 * h1(fi * 5.3));
+          float d = seg(q, float2(x0, by), float2(x1, by)) - bh;
+          if (d < aa) {
+            float3 kc = mix(washi, R, 0.1 + 0.3 * glow);
+            kc = mix(kc, mix(deep, washi, 0.35), (1.0 - day) * 0.8);
+            col = mix(col, kc, cover(d, 0.0, aa));
+          }
+        }
+      }
+
+      // The sea: lighter at the horizon, with strokes of foam closer together far out.
+      if (q.y >= hz) {
+        float st = clamp((q.y - hz) / (H - hz), 0.0, 1.0);
+        col = mix(mix(pale, B, 0.35), deep, st);
+        col = mix(col, mix(deep, K, 0.5), (1.0 - day) * 0.6);
+        float row = sqrt(q.y - hz) * 1.7;
+        float ri = floor(row);
+        if (fract(row) < 0.13 && fract(q.x / (9.0 + (q.y - hz) * 0.5) + h1(ri + seed)) < 0.4) { col = mix(col, washi, 0.65); }
+        if (fract(row) > 0.13 && fract(row) < 0.2 && fract(q.x / (9.0 + (q.y - hz) * 0.5) + h1(ri + seed)) < 0.4) { L = max(L, 0.25); }
+      }
+      // A wave in front, its body patterned in seigaiha, its crest in white claws of foam.
+      float yw = H * 0.86 + H * 0.035 * sin(q.x * 0.017 + 1.0) + H * 0.012 * sin(q.x * 0.06 + 2.0);
+      float claw = pow(1.0 - abs(fract(q.x / 13.0) * 2.0 - 1.0), 3.0) * 7.0 * (0.6 + 0.4 * h1(floor(q.x / 13.0)));
+      if (q.y > yw - claw) {
+        if (q.y < yw + 3.0) {
+          col = washi;
+        } else {
+          col = mix(deep, mix(deep, K, 0.4), (1.0 - day) * 0.6);
+          col = mix(col, mix(washi, B, 0.4), seigaiha(q + float2(0.0, -yw), 16.0, aa) * 0.85);
+        }
+      }
+      L = max(L, cover(abs(q.y - (yw - claw)), 0.6, aa));
+      L = max(L, cover(abs(q.y - yw - 3.0), 0.6, aa));
+
+      // A pine on the left: a crooked trunk and flat pads of needles, snowed on in winter.
+      float2 t0 = float2(W * 0.03, H * 1.02);
+      float2 t1 = float2(W * 0.09, H * 0.76);
+      float2 t2 = float2(W * 0.05, H * 0.56);
+      float2 t3 = float2(W * 0.13, H * 0.4);
+      float2 t4 = float2(W * 0.22, H * 0.31);
+      float tr = min(min(seg(q, t0, t1) - 8.0, seg(q, t1, t2) - 6.5), min(seg(q, t2, t3) - 5.0, seg(q, t3, t4) - 3.5));
+      tr = min(tr, min(seg(q, t2, float2(W * 0.27, H * 0.5)) - 3.0, seg(q, t3, float2(W * -0.02, H * 0.34)) - 2.5));
+      tr = min(tr, seg(q, t1, float2(W * 0.17, H * 0.67)) - 3.0);
+      if (tr < 0.8) {
+        // Bark in short scales.
+        col = mix(mix(K, R, 0.3), washi, 0.12 * step(fract(q.y / 6.0 + 0.3 * step(fract(q.x / 5.0), 0.5)), 0.3));
+        col = mix(col, K, (1.0 - day) * 0.4);
+        L = max(L, cover(abs(tr), 0.7, aa));
+      }
+      float4 pads[6];
+      pads[0] = float4(0.22, 0.30, 0.13, 0.026);
+      pads[1] = float4(0.04, 0.35, 0.1, 0.022);
+      pads[2] = float4(0.15, 0.4, 0.11, 0.024);
+      pads[3] = float4(0.28, 0.49, 0.12, 0.025);
+      pads[4] = float4(0.05, 0.56, 0.12, 0.028);
+      pads[5] = float4(0.13, 0.66, 0.09, 0.022);
+      for (int i = 0; i < 6; i++) {
+        float2 c = float2(pads[i].x * W, pads[i].y * H);
+        float2 r = float2(pads[i].z * W, pads[i].w * H);
+        float2 e = (q - c) / r;
+        float d = length(e) - 1.0;
+        // Flat underneath, as pine pads are drawn.
+        d = max(d, (q.y - c.y - r.y * 0.3) / r.y);
+        if (d < 0.0) {
+          col = mix(G, mix(G, K, 0.4), step(fract((q.x * 0.8 + q.y) / 3.2), 0.4));
+          col = mix(col, mix(K, G, 0.3), (1.0 - day) * 0.6);
+          if ((snow > 0.5 || cap > 0.85) && e.y < -0.25 + 0.2 * sin(q.x * 0.4)) { col = washi; }
+        }
+        L = max(L, cover(abs(d) * r.y, 0.75, aa));
+      }
+
+      col = mix(col, K, clamp(L, 0.0, 1.0));
+
+      // Rain in straight lines, the way the prints draw a shower; snow in flakes.
+      if (rain > 0.5) {
+        float lane = (q.x + q.y * 0.1) / 5.0;
+        float li = floor(lane);
+        if (abs(fract(lane) - 0.5) < 0.07 + aa * 0.1 && fract(q.y / (50.0 + 40.0 * h1(li)) + h1(li * 1.7 + seed)) < 0.55) { col = mix(col, K, 0.55); }
+      }
+      if (snow > 0.5) {
+        float2 cell = floor(q / 17.0);
+        float2 fc = (cell + 0.2 + 0.6 * float2(h2(cell), h2(cell + 7.0))) * 17.0;
+        float fr = h2(cell + 11.0) < 0.35 ? 0.0 : 1.1 + 1.3 * h2(cell + 3.0);
+        float d = length(q - fc);
+        col = mix(col, K, cover(abs(d - fr), 0.4, aa) * 0.6);
+        col = mix(col, washi, cover(d, fr, aa));
+      }
+
+      // The block's grain and the paper's fibres.
+      col *= 0.95 + 0.09 * grain;
+      col = mix(col, washi, 0.05 * h2(floor(q * 1.3)));
+      if (q.y > H - 3.0) { col = K; }
+      return half4(half3(col), 1.0);
+    }
+  """
+
+  // The title cartouche: a strip of paper in a coloured border, the kanji one under another.
+  component Tanzaku(chars, size = 22) {
+    Column {
+      gap: 0
+      padding: 3
+      background: red
+      Column {
+        gap: 2
+        padding: [7, 10]
+        align: center
+        background: background
+        border: 1.5
+        borderColor: foreground
+        for c in chars { Text { text: c; font: mincho; fontSize: size; color: foreground } }
+      }
+    }
+  }
+
+  // A seal stamped in red.
+  component Seal(text, size = 26) {
+    Box {
+      size: size
+      background: red
+      align: center
+      Text { text: text; font: mincho; fontSize: size * 0.5; color: background; align: center }
+    }
+  }
+
+  component Print() {
+    Box {
+      fill: true
+      Shader {
+        fill: true
+        fallback: blue
+        uniforms: { paper: background, ink: foreground, blu: blue, red: red, grn: green, dpw: artW, hour: h, rise: rise, sset: set, cloud: cloud, rain: rain, snow: snow, fog: fog, cap: cap, phase: phase, seed: floor(now / 86400) % 89 }
+        code: print
+      }
+      Row {
+        fill: true
+        padding: [screenLeft + m, screenTop + m, m, m]
+        align: top
+        // The clock in a cartouche with a double rule.
+        Column {
+          gap: 0
+          padding: 2
+          background: background
+          border: 1.5
+          borderColor: foreground
+          Column {
+            gap: 0
+            padding: [12, 6, 12, 8]
+            border: 0.75
+            borderColor: foreground
+            Text { text: fmtTime(now, "HH:mm"); font: mincho; fontSize: 36; color: foreground }
+            Text { text: fmtTime(now, "EEEE d MMMM"); font: garamondI; fontSize: 14; color: foreground; maxLines: 1 }
+          }
+        }
+        Spacer { weight: 1 }
+        Column {
+          gap: 8
+          align: center
+          Tanzaku { chars: split(kNow[1], " ") }
+          Seal { text: sNow[1]; size: 30 }
+        }
+      }
+    }
+  }
+
+  component Label(text) {
+    Text { text: upper(text); font: garamond; fontSize: 11; fontWeight: 600; letterSpacing: 2.5; color: red; maxLines: 1 }
+  }
+
+  component Rule() {
+    Canvas {
+      height: 6
+      fill: width
+      // A brush stroke: thin at the ends, full in the middle.
+      path([[0, 3], [width * 0.1, 2], [width * 0.9, 1.8], [width, 3], [width * 0.9, 4], [width * 0.1, 4.2]], closed: true, fill: alpha(foreground, 0.55))
+    }
+  }
+
+  component Season() {
+    Column {
+      gap: 3
+      Label { text: "${sNow[2]} · ${sNow[3]}" }
+      Text { text: kNow[3]; font: mincho; fontSize: 23; color: foreground; maxLines: 2 }
+      Text {
+        spans: [
+          {text: kNow[2], font: garamondI, fontSize: 15, color: muted},
+          {text: "  ·  next on ${num(kNext[0]) % 100} ${months[floor(num(kNext[0]) / 100) - 1]}: ${lower(kNext[3])}", font: garamond, fontSize: 14, color: muted}
+        ]
+        maxLines: 2
+      }
+    }
+  }
+
+  component Sky() {
+    Row {
+      gap: 0
+      fill: width
+      align: top
+      Column {
+        weight: 1
+        gap: 1
+        Label { text: "weather" }
+        Text { text: cur == null ? "…" : "${cur.temp_C}°"; font: mincho; fontSize: 24; color: foreground; maxLines: 1 }
+        Text { text: lower(cur.weatherDesc[0].value ?? "the sky is quiet"); font: garamond; fontSize: 14; color: muted; maxLines: 2 }
+      }
+      Box { width: 1; height: 64; background: alpha(foreground, 0.35) }
+      Column {
+        weight: 1
+        gap: 1
+        padding: [14, 0, 0, 0]
+        Label { text: "sun" }
+        Text { text: sun[0][1] ?? "…"; font: mincho; fontSize: 24; color: foreground; maxLines: 1 }
+        Text { text: sun[1] == null ? "rises and sets" : "sets at ${sun[1][1]}"; font: garamond; fontSize: 14; color: muted; maxLines: 1 }
+      }
+      Box { width: 1; height: 64; background: alpha(foreground, 0.35) }
+      Column {
+        weight: 1
+        gap: 1
+        padding: [14, 0, 0, 0]
+        Label { text: "moon" }
+        Text { text: "${lit}%"; font: mincho; fontSize: 24; color: foreground; maxLines: 1 }
+        Text { text: moonName; font: garamond; fontSize: 14; color: muted; maxLines: 2 }
+      }
+    }
+  }
+
+  // The moon in its phase, drawn as the print draws it.
+  component Moon() {
+    Canvas {
+      size: 34
+      let r = 15
+      let k = cos(phase * 6.2831853)
+      circle(17, 17, r, fill: foreground)
+      let side = phase < 0.5 ? 1 : -1
+      // The lit limb from top to bottom, then the terminator back up.
+      path(range(50).map(i => i < 25 ? [17 + side * r * sin(rad(i * 7.5)), 17 - r * cos(rad(i * 7.5))] : [17 + side * r * k * sin(rad(180 - (i - 25) * 7.5)), 17 - r * cos(rad(180 - (i - 25) * 7.5))]), closed: true, fill: mix(background, yellow, 0.25))
+      circle(17, 17, r, stroke: foreground, width: 1.2)
+    }
+  }
+
+  component Letters() {
+    Column {
+      gap: 8
+      Row {
+        align: center
+        Label { text: "letters"; weight: 1 }
+        if n.available && n.count > 0 { Text { text: "${n.count}"; font: mincho; fontSize: 14; color: red } }
+      }
+      if !n.available {
+        Text { text: "Let the page read your notifications, and they arrive here as letters."; font: garamond; fontSize: 16; color: muted; onTap: notification("open", "") }
+      } else if len(letters) == 0 {
+        Text { text: "No letters today. Only the wind in the pines."; font: garamondI; fontSize: 17; color: muted }
+      } else {
+        Column {
+          scroll: true
+          weight: 1
+          gap: 10
+          for it in letters key it.key {
+            Row {
+              gap: 12
+              align: top
+              onTap: notification("open", it.key)
+              onLongPress: { haptic(); notification("dismiss", it.key) }
+              Seal { text: upper(sub(it.app ?? it.title ?? "·", 0, 1)) }
+              Column {
+                gap: 0
+                weight: 1
+                Text { text: it.title ?? it.app; font: mincho; fontSize: 15; color: foreground; maxLines: 1 }
+                if it.text != null && it.text != "" { Text { text: it.text; font: garamond; fontSize: 14; color: muted; maxLines: 1 } }
+              }
+              Text { text: fmtAgo(it.time, now); font: garamondI; fontSize: 13; color: muted }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // The most used apps, each in a small cartouche.
+  component Apps() {
+    Row {
+      gap: 8
+      fill: width
+      for a in top key a.key {
+        Box {
+          weight: 1
+          height: 40
+          padding: 2
+          border: 1.5
+          borderColor: foreground
+          align: center
+          onTap: androidApp(a.key)
+          Box {
+            fill: true
+            border: 0.75
+            borderColor: alpha(foreground, 0.5)
+            align: center
+            Text { text: lower(a.name); font: mincho; fontSize: 13; color: foreground; maxLines: 1; align: center; padding: [6, 0] }
+          }
+        }
+      }
+    }
+  }
+
+  component Page() {
+    Column {
+      fill: true
+      gap: 14
+      padding: [m, wide ? screenTop + m : 16, screenRight + m, screenInset + 12]
+      Season {}
+      Rule {}
+      Row {
+        gap: 0
+        fill: width
+        Sky { weight: 1 }
+        Moon {}
+      }
+      Rule {}
+      Letters { weight: 1 }
+      Apps {}
+    }
+  }
+
+  if wide {
+    Row {
+      fill: true
+      gap: 0
+      Box { width: artW; fill: height; Print {} }
+      Page { weight: 1 }
+    }
+  } else {
+    Column {
+      fill: true
+      gap: 0
+      // The print gives up some of the page while there are letters to read.
+      Box { weight: len(letters) > 0 ? 0.46 : 0.54; fill: width; Print {} }
+      Page { weight: len(letters) > 0 ? 0.54 : 0.46 }
+    }
+  }
+}
