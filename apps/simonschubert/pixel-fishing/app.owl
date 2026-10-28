@@ -1,0 +1,881 @@
+app "pixel fishing" {
+  // Fishing in pixel art, seen from the side with the water cut away. Hold anywhere to swing the
+  // rod back and let go to cast: the longer the swing, the further out the bobber lands, and the
+  // far water holds the bigger fish. Wait for the bobber to go under, tap to set the hook, then hold
+  // to reel and ease off when the fish runs, before the line snaps or the fish takes it all out.
+  // Fish sell on the spot; the coins buy rods, reels and lures, and new places to fish: a pond, a
+  // river, the coast, the open sea and a frozen lake, six fish each, one of them a legend. What
+  // bites follows the phone's clock (day and night) and the weather, which turns every two hours.
+  //
+  // There's no game loop, as in pixel pinball. A fight is worked out ahead in one go: `film` steps
+  // it 30 times a second for six seconds from `fseg`, with the finger down or up as it was then, and
+  // the canvas draws the step the clock is in. A press or a let-go starts a new film from where the
+  // fight is right then (on the next frame, as a touch's own time can be off the frame clock), and
+  // so does the end of a film while the fight goes on. When the fish runs is fixed by `fseed`.
+
+  meta { owl: 14; description: "Pixel art fishing: cast, wait for the bite and reel in against the line's tension; five places from a pond to the open sea, 30 fish to log, rods, reels and lures to buy, by day and night"; version: "1.0"; license: "MIT"; category: "games" }
+
+  title: ""
+  statusBar: false
+  edge: true
+  back: mode == "map" || mode == "shop" || mode == "log"
+  onBack: mode = "play"
+  icon: """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" shape-rendering="crispEdges">
+    <rect width="256" height="256" rx="56" fill="#2a7ab0"/>
+    <rect y="96" width="256" height="160" rx="0" fill="#1a5a8e"/>
+    <rect y="200" width="256" height="56" rx="0" fill="#123f66"/>
+    <rect x="0" y="216" width="256" height="40" rx="0" fill="#123f66"/>
+    <rect x="124" y="20" width="8" height="96" fill="#f2efe6"/>
+    <rect x="112" y="84" width="24" height="16" fill="#e8483f"/>
+    <rect x="112" y="100" width="24" height="12" fill="#f8f8f8"/>
+    <rect x="128" y="112" width="4" height="36" fill="#f2efe6"/>
+    <rect x="52" y="140" width="120" height="48" fill="#f0b24a"/>
+    <rect x="68" y="128" width="88" height="12" fill="#f0b24a"/>
+    <rect x="68" y="188" width="88" height="12" fill="#d8902a"/>
+    <rect x="52" y="164" width="120" height="24" fill="#d8902a"/>
+    <rect x="172" y="132" width="16" height="16" fill="#f0b24a"/>
+    <rect x="172" y="180" width="16" height="16" fill="#d8902a"/>
+    <rect x="188" y="120" width="20" height="28" fill="#f0b24a"/>
+    <rect x="188" y="180" width="20" height="28" fill="#d8902a"/>
+    <rect x="172" y="148" width="16" height="32" fill="#f0b24a"/>
+    <rect x="72" y="148" width="12" height="12" fill="#1a1a24"/>
+    <rect x="96" y="140" width="8" height="40" fill="#e8a040"/>
+    <rect x="120" y="148" width="20" height="8" fill="#f8d890"/>
+  </svg>"""
+
+  // "title", "play", or one of the screens over it: "map", "shop" and "log"
+  state mode = "title" persist
+  state coins = 0 persist
+  // the gear's levels, 0 to 4
+  state rod = 0 persist
+  state reel = 0 persist
+  state lure = 0 persist
+  // the places bought (1) and the one fished now
+  state owned = [1, 0, 0, 0, 0] persist
+  state spot = 0 persist
+  // per fish: how many were caught, and the biggest, in cm
+  state got = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] persist
+  state best = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] persist
+  // the fish picked in the log
+  state sel = 0
+
+  // "idle", "aim" (swinging back), "wait" (the bobber out), "fight" or "card" (the catch shown)
+  state phase = "idle"
+  // the finger is down
+  state hold = false
+  // frame-clock times, each -1 until the next frame when a touch set it (see the top)
+  state tapT = 0
+  state aimT = 0
+  state castT = -9
+  state biteAt = 0
+  state buzzAt = 0
+  state cardT = 0
+  state cardOk = false
+  // a let-go, a press and a hook to work out on the next frame
+  state cpend = false
+  state fpend = false
+  state hpend = false
+  // the cast: its power (0 to 1), where the bobber landed in art pixels, and how far out that is
+  state castP = 0
+  state bobX = 60
+  state castD = 0.5
+  // the fish on the line, the fight's start and when it began, and when the fish runs
+  state fi = 0
+  state fseg = null
+  state segT = 0
+  state fseed = 0
+  state card = null
+  state msg = ""
+  state msgT = -9
+
+  source now = clock every 30s
+
+  // ---- the places ----------------------------------------------------------------------------------
+  // name, price, the water at the top and at depth, and the bottom
+  let SPOTS = [
+    {n: "WILLOW POND", c: 0, w: ["#3f8f8a", "#0f2e30"], fl: "#4a4a2a", fl2: "#5e5e36"},
+    {n: "RUSHING RIVER", c: 250, w: ["#3a8ab0", "#0e2a3e"], fl: "#5a564c", fl2: "#7a7466"},
+    {n: "ROCKY COAST", c: 1100, w: ["#2a8ab8", "#0a2440"], fl: "#b8a070", fl2: "#d0b888"},
+    {n: "OPEN SEA", c: 3500, w: ["#1a6ab0", "#04122a"], fl: "#1e2636", fl2: "#2a3448"},
+    {n: "FROZEN LAKE", c: 10000, w: ["#5a9ac0", "#0e2a44"], fl: "#3e4c5a", fl2: "#56687a"}
+  ]
+
+  // ---- the fish --------------------------------------------------------------------------------------
+  // sp the place, t the shape, c the colors (back, body, belly, fins, marks), z the size range in
+  // cm, p the price at an average size; s how hard it pulls, v how fast it swims, a how often it
+  // runs, m how long it lasts; w how often it bites; far only past a long cast, tod 1 by day and 2 by
+  // night only, wet only in the rain (snow on the lake), boss a legend.
+  let FISH = [
+    {n: "BLUEGILL", sp: 0, t: 0, c: ["#2d5a8e", "#4a86c8", "#f0b24a", "#3a6aa0", "#2a4a78"], z: [10, 22], p: 4, s: 0.25, v: 0.22, a: 0.25, m: 1, w: 40, far: false, tod: 0, wet: false, boss: false},
+    {n: "PERCH", sp: 0, t: 0, c: ["#4e6a1e", "#a8b83a", "#f4e6a0", "#e8743a", "#3a4a14"], z: [12, 30], p: 7, s: 0.35, v: 0.25, a: 0.3, m: 1, w: 30, far: false, tod: 0, wet: false, boss: false},
+    {n: "CARP", sp: 0, t: 2, c: ["#8a6420", "#c89a3a", "#f0d890", "#a85a2a", "#a87a2a"], z: [30, 80], p: 16, s: 0.6, v: 0.18, a: 0.3, m: 1.6, w: 18, far: false, tod: 0, wet: false, boss: false},
+    {n: "CATFISH", sp: 0, t: 6, c: ["#3e3a32", "#6a6458", "#c8c0a8", "#4e4a40", "#8a8270"], z: [30, 90], p: 24, s: 0.7, v: 0.2, a: 0.35, m: 1.8, w: 14, far: false, tod: 2, wet: false, boss: false},
+    {n: "PIKE", sp: 0, t: 1, c: ["#3a5222", "#6a8a3a", "#e0e4b0", "#8a6a2a", "#c8d880"], z: [40, 110], p: 38, s: 0.85, v: 0.3, a: 0.45, m: 1.4, w: 8, far: true, tod: 0, wet: false, boss: false},
+    {n: "OLD WHISKERS", sp: 0, t: 6, c: ["#22222e", "#3a3a48", "#9a98a8", "#8a2a2a", "#5a5a70"], z: [140, 190], p: 320, s: 1.25, v: 0.22, a: 0.5, m: 3, w: 1.5, far: true, tod: 2, wet: false, boss: true},
+
+    {n: "CHUB", sp: 1, t: 0, c: ["#4a5a68", "#8a9aa8", "#e8ecf0", "#c86a3a", "#6a7a88"], z: [15, 40], p: 12, s: 0.5, v: 0.25, a: 0.3, m: 1.2, w: 36, far: false, tod: 0, wet: false, boss: false},
+    {n: "TROUT", sp: 1, t: 1, c: ["#4a6a3a", "#8aa860", "#f0e0c8", "#7a8a50", "#e86a8a"], z: [20, 60], p: 22, s: 0.7, v: 0.3, a: 0.4, m: 1.3, w: 28, far: false, tod: 0, wet: false, boss: false},
+    {n: "GRAYLING", sp: 1, t: 0, c: ["#4a4a6a", "#8a8aa8", "#e0e0f0", "#a050c8", "#c8c8e8"], z: [25, 50], p: 28, s: 0.65, v: 0.28, a: 0.4, m: 1.3, w: 18, far: false, tod: 1, wet: false, boss: false},
+    {n: "SALMON", sp: 1, t: 1, c: ["#4a5a7a", "#c8ccd8", "#f8e8e8", "#d86a6a", "#2a3a5a"], z: [50, 110], p: 50, s: 1, v: 0.3, a: 0.45, m: 1.8, w: 12, far: true, tod: 0, wet: false, boss: false},
+    {n: "STURGEON", sp: 1, t: 5, c: ["#3a4048", "#7a8088", "#c8ccd0", "#5a6068", "#a8aeb4"], z: [90, 200], p: 85, s: 1.2, v: 0.2, a: 0.4, m: 2.6, w: 7, far: false, tod: 2, wet: false, boss: false},
+    {n: "RIVER KING", sp: 1, t: 1, c: ["#a8781a", "#f0c040", "#fff0b0", "#d85a2a", "#fff8d0"], z: [150, 220], p: 700, s: 1.5, v: 0.28, a: 0.5, m: 3, w: 1.5, far: true, tod: 0, wet: true, boss: true},
+
+    {n: "MACKEREL", sp: 2, t: 1, c: ["#1a4a6a", "#3a8ab0", "#e8f0f4", "#2a6a8a", "#0a2a40"], z: [25, 45], p: 28, s: 0.9, v: 0.32, a: 0.45, m: 1.3, w: 34, far: false, tod: 0, wet: false, boss: false},
+    {n: "SEA BASS", sp: 2, t: 2, c: ["#3a4a58", "#9aa8b4", "#e8ecf0", "#6a7a88", "#c8d0d8"], z: [30, 80], p: 44, s: 1.1, v: 0.28, a: 0.45, m: 1.8, w: 24, far: false, tod: 0, wet: false, boss: false},
+    {n: "FLOUNDER", sp: 2, t: 3, c: ["#5a4a30", "#8a7448", "#d8c8a0", "#6a5a38", "#c8a868"], z: [25, 60], p: 38, s: 0.9, v: 0.2, a: 0.35, m: 1.8, w: 20, far: false, tod: 1, wet: false, boss: false},
+    {n: "CONGER EEL", sp: 2, t: 4, c: ["#2a2e30", "#4a5254", "#a8b0a8", "#3a4244", "#6a7470"], z: [60, 180], p: 70, s: 1.2, v: 0.3, a: 0.5, m: 2, w: 12, far: false, tod: 2, wet: false, boss: false},
+    {n: "RED SNAPPER", sp: 2, t: 2, c: ["#a82a2a", "#e85a4a", "#f8c8b8", "#c83a3a", "#ffd0c0"], z: [40, 90], p: 95, s: 1.4, v: 0.28, a: 0.45, m: 2.2, w: 7, far: true, tod: 0, wet: false, boss: false},
+    {n: "TIDEBREAKER", sp: 2, t: 5, c: ["#0a5a5a", "#1a9a8a", "#c8f0e0", "#0a7a6a", "#7af0d0"], z: [200, 300], p: 1800, s: 1.9, v: 0.28, a: 0.55, m: 3.4, w: 1.5, far: true, tod: 0, wet: true, boss: true},
+
+    {n: "MAHI-MAHI", sp: 3, t: 5, c: ["#2a8a3a", "#7ac83a", "#f8e848", "#3aa8c8", "#2a6aa8"], z: [80, 150], p: 110, s: 1.5, v: 0.3, a: 0.5, m: 2, w: 30, far: false, tod: 0, wet: false, boss: false},
+    {n: "TUNA", sp: 3, t: 5, c: ["#1a2a5a", "#3a5a9a", "#d8e0e8", "#f0c83a", "#a8b8d0"], z: [100, 250], p: 170, s: 1.8, v: 0.3, a: 0.45, m: 2.6, w: 24, far: false, tod: 0, wet: false, boss: false},
+    {n: "BARRACUDA", sp: 3, t: 1, c: ["#3a4a5a", "#a8b8c0", "#f0f4f8", "#5a6a78", "#2a3a48"], z: [80, 160], p: 140, s: 1.6, v: 0.36, a: 0.55, m: 1.8, w: 18, far: false, tod: 1, wet: false, boss: false},
+    {n: "ANGLERFISH", sp: 3, t: 9, c: ["#1a1a2a", "#3a3a5a", "#5a5a7a", "#2a2a40", "#f8f080"], z: [40, 100], p: 240, s: 1.6, v: 0.22, a: 0.4, m: 2.2, w: 10, far: false, tod: 2, wet: false, boss: false},
+    {n: "SWORDFISH", sp: 3, t: 8, c: ["#1a2a4a", "#4a6a9a", "#d8e0e8", "#2a3a6a", "#8aa0c8"], z: [200, 400], p: 380, s: 1.9, v: 0.3, a: 0.55, m: 3, w: 6, far: true, tod: 0, wet: false, boss: false},
+    {n: "OLD GNASHER", sp: 3, t: 7, c: ["#3a4048", "#6a7480", "#e0e4e8", "#4a525c", "#9aa4b0"], z: [500, 700], p: 4200, s: 2.1, v: 0.28, a: 0.6, m: 4, w: 1.5, far: true, tod: 2, wet: false, boss: true},
+
+    {n: "ARCTIC CHAR", sp: 4, t: 1, c: ["#2a4a5a", "#5a8aa0", "#f08a4a", "#e86a3a", "#f8d0a0"], z: [30, 70], p: 130, s: 1.6, v: 0.3, a: 0.5, m: 2.2, w: 32, far: false, tod: 0, wet: false, boss: false},
+    {n: "WHITEFISH", sp: 4, t: 0, c: ["#6a7a88", "#c8d4dc", "#f8fafc", "#9aa8b4", "#e0e8f0"], z: [30, 60], p: 110, s: 1.5, v: 0.28, a: 0.45, m: 2, w: 28, far: false, tod: 0, wet: false, boss: false},
+    {n: "LAKE TROUT", sp: 4, t: 1, c: ["#3a4a40", "#6a7a6a", "#d8dcc8", "#5a6a58", "#c8d0b0"], z: [60, 120], p: 240, s: 1.8, v: 0.3, a: 0.5, m: 2.6, w: 18, far: false, tod: 0, wet: false, boss: false},
+    {n: "BURBOT", sp: 4, t: 4, c: ["#3a3020", "#6a5a3a", "#c8b890", "#4a4028", "#9a8a5a"], z: [50, 100], p: 280, s: 1.8, v: 0.26, a: 0.5, m: 2.8, w: 12, far: false, tod: 2, wet: false, boss: false},
+    {n: "GHOST PIKE", sp: 4, t: 1, c: ["#6a8aa8", "#b8d8f0", "#f0f8ff", "#8ab0d0", "#ffffff"], z: [100, 150], p: 600, s: 1.9, v: 0.32, a: 0.55, m: 3, w: 6, far: true, tod: 0, wet: true, boss: false},
+    {n: "FROST MONARCH", sp: 4, t: 5, c: ["#3a6aa0", "#a8d8f8", "#f0faff", "#5a9ad0", "#ffffff"], z: [250, 350], p: 8000, s: 2.25, v: 0.3, a: 0.6, m: 4.2, w: 1.5, far: true, tod: 2, wet: false, boss: true}
+  ]
+
+  // The shapes, facing left: o outline, d back, b body, l belly, f fins, s marks, e the eye.
+  let TPL = [
+    // small, 17 by 9
+    [".....oooo........", "....offffo.......", "..ooddddddoo...oo", ".oddddddsdddo.off", "oeddddddsdddddff.", "obbbbbbbsbbbbbff.", ".obllllllllllooff", "..oolllllloo...of", "....offoo.......o"],
+    // long, 24 by 8
+    [".........oooo...........", "........offffo..........", "..oooooddddddddoooo...oo", ".oedddddsdddsdddddoo.off", "obbbbbbbbbbbbbbbbbbbbff.", ".ollllllllllllllllooooff", "..ooooolllllloooo.....oo", ".......offo............."],
+    // round, 21 by 11
+    [".......ooooo.........", ".....oofffffoo.......", "....odddddddddo...oo.", "...oddddddddddddo.off", "..oedddddsdddddddoff.", ".obbbbbbbbbsbbbbbbff.", ".obbbbbbbbbbbbbbbbff.", "..ollllllllllllllooff", "...olllllllllllloo.of", "....oooofooooooo....o", ".......offo.........."],
+    // flat, 22 by 8
+    ["....oooooooooo........", "..oofffffffffffoo..oo.", ".oeddsddddddsdddooooff", "odddddddsdddddddddfff.", "obdddddddddddddddddff.", ".obbbbbbbbbbbbbbbooff.", "..ooffffffffffoo...oo.", "....oooooooooo........"],
+    // eel, 27 by 6
+    ["...oooooooooooooooooooooo..", ".oodfffffffffffffffffffffoo", "oedddddddsdddddddsddddddddf", "obbbbbbbbbbbbbbbbbbbbbbbbof", ".oollllllllllllllllllllloo.", "...oooooooooooooooooooooo.."],
+    // big, 28 by 12
+    ["..........oooo..............", ".........offffo.............", ".......ooffffffo............", "....oooddddddddoooo.......oo", "...odddddddddddddddoo....off", "..oeddddddddsddddddddoo.off.", ".obbbbbbbbbbbbbbbbbbbbbooff.", "obbbbbbbbbbbbbbbbbbbbbbbfff.", ".olllllllllllllllllllooooff.", "..ollllllllllllllllloo...off", "...oooolllllllloooo.......oo", ".......offo..offo..........."],
+    // cat, 25 by 9
+    ["..........oooo...........", ".........offffo..........", "...ooooodddddddoo......oo", "..odddddddddddddddoo..off", ".oeddddddsdddddddddoooff.", "obbbbbbbbbbbbbbbbbbbbfff.", ".olllllllllllllllooooooff", "f.ooooollllllloooo.....oo", ".f..f..offo.............."],
+    // shark, 28 by 12
+    ["...........o................", "..........ofo...............", ".........offo...............", "........offfo...............", ".....oooddddddooooo.......oo", "...ooddddddddddddddoo....off", "..oedddddddddddddddddoo.off.", ".obbbbbbbbbbbbbbbbbbbbbooff.", "obblbllbbbbbbbbbbbbbbbbbfff.", ".olllllllllllllllllllooooff.", "..ollloooollllllllloo....off", "...oo....offo.oooo........oo"],
+    // sword, 30 by 10
+    ["..............oooo............", ".............offffo...........", "...........ooffffffo..........", ".......ooooddddddddoooo.....oo", "......odddddddddddddddoo...off", "ooooooeddddddddsddddddddoooff.", "bbbbbobbbbbbbbbbbbbbbbbbbbff..", "oooooolllllllllllllllllooooff.", ".......olllllllllllllloo...off", "........ooooooffoooo........oo"],
+    // angler, 19 by 10
+    ["....ooo............", "...offfoo..........", "..ooo...o..........", ".oddo....o......oo.", ".o..odddddddoo.off.", "oeoodddddsddddooff.", "obbbbbbbbbbbbbbff..", "ofofbbbbbbbbbbbooff", ".olllllllllloo...of", "..oooooolloo......o"]
+  ]
+  let TW = [17, 24, 21, 22, 27, 28, 25, 28, 30, 19]
+  let TH = [9, 8, 11, 8, 6, 12, 9, 12, 10, 10]
+
+  // ---- the gear ----------------------------------------------------------------------------------------
+  // a rod's line takes this much pull before it snaps; a reel winds in this much of the line a second
+  let LSS = [1.0, 1.4, 1.9, 2.5, 3.3]
+  let RSS = [0.12, 0.16, 0.21, 0.27, 0.35]
+  let GEAR = [
+    {n: ["BAMBOO ROD", "FIBER ROD", "CARBON ROD", "PRO ROD", "LEGEND ROD"], c: [0, 120, 500, 1800, 5500], d: "STRONGER LINE"},
+    {n: ["OLD REEL", "SPIN REEL", "BAIT REEL", "SURF REEL", "TROPHY REEL"], c: [0, 100, 450, 1600, 5000], d: "REELS IN FASTER"},
+    {n: ["WORM", "SPINNER", "JIG", "GLOW LURE", "GOLD LURE"], c: [0, 80, 350, 1400, 4500], d: "BITES SOONER, RARER FISH"}
+  ]
+  let LV = [rod, reel, lure]
+
+  // ---- the hour and the weather ------------------------------------------------------------------------
+  let HOUR = now == null ? 12 : num(fmtTime(now, "H")) + num(fmtTime(now, "m")) / 60
+  let NIGHT = HOUR < 5.5 || HOUR >= 20.5
+  // 0 clear, 1 clouds, 2 rain (snow on the lake), for two hours at a time
+  let WX = now == null ? 0 : [hash(floor(now / 7200), 3)].map(h => h < 0.3 ? 2 : h < 0.55 ? 1 : 0)[0]
+  let WET = WX == 2
+
+  // ---- the fight -------------------------------------------------------------------------------------------
+  // Each step: the fish runs in some of the 0.75-second beats (never the first two), pulling hard,
+  // and otherwise only tugs; a tired fish pulls less. The line's tension follows the pull, and the
+  // reel's too while the finger is down; the fish swims off with its pull, and the reel winds it
+  // in. Holding on tires it, running tires it, and slack line lets it rest. It's landed when it's
+  // reeled in; it's gone when the tension reaches 1 (snapped) or the line is all out.
+  let NF = 180
+  let DT = 1 / 30
+  let RF = 0.35
+  let F = FISH[fi]
+  let LSV = LSS[rod]
+  let RSV = RSS[reel]
+  let film = fseg == null ? [] : scan(range(NF), (s, k) => s.out != 0 ? s
+    : [s.g >= 1.5 && hash(fseed, floor(s.g / 0.75)) < F.a ? 1 : 0].map(ds =>
+      [(ds == 1 ? F.s : F.s * 0.2) * (0.3 + 0.7 * s.m)].map(pull =>
+        [[s.T + ((s.h ? RF + pull : pull * 0.5) / LSV - s.T) * 0.12, s.d + (s.h ? pull * F.v - RSV : pull * F.v + 0.01) * DT]].map(n => {
+          d: n[1], T: n[0], h: s.h, g: s.g + DT, ds: ds,
+          m: clamp(s.m - (s.h ? (0.06 + pull * 0.1) * DT / F.m : 0) - (ds == 1 ? 0.05 * DT / F.m : 0) + (!s.h && ds == 0 ? 0.03 * DT : 0), 0, 1),
+          out: n[0] >= 1 ? 1 : n[1] >= 1 ? 2 : n[1] <= 0.02 ? 3 : 0
+        })[0])[0])[0], fseg)
+  let fin = len(film) == NF ? film[NF - 1] : null
+  let outK = count(film, f => f.out == 0)
+
+  // Reloading the file starts the clock again, but keeps the times kept here.
+  when segT > time + 1 { segT = time }
+  when castT > time + 1 { castT = time - 9 }
+  when biteAt > time + 30 { biteAt = time + 3 }
+  when msgT > time + 5 { msgT = -9 }
+  when cardT > time + 1 { cardT = time - 1 }
+
+  when phase == "aim" && aimT == -1 && time != tapT { aimT = time }
+
+  // Let go of the swing: the cast goes as far as the swing had come, and a bite is due a few
+  // seconds after it lands, sooner with a better lure or in the rain.
+  when cpend && aimT >= 0 && time != tapT {
+    cpend = false
+    let u = ((time - aimT) / 0.8) % 2
+    castP = clamp(1 - abs(u - 1), 0.06, 1)
+    bobX = 34 + castP * 56
+    castD = (bobX - 26) / 68
+    castT = time
+    biteAt = time + 0.8 + (2 + random() * 4.5) * (1 - lure * 0.12) * (WET ? 0.8 : 1)
+    phase = "wait"
+    haptic()
+  }
+
+  // A tap while the bobber is under hooks the fish; one before it scares it off for a while. Which
+  // fish it is depends on the place, the hour, the weather, the cast and the lure.
+  when hpend && time != tapT {
+    hpend = false
+    if phase == "wait" && time >= biteAt && time <= biteAt + 1 {
+      let cand = range(30).filter(i => FISH[i].sp == spot && (FISH[i].tod == 0 || (FISH[i].tod == 2) == NIGHT) && (!FISH[i].wet || WET) && (!FISH[i].far || castP >= 0.55))
+      let ws = cand.map(i => FISH[i].w * (FISH[i].w <= 12 ? 1 + lure * 0.6 : 1))
+      let cum = scan(ws, (a, w) => a + w, 0)
+      let r = random() * cum[len(cum) - 1]
+      fi = cand[min(count(cum, c => c <= r), len(cand) - 1)]
+      fseed = random(1000000)
+      fseg = {d: clamp(castD, 0.15, 0.9), T: 0.3, m: 1, g: 0, h: hold, ds: 0, out: 0}
+      segT = time
+      phase = "fight"
+      haptic()
+    } else if phase == "wait" && time < biteAt && time > castT + 0.8 {
+      msg = "TOO SOON!"
+      msgT = time
+      biteAt = time + 2.5 + random() * 3
+    }
+  }
+  when phase == "wait" && time >= biteAt && buzzAt != biteAt {
+    buzzAt = biteAt
+    haptic()
+  }
+  when phase == "wait" && time > biteAt + 1 {
+    msg = "MISSED IT"
+    msgT = time
+    biteAt = time + 2 + random() * 4
+  }
+
+  // The finger down or up mid-fight, or the film run out: a new film from where the fight is now.
+  when fpend && time != tapT {
+    fpend = false
+    if phase == "fight" && fseg != null {
+      let b = film[clamp(floor((time - segT) * 30), 0, NF - 1)]
+      if b.out == 0 {
+        fseg = merge(b, {h: hold})
+        segT = time
+      }
+    }
+  }
+  when phase == "fight" && fin != null && fin.out == 0 && time >= segT + NF * DT {
+    fseg = merge(fin, {h: hold})
+    segT = time
+  }
+
+  // The fight is over: a catch is measured, sold and logged; otherwise it's gone.
+  when phase == "fight" && fin != null && fin.out != 0 && time >= segT + outK * DT + 0.3 {
+    if fin.out == 3 {
+      let sz = round(lerp(F.z[0], F.z[1], pow(random(), 1.7 - lure * 0.15)))
+      let pr = round(F.p * (0.6 + 0.8 * (sz - F.z[0]) / (F.z[1] - F.z[0])))
+      card = {fi: fi, sz: sz, pr: pr, nw: got[fi] == 0, rec: got[fi] > 0 && sz > best[fi]}
+      coins = coins + pr
+      got = set(got, fi, got[fi] + 1)
+      best = set(best, fi, max(best[fi], sz))
+      phase = "card"
+      cardT = time
+      cardOk = false
+      haptic()
+    } else {
+      msg = fin.out == 1 ? "LINE SNAPPED!" : "IT GOT AWAY"
+      msgT = time
+      phase = "idle"
+    }
+    fseg = null
+  }
+  when phase == "card" && !cardOk && time > cardT + 0.8 { cardOk = true }
+
+  // ---- the screen ------------------------------------------------------------------------------------------
+  // The art is 96 by 180 pixels of q dp each: a bar along the top, the sky down to the water at 62,
+  // the water down to 146, and the panel below. The sky, the water and the panel run on to the
+  // screen's edges.
+  let SW = screenWidth ?? 400
+  let SH = screenHeight ?? 800
+  let TOP = screenTop ?? 0
+  let INS = screenInset ?? 0
+  let q = max(1, floor(min(SW / 96, (SH - TOP - INS) / 180) * 4) / 4)
+  let OX = floor((SW - 96 * q) / 2)
+  // the art sits on the bottom, where the thumb is, and the sky runs up to the top; BY is the
+  // screen's top in art pixels, where the bar goes. The map, the shop and the log sit in the middle.
+  let OY = max(TOP, floor(SH - INS - 180 * q))
+  let BY = (TOP - OY) / q
+  let MY = TOP + floor(max(0, SH - TOP - INS - 180 * q) / 2)
+  // how far the art runs past its 96 by 180 to the screen's edges
+  let EL = OX / q + 1
+  let ET = OY / q + 1
+  let EB = (SH - OY) / q + 1
+  let press = "https://raw.githubusercontent.com/google/fonts/main/ofl/pressstart2p/PressStart2P-Regular.ttf"
+  let INK = "#0b1220"
+  let CREAM = "#f4f0dc"
+  let GOLD = "#ffd84a"
+  let PANEL = "#111a2a"
+  let SP = SPOTS[spot]
+  // the sky by the hour, greyed by clouds and rain
+  let SKY0 = [NIGHT ? ["#070b24", "#18224e"] : HOUR < 7.5 ? ["#34407a", "#f0a070"] : HOUR >= 18.5 ? ["#3a2a6a", "#f08a5a"] : spot == 4 ? ["#7aa8d8", "#dceefa"] : ["#4a9ae0", "#bfe4f8"]].map(c => WX == 0 ? c : c.map(k => mix(k, NIGHT ? "#141824" : "#6a7480", WX == 2 ? 0.6 : 0.3)))[0]
+  let WATER = SP.w.map(k => NIGHT ? mix(k, "#02040a", 0.55) : k)
+  // the floor's depth at x is 100 + max(0, x - 22) * 0.45
+  // the angler stands on a dock, or a boat on the open sea
+  let AY = spot == 3 ? 40 : 42
+  let HX = 17
+  let HY = AY + 6.5
+  // the angler: h hat, k skin, e eye, j coat, p trousers, b boots
+  let MAN = ["..hhhh..", ".hhhhhh.", "..kkkk..", "..kkek..", "...kk...", ".jjjjjj.", "jjjjjjjk", "jjjjjj..", ".jjjjj..", ".pppppp.", ".pp..pp.", ".pp..pp.", ".bb..bb.", "bbb..bbb"]
+  let MANP = {h: "#f0c03a", k: "#f0c8a0", e: "#2a1a10", j: "#d8483a", p: "#34446a", b: "#2a2420"}
+  let OUT = "#0b0f16"
+
+  // a fish not caught yet in the log, and one on the line, seen as a shadow in the water
+  let DARK = {o: "#2c3c56", d: "#2c3c56", b: "#2c3c56", l: "#2c3c56", f: "#2c3c56", s: "#2c3c56", e: "#2c3c56"}
+  let SHADE = {o: "#06101a", d: "#0c1824", b: "#0c1824", l: "#0c1824", f: "#0c1824", s: "#0c1824", e: "#0c1824"}
+
+  Box {
+    fill: true
+    background: INK
+
+    // ---- the place: drawn again only when the place, the hour or the weather changes ----
+    Canvas {
+      fill: true
+      translate(OX, OY) {
+        scale(q, q, 0, 0) {
+          // the sky, the stars and the sun or the moon
+          rect(0 - EL, 0 - ET, 96 + 2 * EL, 62 + ET, fill: linear(0, BY, 0, 62, SKY0))
+          if NIGHT {
+            for i in range(28) {
+              rect(hash(i, 1) * 100 - 2, BY + 12 + hash(i, 2) * (38 - BY), hash(i, 3) < 0.2 ? 1 : 0.6, hash(i, 3) < 0.2 ? 1 : 0.6, fill: alpha("#ffffff", WX == 0 ? 0.5 + hash(i, 4) * 0.5 : 0.25))
+            }
+            let mt = ((HOUR + 4) % 24) / 9.5
+            circle(10 + mt * 76, 36 - sin(clamp(mt, 0, 1) * 180) * (20 - BY * 0.6), 4, fill: alpha("#f4f0d8", WX == 2 ? 0.4 : 1))
+            circle(12 + mt * 76, 35 - sin(clamp(mt, 0, 1) * 180) * (20 - BY * 0.6), 3.4, fill: alpha(SKY0[0], WX == 2 ? 0.4 : 0.9))
+          } else {
+            let st = clamp((HOUR - 5.5) / 15, 0, 1)
+            let sx = 8 + st * 80
+            let sy = 50 - sin(st * 180) * (34 - BY * 0.6)
+            circle(sx, sy, 7, fill: alpha("#fff4c0", WX == 0 ? 0.25 : 0.1))
+            circle(sx, sy, 4.5, fill: alpha(HOUR < 7.5 || HOUR >= 18.5 ? "#ffb070" : "#fff2a8", WX == 2 ? 0.35 : 1))
+          }
+          // clouds
+          for i in range(WX == 0 ? 2 : 5) {
+            let cx = hash(i, 9, spot) * 110 - 7
+            let cy = BY + 16 + hash(i, 8) * (20 - BY * 0.4)
+            let cc = alpha(NIGHT ? "#3a4060" : WX == 2 ? "#8a909a" : "#ffffff", NIGHT ? 0.5 : 0.85)
+            rect(cx - 9, cy, 18, 4, radius: 2, fill: cc)
+            rect(cx - 5, cy - 3, 9, 4, radius: 2, fill: cc)
+            rect(cx + 1, cy - 2, 6, 3, radius: 1.5, fill: cc)
+          }
+
+          // ---- the far shore ----
+          if spot == 0 {
+            // a pond among willows
+            rect(0 - EL, 54, 96 + 2 * EL, 8, fill: NIGHT ? "#16261a" : "#3a6a3a")
+            for i in range(7) {
+              let tx = 20 + i * 12 + hash(i, 1) * 6
+              let tr = 5 + hash(i, 2) * 3
+              rect(tx - 0.7, 48, 1.4, 7, fill: NIGHT ? "#1a140c" : "#4a3420")
+              circle(tx, 48 - tr * 0.4, tr, fill: NIGHT ? "#10241a" : i % 2 == 0 ? "#2f6a35" : "#3a7a3a")
+              circle(tx - tr * 0.3, 47 - tr * 0.7, tr * 0.5, fill: NIGHT ? "#162e20" : "#4a8a44")
+            }
+            for i in range(5) { rect(20 + i * 1.3, 52 - hash(i) * 6, 0.6, 10 + hash(i) * 6, fill: NIGHT ? "#1a3020" : "#5a8a3a") }
+          } else if spot == 1 {
+            // hills and pines over a river
+            circle(30, 76, 36, fill: NIGHT ? "#141e2a" : "#5a8a5a")
+            circle(82, 80, 40, fill: NIGHT ? "#101a24" : "#4a7a4a")
+            for i in range(9) {
+              let tx = 18 + i * 9.5 + hash(i, 3) * 4
+              let th = 9 + hash(i, 4) * 7
+              path([[tx, 55 - th], [tx - 4, 55], [tx + 4, 55]], closed: true, fill: NIGHT ? "#0c1a16" : "#2a5a3a")
+            }
+            rect(0 - EL, 56, 96 + 2 * EL, 6, fill: NIGHT ? "#1a1a16" : "#7a6a4a")
+            for i in range(6) { circle(30 + i * 12 + hash(i, 5) * 6, 61, 1.5 + hash(i, 6) * 1.5, fill: NIGHT ? "#2a2a2a" : "#8a8a84") }
+          } else if spot == 2 {
+            // a cliff with a lighthouse, and the sea beyond
+            rect(0 - EL, 58, 96 + 2 * EL, 4, fill: alpha(WATER[0], 0.8))
+            path([[60, 62], [64, 34], [72, 28], [96 + EL, 26], [96 + EL, 62]], closed: true, fill: NIGHT ? "#1e1e26" : "#6a6058")
+            path([[64, 34], [72, 28], [96 + EL, 26], [96 + EL, 30], [70, 32]], closed: true, fill: NIGHT ? "#16261a" : "#4a7a3a")
+            rect(80, 10, 6, 18, fill: "#f0ece4")
+            rect(80, 14, 6, 3, fill: "#d8483a")
+            rect(80, 21, 6, 3, fill: "#d8483a")
+            rect(79, 7, 8, 3, fill: "#2a2a30")
+            path([[79, 7], [83, 3], [87, 7]], closed: true, fill: "#d8483a")
+          } else if spot == 3 {
+            // nothing but the horizon and an island far off
+            rect(0 - EL, 58, 96 + 2 * EL, 4, fill: alpha(WATER[0], 0.9))
+            path([[62, 58], [68, 52], [74, 53], [80, 58]], closed: true, fill: NIGHT ? "#0e1a1a" : "#5a7a6a")
+            rect(70, 47, 0.8, 6, fill: NIGHT ? "#1a1a14" : "#6a5030")
+            path([[70.4, 47], [66, 49], [70.4, 48], [75, 49]], fill: NIGHT ? "#10241a" : "#3a8a4a")
+          } else {
+            // snowy peaks and pines over the ice
+            path([[0 - EL, 54], [14, 30], [30, 54]], closed: true, fill: NIGHT ? "#2a3048" : "#8a9ab8")
+            path([[22, 54], [48, 22], [76, 54]], closed: true, fill: NIGHT ? "#262c44" : "#7a8aa8")
+            path([[62, 54], [84, 32], [96 + EL, 50], [96 + EL, 54]], closed: true, fill: NIGHT ? "#2a3048" : "#8a9ab8")
+            path([[42, 29], [48, 22], [54, 29], [50, 28], [48, 30], [45, 28]], closed: true, fill: "#f0f6fa")
+            path([[10, 37], [14, 30], [18, 37], [14, 35]], closed: true, fill: "#f0f6fa")
+            path([[80, 36], [84, 32], [88, 37], [84, 35]], closed: true, fill: "#f0f6fa")
+            for i in range(8) {
+              let tx = 24 + i * 9 + hash(i, 7) * 4
+              path([[tx, 46 - hash(i, 8) * 5], [tx - 3.5, 57], [tx + 3.5, 57]], closed: true, fill: NIGHT ? "#0c1a1a" : "#2a4a44")
+              path([[tx, 46 - hash(i, 8) * 5], [tx - 1.5, 50], [tx + 1.5, 50]], closed: true, fill: "#e8f0f4")
+            }
+            rect(0 - EL, 57, 96 + 2 * EL, 5, fill: NIGHT ? "#6a7a90" : "#e8f0f6")
+          }
+
+          // ---- the water, cut away ----
+          rect(0 - EL, 62, 96 + 2 * EL, 86, fill: linear(0, 62, 0, 146, WATER))
+          if !NIGHT && WX < 2 {
+            for i in range(3) {
+              let rx = 30 + i * 22
+              path([[rx, 62], [rx + 6, 62], [rx - 8, 146], [rx - 16, 146]], closed: true, fill: alpha("#ffffff", 0.05))
+            }
+          }
+          // the bottom, with weed, stones, shells or coral
+          path([[0 - EL, 146], [0 - EL, 100], [22, 100], [96 + EL, 100 + (74 + EL) * 0.45], [96 + EL, 146]], closed: true, fill: NIGHT ? mix(SP.fl, "#02040a", 0.5) : SP.fl)
+          for i in range(16) {
+            let bx = hash(i, 11, spot) * 96
+            let by = (100 + max(0, bx - 22) * 0.45)
+            let r = hash(i, 12)
+            if spot == 0 || spot == 1 {
+              if r < 0.5 {
+                for j in range(3) { rect(bx + j * 1.2, by - 4 - hash(i, j) * 7, 0.7, 5 + hash(i, j) * 7, fill: NIGHT ? "#1a3020" : j == 1 ? "#4a8a3a" : "#3a7030") }
+              } else {
+                circle(bx, by + 0.8, 0.8 + r, fill: NIGHT ? mix(SP.fl2, "#02040a", 0.5) : SP.fl2)
+              }
+            } else if spot == 2 {
+              if r < 0.3 {
+                path([[bx, by - 2.5], [bx - 2.4, by + 0.5], [bx + 2.4, by + 0.5]], closed: true, fill: "#e8806a")
+              } else if r < 0.6 {
+                for j in range(2) { rect(bx + j * 1.5, by - 5 - hash(i, j) * 5, 0.8, 5 + hash(i, j) * 5, fill: NIGHT ? "#1a3a20" : "#5a8a3a") }
+              } else {
+                circle(bx, by + 0.5, 1.2 + r * 1.8, fill: NIGHT ? "#3a3a3a" : "#8a8a84")
+              }
+            } else if spot == 3 {
+              if r < 0.5 {
+                rect(bx, by - 6, 1.2, 6, fill: NIGHT ? "#3a1a2a" : "#e85a7a")
+                rect(bx - 2, by - 4, 1.2, 4, fill: NIGHT ? "#3a1a2a" : "#e85a7a")
+                rect(bx - 2, by - 1.6, 3.2, 1.2, fill: NIGHT ? "#3a1a2a" : "#e85a7a")
+              } else {
+                circle(bx, by, 1.5 + r, fill: NIGHT ? "#2a2440" : "#8a5ab8")
+              }
+            } else {
+              circle(bx, by + 0.5, 1.2 + r * 1.8, fill: NIGHT ? "#3a4a5a" : "#8aa0b4")
+            }
+          }
+
+          // ---- where the angler stands ----
+          if spot == 3 {
+            // a small boat
+            path([[-4, 54], [30, 54], [26, 63], [0, 63]], closed: true, fill: "#e8e4dc")
+            path([[-3, 58], [29, 58], [28, 60], [-1, 60]], closed: true, fill: "#d8483a")
+            rect(-4, 53, 34, 1.6, fill: "#8a5a33")
+            rect(2, 44, 8, 9, fill: "#c8c4bc")
+            rect(3, 45, 6, 3, fill: "#5a8ab0")
+          } else if spot == 4 {
+            // a shelf of ice
+            rect(0 - EL, 56, 26 + EL, 8, fill: "#e8f2f8")
+            rect(0 - EL, 63, 26 + EL, 2, fill: "#a8c8e0")
+            rect(18, 58, 6, 0.8, fill: "#b8d0e0")
+            rect(-3, 53, 6, 3, fill: "#8a5a33")
+            circle(0, 52, 2, fill: "#c84a3a")
+          } else {
+            // a wooden dock
+            for p in [3, 14, 22] {
+              rect(p, 58, 2.2, (100 + max(0, p - 22) * 0.45) - 57, fill: "#5a3820")
+              rect(p, 58, 0.6, (100 + max(0, p - 22) * 0.45) - 57, fill: "#8a5a33")
+            }
+            rect(0 - EL, 56, 25.5 + EL, 2.4, fill: "#b9844f")
+            rect(0 - EL, 58.4, 25.5 + EL, 1.2, fill: "#5a3820")
+            for i in range(9) { rect(-6 + i * 3.6, 56, 0.4, 2.4, fill: "#8a5a33") }
+            // a bucket
+            rect(1, 52, 5, 4, fill: "#7a8a9a")
+            rect(1, 52, 5, 0.8, fill: "#a8b8c8")
+          }
+          sprite(MAN, 10, AY, 1, palette: MANP)
+
+          // ---- lily pads on the pond, floes on the lake ----
+          if spot == 0 {
+            for i in range(4) {
+              let lx = 44 + i * 13 + hash(i, 21) * 5
+              rect(lx - 3, 61.4, 6, 1.4, radius: 0.7, fill: "#3a8a3a")
+              rect(lx - 0.3, 61.4, 0.8, 1.4, fill: alpha("#000000", 0.25))
+              if i == 2 { circle(lx + 1.4, 61, 1, fill: "#f2a0c0") }
+            }
+          } else if spot == 4 {
+            for i in range(3) {
+              let lx = 44 + i * 17 + hash(i, 22) * 6
+              rect(lx - 4, 61.2, 8, 1.8, fill: "#e8f2f8")
+              rect(lx - 4, 62.6, 8, 0.6, fill: "#a8c8e0")
+            }
+          }
+
+          // ---- the bars ----
+          rect(0 - EL, 0 - ET, 96 + 2 * EL, BY + 10 + ET, fill: alpha(INK, 0.55))
+          rect(0 - EL, 146, 96 + 2 * EL, 34 + EB, fill: PANEL)
+          rect(0 - EL, 146, 96 + 2 * EL, 1, fill: "#2a3a52")
+        }
+      }
+    }
+
+    // ---- what moves, the words, the panel ----
+    Canvas {
+      fill: true
+      let live = mode == "play" || mode == "title"
+      let tt = live ? time : 0
+      translate(OX, OY) {
+        scale(q, q, 0, 0) {
+          // the water's surface glints, and fish go by in the dark
+          for i in range(10) {
+            let ph = (tt * 0.25 + hash(i, 31)) % 1
+            rect(26 + hash(i, 32) * 70 + ph * 6, 62.4 + hash(i, 33) * 1.4, 2.4, 0.5, fill: alpha("#ffffff", 0.45 * sin(ph * 180)))
+          }
+          if phase != "fight" {
+            for i in range(3) {
+              let dir = i % 2 == 0 ? 1 : -1
+              let fx = (hash(i, 34) * 120 + tt * (3 + i * 1.5) * dir) % 120
+              let gx = (fx < 0 ? fx + 120 : fx) - 12
+              let gy = 72 + i * 9 + sin(tt * 40 + i * 90) * 1.5
+              if gy < (100 + max(0, gx - 22) * 0.45) - 4 {
+              rect(gx - 5, gy - 1.5, 10, 3, radius: 1.5, fill: alpha("#000000", 0.18))
+              path([[gx + 5 * dir * -1, gy], [gx + 8 * dir * -1, gy - 2], [gx + 8 * dir * -1, gy + 2]], closed: true, fill: alpha("#000000", 0.18))
+              }
+            }
+          }
+          // rain, or snow on the lake
+          if WET {
+            for i in range(spot == 4 ? 30 : 40) {
+              if spot == 4 {
+                let sy = (hash(i, 41) * 60 + tt * (6 + hash(i, 43) * 4)) % 60
+                rect((hash(i, 42) * 100 + sin(tt * 50 + i * 40) * 2) % 100 - 2, 2 + sy, 0.8, 0.8, fill: alpha("#ffffff", 0.85))
+              } else {
+                let ry = (hash(i, 41) * 60 + tt * 70) % 60
+                line((hash(i, 42) * 104 + ry * 0.2) % 104 - 4, 2 + ry, (hash(i, 42) * 104 + ry * 0.2) % 104 - 3.2, 5 + ry, stroke: alpha("#c8d8ec", 0.55), width: 0.4)
+              }
+            }
+          }
+
+          // ---- the rod, the line, the bobber and the fish ----
+          let cur = phase == "fight" && len(film) == NF ? film[clamp(floor((tt - segT) * 30), 0, NF - 1)] : null
+          let sw = phase == "aim" && aimT >= 0 ? 1 - abs(((tt - aimT) / 0.8) % 2 - 1) : 0
+          let fly = phase == "wait" ? clamp((tt - castT) / 0.7, 0, 1) : 1
+          let tipX = phase == "aim" ? 31 - sw * 22 : cur != null ? 30 + cur.T * 2 : fly < 1 ? 31 + (1 - fly) * 3 : 31
+          let tipY = phase == "aim" ? 33 - sw * 4 : cur != null ? 34 + cur.T * 9 : 33
+          path([[HX, HY], [(HX + tipX) / 2, (HY + tipY) / 2 - (cur != null ? 0 : 1.5)], [tipX, tipY]], stroke: "#7a4a2a", width: 0.9, cap: round)
+          circle(HX + 1, HY - 0.3, 0.9, fill: "#2a2a30")
+          if phase == "wait" {
+            if fly < 1 {
+              let px = lerp(tipX, bobX, fly)
+              let py = lerp(tipY, 62, fly) - sin(fly * 180) * 22
+              line(tipX, tipY, px, py, stroke: alpha("#ffffff", 0.6), width: 0.3)
+              circle(px, py, 1.2, fill: "#e8483f")
+            } else {
+              // nibbles before the bite; under at the bite, and the rings
+              let since = tt - castT
+              let nib = since > 1.6 && hash(floor(since * 2.5), castT) < 0.25 && tt < biteAt - 0.4 ? 0.8 : 0
+              let bit = tt >= biteAt && tt <= biteAt + 1
+              let by = 62 + sin(tt * 160) * 0.35 + nib + (bit ? 2.6 : 0)
+              let lineEnd = min((100 + max(0, bobX - 22) * 0.45) - 3, 84)
+              line(tipX, tipY, bobX, by - 1, stroke: alpha("#ffffff", 0.55), width: 0.3)
+              line(bobX, by + 1, bobX, lineEnd, stroke: alpha("#ffffff", 0.3), width: 0.25)
+              rect(bobX - 0.4, lineEnd, 0.8, 1.6, fill: lure == 4 ? GOLD : lure == 3 ? "#9af07a" : "#c8c8d0")
+              if !bit {
+                circle(bobX, by, 1.5, fill: "#f8f8f8")
+                arc(bobX, by, 1.5, 270, 180, fill: "#e8483f")
+                rect(bobX - 0.2, by - 2.6, 0.4, 1.2, fill: "#f8f8f8")
+              }
+              let ring = bit ? (tt - biteAt) * 2 % 1 : clamp((since - 0.7) / 0.6, 0, 1)
+              if bit || ring < 1 {
+                rect(bobX - 2 - ring * 6, 61.8, 4 + ring * 12, 0.6, radius: 0.3, fill: alpha("#ffffff", 0.7 * (1 - ring)))
+              }
+              if bit {
+                text("!", bobX, 54 + sin(tt * 900) * 0.6, size: 6, color: GOLD, font: press, align: center)
+              }
+            }
+          }
+          if cur != null {
+            // The fish: off to the far side as it runs, back towards the dock as it's reeled in.
+            let T = cur.T
+            let fx = 26 + cur.d * 68
+            let fy = min(66 + 8 + cur.d * 34, (100 + max(0, fx - 22) * 0.45) - 5) + sin(tt * 220) * 1.2
+            let si = floor(cur.g / 0.75)
+            let warn = cur.ds == 0 && si + 1 >= 2 && hash(fseed, si + 1) < F.a && cur.g % 0.75 > 0.4
+            let px = F.boss ? 0.7 : 0.5
+            let w = TW[F.t] * px
+            let h2 = TH[F.t] * px
+            let jx = cur.ds == 1 ? sin(tt * 1400) * 0.6 : 0
+            let lc = T > 0.85 ? (tt % 0.2 < 0.1 ? "#ff5a4a" : "#ffffff") : T > 0.6 ? "#ffd84a" : "#ffffff"
+            // the line runs to its mouth: the near end as it comes in, the far end as it runs
+            let mx = fx + jx + (cur.ds == 1 ? w / 2 : 0 - w / 2) * 0.9
+            if cur.h {
+              line(tipX, tipY, mx, fy, stroke: alpha(lc, 0.8), width: 0.35)
+            } else {
+              path([[tipX, tipY], [lerp(tipX, mx, 0.55), 63], [mx, fy]], stroke: alpha(lc, 0.6), width: 0.35)
+            }
+            if cur.ds == 1 {
+              scale(-1, 1, fx + jx, fy) { sprite(TPL[F.t], fx + jx - w / 2, fy - h2 / 2, px, palette: SHADE) }
+              for j in range(4) {
+                let ph = (tt * 3 + j * 0.25) % 1
+                rect(fx - 3 + j * 2, 61 - ph * 4, 0.8, 0.8, fill: alpha("#ffffff", 1 - ph))
+              }
+            } else {
+              sprite(TPL[F.t], fx - w / 2, fy - h2 / 2, px, palette: SHADE)
+            }
+            if warn { text("!", fx, fy - h2 / 2 - 4, size: 5, color: "#ff5a4a", font: press, align: center) }
+
+            // ---- the panel: the tension, the line out, and the fish's strength ----
+            let tc = T > 0.85 ? "#ff5a4a" : T > 0.6 ? "#ffd84a" : "#7ad87a"
+            text("TENSION", 4, 152, size: 2.6, color: "#8a9ab8", font: press)
+            rect(30, 150, 62, 4, radius: 1, fill: "#22304a")
+            rect(30, 150, 62 * clamp(T, 0, 1), 4, radius: 1, fill: T > 0.85 && tt % 0.2 < 0.1 ? "#ffffff" : tc)
+            rect(30 + 62 * 0.85, 149.4, 0.5, 5.2, fill: alpha("#ff5a4a", 0.8))
+            text("LINE", 4, 159, size: 2.6, color: "#8a9ab8", font: press)
+            rect(30, 157, 62, 4, radius: 1, fill: "#22304a")
+            rect(30, 157, 62 * clamp(cur.d, 0, 1), 4, radius: 1, fill: cur.d > 0.8 ? "#ff8a4a" : "#5aa8e8")
+            text("FISH", 4, 166, size: 2.6, color: "#8a9ab8", font: press)
+            rect(30, 164, 62, 4, radius: 1, fill: "#22304a")
+            rect(30, 164, 62 * cur.m, 4, radius: 1, fill: "#c87ae8")
+            text(cur.ds == 1 ? "IT'S RUNNING! EASE OFF" : warn ? "GET READY TO EASE OFF" : cur.h ? "REELING IN..." : "HOLD TO REEL IN", 48, 174, size: 2.4, color: cur.ds == 1 || warn ? "#ff8a7a" : CREAM, font: press, align: center)
+          }
+
+          // ---- the top bar ----
+          circle(5, BY + 5, 2.4, fill: GOLD)
+          circle(5, BY + 5, 1.4, fill: "#d8a020")
+          text(fmtNum(coins), 9.5, BY + 5.2, size: 3, color: CREAM, font: press)
+          text(SP.n, 60, BY + 5.2, size: 2.2, color: "#a8b8d0", font: press, align: center)
+          let clk = now == null ? "" : fmtTime(now, "HH:mm")
+          text(clk, 93, BY + 5.2, size: 2.2, color: "#a8b8d0", font: press, align: end)
+
+          // ---- the panel, outside the fight ----
+          if mode == "play" && phase == "idle" {
+            text("HOLD TO SWING, LET GO TO CAST", 48, 153, size: 2.2, color: alpha(CREAM, 0.6 + 0.4 * sin(tt * 200)), font: press, align: center)
+            for b, j in ["MAP", "SHOP", "LOG"] {
+              rect(4 + j * 30, 160, 28, 13, radius: 1.5, fill: "#22304a")
+              rect(4 + j * 30, 160, 28, 1, fill: "#3a4c6a")
+              text(b, 18 + j * 30, 167, size: 3, color: CREAM, font: press, align: center)
+            }
+          } else if mode == "play" && phase == "aim" {
+            text("LET GO TO CAST", 48, 153, size: 2.6, color: CREAM, font: press, align: center)
+            rect(10, 159, 76, 6, radius: 1.5, fill: "#22304a")
+            rect(10, 159, 76 * sw, 6, radius: 1.5, fill: mix("#7ad87a", "#ff8a4a", sw))
+            rect(10 + 76 * 0.55, 158, 0.6, 8, fill: alpha(CREAM, 0.7))
+            text("FAR", 10 + 76 * 0.78, 170, size: 2.2, color: "#8a9ab8", font: press, align: center)
+          } else if mode == "play" && phase == "wait" {
+            let bit = tt >= biteAt && tt <= biteAt + 1
+            text(bit ? "TAP NOW!" : "WAIT FOR THE BITE...", 48, 153, size: bit ? 4 : 2.6, color: bit ? GOLD : CREAM, font: press, align: center)
+            rect(31, 160, 34, 13, radius: 1.5, fill: "#22304a")
+            text("REEL IN", 48, 167, size: 2.6, color: "#a8b8d0", font: press, align: center)
+          }
+          if mode == "play" && tt < msgT + 1.6 {
+            text(msg, 48.4, 100.4, size: 5, color: INK, font: press, align: center)
+            text(msg, 48, 100, size: 5, color: msg == "TOO SOON!" || msg == "MISSED IT" ? GOLD : "#ff8a7a", font: press, align: center)
+          }
+
+          // ---- the catch ----
+          if mode == "play" && phase == "card" && card != null {
+            let f = FISH[card.fi]
+            let px = min(70 / TW[f.t], 26 / TH[f.t])
+            rect(0 - EL, 0 - ET, 96 + 2 * EL, 180 + ET + EB, fill: alpha(INK, 0.55))
+            rect(6, 34, 84, 100, radius: 3, fill: "#1a2438")
+            rect(6, 34, 84, 100, radius: 3, stroke: f.boss ? GOLD : "#3a4c6a", width: 1)
+            text(f.boss ? "LEGEND!" : card.nw ? "NEW FISH!" : card.rec ? "NEW RECORD!" : "CAUGHT!", 48, 43, size: 4, color: f.boss || card.nw || card.rec ? GOLD : "#7ad87a", font: press, align: center)
+            let bob = sin(tt * 180) * 1.2
+            sprite(TPL[f.t], 48 - TW[f.t] * px / 2, 70 - TH[f.t] * px / 2 + bob, px, palette: {o: OUT, d: f.c[0], b: f.c[1], l: f.c[2], f: f.c[3], s: f.c[4], e: "#f8f8f8"})
+            text(f.n, 48, 94, size: 3.6, color: CREAM, font: press, align: center)
+            text("${card.sz} CM", 48, 104, size: 3, color: "#a8b8d0", font: press, align: center)
+            text("+${fmtNum(card.pr)} G", 48, 114, size: 3.6, color: GOLD, font: press, align: center)
+            if cardOk && tt % 1.2 < 0.85 { text("TAP TO FISH ON", 48, 126, size: 2.4, color: "#8a9ab8", font: press, align: center) }
+          }
+
+          // ---- the title ----
+          if mode == "title" {
+            let TYc = (BY + 52) / 2
+            rect(0 - EL, 0 - ET, 96 + 2 * EL, 180 + ET + EB, fill: alpha(INK, 0.45))
+            text("PIXEL", 48.8, TYc - 6.2, size: 10, color: INK, font: press, align: center)
+            text("PIXEL", 48, TYc - 7, size: 10, color: CREAM, font: press, align: center)
+            text("FISHING", 48.8, TYc + 7.8, size: 10, color: INK, font: press, align: center)
+            text("FISHING", 48, TYc + 7, size: 10, color: "#7ad0f0", font: press, align: center)
+            text("CAST, HOOK AND REEL", 48, TYc + 19, size: 2.6, color: "#c8d8e8", font: press, align: center)
+            let caught = count(got, n => n > 0)
+            if caught > 0 { text("${caught}/30 FISH IN THE LOG", 48, TYc + 27, size: 2.4, color: GOLD, font: press, align: center) }
+            if tt % 1.2 < 0.85 { text("TAP TO FISH", 48, 162, size: 4, color: CREAM, font: press, align: center) }
+          }
+        }
+      }
+    }
+
+    // ---- the map, the shop and the log, and every touch ----
+    Canvas {
+      fill: true
+      ripple: false
+      onPress: {
+        let ay = (y - OY) / q
+        if mode == "play" {
+          if phase == "idle" && ay > BY + 12 && ay < 146 {
+            phase = "aim"
+            aimT = -1
+            tapT = time
+            hold = true
+            haptic()
+          } else if phase == "wait" && ay > BY + 12 && ay < 146 {
+            hold = true
+            hpend = true
+            tapT = time
+          } else if phase == "fight" {
+            hold = true
+            fpend = true
+            tapT = time
+          }
+        }
+      }
+      onRelease: {
+        hold = false
+        if mode == "play" && phase == "aim" {
+          cpend = true
+          tapT = time
+        } else if mode == "play" && phase == "fight" {
+          fpend = true
+          tapT = time
+        }
+      }
+      onTap: {
+        let ax = (x - OX) / q
+        let ay = (y - (mode == "play" || mode == "title" ? OY : MY)) / q
+        if mode == "title" {
+          mode = "play"
+          phase = "idle"
+        } else if mode == "play" {
+          if phase == "idle" && ay >= 160 && ay < 174 {
+            mode = ax < 33 ? "map" : ax < 63 ? "shop" : "log"
+          } else if phase == "wait" && ay >= 158 && ay < 175 && ax > 28 && ax < 68 {
+            phase = "idle"
+          } else if phase == "card" && cardOk {
+            phase = "idle"
+          }
+        } else if ay < 14 && ax > 64 {
+          mode = "play"
+        } else if mode == "map" {
+          let i = floor((ay - 24) / 24)
+          if i >= 0 && i < 5 && (ay - 24) % 24 < 21 {
+            if owned[i] == 1 {
+              spot = i
+              mode = "play"
+              phase = "idle"
+            } else if coins >= SPOTS[i].c {
+              coins = coins - SPOTS[i].c
+              owned = set(owned, i, 1)
+              spot = i
+              mode = "play"
+              phase = "idle"
+              haptic()
+            }
+          }
+        } else if mode == "shop" {
+          let i = floor((ay - 24) / 44)
+          if i >= 0 && i < 3 && ax >= 56 && (ay - 24) % 44 >= 22 && (ay - 24) % 44 < 36 && LV[i] < 4 && coins >= GEAR[i].c[LV[i] + 1] {
+            coins = coins - GEAR[i].c[LV[i] + 1]
+            if i == 0 {
+              rod = rod + 1
+            } else if i == 1 {
+              reel = reel + 1
+            } else {
+              lure = lure + 1
+            }
+            haptic()
+          }
+        } else if mode == "log" {
+          let s = floor((ay - 22) / 24)
+          let c = floor((ax - 3) / 15)
+          if s >= 0 && s < 5 && c >= 0 && c < 6 && (ay - 22) % 24 >= 6 {
+            sel = s * 6 + c
+          }
+        }
+      }
+
+      if mode == "map" || mode == "shop" || mode == "log" {
+        translate(OX, MY) {
+          scale(q, q, 0, 0) {
+            rect(0 - EL, 0 - MY / q - 1, 96 + 2 * EL, SH / q + 2, fill: "#0e1626")
+            text(upper(mode), 4, 8, size: 5, color: CREAM, font: press)
+            rect(66, 3, 27, 10, radius: 1.5, fill: "#22304a")
+            text("BACK", 79.5, 8.2, size: 2.8, color: CREAM, font: press, align: center)
+            circle(5, 18, 2, fill: GOLD)
+            text("${fmtNum(coins)} G", 9, 18.2, size: 2.8, color: GOLD, font: press)
+
+            if mode == "map" {
+              for s, i in SPOTS {
+                let y0 = 24 + i * 24
+                let n = count(range(6), j => got[i * 6 + j] > 0)
+                let here = spot == i
+                let can = coins >= s.c
+                rect(3, y0, 90, 21, radius: 2, fill: here ? "#1e3050" : "#182234")
+                if here { rect(3, y0, 90, 21, radius: 2, stroke: "#5aa8e8", width: 0.6) }
+                rect(6, y0 + 3, 15, 15, radius: 1.5, fill: linear(0, y0 + 3, 0, y0 + 18, s.w))
+                rect(6, y0 + 3, 15, 4, radius: 1.5, fill: i == 4 ? "#e8f0f6" : i == 3 ? "#4a9ae0" : "#5a8a5a")
+                text(s.n, 25, y0 + 7, size: 2.8, color: owned[i] == 1 ? CREAM : "#8a9ab8", font: press)
+                text(owned[i] == 1 ? "${n}/6 FISH" : "GEAR ${i + 1}+", 25, y0 + 15, size: 2.2, color: "#8a9ab8", font: press)
+                text(here ? "HERE" : owned[i] == 1 ? "GO" : "${fmtNum(s.c)} G", 90, y0 + 15, size: 2.4, color: here ? "#5aa8e8" : owned[i] == 1 ? "#7ad87a" : can ? GOLD : "#ff7a6a", font: press, align: end)
+              }
+              text("THE FAR WATER HOLDS THE BIGGEST FISH", 48, 150, size: 2, color: "#6a7a98", font: press, align: center)
+              text("SOME ONLY BITE AT NIGHT OR IN THE RAIN", 48, 156, size: 2, color: "#6a7a98", font: press, align: center)
+            } else if mode == "shop" {
+              for g, i in GEAR {
+                let y0 = 24 + i * 44
+                let lv = LV[i]
+                rect(3, y0, 90, 40, radius: 2, fill: "#182234")
+                text(g.n[lv], 7, y0 + 7, size: 3.2, color: CREAM, font: press)
+                for k in range(5) { rect(7 + k * 6, y0 + 12, 5, 2.4, radius: 0.6, fill: k <= lv ? "#7ad87a" : "#2a3a52") }
+                text(g.d, 7, y0 + 19, size: 2.2, color: "#8a9ab8", font: press)
+                if lv < 4 {
+                  let c = g.c[lv + 1]
+                  text("NEXT: ${g.n[lv + 1]}", 7, y0 + 29, size: 2.2, color: "#a8b8d0", font: press)
+                  rect(58, y0 + 24, 32, 12, radius: 1.5, fill: coins >= c ? "#2a6a3a" : "#3a2a34")
+                  text("${fmtNum(c)} G", 74, y0 + 30.2, size: 2.6, color: coins >= c ? CREAM : "#ff7a6a", font: press, align: center)
+                } else {
+                  text("THE BEST THERE IS", 7, y0 + 29, size: 2.2, color: GOLD, font: press)
+                }
+              }
+              text("TENSION SNAPS A WEAK LINE;", 48, 160, size: 2, color: "#6a7a98", font: press, align: center)
+              text("A SLOW REEL LETS THE FISH RUN", 48, 166, size: 2, color: "#6a7a98", font: press, align: center)
+            } else {
+              text("${count(got, n => n > 0)}/30", 92, 18.2, size: 2.8, color: CREAM, font: press, align: end)
+              for s, i in SPOTS {
+                let y0 = 22 + i * 24
+                text(s.n, 4, y0 + 3, size: 2.2, color: owned[i] == 1 ? "#a8b8d0" : "#4a5a78", font: press)
+                for j in range(6) {
+                  let k = i * 6 + j
+                  let f = FISH[k]
+                  let cx = 3 + j * 15
+                  let px = min(13 / TW[f.t], 10 / TH[f.t])
+                  rect(cx, y0 + 6, 14, 16, radius: 1.5, fill: sel == k ? "#2a3c5e" : "#182234")
+                  if f.boss { rect(cx, y0 + 6, 14, 16, radius: 1.5, stroke: alpha(GOLD, 0.7), width: 0.5) }
+                  if sel == k { rect(cx, y0 + 6, 14, 16, radius: 1.5, stroke: "#5aa8e8", width: 0.6) }
+                  sprite(TPL[f.t], cx + 7 - TW[f.t] * px / 2, y0 + 12 - TH[f.t] * px / 2, px, palette: got[k] == 0 ? DARK : {o: OUT, d: f.c[0], b: f.c[1], l: f.c[2], f: f.c[3], s: f.c[4], e: "#f8f8f8"})
+                  if got[k] > 0 { text("${best[k]}", cx + 7, y0 + 19, size: 1.8, color: "#8a9ab8", font: press, align: center) }
+                }
+              }
+              let f = FISH[sel]
+              let has = got[sel] > 0
+              rect(3, 144, 90, 30, radius: 2, fill: "#182234")
+              text(has ? f.n : "???", 7, 150, size: 3, color: has ? CREAM : "#6a7a98", font: press)
+              let when = [f.tod == 1 ? "BY DAY" : f.tod == 2 ? "AT NIGHT" : "", f.wet ? spot == 4 || f.sp == 4 ? "IN SNOW" : "IN RAIN" : "", f.far ? "FAR OUT" : ""].filter(w => w != "")
+              text("${SPOTS[f.sp].n}${len(when) > 0 ? " - " + join(when, ", ") : ""}", 7, 157, size: 1.9, color: "#8a9ab8", font: press)
+              text(has ? "BEST ${best[sel]} CM - CAUGHT ${got[sel]}" : "NOT CAUGHT YET", 7, 164, size: 2.2, color: has ? "#a8b8d0" : "#6a7a98", font: press)
+              text(f.boss ? "LEGEND" : "${f.z[0]}-${f.z[1]} CM", 89, 150, size: 2, color: f.boss ? GOLD : "#6a7a98", font: press, align: end)
+            }
+          }
+        }
+      }
+    }
+  }
+}
