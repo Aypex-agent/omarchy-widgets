@@ -1,0 +1,255 @@
+// Pairfect: mahjong solitaire with tech and critter tiles, by rcrohmana, 2026. MIT License.
+widget "pairfect" {
+  size: 6x5
+  minSize: 6x5
+  padding: 8
+  meta { owl: 11; description: "Mahjong solitaire with tech and critter tiles: match free pairs on a 4-layer stack, every deal solvable, with hint, undo and shuffle"; version: "1.0"; license: "MIT"; author: "rcrohmana"; category: "games" }
+  requires { pacman: [] }
+
+  // No shell: the deal is worked out from a seed, and play is the list of tiles taken since.
+  state seed = random(1000000) persist
+  state base = null persist          // null = a fresh full deal; after a shuffle {occ, pk}: slots still in play, kinds of their pairs
+  state removed = [] persist         // slots taken since the deal, two at a time
+  state wins = 0 persist
+  state sel = -1
+  state hintOn = false
+  state preShuffle = null            // the game as it was before a shuffle, to go back to if no deal fits
+  state noShuffle = false            // the last shuffle found no solvable deal
+
+  // 16 kinds, 4 tiles each
+  let K = [
+    {g: "🤖"}, {g: "🧠"}, {g: "🐛"}, {g: "☕"}, {g: "🐧"}, {g: "🐍"}, {g: "🦀"}, {g: "🐳"},
+    {g: "🚀"}, {g: "💾"}, {g: "🔒"}, {g: "☁️"},
+    {g: "🦊"}, {g: "💡"}, {g: "🌐"}, {g: "🧪"}
+  ]
+
+  // the stack: 36 + 18 + 8 + 2 slots on an 8x5 grid
+  let L0 = flatten(range(5).map(y => range(8).filter(x => !((x == 0 || x == 7) && (y == 0 || y == 4))).map(x => ({x: x, y: y, z: 0}))))
+  let L1 = flatten(range(1, 4).map(y => range(1, 7).map(x => ({x: x, y: y, z: 1}))))
+  let L2 = [[3, 1], [4, 1], [2, 2], [3, 2], [4, 2], [5, 2], [3, 3], [4, 3]].map(p => ({x: p[0], y: p[1], z: 2}))
+  let L3 = [{x: 3, y: 2, z: 3}, {x: 4, y: 2, z: 3}]
+  let SLOTS = flatten([L0, L1, L2, L3])
+  let N = len(SLOTS)
+  let POS = reduce(SLOTS, (m, s, i) => set(m, "${s.x},${s.y},${s.z}", i), {})
+  let AB = SLOTS.map(s => get(POS, "${s.x},${s.y},${s.z + 1}", -1))   // the slot on top
+  let LF = SLOTS.map(s => get(POS, "${s.x - 1},${s.y},${s.z}", -1))
+  let RT = SLOTS.map(s => get(POS, "${s.x + 1},${s.y},${s.z}", -1))
+
+  // deal by playing backwards: take two free tiles at a time from the full stack and give them one kind,
+  // so taking the pairs in that order wins. A dead end (fewer than 2 free) tries the next seed.
+  let START = base == null ? range(N).map(t => true) : base.occ
+  let PK = shuffle(base == null ? range(N / 2).map(p => p % 16) : base.pk, seed)
+  let NP = len(START.filter(o => o)) / 2
+  // up to 12 seeds in one go: a full stack fails about 1 in 7, so all 12 failing means no deal fits
+  let gen = reduce(range(12), (res, j) => res != null && !res.failed ? res :
+    reduce(range(NP), (acc, k) => acc.failed ? acc :
+      [range(N).filter(t => acc.o[t] && (AB[t] < 0 || !acc.o[AB[t]]) && (LF[t] < 0 || !acc.o[LF[t]] || RT[t] < 0 || !acc.o[RT[t]]))]
+        .map(f => len(f) < 2 ? merge(acc, {failed: true}) :
+          [f[floor(hash(seed, j, k, 1) * len(f))]].map(a =>
+            [f.filter(t => t != a)].map(g => g[floor(hash(seed, j, k, 2) * len(g))]).map(b =>
+              ({o: set(set(acc.o, a, false), b, false), kind: set(set(acc.kind, a, PK[k]), b, PK[k]), failed: false}))[0])[0])[0],
+      {o: START, kind: range(N).map(t => -1), failed: false}), null)
+  let KIND = gen.kind
+  let ready = !gen.failed
+
+  // a shuffle with no solvable deal (say the last tiles are one stack): put the game back as it was
+  on gen {
+    if value.failed && preShuffle != null {
+      base = preShuffle.base
+      removed = preShuffle.removed
+      seed = preShuffle.seed
+      preShuffle = null
+      noShuffle = true
+    } else if !value.failed {
+      preShuffle = null
+    }
+  }
+
+  let board = range(N).map(t => indexOf(removed, t) >= 0 ? -1 : KIND[t])
+  let FREE = range(N).map(t => board[t] >= 0 && (AB[t] < 0 || board[AB[t]] < 0) && (LF[t] < 0 || board[LF[t]] < 0 || RT[t] < 0 || board[RT[t]] < 0))
+  let freeKinds = range(N).filter(t => FREE[t]).map(t => board[t])
+  let matchable = range(16).filter(k => len(freeKinds.filter(v => v == k)) >= 2)
+  let left = len(board.filter(v => v >= 0))
+  let won = ready && left == 0
+  let stuck = ready && left > 0 && len(matchable) == 0
+  let HINT = hintOn && len(matchable) > 0 ? range(N).filter(t => FREE[t] && board[t] == matchable[0]).take(2) : []
+
+  // layout
+  let headerH = 40
+  let PAD = 3                        // margin inside the board's panel
+  let E = 5                          // each layer sits this far up and left
+  let D = 3                          // tile thickness, drawn down and right
+  let W = (tileWidth ?? 384) - 16 - 2 * PAD
+  let H = (tileHeight ?? 330) - 16 - headerH - 4 - 2 * 6 - 2 * PAD
+  let tw = max(min((W - 3 * E - D) / 8, (H - 3 * E - D) / 5 * 0.78), 20)
+  let th = tw / 0.78
+  let PX = SLOTS.map(s => 3 * E + s.x * tw - s.z * E)
+  let PY = SLOTS.map(s => 3 * E + s.y * th - s.z * E)
+  let HIT = range(N).sortBy(t => -SLOTS[t].z)
+  let winsText = "${wins} ${wins == 1 ? "win" : "wins"}"
+
+  component Overlay(title, note, tint = foreground) {
+    Column {
+      fill: true
+      align: center
+      justify: center
+      gap: 2
+      padding: [0, 0, 0, 48]
+      background: alpha(background, 0.88)
+      radius: 10 * corners
+      Text { text: title; font: "sans"; fontSize: 24; fontWeight: 800; color: tint; align: center }
+      Text { text: note; font: "sans"; fontSize: 13; color: muted; align: center }
+    }
+  }
+
+  Column {
+    gap: 6
+    align: center
+    Row {
+      height: headerH
+      fill: width
+      align: center
+      gap: 6
+      Column {
+        gap: 0
+        weight: 1
+        Text { spans: [{text: "Pair", color: accent}, "fect"]; font: "sans"; fontSize: 19; fontWeight: 800; letterSpacing: -0.3; maxLines: 1 }
+        Text {
+          spans: won ? ["All pairs matched · 🏆 ${wins}"] : ready ? ["${left / 2} pairs left · ", {text: "${len(matchable)} open", color: len(matchable) > 0 ? green : red}, " · 🏆 ${wins}"] : ["Dealing…"]
+          font: "sans"
+          fontSize: 11
+          color: muted
+          maxLines: 1
+        }
+      }
+      Text { text: "Hint"; font: "sans"; fontSize: 12; fontWeight: 700; color: blue; padding: [11, 6]; radius: 14 * corners; background: alpha(blue, 0.16); onTap: { hintOn = true; haptic() } }
+      Text { text: "Undo"; font: "sans"; fontSize: 12; fontWeight: 700; color: foreground; opacity: len(removed) > 0 && ready && !won ? 1 : 0.4; padding: [11, 6]; radius: 14 * corners; background: alpha(foreground, 0.1); onTap: { if ready && !won { removed = take(removed, max(len(removed) - 2, 0)); sel = -1; hintOn = false } } }
+      Text { text: "New"; font: "sans"; fontSize: 12; fontWeight: 700; color: background; padding: [11, 6]; radius: 14 * corners; background: accent; onTap: { base = null; removed = []; sel = -1; hintOn = false; seed = random(1000000); preShuffle = null; noShuffle = false } }
+    }
+
+    Progress { value: ready ? N - left : 0; max: N; color: accent; track: alpha(foreground, 0.08); fill: width; height: 4; animate value: spring() }
+
+    Box {
+      fill: width
+      weight: 1
+      align: center
+      radius: 10 * corners
+      background: radial(0.5, 0.45, 0.8, [alpha(accent, 0.07), alpha(foreground, 0.03)])
+
+      Box {
+        width: 8 * tw + 3 * E + D
+        height: 5 * th + 3 * E + D
+        align: topStart
+        onTap: {
+          let t = find(HIT, i => board[i] >= 0 && x >= PX[i] && x < PX[i] + tw && y >= PY[i] && y < PY[i] + th)
+          if won || stuck || !ready {
+            sel = sel
+          } else if t == null {
+            sel = -1
+          } else if !FREE[t] {
+            haptic()
+          } else if t == sel {
+            sel = -1
+          } else if sel >= 0 && board[sel] == board[t] {
+            if left == 2 { wins = wins + 1 }
+            removed = flatten([removed, [sel, t]])
+            sel = -1
+            hintOn = false
+            haptic()
+          } else {
+            sel = t
+          }
+        }
+
+        for t in range(N) {
+          let here = board[t] >= 0
+          let k = K[KIND[t]] ?? {g: ""}
+          let z = SLOTS[t].z
+          let open = FREE[t]
+          let picked = t == sel
+          let hinted = indexOf(HINT, t) >= 0
+          Box {
+            offset: [PX[t], PY[t]]
+            width: tw + D
+            height: th + D
+            opacity: here ? 1 : 0
+            scale: here ? (picked ? 1.06 : 1) : 0.6
+            animate opacity: tween(180ms, "out")
+            animate scale: tween(160ms, "out")
+            // the tile's side, darker the lower it sits
+            Box {
+              offset: [D, D]
+              width: tw - 1
+              height: th - 1
+              radius: 6 * corners
+              background: mix(background, foreground, 0.2 + z * 0.05)
+            }
+            Box {
+              width: tw - 1
+              height: th - 1
+              radius: 6 * corners
+              border: picked || hinted ? 2 : 1
+              borderColor: picked ? accent : hinted ? blue : alpha(foreground, open ? 0.3 : 0.14)
+              background: picked
+                ? linear(0, 0, 0, 1, [mix(background, accent, 0.45), mix(background, accent, 0.25)])
+                : open
+                  ? linear(0, 0, 0, 1, [mix(background, foreground, 0.26), mix(background, foreground, 0.14)])
+                  : linear(0, 0, 0, 1, [mix(background, foreground, 0.1), mix(background, foreground, 0.06)])
+              align: center
+              Text {
+                text: k.g
+                font: "sans"
+                fontSize: tw * 0.52
+                align: center
+                opacity: open || picked ? 1 : 0.4
+              }
+            }
+          }
+        }
+
+        Box {
+          fill: true
+          align: center
+          if !ready {
+            Overlay { title: "Dealing…"; note: "Stacking the tiles" }
+            Row {
+              offset: [0, 42]
+              fill: width
+              justify: center
+              Text { text: "New Game"; font: "sans"; fontSize: 13; fontWeight: 700; color: foreground; padding: [14, 7]; radius: 16 * corners; background: alpha(foreground, 0.12); onTap: { base = null; removed = []; sel = -1; hintOn = false; seed = random(1000000); preShuffle = null; noShuffle = false } }
+            }
+          } else if won {
+            Overlay { title: "Board Cleared!"; note: "Every pair matched · ${winsText}"; tint: green }
+            Row {
+              offset: [0, 42]
+              fill: width
+              justify: center
+              Text { text: "New Game"; font: "sans"; fontSize: 13; fontWeight: 700; color: background; padding: [14, 7]; radius: 16 * corners; background: accent; onTap: { base = null; removed = []; sel = -1; hintOn = false; seed = random(1000000); preShuffle = null; noShuffle = false } }
+            }
+          } else if stuck {
+            Overlay { title: "Deadlock"; note: noShuffle ? "No shuffle can untangle this stack" : "No open pairs · ${left / 2} pairs to go"; tint: red }
+            Row {
+              offset: [0, 42]
+              fill: width
+              justify: center
+              gap: 10
+              Text {
+                visible: !noShuffle
+                text: "Shuffle"; font: "sans"; fontSize: 13; fontWeight: 700; color: background; padding: [14, 7]; radius: 16 * corners; background: accent
+                onTap: {
+                  preShuffle = {base: base, removed: removed, seed: seed}
+                  noShuffle = false
+                  base = {occ: board.map(v => v >= 0), pk: chunk(sort(board.filter(v => v >= 0)), 2).map(c => c[0])}
+                  removed = []
+                  sel = -1
+                  seed = random(1000000)
+                }
+              }
+              Text { text: "New Game"; font: "sans"; fontSize: 13; fontWeight: 700; color: foreground; padding: [14, 7]; radius: 16 * corners; background: alpha(foreground, 0.12); onTap: { base = null; removed = []; sel = -1; hintOn = false; seed = random(1000000); preShuffle = null; noShuffle = false } }
+            }
+          }
+        }
+      }
+    }
+  }
+}
