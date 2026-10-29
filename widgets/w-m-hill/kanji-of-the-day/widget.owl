@@ -1,0 +1,663 @@
+widget "kanji of the day" {
+  meta { owl: 13; description: "A shodo-style kanji for each day of the year, with its readings and meaning set like a calligraphy. Tap a quarter: top left text, top right color, bottom left font, bottom right layer"; version: "1.0"; license: "MIT"; category: "fun" }
+  size: 3x3
+  minSize: 1x1
+  padding: 0
+  // "clear" drops the tile's own glass, so only the ink sits on the wallpaper.
+  background: backdrop == "clear" ? alpha(background, 0) : null
+
+  requires { pacman: ["python", "python-pillow", "python-fonttools"] }
+
+  // The tile is one Canvas, laid out from its own size, so it reads from one cell to a whole page.
+  // Over it, four quarters are the controls, a tap each: top left cycles what's shown with the kanji,
+  // top right the theme color, bottom left the font, bottom right the render layer.
+
+  // What's shown with the kanji: its readings (top right), its meaning (bottom left) or both, set vertically. One of: kanji, reading, meaning, both
+  state mode = "kanji" persist
+  // The theme color the kanji is inked in. One of: foreground, accent, red, orange, yellow, green, cyan, blue, magenta
+  state hue = "foreground" persist
+  // The typeface: Yuji Syuku and Yuji Boku are brush, Zen Kurenaido a brush pen, Shippori a mincho, Klee a pencil, Dela a heavy gothic. One of: syuku, boku, kurenaido, mincho, klee, gothic
+  state font = "syuku" persist
+  // How the kanji is drawn: brush ink, as pixels, halftone dots or Unicode braille. One of: ink, pixel, halftone, braille
+  state layer = "ink" persist
+  // How fine the pixel, halftone and braille grids are. One of: low, medium, high
+  state detail = "medium" persist
+  // An ensō, a brush circle, drawn round the kanji under any layer
+  state enso = false persist
+  // The red hanko seal, stamped with the day of the month
+  state seal = true persist
+  // The date in kanji numerals, down the top left
+  state date = true persist
+  // Behind the kanji: a faint wash of its ink on the tile, the tile alone, or nothing at all (clear). One of: wash, plain, clear
+  state backdrop = "wash" persist
+  // Days away from today, to look at other days' kanji (0 is today)
+  state shift = 0 persist
+
+  // What the last tap changed, shown for a moment at the top or bottom edge, by the half tapped.
+  state hint = ""
+  state hintLow = false
+  state hintTicks = 0
+  every 1s { if hintTicks > 0 { hintTicks = hintTicks - 1 } }
+
+  source now = clock every 1m
+
+  // The year, one line a day: date|kanji|on'yomi|kun'yomi|meaning|what the day is. Feb 29 has 閏, leap.
+  let data = """
+    01-01|元|ゲン|もと|origin, beginning|New Year's Day · 元旦
+    01-02|初|ショ|はじめ|first|kakizome, the year's first writing
+    01-03|福|フク||fortune, blessing|
+    01-04|松|ショウ|まつ|pine|kadomatsu pines at the gate
+    01-05|寒|カン|さむい|cold|小寒 · lesser cold
+    01-06|若|ジャク|わかい|young|
+    01-07|草|ソウ|くさ|grass, herbs|nanakusa, the seven herbs
+    01-08|道|ドウ|みち|way, path|
+    01-09|志|シ|こころざし|aspiration|
+    01-10|恵|ケイ|めぐみ|blessing|Tōka Ebisu
+    01-11|鏡|キョウ|かがみ|mirror|kagami-biraki
+    01-12|筆|ヒツ|ふで|brush|
+    01-13|墨|ボク|すみ|ink|
+    01-14|紙|シ|かみ|paper|
+    01-15|成|セイ|なる|become, attain|Coming of Age
+    01-16|静|セイ|しずか|quiet, still|
+    01-17|備|ビ|そなえる|prepare|Hanshin earthquake remembrance
+    01-18|心|シン|こころ|heart, mind|
+    01-19|白|ハク|しろ|white|
+    01-20|氷|ヒョウ|こおり|ice|大寒 · greater cold
+    01-21|凛|リン||dignified, crisp|
+    01-22|根|コン|ね|root|
+    01-23|炭|タン|すみ|charcoal|
+    01-24|灯|トウ|ひ|lamp, light|
+    01-25|学|ガク|まなぶ|learn|
+    01-26|守|シュ|まもる|protect|
+    01-27|忍|ニン|しのぶ|endure|
+    01-28|力|リョク|ちから|strength|
+    01-29|肉|ニク||flesh, meat|niku day (1·29)
+    01-30|待|タイ|まつ|wait|
+    01-31|鶴|カク|つる|crane|
+    02-01|梅|バイ|うめ|plum blossom|
+    02-02|鬼|キ|おに|demon, ogre|Setsubun
+    02-03|豆|トウ|まめ|bean|Setsubun bean-throwing
+    02-04|立|リツ|たつ|stand, rise|立春 · spring begins
+    02-05|春|シュン|はる|spring|
+    02-06|芽|ガ|め|bud, sprout|
+    02-07|北|ホク|きた|north|
+    02-08|針|シン|はり|needle|hari-kuyō, rest for old needles
+    02-09|鶯|オウ|うぐいす|bush warbler|
+    02-10|光|コウ|ひかり|light|
+    02-11|国|コク|くに|country|National Foundation Day
+    02-12|結|ケツ|むすぶ|tie, bind|
+    02-13|縁|エン|えにし|fate, bond|
+    02-14|愛|アイ||love|Valentine's Day
+    02-15|寂|ジャク|さび|serene solitude|Nehan-e
+    02-16|椿|チン|つばき|camellia|
+    02-17|祈|キ|いのる|pray|Kinen-sai, prayers for harvest
+    02-18|友|ユウ|とも|friend|
+    02-19|雨|ウ|あめ|rain|雨水 · snow turns to rain
+    02-20|風|フウ|かぜ|wind|
+    02-21|声|セイ|こえ|voice|
+    02-22|猫|ビョウ|ねこ|cat|Cat Day (nyan nyan nyan)
+    02-23|富|フ|とみ|wealth|Mount Fuji Day · 富士
+    02-24|夢|ム|ゆめ|dream|
+    02-25|菜|サイ|な|greens|
+    02-26|糸|シ|いと|thread|
+    02-27|舞|ブ|まう|dance|
+    02-28|継|ケイ|つぐ|inherit, continue|
+    02-29|閏|ジュン|うるう|leap|leap day
+    03-01|生|セイ|いきる|life, live|
+    03-02|息|ソク|いき|breath|
+    03-03|桃|トウ|もも|peach|Hinamatsuri, the peach festival
+    03-04|和|ワ|やわらぐ|harmony|
+    03-05|虫|チュウ|むし|insect|啓蟄 · insects awaken
+    03-06|目|モク|め|eye|
+    03-07|菫|キン|すみれ|violet|
+    03-08|優|ユウ|やさしい|gentle, excel|
+    03-09|謝|シャ|あやまる|gratitude|Thank-you Day (san-kyū)
+    03-10|砂|サ|すな|sand|
+    03-11|絆|バン|きずな|bonds|Tōhoku remembrance
+    03-12|種|シュ|たね|seed|
+    03-13|森|シン|もり|forest|
+    03-14|返|ヘン|かえす|return|White Day
+    03-15|旅|リョ|たび|journey|
+    03-16|燕|エン|つばめ|swallow|
+    03-17|岸|ガン|きし|shore|spring Higan begins
+    03-18|祖|ソ||ancestor|Higan
+    03-19|蝶|チョウ||butterfly|
+    03-20|分|ブン|わける|divide|春分 · spring equinox
+    03-21|昼|チュウ|ひる|daytime|
+    03-22|放|ホウ|はなつ|release|
+    03-23|気|キ||spirit, air|World Meteorological Day
+    03-24|卒|ソツ||graduate|graduation season
+    03-25|別|ベツ|わかれる|parting|
+    03-26|開|カイ|ひらく|open|
+    03-27|咲|ショウ|さく|bloom|
+    03-28|桜|オウ|さくら|cherry blossom|sakura in bloom
+    03-29|宴|エン|うたげ|banquet|hanami
+    03-30|薄|ハク|うすい|pale, thin|
+    03-31|終|シュウ|おわる|end|the fiscal year ends
+    04-01|新|シン|あたらしい|new|the school year begins
+    04-02|始|シ|はじめる|begin|
+    04-03|歩|ホ|あるく|walk|
+    04-04|清|セイ|きよい|pure, clear|清明 · pure brightness
+    04-05|明|メイ|あかるい|bright|
+    04-06|花|カ|はな|flower|
+    04-07|良|リョウ|よい|good|
+    04-08|仏|ブツ|ほとけ|Buddha|Hana-matsuri, Buddha's birthday
+    04-09|鳥|チョウ|とり|bird|
+    04-10|笑|ショウ|わらう|laugh|
+    04-11|散|サン|ちる|scatter|petals fall
+    04-12|霞|カ|かすみ|spring haze|
+    04-13|柳|リュウ|やなぎ|willow|
+    04-14|橋|キョウ|はし|bridge|
+    04-15|石|セキ|いし|stone|
+    04-16|青|セイ|あお|blue, green|
+    04-17|藤|トウ|ふじ|wisteria|
+    04-18|発|ハツ||emit, invent|Inventors' Day
+    04-19|地|チ||earth, ground|
+    04-20|穀|コク||grain|穀雨 · grain rain
+    04-21|葉|ヨウ|は|leaf|
+    04-22|球|キュウ|たま|globe, sphere|Earth Day
+    04-23|本|ホン|もと|book, origin|World Book Day
+    04-24|蛙|ア|かえる|frog|
+    04-25|波|ハ|なみ|wave|
+    04-26|線|セン||line|
+    04-27|竹|チク|たけ|bamboo|
+    04-28|礼|レイ||bow, gratitude|
+    04-29|昭|ショウ||shining|Shōwa Day
+    04-30|休|キュウ|やすむ|rest|Golden Week
+    05-01|働|ドウ|はたらく|work|May Day
+    05-02|茶|チャ||tea|hachijū-hachiya, first tea picking
+    05-03|法|ホウ||law|Constitution Day
+    05-04|緑|リョク|みどり|green|Greenery Day
+    05-05|鯉|リ|こい|carp|Children's Day · koinobori
+    05-06|夏|カ|なつ|summer|立夏 · summer begins
+    05-07|薫|クン|かおる|fragrance|the fragrant May breeze
+    05-08|母|ボ|はは|mother|Mother's Day is near
+    05-09|感|カン||feeling|
+    05-10|翼|ヨク|つばさ|wing|Bird Week
+    05-11|鵜|ウ|う|cormorant|ukai fishing opens on the Nagara
+    05-12|看|カン|みる|watch over|Nurses' Day
+    05-13|晴|セイ|はれる|clear sky|
+    05-14|駆|ク|かける|gallop|
+    05-15|葵|キ|あおい|hollyhock|Aoi Matsuri, Kyoto
+    05-16|句|ク||verse|Bashō sets out, 1689
+    05-17|泳|エイ|およぐ|swim|
+    05-18|美|ビ|うつくしい|beauty|International Museum Day
+    05-19|水|スイ|みず|water|
+    05-20|量|リョウ|はかる|measure|World Metrology Day
+    05-21|満|マン|みちる|fullness|小満 · lesser fullness
+    05-22|蜂|ホウ|はち|bee|
+    05-23|亀|キ|かめ|turtle|World Turtle Day
+    05-24|刻|コク|きざむ|carve, moment|
+    05-25|音|オン|おと|sound|
+    05-26|火|カ|ひ|fire|
+    05-27|海|カイ|うみ|sea|
+    05-28|船|セン|ふね|ship|
+    05-29|苔|タイ|こけ|moss|
+    05-30|塵|ジン|ちり|dust|Gomi-zero Day
+    05-31|煙|エン|けむり|smoke|
+    06-01|衣|イ|ころも|garment|koromogae, summer dress
+    06-02|港|コウ|みなと|harbor|Yokohama port opened, 1859
+    06-03|傘|サン|かさ|umbrella|
+    06-04|歯|シ|は|tooth|Dental Health Day
+    06-05|環|カン||ring, environment|World Environment Day
+    06-06|芒|ボウ|のぎ|awn of grain|芒種 · grain in ear
+    06-07|紫|シ|むらさき|purple|
+    06-08|洋|ヨウ||ocean|World Oceans Day
+    06-09|苗|ビョウ|なえ|seedling|rice planting
+    06-10|時|ジ|とき|time|Time Day
+    06-11|濡|ジュ|ぬれる|get wet|tsuyu, the rains begin
+    06-12|恋|レン|こい|romance|
+    06-13|鈴|レイ|すず|bell|
+    06-14|蛍|ケイ|ほたる|firefly|firefly season
+    06-15|父|フ|ちち|father|Father's Day is near
+    06-16|菓|カ||sweets|Wagashi Day
+    06-17|沼|ショウ|ぬま|marsh|
+    06-18|蓮|レン|はす|lotus|
+    06-19|泉|セン|いずみ|spring, fountain|
+    06-20|滴|テキ|しずく|drop|
+    06-21|至|シ|いたる|reach, utmost|夏至 · summer solstice
+    06-22|陽|ヨウ|ひ|sun, yang|
+    06-23|平|ヘイ|たいら|peace, flat|Okinawa Memorial Day
+    06-24|雷|ライ|かみなり|thunder|
+    06-25|虹|コウ|にじ|rainbow|
+    06-26|輪|リン|わ|ring, wheel|
+    06-27|林|リン|はやし|grove|
+    06-28|貝|バイ|かい|shellfish|
+    06-29|楽|ガク|たのしい|music, joy|
+    06-30|茅|ボウ|かや|reed|Nagoshi no Harae, the chinowa ring
+    07-01|山|サン|やま|mountain|yamabiraki, Fuji opens
+    07-02|瓜|カ|うり|melon|
+    07-03|涼|リョウ|すずしい|cool|
+    07-04|独|ドク|ひとり|alone|
+    07-05|帆|ハン|ほ|sail|
+    07-06|朝|チョウ|あさ|morning|morning glory fair
+    07-07|星|セイ|ほし|star|Tanabata, the star festival
+    07-08|天|テン|あめ|heaven, sky|
+    07-09|実|ジツ|み|fruit, truth|Hōzuki-ichi, lantern fruit fair
+    07-10|納|ノウ|おさめる|settle|nattō day (7·10)
+    07-11|浜|ヒン|はま|beach|
+    07-12|祭|サイ|まつり|festival|
+    07-13|迎|ゲイ|むかえる|welcome|mukaebi, Bon fires
+    07-14|革|カク|かわ|leather, revolution|
+    07-15|魂|コン|たましい|soul|O-Bon
+    07-16|送|ソウ|おくる|send off|okuribi
+    07-17|鉾|ボウ|ほこ|halberd|Gion Matsuri parade
+    07-18|島|トウ|しま|island|
+    07-19|汗|カン|あせ|sweat|
+    07-20|鰻|マン|うなぎ|eel|doyō no ushi, eel days
+    07-21|蝉|セン|せみ|cicada|
+    07-22|暑|ショ|あつい|heat|
+    07-23|大|ダイ|おおきい|great|大暑 · greater heat
+    07-24|河|カ|かわ|river|
+    07-25|雲|ウン|くも|cloud|
+    07-26|扇|セン|おうぎ|folding fan|
+    07-27|浴|ヨク|あびる|bathe|yukata season
+    07-28|打|ダ|うつ|strike|
+    07-29|泡|ホウ|あわ|bubble|
+    07-30|夕|セキ|ゆう|evening|
+    07-31|嵐|ラン|あらし|storm|
+    08-01|八|ハチ|やっつ|eight|hassaku, first of the eighth month
+    08-02|太|タイ|ふとい|thick, great|
+    08-03|蜜|ミツ||honey|Honey Day (hachi-mitsu)
+    08-04|箸|チョ|はし|chopsticks|Chopsticks Day
+    08-05|剛|ゴウ||strong|
+    08-06|鳩|キュウ|はと|dove|Hiroshima Peace Memorial Day
+    08-07|秋|シュウ|あき|autumn|立秋 · autumn begins
+    08-08|末|マツ|すえ|tip, end|
+    08-09|誓|セイ|ちかう|vow|Nagasaki Peace Day
+    08-10|帰|キ|かえる|return home|the Bon journey home
+    08-11|峰|ホウ|みね|peak|Mountain Day
+    08-12|踊|ヨウ|おどる|dance|Awa Odori
+    08-13|籠|ロウ|かご|basket, lantern|Bon lanterns
+    08-14|盆|ボン||tray, Bon|O-Bon
+    08-15|永|エイ|ながい|eternal|
+    08-16|炎|エン|ほのお|flame|Gozan no Okuribi, Kyoto
+    08-17|冷|レイ|つめたい|chill|
+    08-18|米|ベイ|こめ|rice|Rice Day (八十八 = 米)
+    08-19|詠|エイ|よむ|compose poetry|Haiku Day (8·19)
+    08-20|蚊|ブン|か|mosquito|Mosquito Day
+    08-21|汐|セキ|しお|tide|
+    08-22|鳴|メイ|なく|cry, chirp|
+    08-23|処|ショ||settle|処暑 · the heat abates
+    08-24|夜|ヤ|よる|night|
+    08-25|麺|メン||noodles|Instant Ramen Day
+    08-26|野|ヤ|の|field|
+    08-27|路|ロ|じ|road|
+    08-28|宿|シュク|やど|lodging|
+    08-29|焼|ショウ|やく|grill, burn|yakiniku day (8·29)
+    08-30|宙|チュウ||space, mid-air|
+    08-31|題|ダイ||theme, topic|summer homework is due
+    09-01|防|ボウ|ふせぐ|prevent|Disaster Prevention Day
+    09-02|栗|リツ|くり|chestnut|
+    09-03|萩|シュウ|はぎ|bush clover|
+    09-04|語|ゴ|かたる|tell, language|
+    09-05|黒|コク|くろ|black|
+    09-06|鐘|ショウ|かね|temple bell|
+    09-07|稲|トウ|いね|rice plant|
+    09-08|露|ロ|つゆ|dew|白露 · white dew
+    09-09|菊|キク||chrysanthemum|Chōyō, the chrysanthemum festival
+    09-10|弓|キュウ|ゆみ|bow|
+    09-11|響|キョウ|ひびく|echo|
+    09-12|琴|キン|こと|koto|
+    09-13|敬|ケイ|うやまう|respect|Respect for the Aged Day is near
+    09-14|望|ボウ|のぞむ|hope, full moon|
+    09-15|月|ゲツ|つき|moon|tsukimi, moon viewing
+    09-16|兎|ト|うさぎ|rabbit|the rabbit in the moon
+    09-17|団|ダン||group, round|tsukimi dango
+    09-18|芋|ウ|いも|potato|imo-meigetsu, potato moon
+    09-19|狐|コ|きつね|fox|
+    09-20|空|クウ|そら|sky|Sky Day
+    09-21|彼|ヒ|かれ|beyond|autumn Higan
+    09-22|紅|コウ|べに|crimson|higanbana in bloom
+    09-23|均|キン|ひとしい|equal|秋分 · autumn equinox
+    09-24|鹿|ロク|しか|deer|
+    09-25|台|タイ||stand, typhoon|typhoon season
+    09-26|知|チ|しる|know|
+    09-27|観|カン|みる|view|World Tourism Day
+    09-28|寿|ジュ|ことぶき|longevity|
+    09-29|招|ショウ|まねく|beckon|Maneki-neko Day (ku-ru-fuku)
+    09-30|決|ケツ|きめる|decide|
+    10-01|酒|シュ|さけ|sake|Sake Day
+    10-02|豊|ホウ|ゆたか|abundant|
+    10-03|登|トウ|のぼる|climb|
+    10-04|柿|シ|かき|persimmon|
+    10-05|舟|シュウ|ふね|boat|
+    10-06|錦|キン|にしき|brocade|
+    10-07|長|チョウ|ながい|long|Nagasaki Kunchi
+    10-08|雁|ガン|かり|wild goose|寒露 · cold dew, geese arrive
+    10-09|郵|ユウ||mail|World Post Day
+    10-10|体|タイ|からだ|body|Sports Day
+    10-11|鮭|ケイ|さけ|salmon|
+    10-12|書|ショ|かく|write|
+    10-13|薬|ヤク|くすり|medicine|
+    10-14|鉄|テツ||iron, rail|Railway Day
+    10-15|熟|ジュク|うれる|ripen|
+    10-16|食|ショク|たべる|eat, food|World Food Day
+    10-17|神|シン|かみ|god, spirit|Kanname-sai at Ise
+    10-18|冠|カン|かんむり|crown|
+    10-19|漬|シ|つける|pickle|Bettara-ichi pickle market
+    10-20|帯|タイ|おび|sash|
+    10-21|蔦|チョウ|つた|ivy|
+    10-22|代|ダイ|かわる|era|Jidai Matsuri, Kyoto
+    10-23|霜|ソウ|しも|frost|霜降 · frost descends
+    10-24|連|レン|つらなる|link|United Nations Day
+    10-25|枝|シ|えだ|branch|
+    10-26|原|ゲン|はら|origin, plain|
+    10-27|読|ドク|よむ|read|Reading Week begins
+    10-28|匠|ショウ|たくみ|artisan|
+    10-29|彩|サイ|いろどる|color|
+    10-30|影|エイ|かげ|shadow|
+    10-31|魔|マ||demon, magic|Halloween
+    11-01|犬|ケン|いぬ|dog|Dog Day (wan wan wan)
+    11-02|楓|フウ|かえで|maple|momiji season
+    11-03|文|ブン|ふみ|letters, culture|Culture Day
+    11-04|庭|テイ|にわ|garden|
+    11-05|津|シン|つ|harbor|World Tsunami Awareness Day
+    11-06|寺|ジ|てら|temple|
+    11-07|冬|トウ|ふゆ|winter|立冬 · winter begins
+    11-08|炉|ロ||hearth|robiraki, the tea hearth opens
+    11-09|救|キュウ|すくう|rescue|119 Day
+    11-10|技|ギ|わざ|skill|
+    11-11|一|イチ|ひとつ|one|11·11
+    11-12|洞|ドウ|ほら|cave|
+    11-13|枯|コ|かれる|wither|
+    11-14|絵|カイ|え|picture|
+    11-15|七|シチ|ななつ|seven|Shichi-go-san
+    11-16|幸|コウ|さいわい|happiness|
+    11-17|鴨|オウ|かも|duck|
+    11-18|磨|マ|みがく|polish|
+    11-19|杉|サン|すぎ|cedar|
+    11-20|鍋|カ|なべ|pot|
+    11-21|鍵|ケン|かぎ|key|
+    11-22|雪|セツ|ゆき|snow|小雪 · lesser snow
+    11-23|勤|キン|つとめる|labor|Labor Thanksgiving Day
+    11-24|恩|オン||kindness|
+    11-25|鷹|ヨウ|たか|hawk|
+    11-26|毛|モウ|け|fur, hair|
+    11-27|灰|カイ|はい|ash|
+    11-28|瀬|ライ|せ|shallows|
+    11-29|頂|チョウ|いただき|summit|
+    11-30|晩|バン||late, evening|the end of autumn
+    12-01|師|シ||teacher|shiwasu, the month teachers run
+    12-02|走|ソウ|はしる|run|師走
+    12-03|忘|ボウ|わすれる|forget|bōnenkai season
+    12-04|銀|ギン||silver|
+    12-05|熊|ユウ|くま|bear|
+    12-06|眠|ミン|ねむる|sleep|
+    12-07|積|セキ|つもる|pile up|大雪 · greater snow
+    12-08|悟|ゴ|さとる|enlightenment|Rōhatsu, Bodhi Day
+    12-09|剣|ケン|つるぎ|sword|
+    12-10|人|ジン|ひと|person|Human Rights Day
+    12-11|坂|ハン|さか|slope|
+    12-12|漢|カン||Han, kanji|Kanji Day · kanji of the year
+    12-13|煤|バイ|すす|soot|susuharai, year-end cleaning
+    12-14|義|ギ||righteousness|the 47 rōnin, 1703
+    12-15|年|ネン|とし|year|
+    12-16|器|キ|うつわ|vessel|
+    12-17|羽|ウ|はね|feather|Hagoita-ichi fair
+    12-18|霧|ム|きり|fog|
+    12-19|闇|アン|やみ|darkness|
+    12-20|蔵|ゾウ|くら|storehouse|
+    12-21|願|ガン|ねがう|wish|
+    12-22|柚|ユウ|ゆず|yuzu|冬至 · winter solstice, yuzu baths
+    12-23|南|ナン|みなみ|south|kabocha (南瓜) for the solstice
+    12-24|聖|セイ|ひじり|holy|Christmas Eve
+    12-25|贈|ゾウ|おくる|gift|Christmas
+    12-26|餅|ヘイ|もち|rice cake|mochitsuki
+    12-27|掃|ソウ|はく|sweep|ōsōji, the big clean
+    12-28|了|リョウ||finish|shigoto-osame, work ends
+    12-29|飾|ショク|かざる|decorate|New Year decorations
+    12-30|祝|シュク|いわう|celebrate|
+    12-31|除|ジョ|のぞく|remove|Ōmisoka · joya no kane, 108 bells
+  """
+  let db = lines(trim(data)).map(l => split(trim(l), "|"))
+  let day = now + shift * 86400
+  let today = find(db, r => r[0] == fmtTime(day, "MM-dd")) ?? db[0]
+  let kanji = today[1]
+  let onyomi = today[2]
+  let kunyomi = today[3]
+  let meaning = today[4]
+  let note = today[5]
+
+  // Kanji numerals for the seal and the date.
+  let digits = ["", "一", "二", "三", "四", "五", "六", "七", "八", "九"]
+  let dom = int(fmtTime(day, "d"))
+  let moy = int(fmtTime(day, "M"))
+  let domKanji = ["", "十", "廿", "卅"][floor(dom / 10)] + digits[dom % 10]
+  let moyKanji = moy >= 10 ? "十" + digits[moy - 10] : digits[moy]
+
+  let modes = ["kanji", "reading", "meaning", "both"]
+  let showReading = mode == "reading" || mode == "both"
+  let showMeaning = mode == "meaning" || mode == "both"
+  let hues = ["foreground", "accent", "red", "orange", "yellow", "green", "cyan", "blue", "magenta"]
+  let inks = {foreground: foreground, accent: accent, red: red, orange: orange, yellow: yellow, green: green, cyan: cyan, blue: blue, magenta: magenta}
+  let ink = get(inks, hue, foreground)
+  let fontKeys = ["syuku", "boku", "kurenaido", "mincho", "klee", "gothic"]
+  let fontNames = {syuku: "Yuji Syuku", boku: "Yuji Boku", kurenaido: "Zen Kurenaido", mincho: "Shippori Mincho", klee: "Klee One", gothic: "Dela Gothic"}
+  let layers = ["ink", "pixel", "halftone", "braille"]
+
+  // The fonts and the kanji as grids, for the pixel, halftone and braille layers. The first time a font is
+  // used it is downloaded from Google Fonts (OFL), cut down to the characters in data, and kept in
+  // ~/.cache/kanji-of-the-day with the grids; the launcher can't load the whole fonts (over 8 MB). Until a
+  // font is there the kanji shows in the launcher's own font.
+  let inkPy = """
+    import json, os, re, sys, urllib.request
+    char, key, res, chars = sys.argv[1:5]
+    GF = "https://raw.githubusercontent.com/google/fonts/main/ofl/"
+    FONTS = {"syuku": "yujisyuku/YujiSyuku-Regular.ttf", "boku": "yujiboku/YujiBoku-Regular.ttf", "kurenaido": "zenkurenaido/ZenKurenaido-Regular.ttf", "mincho": "shipporimincho/ShipporiMincho-Regular.ttf", "klee": "kleeone/KleeOne-Regular.ttf", "gothic": "delagothicone/DelaGothicOne-Regular.ttf"}
+    key = key if key in FONTS else "syuku"
+    D = os.path.expanduser("~/.cache/kanji-of-the-day")
+    os.makedirs(D, exist_ok=True)
+    def font(k):
+        old = [f for f in os.listdir(D) if re.fullmatch(k + "-[0-9]+[.]ttf", f)]
+        if old:
+            return D + "/" + old[0]
+        from fontTools import subset
+        tmp = D + "/" + k + ".full"
+        urllib.request.urlretrieve(GF + FONTS[k], tmp)
+        o = subset.Options()
+        o.layout_features = ["*"]
+        o.name_IDs = ["*"]
+        f = subset.load_font(tmp, o)
+        s = subset.Subsetter(o)
+        s.populate(text=chars + "〇一二三四五六七八九十廿卅月日年" + "".join(chr(c) for c in range(32, 127)))
+        s.subset(f)
+        out = D + "/" + k + "-" + str(os.getpid()) + ".ttf"
+        subset.save_font(f, out + ".tmp", o)
+        os.replace(out + ".tmp", out)
+        os.remove(tmp)
+        return out
+    def glyph(path, n):
+        from PIL import Image, ImageDraw, ImageFont
+        big = 512
+        img = Image.new("L", (big * 2, big * 2), 0)
+        ImageDraw.Draw(img).text((big // 2, big // 2), char, font=ImageFont.truetype(path, big), fill=255)
+        box = img.getbbox()
+        if not box:
+            return [[0] * n for _ in range(n)]
+        img = img.crop(box)
+        w, h = img.size
+        side = int(max(w, h) / 0.9)
+        sq = Image.new("L", (side, side), 0)
+        sq.paste(img, ((side - w) // 2, (side - h) // 2))
+        px = sq.resize((n, n), Image.Resampling.BOX).load()
+        return [[px[x, y] / 255 for x in range(n)] for y in range(n)]
+    path = font(key)
+    seal = font("mincho")
+    res = res if res in ("low", "high") else "medium"
+    pn, dn, bn = {"low": (16, 12, 24), "medium": (24, 18, 40), "high": (40, 28, 64)}[res]
+    cache = D + "/" + format(ord(char[0]), "x") + "-" + key + "-" + res + ".json"
+    if os.path.exists(cache):
+        grids = json.load(open(cache))
+    else:
+        g = glyph(path, pn)
+        px = ["".join("b" if v > 0.55 else "a" if v > 0.2 else "." for v in row) for row in g]
+        g = glyph(path, dn)
+        dots = ["".join(str(min(9, round(v * 9))) for v in row) for row in g]
+        g = glyph(path, bn)
+        bits = [(0, 0, 1), (0, 1, 2), (0, 2, 4), (1, 0, 8), (1, 1, 16), (1, 2, 32), (0, 3, 64), (1, 3, 128)]
+        br = ["".join(chr(10240 + sum(b for dx, dy, b in bits if g[y * 4 + dy][x * 2 + dx] > 0.4)) for x in range(bn // 2)) for y in range(bn // 4)]
+        grids = {"px": px, "dots": dots, "br": br}
+        json.dump(grids, open(cache + ".tmp", "w"))
+        os.replace(cache + ".tmp", cache)
+    print(json.dumps(dict(grids, char=char, font=key, res=res, face=path, seal=seal), ensure_ascii=False))
+  """
+  source raster = cmd("python3 -c ${sh(inkPy)} ${sh(kanji)} ${sh(font)} ${sh(detail)} ${sh(data)}") every 1h json timeout 3m
+  let face = raster != null && raster.font == font ? raster.face : null
+  let sealFace = raster != null ? raster.seal : "serif"
+
+  Box {
+    Canvas {
+      fill: true
+      background: backdrop == "wash" ? radial(0.5, 0.5, 0.75, [alpha(ink, 0.07), alpha(ink, 0.0)]) : null
+
+      let s = min(width, height)
+      let m = max(4, s * 0.07)
+      // Side text: the readings and the meaning, one column of characters each.
+      let ts = clamp(s * 0.075, 6, 26)
+      let side = showReading ? min(ts * 2.0, s * 0.15) : showMeaning ? min(ts * 1.6, s * 0.14) : 0
+      let big = min(width - 2 * m - 2 * side, height - 2 * m) * 0.9
+      let S = enso ? big * 0.72 : big
+      let cx = width / 2
+      let cy = height / 2
+      let raw = raster.char == kanji && raster.font == font && raster.res == detail ? raster : null
+      // These fonts' glyphs sit a little low in their line; lift them to the middle, in ems.
+      let lift = 0.04
+      let grid = layer == "pixel" || layer == "halftone" || layer == "braille"
+
+      // Ensō: one brush stroke round the kanji, thick where it starts, dry where it lifts.
+      if enso {
+        let r = min(big * 0.5, s / 2 - m)
+        let start = 200 + hash(kanji) * 140
+        // Opaque steps from ink towards the paper, so where they overlap doesn't show.
+        for i in range(40) {
+          arc(cx, cy, r, start + i * 7.5, 8.5, stroke: mix(background, ink, 0.8 - i * 0.014), width: max(1, r * (0.15 - i * 0.0032)), cap: i == 0 || i == 39 ? "round" : "butt")
+        }
+      }
+
+      // The kanji itself.
+      if !grid || raw == null {
+        // A wet edge: the stroke bled a little into the paper.
+        if !grid {
+          for d in [[-1, 0], [1, 0], [0, -1], [0, 1]] {
+            text(kanji, cx + d[0] * S * 0.008, cy - S * lift + d[1] * S * 0.008, size: S, color: alpha(ink, 0.12), font: face, align: center)
+          }
+        }
+        text(kanji, cx, cy - S * lift, size: S, color: grid ? alpha(ink, 0.3) : ink, font: face, align: center)
+      } else if layer == "pixel" {
+        let p = S / len(raw.px)
+        sprite(raw.px, cx - S / 2, cy - S / 2, p, palette: {a: alpha(ink, 0.45), b: ink})
+      } else if layer == "halftone" {
+        let n = len(raw.dots)
+        let p = S / n
+        for row, j in raw.dots {
+          for i in range(n) {
+            let v = num(sub(row, i, i + 1), 0)
+            if v > 0 {
+              circle(cx - S / 2 + (i + 0.5) * p, cy - S / 2 + (j + 0.5) * p, p * 0.56 * sqrt(v / 9), fill: ink)
+            }
+          }
+        }
+      } else {
+        let nw = len(raw.br[0])
+        let cw = S / nw
+        let chh = S / len(raw.br)
+        for row, j in raw.br {
+          for i in range(nw) {
+            let ch = sub(row, i, i + 1)
+            if ch != "⠀" {
+              text(ch, cx - S / 2 + (i + 0.5) * cw, cy - S / 2 + (j + 0.5) * chh, size: chh * 0.95, color: ink, align: center)
+            }
+          }
+        }
+      }
+
+      // Readings, top right, read top to bottom and right to left: on'yomi in katakana, then kun'yomi.
+      if showReading {
+        let cols = [onyomi, kunyomi].filter(t => t != "")
+        for t, c in cols {
+          for i in range(len(t)) {
+            text(sub(t, i, i + 1), width - m - ts * 0.5 - c * ts * 1.45, m + ts * (0.55 + i * 1.08), size: ts, color: c == 0 ? ink : alpha(ink, 0.7), font: face, align: center)
+          }
+        }
+      }
+
+      // Meaning, bottom left, turned to run down the page like a line of vertical writing.
+      if showMeaning {
+        let te = clamp(min(ts * 0.95, (height - 2 * m) * 0.8 / max(1, len(meaning) * 0.52)), 5, 18)
+        rotate(90, m + te * 0.5, height - m) {
+          text(meaning, m + te * 0.5, height - m, size: te, color: alpha(ink, 0.8), align: end, font: "serif", italic: true)
+        }
+      }
+
+      // The date, top left, when there's room, like an inscription: month and day in kanji numerals.
+      if date && s >= 150 {
+        let dt = moyKanji + "月" + domKanji + "日"
+        let td = ts * 0.8
+        for i in range(len(dt)) {
+          text(sub(dt, i, i + 1), m + td * 0.5, m + td * (0.55 + i * 1.1), size: td, color: alpha(foreground, 0.45), font: sealFace, align: center)
+        }
+      }
+
+      // What the day is, under the kanji, on big tiles.
+      if note != "" && s >= 260 {
+        text(note, cx, min(height - m - ts, cy + big / 2 + ts * 0.8), size: ts * 0.6, color: muted, align: center, font: "serif", italic: true)
+      }
+
+      // Hanko: a red seal with the day of the month, bottom right.
+      if seal && s >= 72 {
+        let q = clamp(s * 0.12, 11, 40)
+        let qx = width - m - q
+        let qy = height - m - q
+        rect(qx, qy, q, q, radius: q * 0.12 * corners, fill: alpha(red, 0.85))
+        rect(qx + q * 0.08, qy + q * 0.08, q * 0.84, q * 0.84, radius: q * 0.08 * corners, stroke: alpha(background, 0.6), width: max(0.6, q * 0.03))
+        if len(domKanji) == 1 {
+          text(domKanji, qx + q / 2, qy + q / 2, size: q * 0.62, color: background, font: sealFace, align: center, bold: true)
+        } else {
+          text(sub(domKanji, 0, 1), qx + q / 2, qy + q * 0.3, size: q * 0.42, color: background, font: sealFace, align: center, bold: true)
+          text(sub(domKanji, 1, 2), qx + q / 2, qy + q * 0.7, size: q * 0.42, color: background, font: sealFace, align: center, bold: true)
+        }
+      }
+
+      // What the last tap changed, on a small pill at the middle of the top or bottom edge, clear of
+      // the date, the readings, the meaning and the seal in the corners.
+      if hintTicks > 0 && hint != "" {
+        let hs = clamp(s * 0.06, 7, 13)
+        let hw = min(width * 0.6, len(hint) * hs * 0.6 + hs * 1.4)
+        let hy = hintLow ? height - m * 0.6 - hs : m * 0.6 + hs
+        rect(cx - hw / 2, hy - hs * 0.85, hw, hs * 1.7, radius: hs * 0.85 * corners, fill: alpha(background, 0.85))
+        text(hint, cx, hy, size: hs, color: foreground, align: center)
+      }
+    }
+
+    // The controls: the tile's four quarters, one tap each.
+    Column {
+      fill: true
+      gap: 0
+      Row {
+        weight: 1
+        gap: 0
+        Box {
+          weight: 1; fill: height
+          onTap: { mode = modes[(indexOf(modes, mode) + 1) % len(modes)]; hint = mode == "both" ? "reading + meaning" : mode; hintLow = false; hintTicks = 2; haptic() }
+        }
+        Box {
+          weight: 1; fill: height
+          onTap: { hue = hues[(indexOf(hues, hue) + 1) % len(hues)]; hint = hue; hintLow = false; hintTicks = 2; haptic() }
+        }
+      }
+      Row {
+        weight: 1
+        gap: 0
+        Box {
+          weight: 1; fill: height
+          onTap: { font = fontKeys[(indexOf(fontKeys, font) + 1) % len(fontKeys)]; hint = get(fontNames, font, font); hintLow = true; hintTicks = 2; haptic() }
+        }
+        Box {
+          weight: 1; fill: height
+          onTap: { layer = layers[(indexOf(layers, layer) + 1) % len(layers)]; hint = layer; hintLow = true; hintTicks = 2; haptic() }
+        }
+      }
+    }
+  }
+}
