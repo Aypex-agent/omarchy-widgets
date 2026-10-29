@@ -1,0 +1,671 @@
+widget "grokipedia" {
+  size: 6x6
+  minSize: 3x4
+  meta {
+    description: "Recent Grokipedia pages. Tap tile to cycle; open screen to browse the list.";
+    version: "1.0";
+    license: "MIT";
+    category: "news";
+    owl: 5
+  }
+
+  requires { pacman: ["python"] }
+
+  source feed = cmd("""
+python3 - <<'PY'
+'''Recent Grokipedia pages (from live approved edits), shuffled for the widget.'''
+import html as html_lib
+import json, os, random, re, time, urllib.parse, urllib.request
+from concurrent.futures import ThreadPoolExecutor, wait
+
+UA = {"User-Agent": "Mozilla/5.0 (omalauncher grokipedia widget)"}
+BASE = "https://grokipedia.com"
+CREDS = ""  # no login; public APIs only
+CACHE = os.path.expanduser("~/.cache/omalauncher-grokipedia.json")
+FRESH = 8 * 60  # serve cache if younger than this
+
+NOISE_NOTE = re.compile(
+    r"(?i)^(tighten|streamlining|fix\s+typo|typo|spacing|formatting|whitespace|"
+    r"cleanup|clean\s*up|minor\s+edit|style\s+fix|punctuation)\b"
+    r"|tighten spacing|inline formula|undefined macro|\\[A-Za-z]+ undefined"
+    r"|parseerror|katex parse|double subscript"
+)
+
+
+def load_creds():
+    return {}
+
+
+def get_json(url, timeout=12):
+    req = urllib.request.Request(url, headers=UA)
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return json.loads(r.read().decode("utf-8", "replace"))
+
+
+def slug_title(slug):
+    t = urllib.parse.unquote(slug).replace("_", " ")
+    t = re.sub(r"\s+", " ", t).strip()
+    return t
+
+
+def _balanced_inner(html, open_end):
+    '''Return inner HTML of a span opened just before open_end, or None.'''
+    depth, i, n = 1, open_end, len(html)
+    while i < n and depth:
+        a = html.find("<span", i)
+        b = html.find("</span>", i)
+        if b < 0:
+            return None
+        if a >= 0 and a < b:
+            depth += 1
+            i = a + 5
+        else:
+            depth -= 1
+            if depth == 0:
+                return html[open_end:b]
+            i = b + 7
+    return None
+
+
+def _strip_element(html, class_token):
+    '''Remove elements whose class contains class_token (balanced spans/divs).'''
+    out, i = [], 0
+    low = html
+    token = class_token
+    while True:
+        j = low.find(token, i)
+        if j < 0:
+            out.append(html[i:])
+            break
+        # walk back to nearest '<'
+        start = low.rfind("<", i, j)
+        if start < 0:
+            out.append(html[i:j + len(token)])
+            i = j + len(token)
+            continue
+        tag_m = re.match(r"<(span|div)\b", html[start:], re.I)
+        if not tag_m:
+            out.append(html[i:j + len(token)])
+            i = j + len(token)
+            continue
+        gt = html.find(">", start)
+        if gt < 0:
+            break
+        tag = tag_m.group(1).lower()
+        close = f"</{tag}>"
+        open_tok = f"<{tag}"
+        depth, k = 1, gt + 1
+        while k < len(html) and depth:
+            a = html.find(open_tok, k)
+            b = html.find(close, k)
+            if b < 0:
+                depth = 0
+                k = len(html)
+                break
+            if a >= 0 and a < b:
+                # only count real tag opens
+                if re.match(rf"<{tag}\b", html[a:], re.I):
+                    depth += 1
+                k = a + len(open_tok)
+            else:
+                depth -= 1
+                if depth == 0:
+                    out.append(html[i:start])
+                    i = b + len(close)
+                    break
+                k = b + len(close)
+        else:
+            out.append(html[i:start])
+            i = k
+    return "".join(out)
+
+
+def plain_tex(tex):
+    t = html_lib.unescape(tex)
+    t = t.replace("\\infty", "∞").replace("\\times", "×").replace("\\cdot", "·")
+    t = t.replace("\\pi", "π").replace("\\ldots", "...").replace("\\dots", "...")
+    t = re.sub(r"\\(?:mathrm|mathbf|boldsymbol|text|textrm|textit)\{([^{}]*)\}", r"\1", t)
+    t = re.sub(r"\\(?:frac)\{([^{}]*)\}\{([^{}]*)\}", r"(\1/\2)", t)
+    t = re.sub(r"\\(?:prod|sum|int)_\{([^{}]*)\}\^\{([^{}]*)\}", r"\1..\2", t)
+    t = re.sub(r"\\(?:prod|sum|int)_\{([^{}]*)\}", r"\1", t)
+    t = re.sub(r"\\(?:prod|sum|int)\b", "", t)
+    t = re.sub(r"\\[a-zA-Z]+\{([^{}]*)\}", r"\1", t)
+    t = re.sub(r"\\[a-zA-Z]+\*?", "", t)
+    t = t.replace("{", "").replace("}", "").replace("^", "").replace("_", "")
+    t = re.sub(r"\s+", " ", t).strip()
+    return t
+
+
+def _replace_katex_spans(chunk):
+    '''Replace each <span class=katex>…</span> with plain tex from annotation.'''
+    out, i = [], 0
+    while True:
+        j = chunk.find("katex", i)
+        if j < 0:
+            out.append(chunk[i:])
+            break
+        start = chunk.rfind("<", i, j)
+        if start < 0 or not re.match(r'<span\b[^>]*class="[^"]*\bkatex\b', chunk[start:start + 120]):
+            out.append(chunk[i:j + 5])
+            i = j + 5
+            continue
+        gt = chunk.find(">", start)
+        if gt < 0:
+            out.append(chunk[i:])
+            break
+        inner = _balanced_inner(chunk, gt + 1)
+        if inner is None:
+            out.append(chunk[i:gt + 1])
+            i = gt + 1
+            continue
+        end = gt + 1 + len(inner) + len("</span>")
+        am = re.search(
+            r'<annotation\b[^>]*encoding="application/x-tex"[^>]*>(.*?)</annotation>',
+            inner,
+            re.S,
+        )
+        repl = (" " + plain_tex(am.group(1)) + " ") if am else " "
+        out.append(chunk[i:start])
+        out.append(repl)
+        i = end
+    return "".join(out)
+
+
+def html_to_plain(chunk):
+    '''HTML fragment → plain blurb text.'''
+    if not chunk:
+        return ""
+    chunk = _replace_katex_spans(chunk)
+    chunk = re.sub(r"<math\b[^>]*>.*?</math>", " ", chunk, flags=re.S | re.I)
+    chunk = re.sub(r"<sup\b[^>]*>.*?</sup>", "", chunk, flags=re.S | re.I)
+    chunk = re.sub(r"<br\s*/?>", " ", chunk, flags=re.I)
+    chunk = re.sub(r"</p>", " ", chunk, flags=re.I)
+    chunk = re.sub(r"<[^>]+>", "", chunk)
+    sn = html_lib.unescape(chunk)
+    sn = re.sub(r"!\[[^\]]*\]\[[^\]]*\]", " ", sn)  # md image refs
+    sn = re.sub(r"\[\d+\]", "", sn)
+    sn = re.sub(r"\$\$([^$]+)\$\$", lambda m: plain_tex(m.group(1)), sn)
+    sn = re.sub(r"\$([^$]+)\$", lambda m: plain_tex(m.group(1)), sn)
+    sn = re.sub(r"\\[a-zA-Z]+\{([^{}]*)\}", r"\1", sn)
+    sn = re.sub(r"\\[a-zA-Z]+", "", sn)
+    sn = sn.replace("{", "").replace("}", "")
+    sn = re.sub(r"[ \t\r\n\f\v]+", " ", sn).strip()
+    sn = re.sub(r"\s+([,.;:!?])", r"\1", sn)
+    sn = re.sub(r"\(\s+", "(", sn)
+    sn = re.sub(r"\s+\)", ")", sn)
+    sn = re.sub(r"\s{2,}", " ", sn)
+    return sn
+
+
+def clip_sentences(text, lo=400, hi=700):
+    '''Prefer full sentences in [lo, hi]; never cut mid-word.'''
+    if not text:
+        return ""
+    if len(text) <= hi:
+        # if short but ends mid-thought without sentence, keep as-is
+        return text.strip()
+    window = text[: hi + 1]
+    best = -1
+    for m in re.finditer(r"[.!?…][\"')\]]?\s+", window):
+        if m.start() + 1 >= lo:
+            best = m.start() + 1
+    if best < 0:
+        # any sentence end before hi
+        for m in re.finditer(r"[.!?…][\"')\]]?(?:\s|$)", window):
+            best = m.start() + 1
+    if best >= lo // 2:
+        return text[:best].strip()
+    # word boundary — no mid-word cut, no bare ellipsis mid-word
+    cut = text[:hi]
+    if " " in cut:
+        cut = cut.rsplit(" ", 1)[0]
+    cut = cut.rstrip(" ,;:–-")
+    if not cut.endswith((".", "!", "?", "…")):
+        # only add ellipsis if we truncated and don't end a sentence
+        if len(text) > len(cut):
+            cut = cut + "…"
+    return cut.strip()
+
+
+def useful_note(note, blurb):
+    note = re.sub(r"\s+", " ", (note or "").strip())
+    if not note:
+        return ""
+    if blurb and note == blurb:
+        return ""
+    if len(note) <= 40:
+        return ""
+    if NOISE_NOTE.search(note):
+        return ""
+    bs = note.count("\\")
+    if bs >= 1 or "undefined macro" in note.lower() or "parseerror" in note.lower():
+        return ""
+    alnum = sum(1 for c in note if c.isalnum() or c.isspace())
+    if alnum < max(20, int(len(note) * 0.55)):
+        return ""
+    low = note.lower()
+    if re.fullmatch(r"(fix\s+)?(typo|typos|spacing|formatting|whitespace|punctuation)s?\.?", low):
+        return ""
+    return note[:280]
+
+
+def lead_from_html(text):
+    '''Pull first real article-body paragraph(s) as plain text.'''
+    ab = text.find('class="article-body"')
+    if ab < 0:
+        return ""
+    region = text[ab : ab + 80_000]
+    # each lead block: data-tts-block / break-words span
+    parts = []
+    for m in re.finditer(
+        r'<span\b[^>]*class="[^"]*(?:break-words|data-tts)[^"]*"[^>]*>|'
+        r'<span\b[^>]*data-tts-block[^>]*>',
+        region,
+    ):
+        # ensure this is a block lead-ish span
+        open_tag = m.group(0)
+        if "break-words" not in open_tag and "data-tts-block" not in open_tag:
+            continue
+        inner = _balanced_inner(region, m.end())
+        if inner is None:
+            continue
+        plain = html_to_plain(inner)
+        if len(plain) < 40:
+            continue
+        if plain.startswith("!") and len(plain) < 80:
+            continue
+        parts.append(plain)
+        joined = " ".join(parts)
+        if len(joined) >= 200:
+            return joined
+    return " ".join(parts)
+
+
+def blurb_for(slug, title):
+    url = f"{BASE}/page/{urllib.parse.quote(slug)}"
+    try:
+        req = urllib.request.Request(url, headers=UA)
+        with urllib.request.urlopen(req, timeout=15) as r:
+            buf = b""
+            ab_at = -1
+            while len(buf) < 140_000:
+                chunk = r.read(16384)
+                if not chunk:
+                    break
+                buf += chunk
+                if ab_at < 0:
+                    ab_at = buf.find(b'class="article-body"')
+                if ab_at >= 0:
+                    # need a complete first block span — look for enough after article-body
+                    tail = buf[ab_at:]
+                    if len(tail) >= 12_000 or (b"</span>" in tail and len(tail) >= 4000):
+                        # try parse; if we get a good lead, stop
+                        trial = lead_from_html(buf.decode("utf-8", "replace"))
+                        if len(trial) >= 120:
+                            break
+        text = buf.decode("utf-8", "replace")
+        sn = lead_from_html(text)
+        if len(sn) > 60:
+            return clip_sentences(sn, 400, 700)
+        m = re.search(r'property="og:description"\s+content="([^"]*)"', text)
+        if not m:
+            m = re.search(r'property="og:description"\s+content=\'([^\']*)\'', text)
+        if m:
+            sn = html_to_plain(m.group(1))
+            if len(sn) > 40:
+                return clip_sentences(sn, 400, 700)
+    except Exception:
+        pass
+    q = urllib.parse.quote(title[:48])
+    try:
+        d = get_json(f"{BASE}/api/typeahead?v=2&query={q}", timeout=10)
+    except Exception:
+        return ""
+    results = d.get("results") or []
+    hit = next((r for r in results if (r.get("slug") or "").lower() == slug.lower()), None)
+    if not hit and results:
+        hit = results[0]
+    if not hit:
+        return ""
+    sn = re.sub(r"\s+", " ", (hit.get("snippet") or "").strip())
+    sn = re.sub(r"\[\d+\]", "", sn)
+    return clip_sentences(sn, 400, 700) if sn else ""
+
+
+def load_cache():
+    try:
+        with open(CACHE) as f:
+            d = json.load(f)
+        if isinstance(d, dict) and d.get("items"):
+            return d
+    except Exception:
+        pass
+    return None
+
+
+def save_cache(d):
+    try:
+        os.makedirs(os.path.dirname(CACHE), exist_ok=True)
+        tmp = CACHE + ".tmp"
+        with open(tmp, "w") as f:
+            json.dump(d, f, ensure_ascii=False)
+        os.replace(tmp, CACHE)
+    except Exception:
+        pass
+
+
+def main():
+    creds = load_creds()
+    signed = bool(creds.get("X_USER") and creds.get("X_PASS"))
+    cached = load_cache()
+    now = time.time()
+    if (
+        cached
+        and cached.get("ok")
+        and now - (cached.get("at") or 0) < FRESH
+        and not os.environ.get("GROKIPEDIA_FORCE")
+    ):
+        print(json.dumps(cached, ensure_ascii=False))
+        return
+    try:
+        edits = get_json(
+            f"{BASE}/api/list-edit-requests"
+            f"?statuses=EDIT_REQUEST_STATUS_APPROVED%2CEDIT_REQUEST_STATUS_IMPLEMENTED"
+            f"&limit=100",
+            timeout=20,
+        ).get("editRequests") or []
+    except Exception as e:
+        if cached and cached.get("items"):
+            out = dict(cached)
+            out["ok"] = True
+            out["stale"] = True
+            out["error"] = str(e)[:120]
+            print(json.dumps(out, ensure_ascii=False))
+            return
+        print(json.dumps({
+            "ok": False, "error": str(e), "items": [],
+            "at": int(time.time()), "signed": signed, "user": creds.get("X_USER") or "",
+        }))
+        return
+
+    seen, rows = set(), []
+    for e in edits:
+        slug = e.get("slug") or ""
+        if not slug or slug in seen:
+            continue
+        seen.add(slug)
+        title = slug_title(slug)
+        raw_note = (e.get("summary") or "").strip()
+        rows.append({
+            "slug": slug,
+            "title": title,
+            "note": raw_note,
+            "section": (e.get("sectionTitle") or "").strip(),
+            "at": int(e.get("createdAt") or 0),
+            "url": f"{BASE}/page/{urllib.parse.quote(slug)}",
+        })
+        if len(rows) >= 24:
+            break
+
+    def enrich(row):
+        b = blurb_for(row["slug"], row["title"])
+        row["blurb"] = b or "Recently updated on Grokipedia."
+        row["note"] = useful_note(row.get("note"), row["blurb"])
+        return row
+
+    pool = ThreadPoolExecutor(8)
+    futs = [pool.submit(enrich, r) for r in rows]
+    wait(futs, timeout=28)
+    items = []
+    for f in futs:
+        if f.done() and not f.exception():
+            items.append(f.result())
+    pool.shutdown(wait=False, cancel_futures=True)
+
+    if not items and cached and cached.get("items"):
+        out = dict(cached)
+        out["ok"] = True
+        out["stale"] = True
+        print(json.dumps(out, ensure_ascii=False))
+        return
+
+    items.sort(key=lambda r: -r["at"])
+    head, tail = items[:14], items[14:]
+    random.shuffle(head)
+    items = head + tail
+
+    stats = {}
+    try:
+        stats = get_json(f"{BASE}/api/stats", timeout=8)
+    except Exception:
+        pass
+    tp = stats.get("totalPages")
+    try:
+        tp = int(tp) if tp is not None else None
+    except (TypeError, ValueError):
+        pass
+
+    out = {
+        "ok": True,
+        "signed": signed,
+        "user": creds.get("X_USER") or "",
+        "at": int(time.time()),
+        "totalPages": tp,
+        "items": items,
+    }
+    if items:
+        save_cache(out)
+    print(json.dumps(out, ensure_ascii=False))
+
+
+if __name__ == "__main__":
+    main()
+PY
+  """) every 15m json timeout 50s
+  source now = clock every 30s
+
+  state jump = 0 persist
+
+  let items = feed.items ?? []
+  let n = len(items)
+  let idx = n > 0 ? ((jump % n) + n) % n : 0
+  let cur = n > 0 ? items[idx] : null
+  let pages = feed.totalPages
+  let age = feed != null && feed.at != null ? now - feed.at : null
+  let ageStr = age == null ? "…" : age < 90 ? "live" : age < 3600 ? "${max(floor(age / 60), 1)}m" : "${floor(age / 3600)}h"
+  let hasNote = cur != null && cur.note != null && cur.note != "" && cur.note != cur.blurb
+  let tall = (rows ?? 6) >= 6
+  let blurbLines = tall ? (hasNote ? 10 : 14) : (hasNote ? 4 : 6)
+  let head = n > 0 ? "grokipedia  ${idx + 1}/${n}  ${ageStr}" : "grokipedia  ${ageStr}"
+  let foot = pages != null ? "${pages} articles" : n > 0 ? "${n} recent" : "Grokipedia"
+  let foot2 = foot
+
+  onTap: jump = jump + 1
+
+  Column {
+    gap: 4
+
+    Text { text: head; style: label; bold: true; color: accent; maxLines: 1 }
+
+    if cur == null {
+      Column {
+        gap: 8
+        weight: 1
+        justify: center
+        Text {
+          text: feed == null ? "loading recent pages…" : feed.ok == false ? "offline — tap to retry" : "no recent pages"
+          style: small
+          color: muted
+          align: center
+          onTap: refresh()
+        }
+      }
+    } else {
+      Column {
+        gap: 5
+        weight: 1
+
+        Text {
+          text: cur.title
+          style: title
+          bold: true
+          maxLines: 2
+          color: foreground
+        }
+
+        Text {
+          text: cur.section != null && cur.section != "" ? "updated · ${cur.section}" : "recently updated"
+          style: small
+          color: accent
+          maxLines: 1
+        }
+
+        Text {
+          text: cur.blurb
+          style: body
+          maxLines: blurbLines
+          color: foreground
+        }
+
+        if hasNote {
+          Text { text: "latest edit"; style: label; color: muted; maxLines: 1 }
+          Text { text: cur.note; style: small; color: muted; maxLines: tall ? 3 : 2 }
+        }
+
+        Spacer { weight: 1 }
+
+        Text {
+          text: "tap → next    open    browse"
+          style: small
+          color: muted
+          maxLines: 1
+        }
+
+        Row {
+          gap: 16
+          Text {
+            text: "open article"
+            style: small
+            color: cyan
+            maxLines: 1
+            onTap: url(cur.url)
+          }
+          Text {
+            text: "browse list"
+            style: small
+            color: accent
+            maxLines: 1
+            onTap: screen()
+          }
+        }
+      }
+    }
+
+    Text { text: foot2; style: small; color: muted; maxLines: 1 }
+  }
+
+  screen {
+    title: "grokipedia"
+    Column {
+      gap: 8
+
+      Text {
+        text: n > 0 ? "recent pages  ·  ${idx + 1}/${n}  ·  ${ageStr}" : "recent pages"
+        style: label
+        color: muted
+        maxLines: 1
+      }
+
+      if cur != null {
+        Column {
+          gap: 6
+          weight: 1
+
+          Text { text: cur.title; style: title; bold: true; maxLines: 3 }
+          if cur.section != null && cur.section != "" {
+            Text { text: cur.section; style: small; color: accent; maxLines: 2 }
+          }
+
+          Column {
+            scroll: true
+            weight: 1
+            gap: 8
+            Text { text: cur.blurb; style: body; fontSize: 16 }
+            if hasNote {
+              Text { text: "latest edit"; style: label; color: muted }
+              Text { text: cur.note; style: small; color: muted }
+            }
+          }
+
+          Row {
+            gap: 8
+            Button { text: "← prev"; color: muted; onTap: jump = jump - 1 }
+            Button { text: "next →"; onTap: jump = jump + 1 }
+            Spacer { weight: 1 }
+            Button { text: "open"; color: cyan; onTap: url(cur.url) }
+          }
+        }
+      } else {
+        Column {
+          weight: 1
+          justify: center
+          Text { text: "loading…"; color: muted; align: center }
+        }
+      }
+
+      Text { text: "jump to"; style: label; color: muted; maxLines: 1 }
+
+      Column {
+        scroll: true
+        gap: 4
+        height: 240
+        for p, i in items key p.slug {
+          Row {
+            gap: 8
+            padding: [6, 5]
+            radius: 6
+            background: i == idx ? alpha(accent, 0.14) : alpha(muted, 0.05)
+            onTap: jump = i
+            Box {
+              width: 3
+              height: 28
+              radius: 2
+              background: i == idx ? accent : alpha(muted, 0.35)
+            }
+            Column {
+              gap: 1
+              weight: 1
+              Text {
+                text: p.title
+                fontSize: 13
+                bold: i == idx
+                maxLines: 1
+                color: i == idx ? foreground : muted
+              }
+              Text {
+                text: p.section != null && p.section != "" ? p.section : "recent update"
+                style: small
+                color: muted
+                maxLines: 1
+              }
+            }
+          }
+        }
+      }
+
+      Row {
+        gap: 8
+        align: center
+        Button { text: "refresh"; onTap: refresh() }
+        Text {
+          text: pages != null ? "${pages} articles" : ""
+          style: small
+          color: muted
+          maxLines: 1
+          weight: 1
+        }
+        Button { text: "close"; color: muted; onTap: close() }
+      }
+    }
+  }
+}

@@ -1,0 +1,657 @@
+widget "tech funds" {
+  size: 6x8
+  minSize: 2x3
+  padding: 0
+  meta {
+    description: "Long-term tech ETFs with live day performance, plus daily stock picks scraped from r/wallstreetbets"
+    version: "1.2"
+    license: "MIT"
+    category: "finance"
+    owl: 5
+  }
+  requires { pacman: ["python"] }
+
+  source data = cmd("""
+python3 - <<'PY'
+import json, re, html, time, os, urllib.request, urllib.error, xml.etree.ElementTree as ET
+from datetime import datetime
+from email.utils import parsedate_to_datetime
+from pathlib import Path
+
+CACHE = Path.home() / ".cache" / "omalauncher-tech-funds-wsb.json"
+FUNDS_CACHE = Path.home() / ".cache" / "omalauncher-tech-funds.json"
+CACHE.parent.mkdir(parents=True, exist_ok=True)
+
+UA = "Mozilla/5.0 (omalauncher tech-funds widget)"
+
+FUNDS = [
+    ("QQQ",  "Nasdaq-100"),
+    ("VGT",  "Vanguard Tech"),
+    ("XLK",  "Tech Sector"),
+    ("SMH",  "Semiconductors"),
+    ("SOXX", "iShares Semi"),
+    ("FTEC", "Fidelity Tech"),
+]
+
+STOP = {
+    "A","I","DD","YOLO","CEO","IPO","ETF","ATH","OTM","ITM","EPS","GDP","FED",
+    "USA","USD","AI","IMO","TIL","TLDR","WSB","SEC","FDA","NFT","FOMO","HODL",
+    "PUT","CALL","CALLS","PUTS","GAIN","LOSS","LOL","WTF","AM","PM","EST","PST",
+    "JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC",
+    "MON","TUE","WED","THU","FRI","SAT","SUN","THE","AND","FOR","YOU","ARE",
+    "BUT","NOT","ALL","CAN","HAS","WAS","OUR","OUT","NEW","NOW","TOP","BUY",
+    "SELL","HOLD","MOON","TENDIES","RH","IRA","ROTH","DSP","CPU","GPU","API",
+    "RSS","HTTP","HTML","AMP","VIA","SAY","SAYS","AFTER","OVER","INTO","FROM",
+    "DRAM","NAND","CHIP","CHIPS","TECH","STOCK","STOCKS","MARKET","MARKETS",
+    "TODAY","DAILY","WEEK","YEAR","NEXT","THIS","THAT","WITH","WILL","JUST",
+}
+
+def get(url, timeout=18, accept="*/*"):
+    last = None
+    for i in range(3):
+        try:
+            req = urllib.request.Request(url, headers={
+                "User-Agent": UA,
+                "Accept": accept,
+                "Accept-Language": "en-US,en;q=0.9",
+            })
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                return r.read()
+        except Exception as e:
+            last = e
+            if isinstance(e, urllib.error.HTTPError) and e.code == 429:
+                time.sleep(1.2 + i)
+            else:
+                time.sleep(0.4 + i)
+            continue
+    raise last if last else RuntimeError("fetch failed")
+
+def fnum(s):
+    if s is None:
+        return None
+    try:
+        return float(str(s).replace(",", "").replace("%", "").replace("+", "").strip())
+    except Exception:
+        return None
+
+def funds():
+    syms = "|".join(s for s, _ in FUNDS)
+    labels = {s: lab for s, lab in FUNDS}
+    url = (
+        "https://quote.cnbc.com/quote-html-webservice/restQuote/symbolType/symbol"
+        f"?symbols={syms}&requestMethod=itv&noform=1&partnerId=2&fund=1&exthdr=1&output=json"
+    )
+    raw = get(url, accept="application/json").decode("utf-8", "replace")
+    if raw.startswith("//"):
+        raw = raw[2:]
+    m = re.match(r"^[^(]*\((.*)\)\s*;?\s*$", raw, re.S)
+    if m:
+        raw = m.group(1)
+    data = json.loads(raw)
+    quotes = data.get("FormattedQuoteResult", {}).get("FormattedQuote", [])
+    if isinstance(quotes, dict):
+        quotes = [quotes]
+    out = []
+    for q in quotes:
+        sym = q.get("symbol") or ""
+        last = fnum(q.get("last"))
+        chg = fnum(q.get("change"))
+        pct = fnum(q.get("change_pct"))
+        prev = fnum(q.get("previous_day_closing"))
+        if last is None:
+            continue
+        out.append({
+            "sym": sym,
+            "name": labels.get(sym) or (q.get("shortName") or q.get("name") or sym)[:22],
+            "px": round(last, 2),
+            "chg": round(chg, 2) if chg is not None else None,
+            "pct": round(pct, 2) if pct is not None else None,
+            "prev": round(prev, 2) if prev is not None else None,
+            "up": (pct is not None and pct >= 0) or (chg is not None and chg >= 0),
+        })
+    order = {s: i for i, (s, _) in enumerate(FUNDS)}
+    out.sort(key=lambda x: order.get(x["sym"], 99))
+    if out:
+        try:
+            FUNDS_CACHE.write_text(json.dumps({"at": int(time.time()), "funds": out}))
+        except Exception:
+            pass
+    return out
+
+def load_funds_cache():
+    try:
+        if FUNDS_CACHE.exists():
+            d = json.loads(FUNDS_CACHE.read_text())
+            f = d.get("funds") or []
+            if f:
+                return f
+    except Exception:
+        pass
+    return []
+
+def spark(sym="QQQ"):
+    try:
+        raw = get(f"https://ts-api.cnbc.com/harmony/app/charts/1D.json?symbol={sym}", accept="application/json")
+        d = json.loads(raw)
+        bars = (d.get("barData") or {}).get("priceBars") or []
+        closes = []
+        for b in bars:
+            c = fnum(b.get("close"))
+            if c is not None:
+                closes.append(round(c, 2))
+        if len(closes) > 40:
+            step = max(1, len(closes) // 40)
+            closes = closes[::step][:40]
+        return closes
+    except Exception:
+        return []
+
+def parse_when(s):
+    if not s:
+        return 0
+    s = s.strip()
+    try:
+        return int(datetime.fromisoformat(s.replace("Z", "+00:00")).timestamp())
+    except Exception:
+        pass
+    try:
+        return int(parsedate_to_datetime(s).timestamp())
+    except Exception:
+        return 0
+
+def clean_html(s):
+    s = re.sub(r"<[^>]+>", " ", s or "")
+    s = html.unescape(" ".join(s.split()))
+    s = re.sub(r"\s*[-–|]\s*Reddit\s*$", "", s, flags=re.I)
+    s = re.sub(r"\s*:\s*r/wallstreetbets\s*$", "", s, flags=re.I)
+    return s.strip()
+
+TICK_RE = re.compile(r"\$([A-Z]{1,5})\b")
+WORD_RE = re.compile(r"\b([A-Z]{2,5})\b")
+CTX = re.compile(r"(call|put|share|stock|moon|yolo|gain|loss|earn|long|short|buy|sold)", re.I)
+
+def extract_tickers(text, title_mode=False):
+    found, seen = [], set()
+    for m in TICK_RE.findall(text or ""):
+        if m not in STOP and m not in seen:
+            seen.add(m)
+            found.append(m)
+    if title_mode:
+        for m in WORD_RE.findall(text or ""):
+            if m in STOP or m in seen or len(m) < 2:
+                continue
+            if CTX.search(text or ""):
+                seen.add(m)
+                found.append(m)
+    return found
+
+def load_cache():
+    try:
+        if CACHE.exists():
+            age = time.time() - CACHE.stat().st_mtime
+            if age < 6 * 3600:
+                d = json.loads(CACHE.read_text())
+                if d.get("posts"):
+                    return d.get("posts", []), d.get("picks", []), True, age < 55 * 60
+    except Exception:
+        pass
+    return [], [], False, False
+
+def save_cache(posts, picks):
+    try:
+        CACHE.write_text(json.dumps({"posts": posts, "picks": picks, "at": int(time.time())}))
+    except Exception:
+        pass
+
+def snippet(s, title="", n=160):
+    s = clean_html(s or "")
+    s = re.sub(r"https?://\S+", " ", s)
+    s = re.sub(r"submitted by\s+/u/\S+.*$", "", s, flags=re.I)
+    s = re.sub(r"\[link\]|\[comments\]", " ", s, flags=re.I)
+    s = re.sub(r"\s*[-–|:]?\s*Reddit\s*$", "", s, flags=re.I)
+    s = re.sub(r"\s*:\s*r/\w+\s*$", "", s, flags=re.I)
+    s = re.sub(r"\s+", " ", s).strip(" -–|:")
+    if not s:
+        return ""
+    t = re.sub(r"\s+", " ", (title or "").strip()).lower()
+    low = s.lower()
+    if t and (low == t or low.startswith(t) or t.startswith(low[: max(20, len(t) // 2)])):
+        return ""
+    if len(s) < 28:
+        return ""
+    return s[:n].rstrip() + ("…" if len(s) > n else "")
+
+def rank(posts, counts):
+    posts.sort(key=lambda p: (0 if p["ticks"] else 1, -p["at"]))
+    picks = sorted(({"sym": s, "n": n} for s, n in counts.items()), key=lambda x: -x["n"])[:10]
+    return posts[:24], picks
+
+def parse_atom(raw):
+    posts, counts, seen = [], {}, set()
+    ns = {"a": "http://www.w3.org/2005/Atom"}
+    root = ET.fromstring(raw)
+    for e in root.findall("a:entry", ns):
+        title = clean_html(e.findtext("a:title", default="", namespaces=ns) or "")
+        link_el = e.find("a:link", ns)
+        link = (link_el.get("href") if link_el is not None else "") or ""
+        if not title or link in seen:
+            continue
+        seen.add(link)
+        updated = parse_when(e.findtext("a:updated", default="", namespaces=ns) or "")
+        content = clean_html(e.findtext("a:content", default="", namespaces=ns) or "")
+        ticks = extract_tickers(title + " " + content[:500])
+        for t in extract_tickers(title, title_mode=True):
+            if t not in ticks:
+                ticks.append(t)
+        for t in ticks:
+            counts[t] = counts.get(t, 0) + 1
+        body = snippet(content, title, 180)
+        posts.append({
+            "title": title[:180],
+            "body": body,
+            "url": link,
+            "at": updated,
+            "ticks": ticks[:6],
+            "tag": ticks[0] if ticks else "",
+        })
+    return rank(posts, counts)
+
+def parse_rss2(raw):
+    posts, counts, seen = [], {}, set()
+    root = ET.fromstring(raw)
+    channel = root.find("channel")
+    items = channel.findall("item") if channel is not None else root.findall(".//item")
+    for it in items:
+        title = clean_html(it.findtext("title") or "")
+        link = (it.findtext("link") or "").strip()
+        if not title or link in seen:
+            continue
+        seen.add(link)
+        updated = parse_when(it.findtext("pubDate") or "")
+        desc = clean_html(it.findtext("description") or "")
+        ticks = extract_tickers(title + " " + desc[:400])
+        for t in extract_tickers(title, title_mode=True):
+            if t not in ticks:
+                ticks.append(t)
+        for t in ticks:
+            counts[t] = counts.get(t, 0) + 1
+        body = snippet(desc, title, 180)
+        posts.append({
+            "title": title[:180],
+            "body": body,
+            "url": link,
+            "at": updated,
+            "ticks": ticks[:6],
+            "tag": ticks[0] if ticks else "",
+        })
+    return rank(posts, counts)
+
+def wsb():
+    cached_p, cached_k, have, fresh = load_cache()
+    # WSB at most hourly — quotes can refresh more often without hitting Reddit.
+    if fresh:
+        return cached_p, cached_k, "cached"
+    sources = [
+        ("atom", "https://www.reddit.com/r/wallstreetbets/.rss", "application/atom+xml, application/xml, text/xml, */*"),
+        ("rss",  "https://news.google.com/rss/search?q=site:reddit.com/r/wallstreetbets+when:1d&hl=en-US&gl=US&ceid=US:en", "application/rss+xml, application/xml, */*"),
+        ("rss",  "https://news.google.com/rss/search?q=%22wallstreetbets%22+(stock+OR+calls+OR+yolo)+when:2d&hl=en-US&gl=US&ceid=US:en", "application/rss+xml, application/xml, */*"),
+    ]
+    err = ""
+    for kind, url, accept in sources:
+        try:
+            raw = get(url, accept=accept, timeout=20)
+            posts, picks = parse_atom(raw) if kind == "atom" else parse_rss2(raw)
+            if posts:
+                save_cache(posts, picks)
+                return posts, picks, ""
+        except Exception as e:
+            err = str(e)[:80]
+            continue
+    if have:
+        return cached_p, cached_k, "cached"
+    return [], [], err or "no wsb"
+
+try:
+    f = funds()
+    err_f = ""
+except Exception as e:
+    f = load_funds_cache()
+    err_f = "" if f else str(e)[:80]
+
+try:
+    chart = spark("QQQ") if f else []
+except Exception:
+    chart = []
+
+try:
+    posts, picks, wsrc = wsb()
+    err_w = "" if wsrc in ("", "cached") else wsrc
+except Exception as e:
+    posts, picks, wsrc, err_w = [], [], "", str(e)[:80]
+
+pcts = [x["pct"] for x in f if x.get("pct") is not None]
+avg = round(sum(pcts) / len(pcts), 2) if pcts else None
+winners = sum(1 for x in f if x.get("up"))
+
+pick_line = "  ".join(
+    (f"${p['sym']}×{p['n']}" if p["n"] > 1 else f"${p['sym']}")
+    for p in picks[:8]
+)
+
+print(json.dumps({
+    "at": int(time.time()),
+    "funds": f,
+    "chart": chart,
+    "posts": posts,
+    "picks": picks,
+    "pick_line": pick_line,
+    "avg": avg,
+    "up_n": winners,
+    "n": len(f),
+    "wsrc": wsrc,
+    "err": (err_f + " " + err_w).strip(),
+}))
+PY
+""") every 15m json timeout 50s
+
+  source now = clock every 60s
+
+  let funds = data.funds ?? []
+  let posts = data.posts ?? []
+  let picks = data.picks ?? []
+  let chart = data.chart ?? []
+  let avg = data.avg
+  let mkt_up = avg == null || avg >= 0
+  let lo = len(chart) > 0 ? min(chart) : null
+  let hi = len(chart) > 0 ? max(chart) : null
+  let age = data == null || data.at == null ? null : now - data.at
+  let hot = (data.pick_line ?? "") != "" ? data.pick_line : join(picks.map(t => "$${t.sym}"), "  ")
+
+  let h = rows ?? 8
+  let w = cols ?? 6
+  let tiny = h <= 3 || w <= 2
+  let short = h <= 5
+  let slim = w < 5
+  let pad = tiny ? 4 : short ? 6 : 10
+  let gap = tiny ? 2 : short ? 3 : 4
+  let fsLabel = tiny ? 9 : short ? 10 : slim ? 11 : 12
+  let fsSmall = tiny ? 9 : short ? 10 : 11
+  let fsBody = tiny ? 10 : short ? 11 : slim ? 12 : 13
+  let fsHot = tiny ? 10 : short ? 11 : slim ? 12 : 13
+  let fsTitle = tiny ? 11 : short ? 12 : 13
+  let iconPx = tiny ? 16 : short ? 20 : 28
+  let chartH = tiny ? 0 : short ? 18 : 32
+  let fundN = tiny ? 2 : short ? (slim ? 3 : 4) : (slim ? 5 : 6)
+  let showNames = !slim && !tiny
+  let showChart = chartH > 0 && len(chart) > 2
+  let showBody = !tiny
+  let pickLines = tiny ? 2 : short ? 2 : 3
+  let bodyLines = tiny ? 0 : short ? 1 : 2
+  let badgeW = tiny ? 48 : short ? 54 : 64
+  let badgeH = tiny ? 14 : short ? 16 : 18
+  let symW = tiny ? 32 : short ? 36 : 44
+  let pxW = tiny ? 48 : short ? 56 : 68
+
+  component Coin() {
+    Canvas {
+      width: iconPx
+      height: iconPx
+      circle(iconPx / 2, iconPx / 2, iconPx * 0.43, fill: mix(yellow, orange, 0.35))
+      circle(iconPx / 2, iconPx / 2, iconPx * 0.43, stroke: yellow, width: tiny ? 1 : 1.5)
+      circle(iconPx / 2, iconPx / 2, iconPx * 0.32, stroke: alpha(orange, 0.7), width: 1)
+      text("$", iconPx / 2, iconPx / 2, size: iconPx * 0.5, align: center, bold: true, color: background)
+    }
+  }
+
+  component Bag() {
+    Canvas {
+      width: iconPx
+      height: iconPx
+      path([[iconPx * 0.31, iconPx * 0.38], [iconPx * 0.19, iconPx * 0.54], [iconPx * 0.19, iconPx * 0.85], [iconPx * 0.81, iconPx * 0.85], [iconPx * 0.81, iconPx * 0.54], [iconPx * 0.69, iconPx * 0.38]], closed: true, fill: mix(yellow, orange, 0.4))
+      path([[iconPx * 0.31, iconPx * 0.38], [iconPx * 0.19, iconPx * 0.54], [iconPx * 0.19, iconPx * 0.85], [iconPx * 0.81, iconPx * 0.85], [iconPx * 0.81, iconPx * 0.54], [iconPx * 0.69, iconPx * 0.38]], closed: true, stroke: yellow, width: tiny ? 1 : 1.2)
+      path([[iconPx * 0.38, iconPx * 0.38], [iconPx * 0.5, iconPx * 0.19], [iconPx * 0.62, iconPx * 0.38]], closed: true, fill: yellow)
+      text("$", iconPx / 2, iconPx * 0.62, size: iconPx * 0.42, align: center, bold: true, color: background)
+    }
+  }
+
+  component FundRow(f) {
+    Row {
+      gap: tiny ? 3 : 6
+      align: center
+      Text { text: f.sym; fontSize: fsSmall; bold: true; color: accent; width: symW; maxLines: 1; font: mono }
+      if showNames {
+        Text { text: f.name; fontSize: fsSmall; color: muted; weight: 1; maxLines: 1 }
+      } else {
+        Spacer { weight: 1 }
+      }
+      Text {
+        text: f.px == null ? "…" : "$${fixed(f.px, 2)}"
+        fontSize: fsSmall; bold: true; width: pxW; align: end; maxLines: 1; font: mono
+      }
+      Box {
+        width: badgeW; height: badgeH; radius: 4
+        background: alpha(f.up ? green : red, 0.18)
+        align: center
+        Text {
+          text: f.pct == null ? "…" : "${f.up ? "▲" : "▼"} ${fixed(abs(f.pct), 2)}%"
+          fontSize: fsSmall; bold: true; color: f.up ? green : red; align: center; maxLines: 1
+        }
+      }
+    }
+  }
+
+  component PickBullet(p, big = false) {
+    Row {
+      gap: big ? 8 : (tiny ? 3 : 6)
+      align: top
+      onTap: url(p.url)
+      Text { text: "•"; color: yellow; width: big ? 12 : (tiny ? 8 : 10); fontSize: big ? 14 : fsBody }
+      Column {
+        gap: big ? 2 : (tiny ? 0 : 1)
+        weight: 1
+        Row {
+          gap: tiny ? 3 : 6
+          align: center
+          if p.tag != "" {
+            Text {
+              text: "$${p.tag}"
+              fontSize: big ? 12 : fsSmall
+              bold: true
+              color: accent
+              width: big ? 52 : (tiny ? 36 : 48)
+              maxLines: 1
+              font: mono
+            }
+          }
+          Text {
+            text: p.title
+            fontSize: big ? 14 : fsBody
+            maxLines: big ? 4 : pickLines
+            weight: 1
+            color: foreground
+          }
+        }
+        if showBody && (p.body ?? "") != "" {
+          Text {
+            text: p.body
+            fontSize: big ? 12 : fsSmall
+            color: muted
+            maxLines: big ? 3 : bodyLines
+          }
+        }
+        if big && len(p.ticks ?? []) > 1 {
+          Text {
+            text: join(p.ticks.map(t => "$${t}"), "  ")
+            fontSize: 11
+            color: yellow
+            font: mono
+            maxLines: 1
+          }
+        }
+      }
+    }
+  }
+
+  Column {
+    gap: gap
+    padding: pad
+
+    Row {
+      gap: tiny ? 4 : 8
+      align: center
+      Coin { }
+      Column {
+        gap: 0
+        weight: 1
+        Text { text: tiny ? "funds" : "tech funds"; fontSize: fsLabel; bold: true; color: yellow; maxLines: 1 }
+        Text {
+          text: avg == null ? (tiny ? "…" : "long-term · loading…") : tiny ? "${mkt_up ? "+" : ""}${fixed(avg, 2)}%" : "long-term · day ${mkt_up ? "+" : ""}${fixed(avg, 2)}% · ${data.up_n}/${data.n} green"
+          fontSize: fsSmall; color: muted; maxLines: 1
+        }
+      }
+      if age != null {
+        Text {
+          text: age < 90 ? "live" : age < 3600 ? "${floor(age / 60)}m" : "${floor(age / 3600)}h"
+          fontSize: fsSmall; color: age < 600 ? green : muted; width: tiny ? 24 : 32; align: end
+        }
+      }
+    }
+
+    if showChart {
+      Sparkline {
+        values: chart; min: lo; max: hi
+        color: mkt_up ? green : red
+        area: true; thickness: tiny ? 1 : 2; fill: width; height: chartH
+      }
+    }
+
+    Column {
+      gap: tiny ? 0 : 1
+      if data == null {
+        Text { text: "fetching…"; fontSize: fsSmall; color: muted }
+      } else if len(funds) == 0 {
+        Text { text: "offline · tap"; fontSize: fsSmall; color: red; onTap: refresh() }
+      }
+      for f in take(funds, fundN) key f.sym {
+        FundRow { f: f }
+      }
+    }
+
+    if !tiny {
+      Row {
+        gap: tiny ? 3 : 6
+        align: center
+        Bag { }
+        Text { text: slim ? "WSB" : "WSB daily picks"; fontSize: fsLabel; bold: true; color: orange; maxLines: 1 }
+        Spacer { weight: 1 }
+        Text { text: data.wsrc == "cached" ? "cached" : "r/wsb"; fontSize: fsSmall; color: muted; maxLines: 1 }
+      }
+    }
+
+    if hot != "" {
+      Text { text: hot; fontSize: fsHot; bold: true; color: yellow; maxLines: tiny ? 1 : 2; font: mono }
+    }
+
+    Column {
+      gap: tiny ? 2 : (short ? 3 : 5)
+      weight: 1
+      scroll: true
+      if data != null && len(posts) == 0 {
+        Text { text: "no WSB · tap"; fontSize: fsSmall; color: muted; onTap: refresh() }
+      }
+      for p in posts key p.url {
+        PickBullet { p: p }
+      }
+    }
+  }
+
+  onTap: screen()
+
+  screen {
+    title: "tech funds + WSB"
+    Column {
+      gap: 8
+
+      Row {
+        gap: 10
+        align: center
+        Coin { }
+        Column {
+          gap: 2
+          weight: 1
+          Text { text: "long-term tech ETFs"; style: title; color: yellow }
+          Text {
+            text: avg == null ? "…" : "market pulse ${mkt_up ? "▲" : "▼"} ${fixed(abs(avg), 2)}% today"
+            style: small; color: mkt_up ? green : red
+          }
+        }
+        Bag { }
+      }
+
+      if len(chart) > 2 {
+        Sparkline {
+          values: chart; min: lo; max: hi
+          color: mkt_up ? green : red
+          area: true; thickness: 2; fill: width; height: 48
+        }
+      }
+
+      Column {
+        gap: 2
+        for f in funds key f.sym {
+          Row {
+            gap: 8
+            align: center
+            padding: [0, 3]
+            background: alpha(f.up ? green : red, 0.06)
+            radius: 6
+            Text { text: f.sym; bold: true; color: accent; width: 52; font: mono; style: small }
+            Text { text: f.name; weight: 1; color: muted; maxLines: 1; style: small }
+            Text { text: "$${fixed(f.px, 2)}"; bold: true; width: 72; align: end; font: mono; style: small }
+            Text {
+              text: f.pct == null ? "…" : "${f.up ? "+" : ""}${fixed(f.pct, 2)}%"
+              bold: true; width: 64; align: end; color: f.up ? green : red; font: mono; style: small
+            }
+            onTap: url("https://www.cnbc.com/quotes/${f.sym}")
+          }
+        }
+      }
+
+      Row {
+        gap: 6
+        align: center
+        Bag { }
+        Text {
+          text: len(posts) > 0 ? "WallStreetBets · ${len(posts)} posts" : "WallStreetBets"
+          style: label
+          color: orange
+          weight: 1
+          maxLines: 1
+        }
+      }
+      if hot != "" {
+        Text { text: hot; fontSize: 14; bold: true; color: yellow; font: mono; maxLines: 2 }
+      }
+
+      Column {
+        gap: 8
+        weight: 1
+        scroll: true
+        if data != null && len(posts) == 0 {
+          Text { text: "no WSB posts · pull refresh"; style: small; color: muted }
+        }
+        for p in posts key p.url {
+          PickBullet { p: p; big: true }
+        }
+      }
+
+      Row {
+        gap: 8
+        Button { text: "refresh"; onTap: refresh() }
+        Button { text: "WSB"; onTap: url("https://www.reddit.com/r/wallstreetbets/") }
+        Spacer { weight: 1 }
+        Button { text: "close"; color: muted; onTap: close() }
+      }
+    }
+  }
+}
