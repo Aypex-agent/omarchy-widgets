@@ -1,0 +1,627 @@
+widget "free classics" {
+  size: 3x4
+  minSize: 2x3
+  padding: 0
+  meta {
+    description: "Free classic cartoons/TV from YouTube, Pluto and Archive.org. Cycles thumbnails about once a minute; tap opens the stream"
+    version: "1.0"
+    license: "MIT"
+    category: "fun"
+    owl: 5
+  }
+  requires { pacman: ["python"] }
+
+  source fc = cmd("""
+python3 - <<'PY'
+import json, os, re, time, urllib.parse, urllib.request
+from pathlib import Path
+
+cache = str(Path.home() / ".cache" / "omalauncher-free-classics")
+Path(cache).mkdir(parents=True, exist_ok=True)
+lib_path = str(Path(cache) / "lib.json")
+show_n = 100
+lib_max = 400
+now = int(time.time())
+
+UA = "Mozilla/5.0 (omalauncher free-classics widget)"
+
+# dope old / cult / 90s-00s + timeless free TV
+SHOWS = [
+    "Hey Arnold", "The Grim Adventures of Billy and Mandy", "Courage the Cowardly Dog",
+    "Ed Edd n Eddy", "Invader Zim", "CatDog", "Rocko's Modern Life", "Rugrats",
+    "Doug", "The Angry Beavers", "As Told by Ginger", "Codename Kids Next Door",
+    "Samurai Jack", "Dexter's Laboratory", "The Powerpuff Girls", "Johnny Bravo",
+    "Foster's Home for Imaginary Friends", "Chowder", "Adventure Time", "Regular Show",
+    "SpongeBob SquarePants", "The Fairly OddParents", "Danny Phantom",
+    "Avatar The Last Airbender", "Teen Titans", "Ben 10", "Xiaolin Showdown",
+    "Static Shock", "Batman Beyond", "Justice League Unlimited", "Batman The Animated Series",
+    "X-Men The Animated Series", "Spider-Man The Animated Series", "Gargoyles",
+    "Animaniacs", "Pinky and the Brain", "Tiny Toon Adventures", "Freakazoid",
+    "Recess", "Kim Possible", "The Proud Family", "Lizzie McGuire", "That's So Raven",
+    "Even Stevens", "Phil of the Future", "All That", "Kenan and Kel", "The Amanda Show",
+    "Clarissa Explains It All", "Are You Afraid of the Dark", "Goosebumps",
+    "Pokemon", "Yu-Gi-Oh", "Dragon Ball Z", "Sailor Moon", "Cowboy Bebop",
+    "Naruto", "Inuyasha", "Digimon", "Cardcaptors",
+    "DuckTales", "Chip n Dale Rescue Rangers", "Darkwing Duck", "TaleSpin",
+    "Transformers G1", "He-Man and the Masters of the Universe", "ThunderCats",
+    "G.I. Joe", "Voltron", "Teenage Mutant Ninja Turtles",
+    "Looney Tunes", "Tom and Jerry", "Scooby-Doo", "The Flintstones", "The Jetsons",
+    "Garfield and Friends", "Inspector Gadget", "The Addams Family",
+    "I Love Lucy", "The Twilight Zone", "Mystery Science Theater 3000",
+    "Charmed", "Buffy the Vampire Slayer", "The X-Files", "Twin Peaks",
+    "Seinfeld", "Frasier", "Friends", "That 70s Show", "Malcolm in the Middle",
+    "The Fresh Prince of Bel-Air", "Martin", "Living Single", "Moesha",
+    "Sister Sister", "Boy Meets World", "Full House", "Family Matters",
+    "Three's Company", "Happy Days", "The Brady Bunch", "The Andy Griffith Show",
+    "Bob Ross", "Doctor Who Classic", "Star Trek The Original Series",
+    "The Outer Limits", "Kolchak The Night Stalker", "Quantum Leap",
+    "MacGyver", "Knight Rider", "The A-Team", "Magnum P.I.",
+    "Miami Vice", "CHiPs", "Emergency", "MASH",
+]
+
+YT_QUERIES = [
+    "{s} full episode",
+    "90s cartoon full episode",
+    "2000s cartoon full episode",
+    "Nickelodeon full episode classic",
+    "Cartoon Network full episode classic",
+    "retro cartoon full episode marathon",
+    "classic sitcom full episode free",
+    "Adult Swim full episode",
+]
+
+# channels that post real full episodes
+YT_CHANNELS = [
+    "UC0_CTub0X_4Rhs971XZ7m7w",  # Retro Rerun-ish / user may rotate
+]
+
+
+# Prefer retro / cult / classic — skip baby channels & generic "Kids"
+PLUTO_MATCH = re.compile(
+    r"(90.?s?\s*kids|classic\s*tv|sitcom\s*legend|addams|i\s*love\s*lucy|"
+    r"twilight\s*zone|mst3k|rifftrax|garfield|scooby|looney|tom\s*and\s*jerry|"
+    r"flintstone|jetson|pokemon|yu-?gi-?oh|naruto|sailor\s*moon|one\s*piece|"
+    r"dragon\s*ball|inuyasha|crunchyroll|totally\s*turtles|tmnt|"
+    r"go\s*go\s*gadget|kartoon|harvey|"
+    r"charmed|doctor\s*who\s*classic|bob\s*ross|"
+    r"nickelodeon\s*pluto|nick\s*pluto|mtv\s*pluto|"
+    r"comedy\s*central\s*pluto|tv\s*land|bet\s*(classics|throwbacks)|"
+    r"frasier|cheers|brady\s*bunch|happy\s*days|three.?s\s*company|"
+    r"andy\s*griffith|family\s*ties|beverly\s*hillbillies|love\s*boat|"
+    r"gunsmoke|matlock|perry\s*mason|mission\s*impossible|"
+    r"pluto\s*tv\s*anime|anime\s*x|hidive|big\s*a\s*anime|its\s*anime|"
+    r"cult\s*films|70s\s*cinema|classic\s*tv)",
+    re.I,
+)
+PLUTO_SKIP = re.compile(
+    r"(baby\s*shark|peppa|little\s*stars|strawberry|ryan\s*and\s*friends|"
+    r"lego\s*kids|dora\s*tv|el\s*reino|nick\s*jr|failarmy|funny\s*af|"
+    r"wild\s*['’]?n\s*out|love\s*&\s*hip\s*hop|tosh\.?0|ridiculousness)",
+    re.I,
+)
+
+def http_get(url, timeout=18):
+    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "*/*"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return r.read()
+
+def http_json(url, timeout=18):
+    return json.loads(http_get(url, timeout))
+
+def post(url, body, timeout=18):
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(body).encode(),
+        headers={"Content-Type": "application/json", "User-Agent": UA},
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return json.load(r)
+
+def client_ctx():
+    return {"client": {
+        "clientName": "WEB",
+        "clientVersion": "2.20241001.00.00",
+        "hl": "en", "gl": "US"}}
+
+def yt_search(q):
+    return post(
+        "https://www.youtube.com/youtubei/v1/search?prettyPrint=false",
+        {"context": client_ctx(), "query": q},
+    )
+
+def walk(o, key, out):
+    if isinstance(o, dict):
+        if key in o:
+            out.append(o[key])
+        for v in o.values():
+            walk(v, key, out)
+    elif isinstance(o, list):
+        for v in o:
+            walk(v, key, out)
+
+def parse_len(s):
+    if not s:
+        return 0
+    try:
+        parts = [int(x) for x in s.strip().split(":")]
+    except ValueError:
+        return 0
+    t = 0
+    for p in parts:
+        t = t * 60 + p
+    return t
+
+def parse_published(s):
+    if not s:
+        return 10**12
+    s = s.lower().strip()
+    m = re.match(r"(\d+)\s+(second|minute|hour|day|week|month|year)s?\s+ago", s)
+    if not m:
+        if "live" in s or "stream" in s:
+            return 0
+        return 10**12
+    n = int(m.group(1))
+    unit = m.group(2)
+    mult = {
+        "second": 1, "minute": 60, "hour": 3600, "day": 86400,
+        "week": 604800, "month": 2592000, "year": 31536000}[unit]
+    return n * mult
+
+def title_of(v):
+    runs = (v.get("title") or {}).get("runs") or []
+    t = "".join(r.get("text", "") for r in runs).strip()
+    if not t:
+        t = (v.get("title") or {}).get("simpleText") or ""
+    return t.strip()
+
+def channel_of(v):
+    for key in ("ownerText", "longBylineText", "shortBylineText"):
+        runs = (v.get(key) or {}).get("runs") or []
+        if runs:
+            return (runs[0].get("text") or "").strip()
+    return ""
+
+def is_live(v):
+    for b in v.get("badges") or []:
+        label = (((b.get("metadataBadgeRenderer") or {}).get("label") or "")).lower()
+        if "live" in label:
+            return True
+    for ov in v.get("thumbnailOverlays") or []:
+        r = ov.get("thumbnailOverlayTimeStatusRenderer") or {}
+        style = (r.get("style") or "").upper()
+        text = (((r.get("text") or {}).get("simpleText") or "")
+                + "".join(x.get("text", "") for x in ((r.get("text") or {}).get("runs") or []))).lower()
+        if style == "LIVE" or "live" in text:
+            return True
+    return False
+
+SHOW_RE = re.compile(
+    "|".join(re.escape(s) for s in sorted(SHOWS, key=len, reverse=True)),
+    re.I,
+)
+
+SPAM_CH = re.compile(
+    r"(gorur|bazar|vlog|ngày|يوميات|tân\s*cổ|habib|pets?$|highlight\s*hub|"
+    r"sports?\s*rewind|full\s*game\s*hd|soccer|football\s*live|nba\s*full|"
+    r"gaming|reaction\s*channel|tier\s*list)",
+    re.I,
+)
+
+def looks_spam_channel(ch):
+    if not ch:
+        return True
+    if SPAM_CH.search(ch):
+        return True
+    latin = len(re.findall(r"[A-Za-z]", ch))
+    if latin < 3 and len(ch) > 0:
+        return True
+    return False
+
+def yt_accept(title, secs, live, channel=""):
+    low = title.lower()
+    if looks_spam_channel(channel or ""):
+        return False
+    if re.search(
+        r"\b(react(ion|ing)?|tier\s*list|ranking|podcast|press\s*conference|"
+        r"try\s*not\s*to|fails?|funny\s*moments?|compilation|amv|theory|"
+        r"explained|review|trailer|teaser|preview|top\s*\d+|best\s*of|"
+        r"speedrun|modded|roblox|minecraft|fortnite|gacha)\b",
+        low,
+    ):
+        return False
+    hit = bool(SHOW_RE.search(title)) or bool(re.search(
+        r"\b(cartoon\s*network|nickelodeon|nicktoons|adult\s*swim|boomerang|"
+        r"disney\s*channel|90s\s*cartoon|classic\s*(cartoon|sitcom)|full\s*episode)\b",
+        low,
+    ))
+    if not hit:
+        return False
+    fullish = bool(re.search(
+        r"\b(full\s*(episode|ep|show|series)|complete\s*episode|entire\s*episode|"
+        r"full\s*movie|marathon|mega\s*mix|all\s*episodes|season\s*\d+)\b",
+        low,
+    ))
+    highlighty = bool(re.search(
+        r"\b(highlights?|clip|shorts?|trailer|teaser|recap|ending|opening\s*only)\b",
+        low,
+    ))
+    if highlighty and not fullish:
+        return False
+    if live:
+        return True
+    if secs:
+        # episode ~10–30m, marathons longer; drop tiny clips
+        if secs < 480 and not fullish:
+            return False
+        if secs < 360:
+            return False
+        if secs > 12 * 3600:
+            return False
+    elif not fullish:
+        return False
+    return True
+
+def thumb_url(vid, v=None):
+    if v:
+        thumbs = (v.get("thumbnail") or {}).get("thumbnails") or []
+        if thumbs:
+            u = thumbs[-1].get("url") or ""
+            u = re.sub(r"\?.*", "", u)
+            if u:
+                return u
+    return f"https://i.ytimg.com/vi/{vid}/hq720.jpg"
+
+def item_from_yt(v, discovered_at):
+    vid = v.get("videoId")
+    if not vid:
+        return None
+    title = title_of(v)
+    live = is_live(v)
+    length = (v.get("lengthText") or {}).get("simpleText") or ""
+    if not length:
+        for ov in v.get("thumbnailOverlays") or []:
+            r = ov.get("thumbnailOverlayTimeStatusRenderer") or {}
+            length = (r.get("text") or {}).get("simpleText") or length
+            if not length:
+                length = "".join(x.get("text", "") for x in ((r.get("text") or {}).get("runs") or []))
+    secs = parse_len(length)
+    ch = channel_of(v)
+    if not yt_accept(title, secs, live, ch):
+        return None
+    pub = (v.get("publishedTimeText") or {}).get("simpleText") or ""
+    age = parse_published(pub)
+    return {
+        "id": f"yt-{vid}",
+        "vid": vid,
+        "live": live,
+        "name": (title[:140] or "YouTube classic"),
+        "court": ch or "YouTube",
+        "facility": "YouTube",
+        "ts": now - age if age < 10**12 else None,
+        "age": age,
+        "secs": secs,
+        "thumb": thumb_url(vid, v),
+        "thumbUrl": thumb_url(vid, v),
+        "video": f"https://www.youtube.com/watch?v={vid}",
+        "source": "youtube",
+        "tag": "LIVE" if live else "YT",
+        "discovered": discovered_at,
+        "published": pub}
+
+# load library
+lib = []
+if os.path.isfile(lib_path):
+    try:
+        with open(lib_path) as f:
+            lib = json.load(f)
+            if not isinstance(lib, list):
+                lib = []
+    except Exception:
+        lib = []
+
+by_id = {it.get("id"): it for it in lib if isinstance(it, dict) and it.get("id")}
+new_count = 0
+
+def ingest(it):
+    global new_count
+    if not it or not it.get("id"):
+        return
+    prev = by_id.get(it["id"])
+    if prev:
+        it["discovered"] = prev.get("discovered", now)
+        # prefer remote URL thumbs
+        if not it.get("thumb") and prev.get("thumbUrl"):
+            it["thumb"] = prev["thumbUrl"]
+        if not it.get("thumbUrl") and prev.get("thumbUrl"):
+            it["thumbUrl"] = prev["thumbUrl"]
+        if not it.get("thumb") and prev.get("thumb") and str(prev.get("thumb","")).startswith("http"):
+            it["thumb"] = prev["thumb"]
+        by_id[it["id"]] = it
+    else:
+        by_id[it["id"]] = it
+        new_count += 1
+
+# --- YouTube sweeps (cap queries for speed; rotate by hour) ---
+q_offset = (now // 3600) % max(1, len(YT_QUERIES) // 20)
+queries = YT_QUERIES[q_offset:q_offset + 8]
+if len(queries) < 8:
+    queries += YT_QUERIES[: 8 - len(queries)]
+# always hit core dope shows
+for core in ("Hey Arnold full episode", "Grim Adventures of Billy and Mandy full episode", "Courage the Cowardly Dog full episode"):
+    if core not in queries:
+        queries.insert(0, core)
+
+for q in queries:
+    try:
+        data = yt_search(q)
+    except Exception:
+        continue
+    vids = []
+    walk(data, "videoRenderer", vids)
+    for v in vids:
+        ingest(item_from_yt(v, now))
+
+# --- Pluto free live channels ---
+try:
+    chs = http_json("https://api.pluto.tv/v2/channels")
+    if isinstance(chs, list):
+        for c in chs:
+            name = c.get("name") or ""
+            summary = c.get("summary") or ""
+            cat = str(c.get("category") or "")
+            slug = c.get("slug") or ""
+            cid = c.get("_id") or c.get("id") or ""
+            blob = f"{name} {summary} {cat} {slug}"
+            if PLUTO_SKIP.search(blob):
+                continue
+            if not PLUTO_MATCH.search(blob):
+                continue
+            feat = (c.get("featuredImage") or {}).get("path") or ""
+            thumb = (c.get("thumbnail") or {}).get("path") or feat
+            if not thumb:
+                continue
+            # strip query for stable cache key; keep decent size
+            thumb_clean = re.sub(r"\?.*", "", thumb)
+            thumb_get = thumb if "h=" in thumb else (thumb_clean + "?fit=fill&fm=jpg&h=720&w=1280&q=75")
+            video = f"https://pluto.tv/live-tv/{slug}" if slug else f"https://pluto.tv/live-tv/{cid}"
+            ingest({
+                "id": f"pluto-{cid}",
+                "vid": cid,
+                "live": True,
+                "name": name[:140],
+                "court": cat or "Pluto TV",
+                "facility": "Pluto TV",
+                "ts": now,
+                "age": 0,
+                "secs": 0,
+                "thumb": thumb_get,
+                "thumbUrl": thumb_get,
+                "video": video,
+                "source": "pluto",
+                "tag": "PLUTO",
+                "discovered": now,
+                "published": "live"})
+except Exception:
+    pass
+
+# --- Archive.org free streams (title-scoped; public-domain + classic cartoon packs) ---
+ia_queries = [
+    'title:("Betty Boop") AND mediatype:(movies)',
+    'title:("Popeye") AND mediatype:(movies) AND year:[1930 TO 1955]',
+    'title:("Looney Tunes") OR title:("Merrie Melodies") AND mediatype:(movies)',
+    'title:("Superman") AND mediatype:(movies) AND year:[1940 TO 1950]',
+    'title:("Felix the Cat") AND mediatype:(movies)',
+    'title:("public domain") AND subject:(cartoon) AND mediatype:(movies)',
+    'title:("Out of the Inkwell") AND mediatype:(movies)',
+    'collection:(feature_films) AND subject:(comedy) AND year:[1920 TO 1955] AND mediatype:(movies)',
+    'title:("Twilight Zone") AND mediatype:(movies)',
+    'title:("Night of the Living Dead") AND mediatype:(movies)',
+    'title:("Charley Chase") AND mediatype:(movies)',
+    'title:("Buster Keaton") AND mediatype:(movies)',
+    'title:("Little Rascals") OR title:("Our Gang") AND mediatype:(movies)',
+    'title:("Sherlock Holmes") AND mediatype:(movies) AND year:[1920 TO 1950]',
+    'title:("Flash Gordon") AND mediatype:(movies)',
+]
+ia_offset = (now // 3600) % max(1, len(ia_queries))
+ia_q = []
+for i in range(8):
+    ia_q.append(ia_queries[(ia_offset + i) % len(ia_queries)])
+
+for q in ia_q:
+    try:
+        url = (
+            "https://archive.org/advancedsearch.php?"
+            + urllib.parse.urlencode({
+                "q": q,
+                "rows": "10",
+                "page": "1",
+                "output": "json",
+                "sort[]": "downloads desc"})
+            + "&fl[]=identifier&fl[]=title"
+        )
+        data = http_json(url, timeout=20)
+        docs = ((data.get("response") or {}).get("docs")) or []
+        for doc in docs:
+            ident = doc.get("identifier")
+            title = doc.get("title") or ident or ""
+            if not ident:
+                continue
+            low = str(title).lower()
+            if re.search(r"\b(pdf|ebook|magazine|comic\s*book|scan|audiobook)\b", low):
+                continue
+            ia_thumb = f"https://archive.org/services/img/{urllib.parse.quote(ident)}"
+            ingest({
+                "id": f"ia-{ident}",
+                "vid": ident,
+                "live": False,
+                "name": str(title)[:140],
+                "court": "Archive.org",
+                "facility": "Internet Archive",
+                "ts": None,
+                "age": 10**11,
+                "secs": 0,
+                "thumb": ia_thumb,
+                "thumbUrl": ia_thumb,
+                "video": f"https://archive.org/details/{urllib.parse.quote(ident)}",
+                "source": "archive",
+                "tag": "IA",
+                "discovered": now,
+                "published": ""})
+    except Exception:
+        continue
+
+items = list(by_id.values())
+
+def still_ok(it):
+    src = it.get("source") or ""
+    if src == "youtube":
+        return yt_accept(it.get("name") or "", it.get("secs") or 0, it.get("live"), it.get("court") or "")
+    if src in ("pluto", "archive"):
+        return bool(it.get("video") and it.get("name"))
+    return False
+
+items = [it for it in items if still_ok(it)]
+
+def rank_key(x):
+    return (
+        0 if x.get("live") else 1,
+        -(x.get("discovered") or 0),
+        x.get("age") if x.get("age") is not None else 10**12,
+        -(x.get("secs") or 0),
+    )
+
+# keep a reserved slice per source so archive/pluto aren't starved out of the lib
+lib_quotas = {
+    "youtube": int(lib_max * 0.60),
+    "pluto": int(lib_max * 0.22),
+    "archive": int(lib_max * 0.18),
+}
+by_src_all = {}
+for it in items:
+    by_src_all.setdefault(it.get("source") or "other", []).append(it)
+for src in by_src_all:
+    by_src_all[src].sort(key=rank_key)
+
+kept = []
+used = set()
+for src, n in lib_quotas.items():
+    for it in by_src_all.get(src, [])[:n]:
+        kept.append(it)
+        used.add(it["id"])
+# fill leftover lib slots with best remaining
+if len(kept) < lib_max:
+    rest = sorted((it for it in items if it["id"] not in used), key=rank_key)
+    kept.extend(rest[: lib_max - len(kept)])
+items = kept
+
+try:
+    with open(lib_path, "w") as f:
+        json.dump(items, f, separators=(",", ":"))
+except Exception:
+    pass
+
+# balanced cycle: interleave sources so Pluto live doesn't wipe the deck
+by_src = {}
+for it in items:
+    by_src.setdefault(it.get("source") or "other", []).append(it)
+for src in by_src:
+    by_src[src].sort(key=rank_key)
+
+cycle_quotas = [
+    ("youtube", int(show_n * 0.55)),
+    ("pluto", int(show_n * 0.25)),
+    ("archive", int(show_n * 0.20)),
+]
+picked = []
+used = set()
+for src, n in cycle_quotas:
+    for it in by_src.get(src, [])[:n]:
+        if it["id"] not in used:
+            picked.append(it)
+            used.add(it["id"])
+if len(picked) < show_n:
+    rest = sorted((it for it in items if it["id"] not in used), key=rank_key)
+    picked.extend(rest[: show_n - len(picked)])
+
+buckets = {}
+for it in picked:
+    buckets.setdefault(it.get("source") or "x", []).append(it)
+order = ["youtube", "pluto", "archive"]
+cycle = []
+while len(cycle) < len(picked):
+    progressed = False
+    for src in order:
+        b = buckets.get(src) or []
+        if b:
+            cycle.append(b.pop(0))
+            progressed = True
+    if not progressed:
+        break
+for b in buckets.values():
+    cycle.extend(b)
+
+print(json.dumps({"items": cycle[:show_n], "new": new_count, "lib": len(items)}))
+PY
+  """) every 4h json timeout 100s
+
+  source now = clock every 1m
+
+  let items = fc.items ?? []
+  let n = len(items)
+  let idx = n > 0 ? floor(now / 60) % n : 0
+  let cur = n > 0 ? items[idx] : null
+  let tag = cur == null ? "" : (cur.tag ?? (cur.live ? "LIVE" : upper(cur.source ?? "TV")))
+  let tagBg = cur == null ? #666666 : (
+    cur.live ? #e11d48 :
+    cur.source == "youtube" ? #ff0000 :
+    cur.source == "pluto" ? #6b4eff :
+    cur.source == "archive" ? #222222 :
+    #0ea5e9
+  )
+  let tagW = tag == "LIVE" ? 40 : (len(tag) > 4 ? 48 : 36)
+
+  onTap: url(cur.video)
+
+  if cur != null {
+    Box {
+      fill: true
+      Image { src: cur.thumb; fit: cover; fill: true }
+      Column {
+        fill: true
+        padding: 8
+        align: start
+        Row {
+          Text {
+            text: tag
+            style: label
+            bold: true
+            color: #ffffff
+            padding: [7, 3]
+            background: tagBg
+            radius: 4
+            width: tagW
+            align: center
+            maxLines: 1
+          }
+        }
+        Spacer { weight: 1 }
+        Text {
+          text: cur.name ?? ""
+          style: label
+          color: #ffffff
+          maxLines: 2
+          padding: [6, 4]
+          background: #00000099
+          radius: 4
+        }
+      }
+    }
+  } else {
+    Box {
+      fill: true
+      background: surface
+      Text { text: fc == null ? "scraping free TV…" : "no streams yet"; style: muted; align: center }
+    }
+  }
+}

@@ -1,0 +1,613 @@
+widget "adult swim" {
+  size: 3x4
+  minSize: 2x3
+  padding: 0
+
+  meta {
+    description: "90s [as] cartoon block — Adult Swim shows cycle about once a minute (ATHF, Space Ghost, Robot Chicken, Venture Bros, Rick & Morty…). Tap opens the stream.";
+    version: "1.0";
+    license: "MIT";
+    category: "fun";
+    owl: 10
+  }
+
+  requires { pacman: ["python"] }
+
+  source as = cmd("""
+python3 - <<'PY'
+import json, os, re, time, urllib.request
+from pathlib import Path
+
+cache = str(Path.home() / ".cache" / "test-as")
+Path(cache).mkdir(parents=True, exist_ok=True)
+lib_path = str(Path(cache) / "lib.json")
+show_n = 36
+lib_max = 180
+now = int(time.time())
+
+UA = "Mozilla/5.0 (omalauncher youtube-feed widget)"
+
+# [as] core + classic blocks + anime that ran late-night
+SHOWS = [
+    "Aqua Teen Hunger Force", "Space Ghost Coast to Coast", "The Brak Show",
+    "Sealab 2021", "Harvey Birdman", "Robot Chicken", "Metalocalypse",
+    "The Venture Bros", "Rick and Morty", "Squidbillies", "12 oz Mouse",
+    "Superjail", "Moral Orel", "Home Movies", "Perfect Hair Forever",
+    "Stroker and Hoop", "Assy McGee", "Xavier Renegade Angel",
+    "The Boondocks", "Samurai Jack", "Primal", "Smiling Friends",
+    "Ballmastrz 9009", "Off the Air", "Dream Corp LLC",
+    "Tim and Eric Awesome Show", "Eric Andre Show", "Dr Steve Brule",
+    "Joe Pera Talks With You", "Your Pretty Face is Going to Hell",
+    "The Heart She Holler", "Lazor Wulf", "Birdgirl", "Teenage Euthanasia",
+    "Unicorn Warriors Eternal", "Common Side Effects", "FLCL",
+    "Cowboy Bebop", "Inuyasha", "Bleach", "Trigun", "Ghost in the Shell",
+    "Neon Genesis Evangelion", "Paranoia Agent", "Casshern Sins",
+    "Mike Tyson Mysteries", "China IL", "Apollo Gauntlet",
+    "Infomercials Adult Swim", "Williams Street",
+]
+
+QUERIES = [
+    "Adult Swim full episode",
+    "Adult Swim marathon live",
+    "Aqua Teen Hunger Force full episode",
+    "Space Ghost Coast to Coast full episode",
+    "Robot Chicken full episode",
+    "The Venture Bros full episode",
+    "Rick and Morty full episode Adult Swim",
+    "Metalocalypse full episode",
+]
+
+# Adult Swim, Toonami, Williams Street-ish channels
+CHANNEL_IDS = [
+    "UCqFzWxSBsRIQCUbVNVQG7cw",  # Adult Swim
+    "UCvC4b7e1tI0mE0X0mE0X0mE",  # placeholder skip if bad
+    "UC5HJaVy7H7o89G2fzxgJz3A",  # may vary — still search-heavy
+]
+
+# keep only known-good if browse fails
+CHANNEL_IDS = [
+    "UCqFzWxSBsRIQCUbVNVQG7cw",  # Adult Swim official
+]
+
+SHOW_RE = re.compile(
+    "|".join(re.escape(s) for s in sorted(SHOWS, key=len, reverse=True)),
+    re.I,
+)
+AS_MARK = re.compile(
+    r"(adult\s*swim|\[as\]|williams\s*street|toonami|"
+    r"aqua\s*teen|space\s*ghost|robot\s*chicken|venture\s*bros|"
+    r"rick\s*(and|&)\s*morty|metalocalypse|squidbillies|"
+    r"harvey\s*birdman|sealab\s*2021|boondocks|smiling\s*friends|"
+    r"12\s*oz\.?\s*mouse|superjail|moral\s*orel|home\s*movies|"
+    r"primal\b|samurai\s*jack|flcl|cowboy\s*bebop|off\s*the\s*air|"
+    r"eric\s*andre|tim\s*(and|&)\s*eric|joe\s*pera|xavier\s*renegade|"
+    r"dream\s*corp|ballmastrz|lazor\s*wulf|birdgirl|unicorn\s*warriors)",
+    re.I,
+)
+TRUSTED = re.compile(
+    r"(adult\s*swim|\[as\]|williams\s*street|toonami|cartoon\s*network|"
+    r"adultswim|as\s*video|robot\s*chicken|venture\s*bros|"
+    r"aqua\s*teen|space\s*ghost|rick\s*and\s*morty)",
+    re.I,
+)
+SPAM_CH = re.compile(
+    r"(gorur|bazar|vlog|ngày|يوميات|tân\s*cổ|habib|pets?$|highlight\s*hub|"
+    r"sports?\s*rewind|full\s*game\s*hd|soccer|football\s*live|nba\s*full|"
+    r"gaming|reaction\s*channel|tier\s*list|ai\s*voice|shorts?\s*farm|"
+    r"kids?\s*tv|nursery|peppa|cocomelon)",
+    re.I,
+)
+
+def post(url, body, timeout=18):
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(body).encode(),
+        headers={"Content-Type": "application/json", "User-Agent": UA},
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return json.load(r)
+
+def client_ctx():
+    return {"client": {
+        "clientName": "WEB",
+        "clientVersion": "2.20241001.00.00",
+        "hl": "en", "gl": "US",
+    }}
+
+def search(q, params=None):
+    body = {"context": client_ctx(), "query": q}
+    if params:
+        body["params"] = params
+    return post("https://www.youtube.com/youtubei/v1/search?prettyPrint=false", body)
+
+def channel_videos(ucid):
+    try:
+        body = {
+            "context": client_ctx(),
+            "browseId": ucid,
+            "params": "EgZ2aWRlb3PyBgQKAjoA",
+        }
+        return post("https://www.youtube.com/youtubei/v1/browse?prettyPrint=false", body)
+    except Exception:
+        return {}
+
+def walk(o, key, out):
+    if isinstance(o, dict):
+        if key in o:
+            out.append(o[key])
+        for v in o.values():
+            walk(v, key, out)
+    elif isinstance(o, list):
+        for v in o:
+            walk(v, key, out)
+
+def parse_len(s):
+    if not s:
+        return 0
+    try:
+        parts = [int(x) for x in s.strip().split(":")]
+    except ValueError:
+        return 0
+    t = 0
+    for p in parts:
+        t = t * 60 + p
+    return t
+
+def parse_published(s):
+    if not s:
+        return 10**12
+    s = s.lower().strip()
+    m = re.match(r"(\d+)\s+(second|minute|hour|day|week|month|year)s?\s+ago", s)
+    if not m:
+        if "live" in s or "stream" in s:
+            return 0
+        return 10**12
+    n = int(m.group(1))
+    unit = m.group(2)
+    mult = {
+        "second": 1, "minute": 60, "hour": 3600, "day": 86400,
+        "week": 604800, "month": 2592000, "year": 31536000,
+    }[unit]
+    return n * mult
+
+def title_of(v):
+    runs = (v.get("title") or {}).get("runs") or []
+    t = "".join(r.get("text", "") for r in runs).strip()
+    if not t:
+        t = (v.get("title") or {}).get("simpleText") or ""
+    return t.strip()
+
+def channel_of(v):
+    for key in ("ownerText", "longBylineText", "shortBylineText"):
+        runs = (v.get(key) or {}).get("runs") or []
+        if runs:
+            return (runs[0].get("text") or "").strip()
+    return ""
+
+def is_live(v):
+    for b in v.get("badges") or []:
+        label = (((b.get("metadataBadgeRenderer") or {}).get("label") or "")).lower()
+        if "live" in label:
+            return True
+    for ov in v.get("thumbnailOverlays") or []:
+        r = ov.get("thumbnailOverlayTimeStatusRenderer") or {}
+        style = (r.get("style") or "").upper()
+        text = (((r.get("text") or {}).get("simpleText") or "")
+                + "".join(x.get("text", "") for x in ((r.get("text") or {}).get("runs") or []))).lower()
+        if style == "LIVE" or "live" in text:
+            return True
+    return False
+
+def looks_spam_channel(ch):
+    if not ch:
+        return True
+    if SPAM_CH.search(ch):
+        return True
+    latin = len(re.findall(r"[A-Za-z]", ch))
+    if latin < 3 and len(ch) > 0:
+        return True
+    return False
+
+def match_show(title, channel=""):
+    blob = f"{title} {channel}"
+    m = SHOW_RE.search(blob)
+    if m:
+        return m.group(0)
+    if AS_MARK.search(blob):
+        return "Adult Swim"
+    return ""
+
+def accept(title, secs, live, channel=""):
+    low = (title or "").lower()
+    ch = (channel or "").lower()
+    blob = low + " " + ch
+    if looks_spam_channel(channel or ""):
+        return False
+    if not AS_MARK.search(blob):
+        return False
+    if re.search(
+        r"\b(react(ion|ing)?|tier\s*list|ranking|podcast|explained|"
+        r"theory|ending\s*explained|try\s*not\s*to|fails?|funny\s*moments?|"
+        r"compilation|how\s*to|tutorial|top\s*10|shorts?)\b",
+        low,
+    ) and not re.search(r"\b(full\s*episode|marathon|live)\b", low):
+        return False
+    trusted = bool(TRUSTED.search(ch) or TRUSTED.search(low))
+    fullish = bool(re.search(
+        r"\b(full\s*(episode|ep|show|stream)|complete\s*episode|"
+        r"entire\s*episode|marathon|all\s*episodes|season\s*\d+|"
+        r"live\s*stream|\[as\]\s*stream)\b",
+        low,
+    ))
+    highlighty = bool(re.search(
+        r"\b(highlights?|top\s*\d+|best\s*(of|moments)|trailer|preview|"
+        r"teaser|clip|scene|recap|bloopers?)\b",
+        low,
+    ))
+    if highlighty and not fullish and not live:
+        return False
+    if live:
+        return True
+    if secs:
+        if secs < 300 and not fullish:
+            return False
+        if secs < 180:
+            return False
+        if secs > 12 * 3600:
+            return False
+    elif not (fullish or trusted):
+        return False
+    if not trusted and not fullish and not match_show(title, channel):
+        return False
+    return True
+
+def thumb_url(vid, v=None):
+    if v:
+        thumbs = (v.get("thumbnail") or {}).get("thumbnails") or []
+        if thumbs:
+            u = thumbs[-1].get("url") or ""
+            u = re.sub(r"\?.*", "", u)
+            if u:
+                return u
+    return f"https://i.ytimg.com/vi/{vid}/hq720.jpg"
+
+def item_from_renderer(v, discovered_at):
+    vid = v.get("videoId")
+    if not vid:
+        return None
+    title = title_of(v)
+    live = is_live(v)
+    length = (v.get("lengthText") or {}).get("simpleText") or ""
+    if not length:
+        for ov in v.get("thumbnailOverlays") or []:
+            r = ov.get("thumbnailOverlayTimeStatusRenderer") or {}
+            length = (r.get("text") or {}).get("simpleText") or length
+            if not length:
+                length = "".join(x.get("text", "") for x in ((r.get("text") or {}).get("runs") or []))
+    secs = parse_len(length)
+    ch = channel_of(v)
+    if not accept(title, secs, live, ch):
+        return None
+    pub = (v.get("publishedTimeText") or {}).get("simpleText") or ""
+    age = parse_published(pub)
+    trusted = bool(TRUSTED.search(ch or "") or TRUSTED.search(title or ""))
+    show = match_show(title, ch) or "Adult Swim"
+    tag = "LIVE" if live else "AS"
+    return {
+        "id": f"yt-{vid}",
+        "vid": vid,
+        "live": live,
+        "name": (title[:140] or show),
+        "show": show,
+        "court": ch or "YouTube",
+        "facility": "YouTube",
+        "ts": now - age if age < 10**12 else None,
+        "age": age,
+        "secs": secs,
+        "trusted": trusted,
+        "thumb": thumb_url(vid, v),
+        "thumbUrl": thumb_url(vid, v),
+        "video": f"https://www.youtube.com/watch?v={vid}",
+        "source": "youtube",
+        "tag": tag,
+        "discovered": discovered_at,
+        "published": pub,
+    }
+
+lib = []
+if os.path.isfile(lib_path):
+    try:
+        with open(lib_path) as f:
+            lib = json.load(f)
+            if not isinstance(lib, list):
+                lib = []
+    except Exception:
+        lib = []
+
+by_id = {it.get("id"): it for it in lib if isinstance(it, dict) and it.get("id")}
+new_count = 0
+
+def ingest(v):
+    global new_count
+    it = item_from_renderer(v, now)
+    if not it:
+        return
+    prev = by_id.get(it["id"])
+    if prev:
+        it["discovered"] = prev.get("discovered", now)
+        by_id[it["id"]] = it
+    else:
+        by_id[it["id"]] = it
+        new_count += 1
+
+for q in QUERIES:
+    try:
+        data = search(q)
+    except Exception:
+        continue
+    vids = []
+    walk(data, "videoRenderer", vids)
+    walk(data, "playlistVideoRenderer", vids)
+    for v in vids:
+        ingest(v)
+
+for ucid in CHANNEL_IDS:
+    data = channel_videos(ucid)
+    vids = []
+    walk(data, "videoRenderer", vids)
+    walk(data, "gridVideoRenderer", vids)
+    walk(data, "richItemRenderer", vids)
+    for v in vids:
+        # richItem wraps videoRenderer sometimes
+        if isinstance(v, dict) and "content" in v:
+            walk(v, "videoRenderer", vids)
+        ingest(v if isinstance(v, dict) and v.get("videoId") else v)
+
+# also pull Adult Swim channel live / popular via search params (this week)
+for q in ("Adult Swim full episode", "Rick and Morty full episode"):
+    try:
+        data = search(q)
+    except Exception:
+        continue
+    vids = []
+    walk(data, "videoRenderer", vids)
+    for v in vids:
+        ingest(v)
+
+items = list(by_id.values())
+items = [it for it in items if accept(it.get("name") or "", it.get("secs") or 0, it.get("live"), it.get("court") or "")]
+items.sort(key=lambda x: (
+    0 if x.get("live") else 1,
+    0 if x.get("trusted") else 1,
+    -(x.get("discovered") or 0),
+    x.get("age") if x.get("age") is not None else 10**12,
+    -(x.get("secs") or 0),
+))
+items = items[:lib_max]
+
+try:
+    with open(lib_path, "w") as f:
+        json.dump(items, f, separators=(",", ":"))
+except Exception:
+    pass
+
+# balance by show so one marathon doesn't dominate
+by_show = {}
+for it in items:
+    by_show.setdefault((it.get("show") or "Adult Swim").lower(), []).append(it)
+cycle = []
+used = set()
+# round-robin shows
+keys = sorted(by_show.keys(), key=lambda k: -len(by_show[k]))
+while len(cycle) < show_n and keys:
+    progressed = False
+    for k in list(keys):
+        bucket = by_show.get(k) or []
+        while bucket:
+            it = bucket.pop(0)
+            if it["id"] in used:
+                continue
+            cycle.append(it)
+            used.add(it["id"])
+            progressed = True
+            break
+        if not bucket:
+            keys = [x for x in keys if x != k]
+        if len(cycle) >= show_n:
+            break
+    if not progressed:
+        break
+
+print(json.dumps({"items": cycle[:show_n], "new": new_count, "lib": len(items)}))
+PY
+  """) every 4h json timeout 90s
+  source now = clock every 1m
+
+  let items = as.items ?? []
+  let n = len(items)
+  let idx = n > 0 ? floor(now / 60) % n : 0
+  let cur = n > 0 ? items[idx] : null
+  let tag = cur == null ? "" : (cur.tag ?? (cur.live ? "LIVE" : "AS"))
+  let show = cur == null ? "" : (cur.show ?? "Adult Swim")
+  let title = cur == null ? "" : (cur.name ?? show)
+  let live = cur != null && cur.live == true
+  let asGreen = #39ff14
+  let asPink = #ff2d95
+  let asCyan = #00e5ff
+  let asYellow = #ffe600
+  let ink = #0a0a0a
+  let panel = #111111
+  let press = "https://raw.githubusercontent.com/google/fonts/main/ofl/pressstart2p/PressStart2P-Regular.ttf"
+  let short = (rows ?? 4) < 4
+  let tiny = (rows ?? 4) < 3 || (cols ?? 3) < 3
+
+  onTap: url(cur.video)
+
+  if cur != null {
+    Box {
+      fill: true
+      background: ink
+      clip: true
+
+      Image { src: cur.thumb; fit: cover; fill: true }
+
+      // CRT / 90s cartoon glass
+      Canvas {
+        fill: true
+        // darken edges like a tube TV
+        rect(0, 0, width, height * 0.12, fill: alpha(#000, 0.55))
+        rect(0, height * 0.88, width, height * 0.12, fill: alpha(#000, 0.65))
+        rect(0, 0, width * 0.06, height, fill: alpha(#000, 0.35))
+        rect(width * 0.94, 0, width * 0.06, height, fill: alpha(#000, 0.35))
+        // scanlines
+        for i in range(int(height / 3)) {
+          rect(0, i * 3, width, 1, fill: alpha(#000, 0.18))
+        }
+        // chromatic flash
+        rect(0, height * 0.42, width, 2, fill: alpha(asGreen, 0.25))
+        // chunky cartoon border
+        rect(0, 0, width, 4, fill: asGreen)
+        rect(0, height - 4, width, 4, fill: asPink)
+        rect(0, 0, 4, height, fill: asCyan)
+        rect(width - 4, 0, 4, height, fill: asYellow)
+        // corner pips
+        rect(4, 4, 10, 10, fill: asYellow)
+        rect(width - 14, 4, 10, 10, fill: asPink)
+        rect(4, height - 14, 10, 10, fill: asCyan)
+        rect(width - 14, height - 14, 10, 10, fill: asGreen)
+      }
+
+      Column {
+        fill: true
+        padding: tiny ? 6 : 8
+        gap: 4
+
+        Row {
+          gap: 6
+          align: center
+          Text {
+            text: "[as]"
+            font: press
+            fontSize: tiny ? 8 : 10
+            color: ink
+            padding: [8, 5]
+            background: asGreen
+            maxLines: 1
+          }
+          if live {
+            Text {
+              text: "LIVE"
+              font: press
+              fontSize: tiny ? 7 : 9
+              color: #fff
+              padding: [8, 5]
+              background: #e11d48
+              maxLines: 1
+            }
+          } else {
+            Text {
+              text: tag
+              font: press
+              fontSize: tiny ? 7 : 9
+              color: ink
+              padding: [8, 5]
+              background: asYellow
+              maxLines: 1
+            }
+          }
+          Spacer { weight: 1 }
+          if !tiny {
+            Text {
+              text: "${idx + 1}/${n}"
+              font: press
+              fontSize: 7
+              color: asGreen
+              padding: [6, 4]
+              background: alpha(#000, 0.7)
+              maxLines: 1
+            }
+          }
+        }
+
+        Spacer { weight: 1 }
+
+        Column {
+          gap: 3
+          fill: width
+          padding: [8, 6]
+          background: alpha(#000, 0.78)
+          radius: 0
+          border: 2
+          borderColor: asGreen
+
+          Text {
+            text: upper(show)
+            font: press
+            fontSize: tiny ? 7 : 9
+            color: asGreen
+            maxLines: 1
+          }
+          if !tiny {
+            Text {
+              text: title
+              style: small
+              color: #ffffff
+              maxLines: short ? 2 : 3
+            }
+          }
+          if !short && !tiny {
+            Text {
+              text: "TAP → WATCH  ·  90s BLOCK"
+              font: press
+              fontSize: 6
+              color: asPink
+              maxLines: 1
+            }
+          }
+        }
+      }
+    }
+  } else {
+    Box {
+      fill: true
+      background: ink
+      Canvas {
+        fill: true
+        rect(0, 0, width, 4, fill: asGreen)
+        rect(0, height - 4, width, 4, fill: asPink)
+        rect(0, 0, 4, height, fill: asCyan)
+        rect(width - 4, 0, 4, height, fill: asYellow)
+        for i in range(int(height / 3)) {
+          rect(0, i * 3, width, 1, fill: alpha(asGreen, 0.08))
+        }
+        // bouncing [as] blob
+        let cx = width / 2
+        let cy = height / 2
+        circle(cx, cy, 28, fill: alpha(asGreen, 0.15))
+        circle(cx, cy, 18, fill: asGreen)
+      }
+      Column {
+        fill: true
+        align: center
+        justify: center
+        gap: 8
+        Text {
+          text: "[as]"
+          font: press
+          fontSize: 18
+          color: asGreen
+          align: center
+        }
+        Text {
+          text: "LOADING BLOCK…"
+          font: press
+          fontSize: 8
+          color: asPink
+          align: center
+          maxLines: 1
+        }
+      }
+    }
+  }
+}

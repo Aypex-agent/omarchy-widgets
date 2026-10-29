@@ -1,0 +1,484 @@
+widget "data centers" {
+  meta {
+    description: "Nearest major data center by location with power-line graphics, plus construction, power-grid and AI hyperscale news"
+    version: "1.5"
+    license: "MIT"
+    category: "world"
+    owl: 8
+  }
+  size: 6x4
+  minSize: 2x2
+  padding: 0
+
+  requires { pacman: ["python"] }
+
+  source now = clock every 1m
+  state city = "" persist
+  state tab = "build" persist
+  let qCity = city.replace("%", "%25").replace("+", "%2B").replace("/", "%2F").replace("?", "%3F").replace("#", "%23").replace("&", "%26").replace("'", "%27").replace(" ", "+")
+  // City when set; bare wttr.in falls back to IP.
+  source wx = http("https://wttr.in/${enc(qCity)}?format=j1") every 30m timeout 10s json
+  let area = wx.nearest_area[0]
+  let lat = num(area.latitude)
+  let lon = num(area.longitude)
+  let imperial = contains(["united states", "united states of america", "liberia", "myanmar", "burma"], lower(trim(area.country[0].value ?? "")))
+  let place = lower(area.areaName[0].value ?? "")
+  when lat != null { refresh() }
+  on qCity { refresh() }
+
+  let dcs = [
+    {n: "Ashburn VA", o: "AWS·Azure·GCP", lat: 39.0438, lon: -77.4874},
+    {n: "Boardman OR", o: "Amazon", lat: 45.8399, lon: -119.7006},
+    {n: "The Dalles OR", o: "Google", lat: 45.5946, lon: -121.1787},
+    {n: "Council Bluffs", o: "Google", lat: 41.2619, lon: -95.8608},
+    {n: "Pryor OK", o: "Google", lat: 36.3084, lon: -95.3172},
+    {n: "Lenoir NC", o: "Google", lat: 35.9140, lon: -81.5390},
+    {n: "Moncks Corner", o: "Google", lat: 33.1960, lon: -80.0131},
+    {n: "Dallas TX", o: "Equinix·AWS", lat: 32.7767, lon: -96.7970},
+    {n: "Chicago IL", o: "Equinix·AWS", lat: 41.8781, lon: -87.6298},
+    {n: "Seattle WA", o: "AWS·Equinix", lat: 47.6062, lon: -122.3321},
+    {n: "San Jose CA", o: "Equinix·AWS", lat: 37.3382, lon: -121.8863},
+    {n: "Los Angeles", o: "Equinix·AWS", lat: 34.0522, lon: -118.2437},
+    {n: "Phoenix AZ", o: "AWS·Microsoft", lat: 33.4484, lon: -112.0740},
+    {n: "Salt Lake City", o: "Facebook·AWS", lat: 40.7608, lon: -111.8910},
+    {n: "Denver CO", o: "CoreSite", lat: 39.7392, lon: -104.9903},
+    {n: "Atlanta GA", o: "Equinix·AWS", lat: 33.7490, lon: -84.3880},
+    {n: "Miami FL", o: "Equinix", lat: 25.7617, lon: -80.1918},
+    {n: "New York NY", o: "Equinix·AWS", lat: 40.7128, lon: -74.0060},
+    {n: "Boston MA", o: "Equinix", lat: 42.3601, lon: -71.0589},
+    {n: "Columbus OH", o: "AWS·Google", lat: 39.9612, lon: -82.9988},
+    {n: "Des Moines", o: "Microsoft", lat: 41.5868, lon: -93.6250},
+    {n: "Las Vegas", o: "Switch·AWS", lat: 36.1699, lon: -115.1398},
+    {n: "Quincy WA", o: "Microsoft", lat: 47.2343, lon: -119.8525},
+    {n: "Reston VA", o: "Equinix", lat: 38.9586, lon: -77.3570},
+    {n: "Toronto", o: "Equinix·AWS", lat: 43.6532, lon: -79.3832},
+    {n: "Montreal", o: "Google·AWS", lat: 45.5017, lon: -73.5673},
+    {n: "Vancouver", o: "Equinix", lat: 49.2827, lon: -123.1207},
+    {n: "Querétaro", o: "AWS·Microsoft", lat: 20.5888, lon: -100.3899},
+    {n: "São Paulo", o: "AWS·Equinix", lat: -23.5505, lon: -46.6333},
+    {n: "Santiago", o: "AWS·Google", lat: -33.4489, lon: -70.6693},
+    {n: "London", o: "AWS·Equinix", lat: 51.5074, lon: -0.1278},
+    {n: "Dublin", o: "AWS·Microsoft", lat: 53.3498, lon: -6.2603},
+    {n: "Frankfurt", o: "AWS·Equinix", lat: 50.1109, lon: 8.6821},
+    {n: "Amsterdam", o: "Equinix·Digital Realty", lat: 52.3676, lon: 4.9041},
+    {n: "Paris", o: "AWS·Equinix", lat: 48.8566, lon: 2.3522},
+    {n: "Stockholm", o: "AWS·Bahnhof", lat: 59.3293, lon: 18.0686},
+    {n: "Zurich", o: "Google·Equinix", lat: 47.3769, lon: 8.5417},
+    {n: "Madrid", o: "AWS·Equinix", lat: 40.4168, lon: -3.7038},
+    {n: "Milan", o: "AWS·Equinix", lat: 45.4642, lon: 9.1900},
+    {n: "Warsaw", o: "AWS·Equinix", lat: 52.2297, lon: 21.0122},
+    {n: "Berlin", o: "Equinix·Ionos", lat: 52.5200, lon: 13.4050},
+    {n: "Helsinki", o: "Google·Equinix", lat: 60.1699, lon: 24.9384},
+    {n: "Oslo", o: "Green Mountain", lat: 59.9139, lon: 10.7522},
+    {n: "Copenhagen", o: "Equinix", lat: 55.6761, lon: 12.5683},
+    {n: "Bahrain", o: "AWS", lat: 26.0667, lon: 50.5577},
+    {n: "Dubai", o: "Equinix·AWS", lat: 25.2048, lon: 55.2708},
+    {n: "Tel Aviv", o: "AWS·Google", lat: 32.0853, lon: 34.7818},
+    {n: "Cape Town", o: "AWS·Microsoft", lat: -33.9249, lon: 18.4241},
+    {n: "Johannesburg", o: "AWS·Microsoft", lat: -26.2041, lon: 28.0473},
+    {n: "Mumbai", o: "AWS·Equinix", lat: 19.0760, lon: 72.8777},
+    {n: "Hyderabad", o: "AWS·Microsoft", lat: 17.3850, lon: 78.4867},
+    {n: "Singapore", o: "AWS·Equinix", lat: 1.3521, lon: 103.8198},
+    {n: "Tokyo", o: "AWS·Equinix", lat: 35.6762, lon: 139.6503},
+    {n: "Osaka", o: "AWS·Equinix", lat: 34.6937, lon: 135.5023},
+    {n: "Seoul", o: "AWS·Equinix", lat: 37.5665, lon: 126.9780},
+    {n: "Hong Kong", o: "Equinix·AWS", lat: 22.3193, lon: 114.1694},
+    {n: "Taipei", o: "Google·Equinix", lat: 25.0330, lon: 121.5654},
+    {n: "Jakarta", o: "AWS·Equinix", lat: -6.2088, lon: 106.8456},
+    {n: "Bangkok", o: "Equinix", lat: 13.7563, lon: 100.5018},
+    {n: "Sydney", o: "AWS·Equinix", lat: -33.8688, lon: 151.2093},
+    {n: "Melbourne", o: "AWS·Equinix", lat: -37.8136, lon: 144.9631},
+    {n: "Auckland", o: "AWS·Microsoft", lat: -36.8485, lon: 174.7633}
+  ]
+
+  let ranked = lat == null ? [] : dcs.map(d => {
+    n: d.n,
+    o: d.o,
+    lat: d.lat,
+    lon: d.lon,
+    km: sqrt(pow((d.lon - lon) * 111.32 * cos(rad(lat)), 2) + pow((d.lat - lat) * 110.57, 2))
+  }).sortBy(d => d.km)
+  let nearest = first(ranked)
+  let mi = nearest == null ? null : nearest.km / 1.609344
+  let dist = nearest == null ? null : imperial ? round(mi) : round(nearest.km)
+  let unit = imperial ? "mi" : "km"
+  let problem = wx == null ? "locating…" : lat == null ? "no fix" : null
+
+  source feed = cmd("""
+python3 - <<'OWLDC'
+import json, re, time, html, urllib.request, urllib.parse
+from concurrent.futures import ThreadPoolExecutor, wait
+from email.utils import parsedate_to_datetime
+
+UA = {"User-Agent": "Mozilla/5.0 (omalauncher data-centers widget)"}
+QUERIES = [
+    ("build", 'data center construction OR "data centre" groundbreaking OR campus OR "breaks ground" OR "new facility"', 14),
+    ("power", 'data center power OR electricity OR grid OR "power plant" OR nuclear OR "energy demand"', 10),
+    ("trend", 'data center AI OR hyperscale OR "cloud region" OR Equinix OR "Digital Realty" OR "AWS region"', 10),
+]
+
+def get(url):
+    req = urllib.request.Request(url, headers=UA)
+    with urllib.request.urlopen(req, timeout=12) as r:
+        return r.read()
+
+def when(s):
+    try:
+        return int(parsedate_to_datetime(s).timestamp())
+    except Exception:
+        return 0
+
+def cdata(s):
+    s = s.strip()
+    if s.startswith("<![CDATA["):
+        s = s[9:]
+    if s.endswith("]]>"):
+        s = s[:-3]
+    return s
+
+def field(block, *tags):
+    for t in tags:
+        m = re.search("<" + t + "[^>]*>(.*?)</" + t + ">", block, re.S)
+        if m:
+            return cdata(m.group(1))
+    return ""
+
+def clean(s):
+    return " ".join(html.unescape(re.sub("<[^>]+>", "", s)).split())
+
+def fetch(item):
+    tab, q, n = item
+    url = "https://news.google.com/rss/search?q=" + urllib.parse.quote(q) + "&hl=en-US&gl=US&ceid=US:en&when:7d"
+    out = []
+    try:
+        data = get(url).decode("utf-8", "replace")
+    except Exception:
+        return out
+    for block in re.findall("<item[ >].*?</item>", data, re.S):
+        title = clean(field(block, "title"))
+        link = field(block, "link").strip()
+        at = when(field(block, "pubDate"))
+        src = ""
+        m = re.match(r"(.*) - (.+)$", title)
+        if m:
+            title, src = m.group(1).strip(), m.group(2).strip()
+        if not title or not link.lower().startswith(("http://", "https://")):
+            continue
+        out.append({"tab": tab, "title": title, "url": link, "at": at, "src": src})
+        if len(out) >= n:
+            break
+    return out
+
+pool = ThreadPoolExecutor(3)
+futs = [pool.submit(fetch, q) for q in QUERIES]
+wait(futs, timeout=28)
+all_items = [p for f in futs if not f.exception() for p in f.result()]
+seen, uniq = set(), []
+for p in sorted(all_items, key=lambda p: -p["at"]):
+    key = re.sub(r"[^a-z0-9]+", "", p["title"].lower())[:48]
+    if key and key not in seen:
+        seen.add(key)
+        uniq.append(p)
+
+print(json.dumps({
+    "at": int(time.time()),
+    "build": [p for p in uniq if p["tab"] == "build"][:12],
+    "power": [p for p in uniq if p["tab"] == "power"][:10],
+    "trend": [p for p in uniq if p["tab"] == "trend"][:10],
+    "all": uniq[:18],
+}))
+OWLDC
+  """) every 20m json timeout 35s status
+
+  let items = feed == null ? null : !feed.ok ? [] : get(feed.out, tab, feed.out.all ?? [])
+  let age = feed != null && feed.ok ? now - feed.out.at : null
+
+  let h = rows ?? 4
+  let w = cols ?? 6
+  let tiny = h <= 2
+  let short = h <= 3
+  let slim = w < 5
+  let pad = tiny ? 4 : short ? 6 : 10
+  let gap = tiny ? 2 : short ? 4 : 8
+  let headH = tiny ? 42 : short ? 64 : slim ? 90 : 110
+  let gridW = tiny ? 0 : short ? (slim ? 72 : 96) : slim ? 110 : 150
+  let gridH = tiny ? 0 : short ? 56 : slim ? 80 : 100
+  let showGrid = !tiny && gridW > 0
+  let fsLabel = tiny ? 8 : short ? 9 : slim ? 10 : null
+  let fsTitle = tiny ? 12 : short ? 14 : slim ? 16 : null
+  let fsDist = tiny ? 16 : short ? 22 : slim ? 28 : null
+  let fsBody = tiny ? 10 : short ? 11 : slim ? 12 : null
+  let fsMeta = tiny ? 8 : short ? 9 : 10
+  let storyLines = tiny ? 1 : short ? 1 : 2
+  let storyGap = tiny ? 0 : short ? 1 : 2
+
+  onTap: screen()
+
+  component PowerGrid(big = false) {
+    Canvas {
+      fill: true
+      let w = width
+      let h = height
+      let ground = h * 0.86
+      rect(0, 0, w, ground, fill: alpha(accent, 0.05))
+      line(4, ground, w - 4, ground, stroke: alpha(muted, 0.4), width: 1)
+      let n = big ? 5 : 4
+      let towers = range(n).map(i => w * (0.06 + i * (0.72 / max(n - 1, 1))))
+      for tx, i in towers {
+        let th = h * (0.58 - i * 0.025)
+        let top = ground - th
+        line(tx, ground, tx, top, stroke: muted, width: big ? 2 : 1.5)
+        line(tx - (big ? 10 : 7), top + 4, tx + (big ? 10 : 7), top + 4, stroke: muted, width: 1.3)
+        line(tx - (big ? 7 : 5), top + 14, tx + (big ? 7 : 5), top + 14, stroke: muted, width: 1)
+        circle(tx - (big ? 9 : 6), top + 4, big ? 2 : 1.4, fill: yellow)
+        circle(tx + (big ? 9 : 6), top + 4, big ? 2 : 1.4, fill: yellow)
+        if i < n - 1 {
+          let nx = towers[i + 1]
+          let ny = ground - h * (0.58 - (i + 1) * 0.025) + 4
+          path([
+            [tx + (big ? 9 : 6), top + 4],
+            [(tx + nx) / 2, top + 16],
+            [nx - (big ? 9 : 6), ny]
+          ], stroke: alpha(foreground, 0.5), width: 1.1)
+          path([
+            [tx + (big ? 6 : 4), top + 14],
+            [(tx + nx) / 2, top + 26],
+            [nx - (big ? 6 : 4), ny + 10]
+          ], stroke: alpha(foreground, 0.28), width: 0.8)
+        }
+      }
+      for k in range(big ? 3 : 2) {
+        let t = big ? ((time * 0.3 + k * 0.34) % 1) : (k * 0.34 % 1)
+        let px = towers[0] + t * (towers[n - 1] - towers[0])
+        let seg = clamp(floor(t * (n - 1)), 0, n - 2)
+        let a = towers[seg]
+        let b = towers[seg + 1]
+        let topA = ground - h * (0.58 - seg * 0.025) + 4
+        let topB = ground - h * (0.58 - (seg + 1) * 0.025) + 4
+        let u = (px - a) / max(b - a, 1)
+        let py = lerp(topA, topB, u) + 12 * sin(u * 180)
+        let col = k == 0 ? yellow : k == 1 ? accent : cyan
+        circle(px, py, big ? 2.6 : 2, fill: col)
+        circle(px, py, big ? 6 : 4.5, fill: alpha(col, 0.22))
+      }
+      let bx = w * 0.8
+      let bw = w * 0.16
+      let bh = h * (big ? 0.52 : 0.45)
+      let by = ground - bh
+      rect(bx, by, bw, bh, fill: alpha(surface, 0.95), stroke: accent, width: 1.4, radius: 2)
+      if big {
+        rect(bx + bw * 0.12, by - 7, bw * 0.76, 7, fill: alpha(accent, 0.35), radius: 1)
+      }
+      for row in range(big ? 5 : 4) {
+        for col in range(big ? 3 : 2) {
+          let lit = big ? (((floor(time * 1.9) + row * 2 + col * 3) % 4) != 0) : (((row * 2 + col * 3) % 4) != 0)
+          rect(
+            bx + 3 + col * (bw / (big ? 3.2 : 2.2)),
+            by + 4 + row * (bh / (big ? 5.5 : 4.6)),
+            bw * (big ? 0.2 : 0.28),
+            bh * 0.1,
+            fill: lit ? accent : alpha(muted, 0.3),
+            radius: 0.5
+          )
+        }
+      }
+      path([
+        [towers[n - 1] + (big ? 9 : 6), ground - h * (0.58 - (n - 1) * 0.025) + 4],
+        [bx - 3, by + bh * 0.22],
+        [bx, by + bh * 0.22]
+      ], stroke: yellow, width: 1.4)
+    }
+  }
+
+  component Story(p, i, big = false) {
+    let mins = p.at > 0 ? (now - p.at) / 60 : null
+    let ago = mins == null ? "" : mins < 60 ? "${max(floor(mins), 1)}m" : mins < 1440 ? "${floor(mins / 60)}h" : "${floor(mins / 1440)}d"
+    let src = p.src == "" ? "news" : lower(p.src)
+    let meta = ago == "" ? src : "${src} · ${ago}"
+    Column {
+      gap: big ? 2 : storyGap
+      onTap: url(p.url)
+      padding: big ? [0, 5] : tiny ? [0, 2] : short ? [0, 3] : [0, 5]
+      Text {
+        text: p.title
+        style: small
+        maxLines: big ? 2 : storyLines
+        bold: i == 0
+        fontSize: big ? null : fsBody
+      }
+      if big || !tiny {
+        Text { text: meta; style: label; color: muted; maxLines: 1; fontSize: big ? null : fsMeta }
+      }
+    }
+  }
+
+  Column {
+    gap: gap
+    padding: pad
+
+    // header: power lines + nearest DC
+    Row {
+      gap: tiny ? 4 : short ? 8 : 12
+      align: center
+      height: headH
+      if showGrid {
+        PowerGrid { big: false; width: gridW; height: gridH }
+      }
+      Column {
+        gap: tiny ? 0 : short ? 1 : 3
+        weight: 1
+        if !tiny {
+          Text { text: "nearest data center"; style: label; color: muted; maxLines: 1; fontSize: fsLabel }
+        }
+        if problem != null {
+          Text { text: problem; style: title; color: muted; maxLines: 1; fontSize: fsTitle }
+        } else {
+          Text { text: nearest.n; style: title; color: accent; maxLines: 1; fontSize: fsTitle }
+          if !tiny {
+            Text { text: nearest.o; style: small; color: muted; maxLines: 1; fontSize: fsBody }
+          }
+          Text {
+            text: tiny ? "${dist} ${unit}${place != "" ? " · " + place : ""}" : "${dist} ${unit}"
+            style: huge
+            color: foreground
+            bold: true
+            maxLines: 1
+            fontSize: fsDist
+          }
+          if place != "" && !tiny && !short {
+            Text { text: "from ${place}"; style: label; color: muted; maxLines: 1; fontSize: fsLabel }
+          }
+        }
+      }
+    }
+
+    if !tiny {
+      Spacer { height: 1; fill: width; background: alpha(muted, 0.3) }
+
+      // news section
+      Row {
+        gap: short ? 4 : 6
+        align: center
+        Text { text: "dc news"; style: label; color: muted; weight: 1; maxLines: 1; fontSize: fsLabel }
+        Button { text: "build"; color: tab == "build" ? accent : muted; onTap: tab = "build" }
+        Button { text: "power"; color: tab == "power" ? accent : muted; onTap: tab = "power" }
+        Button { text: "trend"; color: tab == "trend" ? accent : muted; onTap: tab = "trend" }
+        Text {
+          text: age == null ? "…" : age < 120 ? "live" : "${floor(age / 60)}m"
+          style: label
+          color: muted
+          width: short ? 28 : 36
+          align: end
+          fontSize: fsLabel
+        }
+      }
+
+      if !short {
+        Text {
+          text: tab == "build" ? "new construction & campuses" : tab == "power" ? "grid · power · energy" : "ai · hyperscale · cloud"
+          style: label
+          color: muted
+          fontSize: fsLabel
+        }
+      }
+    }
+
+    Column {
+      scroll: true
+      weight: 1
+      gap: storyGap
+      if feed == null {
+        Text { text: tiny ? "loading…" : "loading construction & industry news…"; style: small; color: muted; fontSize: fsBody }
+      } else if !feed.ok {
+        Text { text: tiny ? "news offline" : "news offline · tap refresh in full screen"; style: small; color: orange; fontSize: fsBody }
+      } else if len(items) == 0 {
+        Text { text: "no headlines right now"; style: small; color: muted; fontSize: fsBody }
+      } else {
+        for p, i in items key p.url {
+          Story { p: p; i: i }
+          if i < len(items) - 1 && !tiny {
+            Spacer { height: 1; fill: width; background: alpha(muted, 0.12) }
+          }
+        }
+      }
+    }
+  }
+
+  screen {
+    title: "data centers"
+    Input {
+      text: city
+      placeholder: "city · empty = IP location"
+      onSubmit: { city = trim(value); refresh() }
+    }
+    Column {
+      scroll: true
+      gap: 12
+      PowerGrid { big: true; height: 140; fill: width }
+
+      if problem != null {
+        Text { text: problem; style: body; color: muted }
+      } else {
+        Column {
+          gap: 2
+          Text { text: nearest.n; style: title; color: accent }
+          Text { text: nearest.o; style: small; color: muted }
+          Text { text: "${dist} ${unit} away · from ${place == "" ? "you" : place}"; style: body }
+        }
+        Spacer { height: 1; fill: width; background: alpha(muted, 0.25) }
+        Text { text: "closest hubs"; style: label; color: muted }
+        for d, i in ranked.take(10) key d.n {
+          let dMi = round(d.km / 1.609344)
+          let dShow = imperial ? dMi : round(d.km)
+          Row {
+            gap: 8
+            align: center
+            Text { text: "${i + 1}"; style: small; color: muted; width: 20 }
+            Column {
+              gap: 0
+              weight: 1
+              Text { text: d.n; bold: i == 0; maxLines: 1 }
+              Text { text: d.o; style: small; color: muted; maxLines: 1 }
+            }
+            Text {
+              text: "${dShow} ${unit}"
+              style: small
+              color: i == 0 ? accent : muted
+              width: 64
+              align: end
+            }
+          }
+        }
+      }
+
+      Spacer { height: 1; fill: width; background: alpha(muted, 0.25) }
+
+      Row {
+        gap: 6
+        Button { text: "build"; color: tab == "build" ? accent : muted; onTap: tab = "build" }
+        Button { text: "power"; color: tab == "power" ? accent : muted; onTap: tab = "power" }
+        Button { text: "trend"; color: tab == "trend" ? accent : muted; onTap: tab = "trend" }
+        Spacer { weight: 1 }
+        Button { text: "refresh"; color: muted; onTap: refresh() }
+      }
+
+      Text {
+        text: tab == "build" ? "new construction & campuses" : tab == "power" ? "grid · power · energy" : "ai · hyperscale · cloud"
+        style: label
+        color: muted
+      }
+
+      if feed == null {
+        Text { text: "loading…"; style: small; color: muted }
+      } else if !feed.ok {
+        Text { text: "news offline"; style: small; color: orange }
+      } else {
+        for p, i in items key p.url {
+          Story { p: p; i: i; big: true }
+        }
+      }
+
+      Text { text: "location · ${city != "" ? city : "IP/wttr"} · news via google news"; style: label; color: muted }
+    }
+  }
+}

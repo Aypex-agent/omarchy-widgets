@@ -1,0 +1,639 @@
+widget "doomsday clock" {
+  size: 3x5
+  minSize: 2x3
+  padding: 8
+  meta {
+    description: "Live Bulletin Doomsday Clock. UI escalates from peace to nuclear firestorm as midnight nears. Auto-updates."
+    version: "1.1"
+    license: "MIT"
+    category: "world"
+    owl: 10
+  }
+
+  requires { pacman: ["curl", "python"] }
+
+  // 1s only on the full screen for pulse; tile stays still.
+  source now = clock every 1s
+  // Honest UA. Print nothing on failure so the tile shows nothing until a real value arrives.
+  source scrape = cmd("curl -sfL -A 'Mozilla/5.0 (omalauncher doomsday-clock widget)' --max-time 18 'https://thebulletin.org/doomsday-clock/' | python3 -c \"import sys,re;h=sys.stdin.read();s=re.search(r'It is now (\\\\d+) seconds to midnight',h);y=re.search(r'January\\\\s+\\\\d+,\\\\s+(20\\\\d\\\\d)',h);print(((s.group(1)+' '+(y.group(1) if y else '')) if s else ''))\"") every 12h timeout 30s
+
+  state demo = -1 persist
+  state tab = "clock" persist
+
+  let parts = words(scrape ?? "")
+  let liveSec = len(parts) > 0 && parts[0] != "" ? num(parts[0]) : null
+  let setYear = len(parts) > 1 && parts[1] != "" ? parts[1] : null
+  // No live value yet and not demoing: show an empty tile (no fake SAFE/1020s).
+  let ready = demo >= 0 || liveSec != null
+  let secs = demo >= 0 ? demo : (liveSec != null ? liveSec : 0)
+  let loading = liveSec == null && demo < 0
+
+  let danger = ready ? clamp(1 - secs / 1020, 0, 1) : 0
+  let sid = !ready ? -1
+    : secs <= 0 ? 7
+    : secs < 30 ? 6
+    : secs < 60 ? 5
+    : secs < 90 ? 4
+    : secs < 120 ? 3
+    : secs < 180 ? 2
+    : secs < 360 ? 1
+    : 0
+
+  let label = sid < 0 ? "" : sid == 0 ? "SAFE" : sid == 1 ? "WATCH" : sid == 2 ? "ELEVATED" : sid == 3 ? "HIGH"
+    : sid == 4 ? "CRITICAL" : sid == 5 ? "SEVERE" : sid == 6 ? "CATASTROPHIC" : "MIDNIGHT"
+  let blurb = sid < 0 ? "" : sid == 0 ? "cold war thaw · hope holds"
+    : sid == 1 ? "arms race quiet · stay vigilant"
+    : sid == 2 ? "treaties fray · risks rise"
+    : sid == 3 ? "arsenals live · clocks tick"
+    : sid == 4 ? "closest ever · nuclear edge"
+    : sid == 5 ? "silos open · cities burn"
+    : sid == 6 ? "firestorm · fallout sky"
+    : "doomsday · the hand is still"
+  let gem = sid < 0 ? "" : sid == 0 ? "🕊" : sid == 1 ? "🌍" : sid == 2 ? "⚠" : sid == 3 ? "🚀"
+    : sid == 4 ? "☢" : sid == 5 ? "💥" : sid == 6 ? "☠" : "⬛"
+  let tint = sid < 0 ? muted : sid == 0 ? #4ade80 : sid == 1 ? #67e8f9 : sid == 2 ? #fbbf24 : sid == 3 ? #f97316
+    : sid == 4 ? #ef4444 : sid == 5 ? #dc2626 : sid == 6 ? #fef08a : #ffffff
+  let tintDim = alpha(tint, 0.2)
+  let mins = floor(secs / 60)
+  let remS = int(secs % 60)
+  let timeStr = !ready ? "" : secs <= 0 ? "MIDNIGHT" : mins > 0 ? "${mins}m ${remS}s" : "${int(secs)}s"
+  let short = (rows ?? 5) < 4
+  let tiny = (rows ?? 5) < 3
+  // Pulse only in the full-screen view, never on the tile.
+  let pulseOn = false
+
+  onTap: screen()
+
+  Column {
+    gap: 2
+    fill: true
+
+    if !ready {
+      // Empty until a real Bulletin value (or demo) arrives — no fake SAFE/1020s.
+      Spacer { weight: 1 }
+    } else if tiny {
+      Text { text: "${gem} ${timeStr}"; style: title; color: tint; bold: true; align: center }
+      Text { text: label; style: label; color: muted; align: center }
+    } else {
+      Box {
+        fill: true
+        weight: 1
+        background: mix(background, tint, 0.06 + danger * 0.12)
+        radius: 8 * corners
+        clip: true
+        DoomScene { s: sid; big: false }
+        Column {
+          fill: true
+          justify: end
+          padding: [8, 6]
+          gap: 1
+          background: linear(0, 0, 0, 1, [alpha(background, 0), alpha(background, 0.9)])
+          Text { text: "${gem}  ${label}"; style: label; color: tint; bold: true }
+          Text { text: timeStr; style: title; color: tint; bold: true }
+          Text { text: "to midnight"; style: small; color: muted }
+          Progress { value: danger * 100; color: tint; track: tintDim; animate value: spring() }
+          if !short {
+            Text {
+              text: demo >= 0 ? "DEMO" : "Bulletin · ${setYear ?? "…"}"
+              style: small
+              color: muted
+              maxLines: 1
+            }
+          }
+        }
+      }
+    }
+  }
+
+  screen {
+    title: "doomsday clock"
+    let fsPulse = ready && sid >= 4 && (floor(now) % 2 == 0)
+    Column {
+      gap: 8
+      padding: 12
+      fill: true
+
+      Row {
+        gap: 6
+        Button { text: "clock"; color: tab == "clock" ? tint : muted; onTap: tab = "clock" }
+        Button { text: "scenes"; color: tab == "scenes" ? tint : muted; onTap: tab = "scenes" }
+        Button { text: "about"; color: tab == "about" ? tint : muted; onTap: tab = "about" }
+        Spacer { weight: 1 }
+        if demo >= 0 {
+          Button { text: "live"; color: green; onTap: demo = -1 }
+        }
+      }
+
+      if tab == "clock" {
+        if !ready {
+          Column {
+            gap: 8
+            align: center
+            justify: center
+            weight: 1
+            Text { text: "waiting for Bulletin…"; style: muted; align: center }
+            Button { text: "refresh"; onTap: refresh() }
+            Button { text: "Bulletin"; onTap: url("https://thebulletin.org/doomsday-clock/") }
+          }
+        } else {
+        Box {
+          fill: width
+          height: 240
+          radius: 12 * corners
+          clip: true
+          background: #0a0608
+          DoomScene { s: sid; big: true }
+          ClockFace { secs: secs; col: tint; danger: danger }
+        }
+        Column {
+          gap: 4
+          align: center
+          Text { text: "${gem}  IT IS ${timeStr} TO MIDNIGHT"; style: title; color: fsPulse ? #ffffff : tint; bold: true; align: center }
+          Text { text: label; style: body; color: tint; align: center }
+          Text { text: blurb; style: muted; align: center }
+          Progress { value: danger * 100; color: tint; track: tintDim; animate value: spring() }
+          Text {
+            text: demo >= 0 ? "demo · ${int(secs)}s (not live)"
+              : "live · ${setYear ?? "…"} · ${liveSec}s · Bulletin of the Atomic Scientists"
+            style: small
+            color: muted
+            align: center
+            maxLines: 2
+          }
+        }
+        Row {
+          gap: 8
+          justify: center
+          Button { text: "refresh"; onTap: refresh() }
+          Button { text: "Bulletin"; onTap: url("https://thebulletin.org/doomsday-clock/") }
+          Button { text: "statement"; onTap: url("https://thebulletin.org/doomsday-clock/current-time/") }
+        }
+        }
+      }
+
+      if tab == "scenes" {
+        Text { text: "UI shifts the closer we are to doomsday"; style: muted; align: center }
+        Column {
+          scroll: true
+          gap: 6
+          weight: 1
+          SceneBtn { sec: 1020; name: "SAFE · 17m"; d: "1991 thaw · farthest ever"; cur: demo; live: liveSec; col: tint }
+          SceneBtn { sec: 420; name: "WATCH · 7m"; d: "vigilance · treaties hold"; cur: demo; live: liveSec; col: tint }
+          SceneBtn { sec: 210; name: "ELEVATED · 3.5m"; d: "risks climb · orange sky"; cur: demo; live: liveSec; col: tint }
+          SceneBtn { sec: 150; name: "HIGH · 2.5m"; d: "silos wake · missiles rise"; cur: demo; live: liveSec; col: tint }
+          SceneBtn { sec: 100; name: "CRITICAL · 100s"; d: "2020 · edge of night"; cur: demo; live: liveSec; col: tint }
+          SceneBtn { sec: 85; name: "SEVERE · 85s"; d: "2026 · closest in history"; cur: demo; live: liveSec; col: tint }
+          SceneBtn { sec: 40; name: "CATASTROPHIC · 40s"; d: "firestorm · multi-blast"; cur: demo; live: liveSec; col: tint }
+          SceneBtn { sec: 0; name: "MIDNIGHT"; d: "the hand stops · doomsday"; cur: demo; live: liveSec; col: tint }
+        }
+        Box {
+          fill: width
+          height: 150
+          radius: 10 * corners
+          clip: true
+          background: #0a0608
+          DoomScene { s: sid; big: true }
+        }
+      }
+
+      if tab == "about" {
+        Column {
+          scroll: true
+          gap: 10
+          weight: 1
+          Text { text: "Bulletin of the Atomic Scientists"; style: title; color: tint }
+          Text {
+            text: "The Doomsday Clock warns how close humanity is to catastrophe from nuclear war, climate, and disruptive tech. Set by the Science and Security Board."
+            style: body
+            maxLines: 8
+          }
+          Text {
+            text: "Now: ${liveSec == null ? "…" : liveSec} seconds to midnight${setYear != null ? " (" + setYear + ")" : ""}."
+            style: body
+            color: tint
+            maxLines: 3
+          }
+          Text {
+            text: "Scrapes thebulletin.org every 12h. Canvas scenes auto-escalate: peace → watch → missiles → mushrooms → firestorm."
+            style: muted
+            maxLines: 6
+          }
+          Text { text: "Historic marks"; style: label; color: muted }
+          Text { text: "1991 · 17 min — START, Cold War end"; style: small }
+          Text { text: "2018 · 2 min — nuclear + climate"; style: small }
+          Text { text: "2020 · 100 s — info war, arms"; style: small }
+          Text { text: "2023 · 90 s — Ukraine"; style: small }
+          Text { text: "2025 · 89 s — multipolar risk"; style: small }
+          Text { text: "2026 · 85 s — closest ever"; style: small; color: tint; bold: true }
+          Button { text: "2026 statement"; onTap: url("https://thebulletin.org/doomsday-clock/2026-statement/") }
+          Button { text: "timeline"; onTap: url("https://thebulletin.org/doomsday-clock/timeline/") }
+        }
+      }
+    }
+  }
+
+  component SceneBtn(sec, name, d, cur, live, col) {
+    let active = cur == sec || (cur < 0 && live == sec)
+    Button {
+      text: "${active ? "●" : "○"}  ${name} — ${d}"
+      color: active ? col : muted
+      onTap: demo = sec
+    }
+  }
+
+  component ClockFace(secs, col, danger) {
+    Canvas {
+      fill: true
+      let cx = width / 2
+      let cy = height / 2
+      let r = min(width, height) * 0.34
+      let t = time
+      circle(cx, cy, r, stroke: alpha(col, 0.4 + danger * 0.35), width: 2.5)
+      circle(cx, cy, r * 0.05, fill: col)
+      for i in range(12) {
+        rotate(i * 30, cx, cy) {
+          let major = i == 0
+          line(cx, cy - r + 2, cx, cy - r + (major ? 18 : 9),
+            stroke: major ? #ffffff : alpha(col, 0.55),
+            width: major ? 3.5 : 1.5, cap: round)
+        }
+      }
+      let deg = secs <= 0 ? 0 : clamp(secs, 0, 1020) / 60 * 6
+      rotate(-deg, cx, cy) {
+        line(cx, cy + r * 0.14, cx, cy - r * 0.8, stroke: col, width: 3.5, cap: round)
+        circle(cx, cy - r * 0.8, 5, fill: #ffffff)
+      }
+      if danger > 0.85 {
+        circle(cx, cy, r * (0.9 + 0.05 * sin(t * 7)), stroke: alpha(#ffffff, 0.12 + 0.12 * sin(t * 7)), width: 2)
+      }
+      text(secs <= 0 ? "0" : "${int(secs)}s", cx, cy + r * 0.52, size: 14, align: center, color: alpha(#ffffff, 0.9), bold: true)
+    }
+  }
+
+  component DoomScene(s, big = false) {
+    Canvas {
+      fill: true
+      let w = width
+      let h = height
+      let gnd = h * 0.78
+      // time only when fullscreen — tile stays a still frame
+      let t = big ? time : 0
+      let beat = 0.5 + 0.5 * sin(t * (0.9 + s * 0.35))
+      let cx = w / 2
+
+      rect(0, 0, w, gnd, fill:
+        s == 0 ? #87b8e8
+        : s == 1 ? #5a7a9a
+        : s == 2 ? #3d4a5c
+        : s == 3 ? #2a2030
+        : s == 4 ? #1a0c14
+        : s == 5 ? #120808
+        : s == 6 ? #1a0800
+        : #fffef5)
+
+      if s >= 2 {
+        rect(0, gnd * 0.45, w, gnd * 0.55, fill: alpha(s >= 5 ? #ff4500 : s >= 4 ? #dc2626 : #f97316, 0.12 + s * 0.035))
+      }
+      if s >= 4 && s < 7 {
+        for i in range(3) {
+          rect(0, gnd * (0.55 + i * 0.08), w, 5, fill: alpha(#ff6b00, 0.07 + 0.05 * sin(t * 3 + i)))
+        }
+      }
+      if s == 7 {
+        rect(0, 0, w, h, fill: alpha(#ffffff, 0.5 + 0.35 * sin(t * 8)))
+        rect(0, 0, w, h, fill: alpha(#ffe566, 0.22))
+      }
+
+      if s == 0 {
+        circle(w * 0.78, h * 0.14, big ? 14 : 9, fill: #ffe566)
+        circle(w * 0.78, h * 0.14, big ? 22 : 14, fill: alpha(#ffe566, 0.25))
+      } else if s <= 2 {
+        circle(w * 0.8, h * 0.12, big ? 11 : 7, fill: s == 2 ? #fbbf24 : #e2e8f0)
+      } else if s <= 4 {
+        circle(w * 0.82, h * 0.11, big ? 10 : 6, fill: #ef4444)
+        circle(w * 0.82, h * 0.11, big ? 18 : 11, fill: alpha(#ef4444, 0.2 + beat * 0.15))
+      } else if s < 7 {
+        circle(w * 0.2, h * 0.18, big ? 16 : 10, fill: alpha(#ffffff, 0.9))
+        circle(w * 0.2, h * 0.18, big ? 28 : 18, fill: alpha(#ff6b00, 0.35 + beat * 0.2))
+        circle(w * 0.75, h * 0.1, big ? 12 : 8, fill: alpha(#ffe566, 0.85))
+        circle(w * 0.75, h * 0.1, big ? 22 : 14, fill: alpha(#ff4500, 0.3))
+      }
+
+      if s >= 1 && s < 7 {
+        for i in range(s >= 5 ? 14 : 7) {
+          let sx = (i * 53 + 11) % max(int(w), 1)
+          let sy = (i * 31 + 5) % max(int(gnd * 0.5), 1)
+          circle(sx, sy + 3, s >= 5 ? 1.5 : 1.0, fill: alpha(s >= 4 ? #ffaa66 : #ffffff, 0.3 + 0.4 * sin(t * 2 + i)))
+        }
+      }
+      if s >= 5 {
+        for i in range(big ? 9 : 5) {
+          let ax = (i * 37 + t * (12 + i * 3)) % max(w, 1)
+          let ay = (i * 19 + t * (18 + i * 2)) % max(gnd, 1)
+          circle(ax, ay, 1.4, fill: alpha(#ff6b35, 0.55))
+        }
+      }
+
+      rect(0, gnd, w, h - gnd, fill:
+        s == 0 ? #3d8b4a
+        : s == 1 ? #2d5a3a
+        : s == 2 ? #3a3428
+        : s == 3 ? #2a2018
+        : s == 4 ? #1a100c
+        : s == 5 ? #1a0a06
+        : s == 6 ? #0e0604
+        : #f5f0d8)
+      if s >= 4 {
+        for i in range(5) {
+          let lx = w * (0.1 + i * 0.18)
+          line(lx, gnd, lx + sin(t + i) * 8, h - 2, stroke: alpha(#ff4500, 0.35), width: 1.5)
+        }
+      }
+      if s >= 6 {
+        rect(0, gnd, w, h - gnd, fill: alpha(#ff2200, 0.22 + beat * 0.12))
+      }
+
+      // SAFE
+      if s == 0 {
+        path([[0, gnd], [w * 0.25, gnd - h * 0.08], [w * 0.5, gnd - h * 0.04], [w * 0.75, gnd - h * 0.1], [w, gnd - h * 0.05], [w, gnd]], fill: #4ade80)
+        path([[0, gnd], [w * 0.3, gnd - h * 0.05], [w * 0.6, gnd - h * 0.02], [w, gnd - h * 0.06], [w, gnd]], fill: #22c55e)
+        for i in range(big ? 4 : 2) {
+          let dx = w * (0.2 + i * 0.2) + sin(t * 1.1 + i) * 8
+          let dy = h * (0.22 + 0.05 * sin(t * 1.4 + i))
+          circle(dx, dy, 2.5, fill: #ffffff)
+          line(dx - 7, dy, dx - 1, dy - 3, stroke: alpha(#ffffff, 0.8), width: 1.5)
+          line(dx + 7, dy, dx + 1, dy - 3, stroke: alpha(#ffffff, 0.8), width: 1.5)
+        }
+        line(cx - 10, gnd - 8, cx + 10, gnd - 14, stroke: #166534, width: 2)
+        for i in range(3) {
+          circle(cx - 6 + i * 6, gnd - 10 - i, 2.5, fill: #22c55e)
+        }
+      }
+
+      // WATCH skyline
+      if s == 1 {
+        for i in range(7) {
+          let bx = w * (0.08 + i * 0.13)
+          let bh = h * (0.12 + (i % 3) * 0.06)
+          rect(bx, gnd - bh, w * 0.09, bh, fill: #475569)
+          rect(bx + 3, gnd - bh + 4, 4, 4, fill: alpha(#fbbf24, 0.5))
+        }
+      }
+
+      // ELEVATED radar
+      if s == 2 {
+        for i in range(5) {
+          let bx = w * (0.1 + i * 0.17)
+          let bh = h * (0.1 + (i % 2) * 0.08)
+          rect(bx, gnd - bh, w * 0.1, bh, fill: #334155)
+        }
+        arc(w * 0.22, gnd - h * 0.04, h * 0.09, -90, 180, stroke: alpha(#fbbf24, 0.75), width: 2)
+        line(w * 0.22, gnd - h * 0.04, w * 0.22 + cos(t * 2) * h * 0.08, gnd - h * 0.04 + sin(t * 2) * h * 0.08, stroke: #fbbf24, width: 1.5)
+        for i in range(3) {
+          let y = gnd * 0.28 + i * 9
+          path([[w * 0.38, y], [cx, y - 7], [w * 0.62, y]], stroke: alpha(#fbbf24, 0.4 + beat * 0.3), width: 2)
+        }
+      }
+
+      // HIGH missiles
+      if s == 3 {
+        for i in range(big ? 5 : 3) {
+          let mx = w * (0.15 + i * 0.18)
+          let rise = (t * (22 + i * 9) + i * 40) % (gnd * 0.85)
+          let my = gnd - rise
+          line(mx, gnd, mx + sin(t + i) * 3, my, stroke: alpha(#94a3b8, 0.5), width: 2)
+          line(mx, gnd, mx + sin(t + i) * 3, my, stroke: alpha(#f97316, 0.4), width: 4)
+          path([[mx - 3.5, my + 9], [mx, my - 7], [mx + 3.5, my + 9]], closed: true, fill: #cbd5e1)
+          circle(mx, my + 11, 4 + beat * 2.5, fill: alpha(#ff6b00, 0.65))
+        }
+        for i in range(6) {
+          let bx = w * (0.05 + i * 0.15)
+          rect(bx, gnd - h * (0.06 + (i % 3) * 0.04), w * 0.08, h * (0.06 + (i % 3) * 0.04), fill: #1e293b)
+        }
+      }
+
+      // CRITICAL mushroom
+      if s == 4 {
+        // mushroom @ cx
+        let _mx = cx
+        let _my = gnd
+        let _ms = big ? 1.1 : 0.85
+        let _mt = t + 0
+        let _stemH = h * 0.28 * _ms
+        let _stemW = w * 0.055 * _ms
+        let _capR = min(w, h) * 0.16 * _ms
+        let _capY = _my - _stemH
+        let _pulse = 1 + 0.08 * sin(_mt * 3)
+        // stem
+        rect(_mx - _stemW / 2, _capY, _stemW, _stemH, fill: alpha(#a8a29e, 0.55))
+        rect(_mx - _stemW * 0.7, _my - _stemH * 0.25, _stemW * 1.4, _stemH * 0.25, fill: alpha(#78716c, 0.45))
+        // fireball core
+        circle(_mx, _capY, _capR * 0.55 * _pulse, fill: #ffffff)
+        circle(_mx, _capY, _capR * 0.75 * _pulse, fill: alpha(#ffe566, 0.85))
+        circle(_mx, _capY, _capR * _pulse, fill: alpha(#ff6b00, 0.55))
+        circle(_mx, _capY, _capR * 1.25 * _pulse, fill: alpha(#dc2626, 0.28))
+        // cap lobes
+        circle(_mx - _capR * 0.7, _capY + _capR * 0.15, _capR * 0.55, fill: alpha(#f97316, 0.5))
+        circle(_mx + _capR * 0.7, _capY + _capR * 0.15, _capR * 0.55, fill: alpha(#f97316, 0.5))
+        circle(_mx, _capY - _capR * 0.35, _capR * 0.5, fill: alpha(#ffcc00, 0.45))
+        // smoke ring
+        circle(_mx, _capY + _capR * 0.3, _capR * 1.35, stroke: alpha(#78716c, 0.35), width: 3)
+        // base blast
+        circle(_mx, _my, _stemW * 2.2 + 4 * sin(_mt * 4), fill: alpha(#ff4500, 0.35))
+        circle(_mx, _my, _stemW * 1.2, fill: alpha(#ffffff, 0.25))
+        circle(w * 0.15, gnd - h * 0.04, 7 + beat * 4, fill: alpha(#ffe566, 0.4))
+        for i in range(5) {
+          let bx = w * (0.05 + i * 0.2)
+          let bh = h * (0.05 + (i % 3) * 0.03)
+          rect(bx, gnd - bh, w * 0.07, bh, fill: #292524)
+        }
+      }
+
+      // SEVERE dual
+      if s == 5 {
+        // mushroom @ w * 0.28
+        let _mx = w * 0.28
+        let _my = gnd
+        let _ms = big ? 0.8 : 0.6
+        let _mt = t + 0.4
+        let _stemH = h * 0.28 * _ms
+        let _stemW = w * 0.055 * _ms
+        let _capR = min(w, h) * 0.16 * _ms
+        let _capY = _my - _stemH
+        let _pulse = 1 + 0.08 * sin(_mt * 3)
+        // stem
+        rect(_mx - _stemW / 2, _capY, _stemW, _stemH, fill: alpha(#a8a29e, 0.55))
+        rect(_mx - _stemW * 0.7, _my - _stemH * 0.25, _stemW * 1.4, _stemH * 0.25, fill: alpha(#78716c, 0.45))
+        // fireball core
+        circle(_mx, _capY, _capR * 0.55 * _pulse, fill: #ffffff)
+        circle(_mx, _capY, _capR * 0.75 * _pulse, fill: alpha(#ffe566, 0.85))
+        circle(_mx, _capY, _capR * _pulse, fill: alpha(#ff6b00, 0.55))
+        circle(_mx, _capY, _capR * 1.25 * _pulse, fill: alpha(#dc2626, 0.28))
+        // cap lobes
+        circle(_mx - _capR * 0.7, _capY + _capR * 0.15, _capR * 0.55, fill: alpha(#f97316, 0.5))
+        circle(_mx + _capR * 0.7, _capY + _capR * 0.15, _capR * 0.55, fill: alpha(#f97316, 0.5))
+        circle(_mx, _capY - _capR * 0.35, _capR * 0.5, fill: alpha(#ffcc00, 0.45))
+        // smoke ring
+        circle(_mx, _capY + _capR * 0.3, _capR * 1.35, stroke: alpha(#78716c, 0.35), width: 3)
+        // base blast
+        circle(_mx, _my, _stemW * 2.2 + 4 * sin(_mt * 4), fill: alpha(#ff4500, 0.35))
+        circle(_mx, _my, _stemW * 1.2, fill: alpha(#ffffff, 0.25))
+        // mushroom @ w * 0.72
+        let _mx = w * 0.72
+        let _my = gnd
+        let _ms = big ? 0.95 : 0.72
+        let _mt = t + 1.2
+        let _stemH = h * 0.28 * _ms
+        let _stemW = w * 0.055 * _ms
+        let _capR = min(w, h) * 0.16 * _ms
+        let _capY = _my - _stemH
+        let _pulse = 1 + 0.08 * sin(_mt * 3)
+        // stem
+        rect(_mx - _stemW / 2, _capY, _stemW, _stemH, fill: alpha(#a8a29e, 0.55))
+        rect(_mx - _stemW * 0.7, _my - _stemH * 0.25, _stemW * 1.4, _stemH * 0.25, fill: alpha(#78716c, 0.45))
+        // fireball core
+        circle(_mx, _capY, _capR * 0.55 * _pulse, fill: #ffffff)
+        circle(_mx, _capY, _capR * 0.75 * _pulse, fill: alpha(#ffe566, 0.85))
+        circle(_mx, _capY, _capR * _pulse, fill: alpha(#ff6b00, 0.55))
+        circle(_mx, _capY, _capR * 1.25 * _pulse, fill: alpha(#dc2626, 0.28))
+        // cap lobes
+        circle(_mx - _capR * 0.7, _capY + _capR * 0.15, _capR * 0.55, fill: alpha(#f97316, 0.5))
+        circle(_mx + _capR * 0.7, _capY + _capR * 0.15, _capR * 0.55, fill: alpha(#f97316, 0.5))
+        circle(_mx, _capY - _capR * 0.35, _capR * 0.5, fill: alpha(#ffcc00, 0.45))
+        // smoke ring
+        circle(_mx, _capY + _capR * 0.3, _capR * 1.35, stroke: alpha(#78716c, 0.35), width: 3)
+        // base blast
+        circle(_mx, _my, _stemW * 2.2 + 4 * sin(_mt * 4), fill: alpha(#ff4500, 0.35))
+        circle(_mx, _my, _stemW * 1.2, fill: alpha(#ffffff, 0.25))
+        circle(w * 0.28, gnd, 18 + (t * 28) % 40, stroke: alpha(#ffffff, 0.2), width: 2)
+        circle(w * 0.72, gnd, 14 + (t * 22 + 12) % 48, stroke: alpha(#ff6b00, 0.25), width: 2)
+        for i in range(8) {
+          let fx = w * (0.05 + i * 0.12) + sin(t * 4 + i) * 3
+          let fh = 6 + 9 * abs(sin(t * 5 + i))
+          path([[fx - 3, gnd], [fx, gnd - fh], [fx + 3, gnd]], fill: alpha(#ff4500, 0.7))
+        }
+      }
+
+      // CATASTROPHIC firestorm
+      if s == 6 {
+        // mushroom @ cx
+        let _mx = cx
+        let _my = gnd
+        let _ms = big ? 1.25 : 1.0
+        let _mt = t + 0
+        let _stemH = h * 0.28 * _ms
+        let _stemW = w * 0.055 * _ms
+        let _capR = min(w, h) * 0.16 * _ms
+        let _capY = _my - _stemH
+        let _pulse = 1 + 0.08 * sin(_mt * 3)
+        // stem
+        rect(_mx - _stemW / 2, _capY, _stemW, _stemH, fill: alpha(#a8a29e, 0.55))
+        rect(_mx - _stemW * 0.7, _my - _stemH * 0.25, _stemW * 1.4, _stemH * 0.25, fill: alpha(#78716c, 0.45))
+        // fireball core
+        circle(_mx, _capY, _capR * 0.55 * _pulse, fill: #ffffff)
+        circle(_mx, _capY, _capR * 0.75 * _pulse, fill: alpha(#ffe566, 0.85))
+        circle(_mx, _capY, _capR * _pulse, fill: alpha(#ff6b00, 0.55))
+        circle(_mx, _capY, _capR * 1.25 * _pulse, fill: alpha(#dc2626, 0.28))
+        // cap lobes
+        circle(_mx - _capR * 0.7, _capY + _capR * 0.15, _capR * 0.55, fill: alpha(#f97316, 0.5))
+        circle(_mx + _capR * 0.7, _capY + _capR * 0.15, _capR * 0.55, fill: alpha(#f97316, 0.5))
+        circle(_mx, _capY - _capR * 0.35, _capR * 0.5, fill: alpha(#ffcc00, 0.45))
+        // smoke ring
+        circle(_mx, _capY + _capR * 0.3, _capR * 1.35, stroke: alpha(#78716c, 0.35), width: 3)
+        // base blast
+        circle(_mx, _my, _stemW * 2.2 + 4 * sin(_mt * 4), fill: alpha(#ff4500, 0.35))
+        circle(_mx, _my, _stemW * 1.2, fill: alpha(#ffffff, 0.25))
+        // mushroom @ w * 0.16
+        let _mx = w * 0.16
+        let _my = gnd
+        let _ms = big ? 0.65 : 0.48
+        let _mt = t + 2.0
+        let _stemH = h * 0.28 * _ms
+        let _stemW = w * 0.055 * _ms
+        let _capR = min(w, h) * 0.16 * _ms
+        let _capY = _my - _stemH
+        let _pulse = 1 + 0.08 * sin(_mt * 3)
+        // stem
+        rect(_mx - _stemW / 2, _capY, _stemW, _stemH, fill: alpha(#a8a29e, 0.55))
+        rect(_mx - _stemW * 0.7, _my - _stemH * 0.25, _stemW * 1.4, _stemH * 0.25, fill: alpha(#78716c, 0.45))
+        // fireball core
+        circle(_mx, _capY, _capR * 0.55 * _pulse, fill: #ffffff)
+        circle(_mx, _capY, _capR * 0.75 * _pulse, fill: alpha(#ffe566, 0.85))
+        circle(_mx, _capY, _capR * _pulse, fill: alpha(#ff6b00, 0.55))
+        circle(_mx, _capY, _capR * 1.25 * _pulse, fill: alpha(#dc2626, 0.28))
+        // cap lobes
+        circle(_mx - _capR * 0.7, _capY + _capR * 0.15, _capR * 0.55, fill: alpha(#f97316, 0.5))
+        circle(_mx + _capR * 0.7, _capY + _capR * 0.15, _capR * 0.55, fill: alpha(#f97316, 0.5))
+        circle(_mx, _capY - _capR * 0.35, _capR * 0.5, fill: alpha(#ffcc00, 0.45))
+        // smoke ring
+        circle(_mx, _capY + _capR * 0.3, _capR * 1.35, stroke: alpha(#78716c, 0.35), width: 3)
+        // base blast
+        circle(_mx, _my, _stemW * 2.2 + 4 * sin(_mt * 4), fill: alpha(#ff4500, 0.35))
+        circle(_mx, _my, _stemW * 1.2, fill: alpha(#ffffff, 0.25))
+        // mushroom @ w * 0.88
+        let _mx = w * 0.88
+        let _my = gnd
+        let _ms = big ? 0.55 : 0.42
+        let _mt = t + 0.8
+        let _stemH = h * 0.28 * _ms
+        let _stemW = w * 0.055 * _ms
+        let _capR = min(w, h) * 0.16 * _ms
+        let _capY = _my - _stemH
+        let _pulse = 1 + 0.08 * sin(_mt * 3)
+        // stem
+        rect(_mx - _stemW / 2, _capY, _stemW, _stemH, fill: alpha(#a8a29e, 0.55))
+        rect(_mx - _stemW * 0.7, _my - _stemH * 0.25, _stemW * 1.4, _stemH * 0.25, fill: alpha(#78716c, 0.45))
+        // fireball core
+        circle(_mx, _capY, _capR * 0.55 * _pulse, fill: #ffffff)
+        circle(_mx, _capY, _capR * 0.75 * _pulse, fill: alpha(#ffe566, 0.85))
+        circle(_mx, _capY, _capR * _pulse, fill: alpha(#ff6b00, 0.55))
+        circle(_mx, _capY, _capR * 1.25 * _pulse, fill: alpha(#dc2626, 0.28))
+        // cap lobes
+        circle(_mx - _capR * 0.7, _capY + _capR * 0.15, _capR * 0.55, fill: alpha(#f97316, 0.5))
+        circle(_mx + _capR * 0.7, _capY + _capR * 0.15, _capR * 0.55, fill: alpha(#f97316, 0.5))
+        circle(_mx, _capY - _capR * 0.35, _capR * 0.5, fill: alpha(#ffcc00, 0.45))
+        // smoke ring
+        circle(_mx, _capY + _capR * 0.3, _capR * 1.35, stroke: alpha(#78716c, 0.35), width: 3)
+        // base blast
+        circle(_mx, _my, _stemW * 2.2 + 4 * sin(_mt * 4), fill: alpha(#ff4500, 0.35))
+        circle(_mx, _my, _stemW * 1.2, fill: alpha(#ffffff, 0.25))
+        for i in range(big ? 12 : 8) {
+          let fx = w * (i / 11) + sin(t * 3 + i) * 4
+          let fh = h * (0.14 + 0.2 * abs(sin(t * 4 + i * 0.7)))
+          path([[fx - 6, gnd], [fx - 2, gnd - fh * 0.6], [fx, gnd - fh], [fx + 2, gnd - fh * 0.55], [fx + 6, gnd]], closed: true, fill: alpha(i % 2 == 0 ? #ff4500 : #ffcc00, 0.5 + 0.3 * beat))
+        }
+        for i in range(big ? 10 : 6) {
+          let rx = (i * 41 + t * 40) % max(w, 1)
+          let ry = (i * 23 + t * 55) % max(gnd, 1)
+          line(rx, ry, rx + 1, ry + 6, stroke: alpha(#1a1a1a, 0.6), width: 1.5)
+        }
+      }
+
+      // MIDNIGHT
+      if s == 7 {
+        circle(cx, h * 0.42, min(w, h) * (0.28 + 0.05 * sin(t * 5)), fill: #ffffff)
+        circle(cx, h * 0.42, min(w, h) * (0.38 + 0.06 * sin(t * 4)), fill: alpha(#ffe566, 0.7))
+        circle(cx, h * 0.42, min(w, h) * (0.5 + 0.04 * sin(t * 3)), fill: alpha(#ff4500, 0.45))
+        circle(cx, h * 0.42, min(w, h) * 0.62, fill: alpha(#7f1d1d, 0.3))
+        rect(cx - w * 0.06, h * 0.42, w * 0.12, gnd - h * 0.42, fill: alpha(#a8a29e, 0.5))
+        if sin(t * 6) > 0 {
+          text("MIDNIGHT", cx, h * 0.12, size: big ? 22 : 14, align: center, color: #7f1d1d, bold: true)
+        }
+      }
+
+      // trefoil
+      if s >= 4 && s < 7 {
+        let rx = w * 0.9
+        let ry = h * 0.88
+        let rr = big ? 10 : 7
+        circle(rx, ry, rr, stroke: alpha(#eab308, 0.5 + beat * 0.4), width: 1.5)
+        for k in range(3) {
+          rotate(k * 120 + t * 18, rx, ry) {
+            path([[rx, ry], [rx - rr * 0.35, ry - rr * 0.85], [rx + rr * 0.35, ry - rr * 0.85]], closed: true, fill: alpha(#eab308, 0.75))
+          }
+        }
+        circle(rx, ry, rr * 0.22, fill: alpha(#eab308, 0.95))
+      }
+    }
+  }
+}

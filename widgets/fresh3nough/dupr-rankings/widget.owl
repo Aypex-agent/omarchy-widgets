@@ -1,0 +1,193 @@
+widget "dupr rankings" {
+  meta {
+    description: "Public DUPR pickleball rankings — Open Men's Doubles top pros from dupr.com, using DUPR's own order. No login. Tap for the full list."
+    version: "1.1"
+    license: "MIT"
+    category: "sport"
+    owl: 9
+  }
+  size: 3x4
+  minSize: 2x3
+
+  requires { pacman: ["python"] }
+
+  source board = cmd("""
+python3 - <<'PY'
+import json, re, ssl, time, urllib.error, urllib.request
+NATION_URL = "https://www.dupr.com/rankings"
+# Honest UA — dupr.com answers it; no fake Chrome string.
+UA = "Mozilla/5.0 (omalauncher dupr-rankings widget)"
+ITEM_RE = re.compile(
+    r'class="heading-table name">([^<]*?)</div>'
+    r'.*?fs-cmsfilter-field="age"[^>]*>([^<]*?)</div>'
+    r'.*?class="heading-table right">([^<]*?)</div>',
+    re.S,
+)
+# One real list only: Open Men's Doubles is the default tab on dupr.com/rankings.
+# Ranks are DUPR's own order (1..N in that list), not a renumber across categories.
+LIST_LABEL = "Open Men's Doubles"
+LIMIT = 50
+
+def emit(obj):
+    print(json.dumps(obj, separators=(",", ":")))
+
+def fail(msg):
+    emit({"updated": int(time.time()), "count": 0, "total": 0,
+          "label": LIST_LABEL, "error": msg, "players": []})
+
+try:
+    req = urllib.request.Request(
+        NATION_URL, headers={"User-Agent": UA, "Accept": "text/html"})
+    with urllib.request.urlopen(req, timeout=30,
+                                context=ssl.create_default_context()) as r:
+        html = r.read().decode("utf-8", "replace")
+except (urllib.error.URLError, urllib.error.HTTPError, OSError, TimeoutError) as e:
+    fail(f"rankings page: {getattr(e, 'reason', e)}")
+    raise SystemExit(0)
+
+# Collections are in page order: Open MD, Open WD, Open MS, Open WS, then seniors/juniors.
+positions = [m.start() for m in re.finditer(r'class="post_list ranking-collection', html)]
+if not positions:
+    fail("no ranking tables on page")
+    raise SystemExit(0)
+# First collection = Open Men's Doubles (default active list on the site).
+start = positions[0]
+end = positions[1] if len(positions) > 1 else len(html)
+chunk = html[start:end]
+
+players = []
+for i, (name, age, rating) in enumerate(ITEM_RE.findall(chunk), 1):
+    name = re.sub(r"\s+", " ", name).strip()
+    try:
+        value = float(rating)
+    except ValueError:
+        continue
+    if not name:
+        continue
+    players.append({
+        "id": i,
+        "rank": i,  # DUPR's own position in this list
+        "name": name,
+        "age": age.strip(),
+        "rating": f"{value:.3f}",
+        "reliability": None,
+    })
+    if len(players) >= LIMIT:
+        break
+
+total = len(players)
+emit({"updated": int(time.time()), "count": total, "total": total,
+      "label": LIST_LABEL, "error": None, "players": players})
+PY
+  """) every 6h json timeout 90s
+
+  source now = clock every 1m
+
+  let players = board.players ?? []
+  let err = board == null ? null : board.error
+  let label = board == null ? "Open Men's Doubles" : (board.label ?? "Open Men's Doubles")
+  let total = board == null ? 0 : (board.total ?? board.count ?? 0)
+  let count = board == null ? 0 : (board.count ?? 0)
+  let updated = num(board.updated)
+  let ago = updated != null ? fmtAgo(updated, now) : "…"
+  let h = tileHeight ?? 400
+  let nShow = h < 200 ? 5 : (h < 280 ? 9 : (h < 380 ? 12 : 15))
+  let shown = take(players, nShow)
+
+  onTap: screen()
+
+  component Pickle(px = 2) {
+    Canvas {
+      width: 7 * px
+      height: 11 * px
+      sprite(["..ss...", "..ss...", ".gggg..", "gdgggg.", "gggggg.",
+              "gdgggg.", "ggggdg.", "gdgggg.", ".gggg..", "..gg...", "..gg..."],
+             0, 0, px, palette: {g: green, d: mix(green, background, 0.55), s: green})
+    }
+  }
+
+  component Line(p, i) {
+    Row {
+      gap: 4
+      Text { text: "${p.rank ?? (i + 1)}"; width: 20; font: mono; fontSize: 11; color: i < 3 ? accent : muted }
+      Text { text: p.name; weight: 1; maxLines: 1; font: mono; fontSize: 11 }
+      Text { text: fixed(num(p.rating, 0), 3); width: 40; align: end; font: mono; fontSize: 11; color: accent }
+    }
+  }
+
+  Column {
+    gap: 2
+
+    Row {
+      gap: 5
+      align: center
+      Pickle { }
+      Column {
+        weight: 1
+        gap: 0
+        Text { text: "dupr rankings"; bold: true; fontSize: 12; maxLines: 1 }
+        Text { text: "${label} · ${ago}"; style: label; maxLines: 1 }
+      }
+    }
+
+    if err != null {
+      Text { text: err; style: small; color: yellow; maxLines: 3 }
+    } else {
+      if board == null {
+        Text { text: "loading…"; style: muted }
+      } else {
+        Column {
+          gap: 2
+          weight: 1
+          for p, i in shown key p.id { Line { p: p; i: i } }
+        }
+        Row {
+          gap: 6
+          align: center
+          Text { text: "top ${total} · dupr.com"; style: label; weight: 1 }
+          Button { text: "full list"; onTap: screen() }
+        }
+      }
+    }
+  }
+
+  screen {
+    title: "dupr rankings"
+    Column {
+      scroll: true
+      gap: 4
+      padding: 10
+
+      Row {
+        gap: 8
+        align: center
+        Pickle { px: 3 }
+        Column {
+          weight: 1
+          gap: 0
+          Text { text: label; style: title; maxLines: 1 }
+          Text { text: "DUPR ranks · live from dupr.com · ${ago}"; style: muted; maxLines: 1 }
+        }
+      }
+
+      Row {
+        gap: 6
+        Button { text: "refresh"; onTap: refresh() }
+        Spacer { weight: 1 }
+        Button { text: "dupr.com"; onTap: url("https://www.dupr.com/rankings") }
+      }
+
+      if err != null {
+        Text { text: err; color: yellow }
+      }
+      for p, i in take(players, 50) key p.id {
+        Row {
+          gap: 6
+          Text { text: "${p.rank ?? (i + 1)}"; width: 28; align: end; font: mono; color: i < 3 ? accent : muted }
+          Text { text: p.name; weight: 1; font: mono; maxLines: 1 }
+          Text { text: fixed(num(p.rating, 0), 3); width: 46; align: end; font: mono; color: accent }
+        }
+      }
+    }
+  }
+}

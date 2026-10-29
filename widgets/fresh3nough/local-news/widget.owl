@@ -1,0 +1,236 @@
+widget "local news" {
+  size: 6x4
+  minSize: 4x3
+  meta {
+    description: "Local headlines for a ZIP or city you set (or IP location), plus national news from Fox, NBC, CNN, Breitbart, The Hill and the NY Post. Tap a headline to read it"
+    version: "2.0"
+    license: "MIT"
+    category: "news"
+    owl: 8
+  }
+
+  requires { pacman: ["python"] }
+
+  // ZIP or city/region. Empty = IP geolocation for the local tab.
+  state place = "" persist
+  state tab = "local" persist
+  state seen = [] persist
+
+  // One fetch: Google News for the user's place + national desks. Merged, newest first.
+  // sh(place) is concatenated outside the script string so owl interpolates it (store pattern).
+  source news = cmd("""
+python3 -c '
+import json, re, sys, time, html, urllib.parse, urllib.request
+from concurrent.futures import ThreadPoolExecutor, wait
+from email.utils import parsedate_to_datetime
+UA = {"User-Agent": "omalauncher local-news widget"}
+PLACE = sys.argv[1] if len(sys.argv) > 1 else ""
+def get(url, timeout=10):
+    req = urllib.request.Request(url, headers=UA)
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return r.read()
+def resolve_place(raw):
+    raw = (raw or "").strip()
+    if re.fullmatch(r"\d{5}(-\d{4})?", raw):
+        z = raw[:5]
+        try:
+            j = json.loads(get("https://api.zippopotam.us/us/" + z, 8).decode())
+            p = (j.get("places") or [{}])[0]
+            city = p.get("place name") or ""
+            state = p.get("state") or ""
+            label = ", ".join(x for x in (city, state) if x) or z
+            return label, (city + " " + state + " " + z).strip()
+        except Exception:
+            return z, z
+    if raw:
+        return raw, raw
+    try:
+        j = json.loads(get("https://ipwho.is/", 8).decode())
+        if j.get("success") is False:
+            raise RuntimeError(j.get("message") or "ip")
+        city = j.get("city") or ""
+        region = j.get("region") or j.get("region_code") or ""
+        country = j.get("country_code") or j.get("country") or ""
+        label = ", ".join(x for x in (city, region) if x) or country or "near you"
+        q = " ".join(x for x in (city, region, country) if x) or "United States"
+        return label, q
+    except Exception:
+        return "near you", "United States"
+label, query = resolve_place(PLACE)
+q = urllib.parse.quote_plus(query + " -football -basketball -baseball -soccer -hockey -nfl -nba -mlb")
+local_url = "https://news.google.com/rss/search?q=%s&hl=en-US&gl=US&ceid=US:en" % q
+FEEDS = [
+    ("local", 0, "", local_url, 14),
+    ("nation", 2, "fox", "https://moxie.foxnews.com/google-publisher/latest.xml", 5),
+    ("nation", 3, "nbc", "https://feeds.nbcnews.com/nbcnews/public/news", 5),
+    ("nation", 6, "cnn", "http://rss.cnn.com/rss/cnn_topstories.rss", 5),
+    ("nation", 1, "breitbart", "https://feeds.feedburner.com/breitbart", 5),
+    ("nation", 5, "the hill", "https://thehill.com/homenews/feed/", 5),
+    ("nation", 7, "ny post", "https://nypost.com/feed/", 5),
+]
+def when(s):
+    try:
+        return int(parsedate_to_datetime(s).timestamp())
+    except Exception:
+        return 0
+def cdata(s):
+    s = s.strip()
+    if s.startswith("<![CDATA["): s = s[9:]
+    if s.endswith("]]>"): s = s[:-3]
+    return s
+def field(block, *tags):
+    for t in tags:
+        m = re.search("<" + t + "[^>]*>(.*?)</" + t + ">", block, re.S)
+        if m: return cdata(m.group(1))
+    return ""
+def clean(s):
+    return " ".join(html.unescape(re.sub("<[^>]+>", "", s)).split())
+def fetch(item):
+    tab, c, src_label, url, n = item
+    out = []
+    try:
+        data = get(url).decode("utf-8", "replace")
+    except Exception:
+        return out
+    for block in re.findall("<item[ >].*?</item>", data, re.S):
+        title = clean(field(block, "title"))
+        link = field(block, "link").strip()
+        at = when(field(block, "pubDate", "dateTimeWritten"))
+        src = src_label
+        if not src:
+            m = re.match(r"(.*) - (.+)$", title)
+            if m: title, src = m.group(1).strip(), m.group(2).strip()
+        if not title or not link.lower().startswith(("http://", "https://")):
+            continue
+        out.append({"tab": tab, "c": c, "title": title, "url": link, "at": at, "src": src})
+        if len(out) >= n: break
+    return out
+pool = ThreadPoolExecutor(8)
+futs = [pool.submit(fetch, f) for f in FEEDS]
+wait(futs, timeout=25)
+all_items = [p for f in futs if not f.exception() for p in f.result()]
+seen, uniq = set(), []
+for p in sorted(all_items, key=lambda p: -p["at"]):
+    if p["url"] not in seen:
+        seen.add(p["url"]); uniq.append(p)
+print(json.dumps({
+    "at": int(time.time()), "place": label, "query": query,
+    "local": [p for p in uniq if p["tab"] == "local"],
+    "nation": [p for p in uniq if p["tab"] == "nation"],
+}))
+'
+  """ + " ${sh(place)}") every 15m json timeout 45s
+  source now = clock every 60s
+  on place { refresh() }
+
+  let tints = [accent, orange, red, blue, green, magenta, cyan, yellow]
+  let cur = tab == "nation" ? "nation" : "local"
+  let items = (cur == "nation" ? news.nation : news.local) ?? []
+  let where = news.place ?? (place != "" ? place : "…")
+  let slim = (cols ?? 6) < 5
+
+  component Tab(id, label, tint, big = false) {
+    Column {
+      gap: 2
+      weight: 1
+      Text {
+        text: label; align: center; maxLines: 1
+        fontSize: big ? 16 : slim ? 11 : 12
+        bold: cur == id
+        color: cur == id ? tint : muted
+        onTap: tab = id
+      }
+      Spacer { height: 2; fill: width; background: cur == id ? tint : alpha(muted, 0.0) }
+    }
+  }
+
+  component Post(p, big = false) {
+    Column {
+      gap: 1
+      onTap: { seen = indexOf(seen, p.url) >= 0 ? seen : take(flatten([[p.url], seen]), 150); url(p.url) }
+      Text {
+        text: p.title
+        fontSize: big ? 16 : 13
+        maxLines: big ? 3 : 2
+        color: indexOf(seen, p.url) >= 0 ? muted : foreground
+      }
+      Row {
+        gap: 6
+        Text { text: p.src; fontSize: big ? 12 : 10; color: tints[p.c]; maxLines: 1; weight: 1 }
+        Text {
+          text: p.at == 0 ? "" : now - p.at < 3600 ? "${max(floor((now - p.at) / 60), 1)}m" : now - p.at < 86400 ? "${floor((now - p.at) / 3600)}h" : "${floor((now - p.at) / 86400)}d"
+          fontSize: big ? 12 : 10; color: muted; width: big ? 34 : 30; align: end
+        }
+      }
+    }
+  }
+
+  component Posts(big = false) {
+    Column {
+      scroll: true
+      gap: big ? 12 : 7
+      if news == null {
+        Text { text: "loading headlines…"; style: small; color: muted }
+      } else if len(items) == 0 {
+        Text { text: "no headlines · tap to retry"; style: small; color: muted; onTap: refresh() }
+      }
+      for p in take(items, big ? 40 : 12) key p.url {
+        Post { p: p; big: big }
+      }
+    }
+  }
+
+  Column {
+    gap: 4
+    Row {
+      gap: 6
+      align: center
+      Text { text: "news"; style: label; color: muted; width: 40; maxLines: 1 }
+      Tab { id: "local"; label: "local"; tint: accent }
+      Tab { id: "nation"; label: "nation"; tint: cyan }
+      Canvas {
+        width: 22; height: 16
+        onTap: screen()
+        rect(7, 3, 10, 10, stroke: muted, width: 1.5)
+      }
+    }
+    if cur == "local" {
+      Text { text: where; style: label; color: muted; maxLines: 1 }
+    }
+    Posts { weight: 1 }
+  }
+
+  screen {
+    title: "local news"
+    Column {
+      gap: 10
+      Row {
+        gap: 24
+        align: center
+        Tab { id: "local"; label: "local"; tint: accent; big: true }
+        Tab { id: "nation"; label: "nation"; tint: cyan; big: true }
+        Spacer { weight: 1 }
+        if news != null {
+          Text { text: "updated ${fmtTime(news.at, "HH:mm")}"; style: small; color: muted }
+        }
+      }
+      Input {
+        text: place
+        placeholder: "ZIP or city · empty = IP location"
+        onSubmit: { place = trim(value); refresh() }
+      }
+      Text {
+        text: place != "" ? "local · ${where}" : "local · ${where} (IP)"
+        style: label
+        color: muted
+      }
+      Posts { big: true; weight: 1 }
+      Row {
+        gap: 8
+        Button { text: "refresh"; onTap: refresh() }
+        Spacer { weight: 1 }
+        Button { text: "close"; color: muted; onTap: close() }
+      }
+    }
+  }
+}

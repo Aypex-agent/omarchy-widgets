@@ -1,0 +1,286 @@
+widget "card-releases" {
+  size: 6x2
+  minSize: 3x2
+  meta {
+    description: "Countdown timers for upcoming Pokémon TCG and Magic: The Gathering card releases. MTG dates from Scryfall.";
+    version: "1.6";
+    license: "MIT";
+    category: "games";
+    owl: 10
+  }
+
+  requires { pacman: ["python"] }
+
+  source now = clock every 1m
+
+  // Known Pokémon TCG drops with announced dates. Unannounced sets show as empty-state copy.
+  let pokemonReleases = [
+    { id: "p1", name: "Delta Reign", date: 1793941200 }
+  ]
+
+  // Scryfall /sets — released_at for future expansion-class products.
+  source mtg = cmd("""
+python3 - <<'PY'
+import json, time, urllib.request
+from datetime import date, datetime, timezone
+
+UA = {"User-Agent": "Mozilla/5.0 (omalauncher card-releases widget)", "Accept": "application/json"}
+KEEP = {
+    "expansion", "draft_innovation", "commander", "masters", "funny", "memoir",
+    "from_the_vault", "spellbook", "premium_deck", "duel_deck", "arsenal",
+    "starter", "core",
+}
+
+def get(url):
+    req = urllib.request.Request(url, headers=UA)
+    with urllib.request.urlopen(req, timeout=20) as r:
+        return json.load(r)
+
+today = date.today().isoformat()
+out = []
+try:
+    data = get("https://api.scryfall.com/sets").get("data") or []
+    for s in data:
+        ra = s.get("released_at") or ""
+        if not ra or ra < today:
+            continue
+        if s.get("digital"):
+            continue
+        st = s.get("set_type") or ""
+        if st not in KEEP:
+            continue
+        name = s.get("name") or ""
+        if name.endswith(" Tokens") or name.endswith(" Extras"):
+            continue
+        try:
+            # noon UTC on release day
+            ts = int(datetime.fromisoformat(ra).replace(tzinfo=timezone.utc).timestamp()) + 12 * 3600
+        except Exception:
+            continue
+        out.append({
+            "id": s.get("code") or name,
+            "name": name,
+            "date": ts,
+            "type": st,
+        })
+    out.sort(key=lambda x: x["date"])
+    # de-dupe near-identical companion products by name stem + day
+    seen, uniq = set(), []
+    for r in out:
+        key = (r["date"] // 86400, r["name"].split(":")[0].strip().lower())
+        if key in seen:
+            continue
+        seen.add(key)
+        uniq.append(r)
+    out = uniq[:24]
+    err = ""
+except Exception as e:
+    out, err = [], str(e)[:80]
+
+print(json.dumps({"at": int(time.time()), "sets": out, "err": err}))
+PY
+  """) every 12h json timeout 30s
+
+  let mtgReleases = mtg.sets ?? []
+  let pokeUp = pokemonReleases.filter(r => r.date > now - 86400).sortBy(r => r.date)
+  let mtgUp = mtgReleases.filter(r => r.date > now - 86400).sortBy(r => r.date)
+  let nextPoke = pokeUp.first()
+  let nextMtg = mtgUp.first()
+
+  let h = rows ?? 4
+  let short = h <= 2
+  let mid = h == 3
+  let tall = h >= 4
+  let fs = short ? 9 : mid ? 11 : null
+  let dayW = short ? 28 : mid ? 36 : 44
+  let pad = short ? 4 : mid ? 6 : 10
+  let g = short ? 2 : mid ? 3 : 6
+  let showN = short ? 4 : mid ? 3 : 2
+
+  component Day(secs, hi = false) {
+    let d = floor(secs / 86400)
+    let label = secs <= 0 ? "out" : d == 0 ? "today" : tall && hi ? (d == 1 ? "1 day" : "${d} days") : "${d}d"
+    let col = secs <= 0 ? green : secs < 86400 * 14 ? #ffd700 : #7fc8f8
+    if tall && hi {
+      Text { text: label; style: title; font: mono; bold: true; color: col }
+    }
+    if !(tall && hi) {
+      Text {
+        text: label
+        style: small
+        font: mono
+        bold: true
+        color: col
+        width: dayW
+        align: end
+        fontSize: fs
+      }
+    }
+  }
+
+  component Line(r, hi = false) {
+    let tr = r.date - now
+    Row {
+      gap: short ? 2 : 4
+      align: center
+      Text {
+        text: r.name
+        style: small
+        bold: hi
+        maxLines: 1
+        weight: 1
+        fontSize: fs
+      }
+      Day { secs: tr; hi: hi }
+    }
+  }
+
+  component Empty(msg) {
+    Text {
+      text: msg
+      style: small
+      color: muted
+      maxLines: 2
+      fontSize: fs
+    }
+  }
+
+  component Block(title, tint, items, emptyMsg) {
+    let head = items.first()
+    let rest = items.drop(1)
+    Column {
+      gap: short ? 0 : 2
+      weight: 1
+      Text { text: title; style: small; bold: true; color: tint; maxLines: 1; fontSize: short ? 8 : mid ? 10 : null }
+      if head == null {
+        Empty { msg: emptyMsg }
+      }
+      if tall && head != null {
+        Text { text: head.name; style: body; bold: true; maxLines: 1 }
+        Day { secs: head.date - now; hi: true }
+        Text { text: fmtTime(head.date, "MMM d, yyyy"); style: small; color: muted; maxLines: 1 }
+        for r in rest.take(showN) key r.id {
+          Line { r: r }
+        }
+      }
+      if !tall {
+        if head != null {
+          Line { r: head; hi: true }
+        }
+        for r in rest.take(showN) key r.id {
+          Line { r: r }
+        }
+      }
+    }
+  }
+
+  component ScreenCard(r, tint) {
+    let tr = r.date - now
+    let d = floor(tr / 86400)
+    Box {
+      background: alpha(#0d1b2a, 0.9)
+      border: 1
+      borderColor: alpha(tint, 0.45)
+      radius: 10
+      padding: 14
+      Row {
+        gap: 12
+        align: center
+        Column {
+          gap: 3
+          weight: 1
+          Text { text: r.name; style: body; bold: true; maxLines: 2 }
+          Text {
+            text: fmtTime(r.date, "EEE, MMM d yyyy")
+            style: small
+            color: muted
+            maxLines: 1
+          }
+        }
+        Text {
+          text: tr <= 0 ? "out" : d == 0 ? "today" : "${d}d"
+          style: title
+          font: mono
+          color: tr <= 0 ? green : tr < 86400 * 14 ? #ffd700 : #7fc8f8
+          width: 72
+          align: end
+        }
+      }
+    }
+  }
+
+  onTap: screen()
+
+  Column {
+    gap: g
+    padding: pad
+    background: linear(0, 0, 0, tileHeight, [alpha(#1e3c72, 0.95), alpha(#2a5298, 0.9), alpha(#000000, 0.85)])
+
+    if tall {
+      Row {
+        align: center
+        Text { text: "card releases"; style: small; color: muted; maxLines: 1; weight: 1 }
+        Text { text: fmtTime(now, "HH:mm"); style: small; color: muted; font: mono; width: 40; align: end }
+      }
+      Block { title: "POKÉMON"; tint: #ffd700; items: pokeUp; emptyMsg: "no date announced" }
+      Block { title: "MAGIC"; tint: #c77dff; items: mtgUp; emptyMsg: mtg == null ? "loading…" : "no upcoming sets" }
+    }
+
+    if mid {
+      Row {
+        align: center
+        Text { text: "card releases"; style: small; color: muted; maxLines: 1; weight: 1; fontSize: 10 }
+        Text { text: fmtTime(now, "HH:mm"); style: small; color: muted; font: mono; width: 36; align: end; fontSize: 10 }
+      }
+      Block { title: "POKÉMON"; tint: #ffd700; items: pokeUp; emptyMsg: "no date announced" }
+      Block { title: "MAGIC"; tint: #c77dff; items: mtgUp; emptyMsg: mtg == null ? "loading…" : "no upcoming sets" }
+    }
+
+    if short {
+      Row {
+        gap: 6
+        weight: 1
+        Block { title: "POKÉMON"; tint: #ffd700; items: pokeUp; emptyMsg: "no date announced" }
+        Block { title: "MAGIC"; tint: #c77dff; items: mtgUp; emptyMsg: mtg == null ? "loading…" : "no upcoming sets" }
+      }
+    }
+  }
+
+  screen {
+    title: "card releases"
+    Column {
+      scroll: true
+      gap: 18
+      padding: 16
+      background: linear(0, 0, 0, tileHeight, [#0f2027, #203a43, #2c5364])
+
+      Text { text: "Upcoming drops"; style: title; color: #7fc8f8; maxLines: 1 }
+
+      Column {
+        gap: 8
+        Text { text: "POKÉMON TCG"; style: label; bold: true; color: #ffd700; maxLines: 1 }
+        if len(pokeUp) == 0 {
+          Text { text: "No date announced"; style: small; color: muted }
+        }
+        for r in pokeUp key r.id {
+          ScreenCard { r: r; tint: #4cc9f0 }
+        }
+      }
+
+      Column {
+        gap: 8
+        Text { text: "MAGIC: THE GATHERING"; style: label; bold: true; color: #c77dff; maxLines: 1 }
+        if mtg == null {
+          Text { text: "Loading Scryfall…"; style: small; color: muted }
+        }
+        if mtg != null && len(mtgUp) == 0 {
+          Text { text: "No upcoming MTG sets"; style: small; color: muted }
+        }
+        for r in mtgUp key r.id {
+          ScreenCard { r: r; tint: #c77dff }
+        }
+        Text { text: "MTG dates via api.scryfall.com/sets"; style: label; color: muted }
+      }
+    }
+  }
+}

@@ -1,0 +1,676 @@
+widget "potus" {
+  size: 6x3
+  minSize: 2x2
+  padding: 0
+  meta {
+    description: "Trump and White House posts on Truth Social. Tap to flip through current and past posts, newest first.";
+    version: "1.1";
+    license: "MIT";
+    category: "news";
+    owl: 5
+  }
+
+  requires { pacman: ["python"] }
+
+  source feed = cmd("""
+python3 - <<'PY'
+# Trump + White House Truth Social posts for the potus widget. No X/Twitter.
+import html as html_lib
+import json
+import os
+import re
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+from concurrent.futures import ThreadPoolExecutor, wait
+from datetime import datetime, timezone
+
+CACHE = os.path.expanduser("~/.cache/omalauncher-potus.json")
+THUMB_DIR = os.path.expanduser("~/.cache/omalauncher-potus-thumbs")
+MAX_KEEP = 400
+MAX_THUMBS = 40
+TRUTH_PAGES = 5
+TRUTH_LIMIT = 20
+
+BROWSER = {
+    "User-Agent": "Mozilla/5.0 (omalauncher potus widget)",
+    "Accept": "application/json",
+    "Accept-Language": "en-US,en;q=0.9",
+}
+
+KIND_LABEL = {
+    "video": "Video",
+    "image": "Photo",
+    "photo": "Photo",
+    "gifv": "GIF",
+    "animated_gif": "GIF",
+    "audio": "Audio",
+}
+
+RT_ONLY = re.compile(
+    r"^(RT:\s*)?https?://\S+$",
+    re.I,
+)
+
+
+def get_bytes(url, headers=None, data=None, method=None, timeout=25, retries=4):
+    h = dict(BROWSER)
+    if headers:
+        h.update(headers)
+    last = None
+    for i in range(retries):
+        try:
+            req = urllib.request.Request(url, headers=h, data=data, method=method)
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                return r.read()
+        except Exception as e:
+            last = e
+            time.sleep(0.4 * (i + 1))
+    if last:
+        raise last
+    raise RuntimeError("get_bytes failed")
+
+
+def get_json(url, headers=None, data=None, method=None, timeout=25):
+    raw = get_bytes(url, headers=headers, data=data, method=method, timeout=timeout)
+    return json.loads(raw.decode("utf-8", "replace"))
+
+
+def load_cache():
+    try:
+        with open(CACHE) as f:
+            d = json.load(f)
+            if isinstance(d, dict):
+                return d
+    except Exception:
+        pass
+    return {}
+
+
+def save_cache(obj):
+    try:
+        os.makedirs(os.path.dirname(CACHE), exist_ok=True)
+        tmp = CACHE + ".tmp"
+        with open(tmp, "w") as f:
+            json.dump(obj, f, ensure_ascii=False)
+        os.replace(tmp, CACHE)
+    except Exception:
+        pass
+
+
+def strip_html(s):
+    s = html_lib.unescape(s or "")
+    s = re.sub(r"<br\s*/?>", "\n", s, flags=re.I)
+    s = re.sub(r"</p>", "\n", s, flags=re.I)
+    s = re.sub(r"<[^>]+>", "", s)
+    s = re.sub(r"\n{3,}", "\n\n", s)
+    return s.strip()
+
+
+def is_real_text(text):
+    t = (text or "").strip()
+    if not t:
+        return False
+    if RT_ONLY.match(t):
+        return False
+    if re.fullmatch(r"https?://\S+", t):
+        return False
+    return True
+
+
+def media_label(kinds):
+    if not kinds:
+        return ""
+    labels = []
+    for k in kinds:
+        labels.append(KIND_LABEL.get(k, k.title()))
+    seen, out = set(), []
+    for l in labels:
+        if l not in seen:
+            seen.add(l)
+            out.append(l)
+    return " · ".join(out)
+
+
+def first_preview(media):
+    for m in media or []:
+        u = m.get("preview_url") or m.get("url") or ""
+        if u:
+            return u
+        meta = m.get("meta") or {}
+        for key in ("small", "original"):
+            uu = ((meta.get(key) or {}).get("url")) if isinstance(meta.get(key), dict) else None
+            if uu:
+                return uu
+    return ""
+
+
+def make_post(pid, src, label, who, handle, text, at, url, likes=0, boosts=0, kinds=None, preview=""):
+    kinds = kinds or []
+    text = (text or "").strip()
+    has_text = is_real_text(text)
+    if not has_text and not kinds:
+        return None
+    body = text if has_text else media_label(kinds)
+    return {
+        "id": pid,
+        "src": src,
+        "label": label,
+        "who": who,
+        "handle": handle,
+        "text": body,
+        "at": int(at or 0),
+        "url": url,
+        "likes": int(likes or 0),
+        "boosts": int(boosts or 0),
+        "kinds": kinds,
+        "preview": preview or "",
+        "thumb": "",
+        "has_text": has_text,
+        "_preview": preview or "",
+    }
+
+
+def parse_ts(iso):
+    if not iso:
+        return 0
+    try:
+        s = iso.replace("Z", "+00:00")
+        return int(datetime.fromisoformat(s).timestamp())
+    except Exception:
+        return 0
+
+
+def fetch_truth(acct, src, label, pages=TRUTH_PAGES):
+    out = []
+    try:
+        acc = get_json(f"https://truthsocial.com/api/v1/accounts/lookup?acct={acct}")
+        aid = acc.get("id")
+        if not aid:
+            return out
+    except Exception:
+        return out
+    max_id = None
+    for _ in range(pages):
+        q = f"limit={TRUTH_LIMIT}"
+        if max_id:
+            q += f"&max_id={max_id}"
+        try:
+            sts = get_json(f"https://truthsocial.com/api/v1/accounts/{aid}/statuses?{q}")
+        except Exception:
+            break
+        if not isinstance(sts, list) or not sts:
+            break
+        for s in sts:
+            if s.get("reblog"):
+                rb = s.get("reblog") or {}
+                s = {**s, **{k: rb.get(k, s.get(k)) for k in ("content", "media_attachments", "url", "created_at", "favourites_count", "reblogs_count", "id")}}
+            media = s.get("media_attachments") or []
+            kinds = []
+            for m in media:
+                t = (m.get("type") or "").lower()
+                if t:
+                    kinds.append(t)
+            text = strip_html(s.get("content") or "")
+            pid = str(s.get("id") or "")
+            if not pid:
+                continue
+            url = s.get("url") or f"https://truthsocial.com/@{acct}/{pid}"
+            post = make_post(
+                f"truth:{pid}" if src == "truth" else f"{src}:{pid}",
+                src,
+                label,
+                (s.get("account") or {}).get("display_name") or label,
+                "@" + ((s.get("account") or {}).get("username") or acct),
+                text,
+                parse_ts(s.get("created_at") or ""),
+                url,
+                s.get("favourites_count") or 0,
+                s.get("reblogs_count") or 0,
+                kinds,
+                first_preview(media),
+            )
+            if post:
+                out.append(post)
+        max_id = str(sts[-1].get("id") or "")
+        if len(sts) < TRUTH_LIMIT or not max_id:
+            break
+        time.sleep(0.35)
+    return out
+
+
+def attach_thumbs(items):
+    try:
+        os.makedirs(THUMB_DIR, exist_ok=True)
+    except Exception:
+        return items
+    keep = []
+    for p in items[:MAX_THUMBS]:
+        preview = p.get("_preview") or p.get("preview") or ""
+        if not preview:
+            continue
+        pid = re.sub(r"[^A-Za-z0-9_.-]+", "_", str(p.get("id") or ""))[:80]
+        if not pid:
+            continue
+        path = os.path.join(THUMB_DIR, pid + ".jpg")
+        if not os.path.isfile(path):
+            try:
+                data = get_bytes(preview, timeout=12, retries=2)
+                with open(path, "wb") as f:
+                    f.write(data)
+            except Exception:
+                continue
+        p["thumb"] = path
+        keep.append(path)
+    try:
+        files = sorted(
+            (os.path.getmtime(os.path.join(THUMB_DIR, n)), os.path.join(THUMB_DIR, n))
+            for n in os.listdir(THUMB_DIR)
+            if os.path.isfile(os.path.join(THUMB_DIR, n))
+        )
+        while len(files) > MAX_THUMBS:
+            _, old = files.pop(0)
+            try:
+                os.remove(old)
+            except Exception:
+                pass
+    except Exception:
+        pass
+    return items
+
+
+def merge(old_items, new_items):
+    by_id = {}
+    for p in old_items + new_items:
+        p = dict(p)
+        pid = p.get("id")
+        if not pid:
+            continue
+        if pid in by_id:
+            prev = by_id[pid]
+            if not prev.get("thumb") and p.get("thumb"):
+                prev["thumb"] = p["thumb"]
+            if not prev.get("preview") and p.get("preview"):
+                prev["preview"] = p["preview"]
+            if not prev.get("_preview") and p.get("_preview"):
+                prev["_preview"] = p["_preview"]
+            by_id[pid] = prev
+        else:
+            by_id[pid] = p
+    items = list(by_id.values())
+    items.sort(
+        key=lambda p: -(
+            (p.get("at") or 0) + (10800 if p.get("has_text") else 0)
+        )
+    )
+    return items[:MAX_KEEP]
+
+
+def main():
+    cached = load_cache()
+    old = [
+        p for p in (cached.get("items") or [])
+        if str(p.get("src") or "") in {"truth", "wh"}
+        and not str(p.get("id") or "").startswith("x:")
+    ]
+    truth, wh = [], []
+    with ThreadPoolExecutor(2) as pool:
+        f_t = pool.submit(fetch_truth, "realDonaldTrump", "truth", "Truth Social", TRUTH_PAGES)
+        f_w = pool.submit(fetch_truth, "WhiteHouse", "wh", "White House", 3)
+        wait([f_t, f_w], timeout=55)
+        try:
+            truth = f_t.result(timeout=0) or []
+        except Exception:
+            truth = []
+        try:
+            wh = f_w.result(timeout=0) or []
+        except Exception:
+            wh = []
+
+    fresh = truth + wh
+    items = merge(old, fresh)
+    items = attach_thumbs(items)
+
+    clean_items = []
+    for p in items:
+        q = {k: v for k, v in p.items() if not k.startswith("_")}
+        q.setdefault("thumb", "")
+        q.setdefault("has_text", is_real_text(q.get("text") or ""))
+        if str(q.get("src") or "") not in {"truth", "wh"}:
+            continue
+        if str(q.get("id") or "").startswith("x:"):
+            continue
+        clean_items.append(q)
+    items = clean_items
+
+    truth_n = sum(1 for p in items if p.get("src") == "truth")
+    wh_n = sum(1 for p in items if p.get("src") == "wh")
+    out = {
+        "ok": len(fresh) > 0 or len(items) > 0,
+        "at": int(time.time()),
+        "truth": truth_n,
+        "wh": wh_n,
+        "fresh": len(fresh),
+        "total": len(items),
+        "items": items,
+    }
+    if items:
+        save_cache(out)
+    print(json.dumps(out, ensure_ascii=False))
+
+
+if __name__ == "__main__":
+    main()
+PY
+  """) every 10m json timeout 70s
+  source now = clock every 30s
+
+  state jump = 0 persist
+  state tab = "all" persist
+
+  let all = feed.items ?? []
+  let items = tab == "truth" ? all.filter(p => p.src == "truth") : tab == "wh" ? all.filter(p => p.src == "wh") : all
+  let n = len(items)
+  let idx = n > 0 ? ((jump % n) + n) % n : 0
+  let cur = n > 0 ? items[idx] : null
+  let age = feed != null && feed.at != null ? now - feed.at : null
+  let isTruth = cur != null && cur.src == "truth"
+  let shade = isTruth ? orange : cyan
+  let rel = cur == null || cur.at == 0 ? "" : now - cur.at < 60 ? "now" : now - cur.at < 3600 ? "${max(floor((now - cur.at) / 60), 1)}m" : now - cur.at < 86400 ? "${floor((now - cur.at) / 3600)}h" : now - cur.at < 604800 ? "${floor((now - cur.at) / 86400)}d" : fmtTime(cur.at, "MMM d")
+  let thumb = (cur.thumb ?? "")
+  let hasThumb = thumb != "" && thumb != null
+
+  let h = rows ?? 3
+  let w = cols ?? 6
+  let tiny = h <= 2
+  let short = h <= 3
+  let slim = w < 5
+  let pad = tiny ? 4 : short ? 6 : 10
+  let gap = tiny ? 2 : short ? 3 : 5
+  let fsTab = tiny ? 9 : short ? 10 : slim ? 11 : 12
+  let fsLabel = tiny ? 9 : short ? 10 : 11
+  let fsWho = tiny ? 11 : short ? 12 : slim ? 13 : 14
+  let fsHandle = tiny ? 8 : short ? 9 : 10
+  let bodySize = tiny ? 11 : short ? 12 : slim ? 13 : 15
+  let bodyLines = tiny ? (hasThumb ? 2 : 3) : short ? (hasThumb ? 3 : 5) : hasThumb ? (slim ? 5 : 7) : (slim ? 8 : 10)
+  let thumbPx = tiny ? 40 : short ? (slim ? 52 : 60) : slim ? 72 : 88
+  let showThumb = hasThumb && !(tiny && slim)
+  let showStats = !tiny
+  let showNav = !tiny
+
+  onTap: jump = jump + 1
+  on tab { jump = 0 }
+
+  component Tab(id, label, hue, big = false) {
+    Column {
+      gap: big ? 2 : tiny ? 0 : 2
+      weight: 1
+      Text {
+        text: label
+        align: center
+        maxLines: 1
+        fontSize: big ? 15 : fsTab
+        bold: tab == id
+        color: tab == id ? hue : muted
+        onTap: tab = id
+      }
+      Spacer { height: big ? 2 : tiny ? 1 : 2; fill: width; background: tab == id ? hue : alpha(muted, 0.0) }
+    }
+  }
+
+  Column {
+    gap: gap
+    padding: pad
+
+    Row {
+      gap: tiny ? 4 : 6
+      align: center
+      Text {
+        text: "POTUS"
+        style: label
+        color: accent
+        bold: true
+        maxLines: 1
+        width: tiny ? 40 : 52
+        fontSize: fsLabel
+      }
+      Tab { id: "all"; label: "all"; hue: accent }
+      Tab { id: "truth"; label: tiny ? "TS" : "truth"; hue: orange }
+      Tab { id: "wh"; label: "WH"; hue: cyan }
+      Text {
+        text: age == null ? "..." : age < 90 ? "live" : age < 3600 ? "${max(floor(age / 60), 1)}m" : "${floor(age / 3600)}h"
+        style: small
+        color: muted
+        font: mono
+        maxLines: 1
+        width: tiny ? 28 : 36
+        align: end
+        fontSize: fsLabel
+      }
+    }
+
+    if cur == null {
+      Column {
+        gap: 8
+        weight: 1
+        justify: center
+        Text {
+          text: feed == null ? "loading posts..." : "no posts - tap to retry"
+          style: small
+          color: muted
+          align: center
+          fontSize: bodySize
+          onTap: refresh()
+        }
+      }
+    } else {
+      Column {
+        gap: tiny ? 2 : short ? 4 : 6
+        weight: 1
+
+        Row {
+          gap: tiny ? 4 : 8
+          align: center
+          Text {
+            text: isTruth ? "TRUTH" : "WH"
+            fontSize: tiny ? 8 : 10
+            bold: true
+            color: shade
+            maxLines: 1
+            width: tiny ? 36 : 48
+          }
+          Column {
+            gap: 0
+            weight: 1
+            Text { text: cur.who ?? ""; fontSize: fsWho; bold: true; maxLines: 1 }
+            if !tiny {
+              Text { text: cur.handle ?? ""; style: small; color: muted; maxLines: 1; fontSize: fsHandle }
+            }
+          }
+          Text {
+            text: "${idx + 1}/${n}"
+            font: mono
+            fontSize: tiny ? 9 : 11
+            color: muted
+            maxLines: 1
+            width: tiny ? 40 : 56
+            align: end
+          }
+        }
+
+        if !tiny {
+          Spacer { height: 1; fill: width; background: alpha(muted, 0.22) }
+        }
+
+        if showThumb {
+          Row {
+            gap: tiny ? 4 : 8
+            align: top
+            Image {
+              src: thumb
+              width: thumbPx
+              height: thumbPx
+              fit: cover
+              radius: tiny ? 4 : 6
+              clip: true
+            }
+            Text {
+              text: cur.text ?? ""
+              fontSize: bodySize
+              maxLines: bodyLines
+              color: foreground
+              weight: 1
+            }
+          }
+        } else {
+          Text {
+            text: cur.text ?? ""
+            fontSize: bodySize
+            maxLines: bodyLines
+            color: foreground
+          }
+        }
+
+        Spacer { weight: 1 }
+
+        if showStats {
+          Row {
+            gap: short ? 6 : 10
+            align: center
+            Text {
+              text: (cur.likes ?? 0) > 0 ? "likes ${cur.likes}" : ""
+              style: small
+              color: muted
+              maxLines: 1
+              fontSize: fsLabel
+            }
+            Text {
+              text: (cur.boosts ?? 0) > 0 ? "boosts ${cur.boosts}" : ""
+              style: small
+              color: muted
+              maxLines: 1
+              fontSize: fsLabel
+            }
+            Spacer { weight: 1 }
+            Text { text: rel; style: small; color: muted; font: mono; maxLines: 1; fontSize: fsLabel }
+          }
+        }
+
+        if showNav {
+          Row {
+            gap: short ? 6 : 10
+            align: center
+            Text { text: "tap next"; style: small; color: muted; maxLines: 1; fontSize: fsLabel }
+            Spacer { weight: 1 }
+            Text {
+              text: "open"
+              style: small
+              color: shade
+              maxLines: 1
+              fontSize: fsLabel
+              onTap: url(cur.url)
+            }
+            Text {
+              text: "desk"
+              style: small
+              color: accent
+              maxLines: 1
+              fontSize: fsLabel
+              onTap: screen()
+            }
+          }
+        } else {
+          Row {
+            gap: 4
+            align: center
+            Text { text: rel; style: small; color: muted; font: mono; maxLines: 1; fontSize: fsLabel; weight: 1 }
+            Text {
+              text: "open"
+              style: small
+              color: shade
+              maxLines: 1
+              fontSize: fsLabel
+              onTap: url(cur.url)
+            }
+          }
+        }
+      }
+    }
+  }
+
+  screen {
+    title: "potus desk"
+    Column {
+      gap: 10
+
+      Row {
+        gap: 20
+        align: center
+        Tab { id: "all"; label: "all"; hue: accent; big: true }
+        Tab { id: "truth"; label: "truth"; hue: orange; big: true }
+        Tab { id: "wh"; label: "WH"; hue: cyan; big: true }
+        Spacer { weight: 1 }
+        Text {
+          text: "${idx + 1}/${n}"
+          font: mono
+          style: small
+          color: muted
+          maxLines: 1
+        }
+        if feed != null {
+          Text {
+            text: fmtTime(feed.at, "HH:mm")
+            style: small
+            color: muted
+            maxLines: 1
+          }
+        }
+      }
+
+      Row {
+        gap: 8
+        Button { text: "prev"; onTap: jump = jump - 1 }
+        Button { text: "next"; onTap: jump = jump + 1 }
+        Button { text: "refresh"; onTap: refresh() }
+        Spacer { weight: 1 }
+        if cur != null {
+          Button { text: "open post"; color: shade; onTap: url(cur.url) }
+        }
+      }
+
+      if cur == null {
+        Text { text: feed == null ? "loading…" : "no posts"; style: muted }
+      } else {
+        Column {
+          gap: 8
+          scroll: true
+          weight: 1
+          Row {
+            gap: 8
+            align: center
+            Text {
+              text: isTruth ? "Truth Social" : "White House"
+              bold: true
+              color: shade
+              maxLines: 1
+            }
+            Text { text: cur.handle ?? ""; style: muted; maxLines: 1 }
+            Spacer { weight: 1 }
+            Text { text: rel; style: muted; font: mono; maxLines: 1 }
+          }
+          Text { text: cur.who ?? ""; style: title; maxLines: 2 }
+          Text { text: cur.text ?? ""; style: body; maxLines: 30 }
+          if hasThumb {
+            Image { src: thumb; fit: contain; height: 220; radius: 8; clip: true }
+          }
+          Row {
+            gap: 12
+            Text { text: (cur.likes ?? 0) > 0 ? "likes ${cur.likes}" : ""; style: small; color: muted }
+            Text { text: (cur.boosts ?? 0) > 0 ? "boosts ${cur.boosts}" : ""; style: small; color: muted }
+          }
+        }
+      }
+    }
+  }
+}

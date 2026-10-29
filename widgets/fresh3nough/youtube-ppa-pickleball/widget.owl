@@ -1,0 +1,409 @@
+widget "youtube ppa pickleball" {
+  size: 3x4
+  minSize: 2x3
+  padding: 0
+  meta {
+    description: "PPA Tour / MLP / APP pickleball full matches and live streams from YouTube. Tap opens the video"
+    version: "1.0"
+    license: "MIT"
+    category: "fun"
+    owl: 5
+  }
+  requires { pacman: ["python"] }
+
+  source pb = cmd("""
+python3 - <<'PY'
+import json, os, re, time, urllib.request
+from pathlib import Path
+
+cache = str(Path.home() / ".cache" / "test-pb")
+Path(cache).mkdir(parents=True, exist_ok=True)
+lib_path = str(Path(cache) / "lib.json")
+show_n = 36
+lib_max = 180
+now = int(time.time())
+
+QUERIES = [
+    "PPA Tour full match",
+    "PPA Tour championship match",
+    "PPA pickleball full match",
+    "PPA Tour live",
+    "PPA Tour finals",
+    "PPA Tour mixed doubles final",
+]
+
+CHANNEL_IDS = [
+    "UCSP6HlrMmRqogym2aHBPHpw",  # PPA Tour
+    "UC1_rjn7Y77xzscvYkoA-lDw",  # Major League Pickleball
+    "UCzp8-zq6Qpd3g1ykc8Tj9BA",  # APPTV
+    "UCRxDMTx5tfhdH2TskRHYC-A",  # Pickleballtv
+    "UCXWdgbvAxpy2gS10iAXZSOA",  # Champions Series Pickleball
+]
+
+UA = "Mozilla/5.0 (omalauncher youtube-feed widget)"
+
+def post(url, body, timeout=18):
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(body).encode(),
+        headers={"Content-Type": "application/json", "User-Agent": UA},
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return json.load(r)
+
+def client_ctx():
+    return {"client": {
+        "clientName": "WEB",
+        "clientVersion": "2.20241001.00.00",
+        "hl": "en", "gl": "US",
+    }}
+
+def search(q, params=None):
+    body = {"context": client_ctx(), "query": q}
+    if params:
+        body["params"] = params
+    return post("https://www.youtube.com/youtubei/v1/search?prettyPrint=false", body)
+
+def channel_videos(ucid):
+    try:
+        body = {
+            "context": client_ctx(),
+            "browseId": ucid,
+            "params": "EgZ2aWRlb3PyBgQKAjoA",
+        }
+        return post("https://www.youtube.com/youtubei/v1/browse?prettyPrint=false", body)
+    except Exception:
+        return {}
+
+def walk(o, key, out):
+    if isinstance(o, dict):
+        if key in o:
+            out.append(o[key])
+        for v in o.values():
+            walk(v, key, out)
+    elif isinstance(o, list):
+        for v in o:
+            walk(v, key, out)
+
+def parse_len(s):
+    if not s:
+        return 0
+    try:
+        parts = [int(x) for x in s.strip().split(":")]
+    except ValueError:
+        return 0
+    t = 0
+    for p in parts:
+        t = t * 60 + p
+    return t
+
+def parse_published(s):
+    if not s:
+        return 10**12
+    s = s.lower().strip()
+    m = re.match(r"(\d+)\s+(second|minute|hour|day|week|month|year)s?\s+ago", s)
+    if not m:
+        if "live" in s or "stream" in s:
+            return 0
+        return 10**12
+    n = int(m.group(1))
+    unit = m.group(2)
+    mult = {
+        "second": 1, "minute": 60, "hour": 3600, "day": 86400,
+        "week": 604800, "month": 2592000, "year": 31536000,
+    }[unit]
+    return n * mult
+
+def title_of(v):
+    runs = (v.get("title") or {}).get("runs") or []
+    t = "".join(r.get("text", "") for r in runs).strip()
+    if not t:
+        t = (v.get("title") or {}).get("simpleText") or ""
+    return t.strip()
+
+def channel_of(v):
+    for key in ("ownerText", "longBylineText", "shortBylineText"):
+        runs = (v.get(key) or {}).get("runs") or []
+        if runs:
+            return (runs[0].get("text") or "").strip()
+    return ""
+
+def is_live(v):
+    badges = v.get("badges") or []
+    for b in badges:
+        label = (((b.get("metadataBadgeRenderer") or {}).get("label") or "")).lower()
+        if "live" in label:
+            return True
+    for ov in v.get("thumbnailOverlays") or []:
+        r = ov.get("thumbnailOverlayTimeStatusRenderer") or {}
+        style = (r.get("style") or "").upper()
+        text = (((r.get("text") or {}).get("simpleText") or "")
+                + "".join(x.get("text", "") for x in ((r.get("text") or {}).get("runs") or []))).lower()
+        if style == "LIVE" or "live" in text:
+            return True
+    return False
+
+TRUSTED = re.compile(
+    r"(ppa\s*tour|ppa\s*tv|professional\s*pickleball\s*association|"
+    r"major\s*league\s*pickleball|\bmlp\b|app\s*tour|apptv|app\s*tv|"
+    r"pickleball\s*tv|pickleballtv|champions?\s*series\s*pickleball|"
+    r"usa\s*pickleball|usap|world\s*pickleball|"
+    r"ben\s*johns|anna\s*leigh\s*waters|collin\s*johns|catherine\s*parenteau|"
+    r"hayden\s*patriquin|anna\s*bright|leah\s*yates|christian\s*alshon|"
+    r"flo\s*pickleball|espn|cbs\s*sports|nbc\s*sports|"
+    r"veolia|cibc|mesa|texas\s*open|florida\s*open|california\s*cup)",
+    re.I,
+)
+
+SPAM_CH = re.compile(
+    r"(gorur|bazar|vlog|ngày|يوميات|عراق|tân\s*cổ|hoàng|islamer|kafela|"
+    r"thanh\s*tú|habib\s*tv|pets?$|highlight\s*hub|sports?\s*rewind|"
+    r"full\s*game\s*hd|match\s*replay|soccer|football\s*live|nba\s*full|"
+    r"dias\s*de|diario|하루|vlogs?$|gaming|filipina\s*sports|"
+    r"ai\s*voice|auto\s*generated|shorts?\s*farm)",
+    re.I,
+)
+
+def looks_spam_channel(ch):
+    if not ch:
+        return True
+    if SPAM_CH.search(ch):
+        return True
+    latin = len(re.findall(r"[A-Za-z]", ch))
+    if latin < 3 and len(ch) > 0:
+        return True
+    return False
+
+def accept(title, secs, live, channel=""):
+    low = title.lower()
+    ch = (channel or "").lower()
+    if not re.search(r"pickle\s*ball|pickleball", low + " " + ch):
+        return False
+    if looks_spam_channel(channel or ""):
+        return False
+    if re.search(
+        r"\b(react(ion|ing)?|tier\s*list|ranking|podcast|press\s*conference|"
+        r"crazy\s*\?|try\s*not\s*to|fails?|funny\s*moments?|compilation|"
+        r"how\s*to|tutorial|lesson|drill|tips?|coach(ing)?)\b",
+        low,
+    ):
+        return False
+    trusted = bool(TRUSTED.search(ch) or TRUSTED.search(low))
+    tourish = bool(re.search(
+        r"\b(ppa|mlp|app\s*tour|championship|champions?\s*series|"
+        r"pro\s*(tour|event)|tour\s*(final|event|stop)|"
+        r"gold\s*medal|gold\s*final)\b",
+        low + " " + ch,
+    ))
+    fullish = bool(re.search(
+        r"\b(full\s*(match|game|replay|stream)|complete\s*match|entire\s*match|"
+        r"championship\s*(match|final|court)|gold\s*medal|gold\s*final|"
+        r"final\s*match|championship\s*court|round\s*of\s*\d+|semi-?finals?|"
+        r"quarter-?finals?|live\s*stream|live\s*coverage)\b",
+        low,
+    ))
+    highlighty = bool(re.search(
+        r"\b(highlights?|top\s*\d+|best\s*plays?|shorts?|trailer|preview|"
+        r"teaser|compilation|skills?|recap|bloopers?)\b",
+        low,
+    ))
+    if highlighty and not fullish:
+        return False
+    if live:
+        return bool(fullish or trusted or tourish or re.search(r"\b(live\s*stream|vs\.?|ppa|mlp)\b", low))
+    if secs:
+        if secs < 600 and not (fullish and secs >= 480):
+            return False
+        if secs < 480:
+            return False
+        if secs > 10 * 3600:
+            return False
+    elif not fullish:
+        return False
+    if not trusted:
+        if not (fullish or tourish):
+            return False
+        if not re.search(r"\b(vs\.?|versus|final|championship|ppa|mlp|app|tour|gold)\b", low):
+            return False
+    return True
+
+def thumb_url(vid, v=None):
+    if v:
+        thumbs = (v.get("thumbnail") or {}).get("thumbnails") or []
+        if thumbs:
+            u = thumbs[-1].get("url") or ""
+            u = re.sub(r"\?.*", "", u)
+            if u:
+                return u
+    return f"https://i.ytimg.com/vi/{vid}/hq720.jpg"
+
+def item_from_renderer(v, discovered_at):
+    vid = v.get("videoId")
+    if not vid:
+        return None
+    title = title_of(v)
+    live = is_live(v)
+    length = (v.get("lengthText") or {}).get("simpleText") or ""
+    if not length:
+        for ov in v.get("thumbnailOverlays") or []:
+            r = ov.get("thumbnailOverlayTimeStatusRenderer") or {}
+            length = (r.get("text") or {}).get("simpleText") or length
+            if not length:
+                length = "".join(x.get("text", "") for x in ((r.get("text") or {}).get("runs") or []))
+    secs = parse_len(length)
+    ch = channel_of(v)
+    if not accept(title, secs, live, ch):
+        return None
+    pub = (v.get("publishedTimeText") or {}).get("simpleText") or ""
+    age = parse_published(pub)
+    trusted = bool(TRUSTED.search(ch or "") or TRUSTED.search(title or ""))
+    return {
+        "id": f"pb-yt-{vid}",
+        "vid": vid,
+        "live": live,
+        "name": (title[:140] or "YouTube pickleball"),
+        "court": ch or "YouTube",
+        "facility": "YouTube",
+        "ts": now - age if age < 10**12 else None,
+        "age": age,
+        "secs": secs,
+        "trusted": trusted,
+        "thumb": thumb_url(vid, v),
+        "thumbUrl": thumb_url(vid, v),
+        "video": f"https://www.youtube.com/watch?v={vid}",
+        "source": "youtube",
+        "discovered": discovered_at,
+        "published": pub,
+    }
+
+lib = []
+if os.path.isfile(lib_path):
+    try:
+        with open(lib_path) as f:
+            lib = json.load(f)
+            if not isinstance(lib, list):
+                lib = []
+    except Exception:
+        lib = []
+
+by_id = {it.get("id"): it for it in lib if isinstance(it, dict) and it.get("id")}
+new_count = 0
+
+def ingest(v):
+    global new_count
+    it = item_from_renderer(v, now)
+    if not it:
+        return
+    prev = by_id.get(it["id"])
+    if prev:
+        it["discovered"] = prev.get("discovered", now)
+        by_id[it["id"]] = it
+    else:
+        by_id[it["id"]] = it
+        new_count += 1
+
+for q in QUERIES:
+    try:
+        data = search(q)
+    except Exception:
+        continue
+    vids = []
+    walk(data, "videoRenderer", vids)
+    walk(data, "playlistVideoRenderer", vids)
+    for v in vids:
+        ingest(v)
+
+for ucid in CHANNEL_IDS:
+    data = channel_videos(ucid)
+    vids = []
+    walk(data, "videoRenderer", vids)
+    walk(data, "gridVideoRenderer", vids)
+    walk(data, "richItemRenderer", vids)
+    for v in vids:
+        ingest(v)
+
+for q in ("PPA Tour full match", "PPA Tour championship match"):
+    try:
+        data = search(q)
+    except Exception:
+        continue
+    vids = []
+    walk(data, "videoRenderer", vids)
+    for v in vids:
+        ingest(v)
+
+items = list(by_id.values())
+items = [it for it in items if accept(it.get("name") or "", it.get("secs") or 0, it.get("live"), it.get("court") or "")]
+items.sort(key=lambda x: (
+    0 if x.get("live") else 1,
+    0 if x.get("trusted") else 1,
+    -(x.get("discovered") or 0),
+    x.get("age") if x.get("age") is not None else 10**12,
+    -(x.get("secs") or 0),
+))
+items = items[:lib_max]
+
+try:
+    with open(lib_path, "w") as f:
+        json.dump(items, f, separators=(",", ":"))
+except Exception:
+    pass
+
+cycle = items[:show_n]
+print(json.dumps({"items": cycle, "new": new_count, "lib": len(items)}))
+PY
+  """) every 4h json timeout 90s
+
+  source now = clock every 1m
+
+  let items = pb.items ?? []
+  let n = len(items)
+  let idx = n > 0 ? floor(now / 60) % n : 0
+  let cur = n > 0 ? items[idx] : null
+  let tag = cur == null ? "" : (cur.live ? "LIVE" : "PPA")
+  let tagBg = cur != null && cur.live ? #e11d48 : #0ea5e9
+
+  onTap: url(cur.video)
+
+  if cur != null {
+    Box {
+      fill: true
+      Image { src: cur.thumb; fit: cover; fill: true }
+      Column {
+        fill: true
+        padding: 8
+        align: start
+        Row {
+          Text {
+            text: tag
+            style: label
+            bold: true
+            color: #ffffff
+            padding: [7, 3]
+            background: tagBg
+            radius: 4
+            width: cur.live ? 40 : 36
+            align: center
+            maxLines: 1
+          }
+        }
+        Spacer { weight: 1 }
+        Column {
+          gap: 2
+          fill: width
+          padding: [8, 6]
+          background: alpha(#000, 0.72)
+          Text { text: cur.name ?? ""; style: small; color: #fff; maxLines: 2 }
+          Text { text: cur.court ?? ""; style: label; color: muted; maxLines: 1 }
+        }
+      }
+    }
+  } else {
+    Box {
+      fill: true
+      background: surface
+      Text { text: pb == null ? "scraping…" : "no videos yet"; style: muted; align: center }
+    }
+  }
+}
