@@ -1,7 +1,7 @@
 widget "dupr rankings" {
   meta {
     description: "Public DUPR pickleball rankings — Open Men's Doubles top pros from dupr.com, using DUPR's own order. No login. Tap for the full list."
-    version: "1.1"
+    version: "1.2"
     license: "MIT"
     category: "sport"
     owl: 9
@@ -10,6 +10,29 @@ widget "dupr rankings" {
   minSize: 2x3
 
   requires { pacman: ["python"] }
+
+  // goose cyberpunk neon palette — bright surfaces that pop
+  let void = #050510
+  let panel = #0a0a18
+  let ink = #0a0a0a
+  let neon = #00e5ff
+  let neonPink = #ff2bd6
+  let neonOrange = #ff6b00
+  let neonLime = #39ff14
+  let neonYellow = #fff200
+  let neonRed = #ff2a2a
+  let neonPurple = #c084fc
+  let neonBlue = #00b8d4
+  let textHi = #fff200
+  let textMid = #ffe066
+  let textDim = #b8ff00
+  let upColor = #39ff14
+  let downColor = #ff2bd6
+  let warnColor = #ff6b00
+
+  background: void
+
+
 
   source board = cmd("""
 python3 - <<'PY'
@@ -94,6 +117,8 @@ PY
   let nShow = h < 200 ? 5 : (h < 280 ? 9 : (h < 380 ? 12 : 15))
   let shown = take(players, nShow)
 
+
+
   onTap: screen()
 
   component Pickle(px = 2) {
@@ -102,50 +127,74 @@ PY
       height: 11 * px
       sprite(["..ss...", "..ss...", ".gggg..", "gdgggg.", "gggggg.",
               "gdgggg.", "ggggdg.", "gdgggg.", ".gggg..", "..gg...", "..gg..."],
-             0, 0, px, palette: {g: green, d: mix(green, background, 0.55), s: green})
+             0, 0, px, palette: {g: upColor, d: mix(upColor, void, 0.55), s: upColor})
     }
   }
 
   component Line(p, i) {
     Row {
       gap: 4
-      Text { text: "${p.rank ?? (i + 1)}"; width: 20; font: mono; fontSize: 11; color: i < 3 ? accent : muted }
-      Text { text: p.name; weight: 1; maxLines: 1; font: mono; fontSize: 11 }
-      Text { text: fixed(num(p.rating, 0), 3); width: 40; align: end; font: mono; fontSize: 11; color: accent }
+      Text {
+        text: "${p.rank ?? (i + 1)}"
+        width: 20
+        font: mono
+        fontSize: 11
+        bold: i < 3
+        color: i == 0 ? neonYellow : (i == 1 ? neonOrange : (i == 2 ? neonPink : textDim))
+      }
+      Text { text: p.name; weight: 1; maxLines: 1; font: mono; fontSize: 11; color: textHi }
+      Text {
+        text: fixed(num(p.rating, 0), 3)
+        width: 40
+        align: end
+        font: mono
+        fontSize: 11
+        bold: true
+        color: i < 3 ? neonLime : neon
+      }
     }
   }
 
+  Box { /* neon-wrap */
+    fill: true
+    background: void
+    border: 2
+    borderColor: neon
+    radius: 12
+    clip: true
+    padding: 6
   Column {
-    gap: 2
-
-    Row {
-      gap: 5
-      align: center
-      Pickle { }
-      Column {
-        weight: 1
-        gap: 0
-        Text { text: "dupr rankings"; bold: true; fontSize: 12; maxLines: 1 }
-        Text { text: "${label} · ${ago}"; style: label; maxLines: 1 }
-      }
-    }
-
-    if err != null {
-      Text { text: err; style: small; color: yellow; maxLines: 3 }
-    } else {
-      if board == null {
-        Text { text: "loading…"; style: muted }
-      } else {
+      gap: 2
+  
+      Row {
+        gap: 5
+        align: center
+        Pickle { }
         Column {
-          gap: 2
           weight: 1
-          for p, i in shown key p.id { Line { p: p; i: i } }
+          gap: 0
+          Text { text: "dupr rankings"; bold: true; fontSize: 12; maxLines: 1; color: neonYellow }
+          Text { text: "${label} · ${ago}"; style: label; maxLines: 1; color: neon }
         }
-        Row {
-          gap: 6
-          align: center
-          Text { text: "top ${total} · dupr.com"; style: label; weight: 1 }
-          Button { text: "full list"; onTap: screen() }
+      }
+  
+      if err != null {
+        Text { text: err; style: small; color: neonYellow; maxLines: 3 }
+      } else {
+        if board == null {
+          Text { text: "loading..."; style: muted; color: neon }
+        } else {
+          Column {
+            gap: 2
+            weight: 1
+            for p, i in shown key p.id { Line { p: p; i: i } }
+          }
+          Row {
+            gap: 6
+            align: center
+            Text { text: "top ${total} · dupr.com"; style: label; weight: 1 }
+            Button { text: "full list"; onTap: screen() }
+          }
         }
       }
     }
@@ -153,41 +202,65 @@ PY
 
   screen {
     title: "dupr rankings"
-    Column {
-      scroll: true
-      gap: 4
-      padding: 10
-
-      Row {
-        gap: 8
-        align: center
-        Pickle { px: 3 }
-        Column {
-          weight: 1
-          gap: 0
-          Text { text: label; style: title; maxLines: 1 }
-          Text { text: "DUPR ranks · live from dupr.com · ${ago}"; style: muted; maxLines: 1 }
+    Box { /* neon-screen */
+      fill: true
+      background: void
+      border: 2
+      borderColor: neonPink
+      radius: 12
+      clip: true
+      padding: 8
+      Column {
+        scroll: true
+        gap: 4
+        padding: 10
+  
+        Row {
+          gap: 8
+          align: center
+          Pickle { px: 3 }
+          Column {
+            weight: 1
+            gap: 0
+            Text { text: label; style: title; color: neonYellow; maxLines: 1 }
+            Text { text: "DUPR ranks · live from dupr.com · ${ago}"; style: muted; maxLines: 1 }
+          }
         }
-      }
-
-      Row {
-        gap: 6
-        Button { text: "refresh"; onTap: refresh() }
-        Spacer { weight: 1 }
-        Button { text: "dupr.com"; onTap: url("https://www.dupr.com/rankings") }
-      }
-
-      if err != null {
-        Text { text: err; color: yellow }
-      }
-      for p, i in take(players, 50) key p.id {
+  
         Row {
           gap: 6
-          Text { text: "${p.rank ?? (i + 1)}"; width: 28; align: end; font: mono; color: i < 3 ? accent : muted }
-          Text { text: p.name; weight: 1; font: mono; maxLines: 1 }
-          Text { text: fixed(num(p.rating, 0), 3); width: 46; align: end; font: mono; color: accent }
+          Button { text: "refresh"; onTap: refresh() }
+          Spacer { weight: 1 }
+          Button { text: "dupr.com"; onTap: url("https://www.dupr.com/rankings") }
+        }
+  
+        if err != null {
+          Text { text: err; color: neonYellow }
+        }
+        for p, i in take(players, 50) key p.id {
+          Row {
+            gap: 6
+            Text {
+              text: "${p.rank ?? (i + 1)}"
+              width: 28
+              align: end
+              font: mono
+              bold: i < 3
+              color: i == 0 ? neonYellow : (i == 1 ? neonOrange : (i == 2 ? neonPink : textDim))
+            }
+            Text { text: p.name; weight: 1; font: mono; maxLines: 1; color: textHi }
+            Text {
+              text: fixed(num(p.rating, 0), 3)
+              width: 46
+              align: end
+              font: mono
+              bold: true
+              color: i < 3 ? neonLime : neon
+            }
+          }
         }
       }
+    
     }
   }
 }

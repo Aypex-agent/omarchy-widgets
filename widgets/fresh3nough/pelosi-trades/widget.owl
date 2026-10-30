@@ -3,13 +3,36 @@ widget "pelosi trades" {
   minSize: 4x4
   padding: 10
   meta {
-    description: "Nancy Pelosi House STOCK Act filings (Periodic Transaction Reports) with live quotes on disclosed tickers"
-    version: "1.1"
+    description: "Nancy Pelosi House STOCK Act filings (Periodic Transaction Reports) with live quotes on disclosed tickers Denser neon activity summary and sharper trade rows."
+    version: "1.4"
     license: "MIT"
     category: "finance"
     owl: 5
   }
   requires { pacman: ["python", "poppler"] }
+
+  // goose cyberpunk neon palette — bright surfaces that pop
+  let void = #050510
+  let panel = #0a0a18
+  let ink = #0a0a0a
+  let neon = #00e5ff
+  let neonPink = #ff2bd6
+  let neonOrange = #ff6b00
+  let neonLime = #39ff14
+  let neonYellow = #fff200
+  let neonRed = #ff2a2a
+  let neonPurple = #c084fc
+  let neonBlue = #00b8d4
+  let textHi = #fff200
+  let textMid = #ffe066
+  let textDim = #b8ff00
+  let upColor = #39ff14
+  let downColor = #ff2bd6
+  let warnColor = #ff6b00
+
+  background: void
+
+
 
   source data = cmd("""
 python3 - <<'PY'
@@ -565,28 +588,70 @@ PY
   let book_up = data.day_up != false
   state tab = "activity"
 
+
+
   component Gavel() {
+    // Sharp neon gavel badge — reads at 28–36px (head + handle + strike plate)
     Canvas {
-      width: 28
-      height: 28
-      circle(14, 14, 13, fill: mix(accent, blue, 0.35))
-      circle(14, 14, 13, stroke: accent, width: 1.4)
-      rect(8, 11, 12, 3.5, radius: 1, fill: foreground)
-      rect(12.5, 14, 3, 8, fill: foreground)
-      rect(9, 21, 10, 2.2, radius: 1, fill: muted)
+      width: 32
+      height: 32
+      // outer badge ring
+      circle(16, 16, 15, fill: mix(void, neon, 0.18))
+      circle(16, 16, 15, stroke: neon, width: 1.6)
+      circle(16, 16, 12.4, stroke: alpha(neonPink, 0.55), width: 0.9)
+
+      // gavel head (horizontal block) — bright yellow, hard edges
+      rect(6.5, 9.5, 15, 6.2, radius: 1.2, fill: neonYellow)
+      rect(6.5, 9.5, 15, 6.2, radius: 1.2, stroke: mix(neonYellow, neonOrange, 0.4), width: 0.8)
+      // head end-caps (mallet faces)
+      rect(5.2, 8.6, 3.2, 8, radius: 0.8, fill: neonOrange)
+      rect(19.6, 8.6, 3.2, 8, radius: 0.8, fill: neonOrange)
+      // center band on head
+      rect(12.2, 9.5, 3.6, 6.2, fill: mix(neonYellow, ink, 0.25))
+
+      // handle shaft (angled via stepped rects for clarity at small size)
+      rect(14.2, 15.2, 3.4, 10.5, radius: 0.6, fill: textHi)
+      rect(14.2, 15.2, 3.4, 10.5, radius: 0.6, stroke: neonYellow, width: 0.6)
+
+      // pommel / grip tip
+      rect(13.4, 25.2, 5, 2.4, radius: 1, fill: neonOrange)
+      rect(13.4, 25.2, 5, 2.4, radius: 1, stroke: neonYellow, width: 0.5)
+
+      // strike plate / sound block (bottom-left)
+      rect(7, 24.5, 7.5, 3.2, radius: 0.8, fill: mix(neon, neonBlue, 0.45))
+      rect(7, 24.5, 7.5, 3.2, radius: 0.8, stroke: neon, width: 0.7)
+
+      // tiny highlight spark on head
+      circle(10.2, 11.2, 1.1, fill: #ffffff)
     }
   }
 
-  component StatPill(label, value, tint = foreground) {
+  component StatPill(label, value, tint = textHi) {
     Column {
-      gap: 0
+      gap: 1
       align: center
       weight: 1
-      background: alpha(surface, 0.65)
-      radius: 8
-      padding: [6, 6]
-      Text { text: label; style: label; color: muted; align: center; maxLines: 1 }
-      Text { text: value; style: small; bold: true; color: tint; align: center; maxLines: 1; font: mono }
+      background: alpha(panel, 0.9)
+      border: 1
+      borderColor: alpha(tint, 0.85)
+      radius: 7
+      padding: [4, 5]
+      Text {
+        text: label
+        style: label
+        color: textDim
+        align: center
+        maxLines: 1
+      }
+      Text {
+        text: value
+        style: small
+        bold: true
+        color: tint
+        align: center
+        maxLines: 1
+        font: mono
+      }
     }
   }
 
@@ -594,24 +659,57 @@ PY
     Row {
       gap: 6
       align: center
+      height: 30
+      background: alpha(panel, 0.92)
+      border: 1
+      borderColor: alpha(t.buy ? upColor : downColor, 0.35)
+      radius: 6
+      padding: [0, 6]
+      // neon buy/sell chip
       Box {
-        width: 40; height: 18; radius: 4
-        background: alpha(t.buy ? green : red, 0.18)
+        width: 42
+        height: 18
+        radius: 4
+        background: alpha(t.buy ? upColor : downColor, 0.22)
+        border: 1
+        borderColor: t.buy ? upColor : downColor
         align: center
         Text {
-          text: t.buy ? "Buy" : (t.side ?? "Sale")
-          fontSize: 10; bold: true; align: center
-          color: t.buy ? green : red; maxLines: 1
+          text: t.buy ? "BUY" : "SELL"
+          fontSize: 10
+          bold: true
+          align: center
+          color: t.buy ? upColor : downColor
+          maxLines: 1
+          font: mono
         }
       }
-      Text { text: t.t; style: small; bold: true; color: accent; width: 52; maxLines: 1; font: mono }
+      Text {
+        text: t.t ?? "—"
+        style: small
+        bold: true
+        color: neon
+        width: 52
+        maxLines: 1
+        font: mono
+      }
       Text {
         text: t.date != "" ? sub(t.date, 5, 10) : "—"
-        style: small; color: muted; width: 40; maxLines: 1; font: mono
+        style: small
+        color: textDim
+        width: 42
+        maxLines: 1
+        font: mono
       }
       Text {
         text: t.mu == null ? (t.rng ?? "—") : "$${t.mu}${t.mu_u}"
-        style: small; color: foreground; weight: 1; maxLines: 1; font: mono
+        style: small
+        bold: true
+        color: textHi
+        weight: 1
+        align: end
+        maxLines: 1
+        font: mono
       }
     }
   }
@@ -620,104 +718,353 @@ PY
     Row {
       gap: 6
       align: center
-      Text { text: h.t; style: small; bold: true; color: accent; width: 52; maxLines: 1; font: mono }
-      Text { text: h.name; style: small; color: muted; weight: 1; maxLines: 1 }
+      height: 28
+      background: alpha(panel, 0.85)
+      border: 1
+      borderColor: alpha(neon, 0.28)
+      radius: 6
+      padding: [0, 6]
+      Text {
+        text: h.t ?? "—"
+        style: small
+        bold: true
+        color: neon
+        width: 48
+        maxLines: 1
+        font: mono
+      }
+      Text {
+        text: h.name ?? ""
+        style: small
+        color: textDim
+        weight: 1
+        maxLines: 1
+      }
+      if h.spark != null && len(h.spark) > 3 {
+        let slo = min(h.spark)
+        let shi = max(h.spark)
+        Sparkline {
+          values: h.spark
+          min: slo
+          max: shi
+          color: h.dup ? upColor : downColor
+          area: true
+          thickness: 1.2
+          width: 44
+          height: 16
+        }
+      }
       Text {
         text: h.dpct == null ? "—" : "${h.dup ? "+" : ""}${fixed(h.dpct, 1)}%"
-        style: small; bold: true; width: 58; align: end; font: mono
-        color: h.dpct == null ? muted : (h.dup ? green : red)
+        style: small
+        bold: true
+        width: 54
+        align: end
+        maxLines: 1
+        font: mono
+        color: h.dpct == null ? textDim : (h.dup ? upColor : downColor)
       }
       Text {
         text: h.mu == null ? "—" : "$${h.mu}${h.mu_u}"
-        style: small; width: 64; align: end; font: mono; maxLines: 1
+        style: small
+        width: 58
+        align: end
+        font: mono
+        maxLines: 1
+        color: textHi
       }
     }
   }
 
+let th = tileHeight ?? 0
+  let tw = tileWidth ?? 0
+  let tiny = th > 0 && th < 160
+  let compact = th > 0 && th < 300
+  let dense = th > 0 && th < 520
+  let gapMain = tiny ? 2 : dense ? 4 : 8
+  let padWrap = tiny ? 3 : dense ? 4 : 6
+  let sparkH = tiny ? 0 : compact ? 22 : dense ? 28 : 40
+  // Pack as many fixed-height rows as the tile can hold (no empty flex void).
+  let maxTrades = tiny ? 5 : compact ? 10 : dense ? 16 : 18
+  let showHoldStrip = !tiny && !compact && len(holdings) > 0
+  let buysN = data.buys_n ?? 0
+  let sellsN = data.sells_n ?? 0
+  let bsTotal = buysN + sellsN
+  let buyPct = bsTotal > 0 ? (100.0 * buysN / bsTotal) : 50
+  let latest = len(trades) > 0 ? trades[0] : null
+  let latestLine = latest == null ? "awaiting house PTR scrape…"
+    : "${latest.buy ? "BUY" : "SELL"} ${latest.t} · ${latest.mu == null ? (latest.rng ?? "—") : "$${latest.mu}${latest.mu_u}"} · ${latest.date != "" ? sub(latest.date, 5, 10) : "—"}"
+
   onTap: screen()
 
-  Column {
-    gap: 8
+  Box { /* neon-wrap */
     fill: true
+    background: void
+    border: 2
+    borderColor: neon
+    radius: 12
+    clip: true
+    padding: padWrap
+    Column {
+      gap: gapMain
+      fill: true
 
-    Row {
-      gap: 10
-      align: center
-      Gavel { }
-      Column {
-        gap: 0
-        weight: 1
-        Text { text: "pelosi trades"; style: label; color: muted; maxLines: 1 }
-        Text {
-          text: data == null ? "loading house filings…" : data.err != "" && data.n == 0 ? data.err : "House clerk · ${data.n} PTR rows · $${data.vol_m}${data.vol_u} vol"
-          style: small; color: muted; maxLines: 1
+      // ── header ──
+      Row {
+        gap: dense ? 6 : 10
+        align: center
+        Gavel { }
+        Column {
+          gap: 0
+          weight: 1
+          Text { text: "pelosi trades"; style: label; color: neonPink; bold: true; maxLines: 1 }
+          Text {
+            text: data == null ? "loading house filings…"
+              : data.err != "" && data.n == 0 ? data.err
+              : "House clerk · ${data.n} PTR · $${data.vol_m}${data.vol_u}"
+            style: small; color: textDim; maxLines: 1
+          }
+        }
+        if age != null {
+          Text {
+            text: age < 120 ? "live" : age < 3600 ? "${floor(age / 60)}m" : "${floor(age / 3600)}h"
+            style: small; color: age < 900 ? upColor : textDim; width: 36; align: end
+          }
         }
       }
-      if age != null {
-        Text {
-          text: age < 120 ? "live" : age < 3600 ? "${floor(age / 60)}m" : "${floor(age / 3600)}h"
-          style: small; color: age < 900 ? green : muted; width: 36; align: end
+
+      // ── activity summary: dense neon chips ──
+      Row {
+        gap: dense ? 3 : 5
+        // buys
+        Column {
+          gap: 0
+          align: center
+          weight: 1
+          background: alpha(upColor, 0.10)
+          border: 1
+          borderColor: alpha(upColor, 0.55)
+          radius: 6
+          padding: dense ? [4, 3] : [6, 4]
+          Text { text: "BUYS"; style: label; color: alpha(upColor, 0.8); align: center; maxLines: 1; font: mono }
+          Text { text: data.buys_n == null ? "…" : "${data.buys_n}"; style: small; bold: true; color: upColor; align: center; maxLines: 1; font: mono }
+        }
+        // sells
+        Column {
+          gap: 0
+          align: center
+          weight: 1
+          background: alpha(downColor, 0.10)
+          border: 1
+          borderColor: alpha(downColor, 0.55)
+          radius: 6
+          padding: dense ? [4, 3] : [6, 4]
+          Text { text: "SELLS"; style: label; color: alpha(downColor, 0.8); align: center; maxLines: 1; font: mono }
+          Text { text: data.sells_n == null ? "…" : "${data.sells_n}"; style: small; bold: true; color: downColor; align: center; maxLines: 1; font: mono }
+        }
+        // tickers
+        Column {
+          gap: 0
+          align: center
+          weight: 1
+          background: alpha(neon, 0.10)
+          border: 1
+          borderColor: alpha(neon, 0.55)
+          radius: 6
+          padding: dense ? [4, 3] : [6, 4]
+          Text { text: "TKRS"; style: label; color: alpha(neon, 0.8); align: center; maxLines: 1; font: mono }
+          Text { text: "${len(holdings)}"; style: small; bold: true; color: neon; align: center; maxLines: 1; font: mono }
+        }
+        // volume
+        Column {
+          gap: 0
+          align: center
+          weight: 1
+          background: alpha(neonYellow, 0.10)
+          border: 1
+          borderColor: alpha(neonYellow, 0.55)
+          radius: 6
+          padding: dense ? [4, 3] : [6, 4]
+          Text { text: "VOL"; style: label; color: alpha(neonYellow, 0.8); align: center; maxLines: 1; font: mono }
+          Text {
+            text: data.vol_m == null ? "…" : "$${data.vol_m}${data.vol_u}"
+            style: small; bold: true; color: textHi; align: center; maxLines: 1; font: mono
+          }
+        }
+        // day
+        Column {
+          gap: 0
+          align: center
+          weight: 1
+          background: alpha(book_up ? upColor : downColor, 0.10)
+          border: 1
+          borderColor: alpha(book_up ? upColor : downColor, 0.55)
+          radius: 6
+          padding: dense ? [4, 3] : [6, 4]
+          Text { text: "DAY"; style: label; color: alpha(book_up ? upColor : downColor, 0.8); align: center; maxLines: 1; font: mono }
+          Text {
+            text: data.day == null ? "…" : "${book_up ? "+" : ""}${fixed(data.day, 1)}%"
+            style: small; bold: true; color: book_up ? upColor : downColor; align: center; maxLines: 1; font: mono
+          }
         }
       }
-    }
 
-    Row {
-      gap: 6
-      StatPill {
-        label: "buys"
-        value: data.buys_n == null ? "…" : "${data.buys_n}"
-        tint: green
+      // ── buy/sell ratio bar + latest activity ──
+      if !tiny {
+        Column {
+          gap: dense ? 2 : 3
+          Row {
+            gap: 6
+            align: center
+            Text { text: "B/S"; style: label; color: textDim; maxLines: 1; font: mono; width: 22 }
+            Box {
+              weight: 1
+              height: dense ? 8 : 10
+              radius: 4
+              background: alpha(downColor, 0.25)
+              clip: true
+              Row {
+                fill: true
+                Box {
+                  weight: max(buyPct, 1)
+                  fill: true
+                  background: alpha(upColor, 0.85)
+                }
+                Box {
+                  weight: max(100 - buyPct, 1)
+                  fill: true
+                  background: alpha(downColor, 0.55)
+                }
+              }
+            }
+            Text {
+              text: bsTotal == 0 ? "—" : "${fixed(buyPct, 0)}% buy"
+              style: small; color: textHi; maxLines: 1; font: mono; width: 58; align: end
+            }
+          }
+          Row {
+            gap: 4
+            align: center
+            Box {
+              width: 6; height: 6; radius: 3
+              background: latest == null ? textDim : (latest.buy ? upColor : downColor)
+            }
+            Text {
+              text: latestLine
+              style: small; color: textMid; maxLines: 1; weight: 1; font: mono
+            }
+          }
+        }
       }
-      StatPill {
-        label: "sells"
-        value: data.sells_n == null ? "…" : "${data.sells_n}"
-        tint: red
-      }
-      StatPill {
-        label: "tickers"
-        value: "${len(holdings)}"
-        tint: accent
-      }
-      StatPill {
-        label: "day"
-        value: data.day == null ? "…" : "${book_up ? "+" : ""}${fixed(data.day, 1)}%"
-        tint: book_up ? green : red
-      }
-    }
 
-    if len(use_chart) > 2 {
+      // ── sparkline (compact height when dense) ──
+      if sparkH > 0 && len(use_chart) > 2 {
+        Column {
+          gap: 1
+          Row {
+            align: center
+            Text {
+              text: len(chart) > 3 ? "tickers · 3M pulse" : "monthly vol · $M"
+              style: label; color: textDim; maxLines: 1; weight: 1
+            }
+            Text {
+              text: data.day == null ? "" : "${book_up ? "+" : ""}${fixed(data.day, 2)}%"
+              style: small; bold: true; color: book_up ? upColor : downColor; maxLines: 1; font: mono; width: 64; align: end
+            }
+          }
+          Sparkline {
+            values: use_chart; min: lo; max: hi
+            color: book_up ? upColor : downColor
+            area: true; thickness: 2; fill: width; height: sparkH
+          }
+        }
+      }
+
+      // ── filings list (packed rows; no weight:1 empty flex band) ──
       Column {
         gap: 2
+        fill: width
         Row {
           align: center
+          Text { text: "recent filings"; style: label; color: textDim; maxLines: 1; weight: 1 }
           Text {
-            text: len(chart) > 3 ? "disclosed tickers · 3M pulse" : "monthly filing volume · $M"
-            style: label; color: muted; maxLines: 1; weight: 1
-          }
-          Text {
-            text: data.day == null ? "" : "day ${book_up ? "+" : ""}${fixed(data.day, 2)}%"
-            style: small; bold: true; color: book_up ? green : red; maxLines: 1; font: mono; width: 88; align: end
+            text: len(trades) == 0 ? "" : "${min(maxTrades, len(trades))}/${len(trades)}"
+            style: label; color: alpha(neon, 0.7); maxLines: 1; font: mono
           }
         }
-        Sparkline {
-          values: use_chart; min: lo; max: hi
-          color: book_up ? green : red
-          area: true; thickness: 2; fill: width; height: 48
+        if data == null {
+          Text { text: "fetching house disclosures…"; style: small; color: textDim }
+        } else if len(trades) == 0 {
+          Text { text: data.err != "" ? data.err : "no PTR rows yet"; style: small; color: neonOrange }
+        } else {
+          Column {
+            gap: 2
+            fill: width
+            for t in take(trades, maxTrades) key "${t.t}-${t.date}-${t.side}-${t.rng}-${t.doc}" {
+              Row {
+                gap: dense ? 4 : 6
+                align: center
+                height: 20
+                Box {
+                  width: dense ? 34 : 40; height: dense ? 16 : 18; radius: 4
+                  background: alpha(t.buy ? upColor : downColor, 0.18)
+                  border: 1
+                  borderColor: alpha(t.buy ? upColor : downColor, 0.45)
+                  align: center
+                  Text {
+                    text: t.buy ? "BUY" : "SELL"
+                    fontSize: 9; bold: true; align: center
+                    color: t.buy ? upColor : downColor; maxLines: 1; font: mono
+                  }
+                }
+                Text { text: t.t; style: small; bold: true; color: neon; width: 48; maxLines: 1; font: mono }
+                Text {
+                  text: t.date != "" ? sub(t.date, 5, 10) : "—"
+                  style: small; color: textDim; width: 36; maxLines: 1; font: mono
+                }
+                Text {
+                  text: t.mu == null ? (t.rng ?? "—") : "$${t.mu}${t.mu_u}"
+                  style: small; color: textHi; weight: 1; maxLines: 1; font: mono
+                }
+              }
+            }
+          }
         }
       }
-    }
 
-    Column {
-      gap: 3
-      weight: 1
-      Text { text: "recent filings"; style: label; color: muted; maxLines: 1 }
-      if data == null {
-        Text { text: "fetching house disclosures…"; style: small; color: muted }
-      } else if len(trades) == 0 {
-        Text { text: data.err != "" ? data.err : "no PTR rows yet"; style: small; color: orange }
-      } else {
-        for t in take(trades, 8) key "${t.t}-${t.date}-${t.side}-${t.rng}-${t.doc}" {
-          TradeRow { t: t }
+      // ── mini holdings strip (top 3 by usd) — fills footer void ──
+      if showHoldStrip {
+        Column {
+          gap: 2
+          Text { text: "top holdings"; style: label; color: textDim; maxLines: 1 }
+          Row {
+            gap: dense ? 3 : 5
+            for h in take(holdings, 3) key h.t {
+              Column {
+                gap: 0
+                weight: 1
+                background: alpha(panel, 0.75)
+                border: 1
+                borderColor: alpha(neon, 0.35)
+                radius: 6
+                padding: dense ? [4, 3] : [5, 4]
+                Row {
+                  gap: 4
+                  align: center
+                  Text { text: h.t; style: small; bold: true; color: neon; maxLines: 1; font: mono; weight: 1 }
+                  Text {
+                    text: h.dpct == null ? "" : "${h.dup ? "+" : ""}${fixed(h.dpct, 1)}%"
+                    style: small; bold: true; maxLines: 1; font: mono
+                    color: h.dpct == null ? textDim : (h.dup ? upColor : downColor)
+                  }
+                }
+                Text {
+                  text: h.mu == null ? "—" : "$${h.mu}${h.mu_u}"
+                  style: small; color: textHi; maxLines: 1; font: mono
+                }
+              }
+            }
+          }
         }
       }
     }
@@ -725,193 +1072,475 @@ PY
 
   screen {
     title: "pelosi trades"
-    Column {
-      gap: 10
-      padding: 4
+    Box { /* neon-screen */
       fill: true
-
-      Row {
-        gap: 10
-        align: center
-        Gavel { }
-        Column {
-          gap: 2
-          weight: 1
-          Text { text: data.who ?? "Nancy Pelosi"; style: title; maxLines: 1 }
-          Text {
-            text: "STOCK Act PTRs · House clerk · not investment advice"
-            style: small; color: muted; maxLines: 1
-          }
-        }
-        Button { text: "refresh"; onTap: refresh() }
-      }
-
-      Row {
+      background: void
+      border: 2
+      borderColor: neonPink
+      radius: 12
+      clip: true
+      padding: 6
+      Column {
         gap: 8
-        Box {
-          weight: 1; radius: 8; padding: 8
-          background: alpha(green, 0.1)
-          Column {
-            gap: 2
-            Text { text: "disclosed volume"; style: label; color: muted }
-            Text {
-              text: data.vol_m == null ? "…" : "$${data.vol_m}${data.vol_u}"
-              style: title; color: accent; maxLines: 1; font: mono
-            }
-            Text {
-              text: "${data.buys_n ?? 0} buys · ${data.sells_n ?? 0} sells · ${data.n ?? 0} rows"
-              style: small; color: muted; maxLines: 1
-            }
-          }
-        }
-        Box {
-          weight: 1; radius: 8; padding: 8
-          background: alpha(accent, 0.1)
-          Column {
-            gap: 2
-            Text { text: "book today"; style: label; color: muted }
-            Text {
-              text: data.day == null ? "…" : "${book_up ? "+" : ""}${fixed(data.day, 2)}%"
-              style: title; color: book_up ? green : red; maxLines: 1; font: mono
-            }
-            Text {
-              text: "avg day move · top tickers"
-              style: small; color: muted; maxLines: 1
-            }
-          }
-        }
-      }
+        padding: 2
+        fill: true
 
-      if len(use_chart) > 2 {
+        // ── header ──
+        Row {
+          gap: 10
+          align: center
+          Gavel { }
+          Column {
+            gap: 1
+            weight: 1
+            Text {
+              text: data.who ?? "Nancy Pelosi"
+              style: title
+              color: neonYellow
+              maxLines: 1
+            }
+            Text {
+              text: "STOCK Act PTRs · House clerk · not investment advice"
+              style: small
+              color: textDim
+              maxLines: 1
+            }
+          }
+          Button { text: "refresh"; onTap: refresh() }
+        }
+
+        // ── activity summary header (volume · buys/sells · day · PTR) ──
+        Row {
+          gap: 6
+          Box {
+            weight: 1
+            radius: 8
+            padding: [6, 7]
+            background: alpha(panel, 0.95)
+            border: 1
+            borderColor: alpha(neon, 0.7)
+            Column {
+              gap: 1
+              Text { text: "VOLUME"; style: label; color: textDim; maxLines: 1 }
+              Text {
+                text: data.vol_m == null ? "…" : "$${data.vol_m}${data.vol_u}"
+                style: small
+                bold: true
+                color: neon
+                maxLines: 1
+                font: mono
+              }
+            }
+          }
+          Box {
+            weight: 1
+            radius: 8
+            padding: [6, 7]
+            background: alpha(panel, 0.95)
+            border: 1
+            borderColor: alpha(upColor, 0.7)
+            Column {
+              gap: 1
+              Text { text: "BUYS"; style: label; color: textDim; maxLines: 1 }
+              Text {
+                text: "${data.buys_n ?? 0}"
+                style: small
+                bold: true
+                color: upColor
+                maxLines: 1
+                font: mono
+              }
+            }
+          }
+          Box {
+            weight: 1
+            radius: 8
+            padding: [6, 7]
+            background: alpha(panel, 0.95)
+            border: 1
+            borderColor: alpha(downColor, 0.7)
+            Column {
+              gap: 1
+              Text { text: "SELLS"; style: label; color: textDim; maxLines: 1 }
+              Text {
+                text: "${data.sells_n ?? 0}"
+                style: small
+                bold: true
+                color: downColor
+                maxLines: 1
+                font: mono
+              }
+            }
+          }
+          Box {
+            weight: 1
+            radius: 8
+            padding: [6, 7]
+            background: alpha(panel, 0.95)
+            border: 1
+            borderColor: alpha(book_up ? upColor : downColor, 0.75)
+            Column {
+              gap: 1
+              Text { text: "DAY"; style: label; color: textDim; maxLines: 1 }
+              Text {
+                text: data.day == null ? "…" : "${book_up ? "+" : ""}${fixed(data.day, 2)}%"
+                style: small
+                bold: true
+                color: book_up ? upColor : downColor
+                maxLines: 1
+                font: mono
+              }
+            }
+          }
+          Box {
+            weight: 1
+            radius: 8
+            padding: [6, 7]
+            background: alpha(panel, 0.95)
+            border: 1
+            borderColor: alpha(neonYellow, 0.7)
+            Column {
+              gap: 1
+              Text { text: "PTR"; style: label; color: textDim; maxLines: 1 }
+              Text {
+                text: "${data.n ?? 0}"
+                style: small
+                bold: true
+                color: neonYellow
+                maxLines: 1
+                font: mono
+              }
+            }
+          }
+        }
+
+        // ── pulse chart ──
+        if len(use_chart) > 2 {
+          Column {
+            gap: 3
+            fill: width
+            padding: [4, 6]
+            background: alpha(panel, 0.7)
+            border: 1
+            borderColor: alpha(neon, 0.35)
+            radius: 8
+            Row {
+              align: center
+              Text {
+                text: len(chart) > 3 ? "holdings pulse · 3M" : "monthly volume · $M"
+                style: label
+                color: textDim
+                maxLines: 1
+                weight: 1
+              }
+              Text {
+                text: data.day == null ? "" : "day ${book_up ? "+" : ""}${fixed(data.day, 2)}%"
+                style: small
+                bold: true
+                color: book_up ? upColor : downColor
+                maxLines: 1
+                font: mono
+              }
+            }
+            Sparkline {
+              values: use_chart
+              min: lo
+              max: hi
+              color: book_up ? upColor : downColor
+              area: true
+              thickness: 2.2
+              fill: width
+              height: 64
+            }
+          }
+        }
+
+        // ── tab chrome ──
+        Row {
+          gap: 0
+          height: 30
+          background: alpha(panel, 0.9)
+          border: 1
+          borderColor: alpha(neon, 0.45)
+          radius: 8
+          clip: true
+          Box {
+            weight: 1
+            height: 30
+            align: center
+            background: tab == "activity" ? alpha(neon, 0.18) : alpha(void, 0.4)
+            border: tab == "activity" ? 1 : 0
+            borderColor: neon
+            radius: 7
+            onTap: tab = "activity"
+            Text {
+              text: "ACTIVITY"
+              bold: true
+              align: center
+              color: tab == "activity" ? neon : textDim
+              maxLines: 1
+              font: mono
+              fontSize: 11
+            }
+          }
+          Box {
+            weight: 1
+            height: 30
+            align: center
+            background: tab == "book" ? alpha(neonPink, 0.18) : alpha(void, 0.4)
+            border: tab == "book" ? 1 : 0
+            borderColor: neonPink
+            radius: 7
+            onTap: tab = "book"
+            Text {
+              text: "BOOK"
+              bold: true
+              align: center
+              color: tab == "book" ? neonPink : textDim
+              maxLines: 1
+              font: mono
+              fontSize: 11
+            }
+          }
+        }
+
+        // ── tab body ──
         Column {
           gap: 4
-          fill: width
-          Text {
-            text: len(chart) > 3 ? "holdings pulse · 3 months" : "monthly disclosed volume · $M"
-            style: label; color: muted; maxLines: 1
-          }
-          Sparkline {
-            values: use_chart; min: lo; max: hi
-            color: book_up ? green : red
-            area: true; thickness: 2.5; fill: width; height: 88
-          }
-        }
-      }
+          weight: 1
+          scroll: true
 
-      Row {
-        gap: 8
-        Button {
-          text: "activity"
-          color: tab == "activity" ? accent : muted
-          onTap: tab = "activity"
-        }
-        Button {
-          text: "book"
-          color: tab == "book" ? accent : muted
-          onTap: tab = "book"
-        }
-        Spacer { weight: 1 }
-        Button { text: "refresh"; onTap: refresh() }
-      }
-
-      Column {
-        gap: 6
-        weight: 1
-        scroll: true
-
-        if tab == "activity" {
-          Text { text: "recent filings"; style: label; color: yellow }
-          for t in take(trades, 40) key "${t.t}-${t.date}-${t.side}-${t.rng}-${t.doc}" {
-            Column {
-              gap: 2
-              padding: [0, 6]
-              background: alpha(t.buy ? green : red, 0.05)
-              radius: 6
-              Row {
-                gap: 8
-                align: center
-                Text {
-                  text: t.buy ? "BUY" : "SELL"
-                  bold: true; width: 44; color: t.buy ? green : red; font: mono
-                }
-                Text { text: t.t; bold: true; color: accent; width: 56; font: mono }
-                Text { text: t.name; style: small; color: muted; weight: 1; maxLines: 1 }
-                Text {
-                  text: t.mu == null ? (t.rng ?? "—") : "$${t.mu}${t.mu_u}"
-                  bold: true; width: 72; align: end; font: mono
-                }
+          if tab == "activity" {
+            Row {
+              align: center
+              Text {
+                text: "RECENT FILINGS"
+                style: label
+                color: neonYellow
+                maxLines: 1
+                weight: 1
               }
-              Row {
-                gap: 8
-                Text { text: t.date; style: small; color: muted; width: 88; font: mono }
-                Text { text: t.desc != "" ? t.desc : (t.type != "" ? t.type : ""); style: small; color: muted; weight: 1; maxLines: 2 }
-                if t.doc != "" {
-                  Button {
-                    text: "pdf"
-                    color: muted
-                    onTap: url("https://disclosures-clerk.house.gov/public_disc/ptr-pdfs/${t.year ?? sub(t.filed, 0, 4)}/${t.doc}.pdf")
+              Text {
+                text: "${min(len(trades), 40)} shown"
+                style: small
+                color: textDim
+                maxLines: 1
+                font: mono
+              }
+            }
+            for t in take(trades, 40) key "${t.t}-${t.date}-${t.side}-${t.rng}-${t.doc}" {
+              Column {
+                gap: 2
+                padding: [5, 6]
+                background: alpha(panel, 0.92)
+                border: 1
+                borderColor: alpha(t.buy ? upColor : downColor, 0.4)
+                radius: 6
+                Row {
+                  gap: 6
+                  align: center
+                  height: 22
+                  Box {
+                    width: 42
+                    height: 18
+                    radius: 4
+                    background: alpha(t.buy ? upColor : downColor, 0.2)
+                    border: 1
+                    borderColor: t.buy ? upColor : downColor
+                    align: center
+                    Text {
+                      text: t.buy ? "BUY" : "SELL"
+                      bold: true
+                      align: center
+                      color: t.buy ? upColor : downColor
+                      font: mono
+                      fontSize: 10
+                      maxLines: 1
+                    }
+                  }
+                  Text {
+                    text: t.t ?? "—"
+                    bold: true
+                    color: neon
+                    width: 52
+                    font: mono
+                    maxLines: 1
+                  }
+                  Text {
+                    text: t.name ?? ""
+                    style: small
+                    color: textDim
+                    weight: 1
+                    maxLines: 1
+                  }
+                  Text {
+                    text: t.mu == null ? (t.rng ?? "—") : "$${t.mu}${t.mu_u}"
+                    bold: true
+                    width: 70
+                    align: end
+                    font: mono
+                    maxLines: 1
+                    color: textHi
+                  }
+                }
+                Row {
+                  gap: 6
+                  align: center
+                  height: 20
+                  Text {
+                    text: t.date != "" ? t.date : "—"
+                    style: small
+                    color: textDim
+                    width: 88
+                    font: mono
+                    maxLines: 1
+                  }
+                  Text {
+                    text: t.desc != "" ? t.desc : (t.type != "" ? t.type : "—")
+                    style: small
+                    color: textDim
+                    weight: 1
+                    maxLines: 1
+                  }
+                  if t.doc != "" {
+                    Button {
+                      text: "pdf"
+                      color: neon
+                      onTap: url("https://disclosures-clerk.house.gov/public_disc/ptr-pdfs/${t.year ?? sub(t.filed, 0, 4)}/${t.doc}.pdf")
+                    }
                   }
                 }
               }
             }
           }
-        }
 
-        if tab == "book" {
-          Text { text: "disclosed buy notional by ticker"; style: label; color: yellow }
-          for h in take(holdings, 12) key h.t {
-            Column {
-              gap: 4
-              padding: [0, 6]
-              radius: 6
-              background: alpha(surface, 0.5)
-              Row {
-                gap: 8
-                align: center
-                Text { text: h.t; bold: true; color: accent; width: 56; font: mono }
-                Text { text: h.name; style: small; color: muted; weight: 1; maxLines: 1 }
-                Text {
-                  text: h.px == null ? "" : "$${fixed(h.px, 2)}"
-                  style: small; width: 72; align: end; font: mono
+          if tab == "book" {
+            Row {
+              align: center
+              Text {
+                text: "BUY NOTIONAL BY TICKER"
+                style: label
+                color: neonYellow
+                maxLines: 1
+                weight: 1
+              }
+              Text {
+                text: "${min(len(holdings), 16)} tickers"
+                style: small
+                color: textDim
+                maxLines: 1
+                font: mono
+              }
+            }
+            for h in take(holdings, 16) key h.t {
+              Column {
+                gap: 3
+                padding: [5, 6]
+                radius: 6
+                background: alpha(panel, 0.92)
+                border: 1
+                borderColor: alpha(h.dup ? upColor : downColor, 0.35)
+                onTap: url("https://www.cnbc.com/quotes/${h.t}")
+                Row {
+                  gap: 6
+                  align: center
+                  height: 22
+                  Text {
+                    text: h.t ?? "—"
+                    bold: true
+                    color: neon
+                    width: 52
+                    font: mono
+                    maxLines: 1
+                  }
+                  Text {
+                    text: h.name ?? ""
+                    style: small
+                    color: textDim
+                    weight: 1
+                    maxLines: 1
+                  }
+                  Text {
+                    text: h.px == null ? "" : "$${fixed(h.px, 2)}"
+                    style: small
+                    width: 68
+                    align: end
+                    font: mono
+                    maxLines: 1
+                    color: textMid
+                  }
+                  Text {
+                    text: h.dpct == null ? "—" : "${h.dup ? "+" : ""}${fixed(h.dpct, 1)}%"
+                    style: small
+                    bold: true
+                    color: h.dpct == null ? textDim : (h.dup ? upColor : downColor)
+                    width: 58
+                    align: end
+                    font: mono
+                    maxLines: 1
+                  }
                 }
-                Text {
-                  text: h.dpct == null ? "—" : "${h.dup ? "+" : ""}${fixed(h.dpct, 1)}%"
-                  style: small; bold: true; color: h.dpct == null ? muted : (h.dup ? green : red); width: 64; align: end; font: mono
+                Row {
+                  gap: 6
+                  align: center
+                  height: 18
+                  Text {
+                    text: "${h.buys ?? 0} buys · ${h.sells ?? 0} sells"
+                    style: small
+                    color: textDim
+                    weight: 1
+                    maxLines: 1
+                  }
+                  Text {
+                    text: h.mu == null ? "—" : "≈ $${h.mu}${h.mu_u}"
+                    style: small
+                    bold: true
+                    width: 96
+                    align: end
+                    font: mono
+                    maxLines: 1
+                    color: textHi
+                  }
+                }
+                if h.spark != null && len(h.spark) > 3 {
+                  let slo = min(h.spark)
+                  let shi = max(h.spark)
+                  Sparkline {
+                    values: h.spark
+                    min: slo
+                    max: shi
+                    color: h.dup ? upColor : downColor
+                    area: true
+                    thickness: 1.4
+                    fill: width
+                    height: 22
+                  }
                 }
               }
-              Row {
-                gap: 8
-                Text { text: "${h.buys} buys · ${h.sells} sells"; style: small; color: muted; weight: 1 }
-                Text {
-                  text: h.mu == null ? "—" : "≈ $${h.mu}${h.mu_u} buys"
-                  style: small; bold: true; width: 110; align: end; font: mono
-                }
-              }
-              if len(h.spark) > 3 {
-                let slo = min(h.spark)
-                let shi = max(h.spark)
-                Sparkline {
-                  values: h.spark; min: slo; max: shi
-                  color: h.dup ? green : red
-                  area: true; thickness: 1.5; fill: width; height: 28
-                }
-              }
-              onTap: url("https://www.cnbc.com/quotes/${h.t}")
+            }
+            Text {
+              text: "Amounts are STOCK Act ranges (midpoints) from House Periodic Transaction Reports. Live quotes via CNBC. Not investment advice."
+              style: small
+              color: textDim
+              maxLines: 3
             }
           }
-          Text {
-            text: "Amounts are STOCK Act ranges (midpoints) from House Periodic Transaction Reports. Live quotes via CNBC. Not investment advice."
-            style: small; color: muted; maxLines: 4
-          }
         }
-      }
 
-      Row {
-        gap: 8
-        Button { text: "house search"; onTap: url("https://disclosures-clerk.house.gov/FinancialDisclosure") }
-        Button { text: "house clerk"; onTap: url("https://disclosures-clerk.house.gov/public_disc/financial-pdfs/") }
-        Spacer { weight: 1 }
-        Button { text: "close"; color: muted; onTap: close() }
+        // ── footer links ──
+        Row {
+          gap: 6
+          Button {
+            text: "house search"
+            onTap: url("https://disclosures-clerk.house.gov/FinancialDisclosure")
+          }
+          Button {
+            text: "house clerk"
+            onTap: url("https://disclosures-clerk.house.gov/public_disc/financial-pdfs/")
+          }
+          Spacer { weight: 1 }
+          Button { text: "close"; color: textDim; onTap: close() }
+        }
       }
     }
   }

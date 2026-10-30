@@ -3,14 +3,37 @@ widget "potus" {
   minSize: 2x2
   padding: 0
   meta {
-    description: "Trump and White House posts on Truth Social. Tap to flip through current and past posts, newest first.";
-    version: "1.1";
+    description: "Trump and White House posts on Truth Social — neon cyberpunk tile. Tap to flip through posts.";
+    version: "1.2";
     license: "MIT";
     category: "news";
     owl: 5
   }
 
   requires { pacman: ["python"] }
+
+
+
+  // goose cyberpunk neon palette — bright surfaces that pop
+  let void = #050510
+  let panel = #0a0a18
+  let ink = #0a0a0a
+  let neon = #00e5ff
+  let neonPink = #ff2bd6
+  let neonOrange = #ff6b00
+  let neonLime = #39ff14
+  let neonYellow = #fff200
+  let neonRed = #ff2a2a
+  let neonPurple = #c084fc
+  let neonBlue = #00b8d4
+  let textHi = #fff200
+  let textMid = #ffe066
+  let textDim = #b8ff00
+  let upColor = #39ff14
+  let downColor = #ff2bd6
+  let warnColor = #ff6b00
+
+  background: void
 
   source feed = cmd("""
 python3 - <<'PY'
@@ -376,7 +399,7 @@ PY
   let cur = n > 0 ? items[idx] : null
   let age = feed != null && feed.at != null ? now - feed.at : null
   let isTruth = cur != null && cur.src == "truth"
-  let shade = isTruth ? orange : cyan
+  let shade = isTruth ? neonOrange : neon
   let rel = cur == null || cur.at == 0 ? "" : now - cur.at < 60 ? "now" : now - cur.at < 3600 ? "${max(floor((now - cur.at) / 60), 1)}m" : now - cur.at < 86400 ? "${floor((now - cur.at) / 3600)}h" : now - cur.at < 604800 ? "${floor((now - cur.at) / 86400)}d" : fmtTime(cur.at, "MMM d")
   let thumb = (cur.thumb ?? "")
   let hasThumb = thumb != "" && thumb != null
@@ -412,12 +435,20 @@ PY
         maxLines: 1
         fontSize: big ? 15 : fsTab
         bold: tab == id
-        color: tab == id ? hue : muted
+        color: tab == id ? hue : textDim
         onTap: tab = id
       }
-      Spacer { height: big ? 2 : tiny ? 1 : 2; fill: width; background: tab == id ? hue : alpha(muted, 0.0) }
+      Spacer { height: big ? 2 : tiny ? 1 : 2; fill: width; background: tab == id ? hue : alpha(textDim, 0.0) }
     }
   }
+
+  Box { /* neon-wrap */
+    fill: true
+    background: void
+    border: 2
+    borderColor: neon
+    radius: 12
+    padding: 2
 
   Column {
     gap: gap
@@ -429,19 +460,19 @@ PY
       Text {
         text: "POTUS"
         style: label
-        color: accent
+        color: neonPink
         bold: true
         maxLines: 1
         width: tiny ? 40 : 52
         fontSize: fsLabel
       }
-      Tab { id: "all"; label: "all"; hue: accent }
-      Tab { id: "truth"; label: tiny ? "TS" : "truth"; hue: orange }
-      Tab { id: "wh"; label: "WH"; hue: cyan }
+      Tab { id: "all"; label: "all"; hue: neon }
+      Tab { id: "truth"; label: tiny ? "TS" : "truth"; hue: neonOrange }
+      Tab { id: "wh"; label: "WH"; hue: neon }
       Text {
         text: age == null ? "..." : age < 90 ? "live" : age < 3600 ? "${max(floor(age / 60), 1)}m" : "${floor(age / 3600)}h"
         style: small
-        color: muted
+        color: textDim
         font: mono
         maxLines: 1
         width: tiny ? 28 : 36
@@ -458,7 +489,7 @@ PY
         Text {
           text: feed == null ? "loading posts..." : "no posts - tap to retry"
           style: small
-          color: muted
+          color: textDim
           align: center
           fontSize: bodySize
           onTap: refresh()
@@ -485,14 +516,14 @@ PY
             weight: 1
             Text { text: cur.who ?? ""; fontSize: fsWho; bold: true; maxLines: 1 }
             if !tiny {
-              Text { text: cur.handle ?? ""; style: small; color: muted; maxLines: 1; fontSize: fsHandle }
+              Text { text: cur.handle ?? ""; style: small; color: textDim; maxLines: 1; fontSize: fsHandle }
             }
           }
           Text {
             text: "${idx + 1}/${n}"
             font: mono
             fontSize: tiny ? 9 : 11
-            color: muted
+            color: textDim
             maxLines: 1
             width: tiny ? 40 : 56
             align: end
@@ -500,7 +531,7 @@ PY
         }
 
         if !tiny {
-          Spacer { height: 1; fill: width; background: alpha(muted, 0.22) }
+          Spacer { height: 1; fill: width; background: alpha(textDim, 0.22) }
         }
 
         if showThumb {
@@ -519,7 +550,7 @@ PY
               text: cur.text ?? ""
               fontSize: bodySize
               maxLines: bodyLines
-              color: foreground
+              color: textHi
               weight: 1
             }
           }
@@ -528,7 +559,7 @@ PY
             text: cur.text ?? ""
             fontSize: bodySize
             maxLines: bodyLines
-            color: foreground
+            color: textHi
           }
         }
 
@@ -541,19 +572,19 @@ PY
             Text {
               text: (cur.likes ?? 0) > 0 ? "likes ${cur.likes}" : ""
               style: small
-              color: muted
+              color: textDim
               maxLines: 1
               fontSize: fsLabel
             }
             Text {
               text: (cur.boosts ?? 0) > 0 ? "boosts ${cur.boosts}" : ""
               style: small
-              color: muted
+              color: textDim
               maxLines: 1
               fontSize: fsLabel
             }
             Spacer { weight: 1 }
-            Text { text: rel; style: small; color: muted; font: mono; maxLines: 1; fontSize: fsLabel }
+            Text { text: rel; style: small; color: textDim; font: mono; maxLines: 1; fontSize: fsLabel }
           }
         }
 
@@ -561,7 +592,7 @@ PY
           Row {
             gap: short ? 6 : 10
             align: center
-            Text { text: "tap next"; style: small; color: muted; maxLines: 1; fontSize: fsLabel }
+            Text { text: "tap next"; style: small; color: textDim; maxLines: 1; fontSize: fsLabel }
             Spacer { weight: 1 }
             Text {
               text: "open"
@@ -574,7 +605,7 @@ PY
             Text {
               text: "desk"
               style: small
-              color: accent
+              color: neon
               maxLines: 1
               fontSize: fsLabel
               onTap: screen()
@@ -584,7 +615,7 @@ PY
           Row {
             gap: 4
             align: center
-            Text { text: rel; style: small; color: muted; font: mono; maxLines: 1; fontSize: fsLabel; weight: 1 }
+            Text { text: rel; style: small; color: textDim; font: mono; maxLines: 1; fontSize: fsLabel; weight: 1 }
             Text {
               text: "open"
               style: small
@@ -598,31 +629,39 @@ PY
       }
     }
   }
+  }
 
   screen {
     title: "potus desk"
+    Box {
+      fill: true
+      background: void
+      border: 1.5
+      borderColor: neonPink
+      radius: 12
+      padding: 10
     Column {
       gap: 10
 
       Row {
         gap: 20
         align: center
-        Tab { id: "all"; label: "all"; hue: accent; big: true }
-        Tab { id: "truth"; label: "truth"; hue: orange; big: true }
-        Tab { id: "wh"; label: "WH"; hue: cyan; big: true }
+        Tab { id: "all"; label: "all"; hue: neon; big: true }
+        Tab { id: "truth"; label: "truth"; hue: neonOrange; big: true }
+        Tab { id: "wh"; label: "WH"; hue: neon; big: true }
         Spacer { weight: 1 }
         Text {
           text: "${idx + 1}/${n}"
           font: mono
           style: small
-          color: muted
+          color: textDim
           maxLines: 1
         }
         if feed != null {
           Text {
             text: fmtTime(feed.at, "HH:mm")
             style: small
-            color: muted
+            color: textDim
             maxLines: 1
           }
         }
@@ -640,7 +679,7 @@ PY
       }
 
       if cur == null {
-        Text { text: feed == null ? "loading…" : "no posts"; style: muted }
+        Text { text: feed == null ? "loading…" : "no posts"; style: small; color: textDim }
       } else {
         Column {
           gap: 8
@@ -655,9 +694,9 @@ PY
               color: shade
               maxLines: 1
             }
-            Text { text: cur.handle ?? ""; style: muted; maxLines: 1 }
+            Text { text: cur.handle ?? ""; style: small; color: textDim; maxLines: 1 }
             Spacer { weight: 1 }
-            Text { text: rel; style: muted; font: mono; maxLines: 1 }
+            Text { text: rel; style: small; color: textDim; font: mono; maxLines: 1 }
           }
           Text { text: cur.who ?? ""; style: title; maxLines: 2 }
           Text { text: cur.text ?? ""; style: body; maxLines: 30 }
@@ -666,11 +705,12 @@ PY
           }
           Row {
             gap: 12
-            Text { text: (cur.likes ?? 0) > 0 ? "likes ${cur.likes}" : ""; style: small; color: muted }
-            Text { text: (cur.boosts ?? 0) > 0 ? "boosts ${cur.boosts}" : ""; style: small; color: muted }
+            Text { text: (cur.likes ?? 0) > 0 ? "likes ${cur.likes}" : ""; style: small; color: textDim }
+            Text { text: (cur.boosts ?? 0) > 0 ? "boosts ${cur.boosts}" : ""; style: small; color: textDim }
           }
         }
       }
+    }
     }
   }
 }

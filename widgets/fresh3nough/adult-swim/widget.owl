@@ -5,13 +5,36 @@ widget "adult swim" {
 
   meta {
     description: "90s [as] cartoon block — Adult Swim shows cycle about once a minute (ATHF, Space Ghost, Robot Chicken, Venture Bros, Rick & Morty…). Tap opens the stream.";
-    version: "1.0";
+    version: "1.1";
     license: "MIT";
     category: "fun";
     owl: 10
   }
 
   requires { pacman: ["python"] }
+
+
+
+  // goose cyberpunk neon palette — unified theme
+  let void = #050510
+  let panel = #0a0a18
+  let ink = #0a0a0a
+  let neon = #00e5ff
+  let neonPink = #ff2bd6
+  let neonOrange = #ff6b00
+  let neonLime = #39ff14
+  let neonYellow = #fff200
+  let neonRed = #ff2a2a
+  let neonPurple = #c084fc
+  let neonBlue = #00b8d4
+  let textHi = #fff200
+  let textMid = #ffe066
+  let textDim = #b8ff00
+  let upColor = #39ff14
+  let downColor = #ff2bd6
+  let warnColor = #ff6b00
+
+  background: void
 
   source as = cmd("""
 python3 - <<'PY'
@@ -436,15 +459,25 @@ PY
   let asPink = #ff2d95
   let asCyan = #00e5ff
   let asYellow = #ffe600
-  let ink = #0a0a0a
-  let panel = #111111
   let press = "https://raw.githubusercontent.com/google/fonts/main/ofl/pressstart2p/PressStart2P-Regular.ttf"
   let short = (rows ?? 4) < 4
+  let th = tileHeight ?? 0
+  let tw = tileWidth ?? 0
+
   let tiny = (rows ?? 4) < 3 || (cols ?? 3) < 3
 
   onTap: url(cur.video)
 
   if cur != null {
+    Box { /* neon-wrap */
+      fill: true
+      background: void
+      border: 2
+      borderColor: neonPink
+      radius: 12
+      padding: 0
+      clip: true
+
     Box {
       fill: true
       background: ink
@@ -568,6 +601,8 @@ PY
         }
       }
     }
+    }
+
   } else {
     Box {
       fill: true

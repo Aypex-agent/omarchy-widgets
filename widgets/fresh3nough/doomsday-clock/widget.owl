@@ -1,16 +1,39 @@
 widget "doomsday clock" {
   size: 3x5
-  minSize: 2x3
-  padding: 8
+  minSize: 2x2
+  padding: 4
   meta {
-    description: "Live Bulletin Doomsday Clock. UI escalates from peace to nuclear firestorm as midnight nears. Auto-updates."
-    version: "1.1"
+    description: "Live Bulletin Doomsday Clock. UI escalates from peace to nuclear firestorm as midnight nears. Scales down to half height. Auto-updates."
+    version: "1.3"
     license: "MIT"
     category: "world"
     owl: 10
   }
 
   requires { pacman: ["curl", "python"] }
+
+
+
+  // goose cyberpunk neon palette — bright surfaces that pop
+  let void = #050510
+  let panel = #0a0a18
+  let ink = #0a0a0a
+  let neon = #00e5ff
+  let neonPink = #ff2bd6
+  let neonOrange = #ff6b00
+  let neonLime = #39ff14
+  let neonYellow = #fff200
+  let neonRed = #ff2a2a
+  let neonPurple = #c084fc
+  let neonBlue = #00b8d4
+  let textHi = #fff200
+  let textMid = #ffe066
+  let textDim = #b8ff00
+  let upColor = #39ff14
+  let downColor = #ff2bd6
+  let warnColor = #ff6b00
+
+  background: void
 
   // 1s only on the full screen for pulse; tile stays still.
   source now = clock every 1s
@@ -51,29 +74,125 @@ widget "doomsday clock" {
     : "doomsday · the hand is still"
   let gem = sid < 0 ? "" : sid == 0 ? "🕊" : sid == 1 ? "🌍" : sid == 2 ? "⚠" : sid == 3 ? "🚀"
     : sid == 4 ? "☢" : sid == 5 ? "💥" : sid == 6 ? "☠" : "⬛"
-  let tint = sid < 0 ? muted : sid == 0 ? #4ade80 : sid == 1 ? #67e8f9 : sid == 2 ? #fbbf24 : sid == 3 ? #f97316
+  let tint = sid < 0 ? textDim : sid == 0 ? #4ade80 : sid == 1 ? #67e8f9 : sid == 2 ? #fbbf24 : sid == 3 ? #f97316
     : sid == 4 ? #ef4444 : sid == 5 ? #dc2626 : sid == 6 ? #fef08a : #ffffff
   let tintDim = alpha(tint, 0.2)
   let mins = floor(secs / 60)
   let remS = int(secs % 60)
   let timeStr = !ready ? "" : secs <= 0 ? "MIDNIGHT" : mins > 0 ? "${mins}m ${remS}s" : "${int(secs)}s"
-  let short = (rows ?? 5) < 4
-  let tiny = (rows ?? 5) < 3
+  // Height tiers: full (~5 rows), half (~2–3 rows = 50% of default 5), micro (~2).
+  let rh = rows ?? 5
+  let half = rh <= 3
+  let tiny = rh <= 2
+  let short = rh < 4
+  let padY = tiny ? 2 : half ? 4 : 6
+  let padX = tiny ? 4 : half ? 5 : 6
+  let fsTime = tiny ? 14 : half ? 18 : null
+  let fsLabel = tiny ? 9 : half ? 11 : null
+  let fsSmall = tiny ? 8 : half ? 9 : null
+  let showScene = !tiny
+  let showSub = !tiny
+  let showMeta = !short
   // Pulse only in the full-screen view, never on the tile.
   let pulseOn = false
 
   onTap: screen()
 
-  Column {
-    gap: 2
+  Box { /* neon-wrap */
     fill: true
+    background: void
+    border: 2
+    borderColor: neonPink
+    radius: 12
+    padding: 2
+    clip: true
+
+  Column {
+    gap: tiny ? 1 : 2
+    fill: true
+    padding: tiny ? 2 : 0
 
     if !ready {
       // Empty until a real Bulletin value (or demo) arrives — no fake SAFE/1020s.
       Spacer { weight: 1 }
     } else if tiny {
-      Text { text: "${gem} ${timeStr}"; style: title; color: tint; bold: true; align: center }
-      Text { text: label; style: label; color: muted; align: center }
+      // ~50% height and under: compact strip, no canvas scene
+      Column {
+        gap: 1
+        fill: true
+        justify: center
+        Text {
+          text: "${gem} ${timeStr}"
+          bold: true
+          align: center
+          color: tint
+          fontSize: fsTime
+          maxLines: 1
+        }
+        Text {
+          text: label
+          style: label
+          color: textDim
+          align: center
+          fontSize: fsLabel
+          maxLines: 1
+        }
+        Progress {
+          value: danger * 100
+          color: tint
+          track: tintDim
+          height: 4
+          animate value: spring()
+        }
+      }
+    } else if half {
+      // Half height: smaller scene + tight overlay type
+      Box {
+        fill: true
+        weight: 1
+        background: mix(background, tint, 0.06 + danger * 0.12)
+        radius: 8 * corners
+        clip: true
+        DoomScene { s: sid; big: false }
+        Column {
+          fill: true
+          justify: end
+          padding: [padX, padY]
+          gap: 0
+          background: linear(0, 0, 0, 1, [alpha(background, 0), alpha(background, 0.92)])
+          Text {
+            text: "${gem}  ${label}"
+            style: label
+            color: tint
+            bold: true
+            fontSize: fsLabel
+            maxLines: 1
+          }
+          Text {
+            text: timeStr
+            bold: true
+            color: tint
+            fontSize: fsTime
+            maxLines: 1
+          }
+          if showSub {
+            Text {
+              text: "to midnight"
+              style: small
+              color: textDim
+              fontSize: fsSmall
+              maxLines: 1
+            }
+          }
+          Progress {
+            value: danger * 100
+            color: tint
+            track: tintDim
+            height: 5
+            animate value: spring()
+          }
+        }
+      }
     } else {
       Box {
         fill: true
@@ -90,19 +209,21 @@ widget "doomsday clock" {
           background: linear(0, 0, 0, 1, [alpha(background, 0), alpha(background, 0.9)])
           Text { text: "${gem}  ${label}"; style: label; color: tint; bold: true }
           Text { text: timeStr; style: title; color: tint; bold: true }
-          Text { text: "to midnight"; style: small; color: muted }
+          Text { text: "to midnight"; style: small; color: textDim }
           Progress { value: danger * 100; color: tint; track: tintDim; animate value: spring() }
-          if !short {
+          if showMeta {
             Text {
               text: demo >= 0 ? "DEMO" : "Bulletin · ${setYear ?? "…"}"
               style: small
-              color: muted
+              color: textDim
               maxLines: 1
             }
           }
         }
       }
     }
+  }
+
   }
 
   screen {
@@ -115,12 +236,12 @@ widget "doomsday clock" {
 
       Row {
         gap: 6
-        Button { text: "clock"; color: tab == "clock" ? tint : muted; onTap: tab = "clock" }
-        Button { text: "scenes"; color: tab == "scenes" ? tint : muted; onTap: tab = "scenes" }
-        Button { text: "about"; color: tab == "about" ? tint : muted; onTap: tab = "about" }
+        Button { text: "clock"; color: tab == "clock" ? tint : textDim; onTap: tab = "clock" }
+        Button { text: "scenes"; color: tab == "scenes" ? tint : textDim; onTap: tab = "scenes" }
+        Button { text: "about"; color: tab == "about" ? tint : textDim; onTap: tab = "about" }
         Spacer { weight: 1 }
         if demo >= 0 {
-          Button { text: "live"; color: green; onTap: demo = -1 }
+          Button { text: "live"; color: upColor; onTap: demo = -1 }
         }
       }
 
@@ -131,7 +252,7 @@ widget "doomsday clock" {
             align: center
             justify: center
             weight: 1
-            Text { text: "waiting for Bulletin…"; style: muted; align: center }
+            Text { text: "waiting for Bulletin…"; style: small; color: textDim; align: center }
             Button { text: "refresh"; onTap: refresh() }
             Button { text: "Bulletin"; onTap: url("https://thebulletin.org/doomsday-clock/") }
           }
@@ -150,13 +271,13 @@ widget "doomsday clock" {
           align: center
           Text { text: "${gem}  IT IS ${timeStr} TO MIDNIGHT"; style: title; color: fsPulse ? #ffffff : tint; bold: true; align: center }
           Text { text: label; style: body; color: tint; align: center }
-          Text { text: blurb; style: muted; align: center }
+          Text { text: blurb; style: small; color: textDim; align: center }
           Progress { value: danger * 100; color: tint; track: tintDim; animate value: spring() }
           Text {
             text: demo >= 0 ? "demo · ${int(secs)}s (not live)"
               : "live · ${setYear ?? "…"} · ${liveSec}s · Bulletin of the Atomic Scientists"
             style: small
-            color: muted
+            color: textDim
             align: center
             maxLines: 2
           }
@@ -172,7 +293,7 @@ widget "doomsday clock" {
       }
 
       if tab == "scenes" {
-        Text { text: "UI shifts the closer we are to doomsday"; style: muted; align: center }
+        Text { text: "UI shifts the closer we are to doomsday"; style: small; color: textDim; align: center }
         Column {
           scroll: true
           gap: 6
@@ -215,10 +336,10 @@ widget "doomsday clock" {
           }
           Text {
             text: "Scrapes thebulletin.org every 12h. Canvas scenes auto-escalate: peace → watch → missiles → mushrooms → firestorm."
-            style: muted
+            style: small; color: textDim
             maxLines: 6
           }
-          Text { text: "Historic marks"; style: label; color: muted }
+          Text { text: "Historic marks"; style: label; color: textDim }
           Text { text: "1991 · 17 min — START, Cold War end"; style: small }
           Text { text: "2018 · 2 min — nuclear + climate"; style: small }
           Text { text: "2020 · 100 s — info war, arms"; style: small }
@@ -236,7 +357,7 @@ widget "doomsday clock" {
     let active = cur == sec || (cur < 0 && live == sec)
     Button {
       text: "${active ? "●" : "○"}  ${name} — ${d}"
-      color: active ? col : muted
+      color: active ? col : textDim
       onTap: demo = sec
     }
   }

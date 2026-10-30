@@ -3,13 +3,35 @@ widget "grokipedia" {
   minSize: 3x4
   meta {
     description: "Recent Grokipedia pages. Tap tile to cycle; open screen to browse the list.";
-    version: "1.0";
+    version: "1.1";
     license: "MIT";
     category: "news";
     owl: 5
   }
 
   requires { pacman: ["python"] }
+
+  // goose cyberpunk neon palette — bright surfaces that pop
+  let void = #050510
+  let panel = #0a0a18
+  let ink = #0a0a0a
+  let neon = #00e5ff
+  let neonPink = #ff2bd6
+  let neonOrange = #ff6b00
+  let neonLime = #39ff14
+  let neonYellow = #fff200
+  let neonRed = #ff2a2a
+  let neonPurple = #c084fc
+  let neonBlue = #00b8d4
+  let textHi = #fff200
+  let textMid = #ffe066
+  let textDim = #b8ff00
+  let upColor = #39ff14
+  let downColor = #ff2bd6
+  let warnColor = #ff6b00
+
+  background: void
+
 
   source feed = cmd("""
 python3 - <<'PY'
@@ -474,7 +496,8 @@ PY
   let age = feed != null && feed.at != null ? now - feed.at : null
   let ageStr = age == null ? "…" : age < 90 ? "live" : age < 3600 ? "${max(floor(age / 60), 1)}m" : "${floor(age / 3600)}h"
   let hasNote = cur != null && cur.note != null && cur.note != "" && cur.note != cur.blurb
-  let tall = (rows ?? 6) >= 6
+  let th = tileHeight ?? 0
+  let tall = th > 0 ? th >= 320 : ((rows ?? 6) >= 6)
   let blurbLines = tall ? (hasNote ? 10 : 14) : (hasNote ? 4 : 6)
   let head = n > 0 ? "grokipedia  ${idx + 1}/${n}  ${ageStr}" : "grokipedia  ${ageStr}"
   let foot = pages != null ? "${pages} articles" : n > 0 ? "${n} recent" : "Grokipedia"
@@ -482,190 +505,209 @@ PY
 
   onTap: jump = jump + 1
 
-  Column {
-    gap: 4
-
-    Text { text: head; style: label; bold: true; color: accent; maxLines: 1 }
-
-    if cur == null {
-      Column {
-        gap: 8
-        weight: 1
-        justify: center
-        Text {
-          text: feed == null ? "loading recent pages…" : feed.ok == false ? "offline — tap to retry" : "no recent pages"
-          style: small
-          color: muted
-          align: center
-          onTap: refresh()
-        }
-      }
-    } else {
-      Column {
-        gap: 5
-        weight: 1
-
-        Text {
-          text: cur.title
-          style: title
-          bold: true
-          maxLines: 2
-          color: foreground
-        }
-
-        Text {
-          text: cur.section != null && cur.section != "" ? "updated · ${cur.section}" : "recently updated"
-          style: small
-          color: accent
-          maxLines: 1
-        }
-
-        Text {
-          text: cur.blurb
-          style: body
-          maxLines: blurbLines
-          color: foreground
-        }
-
-        if hasNote {
-          Text { text: "latest edit"; style: label; color: muted; maxLines: 1 }
-          Text { text: cur.note; style: small; color: muted; maxLines: tall ? 3 : 2 }
-        }
-
-        Spacer { weight: 1 }
-
-        Text {
-          text: "tap → next    open    browse"
-          style: small
-          color: muted
-          maxLines: 1
-        }
-
-        Row {
-          gap: 16
-          Text {
-            text: "open article"
-            style: small
-            color: cyan
-            maxLines: 1
-            onTap: url(cur.url)
-          }
-          Text {
-            text: "browse list"
-            style: small
-            color: accent
-            maxLines: 1
-            onTap: screen()
-          }
-        }
-      }
-    }
-
-    Text { text: foot2; style: small; color: muted; maxLines: 1 }
-  }
-
-  screen {
-    title: "grokipedia"
+Box { /* neon-wrap */
+    fill: true
+    background: void
+    border: 2
+    borderColor: neon
+    radius: 12
+    clip: true
+    padding: 6
     Column {
-      gap: 8
-
-      Text {
-        text: n > 0 ? "recent pages  ·  ${idx + 1}/${n}  ·  ${ageStr}" : "recent pages"
-        style: label
-        color: muted
-        maxLines: 1
-      }
-
-      if cur != null {
+      gap: 4
+  
+      Text { text: head; style: label; bold: true; color: neonPink; maxLines: 1 }
+  
+      if cur == null {
         Column {
-          gap: 6
+          gap: 8
           weight: 1
-
-          Text { text: cur.title; style: title; bold: true; maxLines: 3 }
-          if cur.section != null && cur.section != "" {
-            Text { text: cur.section; style: small; color: accent; maxLines: 2 }
-          }
-
-          Column {
-            scroll: true
-            weight: 1
-            gap: 8
-            Text { text: cur.blurb; style: body; fontSize: 16 }
-            if hasNote {
-              Text { text: "latest edit"; style: label; color: muted }
-              Text { text: cur.note; style: small; color: muted }
-            }
-          }
-
-          Row {
-            gap: 8
-            Button { text: "← prev"; color: muted; onTap: jump = jump - 1 }
-            Button { text: "next →"; onTap: jump = jump + 1 }
-            Spacer { weight: 1 }
-            Button { text: "open"; color: cyan; onTap: url(cur.url) }
+          justify: center
+          Text {
+            text: feed == null ? "loading recent pages…" : feed.ok == false ? "offline — tap to retry" : "no recent pages"
+            style: small
+            color: textDim
+            align: center
+            onTap: refresh()
           }
         }
       } else {
         Column {
+          gap: 5
           weight: 1
-          justify: center
-          Text { text: "loading…"; color: muted; align: center }
-        }
-      }
-
-      Text { text: "jump to"; style: label; color: muted; maxLines: 1 }
-
-      Column {
-        scroll: true
-        gap: 4
-        height: 240
-        for p, i in items key p.slug {
+  
+          Text {
+            text: cur.title
+            style: title
+            color: neonYellow
+            bold: true
+            maxLines: 2
+          }
+  
+          Text {
+            text: cur.section != null && cur.section != "" ? "updated · ${cur.section}" : "recently updated"
+            style: small
+            color: neon
+            maxLines: 1
+          }
+  
+          Text {
+            text: cur.blurb
+            style: body
+            maxLines: blurbLines
+            color: textHi
+          }
+  
+          if hasNote {
+            Text { text: "latest edit"; style: label; color: textDim; maxLines: 1 }
+            Text { text: cur.note; style: small; color: textDim; maxLines: tall ? 3 : 2 }
+          }
+  
+          Spacer { weight: 1 }
+  
+          Text {
+            text: "tap → next    open    browse"
+            style: small
+            color: textDim
+            maxLines: 1
+          }
+  
           Row {
-            gap: 8
-            padding: [6, 5]
-            radius: 6
-            background: i == idx ? alpha(accent, 0.14) : alpha(muted, 0.05)
-            onTap: jump = i
-            Box {
-              width: 3
-              height: 28
-              radius: 2
-              background: i == idx ? accent : alpha(muted, 0.35)
+            gap: 16
+            Text {
+              text: "open article"
+              style: small
+              color: neon
+              maxLines: 1
+              onTap: url(cur.url)
             }
-            Column {
-              gap: 1
-              weight: 1
-              Text {
-                text: p.title
-                fontSize: 13
-                bold: i == idx
-                maxLines: 1
-                color: i == idx ? foreground : muted
-              }
-              Text {
-                text: p.section != null && p.section != "" ? p.section : "recent update"
-                style: small
-                color: muted
-                maxLines: 1
-              }
+            Text {
+              text: "browse list"
+              style: small
+              color: neon
+              maxLines: 1
+              onTap: screen()
             }
           }
         }
       }
+  
+      Text { text: foot2; style: small; color: textDim; maxLines: 1 }
+    }
+  }
 
-      Row {
+  screen {
+    title: "grokipedia"
+    Box { /* neon-screen */
+      fill: true
+      background: void
+      border: 2
+      borderColor: neonPink
+      radius: 12
+      clip: true
+      padding: 8
+      Column {
         gap: 8
-        align: center
-        Button { text: "refresh"; onTap: refresh() }
+  
         Text {
-          text: pages != null ? "${pages} articles" : ""
-          style: small
-          color: muted
+          text: n > 0 ? "recent pages  ·  ${idx + 1}/${n}  ·  ${ageStr}" : "recent pages"
+          style: label
+          color: textDim
           maxLines: 1
-          weight: 1
         }
-        Button { text: "close"; color: muted; onTap: close() }
+  
+        if cur != null {
+          Column {
+            gap: 6
+            weight: 1
+  
+            Text { text: cur.title; style: title; bold: true; maxLines: 3; color: neonYellow }
+            if cur.section != null && cur.section != "" {
+              Text { text: cur.section; style: small; color: neon; maxLines: 2 }
+            }
+  
+            Column {
+              scroll: true
+              weight: 1
+              gap: 8
+              Text { text: cur.blurb; style: body; fontSize: 16 }
+              if hasNote {
+                Text { text: "latest edit"; style: label; color: textDim }
+                Text { text: cur.note; style: small; color: textDim }
+              }
+            }
+  
+            Row {
+              gap: 8
+              Button { text: "← prev"; color: textDim; onTap: jump = jump - 1 }
+              Button { text: "next →"; onTap: jump = jump + 1 }
+              Spacer { weight: 1 }
+              Button { text: "open"; color: neon; onTap: url(cur.url) }
+            }
+          }
+        } else {
+          Column {
+            weight: 1
+            justify: center
+            Text { text: "loading…"; color: textDim; align: center }
+          }
+        }
+  
+        Text { text: "jump to"; style: label; color: textDim; maxLines: 1 }
+  
+        Column {
+          scroll: true
+          gap: 4
+          height: 240
+          for p, i in items key p.slug {
+            Row {
+              gap: 8
+              padding: [6, 5]
+              radius: 6
+              background: i == idx ? alpha(neon, 0.14) : alpha(textDim, 0.05)
+              onTap: jump = i
+              Box {
+                width: 3
+                height: 28
+                radius: 2
+                background: i == idx ? neon : alpha(textDim, 0.35)
+              }
+              Column {
+                gap: 1
+                weight: 1
+                Text {
+                  text: p.title
+                  fontSize: 13
+                  bold: i == idx
+                  maxLines: 1
+                  color: i == idx ? textHi : textDim
+                }
+                Text {
+                  text: p.section != null && p.section != "" ? p.section : "recent update"
+                  style: small
+                  color: textDim
+                  maxLines: 1
+                }
+              }
+            }
+          }
+        }
+  
+        Row {
+          gap: 8
+          align: center
+          Button { text: "refresh"; onTap: refresh() }
+          Text {
+            text: pages != null ? "${pages} articles" : ""
+            style: small
+            color: textDim
+            maxLines: 1
+            weight: 1
+          }
+          Button { text: "close"; color: textDim; onTap: close() }
+        }
       }
+    
     }
   }
 }

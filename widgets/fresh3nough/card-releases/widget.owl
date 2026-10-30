@@ -2,14 +2,37 @@ widget "card-releases" {
   size: 6x2
   minSize: 3x2
   meta {
-    description: "Countdown timers for upcoming Pokémon TCG and Magic: The Gathering card releases. MTG dates from Scryfall.";
-    version: "1.6";
+    description: "Neon countdown for upcoming Pokémon TCG and Magic: The Gathering releases. MTG dates from Scryfall.";
+    version: "1.7";
     license: "MIT";
     category: "games";
     owl: 10
   }
 
   requires { pacman: ["python"] }
+
+
+
+  // goose cyberpunk neon palette — bright surfaces that pop
+  let void = #050510
+  let panel = #0a0a18
+  let ink = #0a0a0a
+  let neon = #00e5ff
+  let neonPink = #ff2bd6
+  let neonOrange = #ff6b00
+  let neonLime = #39ff14
+  let neonYellow = #fff200
+  let neonRed = #ff2a2a
+  let neonPurple = #c084fc
+  let neonBlue = #00b8d4
+  let textHi = #fff200
+  let textMid = #ffe066
+  let textDim = #b8ff00
+  let upColor = #39ff14
+  let downColor = #ff2bd6
+  let warnColor = #ff6b00
+
+  background: void
 
   source now = clock every 1m
 
@@ -100,7 +123,7 @@ PY
   component Day(secs, hi = false) {
     let d = floor(secs / 86400)
     let label = secs <= 0 ? "out" : d == 0 ? "today" : tall && hi ? (d == 1 ? "1 day" : "${d} days") : "${d}d"
-    let col = secs <= 0 ? green : secs < 86400 * 14 ? #ffd700 : #7fc8f8
+    let col = secs <= 0 ? upColor : secs < 86400 * 14 ? neonYellow : neon
     if tall && hi {
       Text { text: label; style: title; font: mono; bold: true; color: col }
     }
@@ -139,7 +162,7 @@ PY
     Text {
       text: msg
       style: small
-      color: muted
+      color: textDim
       maxLines: 2
       fontSize: fs
     }
@@ -158,7 +181,7 @@ PY
       if tall && head != null {
         Text { text: head.name; style: body; bold: true; maxLines: 1 }
         Day { secs: head.date - now; hi: true }
-        Text { text: fmtTime(head.date, "MMM d, yyyy"); style: small; color: muted; maxLines: 1 }
+        Text { text: fmtTime(head.date, "MMM d, yyyy"); style: small; color: textDim; maxLines: 1 }
         for r in rest.take(showN) key r.id {
           Line { r: r }
         }
@@ -178,7 +201,7 @@ PY
     let tr = r.date - now
     let d = floor(tr / 86400)
     Box {
-      background: alpha(#0d1b2a, 0.9)
+      background: alpha(panel, 0.9)
       border: 1
       borderColor: alpha(tint, 0.45)
       radius: 10
@@ -193,7 +216,7 @@ PY
           Text {
             text: fmtTime(r.date, "EEE, MMM d yyyy")
             style: small
-            color: muted
+            color: textDim
             maxLines: 1
           }
         }
@@ -201,7 +224,7 @@ PY
           text: tr <= 0 ? "out" : d == 0 ? "today" : "${d}d"
           style: title
           font: mono
-          color: tr <= 0 ? green : tr < 86400 * 14 ? #ffd700 : #7fc8f8
+          color: tr <= 0 ? upColor : tr < 86400 * 14 ? neonYellow : neon
           width: 72
           align: end
         }
@@ -211,39 +234,49 @@ PY
 
   onTap: screen()
 
+  Box {
+    fill: true
+    background: void
+    border: 1.5
+    borderColor: neonPink
+    radius: 12
+    padding: 2
+
   Column {
     gap: g
     padding: pad
-    background: linear(0, 0, 0, tileHeight, [alpha(#1e3c72, 0.95), alpha(#2a5298, 0.9), alpha(#000000, 0.85)])
+    background: void
+    // neon frame drawn via parent colors
 
     if tall {
       Row {
         align: center
-        Text { text: "card releases"; style: small; color: muted; maxLines: 1; weight: 1 }
-        Text { text: fmtTime(now, "HH:mm"); style: small; color: muted; font: mono; width: 40; align: end }
+        Text { text: "card releases"; style: small; color: textDim; maxLines: 1; weight: 1 }
+        Text { text: fmtTime(now, "HH:mm"); style: small; color: textDim; font: mono; width: 40; align: end }
       }
-      Block { title: "POKÉMON"; tint: #ffd700; items: pokeUp; emptyMsg: "no date announced" }
-      Block { title: "MAGIC"; tint: #c77dff; items: mtgUp; emptyMsg: mtg == null ? "loading…" : "no upcoming sets" }
+      Block { title: "POKÉMON"; tint: neonYellow; items: pokeUp; emptyMsg: "no date announced" }
+      Block { title: "MAGIC"; tint: neonPurple; items: mtgUp; emptyMsg: mtg == null ? "loading…" : "no upcoming sets" }
     }
 
     if mid {
       Row {
         align: center
-        Text { text: "card releases"; style: small; color: muted; maxLines: 1; weight: 1; fontSize: 10 }
-        Text { text: fmtTime(now, "HH:mm"); style: small; color: muted; font: mono; width: 36; align: end; fontSize: 10 }
+        Text { text: "card releases"; style: small; color: textDim; maxLines: 1; weight: 1; fontSize: 10 }
+        Text { text: fmtTime(now, "HH:mm"); style: small; color: textDim; font: mono; width: 36; align: end; fontSize: 10 }
       }
-      Block { title: "POKÉMON"; tint: #ffd700; items: pokeUp; emptyMsg: "no date announced" }
-      Block { title: "MAGIC"; tint: #c77dff; items: mtgUp; emptyMsg: mtg == null ? "loading…" : "no upcoming sets" }
+      Block { title: "POKÉMON"; tint: neonYellow; items: pokeUp; emptyMsg: "no date announced" }
+      Block { title: "MAGIC"; tint: neonPurple; items: mtgUp; emptyMsg: mtg == null ? "loading…" : "no upcoming sets" }
     }
 
     if short {
       Row {
         gap: 6
         weight: 1
-        Block { title: "POKÉMON"; tint: #ffd700; items: pokeUp; emptyMsg: "no date announced" }
-        Block { title: "MAGIC"; tint: #c77dff; items: mtgUp; emptyMsg: mtg == null ? "loading…" : "no upcoming sets" }
+        Block { title: "POKÉMON"; tint: neonYellow; items: pokeUp; emptyMsg: "no date announced" }
+        Block { title: "MAGIC"; tint: neonPurple; items: mtgUp; emptyMsg: mtg == null ? "loading…" : "no upcoming sets" }
       }
     }
+  }
   }
 
   screen {
@@ -252,34 +285,34 @@ PY
       scroll: true
       gap: 18
       padding: 16
-      background: linear(0, 0, 0, tileHeight, [#0f2027, #203a43, #2c5364])
+      background: void
 
-      Text { text: "Upcoming drops"; style: title; color: #7fc8f8; maxLines: 1 }
+      Text { text: "Upcoming drops"; style: title; color: neon; maxLines: 1 }
 
       Column {
         gap: 8
-        Text { text: "POKÉMON TCG"; style: label; bold: true; color: #ffd700; maxLines: 1 }
+        Text { text: "POKÉMON TCG"; style: label; bold: true; color: neonYellow; maxLines: 1 }
         if len(pokeUp) == 0 {
-          Text { text: "No date announced"; style: small; color: muted }
+          Text { text: "No date announced"; style: small; color: textDim }
         }
         for r in pokeUp key r.id {
-          ScreenCard { r: r; tint: #4cc9f0 }
+          ScreenCard { r: r; tint: neon }
         }
       }
 
       Column {
         gap: 8
-        Text { text: "MAGIC: THE GATHERING"; style: label; bold: true; color: #c77dff; maxLines: 1 }
+        Text { text: "MAGIC: THE GATHERING"; style: label; bold: true; color: neonPurple; maxLines: 1 }
         if mtg == null {
-          Text { text: "Loading Scryfall…"; style: small; color: muted }
+          Text { text: "Loading Scryfall…"; style: small; color: textDim }
         }
         if mtg != null && len(mtgUp) == 0 {
-          Text { text: "No upcoming MTG sets"; style: small; color: muted }
+          Text { text: "No upcoming MTG sets"; style: small; color: textDim }
         }
         for r in mtgUp key r.id {
-          ScreenCard { r: r; tint: #c77dff }
+          ScreenCard { r: r; tint: neonPurple }
         }
-        Text { text: "MTG dates via api.scryfall.com/sets"; style: label; color: muted }
+        Text { text: "MTG dates via api.scryfall.com/sets"; style: label; color: textDim }
       }
     }
   }

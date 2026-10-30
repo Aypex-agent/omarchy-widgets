@@ -1,7 +1,7 @@
 widget "data centers" {
   meta {
-    description: "Nearest major data center by location with power-line graphics, plus construction, power-grid and AI hyperscale news"
-    version: "1.5"
+    description: "Nearest major data center — neon power-grid graphics, construction and AI hyperscale news. City or IP location."
+    version: "1.7"
     license: "MIT"
     category: "world"
     owl: 8
@@ -12,16 +12,41 @@ widget "data centers" {
 
   requires { pacman: ["python"] }
 
+
+
+  // goose cyberpunk neon palette — bright surfaces that pop
+  let void = #050510
+  let panel = #0a0a18
+  let ink = #0a0a0a
+  let neon = #00e5ff
+  let neonPink = #ff2bd6
+  let neonOrange = #ff6b00
+  let neonLime = #39ff14
+  let neonYellow = #fff200
+  let neonRed = #ff2a2a
+  let neonPurple = #c084fc
+  let neonBlue = #00b8d4
+  let textHi = #fff200
+  let textMid = #ffe066
+  let textDim = #b8ff00
+  let upColor = #39ff14
+  let downColor = #ff2bd6
+  let warnColor = #ff6b00
+
+  background: void
+
   source now = clock every 1m
   state city = "" persist
   state tab = "build" persist
   let qCity = city.replace("%", "%25").replace("+", "%2B").replace("/", "%2F").replace("?", "%3F").replace("#", "%23").replace("&", "%26").replace("'", "%27").replace(" ", "+")
+  let q = city != "" ? qCity : ""
   // City when set; bare wttr.in falls back to IP.
-  source wx = http("https://wttr.in/${enc(qCity)}?format=j1") every 30m timeout 10s json
+  source wx = http("https://wttr.in/${q}?format=j1") every 30m timeout 10s json
   let area = wx.nearest_area[0]
   let lat = num(area.latitude)
   let lon = num(area.longitude)
-  let imperial = contains(["united states", "united states of america", "liberia", "myanmar", "burma"], lower(trim(area.country[0].value ?? "")))
+  let countryName = trim(area.country[0].value ?? "")
+  let imperial = contains(["united states", "united states of america", "liberia", "myanmar", "burma", "us", "usa"], lower(trim(countryName)))
   let place = lower(area.areaName[0].value ?? "")
   when lat != null { refresh() }
   on qCity { refresh() }
@@ -220,18 +245,18 @@ OWLDC
       let w = width
       let h = height
       let ground = h * 0.86
-      rect(0, 0, w, ground, fill: alpha(accent, 0.05))
-      line(4, ground, w - 4, ground, stroke: alpha(muted, 0.4), width: 1)
+      rect(0, 0, w, ground, fill: alpha(neon, 0.05))
+      line(4, ground, w - 4, ground, stroke: alpha(textDim, 0.4), width: 1)
       let n = big ? 5 : 4
       let towers = range(n).map(i => w * (0.06 + i * (0.72 / max(n - 1, 1))))
       for tx, i in towers {
         let th = h * (0.58 - i * 0.025)
         let top = ground - th
-        line(tx, ground, tx, top, stroke: muted, width: big ? 2 : 1.5)
-        line(tx - (big ? 10 : 7), top + 4, tx + (big ? 10 : 7), top + 4, stroke: muted, width: 1.3)
-        line(tx - (big ? 7 : 5), top + 14, tx + (big ? 7 : 5), top + 14, stroke: muted, width: 1)
-        circle(tx - (big ? 9 : 6), top + 4, big ? 2 : 1.4, fill: yellow)
-        circle(tx + (big ? 9 : 6), top + 4, big ? 2 : 1.4, fill: yellow)
+        line(tx, ground, tx, top, stroke: textDim, width: big ? 2 : 1.5)
+        line(tx - (big ? 10 : 7), top + 4, tx + (big ? 10 : 7), top + 4, stroke: textDim, width: 1.3)
+        line(tx - (big ? 7 : 5), top + 14, tx + (big ? 7 : 5), top + 14, stroke: textDim, width: 1)
+        circle(tx - (big ? 9 : 6), top + 4, big ? 2 : 1.4, fill: neonYellow)
+        circle(tx + (big ? 9 : 6), top + 4, big ? 2 : 1.4, fill: neonYellow)
         if i < n - 1 {
           let nx = towers[i + 1]
           let ny = ground - h * (0.58 - (i + 1) * 0.025) + 4
@@ -239,12 +264,12 @@ OWLDC
             [tx + (big ? 9 : 6), top + 4],
             [(tx + nx) / 2, top + 16],
             [nx - (big ? 9 : 6), ny]
-          ], stroke: alpha(foreground, 0.5), width: 1.1)
+          ], stroke: alpha(textHi, 0.5), width: 1.1)
           path([
             [tx + (big ? 6 : 4), top + 14],
             [(tx + nx) / 2, top + 26],
             [nx - (big ? 6 : 4), ny + 10]
-          ], stroke: alpha(foreground, 0.28), width: 0.8)
+          ], stroke: alpha(textHi, 0.28), width: 0.8)
         }
       }
       for k in range(big ? 3 : 2) {
@@ -257,7 +282,7 @@ OWLDC
         let topB = ground - h * (0.58 - (seg + 1) * 0.025) + 4
         let u = (px - a) / max(b - a, 1)
         let py = lerp(topA, topB, u) + 12 * sin(u * 180)
-        let col = k == 0 ? yellow : k == 1 ? accent : cyan
+        let col = k == 0 ? neonYellow : k == 1 ? neon : neon
         circle(px, py, big ? 2.6 : 2, fill: col)
         circle(px, py, big ? 6 : 4.5, fill: alpha(col, 0.22))
       }
@@ -265,9 +290,9 @@ OWLDC
       let bw = w * 0.16
       let bh = h * (big ? 0.52 : 0.45)
       let by = ground - bh
-      rect(bx, by, bw, bh, fill: alpha(surface, 0.95), stroke: accent, width: 1.4, radius: 2)
+      rect(bx, by, bw, bh, fill: alpha(panel, 0.95), stroke: neon, width: 1.4, radius: 2)
       if big {
-        rect(bx + bw * 0.12, by - 7, bw * 0.76, 7, fill: alpha(accent, 0.35), radius: 1)
+        rect(bx + bw * 0.12, by - 7, bw * 0.76, 7, fill: alpha(neon, 0.35), radius: 1)
       }
       for row in range(big ? 5 : 4) {
         for col in range(big ? 3 : 2) {
@@ -277,7 +302,7 @@ OWLDC
             by + 4 + row * (bh / (big ? 5.5 : 4.6)),
             bw * (big ? 0.2 : 0.28),
             bh * 0.1,
-            fill: lit ? accent : alpha(muted, 0.3),
+            fill: lit ? neon : alpha(textDim, 0.3),
             radius: 0.5
           )
         }
@@ -286,7 +311,7 @@ OWLDC
         [towers[n - 1] + (big ? 9 : 6), ground - h * (0.58 - (n - 1) * 0.025) + 4],
         [bx - 3, by + bh * 0.22],
         [bx, by + bh * 0.22]
-      ], stroke: yellow, width: 1.4)
+      ], stroke: neonYellow, width: 1.4)
     }
   }
 
@@ -307,10 +332,18 @@ OWLDC
         fontSize: big ? null : fsBody
       }
       if big || !tiny {
-        Text { text: meta; style: label; color: muted; maxLines: 1; fontSize: big ? null : fsMeta }
+        Text { text: meta; style: label; color: textDim; maxLines: 1; fontSize: big ? null : fsMeta }
       }
     }
   }
+
+  Box { /* neon-wrap */
+    fill: true
+    background: void
+    border: 2
+    borderColor: neon
+    radius: 12
+    padding: 2
 
   Column {
     gap: gap
@@ -328,45 +361,45 @@ OWLDC
         gap: tiny ? 0 : short ? 1 : 3
         weight: 1
         if !tiny {
-          Text { text: "nearest data center"; style: label; color: muted; maxLines: 1; fontSize: fsLabel }
+          Text { text: "nearest data center"; style: label; color: textDim; maxLines: 1; fontSize: fsLabel }
         }
         if problem != null {
-          Text { text: problem; style: title; color: muted; maxLines: 1; fontSize: fsTitle }
+          Text { text: problem; style: title; color: textDim; maxLines: 1; fontSize: fsTitle }
         } else {
-          Text { text: nearest.n; style: title; color: accent; maxLines: 1; fontSize: fsTitle }
+          Text { text: nearest.n; style: title; color: neon; maxLines: 1; fontSize: fsTitle }
           if !tiny {
-            Text { text: nearest.o; style: small; color: muted; maxLines: 1; fontSize: fsBody }
+            Text { text: nearest.o; style: small; color: textDim; maxLines: 1; fontSize: fsBody }
           }
           Text {
             text: tiny ? "${dist} ${unit}${place != "" ? " · " + place : ""}" : "${dist} ${unit}"
             style: huge
-            color: foreground
+            color: textHi
             bold: true
             maxLines: 1
             fontSize: fsDist
           }
           if place != "" && !tiny && !short {
-            Text { text: "from ${place}"; style: label; color: muted; maxLines: 1; fontSize: fsLabel }
+            Text { text: "from ${place}"; style: label; color: textDim; maxLines: 1; fontSize: fsLabel }
           }
         }
       }
     }
 
     if !tiny {
-      Spacer { height: 1; fill: width; background: alpha(muted, 0.3) }
+      Spacer { height: 1; fill: width; background: alpha(textDim, 0.3) }
 
       // news section
       Row {
         gap: short ? 4 : 6
         align: center
-        Text { text: "dc news"; style: label; color: muted; weight: 1; maxLines: 1; fontSize: fsLabel }
-        Button { text: "build"; color: tab == "build" ? accent : muted; onTap: tab = "build" }
-        Button { text: "power"; color: tab == "power" ? accent : muted; onTap: tab = "power" }
-        Button { text: "trend"; color: tab == "trend" ? accent : muted; onTap: tab = "trend" }
+        Text { text: "dc news"; style: label; color: textDim; weight: 1; maxLines: 1; fontSize: fsLabel }
+        Button { text: "build"; color: tab == "build" ? neon : textDim; onTap: tab = "build" }
+        Button { text: "power"; color: tab == "power" ? neon : textDim; onTap: tab = "power" }
+        Button { text: "trend"; color: tab == "trend" ? neon : textDim; onTap: tab = "trend" }
         Text {
           text: age == null ? "…" : age < 120 ? "live" : "${floor(age / 60)}m"
           style: label
-          color: muted
+          color: textDim
           width: short ? 28 : 36
           align: end
           fontSize: fsLabel
@@ -377,7 +410,7 @@ OWLDC
         Text {
           text: tab == "build" ? "new construction & campuses" : tab == "power" ? "grid · power · energy" : "ai · hyperscale · cloud"
           style: label
-          color: muted
+          color: textDim
           fontSize: fsLabel
         }
       }
@@ -388,27 +421,35 @@ OWLDC
       weight: 1
       gap: storyGap
       if feed == null {
-        Text { text: tiny ? "loading…" : "loading construction & industry news…"; style: small; color: muted; fontSize: fsBody }
+        Text { text: tiny ? "loading…" : "loading construction & industry news…"; style: small; color: textDim; fontSize: fsBody }
       } else if !feed.ok {
-        Text { text: tiny ? "news offline" : "news offline · tap refresh in full screen"; style: small; color: orange; fontSize: fsBody }
+        Text { text: tiny ? "news offline" : "news offline · tap refresh in full screen"; style: small; color: neonOrange; fontSize: fsBody }
       } else if len(items) == 0 {
-        Text { text: "no headlines right now"; style: small; color: muted; fontSize: fsBody }
+        Text { text: "no headlines right now"; style: small; color: textDim; fontSize: fsBody }
       } else {
         for p, i in items key p.url {
           Story { p: p; i: i }
           if i < len(items) - 1 && !tiny {
-            Spacer { height: 1; fill: width; background: alpha(muted, 0.12) }
+            Spacer { height: 1; fill: width; background: alpha(textDim, 0.12) }
           }
         }
       }
     }
   }
+  }
 
   screen {
     title: "data centers"
+    Box {
+      fill: true
+      background: void
+      border: 1.5
+      borderColor: neonPink
+      radius: 12
+      padding: 8
     Input {
       text: city
-      placeholder: "city · empty = IP location"
+      placeholder: "city · empty = IP"
       onSubmit: { city = trim(value); refresh() }
     }
     Column {
@@ -417,33 +458,33 @@ OWLDC
       PowerGrid { big: true; height: 140; fill: width }
 
       if problem != null {
-        Text { text: problem; style: body; color: muted }
+        Text { text: problem; style: body; color: textDim }
       } else {
         Column {
           gap: 2
-          Text { text: nearest.n; style: title; color: accent }
-          Text { text: nearest.o; style: small; color: muted }
+          Text { text: nearest.n; style: title; color: neon }
+          Text { text: nearest.o; style: small; color: textDim }
           Text { text: "${dist} ${unit} away · from ${place == "" ? "you" : place}"; style: body }
         }
-        Spacer { height: 1; fill: width; background: alpha(muted, 0.25) }
-        Text { text: "closest hubs"; style: label; color: muted }
+        Spacer { height: 1; fill: width; background: alpha(textDim, 0.25) }
+        Text { text: "closest hubs"; style: label; color: textDim }
         for d, i in ranked.take(10) key d.n {
           let dMi = round(d.km / 1.609344)
           let dShow = imperial ? dMi : round(d.km)
           Row {
             gap: 8
             align: center
-            Text { text: "${i + 1}"; style: small; color: muted; width: 20 }
+            Text { text: "${i + 1}"; style: small; color: textDim; width: 20 }
             Column {
               gap: 0
               weight: 1
               Text { text: d.n; bold: i == 0; maxLines: 1 }
-              Text { text: d.o; style: small; color: muted; maxLines: 1 }
+              Text { text: d.o; style: small; color: textDim; maxLines: 1 }
             }
             Text {
               text: "${dShow} ${unit}"
               style: small
-              color: i == 0 ? accent : muted
+              color: i == 0 ? neon : textDim
               width: 64
               align: end
             }
@@ -451,34 +492,35 @@ OWLDC
         }
       }
 
-      Spacer { height: 1; fill: width; background: alpha(muted, 0.25) }
+      Spacer { height: 1; fill: width; background: alpha(textDim, 0.25) }
 
       Row {
         gap: 6
-        Button { text: "build"; color: tab == "build" ? accent : muted; onTap: tab = "build" }
-        Button { text: "power"; color: tab == "power" ? accent : muted; onTap: tab = "power" }
-        Button { text: "trend"; color: tab == "trend" ? accent : muted; onTap: tab = "trend" }
+        Button { text: "build"; color: tab == "build" ? neon : textDim; onTap: tab = "build" }
+        Button { text: "power"; color: tab == "power" ? neon : textDim; onTap: tab = "power" }
+        Button { text: "trend"; color: tab == "trend" ? neon : textDim; onTap: tab = "trend" }
         Spacer { weight: 1 }
-        Button { text: "refresh"; color: muted; onTap: refresh() }
+        Button { text: "refresh"; color: textDim; onTap: refresh() }
       }
 
       Text {
         text: tab == "build" ? "new construction & campuses" : tab == "power" ? "grid · power · energy" : "ai · hyperscale · cloud"
         style: label
-        color: muted
+        color: textDim
       }
 
       if feed == null {
-        Text { text: "loading…"; style: small; color: muted }
+        Text { text: "loading…"; style: small; color: textDim }
       } else if !feed.ok {
-        Text { text: "news offline"; style: small; color: orange }
+        Text { text: "news offline"; style: small; color: neonOrange }
       } else {
         for p, i in items key p.url {
           Story { p: p; i: i; big: true }
         }
       }
 
-      Text { text: "location · ${city != "" ? city : "IP/wttr"} · news via google news"; style: label; color: muted }
+      Text { text: "location · ${city != "" ? city : "IP/wttr"} · news via google news"; style: label; color: textDim }
+    }
     }
   }
 }

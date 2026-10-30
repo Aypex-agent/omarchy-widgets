@@ -2,14 +2,37 @@ widget "local news" {
   size: 6x4
   minSize: 4x3
   meta {
-    description: "Local headlines for a ZIP or city you set (or IP location), plus national news from Fox, NBC, CNN, Breitbart, The Hill and the NY Post. Tap a headline to read it"
-    version: "2.0"
+    description: "Local + national headlines — neon cyberpunk tile. ZIP/city or IP; Fox, NBC, CNN, Breitbart, The Hill, NY Post"
+    version: "2.2"
     license: "MIT"
     category: "news"
     owl: 8
   }
 
   requires { pacman: ["python"] }
+
+
+
+  // goose cyberpunk neon palette — bright surfaces that pop
+  let void = #050510
+  let panel = #0a0a18
+  let ink = #0a0a0a
+  let neon = #00e5ff
+  let neonPink = #ff2bd6
+  let neonOrange = #ff6b00
+  let neonLime = #39ff14
+  let neonYellow = #fff200
+  let neonRed = #ff2a2a
+  let neonPurple = #c084fc
+  let neonBlue = #00b8d4
+  let textHi = #fff200
+  let textMid = #ffe066
+  let textDim = #b8ff00
+  let upColor = #39ff14
+  let downColor = #ff2bd6
+  let warnColor = #ff6b00
+
+  background: void
 
   // ZIP or city/region. Empty = IP geolocation for the local tab.
   state place = "" persist
@@ -18,6 +41,7 @@ widget "local news" {
 
   // One fetch: Google News for the user's place + national desks. Merged, newest first.
   // sh(place) is concatenated outside the script string so owl interpolates it (store pattern).
+  source now = clock every 60s
   source news = cmd("""
 python3 -c '
 import json, re, sys, time, html, urllib.parse, urllib.request
@@ -120,10 +144,9 @@ print(json.dumps({
 }))
 '
   """ + " ${sh(place)}") every 15m json timeout 45s
-  source now = clock every 60s
   on place { refresh() }
 
-  let tints = [accent, orange, red, blue, green, magenta, cyan, yellow]
+  let tints = [neon, neonOrange, neonRed, neonBlue, upColor, neonPink, neon, neonYellow]
   let cur = tab == "nation" ? "nation" : "local"
   let items = (cur == "nation" ? news.nation : news.local) ?? []
   let where = news.place ?? (place != "" ? place : "…")
@@ -137,10 +160,10 @@ print(json.dumps({
         text: label; align: center; maxLines: 1
         fontSize: big ? 16 : slim ? 11 : 12
         bold: cur == id
-        color: cur == id ? tint : muted
+        color: cur == id ? tint : textDim
         onTap: tab = id
       }
-      Spacer { height: 2; fill: width; background: cur == id ? tint : alpha(muted, 0.0) }
+      Spacer { height: 2; fill: width; background: cur == id ? tint : alpha(textDim, 0.0) }
     }
   }
 
@@ -152,14 +175,14 @@ print(json.dumps({
         text: p.title
         fontSize: big ? 16 : 13
         maxLines: big ? 3 : 2
-        color: indexOf(seen, p.url) >= 0 ? muted : foreground
+        color: indexOf(seen, p.url) >= 0 ? textDim : textHi
       }
       Row {
         gap: 6
         Text { text: p.src; fontSize: big ? 12 : 10; color: tints[p.c]; maxLines: 1; weight: 1 }
         Text {
           text: p.at == 0 ? "" : now - p.at < 3600 ? "${max(floor((now - p.at) / 60), 1)}m" : now - p.at < 86400 ? "${floor((now - p.at) / 3600)}h" : "${floor((now - p.at) / 86400)}d"
-          fontSize: big ? 12 : 10; color: muted; width: big ? 34 : 30; align: end
+          fontSize: big ? 12 : 10; color: textDim; width: big ? 34 : 30; align: end
         }
       }
     }
@@ -170,9 +193,9 @@ print(json.dumps({
       scroll: true
       gap: big ? 12 : 7
       if news == null {
-        Text { text: "loading headlines…"; style: small; color: muted }
+        Text { text: "loading headlines…"; style: small; color: textDim }
       } else if len(items) == 0 {
-        Text { text: "no headlines · tap to retry"; style: small; color: muted; onTap: refresh() }
+        Text { text: "no headlines · tap to retry"; style: small; color: textDim; onTap: refresh() }
       }
       for p in take(items, big ? 40 : 12) key p.url {
         Post { p: p; big: big }
@@ -180,57 +203,74 @@ print(json.dumps({
     }
   }
 
+  Box { /* neon-wrap */
+    fill: true
+    background: void
+    border: 2
+    borderColor: neon
+    radius: 12
+    padding: 4
+
   Column {
     gap: 4
     Row {
       gap: 6
       align: center
-      Text { text: "news"; style: label; color: muted; width: 40; maxLines: 1 }
-      Tab { id: "local"; label: "local"; tint: accent }
-      Tab { id: "nation"; label: "nation"; tint: cyan }
+      Text { text: "news"; style: label; color: neonPink; width: 40; maxLines: 1 }
+      Tab { id: "local"; label: "local"; tint: neon }
+      Tab { id: "nation"; label: "nation"; tint: neon }
       Canvas {
         width: 22; height: 16
         onTap: screen()
-        rect(7, 3, 10, 10, stroke: muted, width: 1.5)
+        rect(7, 3, 10, 10, stroke: textDim, width: 1.5)
       }
     }
     if cur == "local" {
-      Text { text: where; style: label; color: muted; maxLines: 1 }
+      Text { text: where; style: label; color: textDim; maxLines: 1 }
     }
     Posts { weight: 1 }
+  }
   }
 
   screen {
     title: "local news"
+    Box {
+      fill: true
+      background: void
+      border: 1.5
+      borderColor: neonPink
+      radius: 12
+      padding: 10
     Column {
       gap: 10
       Row {
         gap: 24
         align: center
-        Tab { id: "local"; label: "local"; tint: accent; big: true }
-        Tab { id: "nation"; label: "nation"; tint: cyan; big: true }
+        Tab { id: "local"; label: "local"; tint: neon; big: true }
+        Tab { id: "nation"; label: "nation"; tint: neon; big: true }
         Spacer { weight: 1 }
         if news != null {
-          Text { text: "updated ${fmtTime(news.at, "HH:mm")}"; style: small; color: muted }
+          Text { text: "updated ${fmtTime(news.at, "HH:mm")}"; style: small; color: textDim }
         }
       }
       Input {
         text: place
-        placeholder: "ZIP or city · empty = IP location"
+        placeholder: "ZIP or city · empty = IP"
         onSubmit: { place = trim(value); refresh() }
       }
       Text {
         text: place != "" ? "local · ${where}" : "local · ${where} (IP)"
         style: label
-        color: muted
+        color: textDim
       }
       Posts { big: true; weight: 1 }
       Row {
         gap: 8
         Button { text: "refresh"; onTap: refresh() }
         Spacer { weight: 1 }
-        Button { text: "close"; color: muted; onTap: close() }
+        Button { text: "close"; color: textDim; onTap: close() }
       }
+    }
     }
   }
 }

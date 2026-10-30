@@ -4,16 +4,40 @@ widget "free classics" {
   padding: 0
   meta {
     description: "Free classic cartoons/TV from YouTube, Pluto and Archive.org. Cycles thumbnails about once a minute; tap opens the stream"
-    version: "1.0"
+    version: "1.2"
     license: "MIT"
     category: "fun"
     owl: 5
   }
   requires { pacman: ["python"] }
 
+
+
+  // goose cyberpunk neon palette — bright surfaces that pop
+  let void = #050510
+  let panel = #0a0a18
+  let ink = #0a0a0a
+  let neon = #00e5ff
+  let neonPink = #ff2bd6
+  let neonOrange = #ff6b00
+  let neonLime = #39ff14
+  let neonYellow = #fff200
+  let neonRed = #ff2a2a
+  let neonPurple = #c084fc
+  let neonBlue = #00b8d4
+  let textHi = #fff200
+  let textMid = #ffe066
+  let textDim = #b8ff00
+  let upColor = #39ff14
+  let downColor = #ff2bd6
+  let warnColor = #ff6b00
+
+  background: void
+
   source fc = cmd("""
 python3 - <<'PY'
 import json, os, re, time, urllib.parse, urllib.request
+from concurrent.futures import ThreadPoolExecutor, wait
 from pathlib import Path
 
 cache = str(Path.home() / ".cache" / "omalauncher-free-classics")
@@ -21,9 +45,29 @@ Path(cache).mkdir(parents=True, exist_ok=True)
 lib_path = str(Path(cache) / "lib.json")
 show_n = 100
 lib_max = 400
+max_thumbs = 160
 now = int(time.time())
 
 UA = "Mozilla/5.0 (omalauncher free-classics widget)"
+
+def get_bytes(url, timeout=12, retries=2):
+    last = None
+    for i in range(retries):
+        try:
+            req = urllib.request.Request(
+                url,
+                headers={"User-Agent": UA, "Accept": "image/*,*/*;q=0.8"},
+            )
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                data = r.read()
+                if data:
+                    return data
+        except Exception as e:
+            last = e
+            time.sleep(0.25 * (i + 1))
+    if last:
+        raise last
+    raise RuntimeError("empty image")
 
 # dope old / cult / 90s-00s + timeless free TV
 SHOWS = [
@@ -272,6 +316,84 @@ def thumb_url(vid, v=None):
                 return u
     return f"https://i.ytimg.com/vi/{vid}/hq720.jpg"
 
+def local_thumb_path(it):
+    src = it.get("source") or "x"
+    vid = it.get("vid") or it.get("id") or "unknown"
+    safe = re.sub(r"[^A-Za-z0-9_.-]+", "_", str(vid))[:80]
+    if src == "youtube":
+        return os.path.join(cache, f"yt-{safe}.jpg")
+    if src == "pluto":
+        return os.path.join(cache, f"pluto-{safe}.jpg")
+    if src == "archive":
+        return os.path.join(cache, f"ia-{safe}.jpg")
+    return os.path.join(cache, f"{src}-{safe}.jpg")
+
+def fetch_thumb(path, url, vid=None, source=None):
+    if path and os.path.isfile(path) and os.path.getsize(path) > 0:
+        return path
+    urls = []
+    if url:
+        urls.append(url)
+    if source == "youtube" and vid:
+        urls.append(f"https://i.ytimg.com/vi/{vid}/hq720.jpg")
+        urls.append(f"https://i.ytimg.com/vi/{vid}/hqdefault.jpg")
+        urls.append(f"https://i.ytimg.com/vi/{vid}/mqdefault.jpg")
+    seen = set()
+    for u in urls:
+        if not u or u in seen:
+            continue
+        seen.add(u)
+        try:
+            data = get_bytes(u)
+            if not data or len(data) < 200:
+                continue
+            tmp = path + ".tmp"
+            with open(tmp, "wb") as f:
+                f.write(data)
+            os.replace(tmp, path)
+            return path
+        except Exception:
+            continue
+    return ""
+
+def attach_thumbs(items):
+    # Local disk thumbs: Image src under owl 5 must be a guest path, not https.
+    jobs = []
+    for it in items:
+        path = it.get("thumb") if (it.get("thumb") and not str(it.get("thumb")).startswith("http")) else local_thumb_path(it)
+        it["thumb"] = path
+        url = it.get("thumbUrl") or ""
+        if not url and (it.get("source") == "youtube") and it.get("vid"):
+            url = thumb_url(it["vid"])
+            it["thumbUrl"] = url
+        if not (os.path.isfile(path) and os.path.getsize(path) > 0):
+            jobs.append((it, path, url, it.get("vid"), it.get("source")))
+    if jobs:
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            futs = [pool.submit(fetch_thumb, path, url, vid, src) for _, path, url, vid, src in jobs]
+            wait(futs, timeout=55)
+            for (it, path, _, _, _), fut in zip(jobs, futs):
+                try:
+                    got = fut.result(timeout=0)
+                except Exception:
+                    got = ""
+                it["thumb"] = got if got else path
+    try:
+        files = sorted(
+            (os.path.getmtime(os.path.join(cache, n)), os.path.join(cache, n))
+            for n in os.listdir(cache)
+            if n.endswith((".jpg", ".jpeg", ".png", ".webp")) and n != "lib.json"
+        )
+        while len(files) > max_thumbs:
+            _, old = files.pop(0)
+            try:
+                os.remove(old)
+            except Exception:
+                pass
+    except Exception:
+        pass
+    return items
+
 def item_from_yt(v, discovered_at):
     vid = v.get("videoId")
     if not vid:
@@ -291,6 +413,8 @@ def item_from_yt(v, discovered_at):
         return None
     pub = (v.get("publishedTimeText") or {}).get("simpleText") or ""
     age = parse_published(pub)
+    remote = thumb_url(vid, v)
+    path = os.path.join(cache, f"yt-{vid}.jpg")
     return {
         "id": f"yt-{vid}",
         "vid": vid,
@@ -301,8 +425,8 @@ def item_from_yt(v, discovered_at):
         "ts": now - age if age < 10**12 else None,
         "age": age,
         "secs": secs,
-        "thumb": thumb_url(vid, v),
-        "thumbUrl": thumb_url(vid, v),
+        "thumb": path,
+        "thumbUrl": remote,
         "video": f"https://www.youtube.com/watch?v={vid}",
         "source": "youtube",
         "tag": "LIVE" if live else "YT",
@@ -330,15 +454,21 @@ def ingest(it):
     prev = by_id.get(it["id"])
     if prev:
         it["discovered"] = prev.get("discovered", now)
-        # prefer remote URL thumbs
-        if not it.get("thumb") and prev.get("thumbUrl"):
-            it["thumb"] = prev["thumbUrl"]
-        if not it.get("thumbUrl") and prev.get("thumbUrl"):
+        # keep a good local thumb if the file is still there
+        prev_thumb = prev.get("thumb") or ""
+        if prev_thumb and not str(prev_thumb).startswith("http") and os.path.isfile(prev_thumb) and os.path.getsize(prev_thumb) > 0:
+            it["thumb"] = prev_thumb
+        if prev.get("thumbUrl") and not it.get("thumbUrl"):
             it["thumbUrl"] = prev["thumbUrl"]
-        if not it.get("thumb") and prev.get("thumb") and str(prev.get("thumb","")).startswith("http"):
-            it["thumb"] = prev["thumb"]
+        # never keep a bare remote URL as Image src under owl 5
+        if str(it.get("thumb") or "").startswith("http"):
+            it["thumb"] = local_thumb_path(it)
         by_id[it["id"]] = it
     else:
+        if str(it.get("thumb") or "").startswith("http"):
+            if not it.get("thumbUrl"):
+                it["thumbUrl"] = it["thumb"]
+            it["thumb"] = local_thumb_path(it)
         by_id[it["id"]] = it
         new_count += 1
 
@@ -385,6 +515,7 @@ try:
             thumb_clean = re.sub(r"\?.*", "", thumb)
             thumb_get = thumb if "h=" in thumb else (thumb_clean + "?fit=fill&fm=jpg&h=720&w=1280&q=75")
             video = f"https://pluto.tv/live-tv/{slug}" if slug else f"https://pluto.tv/live-tv/{cid}"
+            path = os.path.join(cache, f"pluto-{re.sub(r'[^A-Za-z0-9_.-]+', '_', str(cid))[:80]}.jpg")
             ingest({
                 "id": f"pluto-{cid}",
                 "vid": cid,
@@ -395,7 +526,7 @@ try:
                 "ts": now,
                 "age": 0,
                 "secs": 0,
-                "thumb": thumb_get,
+                "thumb": path,
                 "thumbUrl": thumb_get,
                 "video": video,
                 "source": "pluto",
@@ -451,6 +582,8 @@ for q in ia_q:
             if re.search(r"\b(pdf|ebook|magazine|comic\s*book|scan|audiobook)\b", low):
                 continue
             ia_thumb = f"https://archive.org/services/img/{urllib.parse.quote(ident)}"
+            safe = re.sub(r"[^A-Za-z0-9_.-]+", "_", str(ident))[:80]
+            path = os.path.join(cache, f"ia-{safe}.jpg")
             ingest({
                 "id": f"ia-{ident}",
                 "vid": ident,
@@ -461,7 +594,7 @@ for q in ia_q:
                 "ts": None,
                 "age": 10**11,
                 "secs": 0,
-                "thumb": ia_thumb,
+                "thumb": path,
                 "thumbUrl": ia_thumb,
                 "video": f"https://archive.org/details/{urllib.parse.quote(ident)}",
                 "source": "archive",
@@ -561,7 +694,12 @@ while len(cycle) < len(picked):
 for b in buckets.values():
     cycle.extend(b)
 
-print(json.dumps({"items": cycle[:show_n], "new": new_count, "lib": len(items)}))
+cycle = cycle[:show_n]
+# ensure local thumbs exist for what the tile will show
+attach_thumbs(cycle)
+have = [it for it in cycle if it.get("thumb") and os.path.isfile(it["thumb"]) and os.path.getsize(it["thumb"]) > 0]
+cycle = have or cycle
+print(json.dumps({"items": cycle, "new": new_count, "lib": len(items)}))
 PY
   """) every 4h json timeout 100s
 
@@ -584,6 +722,15 @@ PY
   onTap: url(cur.video)
 
   if cur != null {
+    Box { /* neon-wrap */
+      fill: true
+      background: void
+      border: 2
+      borderColor: neonPink
+      radius: 12
+      padding: 0
+      clip: true
+
     Box {
       fill: true
       Image { src: cur.thumb; fit: cover; fill: true }
@@ -617,11 +764,13 @@ PY
         }
       }
     }
+    }
+
   } else {
     Box {
       fill: true
-      background: surface
-      Text { text: fc == null ? "scraping free TV…" : "no streams yet"; style: muted; align: center }
+      background: panel
+      Text { text: fc == null ? "scraping free TV…" : "no streams yet"; style: small; color: textDim; align: center }
     }
   }
 }

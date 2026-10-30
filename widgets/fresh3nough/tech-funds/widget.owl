@@ -4,12 +4,35 @@ widget "tech funds" {
   padding: 0
   meta {
     description: "Long-term tech ETFs with live day performance, plus daily stock picks scraped from r/wallstreetbets"
-    version: "1.2"
+    version: "1.3"
     license: "MIT"
     category: "finance"
     owl: 5
   }
   requires { pacman: ["python"] }
+
+  // goose cyberpunk neon palette — bright surfaces that pop
+  let void = #050510
+  let panel = #0a0a18
+  let ink = #0a0a0a
+  let neon = #00e5ff
+  let neonPink = #ff2bd6
+  let neonOrange = #ff6b00
+  let neonLime = #39ff14
+  let neonYellow = #fff200
+  let neonRed = #ff2a2a
+  let neonPurple = #c084fc
+  let neonBlue = #00b8d4
+  let textHi = #fff200
+  let textMid = #ffe066
+  let textDim = #b8ff00
+  let upColor = #39ff14
+  let downColor = #ff2bd6
+  let warnColor = #ff6b00
+
+  background: void
+
+
 
   source data = cmd("""
 python3 - <<'PY'
@@ -369,6 +392,9 @@ PY
 
   let h = rows ?? 8
   let w = cols ?? 6
+  let th = tileHeight ?? 0
+  let tw = tileWidth ?? 0
+
   let tiny = h <= 3 || w <= 2
   let short = h <= 5
   let slim = w < 5
@@ -392,14 +418,16 @@ PY
   let symW = tiny ? 32 : short ? 36 : 44
   let pxW = tiny ? 48 : short ? 56 : 68
 
+
+
   component Coin() {
     Canvas {
       width: iconPx
       height: iconPx
-      circle(iconPx / 2, iconPx / 2, iconPx * 0.43, fill: mix(yellow, orange, 0.35))
-      circle(iconPx / 2, iconPx / 2, iconPx * 0.43, stroke: yellow, width: tiny ? 1 : 1.5)
-      circle(iconPx / 2, iconPx / 2, iconPx * 0.32, stroke: alpha(orange, 0.7), width: 1)
-      text("$", iconPx / 2, iconPx / 2, size: iconPx * 0.5, align: center, bold: true, color: background)
+      circle(iconPx / 2, iconPx / 2, iconPx * 0.43, fill: mix(neonYellow, neonOrange, 0.35))
+      circle(iconPx / 2, iconPx / 2, iconPx * 0.43, stroke: neonYellow, width: tiny ? 1 : 1.5)
+      circle(iconPx / 2, iconPx / 2, iconPx * 0.32, stroke: alpha(neonOrange, 0.7), width: 1)
+      text("$", iconPx / 2, iconPx / 2, size: iconPx * 0.5, align: center, bold: true, color: ink)
     }
   }
 
@@ -407,10 +435,10 @@ PY
     Canvas {
       width: iconPx
       height: iconPx
-      path([[iconPx * 0.31, iconPx * 0.38], [iconPx * 0.19, iconPx * 0.54], [iconPx * 0.19, iconPx * 0.85], [iconPx * 0.81, iconPx * 0.85], [iconPx * 0.81, iconPx * 0.54], [iconPx * 0.69, iconPx * 0.38]], closed: true, fill: mix(yellow, orange, 0.4))
-      path([[iconPx * 0.31, iconPx * 0.38], [iconPx * 0.19, iconPx * 0.54], [iconPx * 0.19, iconPx * 0.85], [iconPx * 0.81, iconPx * 0.85], [iconPx * 0.81, iconPx * 0.54], [iconPx * 0.69, iconPx * 0.38]], closed: true, stroke: yellow, width: tiny ? 1 : 1.2)
-      path([[iconPx * 0.38, iconPx * 0.38], [iconPx * 0.5, iconPx * 0.19], [iconPx * 0.62, iconPx * 0.38]], closed: true, fill: yellow)
-      text("$", iconPx / 2, iconPx * 0.62, size: iconPx * 0.42, align: center, bold: true, color: background)
+      path([[iconPx * 0.31, iconPx * 0.38], [iconPx * 0.19, iconPx * 0.54], [iconPx * 0.19, iconPx * 0.85], [iconPx * 0.81, iconPx * 0.85], [iconPx * 0.81, iconPx * 0.54], [iconPx * 0.69, iconPx * 0.38]], closed: true, fill: mix(neonYellow, neonOrange, 0.4))
+      path([[iconPx * 0.31, iconPx * 0.38], [iconPx * 0.19, iconPx * 0.54], [iconPx * 0.19, iconPx * 0.85], [iconPx * 0.81, iconPx * 0.85], [iconPx * 0.81, iconPx * 0.54], [iconPx * 0.69, iconPx * 0.38]], closed: true, stroke: neonYellow, width: tiny ? 1 : 1.2)
+      path([[iconPx * 0.38, iconPx * 0.38], [iconPx * 0.5, iconPx * 0.19], [iconPx * 0.62, iconPx * 0.38]], closed: true, fill: neonYellow)
+      text("$", iconPx / 2, iconPx * 0.62, size: iconPx * 0.42, align: center, bold: true, color: ink)
     }
   }
 
@@ -418,9 +446,9 @@ PY
     Row {
       gap: tiny ? 3 : 6
       align: center
-      Text { text: f.sym; fontSize: fsSmall; bold: true; color: accent; width: symW; maxLines: 1; font: mono }
+      Text { text: f.sym; fontSize: fsSmall; bold: true; color: neon; width: symW; maxLines: 1; font: mono }
       if showNames {
-        Text { text: f.name; fontSize: fsSmall; color: muted; weight: 1; maxLines: 1 }
+        Text { text: f.name; fontSize: fsSmall; color: textDim; weight: 1; maxLines: 1 }
       } else {
         Spacer { weight: 1 }
       }
@@ -430,11 +458,11 @@ PY
       }
       Box {
         width: badgeW; height: badgeH; radius: 4
-        background: alpha(f.up ? green : red, 0.18)
+        background: alpha(f.up ? upColor : downColor, 0.18)
         align: center
         Text {
           text: f.pct == null ? "…" : "${f.up ? "▲" : "▼"} ${fixed(abs(f.pct), 2)}%"
-          fontSize: fsSmall; bold: true; color: f.up ? green : red; align: center; maxLines: 1
+          fontSize: fsSmall; bold: true; color: f.up ? upColor : downColor; align: center; maxLines: 1
         }
       }
     }
@@ -445,7 +473,7 @@ PY
       gap: big ? 8 : (tiny ? 3 : 6)
       align: top
       onTap: url(p.url)
-      Text { text: "•"; color: yellow; width: big ? 12 : (tiny ? 8 : 10); fontSize: big ? 14 : fsBody }
+      Text { text: "•"; color: neonYellow; width: big ? 12 : (tiny ? 8 : 10); fontSize: big ? 14 : fsBody }
       Column {
         gap: big ? 2 : (tiny ? 0 : 1)
         weight: 1
@@ -457,7 +485,7 @@ PY
               text: "$${p.tag}"
               fontSize: big ? 12 : fsSmall
               bold: true
-              color: accent
+              color: neon
               width: big ? 52 : (tiny ? 36 : 48)
               maxLines: 1
               font: mono
@@ -468,14 +496,14 @@ PY
             fontSize: big ? 14 : fsBody
             maxLines: big ? 4 : pickLines
             weight: 1
-            color: foreground
+            color: textHi
           }
         }
         if showBody && (p.body ?? "") != "" {
           Text {
             text: p.body
             fontSize: big ? 12 : fsSmall
-            color: muted
+            color: textDim
             maxLines: big ? 3 : bodyLines
           }
         }
@@ -483,7 +511,7 @@ PY
           Text {
             text: join(p.ticks.map(t => "$${t}"), "  ")
             fontSize: 11
-            color: yellow
+            color: neonYellow
             font: mono
             maxLines: 1
           }
@@ -492,75 +520,84 @@ PY
     }
   }
 
+  Box { /* neon-wrap */
+    fill: true
+    background: void
+    border: 2
+    borderColor: neon
+    radius: 12
+    clip: true
+    padding: 6
   Column {
-    gap: gap
-    padding: pad
-
-    Row {
-      gap: tiny ? 4 : 8
-      align: center
-      Coin { }
-      Column {
-        gap: 0
-        weight: 1
-        Text { text: tiny ? "funds" : "tech funds"; fontSize: fsLabel; bold: true; color: yellow; maxLines: 1 }
-        Text {
-          text: avg == null ? (tiny ? "…" : "long-term · loading…") : tiny ? "${mkt_up ? "+" : ""}${fixed(avg, 2)}%" : "long-term · day ${mkt_up ? "+" : ""}${fixed(avg, 2)}% · ${data.up_n}/${data.n} green"
-          fontSize: fsSmall; color: muted; maxLines: 1
-        }
-      }
-      if age != null {
-        Text {
-          text: age < 90 ? "live" : age < 3600 ? "${floor(age / 60)}m" : "${floor(age / 3600)}h"
-          fontSize: fsSmall; color: age < 600 ? green : muted; width: tiny ? 24 : 32; align: end
-        }
-      }
-    }
-
-    if showChart {
-      Sparkline {
-        values: chart; min: lo; max: hi
-        color: mkt_up ? green : red
-        area: true; thickness: tiny ? 1 : 2; fill: width; height: chartH
-      }
-    }
-
-    Column {
-      gap: tiny ? 0 : 1
-      if data == null {
-        Text { text: "fetching…"; fontSize: fsSmall; color: muted }
-      } else if len(funds) == 0 {
-        Text { text: "offline · tap"; fontSize: fsSmall; color: red; onTap: refresh() }
-      }
-      for f in take(funds, fundN) key f.sym {
-        FundRow { f: f }
-      }
-    }
-
-    if !tiny {
+      gap: gap
+      padding: pad
+  
       Row {
-        gap: tiny ? 3 : 6
+        gap: tiny ? 4 : 8
         align: center
-        Bag { }
-        Text { text: slim ? "WSB" : "WSB daily picks"; fontSize: fsLabel; bold: true; color: orange; maxLines: 1 }
-        Spacer { weight: 1 }
-        Text { text: data.wsrc == "cached" ? "cached" : "r/wsb"; fontSize: fsSmall; color: muted; maxLines: 1 }
+        Coin { }
+        Column {
+          gap: 0
+          weight: 1
+          Text { text: tiny ? "funds" : "tech funds"; fontSize: fsLabel; bold: true; color: neonYellow; maxLines: 1 }
+          Text {
+            text: avg == null ? (tiny ? "…" : "long-term · loading…") : tiny ? "${mkt_up ? "+" : ""}${fixed(avg, 2)}%" : "long-term · day ${mkt_up ? "+" : ""}${fixed(avg, 2)}% · ${data.up_n}/${data.n} green"
+            fontSize: fsSmall; color: textDim; maxLines: 1
+          }
+        }
+        if age != null {
+          Text {
+            text: age < 90 ? "live" : age < 3600 ? "${floor(age / 60)}m" : "${floor(age / 3600)}h"
+            fontSize: fsSmall; color: age < 600 ? upColor : textDim; width: tiny ? 24 : 32; align: end
+          }
+        }
       }
-    }
-
-    if hot != "" {
-      Text { text: hot; fontSize: fsHot; bold: true; color: yellow; maxLines: tiny ? 1 : 2; font: mono }
-    }
-
-    Column {
-      gap: tiny ? 2 : (short ? 3 : 5)
-      weight: 1
-      scroll: true
-      if data != null && len(posts) == 0 {
-        Text { text: "no WSB · tap"; fontSize: fsSmall; color: muted; onTap: refresh() }
+  
+      if showChart {
+        Sparkline {
+          values: chart; min: lo; max: hi
+          color: mkt_up ? upColor : downColor
+          area: true; thickness: tiny ? 1 : 2; fill: width; height: chartH
+        }
       }
-      for p in posts key p.url {
-        PickBullet { p: p }
+  
+      Column {
+        gap: tiny ? 0 : 1
+        if data == null {
+          Text { text: "fetching…"; fontSize: fsSmall; color: textDim }
+        } else if len(funds) == 0 {
+          Text { text: "offline · tap"; fontSize: fsSmall; color: downColor; onTap: refresh() }
+        }
+        for f in take(funds, fundN) key f.sym {
+          FundRow { f: f }
+        }
+      }
+  
+      if !tiny {
+        Row {
+          gap: tiny ? 3 : 6
+          align: center
+          Bag { }
+          Text { text: slim ? "WSB" : "WSB daily picks"; fontSize: fsLabel; bold: true; color: neonOrange; maxLines: 1 }
+          Spacer { weight: 1 }
+          Text { text: data.wsrc == "cached" ? "cached" : "r/wsb"; fontSize: fsSmall; color: textDim; maxLines: 1 }
+        }
+      }
+  
+      if hot != "" {
+        Text { text: hot; fontSize: fsHot; bold: true; color: neonYellow; maxLines: tiny ? 1 : 2; font: mono }
+      }
+  
+      Column {
+        gap: tiny ? 2 : (short ? 3 : 5)
+        weight: 1
+        scroll: true
+        if data != null && len(posts) == 0 {
+          Text { text: "no WSB · tap"; fontSize: fsSmall; color: textDim; onTap: refresh() }
+        }
+        for p in posts key p.url {
+          PickBullet { p: p }
+        }
       }
     }
   }
@@ -569,89 +606,99 @@ PY
 
   screen {
     title: "tech funds + WSB"
-    Column {
-      gap: 8
-
-      Row {
-        gap: 10
-        align: center
-        Coin { }
+    Box { /* neon-screen */
+      fill: true
+      background: void
+      border: 2
+      borderColor: neonPink
+      radius: 12
+      clip: true
+      padding: 8
+      Column {
+        gap: 8
+  
+        Row {
+          gap: 10
+          align: center
+          Coin { }
+          Column {
+            gap: 2
+            weight: 1
+            Text { text: "long-term tech ETFs"; style: title; color: neonYellow }
+            Text {
+              text: avg == null ? "…" : "market pulse ${mkt_up ? "▲" : "▼"} ${fixed(abs(avg), 2)}% today"
+              style: small; color: mkt_up ? upColor : downColor
+            }
+          }
+          Bag { }
+        }
+  
+        if len(chart) > 2 {
+          Sparkline {
+            values: chart; min: lo; max: hi
+            color: mkt_up ? upColor : downColor
+            area: true; thickness: 2; fill: width; height: 48
+          }
+        }
+  
         Column {
           gap: 2
-          weight: 1
-          Text { text: "long-term tech ETFs"; style: title; color: yellow }
-          Text {
-            text: avg == null ? "…" : "market pulse ${mkt_up ? "▲" : "▼"} ${fixed(abs(avg), 2)}% today"
-            style: small; color: mkt_up ? green : red
-          }
-        }
-        Bag { }
-      }
-
-      if len(chart) > 2 {
-        Sparkline {
-          values: chart; min: lo; max: hi
-          color: mkt_up ? green : red
-          area: true; thickness: 2; fill: width; height: 48
-        }
-      }
-
-      Column {
-        gap: 2
-        for f in funds key f.sym {
-          Row {
-            gap: 8
-            align: center
-            padding: [0, 3]
-            background: alpha(f.up ? green : red, 0.06)
-            radius: 6
-            Text { text: f.sym; bold: true; color: accent; width: 52; font: mono; style: small }
-            Text { text: f.name; weight: 1; color: muted; maxLines: 1; style: small }
-            Text { text: "$${fixed(f.px, 2)}"; bold: true; width: 72; align: end; font: mono; style: small }
-            Text {
-              text: f.pct == null ? "…" : "${f.up ? "+" : ""}${fixed(f.pct, 2)}%"
-              bold: true; width: 64; align: end; color: f.up ? green : red; font: mono; style: small
+          for f in funds key f.sym {
+            Row {
+              gap: 8
+              align: center
+              padding: [0, 3]
+              background: alpha(f.up ? upColor : downColor, 0.06)
+              radius: 6
+              Text { text: f.sym; bold: true; color: neon; width: 52; font: mono; style: small }
+              Text { text: f.name; weight: 1; color: textDim; maxLines: 1; style: small }
+              Text { text: "$${fixed(f.px, 2)}"; bold: true; width: 72; align: end; font: mono; style: small }
+              Text {
+                text: f.pct == null ? "…" : "${f.up ? "+" : ""}${fixed(f.pct, 2)}%"
+                bold: true; width: 64; align: end; color: f.up ? upColor : downColor; font: mono; style: small
+              }
+              onTap: url("https://www.cnbc.com/quotes/${f.sym}")
             }
-            onTap: url("https://www.cnbc.com/quotes/${f.sym}")
           }
         }
-      }
-
-      Row {
-        gap: 6
-        align: center
-        Bag { }
-        Text {
-          text: len(posts) > 0 ? "WallStreetBets · ${len(posts)} posts" : "WallStreetBets"
-          style: label
-          color: orange
+  
+        Row {
+          gap: 6
+          align: center
+          Bag { }
+          Text {
+            text: len(posts) > 0 ? "WallStreetBets · ${len(posts)} posts" : "WallStreetBets"
+            style: label
+            color: neonOrange
+            weight: 1
+            maxLines: 1
+          }
+        }
+        if hot != "" {
+          Text { text: hot; fontSize: 14; bold: true; color: neonYellow; font: mono; maxLines: 2 }
+        }
+  
+        Column {
+          gap: 8
           weight: 1
-          maxLines: 1
+          scroll: true
+          if data != null && len(posts) == 0 {
+            Text { text: "no WSB posts · pull refresh"; style: small; color: textDim }
+          }
+          for p in posts key p.url {
+            PickBullet { p: p; big: true }
+          }
+        }
+  
+        Row {
+          gap: 8
+          Button { text: "refresh"; onTap: refresh() }
+          Button { text: "WSB"; onTap: url("https://www.reddit.com/r/wallstreetbets/") }
+          Spacer { weight: 1 }
+          Button { text: "close"; color: textDim; onTap: close() }
         }
       }
-      if hot != "" {
-        Text { text: hot; fontSize: 14; bold: true; color: yellow; font: mono; maxLines: 2 }
-      }
-
-      Column {
-        gap: 8
-        weight: 1
-        scroll: true
-        if data != null && len(posts) == 0 {
-          Text { text: "no WSB posts · pull refresh"; style: small; color: muted }
-        }
-        for p in posts key p.url {
-          PickBullet { p: p; big: true }
-        }
-      }
-
-      Row {
-        gap: 8
-        Button { text: "refresh"; onTap: refresh() }
-        Button { text: "WSB"; onTap: url("https://www.reddit.com/r/wallstreetbets/") }
-        Spacer { weight: 1 }
-        Button { text: "close"; color: muted; onTap: close() }
-      }
+    
     }
   }
 }
