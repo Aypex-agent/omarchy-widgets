@@ -1,20 +1,29 @@
 widget "wikipedia" {
-  meta { description: "Wikipedia's featured article of the day, what everyone is reading, and on this day in history"; version: "1.1"; license: "MIT"; category: "news" }
+  meta { description: "Wikipedia's featured article of the day, what everyone is reading, and on this day in history"; version: "1.2"; license: "MIT"; category: "news"; owl: 16 }
+
+  // What it says, and which Wikipedia it reads, in the phone's language where it has a set. The feed has no
+  // featured article for the other languages' Wikipedias, nor on this day for Indonesian's; those parts stay away.
+  strings {
+    en { wiki: "en"; featured: "featured article"; mostRead: "most read"; onThisDay: "on this day" }
+    id { wiki: "id"; featured: "artikel pilihan"; mostRead: "paling banyak dibaca"; onThisDay: "hari ini dalam sejarah" }
+    es { wiki: "es"; featured: "artículo destacado"; mostRead: "lo más leído"; onThisDay: "un día como hoy" }
+    pt { wiki: "pt"; featured: "artigo destacado"; mostRead: "mais lidos"; onThisDay: "neste dia" }
+  }
   size: 6x4
   minSize: 4x3
 
   requires { pacman: ["curl", "jq"] }
 
-  // Wikimedia's daily feed for English Wikipedia; only the parts drawn are kept.
-  source wp = cmd("""
-    curl -fsm 12 "https://api.wikimedia.org/feed/v1/wikipedia/en/featured/$(date -u +%Y/%m/%d)" | jq -c '{
+  // Wikimedia's daily feed for that language's Wikipedia; only the parts drawn are kept.
+  source wp = cmd("set -- ${sh(str.wiki)}; " + """
+    curl -fsm 12 "https://api.wikimedia.org/feed/v1/wikipedia/$1/featured/$(date -u +%Y/%m/%d)" | jq -c '{
       tfa: (.tfa // null | if . then {title: .titles.normalized, text: .extract, url: .content_urls.mobile.page} else null end),
       read: [(.mostread.articles // [])[] | select(.namespace.id == 0) | {title: .titles.normalized, views, url: .content_urls.mobile.page}][:5],
       onthisday: [(.onthisday // [])[:3][] | {year, text}]
     }'
   """) every 1h json timeout 20s
 
-  onTap: url("https://en.m.wikipedia.org")
+  onTap: url("https://${str.wiki}.m.wikipedia.org")
 
   component Heading(text) { Text { text: text; style: label; color: accent } }
 
@@ -29,13 +38,13 @@ widget "wikipedia" {
         Column {
           gap: 2
           onTap: url(wp.tfa.url)
-          Heading { text: "featured article" }
+          Heading { text: str.featured }
           Text { text: wp.tfa.title; style: body; bold: true; maxLines: 2 }
           Text { text: wp.tfa.text; fontSize: 12; color: muted; maxLines: 4 }
         }
       }
       if len(wp.read) > 0 {
-        Heading { text: "most read" }
+        Heading { text: str.mostRead }
         for a in wp.read key a.url {
           Row {
             onTap: url(a.url)
@@ -45,7 +54,7 @@ widget "wikipedia" {
         }
       }
       if len(wp.onthisday) > 0 {
-        Heading { text: "on this day" }
+        Heading { text: str.onThisDay }
         for e, i in wp.onthisday key i {
           Row {
             align: top

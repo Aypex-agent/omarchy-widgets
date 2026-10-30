@@ -1,5 +1,41 @@
 widget "sun and moon" {
-  meta { description: "Sunrise, sunset, daylight left and tonight's moon phase, located by IP or a city you type, via wttr.in"; version: "1.2"; license: "MIT"; category: "world"; owl: 5 }
+  meta { description: "Sunrise, sunset, daylight left and tonight's moon phase, located by IP or a city you type, via wttr.in"; version: "1.3"; license: "MIT"; category: "world"; owl: 16 }
+
+  // What it says, in the phone's language where it has a set; wttr names the moon's phase in English.
+  strings {
+    en {
+      title: "sun and moon"; short: "sun & moon"; city: "city · empty = auto"
+      sunriseIn: d => "sunrise in ${d}"; daylightLeft: d => "${d} of daylight left"
+      phase: p => lower(p)
+    }
+    id {
+      title: "matahari dan bulan"; short: "langit"; city: "kota · kosong = otomatis"
+      sunriseIn: d => "terbit dalam ${d}"; daylightLeft: d => "terbenam dalam ${d}"
+      phase: p => get({
+        "New Moon": "bulan baru", "Waxing Crescent": "sabit awal", "First Quarter": "kuartir pertama",
+        "Waxing Gibbous": "cembung awal", "Full Moon": "purnama", "Waning Gibbous": "cembung akhir",
+        "Last Quarter": "kuartir akhir", "Waning Crescent": "sabit akhir"
+      }, p, lower(p))
+    }
+    es {
+      title: "sol y luna"; short: "sol y luna"; city: "ciudad · vacío = auto"
+      sunriseIn: d => "amanece en ${d}"; daylightLeft: d => "quedan ${d} de luz"
+      phase: p => get({
+        "New Moon": "luna nueva", "Waxing Crescent": "creciente", "First Quarter": "cuarto creciente",
+        "Waxing Gibbous": "gibosa creciente", "Full Moon": "luna llena", "Waning Gibbous": "gibosa menguante",
+        "Last Quarter": "cuarto menguante", "Waning Crescent": "menguante"
+      }, p, lower(p))
+    }
+    pt {
+      title: "sol e lua"; short: "sol e lua"; city: "cidade · vazio = auto"
+      sunriseIn: d => "o sol nasce em ${d}"; daylightLeft: d => "restam ${d} de luz"
+      phase: p => get({
+        "New Moon": "lua nova", "Waxing Crescent": "crescente", "First Quarter": "quarto crescente",
+        "Waxing Gibbous": "crescente gibosa", "Full Moon": "lua cheia", "Waning Gibbous": "minguante gibosa",
+        "Last Quarter": "quarto minguante", "Waning Crescent": "minguante"
+      }, p, lower(p))
+    }
+  }
   size: 3x3
   minSize: 3x3
 
@@ -9,8 +45,9 @@ widget "sun and moon" {
   // The city, percent-encoded so it can't break the URL or the shell's single quotes. Empty means located by IP.
   let q = city.replace("%", "%25").replace("+", "%2B").replace("/", "%2F").replace("?", "%3F").replace("#", "%23").replace("&", "%26").replace("'", "%27").replace(" ", "+")
   // wttr.in gives local clock times ("07:14 AM"); date turns them into Unix time for today and tomorrow.
-  source sky = cmd("""
-    IFS=$'\t' read -r place rise set next phase illum < <(curl -fsm 12 'https://wttr.in/${q}?format=j1' | jq -r '[
+  // The city comes in as $1: a """ command is taken as written, so ${q} in it would be bash's own, empty, variable.
+  source sky = cmd("set -- ${sh(q)}; " + """
+    IFS=$'\t' read -r place rise set next phase illum < <(curl -fsm 12 "https://wttr.in/$1?format=j1" | jq -r '[
       .nearest_area[0].areaName[0].value, (.weather[0].astronomy[0] | .sunrise, .sunset),
       .weather[1].astronomy[0].sunrise, (.weather[0].astronomy[0] | .moon_phase, .moon_illumination)
     ] | @tsv') || exit
@@ -29,7 +66,7 @@ widget "sun and moon" {
   Column {
     gap: 4
     Row {
-      Text { text: "sun & moon"; style: muted; weight: 1 }
+      Text { text: str.short; style: muted; weight: 1; maxLines: 1 }
       Text { text: sky.place; fontSize: 10; color: muted; maxLines: 1; width: 72; align: end }
     }
     // The day as an arc from sunrise (left) to sunset (right).
@@ -50,7 +87,7 @@ widget "sun and moon" {
       Text { text: "↓ ${fmtTime(sky.set, "HH:mm")}"; fontSize: 12; width: 56; align: end }
     }
     Text {
-      text: now < sky.rise ? "sunrise in ${fmtDuration(sky.rise - now)}" : day ? "${fmtDuration(sky.set - now)} of daylight left" : "sunrise in ${fmtDuration(sky.next - now)}"
+      text: now < sky.rise ? str.sunriseIn(fmtDuration(sky.rise - now)) : day ? str.daylightLeft(fmtDuration(sky.set - now)) : str.sunriseIn(fmtDuration(sky.next - now))
       style: small; color: muted; maxLines: 1
     }
     Row {
@@ -66,15 +103,15 @@ widget "sun and moon" {
         circle(c, c, r, fill: surface, stroke: border, width: 1)
         path(ys.map(y => [c + s * sqrt(max(r * r - y * y, 0)), c + y]) + reverse(ys).map(y => [c + s * sqrt(max(r * r - y * y, 0)) * (1 - 2 * f), c + y]), closed: true, fill: foreground)
       }
-      Text { text: "${lower(sky.phase)} · ${sky.illum}%"; fontSize: 11; maxLines: 1; weight: 1 }
+      Text { text: "${str.phase(sky.phase)} · ${sky.illum}%"; fontSize: 11; maxLines: 2; weight: 1 }
     }
   }
 
   screen {
-    title: "sun and moon"
+    title: str.title
     Input {
       text: city
-      placeholder: "city · empty = auto"
+      placeholder: str.city
       onSubmit: { city = trim(value); refresh() }
     }
     Text { text: sky == null ? "…" : lower(sky.place); style: small; color: muted }

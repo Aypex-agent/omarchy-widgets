@@ -1,5 +1,13 @@
 widget "year progress" {
-  meta { description: "How much of today, this week, this month and this year has passed"; version: "1.1"; license: "MIT"; category: "time" }
+  meta { description: "How much of today, this week, this month and this year has passed"; version: "1.2"; license: "MIT"; category: "time"; owl: 16 }
+
+  // What the bars are called, in the phone's language where it has a set.
+  strings {
+    en { day: "day"; week: "week"; month: "month"; year: "year" }
+    id { day: "hari"; week: "minggu"; month: "bulan"; year: "tahun" }
+    es { day: "día"; week: "semana"; month: "mes"; year: "año" }
+    pt { day: "dia"; week: "semana"; month: "mês"; year: "ano" }
+  }
   size: 3x3
   minSize: 3x2
 
@@ -15,10 +23,10 @@ widget "year progress" {
   let y = num(fmtTime(now, "yyyy"))
   let yearDays = y % 4 == 0 && (y % 100 != 0 || y % 400 == 0) ? 366 : 365
   let bars = [
-    {label: "day", p: dayP},
-    {label: "week", p: (weekday + dayP) / 7},
-    {label: "month", p: (d - 1 + dayP) / monthDays},
-    {label: "year", p: (num(fmtTime(now, "D")) - 1 + dayP) / yearDays},
+    {id: "day", label: str.day, p: dayP},
+    {id: "week", label: str.week, p: (weekday + dayP) / 7},
+    {id: "month", label: str.month, p: (d - 1 + dayP) / monthDays},
+    {id: "year", label: str.year, p: (num(fmtTime(now, "D")) - 1 + dayP) / yearDays},
   ]
 
   Column {
@@ -30,14 +38,14 @@ widget "year progress" {
       Text { text: "${y}"; style: title; weight: 1 }
       Text { text: "${fixed(bars[3].p * 100, 1)}%"; fontSize: 14; color: accent; width: 64; align: end }
     }
-    for b in bars key b.label {
+    for b in bars key b.id {
       Column {
         gap: 2
         Row {
           Text { text: b.label; fontSize: 11; color: muted; weight: 1 }
           Text { text: "${floor(b.p * 100)}%"; fontSize: 11; width: 40; align: end }
         }
-        Progress { value: b.p * 100; color: b.label == "year" ? accent : foreground; animate value: spring() }
+        Progress { value: b.p * 100; color: b.id == "year" ? accent : foreground; animate value: spring() }
       }
     }
   }

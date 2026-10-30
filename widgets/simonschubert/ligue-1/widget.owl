@@ -1,12 +1,20 @@
 widget "ligue-1" {
   meta {
-    owl: 5
+    owl: 16
     description: "Ligue 1 results, live scores and kick-offs from ESPN with club crests, and the table with European and relegation places. Tap for every match"
-    version: "1.1.1"
+    version: "1.2"
     license: "MIT"
     category: "sport"
   }
   requires { pacman: ["curl", "jq"] }
+  // What it says, in the phone's language where it has a set. Club names and ESPN's match minute
+  // (45', HT, FT) come as ESPN writes them.
+  strings {
+    en { matches: "matches"; table: "table"; loading: "loading…"; none: "no matches this week"; close: "close"; live: n => "${n} live" }
+    id { matches: "laga"; table: "klasemen"; loading: "memuat…"; none: "tidak ada laga minggu ini"; close: "tutup"; live: n => "${n} live" }
+    es { matches: "partidos"; table: "tabla"; loading: "cargando…"; none: "no hay partidos esta semana"; close: "cerrar"; live: n => "${n} en vivo" }
+    pt { matches: "jogos"; table: "tabela"; loading: "carregando…"; none: "nenhum jogo nesta semana"; close: "fechar"; live: n => "${n} ao vivo" }
+  }
   size: 6x4
   minSize: 3x3
 
@@ -133,21 +141,21 @@ widget "ligue-1" {
     Row {
       Text { text: "Ligue 1"; style: title; weight: 1; maxLines: 1 }
       if count(live) > 0 {
-        Text { text: "${count(live)} live"; style: small; color: accent; width: 60; align: end; bold: true }
+        Text { text: str.live(count(live)); style: small; color: accent; width: 72; align: end; bold: true }
       } else {
-        Text { text: fmtTime(now, "EEE d"); style: small; color: muted; width: 60; align: end }
+        Text { text: fmtTime(now, "EEE d"); style: small; color: muted; width: 72; align: end }
       }
     }
     Row {
-      Button { text: "matches"; weight: 1; color: view == "matches" ? accent : muted; onTap: view = "matches" }
-      Button { text: "table"; weight: 1; color: view == "table" ? accent : muted; onTap: view = "table" }
+      Button { text: str.matches; weight: 1; color: view == "matches" ? accent : muted; onTap: view = "matches" }
+      Button { text: str.table; weight: 1; color: view == "table" ? accent : muted; onTap: view = "table" }
     }
     Column {
       weight: 1
       scroll: true
       if view == "matches" {
         if count(picked) == 0 {
-          Text { text: games == null ? "loading…" : "no matches this week"; style: small; color: muted }
+          Text { text: games == null ? str.loading : str.none; style: small; color: muted }
         } else {
           for g in picked key g.id { GameRow { g: g; wide: tileWide } }
         }
@@ -163,14 +171,14 @@ widget "ligue-1" {
     title: "Ligue 1"
     Column {
       scroll: true
-      Text { text: "matches"; style: title }
-      if count(all) == 0 { Text { text: "no matches this week"; style: small; color: muted } }
+      Text { text: str.matches; style: title }
+      if count(all) == 0 { Text { text: str.none; style: small; color: muted } }
       for g in all key g.id { GameRow { g: g; wide: screenWide } }
-      Text { text: "table"; style: title }
+      Text { text: str.table; style: title }
       for grp in groups {
         for t in grp.teams key t.id { TeamRow { t: t; full: true; wide: screenWide } }
       }
-      Button { text: "close"; onTap: close() }
+      Button { text: str.close; onTap: close() }
     }
   }
 }
