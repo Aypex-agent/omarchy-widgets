@@ -1,5 +1,37 @@
 widget "planes overhead" {
-  meta { description: "Aircraft around you on a live radar, from the OpenSky Network, located by IP or a city you type, via wttr.in. Tap it for every flight's altitude, speed and distance"; version: "1.1"; license: "MIT"; category: "world"; owl: 5 }
+  meta { description: "Aircraft around you on a live radar, from the OpenSky Network, located by IP or a city you type, via wttr.in. Tap it for every flight's altitude, speed and distance"; version: "1.2"; license: "MIT"; category: "world"; owl: 16 }
+
+  // What it says, in the phone's language where it has a set. Callsigns and OpenSky's country names stay as they come.
+  strings {
+    en {
+      title: "planes overhead"; city: "city · empty = auto"; locating: "locating…"; unknown: "location unknown"
+      listening: "listening…"; limit: "opensky's daily limit is used up"; offline: "opensky offline"
+      clear: r => "clear skies within ${r}"; away: (call, d) => "${call} · ${d} away"
+      flights: (n, r, place) => "${n} ${n == 1 ? "flight" : "flights"} within ${r} of ${place}"
+      data: "data: the opensky network"; map: "live map ↗"
+    }
+    id {
+      title: "pesawat di atas"; city: "kota · kosong = otomatis"; locating: "mencari lokasi…"; unknown: "lokasi tidak diketahui"
+      listening: "mendengarkan…"; limit: "batas harian opensky sudah habis"; offline: "opensky offline"
+      clear: r => "tak ada pesawat dalam ${r}"; away: (call, d) => "${call} · berjarak ${d}"
+      flights: (n, r, place) => "${n} penerbangan dalam ${r} dari ${place}"
+      data: "data: opensky network"; map: "peta langsung ↗"
+    }
+    es {
+      title: "aviones cerca"; city: "ciudad · vacío = auto"; locating: "ubicando…"; unknown: "ubicación desconocida"
+      listening: "escuchando…"; limit: "se agotó el límite diario de opensky"; offline: "opensky sin conexión"
+      clear: r => "ningún avión a ${r} a la redonda"; away: (call, d) => "${call} · a ${d}"
+      flights: (n, r, place) => "${n} ${n == 1 ? "vuelo" : "vuelos"} a ${r} de ${place}"
+      data: "datos: opensky network"; map: "mapa en vivo ↗"
+    }
+    pt {
+      title: "aviões por perto"; city: "cidade · vazio = auto"; locating: "localizando…"; unknown: "local desconhecido"
+      listening: "ouvindo…"; limit: "o limite diário do opensky acabou"; offline: "opensky offline"
+      clear: r => "nenhum avião num raio de ${r}"; away: (call, d) => "${call} · a ${d}"
+      flights: (n, r, place) => "${n} ${n == 1 ? "voo" : "voos"} num raio de ${r} de ${place}"
+      data: "dados: opensky network"; map: "mapa ao vivo ↗"
+    }
+  }
   size: 3x3
   minSize: 2x2
 
@@ -44,7 +76,7 @@ widget "planes overhead" {
     })
   let flights = planes.filter(p => p.x * p.x + p.y * p.y <= km * km).sortBy(p => p.x * p.x + p.y * p.y)
   let nearest = first(flights)
-  let problem = wx == null ? "locating…" : lat == null ? "location unknown" : sky == null ? "listening…" : sky.code == 429 ? "opensky's daily limit is used up" : !sky.ok ? "opensky offline" : null
+  let problem = wx == null ? str.locating : lat == null ? str.unknown : sky == null ? str.listening : sky.code == 429 ? str.limit : !sky.ok ? str.offline : null
 
   onTap: screen()
 
@@ -98,7 +130,7 @@ widget "planes overhead" {
   Column {
     gap: 4
     Row {
-      Text { text: "planes overhead"; style: muted; weight: 1; maxLines: 1 }
+      Text { text: str.title; style: muted; weight: 1; maxLines: 1 }
       Text { text: problem == null ? len(flights) : ""; style: muted; width: 32; align: end }
     }
     Box {
@@ -111,7 +143,7 @@ widget "planes overhead" {
     }
     if rows >= 3 {
       Text {
-        text: problem != null ? "" : nearest == null ? "clear skies within ${range}" : "${nearest.call} · ${imperial ? "${round(sqrt(nearest.x * nearest.x + nearest.y * nearest.y) / 1.609)} mi" : "${round(sqrt(nearest.x * nearest.x + nearest.y * nearest.y))} km"} away"
+        text: problem != null ? "" : nearest == null ? str.clear(range) : str.away(nearest.call, imperial ? "${round(sqrt(nearest.x * nearest.x + nearest.y * nearest.y) / 1.609)} mi" : "${round(sqrt(nearest.x * nearest.x + nearest.y * nearest.y))} km")
         style: small
         maxLines: 1
       }
@@ -119,10 +151,10 @@ widget "planes overhead" {
   }
 
   screen {
-    title: "planes overhead"
+    title: str.title
     Input {
       text: city
-      placeholder: "city · empty = auto"
+      placeholder: str.city
       onSubmit: { city = trim(value); refresh() }
     }
     Column {
@@ -130,7 +162,7 @@ widget "planes overhead" {
       gap: 10
       Radar { list: flights; labels: true; height: min(screenWidth - 32, screenHeight * 0.55); fill: width }
       Text {
-        text: problem ?? "${len(flights)} ${len(flights) == 1 ? "flight" : "flights"} within ${range} of ${lower(area.areaName[0].value)}"
+        text: problem ?? str.flights(len(flights), range, lower(area.areaName[0].value))
         style: small
         color: muted
       }
@@ -165,8 +197,8 @@ widget "planes overhead" {
       Row {
         gap: 8
         align: center
-        Text { text: "data: the opensky network"; style: label; color: muted; weight: 1 }
-        Button { text: "live map ↗"; color: muted; onTap: url("https://globe.adsbexchange.com/?lat=${lat}&lon=${lon}&zoom=9") }
+        Text { text: str.data; style: label; color: muted; weight: 1 }
+        Button { text: str.map; color: muted; onTap: url("https://globe.adsbexchange.com/?lat=${lat}&lon=${lon}&zoom=9") }
       }
     }
   }

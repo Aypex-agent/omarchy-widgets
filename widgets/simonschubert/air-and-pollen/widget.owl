@@ -1,5 +1,66 @@
 widget "air and pollen" {
-  meta { description: "Air quality and today's pollen where you are, from Open-Meteo (Copernicus), located by IP or a city you type, via wttr.in. Tap it for the next 24 hours, pollutants and every pollen type"; version: "1.2"; license: "MIT"; category: "world"; owl: 5 }
+  meta { description: "Air quality and today's pollen where you are, from Open-Meteo (Copernicus), located by IP or a city you type, via wttr.in. Tap it for the next 24 hours, pollutants and every pollen type"; version: "1.3"; license: "MIT"; category: "world"; owl: 16 }
+
+  // What it says, in the phone's language where it has a set. us and eu are the two indexes' levels, good
+  // to worst, in each agency's words where it has them; advice goes with them, pollen is none to high.
+  strings {
+    en {
+      title: "air and pollen"; air: "air"; city: "city · empty = auto"; unknown: "location unknown"; offline: "open-meteo offline"
+      us: ["good", "moderate", "unhealthy for some", "unhealthy", "very unhealthy", "hazardous"]
+      eu: ["good", "fair", "moderate", "poor", "very poor", "extremely poor"]
+      advice: ["ideal for being outside", "fine for your usual outdoor plans", "sensitive people may want to take it easy outside", "consider less intense activity outside", "cut down on activity outside", "avoid activity outside"]
+      pollen: ["none", "low", "moderate", "high"]
+      plant: k => k
+      plantLevel: (plant, level) => "${plant} ${level}"; pollenLevel: (plant, level) => "${plant} pollen ${level}"
+      noPollen: "no pollen"; uv: v => "uv ${v}"; pollenShort: "pollen · next 24 h"; europeOnly: "no pollen forecast here (europe only)"
+      noneInAir: "none in the air"; next24: "next 24 hours"; now: "now"; pollutants: "pollutants now · µg/m³"
+      ozone: "ozone"; uvIndex: "uv index"; pollenLong: "pollen · next 24 hours"
+      europeOnlyLong: "open-meteo only forecasts pollen in europe."; peak: v => "peak ${v}"
+      data: "data: copernicus atmosphere monitoring service via open-meteo"
+    }
+    id {
+      title: "udara dan serbuk sari"; air: "udara"; city: "kota · kosong = otomatis"; unknown: "lokasi tidak diketahui"; offline: "open-meteo offline"
+      us: ["baik", "sedang", "tidak sehat bagi kelompok sensitif", "tidak sehat", "sangat tidak sehat", "berbahaya"]
+      eu: ["baik", "cukup", "sedang", "buruk", "sangat buruk", "sangat buruk sekali"]
+      advice: ["ideal untuk berada di luar", "aman untuk rencana di luar seperti biasa", "orang yang sensitif sebaiknya tidak memaksakan diri di luar", "pertimbangkan aktivitas luar yang lebih ringan", "kurangi aktivitas di luar", "hindari aktivitas di luar"]
+      pollen: ["tidak ada", "rendah", "sedang", "tinggi"]
+      plant: k => get({"birch": "birch", "alder": "alder", "olive": "zaitun", "grass": "rumput", "mugwort": "mugwort", "ragweed": "ragweed"}, k, k)
+      plantLevel: (plant, level) => "${plant} ${level}"; pollenLevel: (plant, level) => "serbuk sari ${plant} ${level}"
+      noPollen: "tidak ada serbuk sari"; uv: v => "uv ${v}"; pollenShort: "serbuk sari · 24 jam"; europeOnly: "tidak ada prakiraan serbuk sari di sini (hanya eropa)"
+      noneInAir: "tidak ada di udara"; next24: "24 jam ke depan"; now: "kini"; pollutants: "polutan saat ini · µg/m³"
+      ozone: "ozon"; uvIndex: "indeks uv"; pollenLong: "serbuk sari · 24 jam ke depan"
+      europeOnlyLong: "open-meteo hanya memprakirakan serbuk sari di eropa."; peak: v => "puncak ${v}"
+      data: "data: copernicus atmosphere monitoring service lewat open-meteo"
+    }
+    es {
+      title: "aire y polen"; air: "aire"; city: "ciudad · vacío = auto"; unknown: "ubicación desconocida"; offline: "open-meteo sin conexión"
+      us: ["buena", "moderada", "dañina para grupos sensibles", "dañina", "muy dañina", "peligrosa"]
+      eu: ["buena", "razonable", "regular", "desfavorable", "muy desfavorable", "extremadamente desfavorable"]
+      advice: ["ideal para estar al aire libre", "bien para tus planes al aire libre de siempre", "las personas sensibles quizá prefieran tomárselo con calma afuera", "considera una actividad menos intensa afuera", "reduce la actividad al aire libre", "evita la actividad al aire libre"]
+      pollen: ["nada", "bajo", "moderado", "alto"]
+      plant: k => get({"birch": "abedul", "alder": "aliso", "olive": "olivo", "grass": "gramíneas", "mugwort": "artemisa", "ragweed": "ambrosía"}, k, k)
+      plantLevel: (plant, level) => "${plant} ${level}"; pollenLevel: (plant, level) => "polen de ${plant} ${level}"
+      noPollen: "sin polen"; uv: v => "uv ${v}"; pollenShort: "polen · próximas 24 h"; europeOnly: "sin pronóstico de polen aquí (solo europa)"
+      noneInAir: "nada en el aire"; next24: "próximas 24 horas"; now: "ahora"; pollutants: "contaminantes ahora · µg/m³"
+      ozone: "ozono"; uvIndex: "índice uv"; pollenLong: "polen · próximas 24 horas"
+      europeOnlyLong: "open-meteo solo pronostica polen en europa."; peak: v => "máx. ${v}"
+      data: "datos: copernicus atmosphere monitoring service vía open-meteo"
+    }
+    pt {
+      title: "ar e pólen"; air: "ar"; city: "cidade · vazio = auto"; unknown: "local desconhecido"; offline: "open-meteo offline"
+      us: ["boa", "moderada", "ruim para grupos sensíveis", "ruim", "muito ruim", "perigosa"]
+      eu: ["boa", "razoável", "moderada", "ruim", "muito ruim", "péssima"]
+      advice: ["ideal para ficar ao ar livre", "tudo bem para seus planos ao ar livre de sempre", "pessoas sensíveis podem preferir pegar leve ao ar livre", "considere atividades menos intensas ao ar livre", "diminua as atividades ao ar livre", "evite atividades ao ar livre"]
+      pollen: ["nenhum", "baixo", "moderado", "alto"]
+      plant: k => get({"birch": "bétula", "alder": "amieiro", "olive": "oliveira", "grass": "gramíneas", "mugwort": "artemísia", "ragweed": "ambrósia"}, k, k)
+      plantLevel: (plant, level) => "${plant} ${level}"; pollenLevel: (plant, level) => "pólen de ${plant} ${level}"
+      noPollen: "sem pólen"; uv: v => "uv ${v}"; pollenShort: "pólen · próximas 24 h"; europeOnly: "sem previsão de pólen aqui (só europa)"
+      noneInAir: "nenhum no ar"; next24: "próximas 24 horas"; now: "agora"; pollutants: "poluentes agora · µg/m³"
+      ozone: "ozônio"; uvIndex: "índice uv"; pollenLong: "pólen · próximas 24 horas"
+      europeOnlyLong: "o open-meteo só prevê pólen na europa."; peak: v => "pico ${v}"
+      data: "dados: copernicus atmosphere monitoring service via open-meteo"
+    }
+  }
   size: 3x2
   minSize: 3x2
 
@@ -25,9 +86,9 @@ widget "air and pollen" {
   let index = us ? "us_aqi" : "european_aqi"
   let aqi = get(cur, index)
   let steps = us ? [50, 100, 150, 200, 300] : [20, 40, 60, 80, 100]
-  let names = us ? ["good", "moderate", "unhealthy for some", "unhealthy", "very unhealthy", "hazardous"] : ["good", "fair", "moderate", "poor", "very poor", "extremely poor"]
+  let names = us ? str.us : str.eu
   let tints = us ? [green, yellow, orange, red, magenta, magenta] : [green, cyan, yellow, orange, red, magenta]
-  let advice = ["ideal for being outside", "fine for your usual outdoor plans", "sensitive people may want to take it easy outside", "consider less intense activity outside", "cut down on activity outside", "avoid activity outside"]
+  let advice = str.advice
   let level = aqi == null ? null : count(steps, s => aqi > s)
   let tint = level == null ? muted : tints[level]
   // The next 24 hours, from the current one on.
@@ -47,11 +108,11 @@ widget "air and pollen" {
   }).map(p => {name: p.name, values: p.values, peak: p.peak, level: p.peak == null ? 0 : count(p.t, x => p.peak >= x)})
   let hasPollen = any(pollen, p => p.peak != null)
   let flying = pollen.filter(p => p.level > 0).sortBy(p => -p.peak)
-  let pollenWords = ["none", "low", "moderate", "high"]
+  let pollenWords = str.pollen
   let pollenTints = [muted, green, yellow, red]
   // A narrow tile (the landscape home screen turns 3x2 into 2x3) stacks the gauge above the words.
   let narrow = tileWidth != null && tileWidth < 170
-  let problem = wx == null || (lat != null && air == null) ? "…" : lat == null ? "location unknown" : !air.ok ? "open-meteo offline" : null
+  let problem = wx == null || (lat != null && air == null) ? "…" : lat == null ? str.unknown : !air.ok ? str.offline : null
 
   onTap: screen()
 
@@ -79,7 +140,7 @@ widget "air and pollen" {
     Row {
       gap: 6
       align: center
-      Text { text: p.name; fontSize: size; weight: 1; maxLines: 1 }
+      Text { text: str.plant(p.name); fontSize: size; weight: 1; maxLines: 1 }
       Dots { n: p.level; c: pollenTints[p.level] }
       Text { text: pollenWords[p.level]; fontSize: size; color: pollenTints[p.level]; width: size * 5.5; align: end; maxLines: 1 }
     }
@@ -89,7 +150,7 @@ widget "air and pollen" {
     gap: 4
     Row {
       gap: 6
-      Text { text: "air"; style: muted; width: 32 }
+      Text { text: str.air; style: muted; width: 48; maxLines: 1 }
       Text { text: lower(area.areaName[0].value ?? ""); fontSize: 10; color: muted; maxLines: 1; weight: 1; align: end }
     }
     if problem != null {
@@ -103,7 +164,7 @@ widget "air and pollen" {
         Text { text: names[level]; style: body; bold: true; color: tint; maxLines: 1; align: center }
         Text { text: "pm2.5 ${round(cur.pm2_5)} µg/m³"; style: small; color: muted; maxLines: 1; align: center }
         if (tileHeight ?? 0) >= 150 {
-          Text { text: !hasPollen ? "uv ${round(cur.uv_index)}" : len(flying) == 0 ? "no pollen" : "${flying[0].name} ${pollenWords[flying[0].level]}"; style: small; color: !hasPollen ? muted : len(flying) == 0 ? green : pollenTints[flying[0].level]; maxLines: 1; align: center }
+          Text { text: !hasPollen ? str.uv(round(cur.uv_index)) : len(flying) == 0 ? str.noPollen : str.plantLevel(str.plant(flying[0].name), pollenWords[flying[0].level]); style: small; color: !hasPollen ? muted : len(flying) == 0 ? green : pollenTints[flying[0].level]; maxLines: 1; align: center }
         }
       }
     } else {
@@ -118,23 +179,23 @@ widget "air and pollen" {
           Text { text: names[level]; style: body; bold: true; color: tint; maxLines: 2 }
           Text { text: "pm2.5 ${round(cur.pm2_5)} µg/m³"; style: small; color: muted; maxLines: 1 }
           if rows >= 3 || !hasPollen {
-            Text { text: "uv ${round(cur.uv_index)}"; style: small; color: muted; maxLines: 1 }
+            Text { text: str.uv(round(cur.uv_index)); style: small; color: muted; maxLines: 1 }
           } else {
             // Too short for the pollen list: the worst one, or none.
-            Text { text: len(flying) == 0 ? "no pollen" : "${flying[0].name} pollen ${pollenWords[flying[0].level]}"; style: small; color: len(flying) == 0 ? green : pollenTints[flying[0].level]; maxLines: 1 }
+            Text { text: len(flying) == 0 ? str.noPollen : str.pollenLevel(str.plant(flying[0].name), pollenWords[flying[0].level]); style: small; color: len(flying) == 0 ? green : pollenTints[flying[0].level]; maxLines: 1 }
           }
         }
       }
       if rows >= 3 {
         Spacer { height: 1; fill: width; background: alpha(muted, 0.25) }
-        Text { text: "pollen · next 24 h"; style: label; color: muted }
+        Text { text: str.pollenShort; style: label; color: muted }
         Column {
           gap: 3
           weight: 1
           if !hasPollen {
-            Text { text: "no pollen forecast here (europe only)"; style: small; color: muted }
+            Text { text: str.europeOnly; style: small; color: muted }
           } else if len(flying) == 0 {
-            Text { text: "none in the air"; style: small; color: green }
+            Text { text: str.noneInAir; style: small; color: green }
           } else {
             for p in take(flying, rows >= 4 ? 5 : 3) key p.name { PollenRow { p: p } }
           }
@@ -144,10 +205,10 @@ widget "air and pollen" {
   }
 
   screen {
-    title: "air and pollen"
+    title: str.title
     Input {
       text: city
-      placeholder: "city · empty = auto"
+      placeholder: str.city
       onSubmit: { city = trim(value); refresh() }
     }
     if problem != null {
@@ -170,7 +231,7 @@ widget "air and pollen" {
         }
 
         Spacer { height: 1; fill: width; background: alpha(muted, 0.25) }
-        Text { text: "next 24 hours"; style: label; color: accent }
+        Text { text: str.next24; style: label; color: accent }
         Canvas {
           height: 110
           fill: width
@@ -188,17 +249,17 @@ widget "air and pollen" {
               rect(i * w + 1, 92 - v / top * 84, max(w - 2, 1), max(v / top * 84, 1), radius: 2, fill: tints[count(steps, s => v > s)])
             }
             if i % 6 == 0 {
-              text(i == 0 ? "now" : fmtTime(hours[i], "HH:mm"), i * w + w / 2, 104, size: 10, align: center, color: muted)
+              text(i == 0 ? str.now : fmtTime(hours[i], "HH:mm"), i * w + w / 2, 104, size: 10, align: center, color: muted)
             }
           }
         }
 
         Spacer { height: 1; fill: width; background: alpha(muted, 0.25) }
-        Text { text: "pollutants now · µg/m³"; style: label; color: accent }
+        Text { text: str.pollutants; style: label; color: accent }
         Grid {
           columns: 3
           gap: 8
-          for p in [["pm2.5", cur.pm2_5, 25], ["pm10", cur.pm10, 50], ["ozone", cur.ozone, 120], ["no₂", cur.nitrogen_dioxide, 40], ["uv index", cur.uv_index, 6]] {
+          for p in [["pm2.5", cur.pm2_5, 25], ["pm10", cur.pm10, 50], [str.ozone, cur.ozone, 120], ["no₂", cur.nitrogen_dioxide, 40], [str.uvIndex, cur.uv_index, 6]] {
             Column {
               gap: 0
               padding: [10, 8]
@@ -211,9 +272,9 @@ widget "air and pollen" {
         }
 
         Spacer { height: 1; fill: width; background: alpha(muted, 0.25) }
-        Text { text: "pollen · next 24 hours"; style: label; color: accent }
+        Text { text: str.pollenLong; style: label; color: accent }
         if !hasPollen {
-          Text { text: "open-meteo only forecasts pollen in europe."; style: small; color: muted }
+          Text { text: str.europeOnlyLong; style: small; color: muted }
         } else {
           for p in pollen.sortBy(p => -(p.peak ?? 0)) key p.name {
             Column {
@@ -224,13 +285,13 @@ widget "air and pollen" {
                   gap: 6
                   align: center
                   Sparkline { values: p.values.map(v => v ?? 0); min: 0; max: max(p.peak ?? 0, 1); color: pollenTints[p.level]; area: true; height: 24; weight: 1 }
-                  Text { text: p.peak == null ? "" : "peak ${round(p.peak)}"; style: label; color: muted; width: 72; align: end }
+                  Text { text: p.peak == null ? "" : str.peak(round(p.peak)); style: label; color: muted; width: 72; align: end }
                 }
               }
             }
           }
         }
-        Text { text: "data: copernicus atmosphere monitoring service via open-meteo"; style: label; color: muted }
+        Text { text: str.data; style: label; color: muted }
       }
     }
   }

@@ -2,7 +2,56 @@ widget "next bus" {
   size: 6x2
   minSize: 4x2
   requires { pacman: [] }
-  meta { description: "Your next bus, tram or train, live, and whether you need to run for it: pick a stop, a line and how long you walk there, anywhere Transitous has open timetables. Tap the tile to change them"; version: "1.1"; license: "MIT"; category: "world"; owl: 10 }
+  meta { description: "Your next bus, tram or train, live, and whether you need to run for it: pick a stop, a line and how long you walk there, anywhere Transitous has open timetables. Tap the tile to change them"; version: "1.2"; license: "MIT"; category: "world"; owl: 16 }
+
+  // What it says, in the phone's language where it has a set. Stops, lines and directions come as Transitous
+  // names them. leaveNow and run sit in a 170dp column at 22 and 26sp: about 12 letters at most.
+  strings {
+    en {
+      title: "next bus"; relax: "relax"; leaveInMin: m => "leave in ${m} min"; leaveIn: "leave in"; leaveNow: "leave now"
+      brisk: "walk briskly"; run: "run!"; toStop: t => "${t} to the stop"
+      pick: "Tap to pick your stop, your line and how long you walk there."; nothing: "nothing leaves soon"
+      to: d => "to ${d}"; walkMin: m => "${m} min walk"; fromWalk: (stop, m) => "from ${stop} · ${m} min walk"
+      min: "min"; mins: m => "${m} min"; yourStop: "your stop"; timetable: "timetable"; onTime: "on time"; then: "then"
+      noneLater: "none later yet"; noLater: "no later ones yet"; tooMany: "too many requests"; offline: "transitous offline"
+      search: "search for a stop"; change: "change stop"; searching: "searching…"; noStops: q => "no stops called “${q}”"
+      yourLine: "your line"; anyLine: "any line"; whatever: "whatever leaves first"; walkTo: "walk to the stop"
+      data: "data: Transitous, from open timetables. Delays show where the operator publishes live times"
+    }
+    id {
+      title: "bus berikutnya"; relax: "santai"; leaveInMin: m => "berangkat ${m} mnt lagi"; leaveIn: "berangkat dalam"; leaveNow: "ayo jalan"
+      brisk: "jalan cepat"; run: "lari!"; toStop: t => "${t} ke halte"
+      pick: "Ketuk untuk memilih halte, jalur, dan berapa lama kamu berjalan ke sana."; nothing: "belum ada yang berangkat"
+      to: d => "ke ${d}"; walkMin: m => "${m} mnt jalan kaki"; fromWalk: (stop, m) => "dari ${stop} · ${m} mnt jalan kaki"
+      min: "mnt"; mins: m => "${m} mnt"; yourStop: "haltemu"; timetable: "sesuai jadwal"; onTime: "tepat waktu"; then: "lalu"
+      noneLater: "belum ada berikutnya"; noLater: "belum ada berikutnya"; tooMany: "terlalu banyak permintaan"; offline: "transitous offline"
+      search: "cari halte"; change: "ganti halte"; searching: "mencari…"; noStops: q => "tidak ada halte bernama “${q}”"
+      yourLine: "jalurmu"; anyLine: "jalur apa saja"; whatever: "yang berangkat duluan"; walkTo: "jalan kaki ke halte"
+      data: "data: Transitous, dari jadwal terbuka. Keterlambatan muncul jika operator menerbitkan waktu langsung"
+    }
+    es {
+      title: "próximo bus"; relax: "tranquilo"; leaveInMin: m => "sal en ${m} min"; leaveIn: "sal en"; leaveNow: "sal ya"
+      brisk: "camina rápido"; run: "¡corre!"; toStop: t => "${t} hasta la parada"
+      pick: "Toca para elegir tu parada, tu línea y cuánto caminas hasta allí."; nothing: "nada sale pronto"
+      to: d => "hacia ${d}"; walkMin: m => "${m} min a pie"; fromWalk: (stop, m) => "desde ${stop} · ${m} min a pie"
+      min: "min"; mins: m => "${m} min"; yourStop: "tu parada"; timetable: "según horario"; onTime: "a tiempo"; then: "luego"
+      noneLater: "aún no hay más"; noLater: "aún no hay más"; tooMany: "demasiadas solicitudes"; offline: "transitous sin conexión"
+      search: "busca una parada"; change: "cambiar parada"; searching: "buscando…"; noStops: q => "no hay paradas llamadas “${q}”"
+      yourLine: "tu línea"; anyLine: "cualquier línea"; whatever: "la que salga primero"; walkTo: "caminata hasta la parada"
+      data: "datos: Transitous, de horarios abiertos. Los retrasos aparecen donde el operador publica horarios en tiempo real"
+    }
+    pt {
+      title: "próximo ônibus"; relax: "relaxa"; leaveInMin: m => "saia em ${m} min"; leaveIn: "saia em"; leaveNow: "saia já"
+      brisk: "ande rápido"; run: "corre!"; toStop: t => "${t} até a parada"
+      pick: "Toque para escolher a parada, a linha e quanto tempo leva a pé até lá."; nothing: "nada sai em breve"
+      to: d => "para ${d}"; walkMin: m => "${m} min a pé"; fromWalk: (stop, m) => "de ${stop} · ${m} min a pé"
+      min: "min"; mins: m => "${m} min"; yourStop: "sua parada"; timetable: "horário previsto"; onTime: "no horário"; then: "depois"
+      noneLater: "nenhum depois ainda"; noLater: "nenhum depois ainda"; tooMany: "pedidos demais"; offline: "transitous offline"
+      search: "procure uma parada"; change: "trocar parada"; searching: "procurando…"; noStops: q => "nenhuma parada chamada “${q}”"
+      yourLine: "sua linha"; anyLine: "qualquer linha"; whatever: "a que sair primeiro"; walkTo: "caminhada até a parada"
+      data: "dados: Transitous, de horários abertos. Atrasos aparecem onde a operadora publica horários em tempo real"
+    }
+  }
 
   // The stop, the line and the walk, picked in the full screen and kept across restarts. No location is hard-coded.
   state stopId = "" persist
@@ -48,7 +97,7 @@ widget "next bus" {
   // Some feeds list one departure twice, as planned and as live: once per line, direction and minute.
   let mine = catchable.map(r => "${r.route}|${r.dir}|${r.at}").unique().map(k => catchable.find(r => "${r.route}|${r.dir}|${r.at}" == k))
   let next = mine.first()
-  let problem = stopId == "" || board == null || board.ok ? null : board.code == 429 ? "too many requests" : "transitous offline"
+  let problem = stopId == "" || board == null || board.ok ? null : board.code == 429 ? str.tooMany : str.offline
 
   // The stops of the next trip, for the line along the bottom: one before yours, yours, and where it goes.
   source trip = http(next == null ? null : "https://api.transitous.org/api/v5/trip?tripId=${enc(next.trip)}", ua) every 1m timeout 15s json status
@@ -94,17 +143,17 @@ widget "next bus" {
     Column {
       gap: 2
       if mood == "relax" {
-        Text { text: "relax"; style: label; color: tint; align: side }
-        Text { text: "leave in ${floor(leaveIn / 60)} min"; style: small; color: muted; align: side }
+        Text { text: str.relax; style: label; color: tint; align: side }
+        Text { text: str.leaveInMin(floor(leaveIn / 60)); style: small; color: muted; align: side }
       } else if mood == "soon" {
-        Text { text: "leave in"; style: label; color: tint; align: side }
+        Text { text: str.leaveIn; style: label; color: tint; align: side }
         Text { text: fmtTime(leaveIn, "m:ss", "UTC"); fontSize: 26; fontWeight: 500; color: tint; align: side }
       } else if mood == "now" {
-        Text { text: "leave now"; fontSize: 22; fontWeight: 600; color: tint; align: side }
-        Text { text: "walk briskly"; style: small; color: muted; align: side }
+        Text { text: str.leaveNow; fontSize: 22; fontWeight: 600; color: tint; align: side }
+        Text { text: str.brisk; style: small; color: muted; align: side }
       } else {
-        Text { text: "run!"; fontSize: 26; fontWeight: 700; color: tint; align: side }
-        Text { text: "${floor(left / 60)}:${pad(int(left % 60), 2, "0")} to the stop"; style: small; color: muted; align: side }
+        Text { text: str.run; fontSize: 26; fontWeight: 700; color: tint; align: side }
+        Text { text: str.toStop("${floor(left / 60)}:${pad(int(left % 60), 2, "0")}"); style: small; color: muted; align: side }
       }
     }
   }
@@ -112,18 +161,18 @@ widget "next bus" {
   Column {
     gap: roomy ? 6 : 2
     if stopId == "" {
-      Text { text: "next bus"; style: body }
-      Text { text: "Tap to pick your stop, your line and how long you walk there."; style: small; color: muted }
+      Text { text: str.title; style: body }
+      Text { text: str.pick; style: small; color: muted }
     } else if next == null {
       Text { text: stopName; style: body; maxLines: 1 }
-      Text { text: board == null ? "…" : problem ?? "nothing leaves soon"; style: small; color: muted }
+      Text { text: board == null ? "…" : problem ?? str.nothing; style: small; color: muted }
     } else {
       if tall {
         Row { Badge { r: next } }
         Column {
           gap: 0
-          Text { text: "to ${next.to}"; style: body; maxLines: 2 }
-          Text { text: "${walk} min walk"; style: small; color: muted; maxLines: 1 }
+          Text { text: str.to(next.to); style: body; maxLines: 2 }
+          Text { text: str.walkMin(walk); style: small; color: muted; maxLines: 1 }
         }
       } else {
         Row {
@@ -133,13 +182,13 @@ widget "next bus" {
           Column {
             gap: 0
             weight: 1
-            Text { text: "to ${next.to}"; style: body; maxLines: 1 }
+            Text { text: str.to(next.to); style: body; maxLines: 1 }
             if roomy {
-              Text { text: "from ${stopName} · ${walk} min walk"; style: small; color: muted; maxLines: 1 }
+              Text { text: str.fromWalk(stopName, walk); style: small; color: muted; maxLines: 1 }
             }
           }
           if !roomy {
-            Text { text: "${walk} min walk"; style: small; color: muted }
+            Text { text: str.walkMin(walk); style: small; color: muted }
           }
         }
       }
@@ -147,7 +196,7 @@ widget "next bus" {
         gap: 6
         align: bottom
         Text { text: str(floor(left / 60)); fontSize: roomy ? 58 : 44; fontWeight: 300; letterSpacing: -1 }
-        Text { text: "min"; fontSize: roomy ? 20 : 17; color: muted; padding: [0, 0, 0, roomy ? 14 : 10] }
+        Text { text: str.min; fontSize: roomy ? 20 : 17; color: muted; padding: [0, 0, 0, roomy ? 14 : 10] }
         if !tall {
           Spacer { weight: 1 }
           Mood { side: "end"; width: 170; padding: [0, 0, 0, 10] }
@@ -179,7 +228,12 @@ widget "next bus" {
         rect(bx - 7, y - 4, 5, 4, radius: 1, fill: alpha(background, 0.7))
         rect(bx + 1, y - 4, 5, 4, radius: 1, fill: alpha(background, 0.7))
         if roomy {
-          text("your stop", sx, y + 18, size: 10, align: center, color: tint)
+          // Your stop first on the trip sits at the left edge: its label starts there rather than centring off the tile.
+          if k == 0 {
+            text(str.yourStop, 0, y + 18, size: 10, align: start, color: tint)
+          } else {
+            text(str.yourStop, sx, y + 18, size: 10, align: center, color: tint)
+          }
           if !tall && len(dots) > k + 2 {
             text(lower(replace(dots.last().name, " (${split(dots.last().name, " (").last()}", "")), x1, y + 18, size: 10, align: end, color: muted)
           }
@@ -190,12 +244,12 @@ widget "next bus" {
         Row {
           gap: 6
           Text {
-            text: !next.live ? "timetable" : late >= 1 ? "+${late} min" : late <= -1 ? "${late} min" : "on time"
+            text: !next.live ? str.timetable : late >= 1 ? "+" + str.mins(late) : late <= -1 ? str.mins(late) : str.onTime
             style: small
             color: !next.live ? muted : late >= 5 ? red : late >= 2 ? yellow : green
             weight: 1
           }
-          Text { text: len(mine) > 1 ? "then" : "none later yet"; style: small; color: muted }
+          Text { text: len(mine) > 1 ? str.then : str.noneLater; style: small; color: muted }
         }
         for r in mine.drop(1).take(2) key r.key {
           Row {
@@ -210,7 +264,7 @@ widget "next bus" {
         Spacer { weight: 1 }
         Row {
           gap: 6
-          Text { text: len(mine) > 1 ? "then" : "no later ones yet"; style: small; color: muted }
+          Text { text: len(mine) > 1 ? str.then : str.noLater; style: small; color: muted }
           // With any line, each one says which.
           for r, i in mine.drop(1).take(2) key r.key {
             if i > 0 {
@@ -223,7 +277,7 @@ widget "next bus" {
           }
           Spacer { weight: 1 }
           Text {
-            text: !next.live ? "timetable" : late >= 1 ? "+${late} min" : late <= -1 ? "${late} min" : "on time"
+            text: !next.live ? str.timetable : late >= 1 ? "+" + str.mins(late) : late <= -1 ? str.mins(late) : str.onTime
             style: small
             color: !next.live ? muted : late >= 5 ? red : late >= 2 ? yellow : green
           }
@@ -233,18 +287,18 @@ widget "next bus" {
   }
 
   screen {
-    title: "next bus"
+    title: str.title
     Column {
       scroll: true
       gap: 8
-      Text { text: stopName == "" ? "your stop" : stopName; style: label; color: muted }
-      Input { placeholder: stopName == "" ? "search for a stop" : "change stop"; clear: true; onSubmit: { query = value; refresh() } }
+      Text { text: stopName == "" ? str.yourStop : stopName; style: label; color: muted }
+      Input { placeholder: stopName == "" ? str.search : str.change; clear: true; onSubmit: { query = value; refresh() } }
       if len(trim(query)) >= 2 {
         if found == null {
-          Text { text: "searching…"; style: small; color: muted }
+          Text { text: str.searching; style: small; color: muted }
         } else {
           if len(stops) == 0 {
-            Text { text: found.ok ? "no stops called “${query}”" : "transitous offline"; style: small; color: muted }
+            Text { text: found.ok ? str.noStops(query) : str.offline; style: small; color: muted }
           }
           for s in stops key s.id {
             Column {
@@ -259,7 +313,7 @@ widget "next bus" {
       }
       if stopId != "" {
         Spacer { height: 1; fill: width; background: alpha(muted, 0.25) }
-        Text { text: "your line"; style: label; color: muted }
+        Text { text: str.yourLine; style: label; color: muted }
         if problem != null {
           Text { text: problem; style: small; color: muted }
         } else if board == null {
@@ -272,8 +326,8 @@ widget "next bus" {
           background: route == "" ? alpha(accent, 0.2) : null
           radius: 8
           onTap: { route = ""; dir = "" }
-          Text { text: "any line"; style: body; weight: 1 }
-          Text { text: "whatever leaves first"; style: small; color: muted }
+          Text { text: str.anyLine; style: body; weight: 1 }
+          Text { text: str.whatever; style: small; color: muted }
         }
         for l in lines key "${l.route}|${l.dir}" {
           Row {
@@ -284,19 +338,19 @@ widget "next bus" {
             radius: 8
             onTap: { route = l.route; dir = l.dir }
             Badge { r: l; size: 13 }
-            Text { text: "to ${l.to}"; style: body; maxLines: 1; weight: 1 }
+            Text { text: str.to(l.to); style: body; maxLines: 1; weight: 1 }
           }
         }
         Spacer { height: 1; fill: width; background: alpha(muted, 0.25) }
-        Text { text: "walk to the stop"; style: label; color: muted }
+        Text { text: str.walkTo; style: label; color: muted }
         Row {
           gap: 12
           align: center
           Button { text: "−"; onTap: walk = max(walk - 1, 0) }
-          Text { text: "${walk} min"; style: body; width: 70; align: center }
+          Text { text: str.mins(walk); style: body; width: 70; align: center }
           Button { text: "+"; onTap: walk = min(walk + 1, 60) }
         }
-        Text { text: "data: Transitous, from open timetables. Delays show where the operator publishes live times"; style: label; color: muted }
+        Text { text: str.data; style: label; color: muted }
       }
       Spacer { height: 12 }
     }
