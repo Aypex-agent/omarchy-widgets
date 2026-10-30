@@ -1,0 +1,363 @@
+widget "amp" {
+  meta { owl: 13; description: "Amp coding agent: live threads and what they're doing, usage pools, recent activity, and a notification when a thread finishes"; version: "1.0"; license: "MIT"; category: "dev" }
+  size: 6x6
+  minSize: 4x4
+
+  requires { pacman: ["jq", "npm"] }
+
+  source now = clock every 1s
+  source has = cmd("command -v amp >/dev/null && (amp account list 2>/dev/null | grep -q '^[*]' && echo ok || echo login) || echo missing") every 30s
+  state notifyDone = true persist
+
+  // Live list of threads: which are working right now, by project, newest first. amp top's first line
+  // after (re)connecting has no threads yet, so it's skipped rather than read as "nothing working".
+  source top = stream("while true; do amp top --stream-jsonl 2>/dev/null | jq -c --unbuffered 'select(.threads | length > 0)'; sleep 10; done") json
+
+  // Plan, usage pools and the last 60 threads.
+  source acct = cmd("""
+    u=$(amp usage --details --no-color 2>/dev/null | head -24)
+    t=$(amp threads list --json --limit 60 2>/dev/null || echo '[]')
+    jq -nc --arg u "$u" --argjson t "$t" '
+      def num: gsub(","; "") | tonumber;
+      {tier: ([$u | capture("[*][*](Amp )?(?<t>[A-Za-z ]+) Tier:") | .t][0]),
+       agent: ([$u | capture("agent usage [$](?<left>[0-9.,]+) of [$](?<total>[0-9.,]+)") | {left: (.left | num), total: (.total | num)}][0]),
+       orb: ([$u | capture("orb usage (?<left>[0-9.,]+)h of (?<total>[0-9.,]+)h") | {left: (.left | num), total: (.total | num)}][0]),
+       credits: ([$u | capture("Individual credits:[*][*] [$](?<c>[0-9.,]+)") | .c | num][0]),
+       resets: ([$u | capture("to (?<e>[0-9]{4}-[0-9]{2}-[0-9]{2}), resets") | .e][0]),
+       tokens: ([$u | capture("Total tokens: (?<n>[0-9,]+)") | .n | num][0]),
+       cost: ([$u | capture("Total recorded cost: [$](?<c>[0-9.,]+)") | .c | num][0]),
+       orbRun: ([$u | capture("Total Orb runtime: (?<r>([0-9]+h)?[0-9]+m)") | .r][0]),
+       threads: [$t[] | {id, title, msgs: .messageCount, at: (.updated[0:19] + "Z" | fromdate),
+         born: ((.id[2:10] + .id[11:15]) | ascii_downcase | explode | reduce .[] as $c (0; . * 16 + (if $c >= 97 then $c - 87 else $c - 48 end)) / 1000 | floor)}],
+       hours: ([$t[] | (.id[2:10] + .id[11:15]) | ascii_downcase | explode | reduce .[] as $c (0; . * 16 + (if $c >= 97 then $c - 87 else $c - 48 end)) / 1000
+           | select(. > now - 86400) | ((now - .) / 1800 | floor)] as $h
+         | [range(48) as $i | ($h | map(select(. == 47 - $i)) | length)])}'
+  """) every 5m json timeout 40s
+
+  let threads = top.threads ?? []
+  let working = threads.filter(t => t.working)
+  let workingIds = working.map(t => t.id)
+
+  on workingIds {
+    let done = threads.filter(t => !t.working && old.indexOf(t.id) >= 0)
+    if notifyDone && len(done) > 0 {
+      notify("amp", len(done) == 1 ? "${done[0].title}: done or waiting on you" : "${len(done)} threads done or waiting on you")
+    }
+  }
+
+  // What the working threads (up to 4) are doing, or with none, the latest thread: its status line, agent
+  // state, last tools, model and context. It finds the threads itself rather than taking them from top, so
+  // it never runs on an empty list while top is still connecting.
+  source live = cmd("""
+    ids=$(timeout 10 amp top --stream-jsonl 2>/dev/null | jq -r 'select(.threads | length > 0) | [.threads[] | select(.working) | .id][0:4] | join(" ")' | head -1)
+    [ -n "$ids" ] || ids=$(amp threads list --json --limit 1 2>/dev/null | jq -r '.[0].id // empty')
+    { for id in $ids; do
+      amp threads export "$id" 2>/dev/null | jq -c '
+        def clip(n): tostring | gsub("[[:space:]]+"; " ") | ltrimstr(" ") | .[0:n];
+        {shell_command: "$", shell_command_status: "waiting on pid", read_web_page: "reading", web_search: "searching",
+         apply_patch: "editing", edit_file: "editing", create_file: "writing", read: "reading", Read: "reading",
+         grep: "searching", Grep: "searching", glob: "finding", set_thread_status: "status", send_thread_message: "messaging",
+         create_thread: "spawning thread", code_exec: "running code", oracle: "asking oracle", Task: "subagent"} as $verbs |
+        [.messages[] | select(.role == "assistant") | .content[]? | select(.type == "tool_use")] as $tools |
+        ([.messages[] | .usage // empty] | last) as $u |
+        {id, title, mode: .agentMode,
+         status: .meta.statusMessage.text, statusAt: .meta.statusMessage.updatedAt,
+         state: .meta.lastKnownAgentState.state,
+         msgs: (.messages | length), model: $u.model,
+         ctx: (if $u.maxInputTokens then ($u.totalInputTokens / $u.maxInputTokens * 100 | round) else null end),
+         out: ([.messages[] | .usage.outputTokens // 0] | add),
+         say: ([.messages[] | select(.role == "assistant") | .content[]? | select(.type == "text") | .text] | last // "" | clip(240)),
+         ntools: ($tools | length),
+         spawned: ($tools | map(select(.name == "create_thread")) | length),
+         mix: ($tools | group_by(.name) | map({k: ($verbs[.[0].name] // .[0].name), n: length}) | sort_by(-.n) | .[0:5]),
+         tools: ($tools[-5:] | reverse | map({name, verb: ($verbs[.name] // .name),
+           arg: ((.input.command // .input.status // .input.url // .input.path // .input.query // .input.message
+                  // .input.title // .input.pid // (.input.patchText // "" | [match("File: ([^[:space:]]+)").captures[0].string | split("/") | .[-2:] | join("/")][0]) // "") | clip(90))}))}' &
+    done
+    wait; } | jq -sc .
+  """) every 20s json timeout 40s
+
+  let shownIds = (live ?? []).map(t => t.id)
+  let others = threads.filter(t => shownIds.indexOf(t.id) < 0)
+  let pct = acct.agent ? acct.agent.left / acct.agent.total * 100 : null
+  let orbPct = acct.orb ? acct.orb.left / acct.orb.total * 100 : null
+  let today = (acct.threads ?? []).filter(t => t.born > now - 86400)
+  // The tile's middle holds thread cards (~125dp each), then one-line recent threads (~34dp) in what's left.
+  let room = (tileHeight ?? 560) - 190
+  let nLive = clamp(floor(room / 125), 1, 3)
+  let nRecent = max(0, floor((room - min(nLive, len(live ?? [])) * 125 - 24) / 34))
+
+  component Dot(state, d = 8) {
+    Box {
+      width: d; height: d; radius: d
+      background: state == "working" || state == "tool_use" || state == "streaming" ? green : state == "waiting" || state == "awaiting_user" ? yellow : muted
+      opacity: (state == "working" || state == "tool_use" || state == "streaming") && now % 2 == 0 ? 0.3 : 1
+      animate opacity: tween(900ms, "ease")
+    }
+  }
+
+  component Pool(label, value, sub, pct) {
+    Column {
+      gap: 3
+      Row {
+        Text { text: label; style: label; color: muted; weight: 1 }
+        Text { text: value; fontSize: 12; bold: true }
+      }
+      Progress { value: pct ?? 0; color: (pct ?? 100) < 20 ? red : (pct ?? 100) < 50 ? yellow : accent; track: alpha(foreground, 0.08); animate value: spring() }
+      Text { text: sub; fontSize: 10; color: muted; maxLines: 1 }
+    }
+  }
+
+  component Thread(t, full = false) {
+    Column {
+      gap: 5
+      padding: [10, 9]
+      radius: 8 * corners
+      background: alpha(accent, 0.07)
+      border: 1
+      borderColor: alpha(accent, 0.18)
+      onTap: { if full { url("https://ampcode.com/threads/${enc(t.id)}") } else { screen() } }
+      Row {
+        gap: 8
+        align: center
+        Dot { state: t.state }
+        Text { text: t.title; bold: true; fontSize: 13; maxLines: 1; weight: 1 }
+        if t.ctx != null {
+          Box {
+            width: 30; height: 30
+            align: center
+            Ring { value: t.ctx; max: 100; size: 30; thickness: 3; color: t.ctx > 80 ? red : t.ctx > 60 ? yellow : accent; track: alpha(foreground, 0.08) }
+            Text { text: "${t.ctx}"; fontSize: 9; color: muted; align: center }
+          }
+        }
+      }
+      if t.status {
+        Text { spans: [{text: "↳ ", color: muted}, t.status]; color: accent; fontSize: 12; maxLines: 2 }
+      }
+      for tool, i in (full ? t.tools : t.tools.take(1)) {
+        Row {
+          gap: 6
+          opacity: i == 0 ? 1 : 0.6
+          Text { text: tool.verb; fontSize: 10; color: tool.name == "shell_command" ? green : magenta; font: mono }
+          Text { text: tool.arg; fontSize: 10; font: mono; color: foreground; maxLines: 1; weight: 1 }
+        }
+      }
+      if full && t.say {
+        Text { text: t.say; fontSize: 11; color: muted; italic: true; maxLines: 4 }
+      }
+      if full {
+        Row {
+          gap: 8
+          Button { text: "open"; onTap: url("https://ampcode.com/threads/${enc(t.id)}") }
+          Button { text: "continue here"; onTap: terminal("amp threads continue ${sh(t.id)}", "amp") }
+        }
+      }
+      Text {
+        text: join([t.model, t.mode, "${t.msgs} msgs", "${t.ntools} tools", t.spawned > 0 ? "${t.spawned} spawned" : null, t.statusAt ? fmtAgo(parseTime(t.statusAt), now) : null].filter(x => x != null), " · ")
+        fontSize: 10
+        color: muted
+        maxLines: 1
+      }
+      if full && len(t.mix) > 0 {
+        let topN = t.mix[0].n
+        Column {
+          gap: 3
+          for m in t.mix {
+            Row {
+              gap: 6
+              align: center
+              Text { text: m.k; fontSize: 10; color: muted; width: 96; maxLines: 1 }
+              Box {
+                weight: 1
+                height: 6
+                Box { height: 6; width: max(4, 140 * m.n / topN); radius: 3; background: alpha(accent, 0.6) }
+              }
+              Text { text: "${m.n}"; fontSize: 10; color: muted; width: 24; align: end }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  onTap: screen()
+
+  Column {
+    gap: 10
+    if has == "missing" || has == "login" {
+      Text { spans: [{text: "◆ ", color: accent}, "amp"]; style: title }
+      Text { text: has == "missing" ? "The Amp CLI isn't installed. This installs it with npm, then signs you in." : "Not signed in to Amp. Sign in once in the terminal; the tile picks it up within half a minute."; color: muted }
+      Button {
+        text: has == "missing" ? "install amp" : "log in"
+        onTap: terminal(has == "missing" ? "npm i -g --allow-scripts=@ampcode/cli @sourcegraph/amp && amp login" : "amp login", "amp")
+      }
+    } else {
+      // header
+      Row {
+        gap: 8
+        align: center
+        Text { spans: [{text: "◆ ", color: accent}, {text: "amp", fontWeight: 700}]; fontSize: 18 }
+        Text { text: acct.tier ? lower(acct.tier) : ""; fontSize: 11; color: muted; weight: 1 }
+        Row {
+          gap: 6
+          align: center
+          padding: [8, 3]
+          radius: 10
+          background: len(working) > 0 ? alpha(green, 0.15) : alpha(foreground, 0.06)
+          Dot { state: len(working) > 0 ? "working" : "idle"; d: 7 }
+          Text { text: top == null ? (acct != null && len(acct.threads ?? []) == 0 ? "idle" : "connecting") : len(working) > 0 ? "${len(working)} working" : "idle"; fontSize: 11; color: len(working) > 0 ? green : muted }
+        }
+      }
+
+      // usage pools; a tier without one of them (or a credits-only account) shows what it has
+      Row {
+        gap: 14
+        if acct.agent {
+          Pool {
+            label: "agent"
+            value: "$${fixed(acct.agent.left, 2)}"
+            sub: "of $${acct.agent.total} · ${acct.tokens ? fmtNum(acct.tokens, {compact: true}) : "…"} tok"
+            pct: pct
+            weight: 1
+          }
+        }
+        if acct.orb {
+          Pool {
+            label: "orb hours"
+            value: "${fixed(acct.orb.left, 1)}h"
+            sub: "of ${acct.orb.total}h · ${acct.orbRun ?? "0m"} run"
+            pct: orbPct
+            weight: 1
+          }
+        }
+        if !acct.agent && !acct.orb {
+          Text { text: acct == null ? "reading usage…" : acct.credits != null ? "$${fixed(acct.credits, 2)} credits" : "no usage pools"; fontSize: 12; color: muted }
+        }
+      }
+
+      // now
+      Row {
+        Text { text: len(working) > 0 ? "now" : "last thread"; style: label; color: muted; weight: 1 }
+        Text { text: acct.resets ? "resets ${fmtTime(parseTime(acct.resets), "d MMM")}" : ""; fontSize: 10; color: muted }
+      }
+      if live == null {
+        Text { text: "reading threads…"; color: muted; fontSize: 12 }
+      }
+      Column {
+        gap: 8
+        weight: 1
+        clip: true
+        for t in (live ?? []).take(nLive) key t.id {
+          Thread { t: t }
+        }
+        if nRecent > 0 && len(others) > 0 {
+          Text { text: "recent"; style: label; color: muted }
+          for t in others.take(nRecent) key t.id {
+            Row {
+              gap: 8
+              align: center
+              height: 26
+              onTap: url(t.url)
+              Dot { state: t.working ? "working" : "idle"; d: 6 }
+              Text { text: t.title; fontSize: 12; maxLines: 1; weight: 1 }
+              Text { text: t.working ? "working" : fmtAgo(parseTime(t.updatedAt), now); fontSize: 10; color: t.working ? green : muted }
+            }
+          }
+        }
+      }
+
+      // activity
+      Row {
+        gap: 10
+        align: bottom
+        Column {
+          gap: 0
+          Text { text: "${len(today)}"; fontSize: 18; fontWeight: 700 }
+          Text { text: "new threads 24h"; fontSize: 10; color: muted }
+        }
+        Sparkline { values: acct.hours ?? []; color: accent; area: true; thickness: 1.5; weight: 1; height: 34 }
+      }
+    }
+  }
+
+  screen {
+    title: "amp"
+    Column {
+      scroll: true
+      gap: 12
+      padding: 4
+
+      Row {
+        gap: 8
+        align: center
+        Text { spans: [{text: "◆ ", color: accent}, {text: "amp", fontWeight: 700}, {text: acct.tier ? "  ${lower(acct.tier)}" : "", color: muted, fontSize: 13}]; fontSize: 22; weight: 1 }
+        Button { text: "new thread"; onTap: terminal("amp", "amp") }
+      }
+      Row {
+        gap: 8
+        align: center
+        Text { text: "notify when a thread finishes"; fontSize: 12; color: muted; weight: 1 }
+        Button { text: notifyDone ? "on" : "off"; onTap: notifyDone = !notifyDone }
+      }
+
+      Row {
+        gap: 14
+        Pool {
+          label: "agent usage"
+          value: acct.agent ? "$${fixed(acct.agent.left, 2)} left" : "…"
+          sub: acct.agent ? "of $${acct.agent.total}" : ""
+          pct: pct
+          weight: 1
+        }
+        Pool {
+          label: "orb hours"
+          value: acct.orb ? "${fixed(acct.orb.left, 1)}h left" : "…"
+          sub: acct.orb ? "of ${acct.orb.total}h" : ""
+          pct: orbPct
+          weight: 1
+        }
+      }
+      Flow {
+        gap: 6
+        for chip in [
+          acct.tokens ? "${fmtNum(acct.tokens, {compact: true})} tokens" : null,
+          acct.cost != null ? "$${fixed(acct.cost, 2)} billed" : null,
+          acct.orbRun ? "${acct.orbRun} orb runtime" : null,
+          acct.credits != null ? "$${fixed(acct.credits, 2)} credits" : null,
+          acct.resets ? "resets ${fmtTime(parseTime(acct.resets), "d MMM")}" : null
+        ].filter(x => x != null) {
+          Text { text: chip; fontSize: 11; color: muted; padding: [8, 3]; radius: 10; background: alpha(foreground, 0.06) }
+        }
+      }
+
+      Text { text: len(working) > 0 ? "working now" : "last thread"; style: label; color: muted }
+      if live == null {
+        Text { text: "reading threads…"; color: muted; fontSize: 12 }
+      }
+      for t in live ?? [] key t.id {
+        Thread { t: t; full: true }
+      }
+
+      Text { text: "activity, last 24h"; style: label; color: muted }
+      Sparkline { values: acct.hours ?? []; color: accent; area: true; height: 48; fill: width }
+
+      Text { text: "threads"; style: label; color: muted }
+      for t in threads.take(25) key t.id {
+        Row {
+          gap: 8
+          align: center
+          padding: [2, 4]
+          onTap: url(t.url)
+          Dot { state: t.working ? "working" : "idle"; d: 6 }
+          Column {
+            gap: 0
+            weight: 1
+            Text { text: t.title; fontSize: 13; maxLines: 1 }
+            Text { text: t.project ?? ""; fontSize: 10; color: muted }
+          }
+          Text { text: t.working ? "working" : fmtAgo(parseTime(t.updatedAt), now); fontSize: 11; color: t.working ? green : muted }
+        }
+      }
+    }
+  }
+}
