@@ -128,6 +128,11 @@ QtObject {
     case "typeText":
     case "latch":
       return widget.report(name + "(...) types into the window under the on-screen keyboard, which this shell does not have")
+    case "pickImages":
+      return widget.report("pickImages() pastes photos picked on the phone, which this shell does not have")
+    // Only start and toggle would listen; stop and cancel have nothing to turn off.
+    case "speech":
+      return s(0) === "start" || s(0) === "toggle" ? widget.report("speech(...) dictates through the phone's speech recognizer, which this shell does not have") : undefined
     case "launcher":
       return widget.report("launcher(\"" + s(0) + "\") opens the Android launcher's own screens; this shell has none")
     // No share sheet here: the text goes to the clipboard, which is where it would end up.

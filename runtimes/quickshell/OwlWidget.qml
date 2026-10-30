@@ -167,7 +167,8 @@ Item {
     if (!root.stateRead || !root.secretsRead || root.sourceText === "") return
     var program
     try {
-      program = Owl.compile(root.sourceText)
+      // strings { } and lang() take the desktop's language, as the launcher takes the phone's.
+      program = Owl.compile(root.sourceText, Qt.locale().name.split("_")[0])
     } catch (e) {
       root.fail(Owl.formatError(root.sourceText, e))
       return
