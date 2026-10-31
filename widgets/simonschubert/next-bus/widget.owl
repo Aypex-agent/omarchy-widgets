@@ -2,7 +2,7 @@ widget "next bus" {
   size: 6x2
   minSize: 4x2
   requires { pacman: [] }
-  meta { description: "Your next bus, tram or train, live, and whether you need to run for it: pick a stop, a line and how long you walk there, anywhere Transitous has open timetables. Tap the tile to change them"; version: "1.2"; license: "MIT"; category: "world"; owl: 16 }
+  meta { description: "Your next bus, tram or train, live, and whether you need to run for it: pick a stop, a line and how long you walk there, anywhere Transitous has open timetables. Tap the tile to change them"; version: "1.3"; license: "MIT"; category: "world"; owl: 16 }
 
   // What it says, in the phone's language where it has a set. Stops, lines and directions come as Transitous
   // names them. leaveNow and run sit in a 170dp column at 22 and 26sp: about 12 letters at most.
@@ -50,6 +50,17 @@ widget "next bus" {
       search: "procure uma parada"; change: "trocar parada"; searching: "procurando…"; noStops: q => "nenhuma parada chamada “${q}”"
       yourLine: "sua linha"; anyLine: "qualquer linha"; whatever: "a que sair primeiro"; walkTo: "caminhada até a parada"
       data: "dados: Transitous, de horários abertos. Atrasos aparecem onde a operadora publica horários em tempo real"
+    }
+    de {
+      title: "nächster bus"; relax: "keine eile"; leaveInMin: m => "los in ${m} min"; leaveIn: "los in"; leaveNow: "jetzt los"
+      brisk: "geh zügig"; run: "renn!"; toStop: t => "${t} bis zur haltestelle"
+      pick: "Tippe, um deine Haltestelle, deine Linie und deinen Fußweg dorthin zu wählen."; nothing: "erstmal fährt nichts"
+      to: d => "nach ${d}"; walkMin: m => "${m} min zu fuß"; fromWalk: (stop, m) => "ab ${stop} · ${m} min zu fuß"
+      min: "min"; mins: m => "${m} min"; yourStop: "deine station"; timetable: "laut fahrplan"; onTime: "pünktlich"; then: "danach"
+      noneLater: "noch keine weiteren"; noLater: "noch keine weiteren"; tooMany: "zu viele anfragen"; offline: "transitous offline"
+      search: "haltestelle suchen"; change: "haltestelle ändern"; searching: "suche…"; noStops: q => "keine haltestelle namens „${q}“"
+      yourLine: "deine linie"; anyLine: "jede linie"; whatever: "was zuerst fährt"; walkTo: "fußweg zur haltestelle"
+      data: "daten: Transitous, aus offenen fahrplänen. Verspätungen siehst du, wo der Betreiber Live-Zeiten veröffentlicht"
     }
   }
 

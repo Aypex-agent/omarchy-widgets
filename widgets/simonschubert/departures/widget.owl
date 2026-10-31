@@ -2,7 +2,7 @@ widget "departures" {
   size: 3x2
   minSize: 2x1
   requires { pacman: [] }
-  meta { description: "Live departures from a stop you pick, anywhere Transitous has open timetables: line, direction, platform and minutes to go, with delays. Tap the tile for the full board or to change the stop"; version: "1.4"; license: "MIT"; category: "world"; owl: 16 }
+  meta { description: "Live departures from a stop you pick, anywhere Transitous has open timetables: line, direction, platform and minutes to go, with delays. Tap the tile for the full board or to change the stop"; version: "1.5"; license: "MIT"; category: "world"; owl: 16 }
 
   // What it says, in the phone's language where it has a set. Stops, lines, directions and modes come as Transitous names them.
   strings {
@@ -29,6 +29,12 @@ widget "departures" {
       tooMany: "pedidos demais"; offline: "transitous offline"; search: "procure uma parada"; change: "trocar parada"
       searching: "procurando…"; noStops: q => "nenhuma parada chamada “${q}”"; next: "próximas partidas"; refresh: "atualizar"
       data: "dados: Transitous, de horários abertos. Atrasos aparecem onde a operadora publica horários em tempo real"
+    }
+    de {
+      title: "abfahrten"; pick: "Tippe, um eine Haltestelle zu wählen."; noneSoon: "erstmal keine abfahrten"; now: "jetzt"; min: "min"
+      tooMany: "zu viele anfragen"; offline: "transitous offline"; search: "haltestelle suchen"; change: "haltestelle ändern"
+      searching: "suche…"; noStops: q => "keine haltestelle namens „${q}“"; next: "nächste abfahrten"; refresh: "aktualisieren"
+      data: "daten: Transitous, aus offenen fahrplänen. Verspätungen siehst du, wo der Betreiber Live-Zeiten veröffentlicht"
     }
   }
 

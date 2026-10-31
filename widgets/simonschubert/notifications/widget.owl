@@ -2,7 +2,7 @@ widget "notifications" {
   size: 3x4
   minSize: 3x3
   requires { pacman: [] }
-  meta { description: "Your phone's notifications on the home screen, newest first, with a count per app. Tap one to open it, × to dismiss it; tap the tile for all of them by app"; version: "1.1"; license: "MIT"; category: "productivity"; owl: 16 }
+  meta { description: "Your phone's notifications on the home screen, newest first, with a count per app. Tap one to open it, × to dismiss it; tap the tile for all of them by app"; version: "1.2"; license: "MIT"; category: "productivity"; owl: 16 }
 
   // What it says, in the phone's language where it has a set. Apps and their notifications come as they are.
   strings {
@@ -25,6 +25,11 @@ widget "notifications" {
       title: "notificações"; now: "agora"; minutes: n => "${n}m"; hours: n => "${n}h"; days: n => "${n}d"
       allow: "Permita o acesso às notificações para vê-las aqui. Toque para abrir as configurações."
       loading: "carregando…"; caughtUp: "tudo em dia"; more: n => "+${n} mais"
+    }
+    de {
+      title: "benachrichtigungen"; now: "jetzt"; minutes: n => "${n} min"; hours: n => "${n} std"; days: n => "${n} tg"
+      allow: "Erlaube den Zugriff auf Benachrichtigungen, um sie hier zu sehen. Tippe, um die Einstellung zu öffnen."
+      loading: "lädt…"; caughtUp: "alles gelesen"; more: n => "+${n} weitere"
     }
   }
 

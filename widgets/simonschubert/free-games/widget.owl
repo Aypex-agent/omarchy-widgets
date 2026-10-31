@@ -1,5 +1,5 @@
 widget "free games" {
-  meta { description: "Games free to keep on the Epic Games Store right now and the ones coming next"; version: "1.2"; license: "MIT"; category: "games"; owl: 16 }
+  meta { description: "Games free to keep on the Epic Games Store right now and the ones coming next"; version: "1.3"; license: "MIT"; category: "games"; owl: 16 }
 
   // What it says, in the phone's language where it has a set. Game titles come as Epic names them.
   strings {
@@ -7,6 +7,7 @@ widget "free games" {
     id { title: "game gratis · epic"; nothing: "belum ada yang gratis"; freeFor: d => "gratis selama ${d}"; next: "berikutnya" }
     es { title: "juegos gratis · epic"; nothing: "nada gratis por ahora"; freeFor: d => "gratis por ${d}"; next: "próximos" }
     pt { title: "jogos grátis · epic"; nothing: "nada grátis agora"; freeFor: d => "grátis por ${d}"; next: "próximos" }
+    de { title: "gratis-spiele · epic"; nothing: "gerade nichts gratis"; freeFor: d => "noch ${d} gratis"; next: "demnächst" }
   }
   size: 6x3
   minSize: 3x2

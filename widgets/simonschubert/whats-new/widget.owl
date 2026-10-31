@@ -1,7 +1,7 @@
 widget "what's new" {
   size: 3x2
   minSize: 2x2
-  meta { description: "What's new in the launcher, from its changelog on GitHub. Tap it for every release"; version: "1.3"; license: "MIT"; category: "news"; owl: 16 }
+  meta { description: "What's new in the launcher, from its changelog on GitHub. Tap it for every release"; version: "1.4"; license: "MIT"; category: "news"; owl: 16 }
 
   // What it says, in the phone's language where it has a set. The changelog itself is in English.
   strings {
@@ -20,6 +20,10 @@ widget "what's new" {
     pt {
       title: "novidades"; update: "atualizar"; offline: "offline"; loading: "carregando…"; unreachable: "não foi possível acessar o github"
       next: "em breve"; installed: "instalada"; store: "play store ↗"; github: "abrir no github ↗"
+    }
+    de {
+      title: "was ist neu"; update: "update da"; offline: "offline"; loading: "lädt…"; unreachable: "kann github nicht erreichen"
+      next: "demnächst"; installed: "installiert"; store: "play store ↗"; github: "auf github öffnen ↗"
     }
   }
 

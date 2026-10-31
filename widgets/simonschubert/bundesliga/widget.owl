@@ -2,7 +2,7 @@ widget "bundesliga" {
   meta {
     owl: 16
     description: "Bundesliga results, live scores and kick-offs from ESPN with club crests, and the table with European and relegation places. Tap for every match"
-    version: "1.2"
+    version: "1.3"
     license: "MIT"
     category: "sport"
   }
@@ -14,6 +14,7 @@ widget "bundesliga" {
     id { matches: "laga"; table: "klasemen"; loading: "memuat…"; none: "tidak ada laga minggu ini"; close: "tutup"; live: n => "${n} live" }
     es { matches: "partidos"; table: "tabla"; loading: "cargando…"; none: "no hay partidos esta semana"; close: "cerrar"; live: n => "${n} en vivo" }
     pt { matches: "jogos"; table: "tabela"; loading: "carregando…"; none: "nenhum jogo nesta semana"; close: "fechar"; live: n => "${n} ao vivo" }
+    de { matches: "spiele"; table: "tabelle"; loading: "lädt…"; none: "diese woche keine spiele"; close: "schließen"; live: n => "${n} live" }
   }
   size: 6x4
   minSize: 3x3

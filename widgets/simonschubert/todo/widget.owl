@@ -1,5 +1,5 @@
 widget "todo" {
-  meta { description: "Open items from the Markdown checklist ~/notes/todo.md; tap one to check it off"; version: "1.3"; license: "MIT"; category: "productivity"; owl: 16 }
+  meta { description: "Open items from the Markdown checklist ~/notes/todo.md; tap one to check it off"; version: "1.4"; license: "MIT"; category: "productivity"; owl: 16 }
 
   // What it says, in the phone's language where it has a set. The list itself is yours, in ~/notes/todo.md.
   strings {
@@ -7,6 +7,7 @@ widget "todo" {
     id { title: "tugas"; allDone: "semua beres" }
     es { title: "pendientes"; allDone: "todo listo" }
     pt { title: "tarefas"; allDone: "tudo feito" }
+    de { title: "todo"; allDone: "alles erledigt" }
   }
   size: 3x4
   minSize: 3x2
