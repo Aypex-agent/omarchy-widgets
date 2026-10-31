@@ -2,7 +2,31 @@ widget "notifications" {
   size: 3x4
   minSize: 3x3
   requires { pacman: [] }
-  meta { description: "Your phone's notifications on the home screen, newest first, with a count per app. Tap one to open it, × to dismiss it; tap the tile for all of them by app"; version: "1.0"; license: "MIT"; category: "productivity"; owl: 5 }
+  meta { description: "Your phone's notifications on the home screen, newest first, with a count per app. Tap one to open it, × to dismiss it; tap the tile for all of them by app"; version: "1.1"; license: "MIT"; category: "productivity"; owl: 16 }
+
+  // What it says, in the phone's language where it has a set. Apps and their notifications come as they are.
+  strings {
+    en {
+      title: "notifications"; now: "now"; minutes: n => "${n}m"; hours: n => "${n}h"; days: n => "${n}d"
+      allow: "Allow notification access to see them here. Tap to open the setting."
+      loading: "loading…"; caughtUp: "all caught up"; more: n => "+${n} more"
+    }
+    id {
+      title: "notifikasi"; now: "kini"; minutes: n => "${n}m"; hours: n => "${n}j"; days: n => "${n}h"
+      allow: "Izinkan akses notifikasi untuk melihatnya di sini. Ketuk untuk membuka setelan."
+      loading: "memuat…"; caughtUp: "semua sudah dibaca"; more: n => "+${n} lagi"
+    }
+    es {
+      title: "notificaciones"; now: "ahora"; minutes: n => "${n}m"; hours: n => "${n}h"; days: n => "${n}d"
+      allow: "Permite el acceso a las notificaciones para verlas aquí. Toca para abrir la configuración."
+      loading: "cargando…"; caughtUp: "todo al día"; more: n => "+${n} más"
+    }
+    pt {
+      title: "notificações"; now: "agora"; minutes: n => "${n}m"; hours: n => "${n}h"; days: n => "${n}d"
+      allow: "Permita o acesso às notificações para vê-las aqui. Toque para abrir as configurações."
+      loading: "carregando…"; caughtUp: "tudo em dia"; more: n => "+${n} mais"
+    }
+  }
 
   // {available, count, items: [{key, app, package, title, text, time, clearable}]}, newest first,
   // without ongoing ones (music, downloads) and group headers. Needs notification access.
@@ -38,7 +62,7 @@ widget "notifications" {
         weight: 1
         gap: 0
         let age = now - i.time
-        Text { text: "${lower(i.app)} · ${age < 60 ? "now" : age < 3600 ? "${floor(age / 60)}m" : age < 86400 ? "${floor(age / 3600)}h" : "${floor(age / 86400)}d"}"; style: label; color: muted; maxLines: 1 }
+        Text { text: "${lower(i.app)} · ${age < 60 ? str.now : age < 3600 ? str.minutes(floor(age / 60)) : age < 86400 ? str.hours(floor(age / 3600)) : str.days(floor(age / 86400))}"; style: label; color: muted; maxLines: 1 }
         if i.title != "" {
           Text { text: i.title; style: small; bold: true; maxLines: 1 }
         }
@@ -61,16 +85,16 @@ widget "notifications" {
     gap: 8
     Row {
       align: center
-      Text { text: "notifications"; style: muted; weight: 1 }
+      Text { text: str.title; style: muted; weight: 1 }
       if len(items) > 0 {
         Text { text: "${n.count}"; style: label; bold: true; color: accent; background: alpha(accent, 0.2); padding: [7, 1]; radius: 9; align: center; width: len("${n.count}") * 7 + 16 }
       }
     }
     if !allowed {
-      Text { text: "Allow notification access to see them here. Tap to open the setting."; style: small; maxLines: 4; onTap: notification("open", "") }
+      Text { text: str.allow; style: small; maxLines: 4; onTap: notification("open", "") }
     } else {
       if n == null {
-        Text { text: "loading…"; style: small; color: muted }
+        Text { text: str.loading; style: small; color: muted }
       } else {
         if len(items) == 0 {
           Column {
@@ -79,7 +103,7 @@ widget "notifications" {
             justify: center
             gap: 4
             Text { text: "󰄬"; font: icon; fontSize: 28; color: green; align: center }
-            Text { text: "all caught up"; style: small; color: muted; align: center }
+            Text { text: str.caughtUp; style: small; color: muted; align: center }
           }
         } else {
           if len(apps) > 1 {
@@ -97,7 +121,7 @@ widget "notifications" {
             }
           }
           if len(items) > len(visible) {
-            Text { text: "+${len(items) - len(visible)} more"; style: label; color: muted }
+            Text { text: str.more(len(items) - len(visible)); style: label; color: muted }
           }
         }
       }
@@ -105,12 +129,12 @@ widget "notifications" {
   }
 
   screen {
-    title: "notifications"
+    title: str.title
     Column {
       scroll: true
       gap: 12
       if len(items) == 0 {
-        Text { text: "all caught up"; style: body; color: muted }
+        Text { text: str.caughtUp; style: body; color: muted }
       }
       for a in apps key a.app {
         Column {

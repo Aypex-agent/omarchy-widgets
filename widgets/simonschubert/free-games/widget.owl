@@ -1,5 +1,13 @@
 widget "free games" {
-  meta { description: "Games free to keep on the Epic Games Store right now and the ones coming next"; version: "1.1"; license: "MIT"; category: "games" }
+  meta { description: "Games free to keep on the Epic Games Store right now and the ones coming next"; version: "1.2"; license: "MIT"; category: "games"; owl: 16 }
+
+  // What it says, in the phone's language where it has a set. Game titles come as Epic names them.
+  strings {
+    en { title: "free games · epic"; nothing: "nothing free right now"; freeFor: d => "free for ${d}"; next: "next" }
+    id { title: "game gratis · epic"; nothing: "belum ada yang gratis"; freeFor: d => "gratis selama ${d}"; next: "berikutnya" }
+    es { title: "juegos gratis · epic"; nothing: "nada gratis por ahora"; freeFor: d => "gratis por ${d}"; next: "próximos" }
+    pt { title: "jogos grátis · epic"; nothing: "nada grátis agora"; freeFor: d => "grátis por ${d}"; next: "próximos" }
+  }
   size: 6x3
   minSize: 3x2
 
@@ -23,22 +31,22 @@ widget "free games" {
 
   Column {
     gap: 4
-    Text { text: "free games · epic"; style: muted }
+    Text { text: str.title; style: muted }
     Column {
       scroll: true
       weight: 1
       gap: 6
-      if live != null && len(live) == 0 { Text { text: "nothing free right now"; style: small } }
+      if live != null && len(live) == 0 { Text { text: str.nothing; style: small } }
       for g in live key g.url {
         Column {
           gap: 0
           onTap: url(g.url)
           Text { text: g.title; fontSize: 14; bold: true; color: green; maxLines: 1 }
-          Text { text: "free for ${fmtDuration(g.until - now)}"; fontSize: 11; color: muted }
+          Text { text: str.freeFor(fmtDuration(g.until - now)); fontSize: 11; color: muted }
         }
       }
       if len(soon) > 0 {
-        Text { text: "next"; style: label }
+        Text { text: str.next; style: label }
         for g in soon key g.url {
           Row {
             onTap: url(g.url)

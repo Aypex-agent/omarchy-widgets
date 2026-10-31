@@ -1,5 +1,13 @@
 widget "uptime" {
-  meta { description: "Up or down, HTTP status and response time for the sites listed in ~/.config/omarchy-proot/uptime"; version: "1.1"; license: "MIT"; category: "dev" }
+  meta { description: "Up or down, HTTP status and response time for the sites listed in ~/.config/omarchy-proot/uptime"; version: "1.2"; license: "MIT"; category: "dev"; owl: 16 }
+
+  // What it says, in the phone's language where it has a set. A timeout stays "timeout": its column fits about 9 letters.
+  strings {
+    en { title: "uptime"; down: n => "${n} down"; allUp: "all up" }
+    id { title: "uptime"; down: n => "${n} mati"; allUp: "semua aktif" }
+    es { title: "uptime"; down: n => "${n} caídos"; allUp: "todo en línea" }
+    pt { title: "uptime"; down: n => "${n} fora do ar"; allUp: "tudo no ar" }
+  }
   size: 6x3
   minSize: 3x2
 
@@ -21,8 +29,8 @@ widget "uptime" {
   Column {
     gap: 4
     Row {
-      Text { text: "uptime"; style: muted; weight: 1 }
-      Text { text: down > 0 ? "${down} down" : "all up"; fontSize: 12; color: down > 0 ? red : green; width: 80; align: end }
+      Text { text: str.title; style: muted; weight: 1 }
+      Text { text: down > 0 ? str.down(down) : str.allUp; fontSize: 12; color: down > 0 ? red : green; width: 96; align: end }
     }
     Column {
       scroll: true

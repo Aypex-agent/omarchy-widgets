@@ -1,5 +1,13 @@
 widget "earthquakes" {
-  meta { description: "Earthquakes of magnitude 4.5 and up worldwide in the last day, from the USGS"; version: "1.1"; license: "MIT"; category: "world" }
+  meta { description: "Earthquakes of magnitude 4.5 and up worldwide in the last day, from the USGS"; version: "1.2"; license: "MIT"; category: "world"; owl: 16 }
+
+  // What it says, in the phone's language where it has a set. Places come as the USGS writes them.
+  strings {
+    en { title: "earthquakes · 24h"; summary: (n, max) => "${n} · max ${max}"; minutes: n => "${n}m"; hours: n => "${n}h" }
+    id { title: "gempa · 24 jam"; summary: (n, max) => "${n} · maks ${max}"; minutes: n => "${n}m"; hours: n => "${n}j" }
+    es { title: "sismos · 24 h"; summary: (n, max) => "${n} · máx. ${max}"; minutes: n => "${n}m"; hours: n => "${n}h" }
+    pt { title: "terremotos · 24 h"; summary: (n, max) => "${n} · máx. ${max}"; minutes: n => "${n}m"; hours: n => "${n}h" }
+  }
   size: 6x3
   minSize: 3x2
 
@@ -18,8 +26,8 @@ widget "earthquakes" {
   Column {
     gap: 4
     Row {
-      Text { text: "earthquakes · 24h"; style: muted; weight: 1 }
-      Text { text: quakes == null ? "…" : "${len(quakes)} · max ${strongest.mag ?? "-"}"; fontSize: 11; color: muted; width: 96; align: end }
+      Text { text: str.title; style: muted; weight: 1 }
+      Text { text: quakes == null ? "…" : str.summary(len(quakes), strongest.mag ?? "-"); fontSize: 11; color: muted; width: 96; align: end }
     }
     Column {
       scroll: true
@@ -32,7 +40,7 @@ widget "earthquakes" {
           onTap: url(q.url)
           Text { text: fixed(q.mag, 1); fontSize: 13; bold: true; color: q.mag >= 6 ? red : q.mag >= 5 ? orange : yellow; width: 32 }
           Text { text: q.tsunami ? "🌊 ${q.place}" : q.place; fontSize: 12; maxLines: 1; weight: 1 }
-          Text { text: age < 3600 ? "${max(floor(age / 60), 1)}m" : "${floor(age / 3600)}h"; fontSize: 11; color: muted; width: 32; align: end }
+          Text { text: age < 3600 ? str.minutes(max(floor(age / 60), 1)) : str.hours(floor(age / 3600)); fontSize: 11; color: muted; width: 32; align: end }
         }
       }
     }

@@ -2,7 +2,27 @@ widget "omarchy" {
   size: 4x3
   minSize: 3x3
   requires { pacman: [] }
-  meta { description: "Latest commits on omacom/omarchy, branch quattro. Tap the tile for the full feed, then a commit to open it."; version: "1.0"; license: "MIT"; category: "dev"; owl: 5 }
+  meta { description: "Latest commits on omacom/omarchy, branch quattro. Tap the tile for the full feed, then a commit to open it."; version: "1.1"; license: "MIT"; category: "dev"; owl: 16 }
+
+  // What it says, in the phone's language where it has a set. Commits and the branch come as GitHub has them.
+  strings {
+    en {
+      someone: "someone"; rateLimited: "rate limited"; offline: "github offline"; loading: "loading…"; refresh: "refresh"
+      now: "now"; minutes: n => "${n}m"; hours: n => "${n}h"; days: n => "${n}d"; commits: n => "${n} commits"
+    }
+    id {
+      someone: "seseorang"; rateLimited: "kena batas github"; offline: "github offline"; loading: "memuat…"; refresh: "muat ulang"
+      now: "kini"; minutes: n => "${n}m"; hours: n => "${n}j"; days: n => "${n}h"; commits: n => "${n} commit"
+    }
+    es {
+      someone: "alguien"; rateLimited: "límite de solicitudes"; offline: "github sin conexión"; loading: "cargando…"; refresh: "actualizar"
+      now: "ahora"; minutes: n => "${n}m"; hours: n => "${n}h"; days: n => "${n}d"; commits: n => "${n} commits"
+    }
+    pt {
+      someone: "alguém"; rateLimited: "limite de requisições"; offline: "github offline"; loading: "carregando…"; refresh: "atualizar"
+      now: "agora"; minutes: n => "${n}m"; hours: n => "${n}h"; days: n => "${n}d"; commits: n => "${n} commits"
+    }
+  }
 
   source now = clock every 1m
   // Public commits API. Android fetches it; no shell and no packages. Twenty commits stay well under the 1 MB cap.
@@ -14,9 +34,9 @@ widget "omarchy" {
     url: c.html_url,
     iso: c.commit.author.date ?? "",
     subject: first(split(c.commit.message ?? "", "\n")) ?? "",
-    author: c.author.login ?? c.commit.author.name ?? "someone"
+    author: c.author.login ?? c.commit.author.name ?? str.someone
   })
-  let problem = raw == null || raw.ok ? null : raw.code == 403 ? "rate limited" : "github offline"
+  let problem = raw == null || raw.ok ? null : raw.code == 403 ? str.rateLimited : str.offline
   let wide = cols != null && cols >= 6
   // A two-line row is ~30dp. Count from the tile height so the list fills it
   // instead of stopping early and leaving the bottom blank.
@@ -42,7 +62,7 @@ widget "omarchy" {
       let doe = yoe * 365 + floor(yoe / 4) - floor(yoe / 100) + doy
       let at = (era * 146097 + doe - 719468) * 86400 + hh * 3600 + mm * 60 + ss
       let age = now - at
-      let ago = iso == "" || now == null ? "…" : age < 45 ? "now" : age < 3600 ? "${floor(age / 60)}m" : age < 86400 ? "${floor(age / 3600)}h" : age < 604800 ? "${floor(age / 86400)}d" : fmtTime(at, "MMM d")
+      let ago = iso == "" || now == null ? "…" : age < 45 ? str.now : age < 3600 ? str.minutes(floor(age / 60)) : age < 86400 ? str.hours(floor(age / 3600)) : age < 604800 ? str.days(floor(age / 86400)) : fmtTime(at, "MMM d")
       if full {
         Column {
           gap: 2
@@ -78,7 +98,7 @@ widget "omarchy" {
     }
     Spacer { height: 1; fill: width; background: alpha(muted, 0.25) }
     if raw == null {
-      Text { text: "loading…"; style: small; color: muted }
+      Text { text: str.loading; style: small; color: muted }
     } else {
       if problem != null {
         Text { text: problem; style: small; color: muted }
@@ -101,17 +121,17 @@ widget "omarchy" {
       Row {
         align: center
         Text { text: "quattro"; style: label; color: accent; weight: 1 }
-        Text { text: raw == null ? "…" : "${len(commits)} commits"; style: label; color: muted; width: 96; align: end; maxLines: 1 }
+        Text { text: raw == null ? "…" : str.commits(len(commits)); style: label; color: muted; width: 96; align: end; maxLines: 1 }
       }
       Row {
         gap: 8
         justify: end
-        Button { text: "refresh"; color: muted; onTap: refresh() }
+        Button { text: str.refresh; color: muted; onTap: refresh() }
         Button { text: "github ↗"; color: muted; onTap: url("https://github.com/omacom/omarchy/commits/quattro") }
       }
       Spacer { height: 1; fill: width; background: alpha(muted, 0.25) }
       if raw == null {
-        Text { text: "loading…"; style: body; color: muted }
+        Text { text: str.loading; style: body; color: muted }
       } else {
         if problem != null {
           Text { text: problem; style: body; color: muted }

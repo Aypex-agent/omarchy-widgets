@@ -1,7 +1,27 @@
 widget "what's new" {
   size: 3x2
   minSize: 2x2
-  meta { description: "What's new in the launcher, from its changelog on GitHub. Tap it for every release"; version: "1.2"; license: "MIT"; category: "news"; owl: 5 }
+  meta { description: "What's new in the launcher, from its changelog on GitHub. Tap it for every release"; version: "1.3"; license: "MIT"; category: "news"; owl: 16 }
+
+  // What it says, in the phone's language where it has a set. The changelog itself is in English.
+  strings {
+    en {
+      title: "what's new"; update: "update"; offline: "offline"; loading: "loading…"; unreachable: "couldn't reach github"
+      next: "coming next"; installed: "installed"; store: "play store ↗"; github: "open on github ↗"
+    }
+    id {
+      title: "yang baru"; update: "perbarui"; offline: "offline"; loading: "memuat…"; unreachable: "tidak bisa menghubungi github"
+      next: "segera hadir"; installed: "terinstal"; store: "play store ↗"; github: "buka di github ↗"
+    }
+    es {
+      title: "novedades"; update: "actualizar"; offline: "sin conexión"; loading: "cargando…"; unreachable: "no se pudo conectar con github"
+      next: "próximamente"; installed: "instalada"; store: "play store ↗"; github: "abrir en github ↗"
+    }
+    pt {
+      title: "novidades"; update: "atualizar"; offline: "offline"; loading: "carregando…"; unreachable: "não foi possível acessar o github"
+      next: "em breve"; installed: "instalada"; store: "play store ↗"; github: "abrir no github ↗"
+    }
+  }
 
   source log = http("https://raw.githubusercontent.com/SimonSchubert/omalauncher/main/CHANGELOG.md") every 6h timeout 10s status
   source sys = android.system every 1h
@@ -22,26 +42,26 @@ widget "what's new" {
 
   Column {
     gap: 2
-    Text { text: "what's new"; style: muted }
+    Text { text: str.title; style: muted }
     if latest != null {
       // A narrow tile (the landscape home screen) has room for "10-20" beside the version, not the year too.
       Row {
         gap: 6
         align: bottom
         Text { text: latest.version; style: title; color: accent; width: 76; maxLines: 1 }
-        Text { text: behind ? "update" : tileWidth < 180 ? sub(latest.date, 5) : latest.date; style: small; color: behind ? yellow : muted; align: end; weight: 1; maxLines: 1 }
+        Text { text: behind ? str.update : tileWidth < 180 ? sub(latest.date, 5) : latest.date; style: small; color: behind ? yellow : muted; align: end; weight: 1; maxLines: 1 }
       }
       // Every change, cut off with "…" where the tile ends.
       Text { text: join(latest.items.map(i => "• ${i}"), "\n"); style: small; maxLines: 40; weight: 1 }
     } else {
-      Text { text: log == null ? "…" : "offline"; style: title; color: muted }
+      Text { text: log == null ? "…" : str.offline; style: title; color: muted }
     }
   }
 
   screen {
-    title: "what's new"
+    title: str.title
     if len(releases) == 0 {
-      Text { text: log == null ? "loading…" : "couldn't reach github"; style: body; color: muted }
+      Text { text: log == null ? str.loading : str.unreachable; style: body; color: muted }
     } else {
       Column {
         Column {
@@ -55,9 +75,9 @@ widget "what's new" {
               Row {
                 gap: 8
                 align: bottom
-                Text { text: r.date == null ? "coming next" : r.version; style: title; color: r.date == null ? muted : accent; weight: 1; maxLines: 1 }
+                Text { text: r.date == null ? str.next : r.version; style: title; color: r.date == null ? muted : accent; weight: 1; maxLines: 1 }
                 if installed {
-                  Text { text: "installed"; style: label; color: green; width: 72; align: end }
+                  Text { text: str.installed; style: label; color: green; width: 72; align: end }
                 }
                 Text { text: r.date ?? ""; style: small; color: muted; width: 88; align: end }
               }
@@ -75,8 +95,8 @@ widget "what's new" {
         Row {
           justify: end
           gap: 8
-          Button { text: "play store ↗"; color: accent; onTap: url(store) }
-          Button { text: "open on github ↗"; color: muted; onTap: url("https://github.com/SimonSchubert/omalauncher/blob/main/CHANGELOG.md") }
+          Button { text: str.store; color: accent; onTap: url(store) }
+          Button { text: str.github; color: muted; onTap: url("https://github.com/SimonSchubert/omalauncher/blob/main/CHANGELOG.md") }
         }
       }
     }

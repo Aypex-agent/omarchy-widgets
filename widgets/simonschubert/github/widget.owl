@@ -1,5 +1,13 @@
 widget "github" {
-  meta { description: "Unread GitHub notifications, reviews waiting on you and your open pull requests, via the GitHub CLI"; version: "1.1"; license: "MIT"; category: "dev" }
+  meta { description: "Unread GitHub notifications, reviews waiting on you and your open pull requests, via the GitHub CLI"; version: "1.2"; license: "MIT"; category: "dev"; owl: 16 }
+
+  // What it says, in the phone's language where it has a set.
+  strings {
+    en { notSignedIn: "the GitHub CLI isn't signed in"; signIn: "sign in"; unread: "unread"; reviews: "reviews"; mine: "my prs" }
+    id { notSignedIn: "GitHub CLI belum masuk"; signIn: "masuk"; unread: "belum dibaca"; reviews: "review"; mine: "pr saya" }
+    es { notSignedIn: "la CLI de GitHub no tiene sesión iniciada"; signIn: "iniciar sesión"; unread: "sin leer"; reviews: "revisiones"; mine: "mis prs" }
+    pt { notSignedIn: "o GitHub CLI não está conectado"; signIn: "entrar"; unread: "não lidas"; reviews: "revisões"; mine: "meus prs" }
+  }
   size: 6x4
   minSize: 3x3
 
@@ -28,13 +36,13 @@ widget "github" {
     gap: 6
     Text { text: "github"; style: muted }
     if gh.auth == false {
-      Text { text: "the GitHub CLI isn't signed in"; style: small }
-      Button { text: "sign in"; onTap: terminal("gh auth login", "github") }
+      Text { text: str.notSignedIn; style: small }
+      Button { text: str.signIn; onTap: terminal("gh auth login", "github") }
     } else {
       Row {
-        Count { label: "unread"; n: gh.unread; hot: accent; weight: 1 }
-        Count { label: "reviews"; n: gh.reviews; hot: yellow; weight: 1 }
-        Count { label: "my prs"; n: len(gh.mine); hot: foreground; weight: 1 }
+        Count { label: str.unread; n: gh.unread; hot: accent; weight: 1 }
+        Count { label: str.reviews; n: gh.reviews; hot: yellow; weight: 1 }
+        Count { label: str.mine; n: len(gh.mine); hot: foreground; weight: 1 }
       }
       Column {
         scroll: true

@@ -2,7 +2,27 @@ widget "now-playing" {
   size: 6x2
   minSize: 3x2
   requires { pacman: [] }
-  meta { description: "What's playing on your phone, from any music or podcast app: album art, track, progress and play, pause and skip. Tap the tile to open the app"; version: "1.2"; license: "MIT"; category: "media"; owl: 6 }
+  meta { description: "What's playing on your phone, from any music or podcast app: album art, track, progress and play, pause and skip. Tap the tile to open the app"; version: "1.3"; license: "MIT"; category: "media"; owl: 16 }
+
+  // What it says, in the phone's language where it has a set. Tracks, artists and apps come as they are.
+  strings {
+    en {
+      title: "now playing"; nothing: "nothing playing"; start: "start music in any app"
+      allow: "Allow notification access so the launcher can see what's playing. Tap to open the setting."
+    }
+    id {
+      title: "sedang diputar"; nothing: "tidak ada yang diputar"; start: "putar musik di aplikasi apa saja"
+      allow: "Izinkan akses notifikasi agar launcher bisa melihat apa yang diputar. Ketuk untuk membuka setelan."
+    }
+    es {
+      title: "sonando ahora"; nothing: "no suena nada"; start: "pon música en cualquier app"
+      allow: "Permite el acceso a las notificaciones para que el launcher vea qué está sonando. Toca para abrir la configuración."
+    }
+    pt {
+      title: "tocando agora"; nothing: "nada tocando"; start: "toque música em qualquer app"
+      allow: "Permita o acesso às notificações para que o launcher veja o que está tocando. Toque para abrir as configurações."
+    }
+  }
 
   // {available, playing, title, artist, album, app, package, position, duration, art}.
   // Android only shares other apps' sessions with notification access; without it, available is false.
@@ -100,8 +120,8 @@ widget "now-playing" {
     Column {
       justify: center
       gap: 6
-      Text { text: "now playing"; style: muted }
-      Text { text: "Allow notification access so the launcher can see what's playing. Tap to open the setting."; style: small; maxLines: 3 }
+      Text { text: str.title; style: muted }
+      Text { text: str.allow; style: small; maxLines: 3 }
     }
   } else {
     if !has {
@@ -109,8 +129,8 @@ widget "now-playing" {
         Column {
           gap: 10
           Art { src: null; d: tallArt }
-          Text { text: "nothing playing"; style: body; color: muted }
-          Text { text: "start music in any app"; style: small; color: muted; maxLines: 2 }
+          Text { text: str.nothing; style: body; color: muted }
+          Text { text: str.start; style: small; color: muted; maxLines: 2 }
         }
       } else {
         Row {
@@ -120,8 +140,8 @@ widget "now-playing" {
           Column {
             weight: 1
             gap: 2
-            Text { text: "nothing playing"; style: body; color: muted }
-            Text { text: "start music in any app"; style: small; color: muted; maxLines: 1 }
+            Text { text: str.nothing; style: body; color: muted }
+            Text { text: str.start; style: small; color: muted; maxLines: 1 }
           }
         }
       }
