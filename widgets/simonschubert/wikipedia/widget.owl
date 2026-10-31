@@ -1,5 +1,5 @@
 widget "wikipedia" {
-  meta { description: "Wikipedia's featured article of the day, what everyone is reading, and on this day in history"; version: "1.3"; license: "MIT"; category: "news"; owl: 16 }
+  meta { description: "Wikipedia's featured article of the day, what everyone is reading, and on this day in history"; version: "1.4"; license: "MIT"; category: "news"; owl: 16 }
 
   // What it says, and which Wikipedia it reads, in the phone's language where it has a set. The feed has no
   // featured article for the other languages' Wikipedias, nor on this day for Indonesian's; those parts stay away.
@@ -9,17 +9,24 @@ widget "wikipedia" {
     es { wiki: "es"; featured: "artículo destacado"; mostRead: "lo más leído"; onThisDay: "un día como hoy" }
     pt { wiki: "pt"; featured: "artigo destacado"; mostRead: "mais lidos"; onThisDay: "neste dia" }
     de { wiki: "de"; featured: "artikel des tages"; mostRead: "meistgelesen"; onThisDay: "an diesem tag" }
+    zh { wiki: "zh"; featured: "特色条目"; mostRead: "最多阅读"; onThisDay: "历史上的今天" }
   }
   size: 6x4
   minSize: 4x3
 
   requires { pacman: ["curl", "jq"] }
 
-  // Wikimedia's daily feed for that language's Wikipedia; only the parts drawn are kept.
+  // Wikimedia's daily feed for that language's Wikipedia; only the parts drawn are kept. Chinese comes from
+  // zh.wikipedia's own feed, which writes it in Simplified script when asked, titles in their display form: Wikimedia's
+  // mixes Simplified and Traditional and drops the linked names from on this day.
   source wp = cmd("set -- ${sh(str.wiki)}; " + """
-    curl -fsm 12 "https://api.wikimedia.org/feed/v1/wikipedia/$1/featured/$(date -u +%Y/%m/%d)" | jq -c '{
-      tfa: (.tfa // null | if . then {title: .titles.normalized, text: .extract, url: .content_urls.mobile.page} else null end),
-      read: [(.mostread.articles // [])[] | select(.namespace.id == 0) | {title: .titles.normalized, views, url: .content_urls.mobile.page}][:5],
+    feed="https://api.wikimedia.org/feed/v1/wikipedia/$1/featured"
+    [ "$1" = zh ] && feed="https://zh.wikipedia.org/api/rest_v1/feed/featured"
+    curl -fsm 12 -H 'Accept-Language: zh-hans' "$feed/$(date -u +%Y/%m/%d)" | jq -c --arg wiki "$1" '
+    def title: if $wiki == "zh" then (.titles.display // .titles.normalized | gsub("<[^>]*>"; "")) else .titles.normalized end;
+    {
+      tfa: (.tfa // null | if . then {title: title, text: .extract, url: .content_urls.mobile.page} else null end),
+      read: [(.mostread.articles // [])[] | select(.namespace.id == 0) | {title: title, views, url: .content_urls.mobile.page}][:5],
       onthisday: [(.onthisday // [])[:3][] | {year, text}]
     }'
   """) every 1h json timeout 20s

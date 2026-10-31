@@ -1,5 +1,5 @@
 widget "launches" {
-  meta { description: "A live countdown to the next rocket launch and the ones after it, from The Space Devs"; version: "1.4"; license: "MIT"; category: "world"; owl: 16 }
+  meta { description: "A live countdown to the next rocket launch and the ones after it, from The Space Devs"; version: "1.5"; license: "MIT"; category: "world"; owl: 16 }
 
   // What it says, in the phone's language where it has a set. Rockets, providers, places and status (Go, TBD) come as The Space Devs write them.
   strings {
@@ -8,6 +8,7 @@ widget "launches" {
     es { title: "próximo lanzamiento"; liftoff: "despegue"; days: n => "${n}d " }
     pt { title: "próximo lançamento"; liftoff: "decolagem"; days: n => "${n}d " }
     de { title: "nächster start"; liftoff: "gestartet"; days: n => "${n}t " }
+    zh { title: "下一次发射"; liftoff: "已升空"; days: n => "${n}天 " }
   }
   size: 6x3
   minSize: 3x2

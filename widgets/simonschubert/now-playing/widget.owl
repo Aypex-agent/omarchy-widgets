@@ -2,7 +2,7 @@ widget "now-playing" {
   size: 6x2
   minSize: 3x2
   requires { pacman: [] }
-  meta { description: "What's playing on your phone, from any music or podcast app: album art, track, progress and play, pause and skip. Tap the tile to open the app"; version: "1.4"; license: "MIT"; category: "media"; owl: 16 }
+  meta { description: "What's playing on your phone, from any music or podcast app: album art, track, progress and play, pause and skip. Tap the tile to open the app"; version: "1.5"; license: "MIT"; category: "media"; owl: 16 }
 
   // What it says, in the phone's language where it has a set. Tracks, artists and apps come as they are.
   strings {
@@ -25,6 +25,10 @@ widget "now-playing" {
     de {
       title: "läuft gerade"; nothing: "es läuft nichts"; start: "starte musik in einer app"
       allow: "Erlaube den Zugriff auf Benachrichtigungen, damit der Launcher sieht, was gerade läuft. Tippe, um die Einstellung zu öffnen."
+    }
+    zh {
+      title: "正在播放"; nothing: "没有在播放"; start: "在任意应用里播放音乐"
+      allow: "允许访问通知，启动器才能看到正在播放什么。点按打开设置。"
     }
   }
 

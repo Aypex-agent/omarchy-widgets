@@ -1,5 +1,5 @@
 widget "planes overhead" {
-  meta { description: "Aircraft around you on a live radar, from the OpenSky Network, located by IP or a city you type, via wttr.in. Tap it for every flight's altitude, speed and distance"; version: "1.3"; license: "MIT"; category: "world"; owl: 16 }
+  meta { description: "Aircraft around you on a live radar, from the OpenSky Network, located by IP or a city you type, via wttr.in. Tap it for every flight's altitude, speed and distance"; version: "1.4"; license: "MIT"; category: "world"; owl: 16 }
 
   // What it says, in the phone's language where it has a set. Callsigns and OpenSky's country names stay as they come.
   strings {
@@ -37,6 +37,13 @@ widget "planes overhead" {
       clear: r => "keine flieger im umkreis von ${r}"; away: (call, d) => "${call} · ${d} entfernt"
       flights: (n, r, place) => "${n} ${n == 1 ? "flug" : "flüge"} im umkreis von ${r} um ${place}"
       data: "daten: opensky network"; map: "live-karte ↗"
+    }
+    zh {
+      title: "头顶的飞机"; city: "城市 · 留空 = 自动"; locating: "正在定位…"; unknown: "位置未知"
+      listening: "正在监听…"; limit: "opensky 今天的额度用完了"; offline: "opensky 离线"
+      clear: r => "${r} 内没有飞机"; away: (call, d) => "${call} · 距离 ${d}"
+      flights: (n, r, place) => "${place} 周边 ${r} 内有 ${n} 架飞机"
+      data: "数据：opensky network"; map: "实时地图 ↗"
     }
   }
   size: 3x3

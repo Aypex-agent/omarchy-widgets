@@ -2,7 +2,7 @@ widget "next bus" {
   size: 6x2
   minSize: 4x2
   requires { pacman: [] }
-  meta { description: "Your next bus, tram or train, live, and whether you need to run for it: pick a stop, a line and how long you walk there, anywhere Transitous has open timetables. Tap the tile to change them"; version: "1.3"; license: "MIT"; category: "world"; owl: 16 }
+  meta { description: "Your next bus, tram or train, live, and whether you need to run for it: pick a stop, a line and how long you walk there, anywhere Transitous has open timetables. Tap the tile to change them"; version: "1.4"; license: "MIT"; category: "world"; owl: 16 }
 
   // What it says, in the phone's language where it has a set. Stops, lines and directions come as Transitous
   // names them. leaveNow and run sit in a 170dp column at 22 and 26sp: about 12 letters at most.
@@ -61,6 +61,17 @@ widget "next bus" {
       search: "haltestelle suchen"; change: "haltestelle ändern"; searching: "suche…"; noStops: q => "keine haltestelle namens „${q}“"
       yourLine: "deine linie"; anyLine: "jede linie"; whatever: "was zuerst fährt"; walkTo: "fußweg zur haltestelle"
       data: "daten: Transitous, aus offenen fahrplänen. Verspätungen siehst du, wo der Betreiber Live-Zeiten veröffentlicht"
+    }
+    zh {
+      title: "下一班车"; relax: "不着急"; leaveInMin: m => "${m} 分钟后出发"; leaveIn: "出发倒计时"; leaveNow: "现在出发"
+      brisk: "走快点"; run: "快跑！"; toStop: t => "到站还剩 ${t}"
+      pick: "点按选择你的站点、线路和走到那里要多久。"; nothing: "近期没有车"
+      to: d => "开往 ${d}"; walkMin: m => "步行 ${m} 分钟"; fromWalk: (stop, m) => "从 ${stop} · 步行 ${m} 分钟"
+      min: "分钟"; mins: m => "${m} 分钟"; yourStop: "你的站"; timetable: "按时刻表"; onTime: "准点"; then: "之后"
+      noneLater: "暂无后续车次"; noLater: "暂无后续车次"; tooMany: "请求过多"; offline: "transitous 离线"
+      search: "搜索站点"; change: "更换站点"; searching: "正在搜索…"; noStops: q => "没有叫“${q}”的站点"
+      yourLine: "你的线路"; anyLine: "任意线路"; whatever: "哪班先到坐哪班"; walkTo: "步行到站"
+      data: "数据：Transitous，来自公开时刻表。运营方公布实时时间的线路会显示延误"
     }
   }
 

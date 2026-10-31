@@ -1,5 +1,5 @@
 widget "air and pollen" {
-  meta { description: "Air quality and today's pollen where you are, from Open-Meteo (Copernicus), located by IP or a city you type, via wttr.in. Tap it for the next 24 hours, pollutants and every pollen type"; version: "1.4"; license: "MIT"; category: "world"; owl: 16 }
+  meta { description: "Air quality and today's pollen where you are, from Open-Meteo (Copernicus), located by IP or a city you type, via wttr.in. Tap it for the next 24 hours, pollutants and every pollen type"; version: "1.5"; license: "MIT"; category: "world"; owl: 16 }
 
   // What it says, in the phone's language where it has a set. us and eu are the two indexes' levels, good
   // to worst, in each agency's words where it has them; advice goes with them, pollen is none to high.
@@ -74,6 +74,20 @@ widget "air and pollen" {
       ozone: "ozon"; uvIndex: "uv-index"; pollenLong: "pollen · nächste 24 stunden"
       europeOnlyLong: "open-meteo hat pollenvorhersagen nur für europa."; peak: v => "max. ${v}"
       data: "daten: copernicus atmosphere monitoring service über open-meteo"
+    }
+    zh {
+      title: "空气和花粉"; air: "空气"; city: "城市 · 留空 = 自动"; unknown: "位置未知"; offline: "open-meteo 离线"
+      us: ["良好", "中等", "对敏感人群不健康", "不健康", "非常不健康", "危险"]
+      eu: ["良好", "尚可", "中等", "差", "很差", "极差"]
+      advice: ["很适合出门", "照常安排户外活动没问题", "敏感人群在户外最好悠着点", "户外最好别做剧烈运动", "少在户外活动", "尽量别在户外活动"]
+      pollen: ["无", "低", "中", "高"]
+      plant: k => get({"birch": "桦树", "alder": "桤木", "olive": "橄榄", "grass": "禾草", "mugwort": "艾草", "ragweed": "豚草"}, k, k)
+      plantLevel: (plant, level) => "${plant} ${level}"; pollenLevel: (plant, level) => "${plant}花粉 ${level}"
+      noPollen: "没有花粉"; uv: v => "紫外线 ${v}"; pollenShort: "花粉 · 未来 24 小时"; europeOnly: "这里没有花粉预报（仅限欧洲）"
+      noneInAir: "空气中没有"; next24: "未来 24 小时"; now: "现在"; pollutants: "当前污染物 · µg/m³"
+      ozone: "臭氧"; uvIndex: "紫外线指数"; pollenLong: "花粉 · 未来 24 小时"
+      europeOnlyLong: "open-meteo 只提供欧洲的花粉预报。"; peak: v => "峰值 ${v}"
+      data: "数据：哥白尼大气监测服务，经由 open-meteo"
     }
   }
   size: 3x2
