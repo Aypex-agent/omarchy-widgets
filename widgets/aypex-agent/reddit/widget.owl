@@ -7,7 +7,7 @@ widget "reddit" {
   // start it on another feed. Tapping a post opens it on reddit.com, which the Reddit app takes when installed.
   // NSFW: the feeds don't mark it, so the widget can't filter it. Subreddits and custom feeds are read without an
   // account and show NSFW posts and thumbnails as Reddit serves them; r/popular leaves them out.
-  meta { owl: 12; description: "Your Reddit front page, a subreddit or a custom feed, with thumbnails; tap a post to open it on reddit.com"; version: "1.4"; license: "MIT"; category: "news" }
+  meta { owl: 12; description: "Your Reddit front page, a subreddit or a custom feed, with thumbnails; tap a post to open it on reddit.com"; version: "1.5"; license: "MIT"; category: "news" }
   size: 6x4
   minSize: 2x2
 
@@ -38,7 +38,7 @@ widget "reddit" {
       : token == null
       ? "https://www.reddit.com/r/popular/${enc(sort)}/.rss?limit=25&t=day"
       : "https://www.reddit.com/${enc(sort)}/.rss?feed=${enc(token)}&user=${enc(username)}&limit=25&t=day",
-    {"User-Agent": "android:omalauncher.reddit-widget:v1.4", Accept: "application/atom+xml"}) every 15m timeout 20s status
+    {"User-Agent": "android:omalauncher.reddit-widget:v1.5", Accept: "application/atom+xml"}) every 15m timeout 20s status
 
   // The last feed that came through, so a rate limit or a moment offline keeps the posts on screen; it's only
   // used while the feed is still the same one.
@@ -47,16 +47,22 @@ widget "reddit" {
   state lastKey = ""
   on feed { if feed != null && feed.ok { lastOut = feed.out ?? ""; lastKey = feedKey } }
 
-  let entries = drop(split(feed != null && feed.ok ? feed.out ?? "" : lastKey == feedKey ? lastOut : "", "<entry>"), 1)
+  // An entry is mostly its <content> (the post as HTML, up to ~15 KB), so each field is read only from the
+  // part it's in: author and subreddit come before it, the post's [link] inside it, the rest after it.
+  let entries = drop(split(feed != null && feed.ok ? feed.out ?? "" : lastKey == feedKey ? lastOut : "", "<entry>"), 1).map(e => {
+    head: split(e, "<content")[0],
+    body: split(e, "</content>")[0],
+    tail: last(split(e, "</content>"))
+  })
   let posts = entries.map(e => {
-    id: last(match(e, "<id>t3_([A-Za-z0-9]+)</id>") ?? []),
-    subreddit: last(match(e, "<category term=\"([^\"]+)\"") ?? []) ?? "",
-    author: last(match(e, "<name>/u/([^<]+)</name>") ?? []),
-    title: replace(replace(replace(replace(replace(last(match(e, "<title>([^<]*)</title>") ?? []) ?? "", "&quot;", "\""), "&#39;", "'"), "&lt;", "<"), "&gt;", ">"), "&amp;", "&"),
-    link: last(match(e, "<link href=\"([^\"]+)\"") ?? []),
-    thumbnail: replace(last(match(e, "<media:thumbnail url=\"([^\"]+)\"") ?? []) ?? "", "&amp;", "&"),
-    outside: last(match(e, "href=&quot;([^&]+)&quot;&gt;\\[link\\]") ?? []),
-    published: parseTime(last(match(e, "<published>([^<]+)</published>") ?? []))
+    id: last(match(e.tail, "<id>t3_(\\w+)</id>") ?? []),
+    subreddit: last(match(e.head, "<category term=\"([^\"]+)\"") ?? []) ?? "",
+    author: last(match(e.head, "<name>/u/([^<]+)</name>") ?? []),
+    title: replace(replace(replace(replace(replace(last(match(e.tail, "<title>([^<]*)</title>") ?? []) ?? "", "&quot;", "\""), "&#39;", "'"), "&lt;", "<"), "&gt;", ">"), "&amp;", "&"),
+    link: last(match(e.tail, "<link href=\"([^\"]+)\"") ?? []),
+    thumbnail: replace(last(match(e.tail, "<media:thumbnail url=\"([^\"]+)\"") ?? []) ?? "", "&amp;", "&"),
+    outside: last(match(e.body, "href=&quot;([^&]+)&quot;&gt;\\[link\\]") ?? []),
+    published: parseTime(last(match(e.tail, "<published>([^<]+)</published>") ?? []))
   }).filter(p => p.id != null && p.subreddit != "")
 
   // A failed fetch is asked for again every 30 s, which for a rejected link, a feed that doesn't exist or a
@@ -74,7 +80,7 @@ widget "reddit" {
     : feedKind == "custom" && customName != "" ? "m/${customName}"
     : token == null ? "r/popular" : "u/${username}"
   let note = feed == null ? "loading…"
-    : feed.ok ? (len(posts) == 0 ? "no posts in this feed" : "")
+    : feed.ok ? (len(posts) > 0 ? "" : len(entries) > 0 ? "couldn't read the posts in this feed" : "no posts in this feed")
     : feed.code == 429 ? "Reddit is rate-limiting; trying again in a few minutes"
     : feed.code == -1 ? "offline"
     : rejected ? "Reddit didn't take this feed link (${feed.code})"
