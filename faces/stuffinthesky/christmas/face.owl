@@ -1,0 +1,430 @@
+face "christmas" {
+  // A Christmas card for the page left of home: snow over a lit tree, the time,
+  // the days until Christmas, the weather where you are, the apps you reach for
+  // most, and somewhere to leave a note. Tap the sky for a new pattern of lights.
+
+  meta { owl: 22; description: "A Christmas card: snow over a lit tree, the time and the countdown, the local weather, your most used apps and a place for notes"; version: "2.0"; license: "MIT"; category: "fun" }
+  requires { pacman: [] }
+
+  strings {
+    en {
+      greeting: "Merry Christmas"
+      countdown: d => d > 1 ? "${d} days to christmas" : d == 1 ? "christmas eve" : "christmas is here"
+      nextCountdown: d => "${d} days to next christmas"
+      findingYou: "finding you…"
+      offline: "offline"
+      feels: t => "feels ${t}°"
+      weather: c => c == 0 ? "clear sky" : c == 1 ? "mainly clear" : c == 2 ? "partly cloudy" : c == 3 ? "overcast" : c == 45 ? "fog" : c == 48 ? "freezing fog" : c == 51 ? "light drizzle" : c == 53 ? "drizzle" : c == 55 ? "heavy drizzle" : c == 56 ? "freezing drizzle" : c == 57 ? "heavy freezing drizzle" : c == 61 ? "light rain" : c == 63 ? "rain" : c == 65 ? "heavy rain" : c == 66 ? "freezing rain" : c == 67 ? "heavy freezing rain" : c == 71 ? "light snow" : c == 73 ? "snow" : c == 75 ? "heavy snow" : c == 77 ? "snow grains" : c == 80 ? "light showers" : c == 81 ? "showers" : c == 82 ? "heavy showers" : c == 85 ? "light snow showers" : c == 86 ? "snow showers" : c == 95 ? "thunderstorm" : c == 96 ? "thunderstorm with hail" : c == 99 ? "thunderstorm with heavy hail" : "…"
+      mostUsed: "most used"
+      tapToOpen: "tap to open"
+      noApps: "no apps opened yet"
+      notes: "notes"
+      noteCount: n => n == 0 ? "write" : n == 1 ? "1 note" : "${n} notes"
+      notePrompt: "tap to leave a note…"
+      more: n => "+${n} more"
+      writeNote: "write a note…"
+      notesHint: n => n == 0 ? "nothing yet — write the first one above" : n == 1 ? "1 note · tap one to copy it" : "${n} notes · tap one to copy it"
+    }
+  }
+
+  fps: 24
+  statusBar: false
+  padding: 0
+
+  source now = clock every 1m
+  source bat = android.battery
+  source apps = android.apps
+
+  // The weather: Open-Meteo needs no key and is fetched from Android, so no curl or
+  // jq. Where the phone is comes from its IP; the last place found is kept for
+  // offline starts. Tap the card to fetch again, the °C chip to switch to °F.
+  state unit = "C" persist
+  state lat = null persist
+  state lon = null persist
+  state city = null persist
+
+  source geo = http("https://ipinfo.io/json") every 12h json timeout 15s status
+  source wx = http(lat == null || lon == null ? null : "https://api.open-meteo.com/v1/forecast?latitude=${enc(lat)}&longitude=${enc(lon)}&current=temperature_2m,apparent_temperature,is_day,weather_code&daily=temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=2") every 30m json timeout 15s status
+
+  // ipinfo.io gives the place as "lat,lon"; keep the last good one.
+  when geo != null && geo.ok && geo.out.loc != null {
+    lat = num(split(geo.out.loc, ",")[0])
+    lon = num(split(geo.out.loc, ",")[1])
+    city = geo.out.city ?? geo.out.region
+  }
+
+  // Open-Meteo gives WMO weather codes; weatherIcon() speaks wttr.in's, so map them,
+  // with the same code's description in words.
+  let codes = {
+    "0": "113", "1": "113", "2": "116", "3": "122",
+    "45": "248", "48": "260",
+    "51": "266", "53": "266", "55": "302", "56": "281", "57": "284",
+    "61": "296", "63": "302", "65": "308", "66": "311", "67": "314",
+    "71": "326", "73": "332", "75": "338", "77": "323",
+    "80": "353", "81": "356", "82": "359", "85": "368", "86": "371",
+    "95": "389", "96": "386", "99": "389"
+  }
+
+  let celsius = unit == "C"
+  let wxOk = wx != null && wx.ok
+  let cur = wxOk ? wx.out.current : null
+  let today = wxOk && wx.out.daily != null ? wx.out.daily : null
+  let tempC = cur == null ? null : num(cur.temperature_2m)
+  let feelsC = cur == null ? null : num(cur.apparent_temperature)
+  let night = cur != null && cur.is_day == 0
+  let wcode = cur == null ? null : get(codes, str(cur.weather_code), "113")
+  let wdesc = cur == null ? null : str.weather(int(cur.weather_code))
+  let hiC = today == null ? null : num(today.temperature_2m_max[0])
+  let loC = today == null ? null : num(today.temperature_2m_min[0])
+
+  let temp = tempC == null ? (wx == null ? (lat == null ? "…" : "") : str.offline) : "${round(celsius ? tempC : tempC * 9 / 5 + 32)}°"
+  let hiLo = hiC == null || loC == null ? "" : "${round(celsius ? hiC : hiC * 9 / 5 + 32)}° / ${round(celsius ? loC : loC * 9 / 5 + 32)}°"
+  let feels = feelsC == null ? "" : str.feels(round(celsius ? feelsC : feelsC * 9 / 5 + 32))
+  let place = city ?? (lat == null ? str.findingYou : "")
+
+  // The apps the drawer ranks highest. The list is a snapshot for a week, so it doesn't
+  // reshuffle under the finger every time an app opens.
+  let ranked = (apps ?? []).filter(a => (a.score ?? 0) > 0).sortBy(a => -(a.score ?? 0))
+  let topNow = ranked.take(4).map(a => a.key)
+  state picks = [] persist
+  state pickedAt = 0 persist
+  when (pickedAt == 0 || now >= pickedAt + 7 * 24h) && len(topNow) > 0 {
+    picks = topNow
+    pickedAt = now
+  }
+  let picked = picks.map(k => (apps ?? []).find(a => a.key == k)).filter(a => a != null)
+  let shownApps = len(picked) > 0 ? picked : ranked.take(4)
+
+  // Notes: kept by the launcher across restarts; the card shows the latest, the
+  // screen holds them all.
+  state notes = [] persist
+
+  // Great Vibes for the greeting, Cinzel Decorative for the clock.
+  let script = "https://raw.githubusercontent.com/google/fonts/main/ofl/greatvibes/GreatVibes-Regular.ttf"
+  let roman = "https://raw.githubusercontent.com/google/fonts/main/ofl/cinzeldecorative/CinzelDecorative-Regular.ttf"
+
+  // Fixed colors rather than the theme's: a tree stays green in a grayscale theme.
+  let pineLit = "#1f7a4f"
+  let pine = "#12523a"
+  let pineDeep = "#0a3327"
+  let frost = "#eaf4ff"
+  let gold = "#f2c14e"
+  let ember = "#ff9f1c"
+  let berry = "#d7263d"
+  let ice = "#8ecdf0"
+  let glass = "#0a1a30"
+
+  // The lights' pattern, kept across restarts; a tap gives a new one.
+  state seed = 7 persist
+  onTap: { seed = random(1000000); haptic() }
+
+  let wide = (tileWidth ?? 0) > (tileHeight ?? 1)
+
+  // Written once, so the tree and the moon can place themselves against each other.
+  let screenW = tileWidth ?? 412
+  let screenH = tileHeight ?? 915
+  let treeH = wide ? min(screenH * 0.72, 560) : clamp(screenH - 505, 150, screenH * 0.42)
+  let treeW = min(treeH * 0.72, screenW * (wide ? 0.5 : 0.86))
+  let treeX = wide ? screenW * 0.73 : screenW / 2
+  let treeBase = screenH - (screenInset ?? 0) - 12
+  let treeTop = treeBase - treeH
+
+  let year = num(fmtTime(now, "yyyy"))
+  let xmas = parseTime("${year}-12-25")
+  let xmasNext = parseTime("${year + 1}-12-25")
+  let days = xmas == null ? null : ceil((xmas - now) / 86400)
+  let toNext = xmasNext == null ? null : ceil((xmasNext - now) / 86400)
+  let countdown = days == null ? "" : days >= 0 ? str.countdown(days) : toNext == null ? "" : str.nextCountdown(toNext)
+  let battery = bat == null ? "—" : bat.charging ? "⚡ ${bat.level}%" : "${bat.level}%"
+  let batteryTint = bat != null && bat.level < 20 && !bat.charging ? berry : alpha(foreground, 0.85)
+
+  background: linear(0, 0, 0, 1, ["#02040b", "#071228", "#0a1b34", "#04070f"])
+
+  // The greeting, the time, and how long there is to go.
+  component Header() {
+    Column {
+      gap: 2
+      Row {
+        gap: 10
+        align: center
+        Text { text: str.greeting; font: script; fontSize: wide ? 26 : clamp((tileWidth ?? 412) * 0.085, 26, 38); color: gold; weight: 1; maxLines: 1; rotation: -2 }
+        Text { text: battery; style: label; color: batteryTint; maxLines: 1; padding: [10, 6]; background: alpha(foreground, 0.07); border: 1; borderColor: alpha(foreground, 0.13); radius: 12 * corners }
+      }
+      Row {
+        gap: 10
+        align: bottom
+        Text { spans: [fmtTime(now, "HH"), {text: ":", color: gold}, fmtTime(now, "mm")]; font: roman; fontSize: wide ? 40 : clamp((tileWidth ?? 412) * 0.155, 46, 62); color: frost; maxLines: 1; letterSpacing: -1; weight: 1 }
+        Column {
+          gap: 4
+          align: end
+          Text { text: lower(fmtTime(now, "EEEE d MMMM")); fontSize: wide ? 10 : 11; color: alpha(frost, 0.6); maxLines: 1; align: end }
+          if days != null {
+            Text { text: upper(countdown); fontSize: 10; color: gold; letterSpacing: 1.2; padding: [10, 5]; background: alpha(gold, 0.09); border: 1; borderColor: alpha(gold, 0.3); radius: 14 * corners; maxLines: 1; align: end }
+          }
+        }
+      }
+    }
+  }
+
+  // The weather where the phone is. Tap the card to fetch again.
+  component Weather() {
+    Column {
+      padding: [12, 9]
+      background: alpha(glass, 0.66)
+      border: 1
+      borderColor: alpha(ice, 0.16)
+      radius: 14 * corners
+      onTap: refresh()
+      Row {
+        gap: 10
+        align: center
+        Text { text: weatherIcon(wcode, night); font: icon; fontSize: wide ? 28 : 32; color: ice }
+        Column {
+          gap: 1
+          weight: 1
+          Row {
+            gap: 6
+            align: bottom
+            Text { text: temp; fontSize: wide ? 21 : 25; color: frost; maxLines: 1; letterSpacing: -0.5 }
+            Text { text: wdesc ?? ""; fontSize: 11; color: alpha(frost, 0.62); maxLines: 1; weight: 1 }
+          }
+          Text { text: "${place}${place == "" ? "" : " · "}${hiLo}${feels == "" ? "" : " · ${feels}"}"; fontSize: 10; color: alpha(frost, 0.48); maxLines: 1 }
+        }
+        Text { text: "°${unit}"; fontSize: 10; color: ice; padding: [7, 4]; background: alpha(ice, 0.1); border: 1; borderColor: alpha(ice, 0.18); radius: 9 * corners; onTap: unit = celsius ? "F" : "C" }
+      }
+    }
+  }
+
+  // The four apps you open most, ranked by the drawer.
+  component MostUsed() {
+    Column {
+      gap: 6
+      Row {
+        gap: 6
+        align: bottom
+        Text { text: upper(str.mostUsed); fontSize: 10; color: alpha(frost, 0.42); letterSpacing: 0.9; weight: 1 }
+        Text { text: str.tapToOpen; fontSize: 9; color: alpha(frost, 0.34) }
+      }
+      if len(shownApps) == 0 {
+        Text { text: apps == null ? "…" : str.noApps; fontSize: 11; color: alpha(frost, 0.45) }
+      } else {
+        Row {
+          gap: 6
+          for a in shownApps {
+            Column {
+              weight: 1
+              height: wide ? 46 : 54
+              gap: 2
+              align: center
+              justify: center
+              padding: [5, 2]
+              background: alpha(foreground, 0.06)
+              border: 1
+              borderColor: alpha(ice, 0.1)
+              radius: 12 * corners
+              onTap: { haptic(); open(a.key) }
+              Image { src: a.icon; size: wide ? 18 : 22 }
+              Text { text: a.name; fontSize: 10; color: frost; maxLines: 1; align: center; fill: width }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Whatever you last wrote, and a way into the rest. Tap it to write.
+  component NotesCard() {
+    Column {
+      gap: 4
+      padding: [11, 9]
+      background: alpha(glass, 0.66)
+      border: 1
+      borderColor: alpha(gold, 0.16)
+      radius: 14 * corners
+      onTap: screen()
+      Row {
+        gap: 6
+        Text { text: upper(str.notes); fontSize: 10; color: alpha(gold, 0.72); letterSpacing: 0.9; weight: 1 }
+        Text { text: str.noteCount(len(notes)); fontSize: 9; color: alpha(frost, 0.38) }
+      }
+      if len(notes) == 0 {
+        Text { text: str.notePrompt; fontSize: wide ? 11 : 12; color: alpha(frost, 0.42); maxLines: 1 }
+      } else {
+        for n in notes.take(2) {
+          Text { text: n; fontSize: wide ? 10 : 11; color: alpha(frost, 0.85); maxLines: 1 }
+        }
+        if len(notes) > 2 {
+          Text { text: str.more(len(notes) - 2); fontSize: 9; color: alpha(frost, 0.38) }
+        }
+      }
+    }
+  }
+
+  component Content(room = false) {
+    Column {
+      gap: wide ? 8 : 10
+      Header { }
+      Weather { }
+      MostUsed { }
+      NotesCard { }
+      if room {
+        Spacer { weight: 1 }
+      }
+      Spacer { height: screenInset }
+    }
+  }
+
+  Box {
+    fill: true
+
+    // The night sky: stars that come and go, and a moon by the clock.
+    Canvas {
+      fill: true
+      for i in range(70) {
+        let sx = hash(i, 11) * width
+        let sy = hash(i, 12) * height * 0.6
+        let tw = 0.3 + 0.7 * abs(sin(time * (0.4 + hash(i, 13) * 1.3) + hash(i, 14) * 6.283))
+        circle(sx, sy, 0.6 + hash(i, 15) * 1.2, fill: alpha(mix(frost, ice, 0.4), tw * 0.7))
+      }
+      let mx = wide ? screenW * 0.955 : screenW * 0.87
+      let my = wide ? screenH * 0.1 : screenH * 0.075
+      for k in range(4) {
+        circle(mx, my, 14 + k * 7, fill: alpha(mix(ice, frost, 0.5), 0.06 - k * 0.012))
+      }
+      circle(mx, my, 12, fill: mix(frost, gold, 0.22))
+      circle(mx - 4, my - 3, 2.6, fill: alpha(mix(gold, frost, 0.4), 0.35))
+      circle(mx + 3, my + 3, 1.7, fill: alpha(mix(gold, frost, 0.4), 0.3))
+    }
+
+    // The tree, the drifts it stands in, and a few presents, in what the words leave.
+    Canvas {
+      fill: true
+      let baseY = treeBase
+      let th = treeH
+      let tw = treeW
+      let cx = treeX
+      let topY = treeTop
+      let driftY = baseY - 2
+
+      // Two drifts, the far one darker, with a rolling top edge.
+      path(flatten([[[0, height], [0, driftY - 4]], range(1, 17).map(i => [width * i / 16, driftY - 4 - sin(i * 0.5 + 1) * 7 - hash(i, 3) * 3]), [[width, driftY - 4], [width, height]]]), closed: true, fill: alpha(mix(ice, "#22395a", 0.55), 0.5))
+      path(flatten([[[0, height], [0, driftY + 10]], range(1, 17).map(i => [width * i / 16, driftY + 10 - sin(i * 0.7) * 6]), [[width, driftY + 10], [width, height]]]), closed: true, fill: alpha(mix(frost, ice, 0.55), 0.5))
+
+      // The star on the tree's tip, and its halo.
+      let starY = topY - th * 0.04
+      let starR = th * 0.055
+      let spark = 0.72 + 0.28 * sin(time * 2.2)
+      for k in range(4) {
+        circle(cx, starY, starR * (2.2 - k * 0.4), fill: alpha(mix(gold, ember, 0.5), (0.04 + k * 0.025) * spark))
+      }
+      line(cx - starR * 2.1, starY, cx + starR * 2.1, starY, stroke: alpha(gold, 0.16 * spark), width: 1)
+      line(cx, starY - starR * 2.1, cx, starY + starR * 2.1, stroke: alpha(gold, 0.16 * spark), width: 1)
+      path(range(10).map(i => [cx + cos(rad(-90 + i * 36)) * (i % 2 == 0 ? starR : starR * 0.45), starY + sin(rad(-90 + i * 36)) * (i % 2 == 0 ? starR : starR * 0.45)]), closed: true, fill: linear(cx, starY - starR, cx, starY + starR, [mix(gold, frost, 0.6), gold, ember]))
+
+      // Trunk.
+      rect(cx - tw * 0.045, baseY - th * 0.1, tw * 0.09, th * 0.12, radius: 2, fill: mix("#6b4428", pineDeep, 0.35))
+
+      // Three tiers of branches, each with a saw-toothed hem and snow on its tips.
+      for t in range(3) {
+        let tierTop = topY + th * (t * 0.25)
+        let tierBot = topY + th * (0.42 + t * 0.24)
+        let w = tw * 0.5 * (0.4 + t * 0.3)
+        let n = 7 + t * 2
+        let hem = range(1, n + 1).map(k => [cx + w - 2 * w * k / n, tierBot - (k % 2 == 1 ? 8 : 0)])
+        path(flatten([[[cx, tierTop], [cx + w, tierBot]], hem]), closed: true, fill: linear(cx, topY, cx, baseY, [mix(pineLit, frost, 0.12), pine, mix(pineDeep, background, 0.15)]))
+        line(cx, tierTop, cx - w, tierBot, stroke: alpha(frost, 0.16), width: 1.2)
+        for k in range(1, n + 1) {
+          if k % 2 == 1 {
+            circle(cx + w - 2 * w * k / n, tierBot - 8, 1.5, fill: alpha(frost, 0.55))
+          }
+        }
+      }
+
+      // Its lights, twinkling in red, gold, ice and warm white.
+      let hues = [berry, gold, ice, "#fbf6e4"]
+      for t in range(3) {
+        let tierTop = topY + th * (t * 0.25)
+        let tierBot = topY + th * (0.42 + t * 0.24)
+        let w = tw * 0.5 * (0.4 + t * 0.3)
+        for k in range(6) {
+          let id = t * 9 + k
+          let u = 0.3 + 0.62 * hash(id, seed)
+          let halfW = w * u
+          let x = cx + (hash(id, seed + 3) * 2 - 1) * halfW * 0.8
+          let y = tierTop + u * (tierBot - tierTop)
+          let c = hues[floor(hash(id, seed + 31) * 4)]
+          let glow = 0.35 + 0.65 * abs(sin(time * (1.1 + hash(id, seed + 13) * 1.7) + hash(id, seed + 57) * 6.283))
+          circle(x, y, 7.2, fill: alpha(c, 0.08 + 0.12 * glow))
+          circle(x, y, 3.6, fill: alpha(c, 0.3 + 0.7 * glow))
+          circle(x, y, 1.5, fill: alpha(mix(c, frost, 0.65), glow))
+        }
+      }
+
+      // Presents at its foot.
+      for g in range(3) {
+        let gw = tw * (0.1 + hash(g, 21) * 0.05)
+        let gh = gw * (0.62 + hash(g, 22) * 0.25)
+        let gx = cx + (g - 1) * tw * 0.21 + (hash(g, 23) - 0.5) * tw * 0.1 - gw / 2
+        let gy = baseY - gh + 3
+        let gc = [berry, ice, pineLit][g]
+        rect(gx, gy, gw, gh, radius: 2, fill: mix(gc, pineDeep, 0.3))
+        rect(gx + gw * 0.43, gy, gw * 0.14, gh, fill: alpha(gold, 0.85))
+        rect(gx, gy + gh * 0.38, gw, gh * 0.14, fill: alpha(gold, 0.85))
+        circle(gx + gw / 2 - gw * 0.11, gy - 1, gw * 0.09, fill: gold)
+        circle(gx + gw / 2 + gw * 0.11, gy - 1, gw * 0.09, fill: gold)
+      }
+    }
+
+    // Snow, in front of the tree and behind the words.
+    Canvas {
+      fill: true
+      for i in range(80) {
+        let speed = 12 + hash(i, 41) * 26
+        let sway = sin(time * (0.4 + hash(i, 42) * 0.8) + hash(i, 43) * 6.283) * (4 + hash(i, 44) * 8)
+        let x = (hash(i, 45) * width + sway + width) % width
+        let y = (hash(i, 46) * height + time * speed) % height
+        circle(x, y, 0.9 + hash(i, 47) * 2.1, fill: alpha(frost, 0.18 + hash(i, 48) * 0.5))
+      }
+    }
+
+    // The words and the cards: down the left in portrait, beside the tree when wide.
+    if wide {
+      Row {
+        fill: true
+        padding: [30, 34, 30, 34]
+        Content { weight: 1 }
+        Spacer { weight: 0.72 }
+      }
+    } else {
+      Column {
+        fill: true
+        padding: [24, 24, 20, 22]
+        Content { room: true }
+      }
+    }
+  }
+
+  // All the notes, with room to write and the keyboard kept clear.
+  screen {
+    title: str.notes
+    Column {
+      scroll: true
+      padding: [16, 10]
+      gap: 10
+      Input { placeholder: str.writeNote; lines: 3; clear: true; onSubmit: notes = value == "" ? notes : ([trim(value)] + notes).take(100) }
+      Text { text: str.notesHint(len(notes)); style: label; color: muted }
+      for n, i in notes {
+        Row {
+          gap: 10
+          align: center
+          padding: [10, 8]
+          background: alpha(surface, 0.5)
+          radius: 10 * corners
+          Text { text: n; weight: 1; onTap: { copy(n); haptic() } }
+          Text { text: "✕"; color: muted; padding: [6, 2]; onTap: { haptic(); notes = remove(notes, i) } }
+        }
+      }
+      Spacer { height: 12 }
+    }
+  }
+}
