@@ -1,0 +1,212 @@
+widget "capture" {
+  size: 3x3
+  minSize: 2x3
+
+  meta {
+    description: "Dictate or type a thought, fix the words in the tile, save it to ~/inbox.md: a to-do list your terminal can read too. Tap an entry to edit it, its circle to tick it off, its × to delete."
+    version: "1.0"
+    license: "MIT"
+    category: "productivity"
+    owl: 18
+  }
+
+  // Monochrome, so they take the theme's color like text does.
+  asset mic = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iY3VycmVudENvbG9yIiBkPSJNMTIgMTRjMS42NiAwIDIuOTktMS4zNCAyLjk5LTNMMTUgNWMwLTEuNjYtMS4zNC0zLTMtM1M5IDMuMzQgOSA1djZjMCAxLjY2IDEuMzQgMyAzIDN6bTUtM2MwIDIuNzYtMi4yNCA1LTUgNXMtNS0yLjI0LTUtNUg1YzAgMy41MyAyLjYxIDYuNDMgNiA2LjkyVjIxaDJ2LTMuMDhjMy4zOS0uNDkgNi0zLjM5IDYtNi45MmgtMnoiLz48L3N2Zz4="
+  asset stop = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHJlY3QgeD0iNiIgeT0iNiIgd2lkdGg9IjEyIiBoZWlnaHQ9IjEyIiByeD0iMiIgZmlsbD0iY3VycmVudENvbG9yIi8+PC9zdmc+"
+
+  // Dictation is the point: tap the bar, speak, tap it again. Nothing is written
+  // until you have seen the words and saved them, as on a phone's own dictation.
+  source said = android.speech
+  // The file both sides share: this tile writes it, your terminal and agents read it.
+  source inbox = file("~/inbox.md")
+  source now = clock every 1s
+
+  // The words being composed, and the entry being fixed ("" for a new one). Both are
+  // persisted, so a half-finished thought survives the launcher being killed. The entry
+  // is kept as its text, not its line number: a script or agent can add lines while you
+  // type, and a number would then point at someone else's entry.
+  state draft = "" persist
+  state editingLine = "" persist
+  state savedAt = 0
+  // The entry whose × you have tapped once, by its text for the same reason: it asks
+  // again before throwing words away.
+  state confirmLine = ""
+
+  // Android hands the words over when it stops listening, and only then: said.text is
+  // still filling in while you speak, so taking it early would save half a sentence.
+  // Whatever is already in the draft stays, so speaking twice adds to it.
+  on said.final {
+    if value != null && trim(value) != "" {
+      draft = draft == "" ? trim(value) : draft + " " + trim(value)
+      savedAt = 0
+    }
+  }
+
+  // One entry a line: "- [ ] ..." to do, "- [x] ..." done. New ones go on top.
+  let all = (inbox ?? "") == "" ? [] : lines(inbox).filter(l => l != "")
+  let open = range(len(all)).filter(i => startsWith(all[i], "- [ ]"))
+  let done = range(len(all)).filter(i => startsWith(all[i], "- [x]"))
+  // Still-to-do first, then what you have ticked: a tick must be something you can see,
+  // not a row that vanishes, or it is indistinguishable from deleting.
+  let rows = open + done
+  // How many lines at the top are not entries: the file's "# inbox ..." header. A new
+  // entry goes after them, never above, or the header ends up buried in the list.
+  let lead = first(range(len(all)).filter(i => startsWith(all[i], "- ["))) ?? len(all)
+  // A real newline: the lines are joined with it and quoted as one shell word, so a
+  // line can hold anything — quotes, dashes, a $ or a backtick — and printf gives it
+  // a newline of its own.
+  let nl = "\n"
+  let sp = " "
+
+  // A draft being made, or a saved line being fixed: either way the tile shows the field.
+  let composing = draft != "" || editingLine != "" || said.listening
+
+  Column {
+    gap: 6
+    fill: true
+
+    Row {
+      gap: 8
+      Text { text: composing ? (editingLine != "" ? "fixing" : "draft") : "inbox"; style: muted; weight: 1; maxLines: 1 }
+      Text {
+        text: now - savedAt < 3
+          ? "saved ✓"
+          : (len(done) > 0 ? "${len(open)} to do · ${len(done)} ✓" : "${len(open)} to do")
+        style: muted
+        maxLines: 1
+        color: now - savedAt < 3 ? green : muted
+      }
+    }
+
+    // Composing in place: the words, fixable with the keyboard, saved or thrown away.
+    // The tile keeps the whole flow, so the list gives up its room until you are done.
+    if composing {
+      Column {
+        gap: 6
+        weight: 1
+        justify: spaceBetween
+        Box {
+          height: 84
+          background: alpha(foreground, 0.05)
+          border: 1
+          borderColor: said.listening ? alpha(red, 0.5) : alpha(foreground, 0.14)
+          radius: 8 * corners
+          padding: 8
+          Input {
+            lines: 3
+            text: draft
+            placeholder: "speak, then fix the words"
+            underline: false
+            onChange: draft = value
+          }
+        }
+        if said.listening {
+          Text { text: said.text == "" ? "listening…" : said.text; style: small; color: red; maxLines: 2 }
+        }
+        Row {
+          gap: 6
+          // Save is the one thing to hit when the words are right.
+          Button {
+            text: "save"
+            onTap: {
+              // Words split over lines in the field are one entry: newlines collapse to spaces.
+              let flat = join(words(draft), sp)
+              if flat != "" {
+                // Find the entry again by its text: if it was changed or deleted meanwhile, this is a new one.
+                let e = editingLine == "" ? -1 : all.indexOf(editingLine)
+                let b = e >= 0 ? set(all, e, "- [ ] " + flat) : all.take(lead) + ["- [ ] " + flat] + all.drop(lead)
+                run("printf '%s\n' ${sh(join(b, nl))} > ~/inbox.md")
+                draft = ""
+                editingLine = ""
+                savedAt = now
+              }
+            }
+          }
+          Button { text: said.listening ? "stop" : "speak"; onTap: speech("toggle") }
+          Button {
+            text: "cancel"
+            color: muted
+            onTap: { speech("cancel"); draft = ""; editingLine = "" }
+          }
+        }
+      }
+    } else {
+      Column {
+        gap: 4
+        weight: 1
+        scroll: true
+        justify: len(rows) == 0 ? "center" : "start"
+        for i in rows.take(5) {
+          Row {
+            gap: 4
+            // Tick it off, or tick it back. Done stays in the file and in this list, dimmed.
+            Box {
+              width: 26
+              height: 26
+              align: center
+              onTap: {
+                confirmLine = ""
+                let b = startsWith(all[i], "- [ ]")
+                  ? set(all, i, replace(all[i], "- [ ]", "- [x]"))
+                  : set(all, i, replace(all[i], "- [x]", "- [ ]"))
+                run("printf '%s\n' ${sh(join(b, nl))} > ~/inbox.md")
+              }
+              Text {
+                text: startsWith(all[i], "- [ ]") ? "○" : "●"
+                style: small
+                color: startsWith(all[i], "- [ ]") ? muted : green
+              }
+            }
+            // The words: tap to fix them in the field above.
+            Text {
+              text: sub(all[i], 6, len(all[i]))
+              style: small
+              weight: 1
+              maxLines: 2
+              color: startsWith(all[i], "- [ ]") ? foreground : muted
+              onTap: { confirmLine = ""; editingLine = all[i]; draft = sub(all[i], 6, len(all[i])) }
+            }
+            // Gone from the file altogether, for a thought that turned out not to be one.
+            // Tapped once it asks, so a slip of the thumb doesn't lose what you said.
+            Box {
+              width: confirmLine == all[i] ? 52 : 26
+              height: 26
+              align: center
+              onTap: {
+                if confirmLine == all[i] {
+                  let b = remove(all, i)
+                  run("printf '%s\n' ${sh(join(b, nl))} > ~/inbox.md")
+                  confirmLine = ""
+                } else {
+                  confirmLine = all[i]
+                }
+              }
+              Text {
+                text: confirmLine == all[i] ? "delete?" : "×"
+                style: small
+                bold: confirmLine == all[i]
+                color: confirmLine == all[i] ? red : muted
+              }
+            }
+          }
+        }
+        if len(rows) == 0 {
+          Text { text: "nothing waiting"; style: small; color: muted }
+        }
+      }
+
+      // The capture bar, the biggest target on the tile.
+      Box {
+        background: alpha(accent, 0.14)
+        radius: 8 * corners
+        padding: 8
+        onTap: speech("toggle")
+        Row {
+          gap: 8
+          Image { src: mic; size: 20; tint: accent }
+          Text { text: "tap to speak"; style: small; weight: 1; maxLines: 1; color: accent }
+        }
+      }
+    }
+  }
+}
