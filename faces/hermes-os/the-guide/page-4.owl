@@ -1,0 +1,538 @@
+face "the guide where" {
+  // The Guide, page four of four (see guide.owl for the look): WHERE to go, the Guide's index, as its menu looks in
+  // the film: a mustard page, a stack of menu bars running in from the left edge over a plum strip, and the
+  // breadcrumb at the foot. Tap a bar and it opens: a bar runs out from under its knob to the right and its entries
+  // rise in a stack above the end, as the film's INTRODUCTION opens WHO, WHAT, WHY. The entries open apps and agents,
+  // Android's panels and the launcher's screens, and switch Do Not Disturb and the torch. Above the menu, the phone's
+  // entry: Earth turning with a moon going round it, and its vitals.
+
+  meta { owl: 19 }
+
+  source now = clock every 5s
+  source bat = android.battery
+  source pw = android.power every 5s
+  source sys = android.system every 30s
+  source net = android.network every 3s
+  source dev = android.device
+  source modes = android.modes
+  source apps = android.apps
+  source drawer = android.drawer
+
+  statusBar: false
+  edge: true
+  padding: 0
+  fps: 20
+
+  state tick = 0
+  every 1s { tick = tick + 1 }
+
+  // ---- the Guide's look, the same on all four pages ----
+  // Cabin, a humanist sans after Gill and Johnston, like the Guide's lettering.
+  let cabin = "https://raw.githubusercontent.com/google/fonts/main/ofl/cabin/Cabin%5Bwdth,wght%5D.ttf"
+  // The colours, picked from frames of the film.
+  let band = #C29632
+  let mustard = #C9A640
+  let rasp = #8B3756
+  let teal = #1F8768
+  let navy = #0C1834
+  let cream = #F0E3C4
+  let label = #EDCB57
+  let gold = #F2BF3A
+  let crumbBlue = #3A8FC4
+  let crumbPlum = #7B2D5A
+  let violet = #5B47B5
+  let aqua = #33BE95
+  let leaf = #4FAE30
+  let amber = #C77A18
+  let crimson = #A42F4C
+  let plum = #6E1A5E
+  let cobalt = #2F7DB8
+  let indigo = #43409C
+  let ink = #000000
+  let tabs = [{t: "WHEN", c: violet}, {t: "WHO", c: aqua}, {t: "WHAT", c: leaf}, {t: "WHERE", c: amber}]
+  let barColors = [violet, aqua, leaf, amber, crimson, plum, cobalt, indigo]
+
+  let W = tileWidth ?? 420
+  let H = tileHeight ?? 933
+  let wide = W > H
+  let beat = floor(tick / 2)
+  // Menu bars' height, and the room the knob takes.
+  let bh = 30
+  // The tabs' height: the menus that open stand on them.
+  let tabsH = 44
+
+  // The field: one flat colour, with paper blotches and film grain that changes twelve times a second, and stars
+  // where `stars` says so.
+  component Paper(base, stars = 0) {
+    Shader {
+      fill: true
+      fallback: base
+      uniforms: { base: base, star: cream, grain: 0.05, stars: stars }
+      code: """
+        uniform half4 base;
+        uniform half4 star;
+        uniform float grain;
+        uniform float stars;
+        float h21(float2 q) {
+          float3 p3 = fract(float3(q.xyx) * 0.1031);
+          p3 += dot(p3, p3.yzx + 33.33);
+          return fract((p3.x + p3.y) * p3.z);
+        }
+        float vn(float2 q) {
+          float2 i = floor(q);
+          float2 f = fract(q);
+          float2 u = f * f * (3.0 - 2.0 * f);
+          return mix(mix(h21(i), h21(i + float2(1.0, 0.0)), u.x), mix(h21(i + float2(0.0, 1.0)), h21(i + float2(1.0, 1.0)), u.x), u.y);
+        }
+        half4 main(float2 p) {
+          float t = floor(time * 12.0);
+          float paper = vn(p / 140.0) * 0.6 + vn(p / 31.0) * 0.4;
+          float g = h21(floor(p / 2.0) + float2(t * 17.0, t * 5.0));
+          float3 c = float3(base.rgb) * (0.95 + paper * 0.09) + (g - 0.5) * grain;
+          if (stars > 0.0) {
+            float2 cell = floor(p / 64.0);
+            float r = h21(cell + 3.1);
+            if (r > 0.82) {
+              float2 sp = (cell + float2(0.2 + 0.6 * h21(cell + 7.7), 0.2 + 0.6 * h21(cell + 9.3))) * 64.0;
+              float d = length(p - sp);
+              float tw = 0.5 + 0.5 * sin(time * (0.8 + r * 2.0) + r * 40.0);
+              c = mix(c, float3(star.rgb), smoothstep(3.5, 1.0, d) * tw * stars);
+            }
+          }
+          return half4(half3(c), 1.0);
+        }
+      """
+    }
+  }
+
+  // The mustard band at the top: the breadcrumb, THE GUIDE over this page's question, and the battery and the time.
+  component Band(q) {
+    Column {
+      fill: width
+      gap: 0
+      background: band
+      Spacer { height: screenTop + 8 }
+      Row {
+        fill: width
+        height: 28
+        gap: 0
+        align: center
+        Box {
+          width: 184 + len(q) * 8.6
+          height: 28
+          align: topStart
+          // The page's pill runs out from under THE GUIDE.
+          Box {
+            width: 48 + len(q) * 8.6
+            height: 28
+            radius: 14
+            offset: [136, 0]
+            background: crumbPlum
+            align: end
+            padding: [0, 0, 13, 0]
+            Text { text: q; font: cabin; fontSize: 15; fontWeight: 500; letterSpacing: 1; color: label; maxLines: 1; align: end }
+          }
+          Box {
+            width: 168
+            height: 28
+            radius: 14
+            offset: [-16, 0]
+            background: crumbBlue
+            align: start
+            padding: [32, 0, 0, 0]
+            Text { text: "THE GUIDE"; font: cabin; fontSize: 15.5; fontWeight: 700; letterSpacing: 1; color: label; maxLines: 1 }
+          }
+        }
+        Spacer { weight: 1 }
+        Text {
+          text: (bat.level == null ? "" : "${bat.level}%" + (bat.charging ? " +" : "") + "   ") + fmtTime(now, "HH:mm")
+          font: cabin; fontSize: 13.5; fontWeight: 600; letterSpacing: 1
+          color: bat.level != null && bat.level < 20 && !bat.charging ? crimson : mix(band, ink, 0.55)
+          maxLines: 1
+          padding: [0, 0, 16 + screenRight, 0]
+        }
+      }
+      Spacer { height: 10 }
+    }
+  }
+
+  // The four pages as menu bars along the foot, this one long and lit with its knob beating: swipe to the others.
+  component Tabs(here) {
+    Row {
+      fill: width
+      height: tabsH
+      gap: 5
+      align: center
+      padding: [8 + screenLeft, 6, 8 + screenRight, 8]
+      for tb, i in tabs {
+        Box {
+          weight: i == here ? 1.45 : 1
+          height: 30
+          radius: 15
+          background: tb.c
+          align: end
+          Row {
+            gap: 4
+            align: center
+            Text { text: tb.t; font: cabin; fontSize: 13; fontWeight: i == here ? 700 : 500; letterSpacing: 0.5; color: i == here ? cream : label; maxLines: 1 }
+            // This page's knob beats, slowly.
+            Box { size: 28; radius: 14; background: mix(tb.c, ink, i == 1 ? 0.5 : 0.3); scale: i == here && tick % 2 == 0 ? 0.78 : 1; animate scale: tween(900ms, "ease") }
+          }
+        }
+      }
+    }
+  }
+
+  // A menu bar running in from the left edge: a note at its start, its label at its end by the knob. `wob` shifts it a
+  // few dp, so a stack of them seems to breathe.
+  component Bar(text, tint, w, note = "", wob = 0) {
+    Box {
+      width: w + 18
+      height: bh
+      offset: [-18 + wob, 0]
+      animate offset: tween(1900ms, "ease")
+      background: tint
+      radius: bh / 2
+      Row {
+        fill: true
+        gap: 8
+        align: center
+        padding: [30, 0, 0, 0]
+        if note != "" {
+          Text { text: note; font: cabin; fontSize: 13; fontWeight: 700; letterSpacing: 0.5; color: cream; maxLines: 1 }
+        }
+        Text { text: text; font: cabin; fontSize: 15; fontWeight: 500; letterSpacing: 1; color: label; maxLines: 1; align: end; weight: 1 }
+        Box { size: bh; radius: bh / 2; background: mix(tint, ink, 0.3) }
+      }
+    }
+  }
+
+  // A heading: small capitals in cream, spaced out, like the Guide's captions.
+  component Caption(t, note = "") {
+    Row {
+      fill: width
+      gap: 8
+      Text { text: t; font: cabin; fontSize: 12.5; fontWeight: 600; letterSpacing: 2.5; color: alpha(cream, 0.85); maxLines: 1; weight: 1 }
+      Text { text: note; font: cabin; fontSize: 12.5; fontWeight: 500; letterSpacing: 1.5; color: alpha(cream, 0.6); maxLines: 1 }
+    }
+  }
+
+  // ---- this page ----
+  // Which bar of the index is open (-1: none), and the last one opened, which its entries fold back into.
+  state sel = -1
+  state last = 0
+  // The network's speed, from the change in its byte counters between two polls.
+  state down = null
+  state up = null
+  on net { if old != null && value.rx >= old.rx && value.uptime > old.uptime { down = (value.rx - old.rx) / (value.uptime - old.uptime); up = (value.tx - old.tx) / (value.uptime - old.uptime) } }
+
+  // Text on the mustard page is dark, as the film's labels are only ever on the bars.
+  let dark = #4A1838
+  let dim = mix(mustard, ink, 0.5)
+  let strip = #8E4A66
+
+  let herdrApp = (drawer.apps ?? []).find(a => contains(lower(a.name ?? ""), "herdr"))
+  let installed = (apps ?? []).map(a => a.package)
+  let spotify = (apps ?? []).find(a => a.package == "com.spotify.music")
+  let top = (apps ?? []).filter(a => !a.system || a.score > 0).sortBy(a => -a.score).take(6)
+
+  // The index: each bar's entries, an app to open or a thing to do. Apps that aren't installed are left out.
+  let cats = [
+    {t: "AGENTS", c: violet, h: "WHO DOES IT", items: [
+      {t: "CLAUDE", k: "android", a: "com.anthropic.claude"},
+      {t: "CODEX", k: "android", a: "com.openai.chatgpt"},
+      herdrApp == null ? null : {t: "HERDR", k: "open", a: herdrApp.key},
+      {t: "TERMINAL", k: "shell", a: ""},
+      {t: "AGENT SETTINGS", k: "launcher", a: "agents"}
+    ].filter(x => x != null && (x.k != "android" || contains(installed, x.a)))},
+    {t: "COMMS", c: aqua, h: "WHO TO TELL", items: [
+      {t: "MESSAGES", k: "android", a: "com.google.android.apps.messaging"},
+      {t: "PHONE", k: "android", a: "com.google.android.dialer"},
+      {t: "GMAIL", k: "android", a: "com.google.android.gm"},
+      {t: "CHROME", k: "android", a: "com.android.chrome"},
+      spotify == null ? {t: "MUSIC", k: "media", a: ""} : {t: "SPOTIFY", k: "android", a: "com.spotify.music"}
+    ].filter(x => x.k != "android" || contains(installed, x.a))},
+    {t: "MOST USED", c: leaf, h: "WHERE YOU GO", items: top.map(a => {t: upper(a.name), k: "app", a: a.key})},
+    {t: "SYSTEMS", c: amber, h: "HOW IT RUNS", items: [
+      {t: "WI-FI · " + (modes.wifi == true ? "ON" : "OFF"), k: "settings", a: "wifi"},
+      {t: "BLUETOOTH · " + (modes.bluetooth == true ? "ON" : "OFF"), k: "settings", a: "bluetooth"},
+      {t: "INTERNET", k: "settings", a: "internet"},
+      {t: "LOCATION · " + (modes.location == true ? "ON" : "OFF"), k: "settings", a: "location"},
+      {t: "BATTERY", k: "settings", a: "battery"},
+      {t: "DISPLAY", k: "settings", a: "display"}
+    ]},
+    {t: "LAUNCHER", c: crimson, h: "HOW IT LOOKS", items: [
+      {t: "STYLE", k: "launcher", a: "style"},
+      {t: "THEMES", k: "launcher", a: "themes"},
+      {t: "STORE", k: "launcher", a: "store"},
+      {t: "FILES", k: "files", a: ""},
+      {t: "SETTINGS", k: "launcher", a: "settings"},
+      {t: "ALL APPS", k: "launcher", a: "drawer"}
+    ]},
+    {t: "DON'T PANIC", c: plum, h: "WHAT TO DO", items: [
+      {t: "QUIET · " + (modes.dnd == true ? "ON" : "OFF"), k: "dnd", a: ""},
+      {t: "TORCH · " + (modes.torch == true ? "ON" : "OFF"), k: "torch", a: ""},
+      {t: "SNOOZE ALL 1H", k: "snooze", a: ""},
+      {t: "CLEAR ALL", k: "clear", a: ""},
+      {t: "MAKE A CALL", k: "android", a: "com.google.android.dialer"}
+    ].filter(x => x.k != "android" || contains(installed, x.a))}
+  ]
+  let lastItems = cats[last].items
+  // The menu's geometry: rows of bars, the stack of categories at the foot and room above it for the tallest stack
+  // of entries.
+  let p = bh + 4
+  let catW = min(W * 0.44, 200)
+  let connEnd = W - 20 - screenRight
+  // The entries stand clear of the category bars' knobs, as in the film.
+  let subW = min(connEnd - catW - 22, 230)
+  let head = 6 * p
+  let menuH = head + len(cats) * p
+
+  let level = num(bat.level, 0)
+  let memF = sys.memory == null || !sys.memory.total ? null : sys.memory.used / sys.memory.total
+  let watts = pw.watts
+  // Land on the globe as blobs: latitude, longitude and size.
+  let land = [[72, -40, 7], [52, -105, 17], [35, -92, 12], [16, -90, 7], [-8, -60, 14], [-30, -64, 9], [50, 15, 10], [12, 18, 15], [-14, 26, 11], [58, 90, 18], [35, 102, 13], [20, 79, 8], [-25, 134, 10]]
+
+  // Earth, turning, its seas crossed by cream meridians, and the moon going round it: behind it, then in front.
+  component Globe() {
+    Canvas {
+      size: wide ? 132 : 168
+      let cx = width / 2
+      let cy = height / 2
+      let R = width / 2 - 18
+      let rot = time * 9
+      let ma = time * 22
+      let mx = cx + (R + 12) * cos(rad(ma))
+      let my = cy + (R + 12) * 0.3 * sin(rad(ma)) - 7 * cos(rad(ma))
+      let behind = sin(rad(ma)) < 0
+      if behind { circle(mx, my, 6.5, fill: cream) }
+      circle(cx, cy, R, fill: cobalt)
+      for b in land {
+        let l = rad(b[1] - rot)
+        let ct = cos(l)
+        if ct > 0.12 {
+          let bx = cx + R * cos(rad(b[0])) * sin(l)
+          let by = cy - R * sin(rad(b[0]))
+          path(range(12).map(i => [bx + b[2] * ct * cos(rad(i * 30)), by + b[2] * 0.9 * sin(rad(i * 30))]), closed: true, fill: leaf)
+        }
+      }
+      for k in range(6) {
+        let lam = rad((k * 30 + rot) % 180 - 90)
+        path(range(13).map(i => [cx + R * cos(rad(i * 15 - 90)) * sin(lam), cy - R * sin(rad(i * 15 - 90))]), stroke: alpha(cream, 0.45), width: 1.2)
+      }
+      for f in [-60, -30, 0, 30, 60] {
+        line(cx - R * cos(rad(f)), cy - R * sin(rad(f)), cx + R * cos(rad(f)), cy - R * sin(rad(f)), stroke: alpha(cream, 0.45), width: 1.2)
+      }
+      circle(cx, cy, R, stroke: cream, width: 3)
+      if !behind { circle(mx, my, 6.5, fill: cream) }
+    }
+  }
+
+  // A vital: its value, and what it is under it.
+  component Vital(v, k, tint = dark) {
+    Column {
+      gap: 0
+      Text { text: v; font: cabin; fontSize: 24; fontWeight: 600; color: tint; maxLines: 1 }
+      Text { text: k; font: cabin; fontSize: 10.5; fontWeight: 700; letterSpacing: 1.5; color: dim; maxLines: 1 }
+    }
+  }
+
+  // The phone's entry: its name, the globe and its vitals; a tap on a vital opens its panel.
+  component Entry() {
+    Column {
+      fill: width
+      gap: 4
+      padding: [22 + screenLeft, 0, 22 + screenRight, 0]
+      Row {
+        fill: width
+        gap: 8
+        align: bottom
+        Text { text: dev == null ? "THE PHONE" : upper("${dev.maker} ${dev.model}"); font: cabin; fontSize: 20; fontWeight: 700; letterSpacing: 1; color: dark; maxLines: 1; weight: 1 }
+        Text { text: fmtTime(now, "HH:mm"); font: cabin; fontSize: 20; fontWeight: 600; color: dark; maxLines: 1 }
+      }
+      Text {
+        text: "MOSTLY HARMLESS" + (sys.uptime == null ? "" : " · UP ${upper(fmtDuration(sys.uptime))}")
+        font: cabin; fontSize: 11.5; fontWeight: 700; letterSpacing: 2; color: crimson; maxLines: 1
+      }
+      Row {
+        fill: width
+        gap: 10
+        align: center
+        padding: [0, 8, 0, 0]
+        Globe { }
+        Column {
+          weight: 1
+          gap: 12
+          Row {
+            fill: width
+            gap: 8
+            Box { weight: 1; onTap: { haptic(); settings("battery") }; Vital { v: bat.level == null ? "…" : "${level}%"; k: bat.charging ? "CHARGING" : "BATTERY"; tint: level < 20 && !bat.charging ? crimson : dark } }
+            Box { weight: 1; onTap: { haptic(); settings("battery") }; Vital { v: bat.temp == null ? "…" : "${round(bat.temp)}°C"; k: "BATTERY TEMP"; tint: num(bat.temp, 0) >= 40 ? crimson : dark } }
+          }
+          Row {
+            fill: width
+            gap: 8
+            Box { weight: 1; onTap: { haptic(); settings("battery") }; Vital { v: watts == null ? "…" : "${fixed(abs(watts), 1)}W"; k: watts != null && watts > 0 ? "GOING IN" : "DRAWN" } }
+            Box { weight: 1; onTap: { haptic(); launcher("settings") }; Vital { v: memF == null ? "…" : "${round(memF * 100)}%"; k: "MEMORY" } }
+          }
+          Row {
+            fill: width
+            gap: 8
+            Box { weight: 1; onTap: { haptic(); launcher("settings") }; Vital { v: sys.storage == null ? "…" : fmtBytes(sys.storage.free); k: "STORAGE FREE" } }
+            Box { weight: 1; onTap: { haptic(); settings("internet") }; Vital { v: down == null ? "…" : fmtBytes(down); k: "DOWN ↑${up == null ? "…" : fmtBytes(up)}" } }
+          }
+        }
+      }
+    }
+  }
+
+  // The index: the categories run in from the left edge; the open one's bar runs on to the right and its entries
+  // stand in a stack above the end of it.
+  component Menu() {
+    Box {
+      fill: width
+      height: menuH
+      align: topStart
+      ripple: false
+      // A tap on the page around the bars closes the open one.
+      onTap: if sel >= 0 { sel = -1 }
+      // The bar that runs out from under the open category's knob, its heading at the end.
+      Box {
+        width: connEnd + 18
+        height: bh
+        radius: bh / 2
+        offset: [sel >= 0 ? -18 : -(connEnd + 80), head + last * p]
+        animate offset: tween(380ms, "out")
+        background: barColors[(last + 2) % 8]
+        animate background: tween(300ms, "ease")
+        align: end
+        Row {
+          gap: 8
+          align: center
+          Text { text: cats[last].h; font: cabin; fontSize: 14; fontWeight: 600; letterSpacing: 1; color: label; maxLines: 1 }
+          Box { size: bh; radius: bh / 2; background: mix(barColors[(last + 2) % 8], ink, 0.3) }
+        }
+      }
+      // The open category's entries, rising out of that bar one after another; they fold back into it as it closes.
+      for j in range(6) {
+        Box {
+          width: subW
+          height: bh
+          radius: bh / 2
+          offset: [connEnd - subW, sel >= 0 && j < len(lastItems) ? head + last * p - (j + 1) * p : head + last * p]
+          animate offset: spring(0.72, 520 - j * 60)
+          opacity: sel >= 0 && j < len(lastItems) ? 1 : 0
+          animate opacity: tween(260ms, "ease")
+          background: barColors[(j + last + 3) % 8]
+          align: end
+          ripple: sel >= 0 && j < len(lastItems)
+          onTap: if sel >= 0 && j < len(lastItems) {
+            haptic()
+            let it = lastItems[j]
+            if it.k == "android" { androidApp(it.a); sel = -1 }
+            else if it.k == "app" { androidApp(it.a); sel = -1 }
+            else if it.k == "open" { open(it.a); sel = -1 }
+            else if it.k == "launcher" { launcher(it.a); sel = -1 }
+            else if it.k == "settings" { settings(it.a) }
+            else if it.k == "files" { run("omarchy-files"); sel = -1 }
+            else if it.k == "shell" { terminal("bash -l", "shell"); sel = -1 }
+            else if it.k == "media" { media("open"); sel = -1 }
+            else if it.k == "dnd" { dnd("toggle") }
+            else if it.k == "torch" { torch("toggle") }
+            else if it.k == "snooze" { notification("snoozeAll", 3600) }
+            else if it.k == "clear" { notification("clear") }
+          }
+          Row {
+            fill: true
+            gap: 8
+            align: center
+            padding: [14, 0, 0, 0]
+            Text { text: lastItems[j].t ?? ""; font: cabin; fontSize: 14; fontWeight: 600; letterSpacing: 1; color: label; maxLines: 1; weight: 1; align: end }
+            Box { size: bh; radius: bh / 2; background: mix(barColors[(j + last + 3) % 8], ink, 0.3) }
+          }
+        }
+      }
+      // The categories, over the bar they open.
+      for c, i in cats {
+        Box {
+          width: catW + 18
+          height: bh
+          radius: bh / 2
+          offset: [-18 + 3 * sin(beat * 1.3 + i * 2.1) + (i == sel ? 14 : 0), head + i * p]
+          animate offset: tween(700ms, "ease")
+          background: c.c
+          onTap: { haptic(); if sel == i { sel = -1 } else { sel = i; last = i } }
+          Row {
+            fill: true
+            gap: 8
+            align: center
+            padding: [30, 0, 0, 0]
+            Text { text: c.t; font: cabin; fontSize: 15; fontWeight: i == sel ? 700 : 500; letterSpacing: 1; color: i == sel ? cream : label; maxLines: 1; align: end; weight: 1 }
+            Box { size: bh; radius: bh / 2; background: mix(c.c, ink, 0.3); scale: i == sel && tick % 2 == 0 ? 0.78 : 1; animate scale: tween(900ms, "ease") }
+          }
+        }
+      }
+    }
+  }
+
+  // The breadcrumb at the foot, as on the film's index page: THE GUIDE closes what's open.
+  component Crumb() {
+    Row {
+      fill: width
+      height: 28
+      gap: 0
+      align: center
+      Box {
+        width: 184 + 10 * 8.6
+        height: 28
+        align: topStart
+        Box {
+          width: 48 + 10 * 8.6
+          height: 28
+          radius: 14
+          offset: [136, 0]
+          background: crumbPlum
+          align: end
+          padding: [0, 0, 13, 0]
+          Text { text: "WHERE TO ?"; font: cabin; fontSize: 15; fontWeight: 500; letterSpacing: 1; color: label; maxLines: 1; align: end }
+        }
+        Box {
+          width: 168
+          height: 28
+          radius: 14
+          offset: [-16, 0]
+          background: crumbBlue
+          align: start
+          padding: [32, 0, 0, 0]
+          onTap: { haptic(); sel = -1 }
+          Text { text: "THE GUIDE"; font: cabin; fontSize: 15.5; fontWeight: 700; letterSpacing: 1; color: label; maxLines: 1 }
+        }
+      }
+      Spacer { weight: 1 }
+    }
+  }
+
+  Box {
+    fill: true
+    Paper { base: mustard }
+    Column {
+      fill: true
+      gap: 0
+      Spacer { height: screenTop + 18 }
+      Entry { }
+      Spacer { weight: 1 }
+      Menu { }
+      Spacer { height: 14 }
+      Crumb { }
+      Spacer { height: 12 }
+      Column {
+        fill: width
+        gap: 0
+        background: strip
+        Tabs { here: 3 }
+        Spacer { height: screenInset }
+      }
+    }
+  }
+}

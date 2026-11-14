@@ -1,0 +1,632 @@
+face "the guide" {
+  // The Guide, page one of four, in the look of the Guide's own screen in the 2005 film: a flat colour field with
+  // film grain under a mustard band, a breadcrumb of overlapping pills in the band, menu bars that run in from the left
+  // edge with a darker knob at their end, and flat cut-paper pictograms in cream. Everything moves a little: the grain,
+  // the sky, the bars, a book sliding down the chart.
+  // This page, WHEN: the time and the date, the sky today with the sun or the moon on its path and the weather in it,
+  // the next day's temperatures as a chart, and the next events and the alarm as menu bars.
+  // The other pages: page-2.owl (WHO: the coding agents), page-3.owl (WHAT: music and notifications) and
+  // page-4.owl (WHERE: the index, apps and switches). The tabs at the foot show which page this is.
+  // Inspired by the Guide's screen in The Hitchhiker's Guide to the Galaxy (2005); the pictograms are drawn here.
+
+  meta {
+    owl: 19
+    description: "The Guide's screen from the 2005 Hitchhiker's film, alive, in four pages: time, sky and events; Claude Code and Codex limits; music and notifications; the film's index menu"
+    version: "1.0"
+    license: "MIT"
+    category: "fun"
+  }
+
+  source now = clock every 5s
+  source bat = android.battery
+  source alarm = android.alarm
+  source cal = android.calendar
+  // The weather where the phone's connection says it is.
+  source wx = http("https://wttr.in/?format=j1") every 30m timeout 15s json
+
+  statusBar: false
+  edge: true
+  padding: 0
+  // The grain changes twelve times a second and the pictograms drift: twenty frames are plenty.
+  fps: 20
+
+  // A beat for the small movements made of nodes: the bars shift a little every two seconds, the colon blinks.
+  state tick = 0
+  every 1s { tick = tick + 1 }
+
+  // ---- the Guide's look, the same on all four pages ----
+  // Cabin, a humanist sans after Gill and Johnston, like the Guide's lettering.
+  let cabin = "https://raw.githubusercontent.com/google/fonts/main/ofl/cabin/Cabin%5Bwdth,wght%5D.ttf"
+  // The colours, picked from frames of the film.
+  let band = #C29632
+  let mustard = #C9A640
+  let rasp = #8B3756
+  let teal = #1F8768
+  let navy = #0C1834
+  let cream = #F0E3C4
+  let label = #EDCB57
+  let gold = #F2BF3A
+  let crumbBlue = #3A8FC4
+  let crumbPlum = #7B2D5A
+  let violet = #5B47B5
+  let aqua = #33BE95
+  let leaf = #4FAE30
+  let amber = #C77A18
+  let crimson = #A42F4C
+  let plum = #6E1A5E
+  let cobalt = #2F7DB8
+  let indigo = #43409C
+  let ink = #000000
+  let tabs = [{t: "WHEN", c: violet}, {t: "WHO", c: aqua}, {t: "WHAT", c: leaf}, {t: "WHERE", c: amber}]
+  let barColors = [violet, aqua, leaf, amber, crimson, plum, cobalt, indigo]
+
+  let W = tileWidth ?? 420
+  let H = tileHeight ?? 933
+  let wide = W > H
+  let beat = floor(tick / 2)
+  // Menu bars' height, and the room the knob takes.
+  let bh = 30
+  // The tabs' height: the menus that open stand on them.
+  let tabsH = 44
+
+  // The field: one flat colour, with paper blotches and film grain that changes twelve times a second, and stars
+  // where `stars` says so.
+  component Paper(base, stars = 0) {
+    Shader {
+      fill: true
+      fallback: base
+      uniforms: { base: base, star: cream, grain: 0.05, stars: stars }
+      code: """
+        uniform half4 base;
+        uniform half4 star;
+        uniform float grain;
+        uniform float stars;
+        float h21(float2 q) {
+          float3 p3 = fract(float3(q.xyx) * 0.1031);
+          p3 += dot(p3, p3.yzx + 33.33);
+          return fract((p3.x + p3.y) * p3.z);
+        }
+        float vn(float2 q) {
+          float2 i = floor(q);
+          float2 f = fract(q);
+          float2 u = f * f * (3.0 - 2.0 * f);
+          return mix(mix(h21(i), h21(i + float2(1.0, 0.0)), u.x), mix(h21(i + float2(0.0, 1.0)), h21(i + float2(1.0, 1.0)), u.x), u.y);
+        }
+        half4 main(float2 p) {
+          float t = floor(time * 12.0);
+          float paper = vn(p / 140.0) * 0.6 + vn(p / 31.0) * 0.4;
+          float g = h21(floor(p / 2.0) + float2(t * 17.0, t * 5.0));
+          float3 c = float3(base.rgb) * (0.95 + paper * 0.09) + (g - 0.5) * grain;
+          if (stars > 0.0) {
+            float2 cell = floor(p / 64.0);
+            float r = h21(cell + 3.1);
+            if (r > 0.82) {
+              float2 sp = (cell + float2(0.2 + 0.6 * h21(cell + 7.7), 0.2 + 0.6 * h21(cell + 9.3))) * 64.0;
+              float d = length(p - sp);
+              float tw = 0.5 + 0.5 * sin(time * (0.8 + r * 2.0) + r * 40.0);
+              c = mix(c, float3(star.rgb), smoothstep(3.5, 1.0, d) * tw * stars);
+            }
+          }
+          return half4(half3(c), 1.0);
+        }
+      """
+    }
+  }
+
+  // The mustard band at the top: the breadcrumb, THE GUIDE over this page's question, and the battery and the time.
+  component Band(q) {
+    Column {
+      fill: width
+      gap: 0
+      background: band
+      Spacer { height: screenTop + 8 }
+      Row {
+        fill: width
+        height: 28
+        gap: 0
+        align: center
+        Box {
+          width: 184 + len(q) * 8.6
+          height: 28
+          align: topStart
+          // The page's pill runs out from under THE GUIDE.
+          Box {
+            width: 48 + len(q) * 8.6
+            height: 28
+            radius: 14
+            offset: [136, 0]
+            background: crumbPlum
+            align: end
+            padding: [0, 0, 13, 0]
+            Text { text: q; font: cabin; fontSize: 15; fontWeight: 500; letterSpacing: 1; color: label; maxLines: 1; align: end }
+          }
+          Box {
+            width: 168
+            height: 28
+            radius: 14
+            offset: [-16, 0]
+            background: crumbBlue
+            align: start
+            padding: [32, 0, 0, 0]
+            Text { text: "THE GUIDE"; font: cabin; fontSize: 15.5; fontWeight: 700; letterSpacing: 1; color: label; maxLines: 1 }
+          }
+        }
+        Spacer { weight: 1 }
+        Text {
+          text: (bat.level == null ? "" : "${bat.level}%" + (bat.charging ? " +" : "") + "   ") + fmtTime(now, "HH:mm")
+          font: cabin; fontSize: 13.5; fontWeight: 600; letterSpacing: 1
+          color: bat.level != null && bat.level < 20 && !bat.charging ? crimson : mix(band, ink, 0.55)
+          maxLines: 1
+          padding: [0, 0, 16 + screenRight, 0]
+        }
+      }
+      Spacer { height: 10 }
+    }
+  }
+
+  // The four pages as menu bars along the foot, this one long and lit with its knob beating: swipe to the others.
+  component Tabs(here) {
+    Row {
+      fill: width
+      height: tabsH
+      gap: 5
+      align: center
+      padding: [8 + screenLeft, 6, 8 + screenRight, 8]
+      for tb, i in tabs {
+        Box {
+          weight: i == here ? 1.45 : 1
+          height: 30
+          radius: 15
+          background: tb.c
+          align: end
+          Row {
+            gap: 4
+            align: center
+            Text { text: tb.t; font: cabin; fontSize: 13; fontWeight: i == here ? 700 : 500; letterSpacing: 0.5; color: i == here ? cream : label; maxLines: 1 }
+            // This page's knob beats, slowly.
+            Box { size: 28; radius: 14; background: mix(tb.c, ink, i == 1 ? 0.5 : 0.3); scale: i == here && tick % 2 == 0 ? 0.78 : 1; animate scale: tween(900ms, "ease") }
+          }
+        }
+      }
+    }
+  }
+
+  // A menu bar running in from the left edge: a note at its start, its label at its end by the knob. `wob` shifts it a
+  // few dp, so a stack of them seems to breathe.
+  component Bar(text, tint, w, note = "", wob = 0) {
+    Box {
+      width: w + 18
+      height: bh
+      offset: [-18 + wob, 0]
+      animate offset: tween(1900ms, "ease")
+      background: tint
+      radius: bh / 2
+      Row {
+        fill: true
+        gap: 8
+        align: center
+        padding: [30, 0, 0, 0]
+        if note != "" {
+          Text { text: note; font: cabin; fontSize: 13; fontWeight: 700; letterSpacing: 0.5; color: cream; maxLines: 1 }
+        }
+        Text { text: text; font: cabin; fontSize: 15; fontWeight: 500; letterSpacing: 1; color: label; maxLines: 1; align: end; weight: 1 }
+        Box { size: bh; radius: bh / 2; background: mix(tint, ink, 0.3) }
+      }
+    }
+  }
+
+  // A heading: small capitals in cream, spaced out, like the Guide's captions.
+  component Caption(t, note = "") {
+    Row {
+      fill: width
+      gap: 8
+      Text { text: t; font: cabin; fontSize: 12.5; fontWeight: 600; letterSpacing: 2.5; color: alpha(cream, 0.85); maxLines: 1; weight: 1 }
+      Text { text: note; font: cabin; fontSize: 12.5; fontWeight: 500; letterSpacing: 1.5; color: alpha(cream, 0.6); maxLines: 1 }
+    }
+  }
+
+  // ---- this page ----
+  let hour = num(fmtTime(now, "H"), 12)
+  let mins = hour * 60 + num(fmtTime(now, "m"), 0)
+  let cur = wx.current_condition[0]
+  let day = wx.weather[0]
+  let place = wx.nearest_area[0].areaName[0].value
+  let code = num(cur.weatherCode, 113)
+  let cloudy = code != 113
+  let overcast = code == 119 || code == 122 || code >= 143
+  let rainy = contains([176, 263, 266, 293, 296, 299, 302, 305, 308, 311, 314, 353, 356, 359, 200, 386, 389], code)
+  let snowy = contains([179, 182, 185, 227, 230, 281, 284, 317, 320, 323, 326, 329, 332, 335, 338, 350, 362, 365, 368, 371, 374, 377, 392, 395], code)
+  let stormy = contains([200, 386, 389, 392, 395], code)
+  let foggy = contains([143, 248, 260], code)
+  // wttr gives "07:16 AM"; as minutes since midnight.
+  let sunT = [day.astronomy[0].sunrise, day.astronomy[0].sunset]
+    .map(s => match(s ?? "", "(\\d+):(\\d+) (AM|PM)"))
+    .map(t => t == null ? null : (num(t[0]) % 12 + (t[2] == "PM" ? 12 : 0)) * 60 + num(t[1]))
+  let rise = sunT[0] ?? 420
+  let set = sunT[1] ?? 1140
+  let isDay = mins >= rise && mins < set
+  // How far along its arc the sun (by day) or the moon (by night) is.
+  let along = isDay ? (mins - rise) / max(set - rise, 1) : ((mins - set + 1440) % 1440) / max(rise + 1440 - set, 1)
+  // The next eight three-hour steps, from today's and the next days' forecasts.
+  let steps = flatten(range(3).map(i => (wx.weather[i].hourly ?? []).map(h => {
+    hr: i * 24 + num(h.time, 0) / 100,
+    t: num(h.tempC, 0),
+    rain: num(h.chanceofrain, 0)
+  }))).filter(s => s.hr >= hour - 1).take(8)
+  let temps = sort(steps.map(s => s.t))
+  let lo = (first(temps) ?? 0) - 1
+  let hi = (last(temps) ?? 10) + 1
+
+  let today = fmtTime(now, "yyyyD")
+  let tomorrow = fmtTime(now + 86400, "yyyyD")
+  let evs = (cal.events ?? []).filter(e => e.end > now).take(4).map(e => {
+    id: e.id,
+    e: e,
+    when: e.start <= now ? "NOW" : e.allDay ? (fmtTime(e.start, "yyyyD") == today ? "TODAY" : fmtTime(e.start, "yyyyD") == tomorrow ? "TMRW" : upper(fmtTime(e.start, "EEE"))) : fmtTime(e.start, "yyyyD") == today ? fmtTime(e.start, "HH:mm") : upper(fmtTime(e.start, "EEE HH:mm")),
+    title: upper(e.title == "" ? "busy" : e.title)
+  })
+  let barW = min(W * 0.82, 380)
+
+  component Clock() {
+    Column {
+      fill: width
+      gap: 0
+      padding: [22 + screenLeft, 6, 22 + screenRight, 0]
+      Row {
+        fill: width
+        align: bottom
+        gap: 10
+        Text {
+          spans: [fmtTime(now, "HH"), {text: ":", color: tick % 2 == 0 ? cream : alpha(cream, 0.3)}, fmtTime(now, "mm")]
+          font: cabin; fontSize: wide ? 72 : 92; fontWeight: 500; letterSpacing: -2; color: cream; maxLines: 1
+        }
+        Spacer { weight: 1 }
+        Column {
+          gap: 0
+          align: end
+          padding: [0, 0, 0, 14]
+          Text { text: cur == null ? "…" : "${cur.temp_C}°"; font: cabin; fontSize: 40; fontWeight: 500; color: gold; maxLines: 1; align: end }
+          Text { text: upper(cur.weatherDesc[0].value ?? ""); font: cabin; fontSize: 12.5; fontWeight: 600; letterSpacing: 1.5; color: cream; maxLines: 1; align: end }
+          Text { text: upper(day == null ? "" : "↑${day.maxtempC}°  ↓${day.mintempC}°" + (place == null ? "" : "  ·  ${place}")); font: cabin; fontSize: 11.5; fontWeight: 500; letterSpacing: 1; color: alpha(cream, 0.7); maxLines: 1; align: end }
+        }
+      }
+      Text { text: upper(fmtTime(now, "EEEE d MMMM")); font: cabin; fontSize: 17; fontWeight: 600; letterSpacing: 3; color: label; maxLines: 1 }
+    }
+  }
+
+  // The sky today: the sun on its arc from sunrise to sunset, or the moon and stars, the weather in it, the ground
+  // with two trees and a hitchhiker thumbing a ride, and now and then a saucer going by.
+  component Sky() {
+    Box {
+    fill: true
+    Canvas {
+      fill: true
+      let gy = height - 30
+      let x0 = 40
+      let x1 = width - 40
+      // The arc no higher than it is wide, leaving sky above it for the clouds and the saucer.
+      let ah = min(gy - 34, (width - 80) * 0.36)
+      let bx = lerp(x0, x1, along)
+      let by = gy - sin(along * 3.14159) * ah
+      let ground = mix(rasp, ink, 0.32)
+      let nClouds = !cloudy ? 0 : overcast ? 3 : 2
+      // The path, as cream dots, sunrise to sunset.
+      for i in range(29) {
+        circle(lerp(x0, x1, i / 28), gy - sin(i / 28 * 3.14159) * ah, 1.8, fill: alpha(cream, isDay ? 0.55 : 0.3))
+      }
+      if !isDay {
+        for i in range(9) {
+          let sx = 14 + hash(i, 1) * (width - 28)
+          let sy = 10 + hash(i, 2) * (gy - 50)
+          let a = 0.25 + 0.75 * abs(sin(time * (0.6 + hash(i, 3)) + i * 1.9))
+          line(sx - 4, sy, sx + 4, sy, stroke: alpha(cream, a), width: 1.6, cap: round)
+          line(sx, sy - 4, sx, sy + 4, stroke: alpha(cream, a), width: 1.6, cap: round)
+        }
+      }
+      // The saucer: once every 47 seconds it crosses, bobbing.
+      let sp = (time % 47) / 47
+      if sp < 0.22 {
+        let ux = lerp(-40, width + 40, sp / 0.22)
+        let uy = 26 + sin(time * 2.4) * 4
+        circle(ux, uy - 3, 7, fill: alpha(cream, 0.9))
+        rect(ux - 17, uy - 2, 34, 8, radius: 4, fill: gold)
+        for k in range(3) { circle(ux - 9 + k * 9, uy + 2, 1.5, fill: mix(gold, ink, 0.45)) }
+      }
+      if isDay {
+        rotate(time * 10, bx, by) {
+          for k in range(8) {
+            rotate(k * 45, bx, by) { line(bx, by - 21, bx, by - 28, stroke: gold, width: 3.5, cap: round) }
+          }
+        }
+        circle(bx, by, 15 + sin(time * 1.6) * 0.8, fill: gold)
+      } else {
+        path(range(13).map(i => [bx + 13 * cos(rad(90 + i * 15)), by + 13 * sin(rad(90 + i * 15))]) + range(13).map(i => [bx + 5 * cos(rad(270 - i * 15)), by + 13 * sin(rad(270 - i * 15))]), closed: true, fill: cream)
+      }
+      for i in range(nClouds) {
+        let cw = 54 + hash(i, 4) * 26
+        let cx = (hash(i, 5) * (width + 140) + time * (3 + i * 2.2)) % (width + 140) - 70
+        let cy = 30 + hash(i, 6) * (gy * 0.32)
+        let cc = overcast ? mix(cream, rasp, 0.25) : cream
+        circle(cx - cw * 0.14, cy + 1, cw * 0.2, fill: cc)
+        circle(cx + cw * 0.14, cy + 4, cw * 0.15, fill: cc)
+        rect(cx - cw / 2, cy + 3, cw, 14, radius: 7, fill: cc)
+        if rainy && !snowy {
+          for j in range(5) {
+            let fall = gy - cy - 20
+            let ry = cy + 18 + (time * 70 + hash(i, j, 7) * fall) % fall
+            let rx = cx - cw * 0.34 + j * cw * 0.17 - (ry - cy) * 0.12
+            line(rx, ry, rx - 1.5, ry + 7, stroke: alpha(cream, 0.85), width: 2, cap: round)
+          }
+        }
+        if snowy {
+          for j in range(5) {
+            let fall = gy - cy - 20
+            let ry = cy + 18 + (time * 16 + hash(i, j, 7) * fall) % fall
+            circle(cx - cw * 0.34 + j * cw * 0.17 + sin(time * 1.5 + j) * 4, ry, 2.2, fill: cream)
+          }
+        }
+        if stormy && (time + i * 3) % 7 < 0.18 {
+          path([[cx, cy + 16], [cx - 7, cy + 32], [cx + 1, cy + 32], [cx - 6, cy + 50]], stroke: gold, width: 3, cap: round)
+        }
+      }
+      if foggy {
+        for j in range(3) {
+          let fx = (time * (6 + j * 3) + j * 90) % (width + 160) - 160
+          rect(fx, gy - 16 - j * 13, 150 - j * 20, 5, radius: 2.5, fill: alpha(cream, 0.35))
+        }
+      }
+      // The ground, two trees and the hitchhiker.
+      rect(0, gy, width, height - gy, fill: ground)
+      for k in range(2) {
+        let tx = width * (0.66 + k * 0.1)
+        let sway = sin(time * 0.9 + k * 2) * 1.5
+        line(tx, gy, tx, gy - 16 - k * 6, stroke: mix(ground, ink, 0.3), width: 3)
+        circle(tx + sway, gy - 24 - k * 8, 10 + k * 3, fill: mix(ground, ink, 0.3))
+      }
+      let hx = width * 0.22
+      let lean = sin(time * 1.3) * 1.2
+      circle(hx + lean, gy - 33, 4.6, fill: cream)
+      rect(hx - 4 + lean * 0.5, gy - 27, 8, 15, radius: 3.5, fill: cream)
+      line(hx - 2, gy - 13, hx - 3, gy - 1, stroke: cream, width: 3, cap: round)
+      line(hx + 2, gy - 13, hx + 3, gy - 1, stroke: cream, width: 3, cap: round)
+      // The thumb: the arm out to the road, wagging a little.
+      rotate(-18 + sin(time * 2.2) * 9, hx + 3, gy - 24) {
+        line(hx + 3, gy - 24, hx + 15, gy - 24, stroke: cream, width: 3, cap: round)
+        line(hx + 15, gy - 24, hx + 15, gy - 29, stroke: cream, width: 2.4, cap: round)
+      }
+      // A towel over the shoulder, as every hitchhiker knows.
+      rect(hx - 6 + lean * 0.5, gy - 28, 4, 11, radius: 1.5, fill: gold)
+      text(pad(floor(rise / 60), 2, "0") + ":" + pad(rise % 60, 2, "0"), x0, gy + 15, size: 11, align: center, font: cabin, fontWeight: 600, letterSpacing: 1, color: alpha(cream, 0.75))
+      text(pad(floor(set / 60), 2, "0") + ":" + pad(set % 60, 2, "0"), x1, gy + 15, size: 11, align: center, font: cabin, fontWeight: 600, letterSpacing: 1, color: alpha(cream, 0.75))
+      let left = isDay ? set - mins : (rise - mins + 1440) % 1440
+      text((isDay ? "SUNSET IN " : "SUNRISE IN ") + (left >= 60 ? "${floor(left / 60)}H ${left % 60}M" : "${left}M"), width / 2, gy + 15, size: 11, align: center, font: cabin, fontWeight: 600, letterSpacing: 1.5, color: alpha(cream, 0.6))
+       }
+  }
+  }
+
+  // The next day's temperatures on a grid, the way the Guide charts things, with the chance of rain as pale columns
+  // and a little Guide sliding down the line.
+  component Chart() {
+    Canvas {
+      fill: width
+      height: wide ? 130 : 150
+      let n = len(steps)
+      let gx0 = 46
+      let gx1 = width - 22
+      let gy0 = 30
+      let gy1 = height - 26
+      let cols = 14
+      let rows = 6
+      let cw = (gx1 - gx0) / cols
+      let rh = (gy1 - gy0) / rows
+      let lineC = mix(rasp, ink, 0.45)
+      let pts = range(n).map(i => [gx0 + i * (gx1 - gx0) / max(n - 1, 1), gy1 - (steps[i].t - lo) / max(hi - lo, 1) * (gy1 - gy0)])
+      text("TEMPERATURE °C", (gx0 + gx1) / 2, 11, size: 12.5, align: center, font: cabin, fontWeight: 600, letterSpacing: 2.5, color: alpha(cream, 0.9))
+      for i in range(n) {
+        let rv = steps[i].rain / 100
+        if rv > 0.05 {
+          rect(pts[i][0] - cw * 0.5, gy1 - rv * (gy1 - gy0), cw, rv * (gy1 - gy0), fill: alpha(cream, 0.16))
+        }
+      }
+      for i in range(cols + 1) { line(gx0 + i * cw, gy0, gx0 + i * cw, gy1, stroke: alpha(cream, 0.75), width: 1.2) }
+      for j in range(rows + 1) { line(gx0, gy0 + j * rh, gx1, gy0 + j * rh, stroke: alpha(cream, 0.75), width: 1.2) }
+      // The axes, with arrowheads.
+      line(gx0 - 9, gy1 + 7, gx0 - 9, gy0 - 14, stroke: cream, width: 2)
+      path([[gx0 - 14, gy0 - 6], [gx0 - 9, gy0 - 17], [gx0 - 4, gy0 - 6]], closed: true, fill: cream)
+      line(gx0 - 9, gy1 + 7, gx1 + 12, gy1 + 7, stroke: cream, width: 2)
+      path([[gx1 + 6, gy1 + 2], [gx1 + 17, gy1 + 7], [gx1 + 6, gy1 + 12]], closed: true, fill: cream)
+      text("${round(hi - 1)}°", gx0 - 16, gy0 + 4, size: 11, align: end, font: cabin, fontWeight: 600, color: alpha(cream, 0.85))
+      text("${round(lo + 1)}°", gx0 - 16, gy1 - 4, size: 11, align: end, font: cabin, fontWeight: 600, color: alpha(cream, 0.85))
+      if n > 1 {
+        path(pts, stroke: lineC, width: 6, cap: round)
+        for i in range(n) {
+          if i % 2 == 0 {
+            text(pad(steps[i].hr % 24, 2, "0") + ":00", pts[i][0], gy1 + 18, size: 10.5, align: center, font: cabin, fontWeight: 600, color: alpha(cream, 0.7))
+          }
+        }
+        // The Guide, a little book, sliding along the line and resting at the end before it starts again.
+        let u = clamp((time % 11) / 8, 0, 1)
+        let seg = min(floor(u * (n - 1)), n - 2)
+        let fr = u * (n - 1) - seg
+        let bx = lerp(pts[seg][0], pts[seg + 1][0], fr)
+        let by = lerp(pts[seg][1], pts[seg + 1][1], fr)
+        let ang = deg(atan2(pts[seg + 1][1] - pts[seg][1], pts[seg + 1][0] - pts[seg][0]))
+        rotate(ang, bx, by) {
+          rect(bx - 8, by - 23, 16, 20, radius: 2, fill: mix(rasp, ink, 0.6))
+          rect(bx - 6, by - 21, 12, 16, radius: 1.5, fill: crimson)
+          circle(bx, by - 13, 3.6, fill: gold)
+        }
+      } else {
+        text(wx == null ? "ASKING THE WEATHER…" : "NO FORECAST", (gx0 + gx1) / 2, (gy0 + gy1) / 2, size: 13, align: center, font: cabin, fontWeight: 600, letterSpacing: 2, color: cream)
+      }
+    }
+  }
+
+  // ---- this page's index: the next events, the alarm and the forecast as menu bars that open ----
+  // Tap a bar and the stack folds into short tabs, as the film's menu stands; a bar runs out from under the open one's
+  // knob with its title, and what can be done with it rises in a stack above. The open bar is kept by its id, so a
+  // list that changes under it never opens the wrong one.
+  state selId = null
+  state lastId = null
+  let days = (wx.weather ?? []).take(3)
+  let alarmIn = max(0, floor((num(alarm.time, now) - now) / 60))
+  let base = (!cal.granted ? [{id: "allow", t: "ALLOW THE CALENDAR", s: "CALENDAR", c: crimson, go: "calreq"}]
+    : len(evs) == 0 ? [{id: "none", t: "NOTHING PLANNED · OPEN CALENDAR", s: "CALENDAR", c: violet, go: "calopen"}]
+    : evs.map(ev => {
+        id: ev.id,
+        t: ev.title,
+        n: ev.when,
+        s: ev.when,
+        h: ev.title,
+        e: ev.e,
+        txt: ev.e.title + " · " + (ev.e.allDay ? fmtTime(ev.e.start, "EEE d MMM") : fmtTime(ev.e.start, "EEE d MMM HH:mm") + "–" + fmtTime(ev.e.end, "HH:mm")) + (ev.e.location == "" ? "" : " · " + ev.e.location),
+        items: [{t: "OPEN IN CALENDAR", k: "cal"}, ev.e.location == "" ? null : {t: "DIRECTIONS", k: "map"}, {t: "SHARE", k: "share"}, {t: "COPY", k: "copy"}].filter(x => x != null)
+      }))
+    + (alarm.set ? [{id: "alarm", t: "ALARM", n: upper(fmtTime(alarm.time, "EEE HH:mm")), s: "ALARM", c: plum, h: "RINGS IN " + (alarmIn >= 60 ? "${floor(alarmIn / 60)}H ${alarmIn % 60}M" : "${alarmIn}M"), items: [{t: "OPEN THE CLOCK", k: "clock"}]}] : [])
+    + (len(days) == 0 ? [] : [{id: "wx", t: "FORECAST", n: cur == null ? "" : "${cur.temp_C}°", s: "WEATHER", c: cobalt, h: upper(place ?? "the next days"), items: days.map(d => {t: upper(fmtTime(parseTime(d.date), "EEE")) + "  ${d.maxtempC}° / ${d.mintempC}°", k: "wx"})}])
+  let rows = range(len(base)).map(i => merge(base[i], {w: barW - i * 14, c: base[i].c ?? barColors[i % 8]}))
+  let nRows = len(rows)
+  let ids = rows.map(r => r.id)
+  let openI = selId == null ? -1 : indexOf(ids, selId)
+  let lastI = max(0, indexOf(ids, lastId))
+  let lastRow = rows[lastI] ?? {}
+  let lastItems = lastRow.items ?? []
+  let rh = bh
+  let p = bh + 3
+  let pe = bh + 4
+  let shortW = min(W * 0.36, 160)
+  let connEnd = W - 20 - screenRight
+  let subW = min(connEnd - shortW - 34, 230)
+  let listH = (nRows - 1) * p + rh
+
+  // Over the whole page, standing on the tabs: the rows, the bar that runs out and the entries above it.
+  component Index() {
+    Box {
+      fill: true
+      align: bottomStart
+      padding: [0, 0, 0, tabsH + screenInset + 6]
+      // While a bar is open, the page behind it fades back under a veil of its own colour, so the menu stands clear
+      // of what it covers, and a tap anywhere else closes it.
+      Box { fill: true; background: alpha(rasp, 0.7); opacity: openI >= 0 ? 1 : 0; animate opacity: tween(300ms, "ease") }
+      if openI >= 0 {
+        Box { fill: true; ripple: false; onTap: selId = null }
+      }
+      Box {
+        width: connEnd + 18
+        height: rh
+        radius: rh / 2
+        offset: [openI >= 0 ? -18 : -(connEnd + 80), -(nRows - 1 - lastI) * p]
+        animate offset: tween(420ms, "out")
+        background: barColors[(lastI + 2) % 8]
+        animate background: tween(300ms, "ease")
+        Row {
+          fill: true
+          gap: 8
+          align: center
+          padding: [shortW + 44, 0, 0, 0]
+          Text { text: lastRow.h ?? ""; font: cabin; fontSize: 14; fontWeight: 600; letterSpacing: 1; color: label; maxLines: 1; weight: 1; align: end }
+          Box { size: rh; radius: rh / 2; background: mix(barColors[(lastI + 2) % 8], ink, 0.3) }
+        }
+      }
+      for j in range(6) {
+        Box {
+          width: subW
+          height: bh
+          radius: bh / 2
+          offset: openI >= 0 && j < len(lastItems) ? [connEnd - subW, -((nRows - 1 - lastI) * p + rh + 4 + j * pe)] : [W + 40, -(nRows - 1 - lastI) * p]
+          animate offset: spring(0.72, 520 - j * 60)
+          opacity: openI >= 0 && j < len(lastItems) ? 1 : 0
+          animate opacity: tween(260ms, "ease")
+          background: barColors[(j + lastI + 4) % 8]
+          align: end
+          ripple: openI >= 0 && j < len(lastItems)
+          onTap: if openI >= 0 && j < len(lastItems) {
+            haptic()
+            let it = lastItems[j]
+            if it.k == "cal" { calendar("open", lastRow.e); selId = null }
+            else if it.k == "map" { url("geo:0,0?q=${enc(lastRow.e.location)}"); selId = null }
+            else if it.k == "share" { share(lastRow.txt) }
+            else if it.k == "copy" { copy(lastRow.txt); selId = null }
+            else if it.k == "clock" { androidApp(alarm.app); selId = null }
+            else if it.k == "wx" { url("https://wttr.in/${enc(place ?? "")}"); selId = null }
+          }
+          Row {
+            fill: true
+            gap: 8
+            align: center
+            padding: [14, 0, 0, 0]
+            Text { text: lastItems[j].t ?? ""; font: cabin; fontSize: 14; fontWeight: 600; letterSpacing: 1; color: label; maxLines: 1; weight: 1; align: end }
+            Box { size: bh; radius: bh / 2; background: mix(barColors[(j + lastI + 4) % 8], ink, 0.3) }
+          }
+        }
+      }
+      for r, i in rows key r.id {
+        Box {
+          width: r.w + 18
+          height: rh
+          radius: rh / 2
+          offset: [-18 + (openI >= 0 ? shortW - r.w : 0) + (i == openI ? 14 : 0) + 3 * sin(beat * 1.3 + i * 2.1), -(nRows - 1 - i) * p]
+          animate offset: tween(650ms, "ease")
+          background: r.c
+          onTap: { haptic(); if r.go == "calreq" { calendar("request") } else if r.go == "calopen" { calendar("open") } else if openI == i { selId = null } else { selId = r.id; lastId = r.id } }
+          Row {
+            fill: true
+            gap: 8
+            align: center
+            padding: [30, 0, 0, 0]
+            if openI < 0 && (r.n ?? "") != "" {
+              Text { text: r.n; font: cabin; fontSize: 13; fontWeight: 700; letterSpacing: 0.5; color: cream; maxLines: 1 }
+            }
+            Text { text: openI >= 0 ? r.s : r.t; font: cabin; fontSize: 15; fontWeight: i == openI ? 700 : 500; letterSpacing: 1; color: i == openI ? cream : label; maxLines: 1; align: end; weight: 1 }
+            Box { size: rh; radius: rh / 2; background: mix(r.c, ink, 0.3); scale: i == openI && tick % 2 == 0 ? 0.78 : 1; animate scale: tween(900ms, "ease") }
+          }
+        }
+      }
+    }
+  }
+
+  component Agenda() {
+    Column {
+      fill: width
+      gap: 4
+      Caption { t: "COMING UP"; note: cal.granted && len(evs) > 0 ? "${len(cal.events)} IN 14 DAYS" : ""; padding: [22 + screenLeft, 0, 22 + screenRight, 0] }
+      // The rows themselves are drawn by Index, over the page; this keeps their room.
+      Spacer { height: listH }
+    }
+  }
+
+  Box {
+    fill: true
+    Paper { base: rasp }
+    Column {
+      fill: true
+      gap: 0
+      Band { q: "WHEN IS IT ?" }
+      if wide {
+        Row {
+          weight: 1
+          fill: width
+          gap: 0
+          Column { weight: 1; gap: 10; Clock { }; Sky { weight: 1; fill: width } }
+          Column { weight: 1; gap: 12; padding: [0, 10, 0, 0]; Chart { padding: [0, 0, 16, 0] }; Spacer { weight: 1 } }
+        }
+        Agenda { }
+      } else {
+        Column {
+          weight: 1
+          fill: width
+          gap: 14
+          padding: [0, 8, 0, 0]
+          Clock { }
+          Sky { weight: 1; fill: width }
+          Chart { padding: [8 + screenLeft, 0, 8 + screenRight, 0] }
+          Agenda { }
+        }
+      }
+      Spacer { height: 6 }
+      Tabs { here: 0 }
+      Spacer { height: screenInset }
+    }
+    Index { }
+  }
+}

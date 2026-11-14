@@ -1,0 +1,584 @@
+face "the guide what" {
+  // The Guide, page three of four (see guide.owl for the look): WHAT'S going on, on a night-blue field whose stars
+  // twinkle. A fish swims across the top; what's playing, with its cover, an equaliser that dances while it plays and
+  // its keys; the volume in ten steps; and the newest notifications as menu bars, their app's icon in the knob: tap
+  // one to open it, hold it to dismiss it, or clear or snooze them all.
+
+  meta { owl: 19 }
+
+  source now = clock every 5s
+  source bat = android.battery
+  source mp = android.media
+  source n = android.notifications
+  source vol = android.volume
+  source apps = android.apps
+
+  statusBar: false
+  edge: true
+  padding: 0
+  fps: 20
+
+  state tick = 0
+  every 1s { tick = tick + 1 }
+
+  // ---- the Guide's look, the same on all four pages ----
+  // Cabin, a humanist sans after Gill and Johnston, like the Guide's lettering.
+  let cabin = "https://raw.githubusercontent.com/google/fonts/main/ofl/cabin/Cabin%5Bwdth,wght%5D.ttf"
+  // The colours, picked from frames of the film.
+  let band = #C29632
+  let mustard = #C9A640
+  let rasp = #8B3756
+  let teal = #1F8768
+  let navy = #0C1834
+  let cream = #F0E3C4
+  let label = #EDCB57
+  let gold = #F2BF3A
+  let crumbBlue = #3A8FC4
+  let crumbPlum = #7B2D5A
+  let violet = #5B47B5
+  let aqua = #33BE95
+  let leaf = #4FAE30
+  let amber = #C77A18
+  let crimson = #A42F4C
+  let plum = #6E1A5E
+  let cobalt = #2F7DB8
+  let indigo = #43409C
+  let ink = #000000
+  let tabs = [{t: "WHEN", c: violet}, {t: "WHO", c: aqua}, {t: "WHAT", c: leaf}, {t: "WHERE", c: amber}]
+  let barColors = [violet, aqua, leaf, amber, crimson, plum, cobalt, indigo]
+
+  let W = tileWidth ?? 420
+  let H = tileHeight ?? 933
+  let wide = W > H
+  let beat = floor(tick / 2)
+  // Menu bars' height, and the room the knob takes.
+  let bh = 30
+  // The tabs' height: the menus that open stand on them.
+  let tabsH = 44
+
+  // The field: one flat colour, with paper blotches and film grain that changes twelve times a second, and stars
+  // where `stars` says so.
+  component Paper(base, stars = 0) {
+    Shader {
+      fill: true
+      fallback: base
+      uniforms: { base: base, star: cream, grain: 0.05, stars: stars }
+      code: """
+        uniform half4 base;
+        uniform half4 star;
+        uniform float grain;
+        uniform float stars;
+        float h21(float2 q) {
+          float3 p3 = fract(float3(q.xyx) * 0.1031);
+          p3 += dot(p3, p3.yzx + 33.33);
+          return fract((p3.x + p3.y) * p3.z);
+        }
+        float vn(float2 q) {
+          float2 i = floor(q);
+          float2 f = fract(q);
+          float2 u = f * f * (3.0 - 2.0 * f);
+          return mix(mix(h21(i), h21(i + float2(1.0, 0.0)), u.x), mix(h21(i + float2(0.0, 1.0)), h21(i + float2(1.0, 1.0)), u.x), u.y);
+        }
+        half4 main(float2 p) {
+          float t = floor(time * 12.0);
+          float paper = vn(p / 140.0) * 0.6 + vn(p / 31.0) * 0.4;
+          float g = h21(floor(p / 2.0) + float2(t * 17.0, t * 5.0));
+          float3 c = float3(base.rgb) * (0.95 + paper * 0.09) + (g - 0.5) * grain;
+          if (stars > 0.0) {
+            float2 cell = floor(p / 64.0);
+            float r = h21(cell + 3.1);
+            if (r > 0.82) {
+              float2 sp = (cell + float2(0.2 + 0.6 * h21(cell + 7.7), 0.2 + 0.6 * h21(cell + 9.3))) * 64.0;
+              float d = length(p - sp);
+              float tw = 0.5 + 0.5 * sin(time * (0.8 + r * 2.0) + r * 40.0);
+              c = mix(c, float3(star.rgb), smoothstep(3.5, 1.0, d) * tw * stars);
+            }
+          }
+          return half4(half3(c), 1.0);
+        }
+      """
+    }
+  }
+
+  // The mustard band at the top: the breadcrumb, THE GUIDE over this page's question, and the battery and the time.
+  component Band(q) {
+    Column {
+      fill: width
+      gap: 0
+      background: band
+      Spacer { height: screenTop + 8 }
+      Row {
+        fill: width
+        height: 28
+        gap: 0
+        align: center
+        Box {
+          width: 184 + len(q) * 8.6
+          height: 28
+          align: topStart
+          // The page's pill runs out from under THE GUIDE.
+          Box {
+            width: 48 + len(q) * 8.6
+            height: 28
+            radius: 14
+            offset: [136, 0]
+            background: crumbPlum
+            align: end
+            padding: [0, 0, 13, 0]
+            Text { text: q; font: cabin; fontSize: 15; fontWeight: 500; letterSpacing: 1; color: label; maxLines: 1; align: end }
+          }
+          Box {
+            width: 168
+            height: 28
+            radius: 14
+            offset: [-16, 0]
+            background: crumbBlue
+            align: start
+            padding: [32, 0, 0, 0]
+            Text { text: "THE GUIDE"; font: cabin; fontSize: 15.5; fontWeight: 700; letterSpacing: 1; color: label; maxLines: 1 }
+          }
+        }
+        Spacer { weight: 1 }
+        Text {
+          text: (bat.level == null ? "" : "${bat.level}%" + (bat.charging ? " +" : "") + "   ") + fmtTime(now, "HH:mm")
+          font: cabin; fontSize: 13.5; fontWeight: 600; letterSpacing: 1
+          color: bat.level != null && bat.level < 20 && !bat.charging ? crimson : mix(band, ink, 0.55)
+          maxLines: 1
+          padding: [0, 0, 16 + screenRight, 0]
+        }
+      }
+      Spacer { height: 10 }
+    }
+  }
+
+  // The four pages as menu bars along the foot, this one long and lit with its knob beating: swipe to the others.
+  component Tabs(here) {
+    Row {
+      fill: width
+      height: tabsH
+      gap: 5
+      align: center
+      padding: [8 + screenLeft, 6, 8 + screenRight, 8]
+      for tb, i in tabs {
+        Box {
+          weight: i == here ? 1.45 : 1
+          height: 30
+          radius: 15
+          background: tb.c
+          align: end
+          Row {
+            gap: 4
+            align: center
+            Text { text: tb.t; font: cabin; fontSize: 13; fontWeight: i == here ? 700 : 500; letterSpacing: 0.5; color: i == here ? cream : label; maxLines: 1 }
+            // This page's knob beats, slowly.
+            Box { size: 28; radius: 14; background: mix(tb.c, ink, i == 1 ? 0.5 : 0.3); scale: i == here && tick % 2 == 0 ? 0.78 : 1; animate scale: tween(900ms, "ease") }
+          }
+        }
+      }
+    }
+  }
+
+  // A menu bar running in from the left edge: a note at its start, its label at its end by the knob. `wob` shifts it a
+  // few dp, so a stack of them seems to breathe.
+  component Bar(text, tint, w, note = "", wob = 0) {
+    Box {
+      width: w + 18
+      height: bh
+      offset: [-18 + wob, 0]
+      animate offset: tween(1900ms, "ease")
+      background: tint
+      radius: bh / 2
+      Row {
+        fill: true
+        gap: 8
+        align: center
+        padding: [30, 0, 0, 0]
+        if note != "" {
+          Text { text: note; font: cabin; fontSize: 13; fontWeight: 700; letterSpacing: 0.5; color: cream; maxLines: 1 }
+        }
+        Text { text: text; font: cabin; fontSize: 15; fontWeight: 500; letterSpacing: 1; color: label; maxLines: 1; align: end; weight: 1 }
+        Box { size: bh; radius: bh / 2; background: mix(tint, ink, 0.3) }
+      }
+    }
+  }
+
+  // A heading: small capitals in cream, spaced out, like the Guide's captions.
+  component Caption(t, note = "") {
+    Row {
+      fill: width
+      gap: 8
+      Text { text: t; font: cabin; fontSize: 12.5; fontWeight: 600; letterSpacing: 2.5; color: alpha(cream, 0.85); maxLines: 1; weight: 1 }
+      Text { text: note; font: cabin; fontSize: 12.5; fontWeight: 500; letterSpacing: 1.5; color: alpha(cream, 0.6); maxLines: 1 }
+    }
+  }
+
+  // ---- this page ----
+  let has = mp != null && mp.title != null && mp.title != ""
+  let playing = has && mp.playing == true
+  let notes = n.available ? n.items.take(4) : []
+  let spotify = (apps ?? []).find(a => a.package == "com.spotify.music")
+  // The player's name as the drawer shows it, not its package.
+  // (A player that isn't in the drawer gives its package; that shows nothing.)
+  let player = (apps ?? []).find(a => a.package == mp.package).name ?? (contains(mp.app ?? "", ".") ? "" : mp.app ?? "")
+  let volLv = num(vol.level, 0)
+  let barW = min(W * 0.86, 390)
+
+  // A key that isn't on the edge: a pill with its knob.
+  component Pill(text, tint) {
+    Box {
+      fill: width
+      height: bh
+      radius: bh / 2
+      background: tint
+      align: end
+      Row {
+        gap: 8
+        align: center
+        Text { text: text; font: cabin; fontSize: 14; fontWeight: 600; letterSpacing: 1; color: label; maxLines: 1 }
+        Box { size: bh; radius: bh / 2; background: mix(tint, ink, 0.3) }
+      }
+    }
+  }
+
+  // A fish swimming the width of the page and back, its tail beating, bubbles rising from its mouth.
+  component Fish() {
+    Canvas {
+      fill: width
+      height: 58
+      let ph = time * 0.22
+      let fx = width / 2 + (width / 2 - 46) * sin(ph)
+      let fy = 30 + sin(time * 1.3) * 7
+      let dir = cos(ph) >= 0 ? 1 : -1
+      for k in range(4) {
+        let up = (time * 14 + k * 13) % 52
+        circle(fx + dir * 26 + sin(time * 2 + k) * 3 - dir * up * 0.4, fy - up * 0.5, 2.4 - up / 40, stroke: alpha(cream, 0.7 - up / 80), width: 1.4)
+      }
+      scale(dir, 1, fx, fy) {
+        rotate(sin(time * 7) * 14, fx - 18, fy) {
+          path([[fx - 18, fy], [fx - 34, fy - 11], [fx - 31, fy], [fx - 34, fy + 11]], closed: true, fill: amber)
+        }
+        path([[fx - 4, fy - 11], [fx + 6, fy - 19], [fx + 9, fy - 9]], closed: true, fill: amber)
+        path(range(20).map(i => [fx + 22 * cos(rad(i * 18)), fy + 12 * sin(rad(i * 18))]), closed: true, fill: gold)
+        path([[fx - 2, fy + 2], [fx + 8, fy + 2], [fx + 3, fy + 9]], closed: true, fill: amber)
+        circle(fx + 12, fy - 3, 4, fill: cream)
+        circle(fx + 13, fy - 3, 2, fill: navy)
+      }
+    }
+  }
+
+  // What's playing: the cover in a cream frame, the title and the artist, an equaliser and the keys.
+  component Audio() {
+    Column {
+      fill: width
+      gap: 10
+      Caption { t: "NOW PLAYING"; note: has ? upper(player) : ""; padding: [22 + screenLeft, 0, 22 + screenRight, 0] }
+      Row {
+        fill: width
+        gap: 16
+        align: center
+        padding: [22 + screenLeft, 0, 22 + screenRight, 0]
+        Box {
+          size: wide ? 96 : 128
+          radius: 8
+          background: cream
+          padding: 5
+          onTap: { haptic(); media("open") }
+          Box {
+            fill: true
+            radius: 4
+            clip: true
+            background: mix(navy, cream, 0.12)
+            align: center
+            if has && mp.art != null {
+              Image { src: mp.art; fit: cover; fill: true }
+            } else {
+              Canvas {
+                fill: true
+                for i in range(4) { circle(width / 2, height / 2, width * (0.1 + i * 0.1), stroke: alpha(cream, 0.5 - i * 0.1), width: 2) }
+                circle(width / 2, height / 2, 4, fill: gold)
+              }
+            }
+          }
+        }
+        Column {
+          weight: 1
+          gap: 3
+          Text { text: !has ? (mp.available == false ? "NO ACCESS" : "SILENCE") : playing ? "PLAYING" : "PAUSED"; font: cabin; fontSize: 12; fontWeight: 700; letterSpacing: 2.5; color: playing ? aqua : alpha(cream, 0.6) }
+          Text { text: has ? mp.title : mp.available == false ? "Allow notification access to see music here" : "Play something and it shows here"; font: cabin; fontSize: has ? 22 : 16; fontWeight: 600; color: cream; maxLines: 3 }
+          if has {
+            Text { text: upper(mp.artist ?? mp.album ?? ""); font: cabin; fontSize: 13.5; fontWeight: 600; letterSpacing: 1.5; color: label; maxLines: 2 }
+          }
+        }
+      }
+      // The equaliser: cream bars that dance while it plays and lie down when it doesn't.
+      Canvas {
+        fill: width
+        height: 44
+        let k = 28
+        let x0 = 22 + screenLeft
+        let bw = (width - x0 - 22 - screenRight) / k
+        for i in range(k) {
+          let h = playing ? 4 + (sin(time * (3.1 + hash(i, 1) * 3) + i * 1.7) * 0.5 + 0.5) * (sin(time * 1.3 + i * 0.4) * 0.3 + 0.7) * (height - 4) : 4
+          rect(x0 + i * bw + 1.5, height - h, bw - 3, h, radius: 2, fill: i % 7 == 3 ? gold : alpha(cream, 0.8))
+        }
+      }
+      Row {
+        fill: width
+        gap: 6
+        padding: [22 + screenLeft, 0, 22 + screenRight, 0]
+        Box { weight: 1; onTap: { haptic(); media("previous") }; Pill { text: "PREV"; tint: indigo } }
+        Box { weight: 1.3; onTap: { haptic(); if has { media("toggle") } else if spotify != null { androidApp(spotify.key) } else { media("open") } }; Pill { text: playing ? "PAUSE" : "PLAY"; tint: playing ? crimson : leaf } }
+        Box { weight: 1; onTap: { haptic(); media("next") }; Pill { text: "NEXT"; tint: indigo } }
+      }
+    }
+  }
+
+  // The volume in ten rising steps: tap one to set it; the mute key beside them.
+  component Volume() {
+    Column {
+      fill: width
+      gap: 8
+      padding: [22 + screenLeft, 0, 22 + screenRight, 0]
+      Caption { t: vol.muted ? "VOLUME · MUTED" : "VOLUME · ${volLv}%"; note: upper(vol.output.name ?? vol.output.type ?? "") }
+      Row {
+        fill: width
+        gap: 12
+        align: bottom
+        Row {
+          weight: 1
+          height: 30
+          gap: 4
+          align: bottom
+          for i in range(10) {
+            Box {
+              weight: 1
+              height: 30
+              align: bottom
+              ripple: false
+              onTap: { haptic(); volume((i + 1) * 10) }
+              Box { fill: width; height: 6 + i * 2.6; radius: 3; background: !vol.muted && volLv > i * 10 ? (i >= 8 ? amber : label) : alpha(cream, 0.16) }
+            }
+          }
+        }
+        Box { width: 118; onTap: { haptic(); volume("toggle") }; Pill { text: vol.muted == true ? "UNMUTE" : "MUTE"; tint: vol.muted == true ? crimson : plum } }
+      }
+    }
+  }
+
+  // ---- this page's index: the newest notifications and all of them, as menu bars that open ----
+  // Tap a notification and the stack folds into short tabs, each its app's name, as the film's menu stands; a bar runs
+  // out from under the open one's knob with what it says, and what can be done with it rises above: open it, its own
+  // buttons, snooze it or dismiss it. Hold one to dismiss it at once. The open bar is kept by its key.
+  state selId = null
+  state lastId = null
+  let base = (!n.available ? [{id: "access", t: "ALLOW NOTIFICATION ACCESS", s: "ACCESS", c: crimson, go: "access"}]
+    : notes.map(item => {
+        id: item.key,
+        key: item.key,
+        t: upper(item.title == "" ? item.app : item.title),
+        t2: item.text == "" ? item.app : item.text,
+        n: upper(fmtAgo(item.time, now)),
+        s: upper(item.app ?? ""),
+        icon: item.icon,
+        h: upper(item.title == "" ? item.app : item.title),
+        h2: item.text,
+        items: [{t: "OPEN", k: "open"}]
+          + range(len(item.actions ?? [])).filter(i => !item.actions[i].reply).take(2).map(i => {t: upper(item.actions[i].title), k: "act", a: i})
+          + [{t: "SNOOZE 1H", k: "snooze"}]
+          + (item.clearable != false ? [{t: "DISMISS", k: "dismiss"}] : [])
+      }))
+    + (!n.available ? [] : [{
+        id: "all",
+        t: n.count == 0 ? "ALL QUIET ON THE SUB-ETHA" : n.count > 4 ? "ALL ${n.count} · ${n.count - 4} MORE" : "ALL OF THEM",
+        s: "ALL",
+        c: indigo,
+        h: n.count == 0 ? "NOTHING NEW" : n.count == 1 ? "1 NOTIFICATION" : "${n.count} NOTIFICATIONS",
+        items: (n.count == 0 ? [] : [{t: "SNOOZE ALL 1H", k: "snoozeAll"}, {t: "CLEAR ALL", k: "clear"}]) + [{t: "UNSNOOZE ALL", k: "unsnooze"}, {t: "SETTINGS", k: "nset"}]
+      }])
+  let rows = range(len(base)).map(i => merge(base[i], {w: barW - i * 10, c: base[i].c ?? barColors[(i + 2) % 8]}))
+  let nRows = len(rows)
+  let ids = rows.map(r => r.id)
+  let openI = selId == null ? -1 : indexOf(ids, selId)
+  let lastI = max(0, indexOf(ids, lastId))
+  let lastRow = rows[lastI] ?? {}
+  let lastItems = lastRow.items ?? []
+  let rh = 46
+  let p = 50
+  let pe = bh + 4
+  let shortW = min(W * 0.42, 180)
+  let connEnd = W - 20 - screenRight
+  let subW = min(connEnd - shortW - 34, 230)
+  let listH = (nRows - 1) * p + rh
+
+  // Over the whole page, standing on the tabs: the rows, the bar that runs out and the entries above it.
+  component Index() {
+    Box {
+      fill: true
+      align: bottomStart
+      padding: [0, 0, 0, tabsH + screenInset + 6]
+      // While a bar is open, the page behind it fades back under a veil of its own colour, so the menu stands clear
+      // of what it covers, and a tap anywhere else closes it.
+      Box { fill: true; background: alpha(navy, 0.7); opacity: openI >= 0 ? 1 : 0; animate opacity: tween(300ms, "ease") }
+      if openI >= 0 {
+        Box { fill: true; ripple: false; onTap: selId = null }
+      }
+      Box {
+        width: connEnd + 18
+        height: rh
+        radius: rh / 2
+        offset: [openI >= 0 ? -18 : -(connEnd + 80), -(nRows - 1 - lastI) * p]
+        animate offset: tween(420ms, "out")
+        background: barColors[(lastI + 5) % 8]
+        animate background: tween(300ms, "ease")
+        Row {
+          fill: true
+          gap: 10
+          align: center
+          padding: [shortW + 44, 0, 0, 0]
+          Column {
+            weight: 1
+            gap: 0
+            Text { text: lastRow.h ?? ""; font: cabin; fontSize: 14; fontWeight: 600; letterSpacing: 0.5; color: label; maxLines: 1; align: end }
+            if (lastRow.h2 ?? "") != "" {
+              Text { text: lastRow.h2; font: cabin; fontSize: 12; color: cream; maxLines: 1; align: end }
+            }
+          }
+          Box {
+            size: rh
+            radius: rh / 2
+            background: mix(barColors[(lastI + 5) % 8], ink, 0.3)
+            align: center
+            if lastRow.icon != null {
+              Box { size: 28; radius: 14; background: cream; align: center; Image { src: lastRow.icon; size: 18 } }
+            }
+          }
+        }
+      }
+      for j in range(6) {
+        Box {
+          width: subW
+          height: bh
+          radius: bh / 2
+          offset: openI >= 0 && j < len(lastItems) ? [connEnd - subW, -((nRows - 1 - lastI) * p + rh + 4 + j * pe)] : [W + 40, -(nRows - 1 - lastI) * p]
+          animate offset: spring(0.72, 520 - j * 60)
+          opacity: openI >= 0 && j < len(lastItems) ? 1 : 0
+          animate opacity: tween(260ms, "ease")
+          background: barColors[(j + lastI + 3) % 8]
+          align: end
+          ripple: openI >= 0 && j < len(lastItems)
+          onTap: if openI >= 0 && j < len(lastItems) {
+            haptic()
+            let it = lastItems[j]
+            let k = lastRow.key
+            if it.k == "open" { notification("open", k); selId = null }
+            else if it.k == "act" { notification("action", k, it.a); selId = null }
+            else if it.k == "snooze" { notification("snooze", k, 3600); selId = null }
+            else if it.k == "dismiss" { notification("dismiss", k); selId = null }
+            else if it.k == "snoozeAll" { notification("snoozeAll", 3600); selId = null }
+            else if it.k == "clear" { notification("clear"); selId = null }
+            else if it.k == "unsnooze" { notification("unsnoozeAll"); selId = null }
+            else if it.k == "nset" { settings("notifications"); selId = null }
+          }
+          Row {
+            fill: true
+            gap: 8
+            align: center
+            padding: [14, 0, 0, 0]
+            Text { text: lastItems[j].t ?? ""; font: cabin; fontSize: 14; fontWeight: 600; letterSpacing: 1; color: label; maxLines: 1; weight: 1; align: end }
+            Box { size: bh; radius: bh / 2; background: mix(barColors[(j + lastI + 3) % 8], ink, 0.3) }
+          }
+        }
+      }
+      for r, i in rows key r.id {
+        Box {
+          width: r.w + 18
+          height: rh
+          radius: rh / 2
+          offset: [-18 + (openI >= 0 ? shortW - r.w : 0) + (i == openI ? 14 : 0) + 3 * sin(beat * 1.3 + i * 2.1), -(nRows - 1 - i) * p]
+          animate offset: tween(650ms, "ease")
+          background: r.c
+          onTap: { haptic(); if r.go == "access" { notification("open", "") } else if openI == i { selId = null } else { selId = r.id; lastId = r.id } }
+          onLongPress: if r.key != null { haptic(); notification("dismiss", r.key) }
+          Row {
+            fill: true
+            gap: 10
+            align: center
+            padding: [32, 0, 0, 0]
+            if openI < 0 {
+              Column {
+                weight: 1
+                gap: 0
+                Text { text: r.t; font: cabin; fontSize: 14.5; fontWeight: 600; letterSpacing: 0.5; color: label; maxLines: 1 }
+                if (r.t2 ?? "") != "" {
+                  Text { text: r.t2; font: cabin; fontSize: 12.5; color: cream; maxLines: 1 }
+                }
+              }
+              if (r.n ?? "") != "" {
+                Text { text: r.n; font: cabin; fontSize: 12; fontWeight: 700; color: alpha(cream, 0.85) }
+              }
+            } else {
+              Text { text: r.s; font: cabin; fontSize: 14.5; fontWeight: i == openI ? 700 : 500; letterSpacing: 1; color: i == openI ? cream : label; maxLines: 1; align: end; weight: 1 }
+            }
+            Box {
+              size: rh
+              radius: rh / 2
+              background: mix(r.c, ink, 0.3)
+              align: center
+              scale: i == openI && tick % 2 == 0 ? 0.84 : 1
+              animate scale: tween(900ms, "ease")
+              if r.icon != null {
+                Box { size: 28; radius: 14; background: cream; align: center; Image { src: r.icon; size: 18 } }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // The notifications' heading; the rows themselves are drawn by Index, over the page, and this keeps their room.
+  component News() {
+    Column {
+      fill: width
+      gap: 4
+      Caption { t: "WHAT'S NEW"; note: !n.available ? "" : n.count == 0 ? "NOTHING" : "${n.count}"; padding: [22 + screenLeft, 0, 22 + screenRight, 0] }
+      Spacer { height: listH }
+    }
+  }
+
+  Box {
+    fill: true
+    Paper { base: navy; stars: 0.9 }
+    Column {
+      fill: true
+      gap: 0
+      Band { q: "WHAT'S UP ?" }
+      if wide {
+        Row {
+          weight: 1
+          fill: width
+          gap: 0
+          Column { weight: 1; gap: 14; Fish { }; Audio { }; Spacer { weight: 1 } }
+          Column { weight: 1; gap: 14; padding: [0, 14, 0, 0]; Volume { }; Spacer { weight: 1 } }
+        }
+        News { }
+      } else {
+        Column {
+          weight: 1
+          fill: width
+          gap: 0
+          Fish { }
+          Audio { }
+          Spacer { weight: 1 }
+          Volume { }
+          Spacer { weight: 1 }
+          News { }
+        }
+      }
+      Spacer { height: 6 }
+      Tabs { here: 2 }
+      Spacer { height: screenInset }
+    }
+    Index { }
+  }
+}

@@ -1,0 +1,675 @@
+face "the guide who" {
+  // The Guide, page two of four (see guide.owl for the look): WHO is at work. How many agents run, at a little desk
+  // whose screen ticks over while one works, whose tea steams and whose plant sways; Claude Code's 5-hour and weekly
+  // limits; Codex's plan and limits; and the latest sessions of both, to resume with a tap.
+
+  meta { owl: 19 }
+  requires { pacman: ["bash", "coreutils", "grep", "sed", "curl", "jq", "procps-ng"] }
+
+  source now = clock every 5s
+  source bat = android.battery
+  source ag = android.agents
+
+  // Claude Code's running sessions: each registers itself in ~/.claude/sessions/<pid>.json while its process lives.
+  source cs = cmd("""
+    sep=""
+    printf '['
+    for f in ~/.claude/sessions/*.json; do
+      [ -e "$f" ] || continue
+      p=${f##*/}; p=${p%.json}
+      case $p in ''|*[!0-9]*) continue ;; esac
+      [ -d /proc/$p ] || continue
+      printf '%s' "$sep"; tr -d '\n' < "$f"; sep=,
+    done
+    printf ']\n'
+  """) every 10s json optional
+
+  // Claude Code's limits, as /usage shows them, with the login Claude Code keeps; the last good answer is kept.
+  source cl = cmd("""
+    c=~/.cache/guide-claude-usage.json
+    mkdir -p ~/.cache
+    t=$(tr -d '\n' 2>/dev/null < ~/.claude/.credentials.json | grep -o '"accessToken" *: *"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
+    [ -n "$t" ] || { echo '{"error":"no login"}'; exit 0; }
+    code=$(printf 'Authorization: Bearer %s\n' "$t" | curl -s -m 15 -o "$c.new" -w '%{http_code}' -H @- -H 'anthropic-beta: oauth-2025-04-20' https://api.anthropic.com/api/oauth/usage)
+    [ "$code" = 200 ] && mv "$c.new" "$c"
+    rm -f "$c.new"
+    cat "$c" 2>/dev/null || echo '{"error":"offline"}'
+  """) every 10m json timeout 30s optional
+
+  // Claude Code's latest sessions, from its transcripts: the folder, the title Claude gave each and when it was last
+  // written. One that isn't running now opens where it left off.
+  source ch = cmd("""
+    sep=""
+    printf '['
+    for f in $(ls -t ~/.claude/projects/*/*.jsonl 2>/dev/null | head -8); do
+      id=${f##*/}; id=${id%.jsonl}
+      w=$(grep -m1 -o '"cwd":"\([^"\\]\|\\.\)*"' "$f" | sed 's/^"cwd"://')
+      t=$(tail -c 300000 "$f" | grep -o '"aiTitle":"\([^"\\]\|\\.\)*"' | tail -1 | sed 's/^"aiTitle"://')
+      [ -n "$t" ] || t=$(grep -m1 -o '"aiTitle":"\([^"\\]\|\\.\)*"' "$f" | sed 's/^"aiTitle"://')
+      printf '%s{"id":"%s","cwd":%s,"title":%s,"mtime":%s}' "$sep" "$id" "${w:-null}" "${t:-null}" "$(stat -c %Y "$f")"
+      sep=,
+    done
+    printf ']\n'
+  """) every 60s json timeout 20s optional
+
+  // The latest four Codex sessions, from its rollout logs: folder, first prompt, model, how full the context is and
+  // when it last wrote; and how many codex processes run.
+  source xs = cmd("""
+    n=$(pgrep -x codex 2>/dev/null | wc -l)
+    ls -t ~/.codex/sessions/*/*/*/rollout-*.jsonl 2>/dev/null | head -4 | while read -r f; do
+      jq -cs --arg m "$(stat -c %Y "$f")" '
+        (map(select(.type == "session_meta"))[0].payload) as $s |
+        ([.[] | select(.type == "event_msg" and .payload.type == "token_count" and .payload.info != null) | .payload.info] | last) as $i |
+        {id: $s.id, cwd: $s.cwd,
+         title: ([.[] | select(.type == "event_msg" and .payload.type == "user_message") | .payload.message][0] // null),
+         model: ([.[] | select(.type == "turn_context") | .payload.model] | last),
+         ctx: (if $i == null or $i.model_context_window == null then null else ($i.last_token_usage.total_tokens / $i.model_context_window * 100) end),
+         mtime: ($m | tonumber)}' "$f" 2>/dev/null
+    done | jq -cs --argjson n "$n" '{running: $n, sessions: .}'
+  """) every 30s json timeout 20s optional
+
+  // ChatGPT's plan and its 5-hour and weekly limits, with the ChatGPT login Codex CLI keeps (codex login).
+  source gu = cmd("""
+    a=$(tr -d '\n' 2>/dev/null < ~/.codex/auth.json)
+    t=$(printf '%s' "$a" | grep -o '"access_token" *: *"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
+    u=$(printf '%s' "$a" | grep -o '"account_id" *: *"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
+    [ -n "$t" ] || { echo '{"error":"no login"}'; exit 0; }
+    r=$(printf 'Authorization: Bearer %s\nChatGPT-Account-Id: %s\n' "$t" "$u" | curl -s -m 15 -A 'omarchy-widgets/guide' -H @- -H 'Accept: application/json' https://chatgpt.com/backend-api/wham/usage)
+    case $r in '{'*) printf '%s\n' "$r" ;; *) echo '{"error":"offline"}' ;; esac
+  """) every 15m json timeout 30s optional
+
+  statusBar: false
+  edge: true
+  padding: 0
+  fps: 20
+
+  state tick = 0
+  every 1s { tick = tick + 1 }
+
+  // ---- the Guide's look, the same on all four pages ----
+  // Cabin, a humanist sans after Gill and Johnston, like the Guide's lettering.
+  let cabin = "https://raw.githubusercontent.com/google/fonts/main/ofl/cabin/Cabin%5Bwdth,wght%5D.ttf"
+  // The colours, picked from frames of the film.
+  let band = #C29632
+  let mustard = #C9A640
+  let rasp = #8B3756
+  let teal = #1F8768
+  let navy = #0C1834
+  let cream = #F0E3C4
+  let label = #EDCB57
+  let gold = #F2BF3A
+  let crumbBlue = #3A8FC4
+  let crumbPlum = #7B2D5A
+  let violet = #5B47B5
+  let aqua = #33BE95
+  let leaf = #4FAE30
+  let amber = #C77A18
+  let crimson = #A42F4C
+  let plum = #6E1A5E
+  let cobalt = #2F7DB8
+  let indigo = #43409C
+  let ink = #000000
+  let tabs = [{t: "WHEN", c: violet}, {t: "WHO", c: aqua}, {t: "WHAT", c: leaf}, {t: "WHERE", c: amber}]
+  let barColors = [violet, aqua, leaf, amber, crimson, plum, cobalt, indigo]
+
+  let W = tileWidth ?? 420
+  let H = tileHeight ?? 933
+  let wide = W > H
+  let beat = floor(tick / 2)
+  // Menu bars' height, and the room the knob takes.
+  let bh = 30
+  // The tabs' height: the menus that open stand on them.
+  let tabsH = 44
+
+  // The field: one flat colour, with paper blotches and film grain that changes twelve times a second, and stars
+  // where `stars` says so.
+  component Paper(base, stars = 0) {
+    Shader {
+      fill: true
+      fallback: base
+      uniforms: { base: base, star: cream, grain: 0.05, stars: stars }
+      code: """
+        uniform half4 base;
+        uniform half4 star;
+        uniform float grain;
+        uniform float stars;
+        float h21(float2 q) {
+          float3 p3 = fract(float3(q.xyx) * 0.1031);
+          p3 += dot(p3, p3.yzx + 33.33);
+          return fract((p3.x + p3.y) * p3.z);
+        }
+        float vn(float2 q) {
+          float2 i = floor(q);
+          float2 f = fract(q);
+          float2 u = f * f * (3.0 - 2.0 * f);
+          return mix(mix(h21(i), h21(i + float2(1.0, 0.0)), u.x), mix(h21(i + float2(0.0, 1.0)), h21(i + float2(1.0, 1.0)), u.x), u.y);
+        }
+        half4 main(float2 p) {
+          float t = floor(time * 12.0);
+          float paper = vn(p / 140.0) * 0.6 + vn(p / 31.0) * 0.4;
+          float g = h21(floor(p / 2.0) + float2(t * 17.0, t * 5.0));
+          float3 c = float3(base.rgb) * (0.95 + paper * 0.09) + (g - 0.5) * grain;
+          if (stars > 0.0) {
+            float2 cell = floor(p / 64.0);
+            float r = h21(cell + 3.1);
+            if (r > 0.82) {
+              float2 sp = (cell + float2(0.2 + 0.6 * h21(cell + 7.7), 0.2 + 0.6 * h21(cell + 9.3))) * 64.0;
+              float d = length(p - sp);
+              float tw = 0.5 + 0.5 * sin(time * (0.8 + r * 2.0) + r * 40.0);
+              c = mix(c, float3(star.rgb), smoothstep(3.5, 1.0, d) * tw * stars);
+            }
+          }
+          return half4(half3(c), 1.0);
+        }
+      """
+    }
+  }
+
+  // The mustard band at the top: the breadcrumb, THE GUIDE over this page's question, and the battery and the time.
+  component Band(q) {
+    Column {
+      fill: width
+      gap: 0
+      background: band
+      Spacer { height: screenTop + 8 }
+      Row {
+        fill: width
+        height: 28
+        gap: 0
+        align: center
+        Box {
+          width: 184 + len(q) * 8.6
+          height: 28
+          align: topStart
+          // The page's pill runs out from under THE GUIDE.
+          Box {
+            width: 48 + len(q) * 8.6
+            height: 28
+            radius: 14
+            offset: [136, 0]
+            background: crumbPlum
+            align: end
+            padding: [0, 0, 13, 0]
+            Text { text: q; font: cabin; fontSize: 15; fontWeight: 500; letterSpacing: 1; color: label; maxLines: 1; align: end }
+          }
+          Box {
+            width: 168
+            height: 28
+            radius: 14
+            offset: [-16, 0]
+            background: crumbBlue
+            align: start
+            padding: [32, 0, 0, 0]
+            Text { text: "THE GUIDE"; font: cabin; fontSize: 15.5; fontWeight: 700; letterSpacing: 1; color: label; maxLines: 1 }
+          }
+        }
+        Spacer { weight: 1 }
+        Text {
+          text: (bat.level == null ? "" : "${bat.level}%" + (bat.charging ? " +" : "") + "   ") + fmtTime(now, "HH:mm")
+          font: cabin; fontSize: 13.5; fontWeight: 600; letterSpacing: 1
+          color: bat.level != null && bat.level < 20 && !bat.charging ? crimson : mix(band, ink, 0.55)
+          maxLines: 1
+          padding: [0, 0, 16 + screenRight, 0]
+        }
+      }
+      Spacer { height: 10 }
+    }
+  }
+
+  // The four pages as menu bars along the foot, this one long and lit with its knob beating: swipe to the others.
+  component Tabs(here) {
+    Row {
+      fill: width
+      height: tabsH
+      gap: 5
+      align: center
+      padding: [8 + screenLeft, 6, 8 + screenRight, 8]
+      for tb, i in tabs {
+        Box {
+          weight: i == here ? 1.45 : 1
+          height: 30
+          radius: 15
+          background: tb.c
+          align: end
+          Row {
+            gap: 4
+            align: center
+            Text { text: tb.t; font: cabin; fontSize: 13; fontWeight: i == here ? 700 : 500; letterSpacing: 0.5; color: i == here ? cream : label; maxLines: 1 }
+            // This page's knob beats, slowly.
+            Box { size: 28; radius: 14; background: mix(tb.c, ink, i == 1 ? 0.5 : 0.3); scale: i == here && tick % 2 == 0 ? 0.78 : 1; animate scale: tween(900ms, "ease") }
+          }
+        }
+      }
+    }
+  }
+
+  // A menu bar running in from the left edge: a note at its start, its label at its end by the knob. `wob` shifts it a
+  // few dp, so a stack of them seems to breathe.
+  component Bar(text, tint, w, note = "", wob = 0) {
+    Box {
+      width: w + 18
+      height: bh
+      offset: [-18 + wob, 0]
+      animate offset: tween(1900ms, "ease")
+      background: tint
+      radius: bh / 2
+      Row {
+        fill: true
+        gap: 8
+        align: center
+        padding: [30, 0, 0, 0]
+        if note != "" {
+          Text { text: note; font: cabin; fontSize: 13; fontWeight: 700; letterSpacing: 0.5; color: cream; maxLines: 1 }
+        }
+        Text { text: text; font: cabin; fontSize: 15; fontWeight: 500; letterSpacing: 1; color: label; maxLines: 1; align: end; weight: 1 }
+        Box { size: bh; radius: bh / 2; background: mix(tint, ink, 0.3) }
+      }
+    }
+  }
+
+  // A heading: small capitals in cream, spaced out, like the Guide's captions.
+  component Caption(t, note = "") {
+    Row {
+      fill: width
+      gap: 8
+      Text { text: t; font: cabin; fontSize: 12.5; fontWeight: 600; letterSpacing: 2.5; color: alpha(cream, 0.85); maxLines: 1; weight: 1 }
+      Text { text: note; font: cabin; fontSize: 12.5; fontWeight: 500; letterSpacing: 1.5; color: alpha(cream, 0.6); maxLines: 1 }
+    }
+  }
+
+  // ---- this page ----
+  let agents = ag.installed ?? []
+  let barW = min(W * 0.82, 380)
+
+  let sess = (cs ?? []).sortBy(s => s.status == "idle" ? 1 : 0)
+  let busy = len(sess.filter(s => s.status != "idle"))
+  let lims = cl.limits ?? []
+  let five = lims.find(l => l.kind == "session")
+  let week = lims.find(l => l.kind == "weekly_all")
+  // A weekly limit of one model's own, like Fable's, when the plan has one.
+  let scoped = lims.find(l => l.kind == "weekly_scoped")
+  let scopedName = upper(scoped.scope.model.display_name ?? scoped.scope.surface ?? "scoped")
+  let clErr = !linux ? "NO LINUX" : cl == null ? null : upper(cl.error ?? (cl.limits == null ? "offline" : ""))
+  let rl = gu.rate_limit
+  let gptErr = !linux ? "NO LINUX" : gu == null ? null : gu.error != null ? upper(gu.error) : rl == null ? "OFFLINE" : null
+  let gpt5 = rl.primary_window
+  let gptWk = rl.secondary_window
+  let gpt5Reset = gpt5.reset_at ?? (gpt5.reset_after_seconds == null ? null : now + gpt5.reset_after_seconds)
+  // Minutes until the short limits reset.
+  let fiveIn = max(0, floor((num(parseTime(five.resets_at ?? ""), now) - now) / 60))
+  let gpt5In = max(0, floor((num(gpt5Reset, now) - now) / 60))
+  let gptWkReset = gptWk.reset_at ?? (gptWk.reset_after_seconds == null ? null : now + gptWk.reset_after_seconds)
+  // Each limit's name from its length, as plans differ: 5 hours and a week on paid plans, 30 days on free.
+  let g1s = num(gpt5.limit_window_seconds, 18000)
+  let g2s = num(gptWk.limit_window_seconds, 604800)
+  let gpt5Name = g1s < 86400 ? "${round(g1s / 3600)} HOURS" : g1s < 518400 ? "${round(g1s / 86400)} DAYS" : g1s <= 691200 ? "WEEK" : g1s <= 2851200 ? "MONTH" : "${round(g1s / 86400)} DAYS"
+  let gptWkName = g2s < 86400 ? "${round(g2s / 3600)} HOURS" : g2s < 518400 ? "${round(g2s / 86400)} DAYS" : g2s <= 691200 ? "WEEK" : g2s <= 2851200 ? "MONTH" : "${round(g2s / 86400)} DAYS"
+
+  let xsess = (xs.sessions ?? []).filter(x => x != null && x.id != null)
+  let xRunning = num(xs.running, 0)
+  let hist = (ch ?? []).filter(h => h != null && h.id != null)
+  let past = hist.filter(h => !sess.any(s => s.sessionId == h.id))
+  // Claude's running sessions first, then the latest past ones of Claude and Codex, newest first; four in all.
+  let running = sess.map(s => {
+    kind: "claude",
+    run: true,
+    name: (hist.find(h => h.id == s.sessionId)).title ?? s.name ?? "claude",
+    cwd: s.cwd ?? "",
+    note: s.status == "idle" ? "IDLE" : upper(s.status ?? "busy"),
+    hot: s.status != "idle",
+    id: s.sessionId,
+    last: now
+  })
+  let resumable = (past.map(h => {
+    kind: "claude",
+    run: false,
+    name: h.title ?? "claude code session",
+    cwd: h.cwd ?? "",
+    note: h.mtime == null ? "" : upper(fmtAgo(h.mtime, now)),
+    hot: false,
+    id: h.id,
+    last: num(h.mtime, 0)
+  }) + xsess.map(x => {
+    kind: "codex",
+    run: false,
+    name: trim(first(lines(x.title ?? "")) ?? "") == "" ? "codex session" : trim(first(lines(x.title))),
+    cwd: x.cwd ?? "",
+    note: x.mtime == null ? "" : now - x.mtime < 180 ? "ACTIVE" : upper(fmtAgo(x.mtime, now)),
+    hot: x.mtime != null && now - x.mtime < 180,
+    id: x.id,
+    last: num(x.mtime, 0)
+  })).sortBy(r => -r.last)
+  let strips = (running + resumable).take(4)
+  let working = busy > 0 || xRunning > 0
+
+  // A limit: its name and what's used over a track; in the track a bar runs in from the left edge as far as it's used,
+  // its knob at the end, crimson past ninety.
+  component Meter(name, pct, note, tint) {
+    Column {
+      fill: width
+      gap: 5
+      let p = clamp(num(pct, 0), 0, 100)
+      let e = 26 + p / 100 * (barW - 26)
+      let c = p >= 90 ? crimson : tint
+      Row {
+        fill: width
+        gap: 8
+        align: bottom
+        padding: [22 + screenLeft, 0, 22 + screenRight, 0]
+        Text { text: name; font: cabin; fontSize: 13; fontWeight: 700; letterSpacing: 2; color: cream; maxLines: 1 }
+        Text { text: note ?? ""; font: cabin; fontSize: 11.5; fontWeight: 500; letterSpacing: 1; color: alpha(cream, 0.7); maxLines: 1; weight: 1; align: end }
+        Text { text: pct == null ? "—" : "${round(pct)}%"; font: cabin; fontSize: 17; fontWeight: 700; color: p >= 90 ? label : cream; maxLines: 1 }
+      }
+      Box {
+        width: barW + 18
+        height: 24
+        offset: [-18, 0]
+        radius: 12
+        clip: true
+        background: alpha(ink, 0.2)
+        Box {
+          width: barW + 18
+          height: 24
+          radius: 12
+          background: c
+          align: end
+          offset: [e - barW + 2 * sin(beat * 1.1 + len(name)), 0]
+          animate offset: tween(1900ms, "ease")
+          Box { size: 24; radius: 12; background: mix(c, ink, 0.3) }
+        }
+      }
+    }
+  }
+
+  // The desk: a computer whose screen ticks over while an agent works and says 42 while none does, a mug of tea
+  // steaming, and a plant.
+  component Desk() {
+    Canvas {
+      width: 150
+      height: 124
+      let dy = height - 18
+      let dark = mix(teal, ink, 0.45)
+      // The desk.
+      rect(0, dy, width, 7, radius: 3.5, fill: cream)
+      line(14, dy + 7, 14, height, stroke: cream, width: 4)
+      line(width - 14, dy + 7, width - 14, height, stroke: cream, width: 4)
+      // The computer: a screen on a stand, and the keyboard.
+      rect(28, dy - 78, 86, 60, radius: 6, fill: cream)
+      rect(33, dy - 73, 76, 50, radius: 3, fill: dark)
+      rect(64, dy - 18, 14, 10, fill: cream)
+      rect(46, dy - 9, 50, 6, radius: 3, fill: mix(cream, teal, 0.3))
+      if working {
+        // Lines of work scrolling up the screen.
+        for k in range(5) {
+          let ly = dy - 66 + ((k * 9 - time * 9) % 45 + 45) % 45
+          rect(39, ly, 18 + hash(k, floor((time * 9 + k * 9) / 45)) * 44, 4, radius: 2, fill: alpha(aqua, 0.9))
+        }
+      } else {
+        text("42", 64, dy - 48, size: 22, align: center, font: cabin, fontWeight: 700, color: label)
+        if floor(time * 1.6) % 2 == 0 { rect(81, dy - 57, 7, 17, fill: label) }
+      }
+      // The mug, and its steam rising in two wisps.
+      rect(122, dy - 20, 15, 20, radius: 3, fill: amber)
+      circle(139, dy - 11, 5, stroke: amber, width: 3)
+      for k in range(2) {
+        let sx = 127 + k * 6
+        path(range(8).map(j => [sx + sin(time * 2.2 + j * 0.9 + k * 2) * 3, dy - 24 - j * 4.5]), stroke: alpha(cream, 0.55 - k * 0.15), width: 2.4, cap: round)
+      }
+      // The plant, swaying.
+      rect(2, dy - 16, 16, 16, radius: 2, fill: crimson)
+      for k in range(4) {
+        rotate(-40 + k * 26 + sin(time * 1.1 + k) * 5, 10, dy - 16) {
+          rect(7, dy - 44 + k * 2, 6, 28 - k * 2, radius: 3, fill: leaf)
+        }
+      }
+    }
+  }
+
+  // How many agents run, big, beside the desk.
+  component Crew() {
+    Row {
+      fill: width
+      gap: 10
+      align: bottom
+      padding: [22 + screenLeft, 0, 14 + screenRight, 0]
+      Box {
+        weight: 1
+        onTap: { haptic(); launcher("agents") }
+        Column {
+          fill: width
+          gap: 0
+          Caption { t: "AT WORK" }
+          Text { text: !linux ? "—" : cs == null ? "…" : str(len(sess) + xRunning); font: cabin; fontSize: 64; fontWeight: 500; letterSpacing: -1; color: cream; maxLines: 1 }
+          Text { text: len(sess) + xRunning == 1 ? "AGENT RUNNING" : "AGENTS RUNNING"; font: cabin; fontSize: 13; fontWeight: 600; letterSpacing: 1.5; color: label; maxLines: 1 }
+          Text {
+            text: !linux ? "LINUX IS OFFLINE" : working ? "${busy + (xRunning > 0 ? 1 : 0)} THINKING · ${len(sess)} CLAUDE · ${xRunning} CODEX" : "ALL QUIET · ${len(agents)} INSTALLED"
+            font: cabin; fontSize: 11.5; fontWeight: 500; letterSpacing: 1; color: alpha(cream, 0.75); maxLines: 1
+          }
+        }
+      }
+      Desk { }
+    }
+  }
+
+  component ClaudeBlock() {
+    Column {
+      fill: width
+      gap: 7
+      Box {
+        fill: width
+        onTap: { haptic(); androidApp("com.anthropic.claude") }
+        Caption { t: "CLAUDE CODE"; note: !linux ? "" : len(sess) == 0 ? "NO SESSIONS RUNNING" : "${len(sess)} RUNNING · ${busy} BUSY"; padding: [22 + screenLeft, 0, 22 + screenRight, 0] }
+      }
+      // No 5-hour window is open until the first message after the last one closed.
+      Meter { name: "5 HOURS"; pct: five == null && cl.limits != null ? 0 : five.percent; note: five == null ? (clErr == "" ? "NOT STARTED" : clErr) : five.resets_at == null ? "" : "RESETS IN " + (fiveIn >= 60 ? "${floor(fiveIn / 60)}H ${fiveIn % 60}M" : "${fiveIn}M"); tint: violet }
+      Meter { name: "WEEK"; pct: week.percent; note: week == null ? clErr : week.resets_at == null ? "" : "RESETS " + upper(fmtTime(parseTime(week.resets_at), "EEE HH:mm")); tint: plum }
+      if scoped != null {
+        Meter { name: "WEEK · ${scopedName}"; pct: scoped.percent; note: scoped.resets_at == null ? "" : "RESETS " + upper(fmtTime(parseTime(scoped.resets_at), "EEE HH:mm")); tint: amber }
+      }
+    }
+  }
+
+  component CodexBlock() {
+    Column {
+      fill: width
+      gap: 7
+      Box {
+        fill: width
+        // The ChatGPT app, where Codex lives on the phone; held, the usage page.
+        onTap: { haptic(); androidApp("com.openai.chatgpt") }
+        onLongPress: url("https://chatgpt.com/codex/settings/usage")
+        Caption { t: "CODEX" + (gptErr == null && gu.plan_type != null ? " · ${upper(gu.plan_type)}" : ""); note: gptErr ?? ""; padding: [22 + screenLeft, 0, 22 + screenRight, 0] }
+      }
+      Meter { name: gpt5Name; pct: gpt5.used_percent; note: gpt5Reset == null ? "" : gpt5Reset - now < 86400 ? "RESETS IN " + (gpt5In >= 60 ? "${floor(gpt5In / 60)}H ${gpt5In % 60}M" : "${gpt5In}M") : "RESETS " + upper(fmtTime(gpt5Reset, "EEE d MMM")); tint: leaf }
+      // A free plan has one limit only.
+      if gptWk != null || rl == null {
+        Meter { name: gptWkName; pct: gptWk.used_percent; note: gptWkReset == null ? "" : "RESETS " + upper(fmtTime(gptWkReset, "EEE HH:mm")); tint: cobalt }
+      }
+    }
+  }
+
+  // ---- this page's index: the latest sessions and a new one, as menu bars that open ----
+  // Tap a bar and the stack folds into short tabs, as the film's menu stands; a bar runs out from under the open one's
+  // knob with its title, and what can be done with it rises in a stack above. The open bar is kept by its id.
+  state selId = null
+  state lastId = null
+  let base = strips.map(s => {
+      id: s.id,
+      t: upper(s.name),
+      n: (s.kind == "codex" ? "CX" : "CC") + (s.note == "" ? "" : " · " + s.note),
+      s: (s.kind == "codex" ? "CX" : "CC") + (s.note == "" ? "" : " · " + s.note),
+      c: s.hot ? (s.kind == "codex" ? leaf : crimson) : null,
+      h: upper(s.name),
+      ses: s,
+      items: s.kind == "codex" ? [{t: "RESUME", k: "resumex"}, {t: "NEW CODEX HERE", k: "newx"}, {t: "SHELL HERE", k: "shell"}, {t: "COPY PATH", k: "copy"}]
+        : s.run ? [{t: "SHELL HERE", k: "shell"}, {t: "NEW CLAUDE HERE", k: "newc"}, {t: "COPY PATH", k: "copy"}]
+        : [{t: "RESUME", k: "resume"}, {t: "NEW CLAUDE HERE", k: "newc"}, {t: "SHELL HERE", k: "shell"}, {t: "COPY PATH", k: "copy"}]
+    }) + [{
+      id: "new",
+      t: "NEW SESSION",
+      n: "",
+      s: "NEW",
+      c: amber,
+      h: "WHO DOES IT",
+      items: [
+        {t: "CLAUDE", k: "android", a: "com.anthropic.claude"},
+        {t: "CODEX", k: "android", a: "com.openai.chatgpt"},
+        {t: "AGENT SETTINGS", k: "agents"}
+      ]
+    }]
+  // The menu's colours without aqua: darkened for a knob, aqua is this page's own teal.
+  let menuColors = [violet, leaf, amber, crimson, plum, cobalt, indigo]
+  let rows = range(len(base)).map(i => merge(base[i], {w: barW - i * 12, c: base[i].c ?? [plum, indigo, cobalt, violet][i % 4]}))
+  let nRows = len(rows)
+  let ids = rows.map(r => r.id)
+  let openI = selId == null ? -1 : indexOf(ids, selId)
+  let lastI = max(0, indexOf(ids, lastId))
+  let lastRow = rows[lastI] ?? {}
+  let lastItems = lastRow.items ?? []
+  let rh = bh
+  let p = bh + 3
+  let pe = bh + 4
+  let shortW = min(W * 0.36, 160)
+  let connEnd = W - 20 - screenRight
+  let subW = min(connEnd - shortW - 34, 230)
+  let listH = (nRows - 1) * p + rh
+
+  // Over the whole page, standing on the tabs: the rows, the bar that runs out and the entries above it.
+  component Index() {
+    Box {
+      fill: true
+      align: bottomStart
+      padding: [0, 0, 0, tabsH + screenInset + 6]
+      // While a bar is open, the page behind it fades back under a veil of its own colour, so the menu stands clear
+      // of what it covers, and a tap anywhere else closes it.
+      Box { fill: true; background: alpha(teal, 0.7); opacity: openI >= 0 ? 1 : 0; animate opacity: tween(300ms, "ease") }
+      if openI >= 0 {
+        Box { fill: true; ripple: false; onTap: selId = null }
+      }
+      Box {
+        width: connEnd + 18
+        height: rh
+        radius: rh / 2
+        offset: [openI >= 0 ? -18 : -(connEnd + 80), -(nRows - 1 - lastI) * p]
+        animate offset: tween(420ms, "out")
+        background: menuColors[(lastI + 2) % 7]
+        animate background: tween(300ms, "ease")
+        Row {
+          fill: true
+          gap: 8
+          align: center
+          padding: [shortW + 44, 0, 0, 0]
+          Text { text: lastRow.h ?? ""; font: cabin; fontSize: 14; fontWeight: 600; letterSpacing: 1; color: label; maxLines: 1; weight: 1; align: end }
+          Box { size: rh; radius: rh / 2; background: mix(menuColors[(lastI + 2) % 7], ink, 0.3) }
+        }
+      }
+      for j in range(6) {
+        Box {
+          width: subW
+          height: bh
+          radius: bh / 2
+          offset: openI >= 0 && j < len(lastItems) ? [connEnd - subW, -((nRows - 1 - lastI) * p + rh + 4 + j * pe)] : [W + 40, -(nRows - 1 - lastI) * p]
+          animate offset: spring(0.72, 520 - j * 60)
+          opacity: openI >= 0 && j < len(lastItems) ? 1 : 0
+          animate opacity: tween(260ms, "ease")
+          background: menuColors[(j + lastI + 4) % 7]
+          align: end
+          ripple: openI >= 0 && j < len(lastItems)
+          onTap: if openI >= 0 && j < len(lastItems) {
+            haptic()
+            let it = lastItems[j]
+            let ses = lastRow.ses
+            let dir = (ses.cwd ?? "") == "" ? "." : ses.cwd
+            if it.k == "resume" { terminal("cd ${sh(dir)} && claude --resume ${sh(ses.id)}", "claude"); selId = null }
+            else if it.k == "resumex" { terminal("cd ${sh(dir)} && codex resume ${sh(ses.id)}", "codex"); selId = null }
+            else if it.k == "newc" { terminal("cd ${sh(dir)} && claude", "claude"); selId = null }
+            else if it.k == "newx" { terminal("cd ${sh(dir)} && codex", "codex"); selId = null }
+            else if it.k == "shell" { terminal("cd ${sh(dir)} && exec bash -l", "shell"); selId = null }
+            else if it.k == "copy" { copy(dir) }
+            else if it.k == "open" { open(it.a); selId = null }
+            else if it.k == "android" { androidApp(it.a); selId = null }
+            else if it.k == "agents" { launcher("agents"); selId = null }
+          }
+          Row {
+            fill: true
+            gap: 8
+            align: center
+            padding: [14, 0, 0, 0]
+            Text { text: lastItems[j].t ?? ""; font: cabin; fontSize: 14; fontWeight: 600; letterSpacing: 1; color: label; maxLines: 1; weight: 1; align: end }
+            Box { size: bh; radius: bh / 2; background: mix(menuColors[(j + lastI + 4) % 7], ink, 0.3) }
+          }
+        }
+      }
+      for r, i in rows key r.id {
+        Box {
+          width: r.w + 18
+          height: rh
+          radius: rh / 2
+          offset: [-18 + (openI >= 0 ? shortW - r.w : 0) + (i == openI ? 14 : 0) + 3 * sin(beat * 1.3 + i * 2.1), -(nRows - 1 - i) * p]
+          animate offset: tween(650ms, "ease")
+          background: r.c
+          onTap: { haptic(); if openI == i { selId = null } else { selId = r.id; lastId = r.id } }
+          Row {
+            fill: true
+            gap: 8
+            align: center
+            padding: [30, 0, 0, 0]
+            if openI < 0 && (r.n ?? "") != "" {
+              Text { text: r.n; font: cabin; fontSize: 13; fontWeight: 700; letterSpacing: 0.5; color: cream; maxLines: 1 }
+            }
+            Text { text: openI >= 0 ? r.s : r.t; font: cabin; fontSize: 15; fontWeight: i == openI ? 700 : 500; letterSpacing: 1; color: i == openI ? cream : label; maxLines: 1; align: end; weight: 1 }
+            Box { size: rh; radius: rh / 2; background: mix(r.c, ink, 0.3); scale: i == openI && tick % 2 == 0 ? 0.78 : 1; animate scale: tween(900ms, "ease") }
+          }
+        }
+      }
+    }
+  }
+
+  // The sessions' heading; the rows themselves are drawn by Index, over the page, and this keeps their room.
+  component Sessions() {
+    Column {
+      fill: width
+      gap: 4
+      Caption { t: "SESSIONS"; note: xRunning > 0 ? "CODEX RUNNING" : ""; padding: [22 + screenLeft, 0, 22 + screenRight, 0] }
+      Spacer { height: listH }
+    }
+  }
+
+  Box {
+    fill: true
+    Paper { base: teal }
+    Column {
+      fill: true
+      gap: 0
+      Band { q: "WHO'S WORKING ?" }
+      if wide {
+        Row {
+          weight: 1
+          fill: width
+          gap: 0
+          Column { weight: 1; gap: 16; padding: [0, 12, 0, 0]; Crew { }; Spacer { weight: 1 } }
+          Column { weight: 1; gap: 16; padding: [0, 12, 0, 0]; ClaudeBlock { }; CodexBlock { }; Spacer { weight: 1 } }
+        }
+        Sessions { }
+      } else {
+        Column {
+          weight: 1
+          fill: width
+          gap: 0
+          padding: [0, 12, 0, 0]
+          Crew { }
+          Spacer { weight: 1 }
+          ClaudeBlock { }
+          Spacer { weight: 1 }
+          CodexBlock { }
+          Spacer { weight: 1 }
+          Sessions { }
+        }
+      }
+      Spacer { height: 6 }
+      Tabs { here: 1 }
+      Spacer { height: screenInset }
+    }
+    Index { }
+  }
+}
