@@ -1,5 +1,5 @@
 app "voxel rally" {
-  meta { owl: 22; description: "A 3D voxel racer: tilt the phone to steer, hold gas and brake, and race three rivals over eight tracks from a sunny circuit to a night city, jumps over a canyon, a glacier and a volcano, each harder than the last"; version: "1.1"; license: "MIT"; category: "games" }
+  meta { owl: 22; description: "A 3D voxel racer: tilt to steer, hold gas and brake, and race three rivals over eight tracks, from a sunny circuit to a night city, past a canyon, a glacier and a volcano"; version: "1.2"; license: "MIT"; category: "games" }
   // How it works: each track is a loop of 120 points round the middle of its world, from a radius that rises and
   // falls with a few sine waves (so it never crosses itself). The road, its curbs, the fences and the start line
   // are meshes built from those points once per track; the trees, rocks and mountains are boxes, put together into
@@ -18,7 +18,8 @@ app "voxel rally" {
   title: ""
   statusBar: false
   edge: true
-  fps: mode == "menu" || mode == "garage" ? 30 : 60
+  fps: mode == "menu" || mode == "garage" ? (modes.saver ? 15 : 30) : 60
+  source modes = android.modes
   icon: """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
     <rect width="256" height="256" rx="56" fill="#8ec9ee"/>
     <path d="M0 150H256V200A56 56 0 0 1 200 256H56A56 56 0 0 1 0 200Z" fill="#5fb04a"/>

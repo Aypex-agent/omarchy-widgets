@@ -1,5 +1,5 @@
 app "skyline bay" {
-  meta { owl: 22; description: "A 3D island city builder: lay roads, zone homes, shops and industry, bring power and water, add services and parks, and grow a hamlet into a skyline"; version: "1.8"; license: "MIT"; category: "games" }
+  meta { owl: 22; description: "A 3D island city builder: lay roads, zone homes, shops and industry, bring power and water, add services and parks, and grow a hamlet into a skyline"; version: "1.9"; license: "MIT"; category: "games" }
   // How it works. The island is 22 x 22 tiles, kept in two persisted lists: g (what's on a tile) and lv (how far a
   // zoned lot has grown, 0 to 3). Every 2 seconds a tick settles the cash, and lots with demand for their zone grow a
   // level if what they need is there: a road that reaches the highway, power, water (from level 2), land value
@@ -38,7 +38,8 @@ app "skyline bay" {
   statusBar: false
   edge: true
   // smooth under the finger (an app at 60 keeps full rate), easier on the battery while watching
-  fps: gm != 0 ? 60 : 30
+  fps: gm != 0 ? 60 : modes.saver ? 15 : 30
+  source modes = android.modes
   icon: """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
     <clipPath id="t"><rect width="256" height="256" rx="56"/></clipPath>
     <g clip-path="url(#t)">
