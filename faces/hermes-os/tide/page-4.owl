@@ -1,0 +1,695 @@
+face "tide · pond" {
+  // Tide's Pond page: a koi pond set into the wallpaper, rimmed with stones and tufts of grass, the wallpaper showing
+  // round its edge and blurred under the water as if seen through it. Koi in the theme's colours swim the whole pond,
+  // under the lily pads and under the cards floating on it. Tap the water to scatter food: each koi picks a pellet the
+  // others aren't after and races for it, keeping its distance from the rest. Tap a koi and it darts away.
+  // Floating over the bottom: a record player for what's playing (Spotify or any app), then the dock and the pages.
+  meta {
+    owl: 23
+    description: "Tide · Pond: a stone-rimmed koi pond to feed with a tap, under a record player for what's playing"
+    version: "1.1"
+    license: "MIT"
+    category: "fun"
+  }
+  edge: true
+  padding: 0
+  // Swimming is smooth at 24 frames a second; feeding, the koi dart and ripples spread, so 30.
+  fps: len(food) > 0 || len(rings) > 0 ? 30 : 24
+  asset i_water_drop = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgLTk2MCA5NjAgOTYwIiB3aWR0aD0iMjQiPjxwYXRoIGQ9Ik00ODAtODBxLTEzNyAwLTIyOC41LTk0VDE2MC00MDhxMC02MiAyOC0xMjR0NzAtMTE5cTQyLTU3IDkxLTEwN3Q5MS04N3E4LTggMTguNS0xMS41VDQ4MC04NjBxMTEgMCAyMS41IDMuNVQ1MjAtODQ1cTQyIDM3IDkxIDg3dDkxIDEwN3E0MiA1NyA3MCAxMTl0MjggMTI0cTAgMTQwLTkxLjUgMjM0VDQ4MC04MFptMTEtMTIwcTEyLTEgMjAuNS05LjVUNTIwLTIzMHEwLTE0LTktMjIuNXQtMjMtNy41cS00MSAzLTg3LTIyLjVUMzQzLTM3NXEtMi0xMS0xMC41LTE4dC0xOS41LTdxLTE0IDAtMjMgMTAuNXQtNiAyNC41cTE3IDkxIDgwIDEzMHQxMjcgMzVaIi8+PC9zdmc+"
+  asset i_play_arrow = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgLTk2MCA5NjAgOTYwIiB3aWR0aD0iMjQiPjxwYXRoIGQ9Ik0zMjAtMjczdi00MTRxMC0xNyAxMi0yOC41dDI4LTExLjVxNSAwIDEwLjUgMS41VDM4MS03MjFsMzI2IDIwN3E5IDYgMTMuNSAxNXQ0LjUgMTlxMCAxMC00LjUgMTlUNzA3LTQ0NkwzODEtMjM5cS01IDMtMTAuNSA0LjVUMzYwLTIzM3EtMTYgMC0yOC0xMS41VDMyMC0yNzNaIi8+PC9zdmc+"
+  asset i_pause = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgLTk2MCA5NjAgOTYwIiB3aWR0aD0iMjQiPjxwYXRoIGQ9Ik02NDAtMjAwcS0zMyAwLTU2LjUtMjMuNVQ1NjAtMjgwdi00MDBxMC0zMyAyMy41LTU2LjVUNjQwLTc2MHEzMyAwIDU2LjUgMjMuNVQ3MjAtNjgwdjQwMHEwIDMzLTIzLjUgNTYuNVQ2NDAtMjAwWm0tMzIwIDBxLTMzIDAtNTYuNS0yMy41VDI0MC0yODB2LTQwMHEwLTMzIDIzLjUtNTYuNVQzMjAtNzYwcTMzIDAgNTYuNSAyMy41VDQwMC02ODB2NDAwcTAgMzMtMjMuNSA1Ni41VDMyMC0yMDBaIi8+PC9zdmc+"
+  asset i_skip_next = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgLTk2MCA5NjAgOTYwIiB3aWR0aD0iMjQiPjxwYXRoIGQ9Ik02NjAtMjgwdi00MDBxMC0xNyAxMS41LTI4LjVUNzAwLTcyMHExNyAwIDI4LjUgMTEuNVQ3NDAtNjgwdjQwMHEwIDE3LTExLjUgMjguNVQ3MDAtMjQwcS0xNyAwLTI4LjUtMTEuNVQ2NjAtMjgwWm0tNDQwLTM1di0zMzBxMC0xOCAxMi0yOXQyOC0xMXE1IDAgMTEgMXQxMSA1bDI0OCAxNjZxOSA2IDEzLjUgMTQuNVQ1NDgtNDgwcTAgMTAtNC41IDE4LjVUNTMwLTQ0N0wyODItMjgxcS01IDQtMTEgNXQtMTEgMXEtMTYgMC0yOC0xMXQtMTItMjlaIi8+PC9zdmc+"
+  asset i_skip_previous = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgLTk2MCA5NjAgOTYwIiB3aWR0aD0iMjQiPjxwYXRoIGQ9Ik0yMjAtMjgwdi00MDBxMC0xNyAxMS41LTI4LjVUMjYwLTcyMHExNyAwIDI4LjUgMTEuNVQzMDAtNjgwdjQwMHEwIDE3LTExLjUgMjguNVQyNjAtMjQwcS0xNyAwLTI4LjUtMTEuNVQyMjAtMjgwWm00NTgtMUw0MzAtNDQ3cS05LTYtMTMuNS0xNC41VDQxMi00ODBxMC0xMCA0LjUtMTguNVQ0MzAtNTEzbDI0OC0xNjZxNS00IDExLTV0MTEtMXExNiAwIDI4IDExdDEyIDI5djMzMHEwIDE4LTEyIDI5dC0yOCAxMXEtNSAwLTExLTF0LTExLTVaIi8+PC9zdmc+"
+  asset i_music_note = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgLTk2MCA5NjAgOTYwIiB3aWR0aD0iMjQiPjxwYXRoIGQ9Ik00MDAtMTIwcS02NiAwLTExMy00N3QtNDctMTEzcTAtNjYgNDctMTEzdDExMy00N3EyMyAwIDQyLjUgNS41VDQ4MC00MTh2LTM4MnEwLTE3IDExLjUtMjguNVQ1MjAtODQwaDE2MHExNyAwIDI4LjUgMTEuNVQ3MjAtODAwdjgwcTAgMTctMTEuNSAyOC41VDY4MC02ODBINTYwdjQwMHEwIDY2LTQ3IDExM3QtMTEzIDQ3WiIvPjwvc3ZnPg=="
+
+  source now = clock every 1m
+  source m = android.media
+  source apps = android.apps
+
+  // The koi, the food floating on the water and the ripples, in dp on the screen; clk counts the pond's seconds.
+  state fish = []
+  state food = []
+  state rings = []
+  state clk = 0
+  state spin = 0
+  state lastFed = 0 persist
+  state fedDay = "" persist
+  state fedToday = 0 persist
+  state held = ""
+
+  // ── look ──────────────────────────────────────────────────────────────────────────────────────────────────────
+  let inter = "https://raw.githubusercontent.com/google/fonts/main/ofl/inter/Inter%5Bopsz,wght%5D.ttf"
+  let R = 22 * (corners ?? 1)
+  let r2 = 14 * (corners ?? 1)
+  let glass = alpha(background, clamp(tileOpacity ?? 0.55, 0.45, 0.9))
+  let fz = tileFrost ?? 0
+  let hair = alpha(foreground, 0.10)
+  let soft = alpha(foreground, 0.66)
+  let faint = alpha(foreground, 0.40)
+  let tabs = [{id: "plan", name: "Calendar", p: -3}, {id: "now", name: "Now", p: -2}, {id: "pulse", name: "Pulse", p: -1}, {id: "pond", name: "Pond", p: 0}]
+  // The fourteen apps, found among the phone's by package, else by name; a link stands in for one that isn't there.
+  // The first six are the dock, the same on every page. The Calendar page has all fourteen, seven to a row: the dock's
+  // six and Claude below, the other seven above.
+  let A = apps ?? []
+  let slots = [
+    {id: "phone", label: "Phone", tint: green, alt: "tel:", pk: ["com.google.android.dialer", "com.samsung.android.dialer", "com.android.dialer"], nm: ["phone"]},
+    {id: "msg", label: "Messages", tint: blue, alt: "sms:", pk: ["com.google.android.apps.messaging", "com.samsung.android.messaging"], nm: ["messages", "messaging"]},
+    {id: "gmail", label: "Gmail", tint: red, alt: "https://mail.google.com", pk: ["com.google.android.gm"], nm: ["gmail"]},
+    {id: "yahoo", label: "Yahoo", tint: magenta, alt: "https://mail.yahoo.com", pk: ["com.yahoo.mobile.client.android.mail"], nm: ["yahoo mail", "yahoo"]},
+    {id: "chrome", label: "Chrome", tint: yellow, alt: "https://www.google.com", pk: ["com.android.chrome"], nm: ["chrome"]},
+    {id: "camera", label: "Camera", tint: foreground, alt: "", pk: ["com.google.android.GoogleCamera", "com.sec.android.app.camera", "com.android.camera", "com.android.camera2"], nm: ["camera"]},
+    {id: "spotify", label: "Spotify", tint: green, alt: "https://open.spotify.com", pk: ["com.spotify.music"], nm: ["spotify"]},
+    {id: "maps", label: "Maps", tint: cyan, alt: "geo:0,0", pk: ["com.google.android.apps.maps"], nm: ["maps"]},
+    {id: "clock", label: "Clock", tint: blue, alt: "", pk: ["com.google.android.deskclock", "com.sec.android.app.clockpackage", "com.android.deskclock"], nm: ["clock"]},
+    {id: "photos", label: "Photos", tint: orange, alt: "", pk: ["com.google.android.apps.photos", "com.sec.android.gallery3d"], nm: ["photos", "gallery"]},
+    {id: "cal", label: "Calendar", tint: accent, alt: "calendar", pk: ["com.google.android.calendar", "com.samsung.android.calendar"], nm: ["calendar"]},
+    {id: "bc", label: "Basecamp", tint: yellow, alt: "https://launchpad.37signals.com", pk: ["com.basecamp.bc3"], nm: ["basecamp"]},
+    {id: "settings", label: "Settings", tint: blue, alt: "", pk: ["com.android.settings"], nm: ["settings"]},
+    {id: "claude", label: "Claude", tint: orange, alt: "https://claude.ai", pk: ["com.anthropic.claude"], nm: ["claude"]}
+  ].map(s => merge(s, {app: A.find(a => a.profile == null && contains(s.pk, a.package)) ?? A.find(a => a.profile == null && contains(s.nm, lower(a.name)))}))
+  let dockRow = slots.take(6)
+  let topRow = drop(slots, 6).take(7)
+  let lowRow = flatten([dockRow, drop(slots, 13)])
+  let spotifyApp = slots[6].app
+  let clockApp = slots[8].app
+
+  // ── the pond ──────────────────────────────────────────────────────────────────────────────────────────────────
+  // Set into the screen with the wallpaper round it: below the status bar, a little in from each side.
+  let W = tileWidth ?? 400
+  let H = tileHeight ?? 900
+  let pt = (screenTop ?? 24) + 6
+  let ps = 24
+  let pb = 20
+  let pr = 46
+  let pw = W - 2 * ps
+  let ph = H - pt - pb
+  // Where the koi swim: the water, clear of the stones.
+  let bx0 = ps + 30
+  let bx1 = W - ps - 30
+  let by0 = pt + 30
+  let by1 = H - pb - 30
+
+  let today = fmtTime(now, "yyyyMMdd")
+  let hungry = lastFed == 0 || now - lastFed > 6 * 3600
+  let hasMedia = m != null && m.available != false && m.title != null
+  let playing = hasMedia && m.playing == true
+  let player = m.package == "com.spotify.music" || !hasMedia ? "SPOTIFY" : upper(m.app ?? "Now playing")
+  let pos = m.position ?? 0
+  let dur = m.duration ?? 0
+  // The player's own buttons, named short: "Seek 15 seconds back" is −15s, forward +15s; others keep 12 letters.
+  let acts = (m.actions ?? []).map((a, i) => [[lower(a.title ?? ""), match(a.title ?? "", "(\\d+)")]].map(q => merge(a, {short: q[1] != null && (contains(q[0], "seek") || contains(q[0], "skip") || contains(q[0], "rewind") || contains(q[0], "forward") || contains(q[0], "back")) ? ((contains(q[0], "back") || contains(q[0], "rewind") || (i == 0 && !contains(q[0], "forward"))) ? "−" : "+") + q[1][0] + "s" : sub(a.title ?? "", 0, 12)}))[0])
+
+  // A koi is nine points down its spine, head first; this is its half-width at each, before its size.
+  let NS = 9
+  let prof = [5.0, 6.3, 6.8, 6.5, 5.7, 4.6, 3.4, 2.3, 1.4]
+  let sizes = [1.5, 1.3, 1.25, 1.6, 1.15, 1.2]
+  // Six varieties in the theme's colours: body, markings, and where the markings sit [spine point, to which side].
+  let breeds = [
+    {body: foreground, spot: red, spots: [[1, 0.2], [3, -0.3], [5, 0.25]]},
+    {body: orange, spot: foreground, spots: [[2, -0.25], [4, 0.3]]},
+    {body: mix(background, foreground, 0.3), spot: orange, spots: [[1, -0.25], [2, 0.3], [4, -0.2], [6, 0.1]]},
+    {body: yellow, spot: mix(yellow, foreground, 0.55), spots: [[3, 0]]},
+    {body: mix(blue, foreground, 0.5), spot: orange, spots: [[2, 0.3], [5, -0.3]]},
+    {body: foreground, spot: red, spots: [[0, 0]]}
+  ]
+  let leaf = mix(green, background, 0.2)
+  let leafEdge = mix(leaf, background, 0.45)
+  let vein = mix(leaf, foreground, 0.2)
+
+  // Each koi's outline this frame: the spine's direction at each point (D), the body swaying from side to side more
+  // towards the tail (C), its half-widths (W), its two sides (L, R) and the whole outline, with a rounded nose.
+  let geo = fish.map(f => [range(NS).map(k => [f.seg[max(k - 1, 0)][0] - f.seg[min(k + 1, NS - 1)][0], f.seg[max(k - 1, 0)][1] - f.seg[min(k + 1, NS - 1)][1]])
+      .map(d => [d[0], d[1], max(sqrt(d[0] * d[0] + d[1] * d[1]), 0.001)]).map(d => [d[0] / d[2], d[1] / d[2]])]
+    .map(D => {f: f, D: D, sw: range(NS).map(k => sin(clk * (4 + f.v / 18) - k * 0.75 + f.ph) * k * 0.32 * f.sz)})
+    .map(g => merge(g, {C: range(NS).map(k => [f.seg[k][0] - g.D[k][1] * g.sw[k], f.seg[k][1] + g.D[k][0] * g.sw[k]]), W: prof.map(p => p * f.sz)}))
+    .map(g => merge(g, {
+      L: range(NS).map(k => [g.C[k][0] - g.D[k][1] * g.W[k], g.C[k][1] + g.D[k][0] * g.W[k]]),
+      R: range(NS).map(k => [g.C[k][0] + g.D[k][1] * g.W[k], g.C[k][1] - g.D[k][0] * g.W[k]])
+    }))
+    .map(g => merge(g, {
+      out: flatten([
+        [[g.C[0][0] + g.D[0][0] * 4.5 * f.sz, g.C[0][1] + g.D[0][1] * 4.5 * f.sz],
+         [g.C[0][0] + g.D[0][0] * 3 * f.sz - g.D[0][1] * g.W[0] * 0.75, g.C[0][1] + g.D[0][1] * 3 * f.sz + g.D[0][0] * g.W[0] * 0.75]],
+        g.L,
+        reverse(g.R),
+        [[g.C[0][0] + g.D[0][0] * 3 * f.sz + g.D[0][1] * g.W[0] * 0.75, g.C[0][1] + g.D[0][1] * 3 * f.sz - g.D[0][0] * g.W[0] * 0.75]]
+      ])
+    }))[0])
+
+  // The rim, worked out once for the screen's size: a point every 20 dp round the pond's rounded edge, clockwise from
+  // the top left, with the way out of the water there: [n, x, y, out x, out y].
+  let sw = pw - 2 * pr
+  let sh = ph - 2 * pr
+  let qa = pr * 1.5708
+  let per = 2 * sw + 2 * sh + 4 * qa
+  let rim = range(floor(per / 20)).map(i => [i, (i + hash(i, 9) * 0.4) * per / floor(per / 20)]).map(q => flatten([[q[0]],
+    q[1] < sw ? [ps + pr + q[1], pt, 0, -1] :
+    q[1] < sw + qa ? [ps + pw - pr + pr * sin((q[1] - sw) / pr), pt + pr - pr * cos((q[1] - sw) / pr), sin((q[1] - sw) / pr), 0 - cos((q[1] - sw) / pr)] :
+    q[1] < sw + qa + sh ? [ps + pw, pt + pr + q[1] - sw - qa, 1, 0] :
+    q[1] < sw + 2 * qa + sh ? [ps + pw - pr + pr * cos((q[1] - sw - qa - sh) / pr), pt + ph - pr + pr * sin((q[1] - sw - qa - sh) / pr), cos((q[1] - sw - qa - sh) / pr), sin((q[1] - sw - qa - sh) / pr)] :
+    q[1] < 2 * sw + 2 * qa + sh ? [ps + pw - pr - (q[1] - sw - 2 * qa - sh), pt + ph, 0, 1] :
+    q[1] < 2 * sw + 3 * qa + sh ? [ps + pr - pr * sin((q[1] - 2 * sw - 2 * qa - sh) / pr), pt + ph - pr + pr * cos((q[1] - 2 * sw - 2 * qa - sh) / pr), 0 - sin((q[1] - 2 * sw - 2 * qa - sh) / pr), cos((q[1] - 2 * sw - 2 * qa - sh) / pr)] :
+    q[1] < 2 * sw + 3 * qa + 2 * sh ? [ps, pt + ph - pr - (q[1] - 2 * sw - 3 * qa - sh), -1, 0] :
+    [ps + pr - pr * cos((q[1] - 2 * sw - 3 * qa - 2 * sh) / pr), pt + pr - pr * sin((q[1] - 2 * sw - 3 * qa - 2 * sh) / pr), 0 - cos((q[1] - 2 * sw - 3 * qa - 2 * sh) / pr), 0 - sin((q[1] - 2 * sw - 3 * qa - 2 * sh) / pr)]
+  ]))
+  // Stones only here and there, in small groups of two or three: uneven seven-sided pebbles, longer along the edge,
+  // in soft greys from the theme, now and then mossy. The rest of the edge is a fine lip of light.
+  let stones = rim.filter(r => hash(floor(r[0] / 4), 31) > 0.66 && hash(r[0], 32) > 0.3).map(r => {i: r[0], x: r[1] + r[3] * (0.5 + hash(r[0], 2) * 1.5), y: r[2] + r[4] * (0.5 + hash(r[0], 2) * 1.5), nx: r[3], ny: r[4], rr: 3.5 + hash(r[0], 1) * 3.5, rot: hash(r[0], 3) * 6.283, tone: hash(r[0], 4), moss: hash(r[0], 6) > 0.8})
+    .map(s => merge(s, {pts: range(7).map(k => [k * 0.8976 + s.rot, s.rr * (0.78 + 0.3 * hash(s.i, k + 10))])
+      .map(q => [s.x - s.ny * cos(q[0]) * q[1] * 1.25 + s.nx * sin(q[0]) * q[1] * 0.9, s.y + s.nx * cos(q[0]) * q[1] * 1.25 + s.ny * sin(q[0]) * q[1] * 0.9])}))
+  // Pebbles in the shallows, and a few out on the bank.
+  let pebbles = flatten([
+    rim.filter(r => hash(r[0], 20) > 0.84).map(r => {x: r[1] - r[3] * (12 + hash(r[0], 21) * 5), y: r[2] - r[4] * (12 + hash(r[0], 21) * 5), rr: 1.6 + hash(r[0], 22) * 1.6, tone: hash(r[0], 23)}),
+    rim.filter(r => hash(r[0], 24) > 0.92).map(r => {x: r[1] + r[3] * (11 + hash(r[0], 25) * 3), y: r[2] + r[4] * (11 + hash(r[0], 25) * 3), rr: 1.4 + hash(r[0], 26) * 1.4, tone: hash(r[0], 27)})
+  ])
+  // Tufts of grass on the bank leaning in over the water here and there: five blades each, [base, direction, length].
+  let tufts = rim.filter(r => hash(r[0], 30) > 0.94).map(r => range(5).map(k => [(k - 2) * 0.32 + (hash(r[0], k + 40) - 0.5) * 0.3, 9 + hash(r[0], k + 50) * 7])
+    .map(b => {x: r[1] + r[3] * 3 - r[4] * b[0] * 8, y: r[2] + r[4] * 3 + r[3] * b[0] * 8, dx: 0 - (r[3] * cos(b[0]) - r[4] * sin(b[0])), dy: 0 - (r[3] * sin(b[0]) + r[4] * cos(b[0])), len: b[1], k: hash(r[0], 60)}))
+
+  // Each frame: every koi keeps going for the pellet it chose until it's gone, picking one no other koi is after when
+  // it can, else it wanders to a spot of its own with a lazy meander. It keeps its distance from the others, eases its
+  // turns rather than snapping, slows as it closes in, and its body follows the head like a rope.
+  every frame {
+    clk = clk + dt
+    if playing { spin = (spin + dt * 40) % 360 }
+    if len(fish) != 6 || fish[0].x == null || fish[0].w == null || fish[0].seg[1][0] == null {
+      if tileWidth != null {
+        fish = range(6).map(i => [[bx0 + hash(i, 1) * (bx1 - bx0), by0 + hash(i, 2) * (by1 - by0), hash(i, 3) * 6.283]].map(r => {
+          x: r[0], y: r[1], a: r[2], v: 20, w: 0, tid: null, sz: sizes[i], b: i, ph: hash(i, 4) * 6.283,
+          wx: bx0 + hash(i, 5) * (bx1 - bx0), wy: by0 + hash(i, 6) * (by1 - by0),
+          seg: range(NS).map(k => [r[0] - cos(r[2]) * k * 7 * sizes[i], r[1] - sin(r[2]) * k * 7 * sizes[i]])
+        })[0])
+      }
+    } else {
+      let ready = food.filter(p => clk - p.t > 0.35)
+      let old = fish
+      fish = old.map(f => [ready.find(p => p.id == f.tid) ?? first(ready.sortBy(p => pow(p.x - f.x, 2) + pow(p.y - f.y, 2) + (any(old, o => o.b != f.b && o.tid == p.id) ? 6400 : 0)))]
+        .map(q => {q: q, chase: q != null, tx: q != null ? q.x : f.wx, ty: q != null ? q.y : f.wy})
+        .map(s => merge(s, {near: old.filter(o => o.b != f.b).map(o => [f.x - o.x, f.y - o.y]).map(v => [v[0], v[1], v[0] * v[0] + v[1] * v[1]]).filter(v => v[2] < 2600 * f.sz * f.sz)}))
+        .map(s => merge(s, {ax: sum(s.near.map(v => v[0] / max(v[2], 25) * 40)), ay: sum(s.near.map(v => v[1] / max(v[2], 25) * 40)), dist: sqrt(pow(s.tx - f.x, 2) + pow(s.ty - f.y, 2))}))
+        .map(s => merge(s, {k: s.chase ? (s.dist < 40 ? 0.15 : 0.5) : 1}))
+        .map(s => merge(s, {want: atan2((s.ty - f.y) / max(s.dist, 1) + s.k * s.ay, (s.tx - f.x) / max(s.dist, 1) + s.k * s.ax) + (s.chase ? 0 : sin(clk * 0.6 + f.ph) * 0.45)}))
+        .map(s => merge(s, {da: atan2(sin(s.want - f.a), cos(s.want - f.a)), top: s.chase ? 4.2 : (hungry ? 1.5 : 1.1)}))
+        .map(s => merge(s, {w2: f.w + (clamp(s.da * 3.2, 0 - s.top, s.top) - f.w) * min(1, dt * 6)}))
+        .map(s => merge(s, {a2: f.a + s.w2 * dt, v2: f.v + ((s.chase ? 80 : (hungry ? 30 : 22)) * f.sz * (s.chase ? clamp(s.dist / 60, 0.35, 1) * clamp(0.55 + 0.45 * cos(s.da), 0.35, 1) : 1) - f.v) * min(1, dt * 2)}))
+        .map(s => merge(s, {x2: clamp(f.x + cos(s.a2) * s.v2 * dt + s.ax * 6 * dt, bx0 - 14, bx1 + 14), y2: clamp(f.y + sin(s.a2) * s.v2 * dt + s.ay * 6 * dt, by0 - 14, by1 + 14)}))
+        .map(s => merge(s, {there: !s.chase && pow(s.x2 - f.wx, 2) + pow(s.y2 - f.wy, 2) < 1200}))
+        .map(s => merge(f, {
+          x: s.x2, y: s.y2, a: s.a2, v: s.v2, w: s.w2, tid: s.q != null ? s.q.id : null,
+          wx: s.there ? bx0 + hash(f.b, clk, 7) * (bx1 - bx0) : f.wx,
+          wy: s.there ? by0 + hash(f.b, clk, 8) * (by1 - by0) : f.wy,
+          seg: flatten([[[s.x2, s.y2]], scan(drop(f.seg, 1), (h, p) => [sqrt(pow(p[0] - h[0], 2) + pow(p[1] - h[1], 2))]
+            .map(d => d > 7 * f.sz ? [h[0] + (p[0] - h[0]) * 7 * f.sz / d, h[1] + (p[1] - h[1]) * 7 * f.sz / d] : p)[0], [s.x2, s.y2])])
+        }))[0])
+      if len(food) > 0 {
+        // A pellet that's landed near a koi's mouth is eaten, with a ripple; pellets left 30 seconds sink away.
+        let mouths = fish.map(f => [f.x + cos(f.a) * 6 * f.sz, f.y + sin(f.a) * 6 * f.sz])
+        let eaten = food.filter(p => clk - p.t > 0.35 && any(mouths, h => pow(h[0] - p.x, 2) + pow(h[1] - p.y, 2) < 260))
+        if len(eaten) > 0 {
+          rings = flatten([rings, eaten.map(p => {x: p.x, y: p.y, t: clk, s: 0.45})])
+          fedToday = (fedDay == today ? fedToday : 0) + len(eaten)
+          fedDay = today
+          lastFed = now
+        }
+        food = food.filter(p => clk - p.t < 30 && !(clk - p.t > 0.35 && any(mouths, h => pow(h[0] - p.x, 2) + pow(h[1] - p.y, 2) < 260)))
+      }
+      if len(rings) > 0 {
+        rings = rings.filter(r => clk - r.t < 2.2)
+      }
+    }
+  }
+
+  // ── parts ─────────────────────────────────────────────────────────────────────────────────────────────────────
+  component T(s, sz = 14, w = 450, col = foreground, lines = 1, al = "start") {
+    Text { text: s; font: inter; fontSize: sz; fontWeight: w; color: col; maxLines: lines; align: al }
+  }
+
+  // An app: a pane of glass tinted in a theme colour, its icon, its name. It sinks under the finger.
+  // `small` for the Calendar page's dock of fourteen, seven to a row.
+  component AppKey(s, small = false) {
+    Column {
+      align: center
+      gap: 4
+      scale: held == s.id ? 0.88 : 1
+      animate scale: spring(0.55, 600)
+      onPress: held = s.id
+      onRelease: held = ""
+      onTap: {
+        haptic("light")
+        if s.app != null { androidApp(s.app.key) } else if s.alt == "calendar" { calendar("open") } else if s.alt != "" { url(s.alt) }
+      }
+      Box {
+        size: small ? 44 : 50
+        radius: (small ? 14 : 16) * (corners ?? 1)
+        background: mix(glass, alpha(s.tint, 0.55), 0.35)
+        frost: fz
+        border: 1
+        borderColor: alpha(s.tint, 0.35)
+        align: center
+        if s.app != null {
+          Image { src: s.app.icon; size: small ? 25 : 28; label: s.label }
+        } else {
+          T { s: sub(s.label, 0, 1); sz: small ? 18 : 20; w: 600; al: "center" }
+        }
+      }
+      T { s: s.label; sz: small ? 10 : 10.5; w: 500; col: soft; al: "center" }
+    }
+  }
+  // The four pages as a segmented bar, the one showing lit in the accent: swipe to the others.
+  component Tabs(cur) {
+    Row {
+      gap: 4
+      padding: 4
+      background: glass
+      frost: fz
+      radius: R
+      border: 1
+      borderColor: hair
+      for t in tabs {
+        Box {
+          weight: 1
+          height: 34
+          align: center
+          radius: R - 4
+          background: t.id == cur ? accent : alpha(accent, 0)
+          animate background: tween(220ms, "ease")
+          T { s: t.name; sz: 13; w: 650; col: t.id == cur ? background : soft; al: "center" }
+        }
+      }
+    }
+  }
+
+  // The bottom of every page, in the same place on each: the dock's six apps (on the Calendar page all fourteen, in
+  // two rows of seven), then the four pages. Swiping between pages, the pages' bar stays put.
+  component Bottom(cur) {
+    Column {
+      gap: 10
+      Column {
+        gap: 10
+        padding: [6, 10]
+        background: glass
+        frost: fz
+        radius: R + 4
+        border: 1
+        borderColor: hair
+        if cur == "plan" {
+          Row {
+            gap: 0
+            for s in topRow key s.id { AppKey { s: s; small: true; weight: 1 } }
+          }
+          Row {
+            gap: 0
+            for s in lowRow key s.id { AppKey { s: s; small: true; weight: 1 } }
+          }
+        } else {
+          Row {
+            gap: 0
+            for s in dockRow key s.id { AppKey { s: s; weight: 1 } }
+          }
+        }
+      }
+      Tabs { cur: cur }
+    }
+  }
+
+  // A soft edge for a scrolling list, so rows melt into the page instead of meeting a hard line. It's layers of
+  // what's behind the list (the wallpaper as frosted glass shows it, under the same tint), all starting at the edge
+  // and reaching further in as they get fainter (1, 1/2, 1/3…), so together they fade evenly from solid to clear.
+  // It takes no taps, so the list under it still scrolls.
+  component Fade(up, tint, fr) {
+    Box {
+      fill: width
+      height: 20
+      align: up ? "top" : "bottom"
+      for k in range(1, 11) {
+        Box { fill: width; height: k * 2; frost: fr; background: tint; opacity: 1 / k }
+      }
+    }
+  }
+  // A round media key that sinks under the finger; play and pause is the big green one.
+  component MediaKey(id, glyph, sz) {
+    Box {
+      size: sz
+      radius: sz / 2
+      align: center
+      background: id == "toggle" ? green : alpha(foreground, 0.09)
+      scale: held == "m-" + id ? 0.86 : 1
+      animate scale: spring(0.55, 600)
+      onPress: held = "m-" + id
+      onRelease: held = ""
+      onTap: { haptic("light"); media(id) }
+      Image { src: glyph; size: sz * 0.54; tint: id == "toggle" ? background : foreground }
+    }
+  }
+
+  // Four bars dancing while the music plays, resting low while it doesn't.
+  component Eq(on, w, h) {
+    Canvas {
+      width: w
+      height: h
+      if on {
+        for i in range(4) {
+          let bh = (0.25 + 0.75 * abs(sin(time * (4.2 + i * 1.3) + i * 1.7))) * h
+          rect(i * w / 4, h - bh, w / 4 - 1.5, bh, radius: 1.5, fill: green)
+        }
+      } else {
+        for i in range(4) {
+          rect(i * w / 4, h * 0.75, w / 4 - 1.5, h * 0.25, radius: 1.5, fill: alpha(green, 0.6))
+        }
+      }
+    }
+  }
+
+  Box {
+    fill: true
+
+    // The water: the wallpaper blurred and tinted as if under it, in the theme's own blues, with light playing on the
+    // bottom and a darker band where it deepens along the edge.
+    Column {
+      fill: true
+      padding: [ps, pt, ps, pb]
+      Box {
+        fill: true
+        radius: pr
+        clip: true
+        frost: 14
+        background: linear(0, 0, 0.4, 1, [alpha(mix(background, cyan, 0.30), 0.62), alpha(mix(background, blue, 0.38), 0.74), alpha(mix(background, blue, 0.2), 0.86)])
+        Shader {
+          fill: true
+          fallback: alpha(background, 0)
+          uniforms: { lite: foreground }
+          code: """
+            uniform half4 lite;
+            half4 main(float2 p) {
+              float2 q = p / 190.0;
+              float t = time * 0.32;
+              q += float2(sin(q.y * 1.9 + t), cos(q.x * 1.6 - t * 0.8)) * 0.6;
+              q += float2(sin(q.y * 2.7 - t * 1.3), cos(q.x * 2.3 + t * 1.1)) * 0.3;
+              float c = abs(sin(q.x * 3.1) * cos(q.y * 2.9));
+              float a = pow(1.0 - c, 10.0) * 0.09;
+              return half4(lite.rgb * a, a);
+            }
+          """
+        }
+        Box { fill: true; radius: pr; border: 14; borderColor: alpha(mix(background, blue, 0.25), 0.3) }
+      }
+    }
+
+    // The koi, the food and the lily pads. A tap on a koi startles it; anywhere else on the water scatters food.
+    Canvas {
+      fill: true
+      onTap: {
+        haptic("light")
+        if any(fish, f => pow(f.x - x, 2) + pow(f.y - y, 2) < 900) {
+          fish = fish.map(f => pow(f.x - x, 2) + pow(f.y - y, 2) < 900 ? merge(f, {a: atan2(f.y - y, f.x - x), v: 150, w: 0}) : f)
+          rings = flatten([rings, [{x: x, y: y, t: clk, s: 0.6}]])
+        } else {
+          let fx = clamp(x, bx0, bx1)
+          let fy = clamp(y, by0, by1)
+          let all = flatten([food, range(6).map(k => {id: clk * 1000 + k, x: fx + (hash(k, clk, 1) - 0.5) * 32, y: fy + (hash(k, clk, 2) - 0.5) * 32, t: clk + k * 0.05, s: 0.8 + hash(k, clk, 3) * 0.4})])
+          food = drop(all, max(len(all) - 36, 0))
+          rings = flatten([rings, [{x: fx, y: fy, t: clk, s: 1}]])
+        }
+      }
+      clip(ps, pt, pw, ph) {
+        for r in rings {
+          let k = clamp((clk - r.t) / 2.2, 0, 1)
+          circle(r.x, r.y, 5 + k * 48 * r.s, stroke: alpha(foreground, 0.4 * (1 - k)), width: 1.5)
+          circle(r.x, r.y, 3 + k * 26 * r.s, stroke: alpha(foreground, 0.25 * (1 - k)), width: 1)
+        }
+        for p in food {
+          let sink = clamp((clk - p.t - 8) / 22, 0, 1)
+          let bob = sin(clk * 2.2 + p.s * 9) * 0.8
+          circle(p.x + 1.2, p.y + 2.2, 3.2 * p.s, fill: alpha(#000000, 0.18 * (1 - sink)))
+          circle(p.x, p.y + bob, 3.2 * p.s * (1 - sink * 0.4), fill: alpha(mix(yellow, orange, 0.45), 1 - sink * 0.8))
+          circle(p.x - 0.9, p.y + bob - 0.9, 1.1 * p.s, fill: alpha(foreground, 0.55 * (1 - sink)))
+        }
+        // Shadows on the bottom first, so no koi swims under another's.
+        for g in geo {
+          translate(6, 10) { path(g.out, closed: true, fill: alpha(#000000, 0.16)) }
+        }
+        for g in geo {
+          let f = g.f
+          let br = breeds[f.b]
+          let fin = alpha(br.body, 0.5)
+          let e = NS - 1
+          let bx = 0 - g.D[e][0]
+          let by = 0 - g.D[e][1]
+          let nx = 0 - g.D[e][1]
+          let ny = g.D[e][0]
+          let ts = sin(clk * (4 + f.v / 18) - 6.6 + f.ph) * 0.7
+          path([
+            [g.C[e][0] + nx * 1.5 * f.sz, g.C[e][1] + ny * 1.5 * f.sz],
+            [g.C[e][0] + bx * 14 * f.sz + nx * (7 + ts * 5) * f.sz, g.C[e][1] + by * 14 * f.sz + ny * (7 + ts * 5) * f.sz],
+            [g.C[e][0] + bx * 8 * f.sz + nx * ts * 3 * f.sz, g.C[e][1] + by * 8 * f.sz + ny * ts * 3 * f.sz],
+            [g.C[e][0] + bx * 14 * f.sz + nx * (ts * 5 - 7) * f.sz, g.C[e][1] + by * 14 * f.sz + ny * (ts * 5 - 7) * f.sz],
+            [g.C[e][0] - nx * 1.5 * f.sz, g.C[e][1] - ny * 1.5 * f.sz]
+          ], closed: true, fill: fin)
+          for side in [-1, 1] {
+            let px = g.C[2][0] - g.D[2][1] * g.W[2] * 0.7 * side
+            let py = g.C[2][1] + g.D[2][0] * g.W[2] * 0.7 * side
+            let fl = 1 + sin(clk * 3 + f.ph + side) * 0.25
+            path([
+              [px, py],
+              [px - g.D[2][1] * 8 * f.sz * side * fl - g.D[2][0] * 5 * f.sz, py + g.D[2][0] * 8 * f.sz * side * fl - g.D[2][1] * 5 * f.sz],
+              [px - g.D[2][0] * 7 * f.sz, py - g.D[2][1] * 7 * f.sz]
+            ], closed: true, fill: fin)
+          }
+          path(g.out, closed: true, fill: br.body)
+          for sp in br.spots {
+            circle(g.C[sp[0]][0] - g.D[sp[0]][1] * g.W[sp[0]] * sp[1], g.C[sp[0]][1] + g.D[sp[0]][0] * g.W[sp[0]] * sp[1], g.W[sp[0]] * 0.62, fill: br.spot)
+          }
+          path(range(1, 6).map(k => g.C[k]), stroke: alpha(#ffffff, 0.16), width: 1.8 * f.sz, cap: round)
+          for side in [-1, 1] {
+            circle(g.C[0][0] + g.D[0][0] * 1.6 * f.sz - g.D[0][1] * g.W[0] * 0.6 * side, g.C[0][1] + g.D[0][1] * 1.6 * f.sz + g.D[0][0] * g.W[0] * 0.6 * side, 1.25 * f.sz, fill: alpha(#000000, 0.7))
+          }
+        }
+        // Lily pads float over the koi, turning slowly; a lotus blooms on the biggest.
+        for p, i in [[0.78, 0.13, 32, 200], [0.13, 0.40, 25, 40], [0.86, 0.52, 21, 300]] {
+          let cx = ps + p[0] * pw + sin(clk * 0.05 + i) * 5
+          let cy = pt + p[1] * ph + cos(clk * 0.04 + i * 2) * 4
+          let rot = p[3] + sin(clk * 0.03 + i) * 12
+          arc(cx + 4, cy + 7, p[2], rot + 18, 324, fill: alpha(#000000, 0.16))
+          arc(cx, cy, p[2], rot + 18, 324, fill: leaf)
+          arc(cx, cy, p[2] - 1, rot + 18, 324, stroke: leafEdge, width: 2)
+          for v in range(6) {
+            rotate(rot + 46 + v * 54, cx, cy) { line(cx, cy, cx, cy - p[2] * 0.82, stroke: vein, width: 1) }
+          }
+          if i == 0 {
+            let lx = cx + 8
+            let ly = cy - 4
+            for k in range(8) {
+              rotate(k * 45 + 10, lx, ly) { path([[lx, ly], [lx - 4.5, ly - 7], [lx, ly - 14], [lx + 4.5, ly - 7]], closed: true, fill: mix(magenta, foreground, 0.5)) }
+            }
+            for k in range(6) {
+              rotate(k * 60 + 35, lx, ly) { path([[lx, ly], [lx - 3.2, ly - 5], [lx, ly - 9.5], [lx + 3.2, ly - 5]], closed: true, fill: mix(magenta, foreground, 0.78)) }
+            }
+            circle(lx, ly, 2.8, fill: yellow)
+          }
+        }
+      }
+    }
+
+    // The rim: a fine lip round the water with a soft shadow outside it, then a few groups of stones (the koi pass
+    // under them), pebbles in the shallows and on the bank, and grass.
+    Canvas {
+      fill: true
+      rect(ps - 1.5, pt - 1.5, pw + 3, ph + 3, radius: pr + 1.5, stroke: alpha(#000000, 0.2), width: 2.5)
+      rect(ps, pt, pw, ph, radius: pr, stroke: alpha(foreground, 0.22), width: 1.2)
+      for s in stones {
+        path(s.pts.map(q => [q[0] - s.nx * 2.5 + 1, q[1] - s.ny * 2.5 + 2]), closed: true, fill: alpha(#000000, 0.18))
+      }
+      for p in pebbles {
+        circle(p.x + 0.6, p.y + 0.9, p.rr, fill: alpha(#000000, 0.15))
+        circle(p.x, p.y, p.rr, fill: alpha(mix(mix(background, foreground, 0.28 + 0.2 * p.tone), yellow, 0.06), 0.85))
+      }
+      for s in stones {
+        path(s.pts, closed: true, fill: alpha(s.moss ? mix(mix(background, foreground, 0.28 + 0.2 * s.tone), green, 0.35) : mix(mix(background, foreground, 0.28 + 0.22 * s.tone), yellow, 0.05), 0.9))
+        circle(s.x - s.rr * 0.25, s.y - s.rr * 0.3, s.rr * 0.36, fill: alpha(#ffffff, 0.08))
+      }
+      for t in tufts {
+        for b in t {
+          path([[b.x, b.y], [b.x + b.dx * b.len * 0.55 + b.dy * 2, b.y + b.dy * b.len * 0.55 - b.dx * 2], [b.x + b.dx * b.len, b.y + b.dy * b.len]], stroke: b.k > 0.5 ? mix(green, foreground, 0.15) : mix(green, background, 0.25), width: 1.6, cap: round)
+        }
+      }
+    }
+
+    // Floating on the water: the pond's name and the feed key, the record player, the dock and the pages.
+    Column {
+      fill: true
+      gap: 12
+      padding: [16, pt + 10, 16, 0]
+
+      Row {
+        gap: 10
+        align: center
+        padding: [16, 6, 6, 6]
+        background: glass
+        frost: fz
+        radius: 99
+        border: 1
+        borderColor: hair
+        Column {
+          gap: 0
+          weight: 1
+          T { s: "Koi Pond"; sz: 17; w: 600 }
+          T {
+            s: hungry ? "The koi are hungry" : fedDay == today && fedToday > 0 ? "${fedToday} pellets today · fed ${fmtAgo(lastFed, now)} ago" : "Fed ${fmtAgo(lastFed, now)} ago"
+            sz: 11; w: 550; col: hungry ? accent : soft
+          }
+        }
+        Row {
+          gap: 6
+          align: center
+          padding: [14, 9]
+          radius: 99
+          background: hungry ? accent : alpha(foreground, 0.1)
+          scale: held == "feed" ? 0.9 : 1
+          animate scale: spring(0.55, 600)
+          onPress: held = "feed"
+          onRelease: held = ""
+          onTap: {
+            haptic("light")
+            let cx = random(bx0 + 40, bx1 - 40)
+            let cy = random(by0 + 120, (by0 + by1) / 2)
+            let all = flatten([food, range(6).map(k => {id: clk * 1000 + k, x: cx + (hash(k, clk, 1) - 0.5) * 36, y: cy + (hash(k, clk, 2) - 0.5) * 36, t: clk + k * 0.05, s: 0.8 + hash(k, clk, 3) * 0.4})])
+            food = drop(all, max(len(all) - 36, 0))
+            rings = flatten([rings, [{x: cx, y: cy, t: clk, s: 1}]])
+          }
+          Image { src: i_water_drop; size: 16; tint: hungry ? background : accent }
+          T { s: "Feed"; sz: 13; w: 650; col: hungry ? background : foreground }
+        }
+      }
+
+      Spacer { weight: 1 }
+
+      // ── the record player ──
+      Column {
+        gap: 10
+        padding: [14, 14, 14, 12]
+        background: linear(0, 0, 1, 1, [mix(glass, alpha(green, 0.8), 0.3), glass, glass])
+        frost: fz
+        radius: R
+        border: 1
+        borderColor: alpha(green, 0.4)
+        Row {
+          gap: 14
+          align: center
+          // A record turning while it plays, the cover art as its label.
+          Box {
+            size: 88
+            align: center
+            onTap: { haptic("light"); if hasMedia { media("open") } else if spotifyApp != null { androidApp(spotifyApp.key) } }
+            Canvas {
+              size: 88
+              circle(44, 44, 44, fill: mix(background, #000000, 0.6))
+              for r in [41, 38, 35, 32, 29, 26] {
+                circle(44, 44, r, stroke: alpha(#ffffff, 0.07), width: 1)
+              }
+              arc(44, 44, 43, 300, 45, fill: alpha(#ffffff, 0.07))
+              arc(44, 44, 43, 120, 45, fill: alpha(#ffffff, 0.04))
+              circle(44, 44, 23, fill: green)
+            }
+            Box {
+              size: 42
+              radius: 21
+              clip: true
+              align: center
+              rotation: spin
+              background: green
+              Image { src: i_music_note; size: 18; tint: background }
+              if hasMedia { Image { src: m.art; size: 42; fit: cover } }
+            }
+            Box { size: 6; radius: 3; background: mix(background, #000000, 0.5) }
+          }
+          Column {
+            gap: 2
+            weight: 1
+            onTap: { haptic("light"); if hasMedia { media("open") } else if spotifyApp != null { androidApp(spotifyApp.key) } }
+            Row {
+              gap: 6
+              align: center
+              Eq { on: playing; w: 16; h: 12 }
+              T { s: player; sz: 10; w: 750; col: green }
+            }
+            T { s: hasMedia ? m.title : "Nothing playing"; sz: 17; w: 700 }
+            T { s: hasMedia ? (m.artist ?? m.album ?? "") : "Put on something for the koi"; sz: 13; w: 500; col: soft }
+          }
+        }
+        if hasMedia && dur > 0 {
+          Column {
+            gap: 0
+            Slider {
+              value: pos
+              min: 0
+              max: dur
+              color: green
+              track: alpha(foreground, 0.15)
+              onChange: { if m.canSeek != false { haptic("light"); media("seek", value) } }
+            }
+            Row {
+              T { s: fmtTime(pos, dur >= 3600 ? "H:mm:ss" : "m:ss", "UTC"); sz: 11; w: 550; col: faint; weight: 1 }
+              T { s: "-" + fmtTime(max(dur - pos, 0), dur >= 3600 ? "H:mm:ss" : "m:ss", "UTC"); sz: 11; w: 550; col: faint }
+            }
+          }
+        }
+        if hasMedia {
+          Row {
+            align: center
+            gap: 0
+            Row {
+              weight: 1
+              if len(m.actions ?? []) > 0 {
+                Row {
+                  padding: [10, 7]
+                  radius: 99
+                  background: alpha(foreground, 0.08)
+                  onTap: { haptic("light"); media("action", m.actions[0].id) }
+                  T { s: acts[0].short; sz: 11; w: 600; col: soft }
+                }
+              }
+            }
+            MediaKey { id: "previous"; glyph: i_skip_previous; sz: 44 }
+            Spacer { width: 16 }
+            MediaKey { id: "toggle"; glyph: m.playing ? i_pause : i_play_arrow; sz: 60 }
+            Spacer { width: 16 }
+            MediaKey { id: "next"; glyph: i_skip_next; sz: 44 }
+            Row {
+              weight: 1
+              justify: end
+              if len(m.actions ?? []) > 1 {
+                Row {
+                  padding: [10, 7]
+                  radius: 99
+                  background: alpha(foreground, 0.08)
+                  onTap: { haptic("light"); media("action", m.actions[1].id) }
+                  T { s: acts[1].short; sz: 11; w: 600; col: soft }
+                }
+              }
+            }
+          }
+        } else {
+          Row {
+            gap: 8
+            justify: center
+            align: center
+            padding: [0, 12]
+            fill: width
+            radius: 99
+            background: green
+            scale: held == "spotify" ? 0.95 : 1
+            animate scale: spring(0.55, 600)
+            onPress: held = "spotify"
+            onRelease: held = ""
+            onTap: { haptic("light"); if spotifyApp != null { androidApp(spotifyApp.key) } else { url("https://open.spotify.com") } }
+            Image { src: i_play_arrow; size: 20; tint: background }
+            T { s: "Play on Spotify"; sz: 14; w: 700; col: background }
+          }
+        }
+      }
+
+      Bottom { cur: "pond" }
+      Spacer { height: max(screenInset ?? 0, 10) }
+    }
+  }
+}

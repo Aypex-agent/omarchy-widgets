@@ -1,0 +1,386 @@
+face "tide · plan" {
+  // Tide's Calendar page: the whole month with a dot for each day's events in their calendar's colour, and the
+  // picked day's agenda. Only the calendar: tasks live on the Now page.
+  meta {
+    owl: 23
+    description: "Four pages of frosted glass in your theme: a month calendar, tasks and the time, notifications and switches, and a koi pond to feed with a music player"
+    version: "1.0"
+    license: "MIT"
+    category: "productivity"
+  }
+  edge: true
+  padding: 0
+  asset i_chevron_left = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgLTk2MCA5NjAgOTYwIiB3aWR0aD0iMjQiPjxwYXRoIGQ9Im00MzItNDgwIDE1NiAxNTZxMTEgMTEgMTEgMjh0LTExIDI4cS0xMSAxMS0yOCAxMXQtMjgtMTFMMzQ4LTQ1MnEtNi02LTguNS0xM3QtMi41LTE1cTAtOCAyLjUtMTV0OC41LTEzbDE4NC0xODRxMTEtMTEgMjgtMTF0MjggMTFxMTEgMTEgMTEgMjh0LTExIDI4TDQzMi00ODBaIi8+PC9zdmc+"
+  asset i_chevron_right = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgLTk2MCA5NjAgOTYwIiB3aWR0aD0iMjQiPjxwYXRoIGQ9Ik01MDQtNDgwIDM0OC02MzZxLTExLTExLTExLTI4dDExLTI4cTExLTExIDI4LTExdDI4IDExbDE4NCAxODRxNiA2IDguNSAxM3QyLjUgMTVxMCA4LTIuNSAxNXQtOC41IDEzTDQwNC0yNjhxLTExIDExLTI4IDExdC0yOC0xMXEtMTEtMTEtMTEtMjh0MTEtMjhsMTU2LTE1NloiLz48L3N2Zz4="
+  asset i_calendar_month = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgLTk2MCA5NjAgOTYwIiB3aWR0aD0iMjQiPjxwYXRoIGQ9Ik0yMDAtODBxLTMzIDAtNTYuNS0yMy41VDEyMC0xNjB2LTU2MHEwLTMzIDIzLjUtNTYuNVQyMDAtODAwaDQwdi00MHEwLTE3IDExLjUtMjguNVQyODAtODgwcTE3IDAgMjguNSAxMS41VDMyMC04NDB2NDBoMzIwdi00MHEwLTE3IDExLjUtMjguNVQ2ODAtODgwcTE3IDAgMjguNSAxMS41VDcyMC04NDB2NDBoNDBxMzMgMCA1Ni41IDIzLjVUODQwLTcyMHY1NjBxMCAzMy0yMy41IDU2LjVUNzYwLTgwSDIwMFptMC04MGg1NjB2LTQwMEgyMDB2NDAwWm0yODAtMjQwcS0xNyAwLTI4LjUtMTEuNVQ0NDAtNDQwcTAtMTcgMTEuNS0yOC41VDQ4MC00ODBxMTcgMCAyOC41IDExLjVUNTIwLTQ0MHEwIDE3LTExLjUgMjguNVQ0ODAtNDAwWm0tMTYwIDBxLTE3IDAtMjguNS0xMS41VDI4MC00NDBxMC0xNyAxMS41LTI4LjVUMzIwLTQ4MHExNyAwIDI4LjUgMTEuNVQzNjAtNDQwcTAgMTctMTEuNSAyOC41VDMyMC00MDBabTMyMCAwcS0xNyAwLTI4LjUtMTEuNVQ2MDAtNDQwcTAtMTcgMTEuNS0yOC41VDY0MC00ODBxMTcgMCAyOC41IDExLjVUNjgwLTQ0MHEwIDE3LTExLjUgMjguNVQ2NDAtNDAwWk00ODAtMjQwcS0xNyAwLTI4LjUtMTEuNVQ0NDAtMjgwcTAtMTcgMTEuNS0yOC41VDQ4MC0zMjBxMTcgMCAyOC41IDExLjVUNTIwLTI4MHEwIDE3LTExLjUgMjguNVQ0ODAtMjQwWm0tMTYwIDBxLTE3IDAtMjguNS0xMS41VDI4MC0yODBxMC0xNyAxMS41LTI4LjVUMzIwLTMyMHExNyAwIDI4LjUgMTEuNVQzNjAtMjgwcTAgMTctMTEuNSAyOC41VDMyMC0yNDBabTMyMCAwcS0xNyAwLTI4LjUtMTEuNVQ2MDAtMjgwcTAtMTcgMTEuNS0yOC41VDY0MC0zMjBxMTcgMCAyOC41IDExLjVUNjgwLTI4MHEwIDE3LTExLjUgMjguNVQ2NDAtMjQwWiIvPjwvc3ZnPg=="
+
+  source now = clock every 1m
+  source c = android.calendar
+  // Six weeks ahead from Linux, for dots past the two weeks android.calendar gives; [] until the calendar is allowed.
+  source ext = cmd("omalauncher calendar 45 2>/dev/null || echo '[]'") every 10m json timeout 20s optional
+  source apps = android.apps
+
+  state mo = 0
+  state sel = ""
+  state held = ""
+
+  // ── look ──────────────────────────────────────────────────────────────────────────────────────────────────────
+  let inter = "https://raw.githubusercontent.com/google/fonts/main/ofl/inter/Inter%5Bopsz,wght%5D.ttf"
+  let R = 22 * (corners ?? 1)
+  let r2 = 14 * (corners ?? 1)
+  let glass = alpha(background, clamp(tileOpacity ?? 0.55, 0.45, 0.9))
+  let fz = tileFrost ?? 0
+  let hair = alpha(foreground, 0.10)
+  let soft = alpha(foreground, 0.66)
+  let faint = alpha(foreground, 0.40)
+  let tabs = [{id: "plan", name: "Calendar", p: -3}, {id: "now", name: "Now", p: -2}, {id: "pulse", name: "Pulse", p: -1}, {id: "pond", name: "Pond", p: 0}]
+
+  // ── the month ─────────────────────────────────────────────────────────────────────────────────────────────────
+  let y = num(fmtTime(now, "yyyy"))
+  let m = num(fmtTime(now, "M"))
+  let mm = m - 1 + mo
+  let ty = y + floor(mm / 12)
+  let tm = mm - floor(mm / 12) * 12 + 1
+  let first = parseTime("${ty}-${pad(tm, 2, "0")}-01")
+  let nxt = parseTime("${tm == 12 ? ty + 1 : ty}-${pad(tm == 12 ? 1 : tm + 1, 2, "0")}-01")
+  let dim = round((nxt - first) / 86400)
+  let lead = indexOf(["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], fmtTime(first + 43200, "EEE", null, "en"))
+  let weeks = ceil((lead + dim) / 7)
+  let today = fmtTime(now, "yyyyMMdd")
+  let pick = sel != "" ? sel : mo == 0 ? today : fmtTime(first + 43200, "yyyyMMdd")
+  let pickT = parseTime(pick, "yyyyMMdd") + 43200
+
+  // Each event on every day it covers (an all-day one runs midnight to midnight; noon keeps clear of clock changes).
+  let all = len(ext ?? []) > len(c.events ?? []) ? ext : (c.events ?? [])
+  let spans = flatten(all.map(e => range(clamp(e.allDay ? round((e.end - e.start) / 86400) : 1 + floor((e.end - e.start) / 86400), 1, 31)).map(k => {k: fmtTime(e.start + k * 86400 + (e.allDay ? 43200 : 0), "yyyyMMdd"), e: e})))
+  let byDay = groupBy(spans, s => s.k)
+  let dayEvents = get(byDay, pick, []).map(s => s.e).sortBy(e => e.allDay ? 0 : e.start)
+
+  let kb = (screenInset ?? 0) > 120
+
+  // The fourteen apps, found among the phone's by package, else by name; a link stands in for one that isn't there.
+  // The first six are the dock, the same on every page. The Calendar page has all fourteen, seven to a row: the dock's
+  // six and Claude below, the other seven above.
+  let A = apps ?? []
+  let slots = [
+    {id: "phone", label: "Phone", tint: green, alt: "tel:", pk: ["com.google.android.dialer", "com.samsung.android.dialer", "com.android.dialer"], nm: ["phone"]},
+    {id: "msg", label: "Messages", tint: blue, alt: "sms:", pk: ["com.google.android.apps.messaging", "com.samsung.android.messaging"], nm: ["messages", "messaging"]},
+    {id: "gmail", label: "Gmail", tint: red, alt: "https://mail.google.com", pk: ["com.google.android.gm"], nm: ["gmail"]},
+    {id: "yahoo", label: "Yahoo", tint: magenta, alt: "https://mail.yahoo.com", pk: ["com.yahoo.mobile.client.android.mail"], nm: ["yahoo mail", "yahoo"]},
+    {id: "chrome", label: "Chrome", tint: yellow, alt: "https://www.google.com", pk: ["com.android.chrome"], nm: ["chrome"]},
+    {id: "camera", label: "Camera", tint: foreground, alt: "", pk: ["com.google.android.GoogleCamera", "com.sec.android.app.camera", "com.android.camera", "com.android.camera2"], nm: ["camera"]},
+    {id: "spotify", label: "Spotify", tint: green, alt: "https://open.spotify.com", pk: ["com.spotify.music"], nm: ["spotify"]},
+    {id: "maps", label: "Maps", tint: cyan, alt: "geo:0,0", pk: ["com.google.android.apps.maps"], nm: ["maps"]},
+    {id: "clock", label: "Clock", tint: blue, alt: "", pk: ["com.google.android.deskclock", "com.sec.android.app.clockpackage", "com.android.deskclock"], nm: ["clock"]},
+    {id: "photos", label: "Photos", tint: orange, alt: "", pk: ["com.google.android.apps.photos", "com.sec.android.gallery3d"], nm: ["photos", "gallery"]},
+    {id: "cal", label: "Calendar", tint: accent, alt: "calendar", pk: ["com.google.android.calendar", "com.samsung.android.calendar"], nm: ["calendar"]},
+    {id: "bc", label: "Basecamp", tint: yellow, alt: "https://launchpad.37signals.com", pk: ["com.basecamp.bc3"], nm: ["basecamp"]},
+    {id: "settings", label: "Settings", tint: blue, alt: "", pk: ["com.android.settings"], nm: ["settings"]},
+    {id: "claude", label: "Claude", tint: orange, alt: "https://claude.ai", pk: ["com.anthropic.claude"], nm: ["claude"]}
+  ].map(s => merge(s, {app: A.find(a => a.profile == null && contains(s.pk, a.package)) ?? A.find(a => a.profile == null && contains(s.nm, lower(a.name)))}))
+  let dockRow = slots.take(6)
+  let topRow = drop(slots, 6).take(7)
+  let lowRow = flatten([dockRow, drop(slots, 13)])
+  let spotifyApp = slots[6].app
+  let clockApp = slots[8].app
+
+  // ── parts ─────────────────────────────────────────────────────────────────────────────────────────────────────
+  component T(s, sz = 14, w = 450, col = foreground, lines = 1, al = "start") {
+    Text { text: s; font: inter; fontSize: sz; fontWeight: w; color: col; maxLines: lines; align: al }
+  }
+
+  // An app: a pane of glass tinted in a theme colour, its icon, its name. It sinks under the finger.
+  // `small` for the Calendar page's dock of fourteen, seven to a row.
+  component AppKey(s, small = false) {
+    Column {
+      align: center
+      gap: 4
+      scale: held == s.id ? 0.88 : 1
+      animate scale: spring(0.55, 600)
+      onPress: held = s.id
+      onRelease: held = ""
+      onTap: {
+        haptic("light")
+        if s.app != null { androidApp(s.app.key) } else if s.alt == "calendar" { calendar("open") } else if s.alt != "" { url(s.alt) }
+      }
+      Box {
+        size: small ? 44 : 50
+        radius: (small ? 14 : 16) * (corners ?? 1)
+        background: mix(glass, alpha(s.tint, 0.55), 0.35)
+        frost: fz
+        border: 1
+        borderColor: alpha(s.tint, 0.35)
+        align: center
+        if s.app != null {
+          Image { src: s.app.icon; size: small ? 25 : 28; label: s.label }
+        } else {
+          T { s: sub(s.label, 0, 1); sz: small ? 18 : 20; w: 600; al: "center" }
+        }
+      }
+      T { s: s.label; sz: small ? 10 : 10.5; w: 500; col: soft; al: "center" }
+    }
+  }
+
+  // A round key that sinks under the finger.
+  component Round(id, glyph) {
+    Box {
+      size: 40
+      radius: 20
+      align: center
+      background: glass
+      frost: fz
+      border: 1
+      borderColor: hair
+      scale: held == id ? 0.88 : 1
+      animate scale: spring(0.55, 600)
+      onPress: held = id
+      onRelease: held = ""
+      onTap: {
+        haptic("light")
+        if id == "prev" { mo = mo - 1; sel = "" } else if id == "next" { mo = mo + 1; sel = "" } else { calendar("open") }
+      }
+      Image { src: glyph; size: 22; tint: foreground }
+    }
+  }
+
+  // The four pages as a segmented bar, the one showing lit in the accent: swipe to the others.
+  component Tabs(cur) {
+    Row {
+      gap: 4
+      padding: 4
+      background: glass
+      frost: fz
+      radius: R
+      border: 1
+      borderColor: hair
+      for t in tabs {
+        Box {
+          weight: 1
+          height: 34
+          align: center
+          radius: R - 4
+          background: t.id == cur ? accent : alpha(accent, 0)
+          animate background: tween(220ms, "ease")
+          T { s: t.name; sz: 13; w: 650; col: t.id == cur ? background : soft; al: "center" }
+        }
+      }
+    }
+  }
+
+  // The bottom of every page, in the same place on each: the dock's six apps (on the Calendar page all fourteen, in
+  // two rows of seven), then the four pages. Swiping between pages, the pages' bar stays put.
+  component Bottom(cur) {
+    Column {
+      gap: 10
+      Column {
+        gap: 10
+        padding: [6, 10]
+        background: glass
+        frost: fz
+        radius: R + 4
+        border: 1
+        borderColor: hair
+        if cur == "plan" {
+          Row {
+            gap: 0
+            for s in topRow key s.id { AppKey { s: s; small: true; weight: 1 } }
+          }
+          Row {
+            gap: 0
+            for s in lowRow key s.id { AppKey { s: s; small: true; weight: 1 } }
+          }
+        } else {
+          Row {
+            gap: 0
+            for s in dockRow key s.id { AppKey { s: s; weight: 1 } }
+          }
+        }
+      }
+      Tabs { cur: cur }
+    }
+  }
+
+  // A soft edge for a scrolling list, so rows melt into the page instead of meeting a hard line. It's layers of
+  // what's behind the list (the wallpaper as frosted glass shows it, under the same tint), all starting at the edge
+  // and reaching further in as they get fainter (1, 1/2, 1/3…), so together they fade evenly from solid to clear.
+  // It takes no taps, so the list under it still scrolls.
+  component Fade(up, tint, fr) {
+    Box {
+      fill: width
+      height: 20
+      align: up ? "top" : "bottom"
+      for k in range(1, 11) {
+        Box { fill: width; height: k * 2; frost: fr; background: tint; opacity: 1 / k }
+      }
+    }
+  }
+
+  // The page's tint over the wallpaper, even all the way down, so the list's fades match it wherever they fall.
+  background: alpha(background, 0.3)
+
+  Column {
+    fill: true
+    gap: 12
+    padding: [16, (screenTop ?? 24) + 4, 16, 0]
+
+    // ── the month's name, and the way to the others ──
+    Row {
+      align: center
+      gap: 8
+      padding: [4, 6, 0, 0]
+      Column {
+        gap: 0
+        weight: 1
+        T { s: fmtTime(first + 43200, "MMMM"); sz: 36; w: 300 }
+        T { s: mo == 0 ? "${ty} · ${len(get(byDay, today, []))} today" : "${ty}"; sz: 13; w: 550; col: soft }
+      }
+      if mo != 0 || sel != "" {
+        Row {
+          padding: [14, 9]
+          radius: 99
+          background: alpha(accent, 0.2)
+          border: 1
+          borderColor: alpha(accent, 0.5)
+          onTap: { haptic("light"); mo = 0; sel = "" }
+          T { s: "Today"; sz: 13; w: 650; col: accent }
+        }
+      }
+      Round { id: "prev"; glyph: i_chevron_left }
+      Round { id: "next"; glyph: i_chevron_right }
+    }
+
+    // ── below the month's name, the grid and the picked day scroll together, fading out at the edges ──
+    Box {
+      weight: 1
+    Column {
+      fill: true
+      scroll: true
+      gap: 12
+      Spacer { height: 8 }
+
+      // ── the grid: today in the accent, the picked day ringed, a dot for each event in its calendar's colour ──
+    Column {
+      gap: 2
+      padding: [8, 10, 8, 6]
+      background: glass
+      frost: fz
+      radius: R
+      border: 1
+      borderColor: hair
+      Row {
+        gap: 0
+        for d, i in ["S", "M", "T", "W", "T", "F", "S"] {
+          T { s: d; sz: 11; w: 700; col: i == 0 || i == 6 ? alpha(accent, 0.8) : faint; al: "center"; weight: 1 }
+        }
+      }
+      Spacer { height: 4 }
+      Grid {
+        columns: 7
+        gap: 0
+        for i in range(weeks * 7) {
+          let d = i - lead + 1
+          let inM = d >= 1 && d <= dim
+          let t = first + (d - 1) * 86400 + 43200
+          let key = fmtTime(t, "yyyyMMdd")
+          let isToday = key == today
+          let isPick = key == pick
+          let dots = get(byDay, key, []).take(3)
+          Column {
+            align: center
+            gap: 2
+            height: 48
+            onTap: {
+              haptic("light")
+              sel = key
+              if d < 1 { mo = mo - 1 } else if d > dim { mo = mo + 1 }
+            }
+            Box {
+              size: 36
+              radius: 18
+              align: center
+              background: isToday ? accent : isPick ? alpha(accent, 0.22) : alpha(accent, 0)
+              border: isPick && !isToday ? 1.5 : 0
+              borderColor: accent
+              T { s: fmtTime(t, "d"); sz: 15; w: isToday ? 750 : isPick ? 650 : 480; col: isToday ? background : !inM ? alpha(foreground, 0.25) : foreground; al: "center" }
+            }
+            Row {
+              gap: 3
+              height: 6
+              justify: center
+              for s in dots {
+                Box { size: 5; radius: 3; background: s.e.color ?? accent; opacity: inM ? 1 : 0.4 }
+              }
+            }
+          }
+        }
+      }
+    }
+
+      // ── the picked day ──
+      Column {
+        gap: 10
+        padding: [16, 14]
+        background: glass
+        frost: fz
+        radius: R
+        border: 1
+        borderColor: hair
+        Row {
+          align: center
+          Column {
+            gap: 0
+            weight: 1
+            T { s: pick == today ? "Today" : fmtTime(pickT, "EEEE"); sz: 18; w: 650 }
+            T { s: fmtTime(pickT, "MMMM d") + " · " + (len(dayEvents) == 0 ? "free" : len(dayEvents) == 1 ? "1 event" : "${len(dayEvents)} events"); sz: 12; w: 500; col: soft }
+          }
+          Round { id: "open"; glyph: i_calendar_month }
+        }
+        if !c.granted {
+          Box {
+            padding: [0, 4]
+            onTap: calendar("request")
+            T { s: "Tap to show your calendar's events here"; sz: 14; w: 550; col: accent }
+          }
+        } else if len(dayEvents) == 0 {
+          T { s: pick < today ? "Past days aren't read, only today onward." : "Nothing planned."; sz: 14; w: 500; col: faint }
+        }
+        for e in dayEvents key e.id {
+          Row {
+            gap: 12
+            align: center
+            onTap: { haptic("light"); calendar("open", e) }
+            Column {
+              gap: 0
+              width: 58
+              T { s: e.allDay ? "All day" : fmtTime(e.start, "h:mm"); sz: 14; w: 650 }
+              T { s: e.allDay ? "" : fmtTime(e.start, "a") + " – " + fmtTime(e.end, "h:mm"); sz: 11; w: 500; col: faint }
+            }
+            Box { width: 4; height: 38; radius: 2; background: e.color ?? accent }
+            Column {
+              gap: 1
+              weight: 1
+              T { s: e.title == "" ? "(no title)" : e.title; sz: 15; w: 600 }
+              if e.location != "" { T { s: e.location; sz: 12; w: 500; col: soft } }
+            }
+          }
+        }
+      }
+
+      Spacer { height: 14 }
+    }
+    Column {
+      fill: true
+      gap: 0
+      Fade { up: true; tint: alpha(background, 0.3); fr: 1 }
+      Spacer { weight: 1 }
+      Fade { up: false; tint: alpha(background, 0.3); fr: 1 }
+    }
+    }
+
+    // ── the dock and the pages, in the same place on every page ──
+    if !kb {
+      Bottom { cur: "plan" }
+    }
+    Spacer { height: max(screenInset ?? 0, 10) }
+  }
+}

@@ -1,0 +1,331 @@
+face "tide · pulse" {
+  // Tide's Pulse page: every notification to open or clear, and the phone's switches under the thumb. (Claude's usage is
+  // the small reading on the Now page.)
+  meta {
+    owl: 23
+    description: "Tide · Pulse: your notifications and quick switches"
+    version: "1.1"
+    license: "MIT"
+    category: "productivity"
+  }
+  edge: true
+  padding: 0
+  asset i_close = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgLTk2MCA5NjAgOTYwIiB3aWR0aD0iMjQiPjxwYXRoIGQ9Ik00ODAtNDI0IDI4NC0yMjhxLTExIDExLTI4IDExdC0yOC0xMXEtMTEtMTEtMTEtMjh0MTEtMjhsMTk2LTE5Ni0xOTYtMTk2cS0xMS0xMS0xMS0yOHQxMS0yOHExMS0xMSAyOC0xMXQyOCAxMWwxOTYgMTk2IDE5Ni0xOTZxMTEtMTEgMjgtMTF0MjggMTFxMTEgMTEgMTEgMjh0LTExIDI4TDUzNi00ODBsMTk2IDE5NnExMSAxMSAxMSAyOHQtMTEgMjhxLTExIDExLTI4IDExdC0yOC0xMUw0ODAtNDI0WiIvPjwvc3ZnPg=="
+  asset i_wifi = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgLTk2MCA5NjAgOTYwIiB3aWR0aD0iMjQiPjxwYXRoIGQ9Ik00ODAtMTIwcS00MiAwLTcxLTI5dC0yOS03MXEwLTQyIDI5LTcxdDcxLTI5cTQyIDAgNzEgMjl0MjkgNzFxMCA0Mi0yOSA3MXQtNzEgMjlabTAtNDQwcTc1IDAgMTQyLjUgMjRUNzQ1LTQ3MHEyMCAxNSAyMC41IDM5LjVUNzQ4LTM4OHEtMTcgMTctNDIgMTcuNVQ2NjEtMzg0cS0zOC0yNi04NC00MXQtOTctMTVxLTUxIDAtOTcgMTV0LTg0IDQxcS0yMCAxNC00NSAxM3QtNDItMThxLTE3LTE4LTE3LTQyLjV0MjAtMzkuNXE1NS00MiAxMjIuNS02NS41VDQ4MC01NjBabTAtMjQwcTEyNSAwIDIzNS41IDQxVDkxNC02NDNxMjAgMTcgMjEgNDJ0LTE3IDQzcS0xNyAxNy00MiAxNy41VDgzMS01NTZxLTcyLTU5LTE2MS41LTkxLjVUNDgwLTY4MHEtMTAwIDAtMTg5LjUgMzIuNVQxMjktNTU2cS0yMCAxNi00NSAxNS41VDQyLTU1OHEtMTgtMTgtMTctNDN0MjEtNDJxODgtNzUgMTk4LjUtMTE2VDQ4MC04MDBaIi8+PC9zdmc+"
+  asset i_bluetooth = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgLTk2MCA5NjAgOTYwIiB3aWR0aD0iMjQiPjxwYXRoIGQ9Ik00NDAtMTM3di0yNDdMMjg0LTIyOHEtMTEgMTEtMjggMTF0LTI4LTExcS0xMS0xMS0xMS0yOHQxMS0yOGwxOTYtMTk2LTE5Ni0xOTZxLTExLTExLTExLTI4dDExLTI4cTExLTExIDI4LTExdDI4IDExbDE1NiAxNTZ2LTI0N3EwLTE4IDEyLTI5LjV0MjgtMTEuNXE4IDAgMTUgM3QxMyA5bDE3MiAxNzJxNiA2IDguNSAxM3QyLjUgMTVxMCA4LTIuNSAxNXQtOC41IDEzTDUzNi00ODBsMTQ0IDE0NHE2IDYgOC41IDEzdDIuNSAxNXEwIDgtMi41IDE1dC04LjUgMTNMNTA4LTEwOHEtNiA2LTEzIDl0LTE1IDNxLTE2IDAtMjgtMTEuNVQ0NDAtMTM3Wm04MC00MzkgNzYtNzYtNzYtNzR2MTUwWm0wIDM0MiA3Ni03NC03Ni03NnYxNTBaIi8+PC9zdmc+"
+  asset i_do_not_disturb_on = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgLTk2MCA5NjAgOTYwIiB3aWR0aD0iMjQiPjxwYXRoIGQ9Ik0zMjAtNDQwaDMyMHExNyAwIDI4LjUtMTEuNVQ2ODAtNDgwcTAtMTctMTEuNS0yOC41VDY0MC01MjBIMzIwcS0xNyAwLTI4LjUgMTEuNVQyODAtNDgwcTAgMTcgMTEuNSAyOC41VDMyMC00NDBaTTQ4MC04MHEtODMgMC0xNTYtMzEuNVQxOTctMTk3cS01NC01NC04NS41LTEyN1Q4MC00ODBxMC04MyAzMS41LTE1NlQxOTctNzYzcTU0LTU0IDEyNy04NS41VDQ4MC04ODBxODMgMCAxNTYgMzEuNVQ3NjMtNzYzcTU0IDU0IDg1LjUgMTI3VDg4MC00ODBxMCA4My0zMS41IDE1NlQ3NjMtMTk3cS01NCA1NC0xMjcgODUuNVQ0ODAtODBaIi8+PC9zdmc+"
+  asset i_flashlight_on = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgLTk2MCA5NjAgOTYwIiB3aWR0aD0iMjQiPjxwYXRoIGQ9Ik0yNDAtNzYwdi00MHEwLTMzIDIzLjUtNTYuNVQzMjAtODgwaDMyMHEzMyAwIDU2LjUgMjMuNVQ3MjAtODAwdjQwSDI0MFptMjQwIDQyMHEyNSAwIDQyLjUtMTcuNVQ1NDAtNDAwcTAtMjUtMTcuNS00Mi41VDQ4MC00NjBxLTI1IDAtNDIuNSAxNy41VDQyMC00MDBxMCAyNSAxNy41IDQyLjVUNDgwLTM0MFpNMzIwLTE2MHYtMzYwbC02Ny0xMDBxLTctMTAtMTAtMjF0LTMtMjN2LTE2aDQ4MHYxNnEwIDEyLTMgMjN0LTEwIDIxbC02NyAxMDB2MzYwcTAgMzMtMjMuNSA1Ni41VDU2MC04MEg0MDBxLTMzIDAtNTYuNS0yMy41VDMyMC0xNjBaIi8+PC9zdmc+"
+  asset i_battery_full = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgLTk2MCA5NjAgOTYwIiB3aWR0aD0iMjQiPjxwYXRoIGQ9Ik0zMjAtODBxLTE3IDAtMjguNS0xMS41VDI4MC0xMjB2LTY0MHEwLTE3IDExLjUtMjguNVQzMjAtODAwaDgwdi00MHEwLTE3IDExLjUtMjguNVQ0NDAtODgwaDgwcTE3IDAgMjguNSAxMS41VDU2MC04NDB2NDBoODBxMTcgMCAyOC41IDExLjVUNjgwLTc2MHY2NDBxMCAxNy0xMS41IDI4LjVUNjQwLTgwSDMyMFoiLz48L3N2Zz4="
+  asset i_notifications_off = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgLTk2MCA5NjAgOTYwIiB3aWR0aD0iMjQiPjxwYXRoIGQ9Ik02NDYtMjAwSDIwMHEtMTcgMC0yOC41LTExLjVUMTYwLTI0MHEwLTE3IDExLjUtMjguNVQyMDAtMjgwaDQwdi0yODBxMC0zMyA4LjUtNjV0MjUuNS02MWwxMjYgMTI2SDI4OEw4NC03NjRxLTExLTExLTExLTI4dDExLTI4cTExLTExIDI4LTExdDI4IDExbDY4MCA2ODBxMTEgMTEgMTEuNSAyNy41VDgyMC04NHEtMTEgMTEtMjggMTF0LTI4LTExTDY0Ni0yMDBabTc0LTI1MXEwIDEyLTcgMjJ0LTE4IDE1cS0xMSA1LTIzIDIuNVQ2NTItNDIyTDM2Ny03MDdxLTctNy0xMC0xNXQtMy0xN3EwLTExIDUuNS0yMS41VDM3NS03NzZxMTEtNSAyMi05dDIzLTd2LTI4cTAtMjUgMTcuNS00Mi41VDQ4MC04ODBxMjUgMCA0Mi41IDE3LjVUNTQwLTgyMHYyOHE4MCAyMCAxMzAgODV0NTAgMTQ3djEwOVpNNDgwLTgwcS0zMCAwLTUzLjUtMTYuNVQ0MDMtMTQxcTAtOCA2LjUtMTMuNVQ0MjQtMTYwaDExMnE4IDAgMTQuNSA1LjVUNTU3LTE0MXEwIDI4LTIzLjUgNDQuNVQ0ODAtODBaIi8+PC9zdmc+"
+  asset i_task_alt = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgLTk2MCA5NjAgOTYwIiB3aWR0aD0iMjQiPjxwYXRoIGQ9Ik00ODAtODBxLTgzIDAtMTU2LTMxLjVUMTk3LTE5N3EtNTQtNTQtODUuNS0xMjdUODAtNDgwcTAtODMgMzEuNS0xNTZUMTk3LTc2M3E1NC01NCAxMjctODUuNVQ0ODAtODgwcTQ4IDAgOTMuNSAxMXQ4Ny41IDMycTE1IDggMTkuNSAyNHQtNS41IDMwcS0xMCAxNC0yNi41IDE4dC0zMi41LTRxLTMyLTE1LTY2LjUtMjN0LTY5LjUtOHEtMTMzIDAtMjI2LjUgOTMuNVQxNjAtNDgwcTAgMTMzIDkzLjUgMjI2LjVUNDgwLTE2MHExMzMgMCAyMjYuNS05My41VDgwMC00ODBxMC04LS41LTE1LjVUNzk4LTUxMXEtMi0xNyA2LjUtMzIuNVQ4MzAtNTY0cTE2LTUgMzAgM3QxNiAyNHEyIDE0IDMgMjh0MSAyOXEwIDgzLTMxLjUgMTU2VDc2My0xOTdxLTU0IDU0LTEyNyA4NS41VDQ4MC04MFptLTU2LTMyOCAzNzItMzczcTExLTExIDI3LjUtMTEuNVQ4NTItNzgxcTExIDExIDExIDI4dC0xMSAyOEw0NTItMzI0cS0xMiAxMi0yOCAxMnQtMjgtMTJMMjgyLTQzOHEtMTEtMTEtMTEtMjh0MTEtMjhxMTEtMTEgMjgtMTF0MjggMTFsODYgODZaIi8+PC9zdmc+"
+
+  source now = clock every 1m
+  source n = android.notifications
+  source modes = android.modes
+  source apps = android.apps
+
+  state held = ""
+  state gone = []
+  on n { gone = [] }
+
+  // ── look ──────────────────────────────────────────────────────────────────────────────────────────────────────
+  let inter = "https://raw.githubusercontent.com/google/fonts/main/ofl/inter/Inter%5Bopsz,wght%5D.ttf"
+  let R = 22 * (corners ?? 1)
+  let r2 = 14 * (corners ?? 1)
+  let glass = alpha(background, clamp(tileOpacity ?? 0.55, 0.45, 0.9))
+  let fz = tileFrost ?? 0
+  let hair = alpha(foreground, 0.10)
+  let soft = alpha(foreground, 0.66)
+  let faint = alpha(foreground, 0.40)
+  let tabs = [{id: "plan", name: "Calendar", p: -3}, {id: "now", name: "Now", p: -2}, {id: "pulse", name: "Pulse", p: -1}, {id: "pond", name: "Pond", p: 0}]
+
+  let items = (n.items ?? []).filter(i => !contains(gone, i.key))
+  let canClear = any(items, i => i.clearable)
+
+  // The fourteen apps, found among the phone's by package, else by name; a link stands in for one that isn't there.
+  // The first six are the dock, the same on every page. The Calendar page has all fourteen, seven to a row: the dock's
+  // six and Claude below, the other seven above.
+  let A = apps ?? []
+  let slots = [
+    {id: "phone", label: "Phone", tint: green, alt: "tel:", pk: ["com.google.android.dialer", "com.samsung.android.dialer", "com.android.dialer"], nm: ["phone"]},
+    {id: "msg", label: "Messages", tint: blue, alt: "sms:", pk: ["com.google.android.apps.messaging", "com.samsung.android.messaging"], nm: ["messages", "messaging"]},
+    {id: "gmail", label: "Gmail", tint: red, alt: "https://mail.google.com", pk: ["com.google.android.gm"], nm: ["gmail"]},
+    {id: "yahoo", label: "Yahoo", tint: magenta, alt: "https://mail.yahoo.com", pk: ["com.yahoo.mobile.client.android.mail"], nm: ["yahoo mail", "yahoo"]},
+    {id: "chrome", label: "Chrome", tint: yellow, alt: "https://www.google.com", pk: ["com.android.chrome"], nm: ["chrome"]},
+    {id: "camera", label: "Camera", tint: foreground, alt: "", pk: ["com.google.android.GoogleCamera", "com.sec.android.app.camera", "com.android.camera", "com.android.camera2"], nm: ["camera"]},
+    {id: "spotify", label: "Spotify", tint: green, alt: "https://open.spotify.com", pk: ["com.spotify.music"], nm: ["spotify"]},
+    {id: "maps", label: "Maps", tint: cyan, alt: "geo:0,0", pk: ["com.google.android.apps.maps"], nm: ["maps"]},
+    {id: "clock", label: "Clock", tint: blue, alt: "", pk: ["com.google.android.deskclock", "com.sec.android.app.clockpackage", "com.android.deskclock"], nm: ["clock"]},
+    {id: "photos", label: "Photos", tint: orange, alt: "", pk: ["com.google.android.apps.photos", "com.sec.android.gallery3d"], nm: ["photos", "gallery"]},
+    {id: "cal", label: "Calendar", tint: accent, alt: "calendar", pk: ["com.google.android.calendar", "com.samsung.android.calendar"], nm: ["calendar"]},
+    {id: "bc", label: "Basecamp", tint: yellow, alt: "https://launchpad.37signals.com", pk: ["com.basecamp.bc3"], nm: ["basecamp"]},
+    {id: "settings", label: "Settings", tint: blue, alt: "", pk: ["com.android.settings"], nm: ["settings"]},
+    {id: "claude", label: "Claude", tint: orange, alt: "https://claude.ai", pk: ["com.anthropic.claude"], nm: ["claude"]}
+  ].map(s => merge(s, {app: A.find(a => a.profile == null && contains(s.pk, a.package)) ?? A.find(a => a.profile == null && contains(s.nm, lower(a.name)))}))
+  let dockRow = slots.take(6)
+  let topRow = drop(slots, 6).take(7)
+  let lowRow = flatten([dockRow, drop(slots, 13)])
+  let spotifyApp = slots[6].app
+  let clockApp = slots[8].app
+
+  // ── parts ─────────────────────────────────────────────────────────────────────────────────────────────────────
+  component T(s, sz = 14, w = 450, col = foreground, lines = 1, al = "start") {
+    Text { text: s; font: inter; fontSize: sz; fontWeight: w; color: col; maxLines: lines; align: al }
+  }
+
+  // An app: a pane of glass tinted in a theme colour, its icon, its name. It sinks under the finger.
+  // `small` for the Calendar page's dock of fourteen, seven to a row.
+  component AppKey(s, small = false) {
+    Column {
+      align: center
+      gap: 4
+      scale: held == s.id ? 0.88 : 1
+      animate scale: spring(0.55, 600)
+      onPress: held = s.id
+      onRelease: held = ""
+      onTap: {
+        haptic("light")
+        if s.app != null { androidApp(s.app.key) } else if s.alt == "calendar" { calendar("open") } else if s.alt != "" { url(s.alt) }
+      }
+      Box {
+        size: small ? 44 : 50
+        radius: (small ? 14 : 16) * (corners ?? 1)
+        background: mix(glass, alpha(s.tint, 0.55), 0.35)
+        frost: fz
+        border: 1
+        borderColor: alpha(s.tint, 0.35)
+        align: center
+        if s.app != null {
+          Image { src: s.app.icon; size: small ? 25 : 28; label: s.label }
+        } else {
+          T { s: sub(s.label, 0, 1); sz: small ? 18 : 20; w: 600; al: "center" }
+        }
+      }
+      T { s: s.label; sz: small ? 10 : 10.5; w: 500; col: soft; al: "center" }
+    }
+  }
+
+  // A switch: a round key, lit in the accent while it's on.
+  component Switch(id, on, glyph, name) {
+    Column {
+      align: center
+      gap: 6
+      scale: held == id ? 0.88 : 1
+      animate scale: spring(0.55, 600)
+      onPress: held = id
+      onRelease: held = ""
+      onTap: {
+        haptic("light")
+        if id == "wifi" { settings("wifi") } else if id == "bt" { settings("bluetooth") } else if id == "dnd" { dnd("toggle") } else if id == "torch" { torch("toggle") } else { settings("battery") }
+      }
+      Box {
+        size: 54
+        radius: 27
+        align: center
+        background: on ? accent : glass
+        animate background: tween(200ms, "ease")
+        frost: fz
+        border: 1
+        borderColor: on ? accent : hair
+        Image { src: glyph; size: 24; tint: on ? background : foreground }
+      }
+      T { s: name; sz: 11; w: 550; col: on ? foreground : soft; al: "center" }
+    }
+  }
+
+  // The four pages as a segmented bar, the one showing lit in the accent: swipe to the others.
+  component Tabs(cur) {
+    Row {
+      gap: 4
+      padding: 4
+      background: glass
+      frost: fz
+      radius: R
+      border: 1
+      borderColor: hair
+      for t in tabs {
+        Box {
+          weight: 1
+          height: 34
+          align: center
+          radius: R - 4
+          background: t.id == cur ? accent : alpha(accent, 0)
+          animate background: tween(220ms, "ease")
+          T { s: t.name; sz: 13; w: 650; col: t.id == cur ? background : soft; al: "center" }
+        }
+      }
+    }
+  }
+
+  // The bottom of every page, in the same place on each: the dock's six apps (on the Calendar page all fourteen, in
+  // two rows of seven), then the four pages. Swiping between pages, the pages' bar stays put.
+  component Bottom(cur) {
+    Column {
+      gap: 10
+      Column {
+        gap: 10
+        padding: [6, 10]
+        background: glass
+        frost: fz
+        radius: R + 4
+        border: 1
+        borderColor: hair
+        if cur == "plan" {
+          Row {
+            gap: 0
+            for s in topRow key s.id { AppKey { s: s; small: true; weight: 1 } }
+          }
+          Row {
+            gap: 0
+            for s in lowRow key s.id { AppKey { s: s; small: true; weight: 1 } }
+          }
+        } else {
+          Row {
+            gap: 0
+            for s in dockRow key s.id { AppKey { s: s; weight: 1 } }
+          }
+        }
+      }
+      Tabs { cur: cur }
+    }
+  }
+
+  // A soft edge for a scrolling list, so rows melt into the page instead of meeting a hard line. It's layers of
+  // what's behind the list (the wallpaper as frosted glass shows it, under the same tint), all starting at the edge
+  // and reaching further in as they get fainter (1, 1/2, 1/3…), so together they fade evenly from solid to clear.
+  // It takes no taps, so the list under it still scrolls.
+  component Fade(up, tint, fr) {
+    Box {
+      fill: width
+      height: 20
+      align: up ? "top" : "bottom"
+      for k in range(1, 11) {
+        Box { fill: width; height: k * 2; frost: fr; background: tint; opacity: 1 / k }
+      }
+    }
+  }
+
+  background: linear(0, 0, 0, 1, [alpha(background, 0.5), alpha(background, 0.15), alpha(background, 0.5)])
+
+  Column {
+    fill: true
+    gap: 12
+    padding: [16, (screenTop ?? 24) + 4, 16, 0]
+
+    Row {
+      align: center
+      padding: [4, 6, 0, 0]
+      Column {
+        gap: 0
+        weight: 1
+        T { s: "Pulse"; sz: 36; w: 300 }
+        T { s: fmtTime(now, "EEEE · h:mm a"); sz: 13; w: 550; col: soft }
+      }
+    }
+
+    // ── notifications ──
+    Column {
+      weight: 1
+      gap: 10
+      padding: [16, 14, 16, 6]
+      background: glass
+      frost: fz
+      radius: R
+      border: 1
+      borderColor: hair
+      Row {
+        align: center
+        T { s: len(items) > 0 ? "NOTIFICATIONS · ${len(items)}" : "NOTIFICATIONS"; sz: 11; w: 700; col: faint; weight: 1 }
+        if canClear {
+          Row {
+            padding: [12, 5]
+            radius: 99
+            background: alpha(accent, 0.18)
+            onTap: { haptic("medium"); gone = items.filter(i => i.clearable).map(i => i.key); notification("clear") }
+            T { s: "Clear all"; sz: 12; w: 650; col: accent }
+          }
+        }
+      }
+      if n.available == false {
+        Box {
+          onTap: notification("open", "")
+          T { s: "Tap to let Tide show your notifications"; sz: 14; w: 550; col: accent }
+        }
+      } else if len(items) == 0 {
+        Column {
+          weight: 1
+          align: center
+          justify: center
+          gap: 6
+          Image { src: i_task_alt; size: 30; tint: alpha(green, 0.8) }
+          T { s: "All caught up"; sz: 14; w: 550; col: soft; al: "center" }
+        }
+      }
+      Box {
+        weight: 1
+      Column {
+        fill: true
+        scroll: true
+        gap: 14
+        Spacer { height: 6 }
+        for i in items key i.key {
+          Row {
+            gap: 12
+            align: top
+            onTap: { haptic("light"); notification("open", i.key) }
+            onLongPress: { if i.clearable { haptic("medium"); gone = flatten([gone, [i.key]]); notification("dismiss", i.key) } }
+            Box {
+              size: 36
+              radius: 11 * (corners ?? 1)
+              background: alpha(foreground, 0.08)
+              align: center
+              Image { src: i.icon; size: 22 }
+            }
+            Column {
+              gap: 1
+              weight: 1
+              T { s: "${i.app} · ${fmtAgo(i.time, now)}"; sz: 11; w: 550; col: faint }
+              T { s: i.title != "" ? i.title : i.app; sz: 14; w: 650 }
+              if i.text != "" { T { s: i.text; sz: 13; w: 450; col: soft; lines: 2 } }
+            }
+            if i.clearable {
+              Box {
+                size: 30
+                align: center
+                onTap: { haptic("light"); gone = flatten([gone, [i.key]]); notification("dismiss", i.key) }
+                Image { src: i_close; size: 18; tint: faint }
+              }
+            }
+          }
+        }
+        Spacer { height: 12 }
+      }
+      Column {
+        fill: true
+        gap: 0
+        Fade { up: true; tint: glass; fr: max(fz, 1) }
+        Spacer { weight: 1 }
+        Fade { up: false; tint: glass; fr: max(fz, 1) }
+      }
+      }
+    }
+
+    // ── switches, pages and five apps, under the thumb ──
+    Row {
+      gap: 0
+      padding: [6, 12, 6, 10]
+      background: glass
+      frost: fz
+      radius: R + 4
+      border: 1
+      borderColor: hair
+      Switch { id: "wifi"; on: modes.wifi == true; glyph: i_wifi; name: "Wi-Fi"; weight: 1 }
+      Switch { id: "bt"; on: modes.bluetooth == true; glyph: i_bluetooth; name: "Bluetooth"; weight: 1 }
+      Switch { id: "dnd"; on: modes.dnd == true; glyph: i_do_not_disturb_on; name: "Focus"; weight: 1 }
+      Switch { id: "torch"; on: modes.torch == true; glyph: i_flashlight_on; name: "Torch"; weight: 1 }
+      Switch { id: "saver"; on: modes.saver == true; glyph: i_battery_full; name: "Saver"; weight: 1 }
+    }
+    Bottom { cur: "pulse" }
+    Spacer { height: max(screenInset ?? 0, 10) }
+  }
+}

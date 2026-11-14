@@ -1,0 +1,556 @@
+face "tide · now" {
+  // Tide: one look over four pages, frosted glass in the Omarchy theme's colours over its wallpaper, so it follows
+  // whichever theme and background are picked. Each thing has one home: Calendar (the month and the day's events) ·
+  // Now (this page: your tasks) · Pulse (Claude usage, notifications, switches) · Pond (koi, and the music). What's
+  // read sits high up; what's tapped sits low, under the thumb, and the dock and the page bar stay put across pages.
+  // This page: the time and weather, battery, Claude and the next alarm at a glance, then
+  // your tasks in one list to scroll, and the dock.
+  meta {
+    owl: 23
+    description: "Tide · Now: the time, weather, battery, Claude usage and alarm at a glance, and your tasks"
+    version: "1.2"
+    license: "MIT"
+    category: "productivity"
+  }
+  edge: true
+  padding: 0
+  asset i_battery_full = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgLTk2MCA5NjAgOTYwIiB3aWR0aD0iMjQiPjxwYXRoIGQ9Ik0zMjAtODBxLTE3IDAtMjguNS0xMS41VDI4MC0xMjB2LTY0MHEwLTE3IDExLjUtMjguNVQzMjAtODAwaDgwdi00MHEwLTE3IDExLjUtMjguNVQ0NDAtODgwaDgwcTE3IDAgMjguNSAxMS41VDU2MC04NDB2NDBoODBxMTcgMCAyOC41IDExLjVUNjgwLTc2MHY2NDBxMCAxNy0xMS41IDI4LjVUNjQwLTgwSDMyMFoiLz48L3N2Zz4="
+  asset i_bolt = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgLTk2MCA5NjAgOTYwIiB3aWR0aD0iMjQiPjxwYXRoIGQ9Ik0zNjAtMzYwSDIzNnEtMjQgMC0zNS41LTIxLjVUMjAzLTQyM2wyOTktNDMwcTEwLTE0IDI2LTE5LjV0MzMgLjVxMTcgNiAyNSAyMXQ2IDMybC0zMiAyNTloMTU1cTI2IDAgMzYuNSAyM3QtNi41IDQzTDQxNi0xMDBxLTExIDEzLTI3IDE3dC0zMS0zcS0xNS03LTIzLjUtMjEuNVQzMjgtMTM5bDMyLTIyMVoiLz48L3N2Zz4="
+  asset i_alarm = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgLTk2MCA5NjAgOTYwIiB3aWR0aD0iMjQiPjxwYXRoIGQ9Ik01MjAtNDU2di0xNDRxMC0xNy0xMS41LTI4LjVUNDgwLTY0MHEtMTcgMC0yOC41IDExLjVUNDQwLTYwMHYxNTlxMCA4IDMgMTUuNXQ5IDEzLjVsMTEyIDExMnExMSAxMSAyOCAxMXQyOC0xMXExMS0xMSAxMS0yOHQtMTEtMjhMNTIwLTQ1NlpNNDgwLTgwcS03NSAwLTE0MC41LTI4LjV0LTExNC03N3EtNDguNS00OC41LTc3LTExNFQxMjAtNDQwcTAtNzUgMjguNS0xNDAuNXQ3Ny0xMTRxNDguNS00OC41IDExNC03N1Q0ODAtODAwcTc1IDAgMTQwLjUgMjguNXQxMTQgNzdxNDguNSA0OC41IDc3IDExNFQ4NDAtNDQwcTAgNzUtMjguNSAxNDAuNXQtNzcgMTE0cS00OC41IDQ4LjUtMTE0IDc3VDQ4MC04MFpNODItNjY4cS0xMS0xMS0xMS0yOHQxMS0yOGwxMTQtMTE0cTExLTExIDI4LTExdDI4IDExcTExIDExIDExIDI4dC0xMSAyOEwxMzgtNjY4cS0xMSAxMS0yOCAxMXQtMjgtMTFabTc5NiAwcS0xMSAxMS0yOCAxMXQtMjgtMTFMNzA4LTc4MnEtMTEtMTEtMTEtMjh0MTEtMjhxMTEtMTEgMjgtMTF0MjggMTFsMTE0IDExNHExMSAxMSAxMSAyOHQtMTEgMjhaIi8+PC9zdmc+"
+  asset i_check = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgLTk2MCA5NjAgOTYwIiB3aWR0aD0iMjQiPjxwYXRoIGQ9Im0zODItMzU0IDMzOS0zMzlxMTItMTIgMjgtMTJ0MjggMTJxMTIgMTIgMTIgMjguNVQ3NzctNjM2TDQxMC0yNjhxLTEyIDEyLTI4IDEydC0yOC0xMkwxODItNDQwcS0xMi0xMi0xMS41LTI4LjVUMTgzLTQ5N3ExMi0xMiAyOC41LTEydDI4LjUgMTJsMTQyIDE0M1oiLz48L3N2Zz4="
+  asset i_add = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgLTk2MCA5NjAgOTYwIiB3aWR0aD0iMjQiPjxwYXRoIGQ9Ik00NDAtNDQwSDI0MHEtMTcgMC0yOC41LTExLjVUMjAwLTQ4MHEwLTE3IDExLjUtMjguNVQyNDAtNTIwaDIwMHYtMjAwcTAtMTcgMTEuNS0yOC41VDQ4MC03NjBxMTcgMCAyOC41IDExLjVUNTIwLTcyMHYyMDBoMjAwcTE3IDAgMjguNSAxMS41VDc2MC00ODBxMCAxNy0xMS41IDI4LjVUNzIwLTQ0MEg1MjB2MjAwcTAgMTctMTEuNSAyOC41VDQ4MC0yMDBxLTE3IDAtMjguNS0xMS41VDQ0MC0yNDB2LTIwMFoiLz48L3N2Zz4="
+  asset i_close = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgLTk2MCA5NjAgOTYwIiB3aWR0aD0iMjQiPjxwYXRoIGQ9Ik00ODAtNDI0IDI4NC0yMjhxLTExIDExLTI4IDExdC0yOC0xMXEtMTEtMTEtMTEtMjh0MTEtMjhsMTk2LTE5Ni0xOTYtMTk2cS0xMS0xMS0xMS0yOHQxMS0yOHExMS0xMSAyOC0xMXQyOCAxMWwxOTYgMTk2IDE5Ni0xOTZxMTEtMTEgMjgtMTF0MjggMTFxMTEgMTEgMTEgMjh0LTExIDI4TDUzNi00ODBsMTk2IDE5NnExMSAxMSAxMSAyOHQtMTEgMjhxLTExIDExLTI4IDExdC0yOC0xMUw0ODAtNDI0WiIvPjwvc3ZnPg=="
+  asset i_chevron_right = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgLTk2MCA5NjAgOTYwIiB3aWR0aD0iMjQiPjxwYXRoIGQ9Ik01MDQtNDgwIDM0OC02MzZxLTExLTExLTExLTI4dDExLTI4cTExLTExIDI4LTExdDI4IDExbDE4NCAxODRxNiA2IDguNSAxM3QyLjUgMTVxMCA4LTIuNSAxNXQtOC41IDEzTDQwNC0yNjhxLTExIDExLTI4IDExdC0yOC0xMXEtMTEtMTEtMTEtMjh0MTEtMjhsMTU2LTE1NloiLz48L3N2Zz4="
+  asset i_refresh = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgLTk2MCA5NjAgOTYwIiB3aWR0aD0iMjQiPjxwYXRoIGQ9Ik00ODAtMTYwcS0xMzQgMC0yMjctOTN0LTkzLTIyN3EwLTEzNCA5My0yMjd0MjI3LTkzcTY5IDAgMTMyIDI4LjVUNzIwLTY5MHYtNzBxMC0xNyAxMS41LTI4LjVUNzYwLTgwMHExNyAwIDI4LjUgMTEuNVQ4MDAtNzYwdjIwMHEwIDE3LTExLjUgMjguNVQ3NjAtNTIwSDU2MHEtMTcgMC0yOC41LTExLjVUNTIwLTU2MHEwLTE3IDExLjUtMjguNVQ1NjAtNjAwaDEyOHEtMzItNTYtODcuNS04OFQ0ODAtNzIwcS0xMDAgMC0xNzAgNzB0LTcwIDE3MHEwIDEwMCA3MCAxNzB0MTcwIDcwcTY4IDAgMTI0LjUtMzQuNVQ2OTItMzY3cTgtMTQgMjIuNS0xOS41dDI5LjUtLjVxMTYgNSAyMyAyMXQtMSAzMHEtNDEgODAtMTE3IDEyOHQtMTY5IDQ4WiIvPjwvc3ZnPg=="
+  asset i_arrow_upward = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgLTk2MCA5NjAgOTYwIiB3aWR0aD0iMjQiPjxwYXRoIGQ9Ik00NDAtNjQ3IDI0NC00NTFxLTEyIDEyLTI4IDExLjVUMTg4LTQ1MnEtMTEtMTItMTEuNS0yOHQxMS41LTI4bDI2NC0yNjRxNi02IDEzLTguNXQxNS0yLjVxOCAwIDE1IDIuNXQxMyA4LjVsMjY0IDI2NHExMSAxMSAxMSAyNy41VDc3Mi00NTJxLTEyIDEyLTI4LjUgMTJUNzE1LTQ1Mkw1MjAtNjQ3djQ0N3EwIDE3LTExLjUgMjguNVQ0ODAtMTYwcS0xNyAwLTI4LjUtMTEuNVQ0NDAtMjAwdi00NDdaIi8+PC9zdmc+"
+
+  source now = clock every 1m
+  source bat = android.battery
+  source alarm = android.alarm
+  source here = android.location
+  source apps = android.apps
+
+  // The weather where the phone is, once location is allowed; until then wttr's guess from the IP.
+  source wx = http(here == null ? null : here.available ? "https://wttr.in/${fixed(here.lat, 2)},${fixed(here.lon, 2)}?format=j1" : "https://wttr.in/?format=j1") every 30m timeout 10s json
+
+  // Your tasks, kept in one small file in Linux so other pages and scripts can read them too.
+  source tf = file("~/.local/share/tide/tasks.json") optional
+  state pend = null
+  on tf { pend = null }
+  // Claude's plan limits, as /usage shows them, with the login Claude Code keeps (sent only to Anthropic, as Claude
+  // Code itself does); the last good answer is kept, so a failed fetch shows it rather than nothing.
+  source cl = cmd("""
+    c=~/.cache/tide-claude-usage.json
+    mkdir -p ~/.cache
+    j=$(tr -d '\n' 2>/dev/null < ~/.claude/.credentials.json)
+    t=$(printf '%s' "$j" | grep -o '"accessToken" *: *"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
+    p=$(printf '%s' "$j" | grep -o '"subscriptionType" *: *"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
+    if [ -n "$t" ]; then
+      code=$(printf 'Authorization: Bearer %s\n' "$t" | curl -s -m 15 -o "$c.new" -w '%{http_code}' -H @- -H 'anthropic-beta: oauth-2025-04-20' https://api.anthropic.com/api/oauth/usage)
+      [ "$code" = 200 ] && mv "$c.new" "$c"
+      rm -f "$c.new"
+    fi
+    if [ -s "$c" ]; then printf '{"at":%s,"plan":"%s","login":%s,"u":' "$(stat -c %Y "$c")" "$p" "$([ -n "$t" ] && echo true || echo false)"; cat "$c"; printf '}\n'; else echo '{"error":"no data"}'; fi
+  """) every 10m json timeout 30s optional
+
+  state unitF = true persist
+  state held = ""
+  // The row of the list last touched (so roughly how far down it's scrolled), and a count that, raised, builds the
+  // list anew at its top: the back-to-top key.
+  state seen = 0
+  state topGen = 0
+  // A task being typed, the add box's key (raised to let go of the focus when the keyboard goes away), and how much
+  // of the bottom the navigation bar covers, kept from while the keyboard is down.
+  state draft = ""
+  state inputGen = 0
+  state navInset = 0
+
+  // ── look ──────────────────────────────────────────────────────────────────────────────────────────────────────
+  let inter = "https://raw.githubusercontent.com/google/fonts/main/ofl/inter/Inter%5Bopsz,wght%5D.ttf"
+  let R = 22 * (corners ?? 1)
+  let r2 = 14 * (corners ?? 1)
+  let glass = alpha(background, clamp(tileOpacity ?? 0.55, 0.45, 0.9))
+  let fz = tileFrost ?? 0
+  let hair = alpha(foreground, 0.10)
+  let soft = alpha(foreground, 0.66)
+  let faint = alpha(foreground, 0.40)
+  let tabs = [{id: "plan", name: "Calendar", p: -3}, {id: "now", name: "Now", p: -2}, {id: "pulse", name: "Pulse", p: -1}, {id: "pond", name: "Pond", p: 0}]
+
+  // ── data ──────────────────────────────────────────────────────────────────────────────────────────────────────
+  let hour = num(fmtTime(now, "H"))
+  let greeting = hour < 5 ? "Good night" : hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening"
+  let cur = wx.current_condition[0]
+  let night = hour < 6 || hour >= 18
+  let temp = unitF ? cur.temp_F : cur.temp_C
+  let hi = unitF ? wx.weather[0].maxtempF : wx.weather[0].maxtempC
+  let lo = unitF ? wx.weather[0].mintempF : wx.weather[0].mintempC
+  let skyTint = contains(["113", "116"], cur.weatherCode) ? (night ? blue : yellow) : foreground
+
+  let tasks = pend ?? (tf == null || tf == "" ? [] : parseJson(tf) ?? [])
+  let todo = tasks.filter(t => !t.done)
+  let done = tasks.filter(t => t.done)
+  let openCount = len(todo)
+  // The list under its headings: what's still to do, then what's ticked off.
+  let rows = flatten([
+    len(todo) > 0 ? [{id: "h-mine", head: "TO DO · ${len(todo)}"}] : [],
+    todo,
+    len(done) > 0 ? [{id: "h-done", head: "DONE · ${len(done)}"}] : [],
+    done
+  ])
+  // The keyboard is up, adding a task. Nothing on the page moves for it (the keyboard covers the dock): a page that
+  // moves under a focused field makes Android bring the keyboard back after it's put away.
+  let inset = screenInset ?? 0
+  let kb = inset > 120
+  // Halfway down a list long enough to want it, the key back to the top shows.
+  let showTop = len(rows) > 12 && seen >= len(rows) / 2
+
+  let u = cl.u
+  let week = u.seven_day.utilization
+  let five = u.five_hour.utilization
+  let worst = max(week ?? 0, five ?? 0)
+  let usageTint = worst >= 90 ? red : worst >= 70 ? yellow : green
+
+  // The fourteen apps, found among the phone's by package, else by name; a link stands in for one that isn't there.
+  // The first six are the dock, the same on every page. The Calendar page has all fourteen, seven to a row: the dock's
+  // six and Claude below, the other seven above.
+  let A = apps ?? []
+  let slots = [
+    {id: "phone", label: "Phone", tint: green, alt: "tel:", pk: ["com.google.android.dialer", "com.samsung.android.dialer", "com.android.dialer"], nm: ["phone"]},
+    {id: "msg", label: "Messages", tint: blue, alt: "sms:", pk: ["com.google.android.apps.messaging", "com.samsung.android.messaging"], nm: ["messages", "messaging"]},
+    {id: "gmail", label: "Gmail", tint: red, alt: "https://mail.google.com", pk: ["com.google.android.gm"], nm: ["gmail"]},
+    {id: "yahoo", label: "Yahoo", tint: magenta, alt: "https://mail.yahoo.com", pk: ["com.yahoo.mobile.client.android.mail"], nm: ["yahoo mail", "yahoo"]},
+    {id: "chrome", label: "Chrome", tint: yellow, alt: "https://www.google.com", pk: ["com.android.chrome"], nm: ["chrome"]},
+    {id: "camera", label: "Camera", tint: foreground, alt: "", pk: ["com.google.android.GoogleCamera", "com.sec.android.app.camera", "com.android.camera", "com.android.camera2"], nm: ["camera"]},
+    {id: "spotify", label: "Spotify", tint: green, alt: "https://open.spotify.com", pk: ["com.spotify.music"], nm: ["spotify"]},
+    {id: "maps", label: "Maps", tint: cyan, alt: "geo:0,0", pk: ["com.google.android.apps.maps"], nm: ["maps"]},
+    {id: "clock", label: "Clock", tint: blue, alt: "", pk: ["com.google.android.deskclock", "com.sec.android.app.clockpackage", "com.android.deskclock"], nm: ["clock"]},
+    {id: "photos", label: "Photos", tint: orange, alt: "", pk: ["com.google.android.apps.photos", "com.sec.android.gallery3d"], nm: ["photos", "gallery"]},
+    {id: "cal", label: "Calendar", tint: accent, alt: "calendar", pk: ["com.google.android.calendar", "com.samsung.android.calendar"], nm: ["calendar"]},
+    {id: "bc", label: "Basecamp", tint: yellow, alt: "https://launchpad.37signals.com", pk: ["com.basecamp.bc3"], nm: ["basecamp"]},
+    {id: "settings", label: "Settings", tint: blue, alt: "", pk: ["com.android.settings"], nm: ["settings"]},
+    {id: "claude", label: "Claude", tint: orange, alt: "https://claude.ai", pk: ["com.anthropic.claude"], nm: ["claude"]}
+  ].map(s => merge(s, {app: A.find(a => a.profile == null && contains(s.pk, a.package)) ?? A.find(a => a.profile == null && contains(s.nm, lower(a.name)))}))
+  let dockRow = slots.take(6)
+  let topRow = drop(slots, 6).take(7)
+  let lowRow = flatten([dockRow, drop(slots, 13)])
+  let spotifyApp = slots[6].app
+  let clockApp = slots[8].app
+
+  // ── parts ─────────────────────────────────────────────────────────────────────────────────────────────────────
+  component T(s, sz = 14, w = 450, col = foreground, lines = 1, al = "start") {
+    Text { text: s; font: inter; fontSize: sz; fontWeight: w; color: col; maxLines: lines; align: al }
+  }
+
+  // An app: a pane of glass tinted in a theme colour, its icon, its name. It sinks under the finger.
+  // `small` for the Calendar page's dock of fourteen, seven to a row.
+  component AppKey(s, small = false) {
+    Column {
+      align: center
+      gap: 4
+      scale: held == s.id ? 0.88 : 1
+      animate scale: spring(0.55, 600)
+      onPress: held = s.id
+      onRelease: held = ""
+      onTap: {
+        haptic("light")
+        if s.app != null { androidApp(s.app.key) } else if s.alt == "calendar" { calendar("open") } else if s.alt != "" { url(s.alt) }
+      }
+      Box {
+        size: small ? 44 : 50
+        radius: (small ? 14 : 16) * (corners ?? 1)
+        background: mix(glass, alpha(s.tint, 0.55), 0.35)
+        frost: fz
+        border: 1
+        borderColor: alpha(s.tint, 0.35)
+        align: center
+        if s.app != null {
+          Image { src: s.app.icon; size: small ? 25 : 28; label: s.label }
+        } else {
+          T { s: sub(s.label, 0, 1); sz: small ? 18 : 20; w: 600; al: "center" }
+        }
+      }
+      T { s: s.label; sz: small ? 10 : 10.5; w: 500; col: soft; al: "center" }
+    }
+  }
+  // The four pages as a segmented bar, the one showing lit in the accent: swipe to the others.
+  component Tabs(cur) {
+    Row {
+      gap: 4
+      padding: 4
+      background: glass
+      frost: fz
+      radius: R
+      border: 1
+      borderColor: hair
+      for t in tabs {
+        Box {
+          weight: 1
+          height: 34
+          align: center
+          radius: R - 4
+          background: t.id == cur ? accent : alpha(accent, 0)
+          animate background: tween(220ms, "ease")
+          T { s: t.name; sz: 13; w: 650; col: t.id == cur ? background : soft; al: "center" }
+        }
+      }
+    }
+  }
+
+  // The bottom of every page, in the same place on each: the dock's six apps (on the Calendar page all fourteen, in
+  // two rows of seven), then the four pages. Swiping between pages, the pages' bar stays put.
+  component Bottom(cur) {
+    Column {
+      gap: 10
+      Column {
+        gap: 10
+        padding: [6, 10]
+        background: glass
+        frost: fz
+        radius: R + 4
+        border: 1
+        borderColor: hair
+        if cur == "plan" {
+          Row {
+            gap: 0
+            for s in topRow key s.id { AppKey { s: s; small: true; weight: 1 } }
+          }
+          Row {
+            gap: 0
+            for s in lowRow key s.id { AppKey { s: s; small: true; weight: 1 } }
+          }
+        } else {
+          Row {
+            gap: 0
+            for s in dockRow key s.id { AppKey { s: s; weight: 1 } }
+          }
+        }
+      }
+      Tabs { cur: cur }
+    }
+  }
+
+  // A soft edge for a scrolling list, so rows melt into the page instead of meeting a hard line. It's layers of
+  // what's behind the list (the wallpaper as frosted glass shows it, under the same tint), all starting at the edge
+  // and reaching further in as they get fainter (1, 1/2, 1/3…), so together they fade evenly from solid to clear.
+  // It takes no taps, so the list under it still scrolls.
+  component Fade(up, tint, fr) {
+    Box {
+      fill: width
+      height: 20
+      align: up ? "top" : "bottom"
+      for k in range(1, 11) {
+        Box { fill: width; height: k * 2; frost: fr; background: tint; opacity: 1 / k }
+      }
+    }
+  }
+  // A task: tap it to tick it off (or back on), here and in the file.
+  component AnyTask(t) {
+    Row {
+      gap: 8
+      align: center
+      onTap: {
+        haptic("light")
+        let next = tasks.map(x => x.id == t.id ? merge(x, {done: !x.done}) : x)
+        pend = next
+        run("mkdir -p ~/.local/share/tide && printf '%s' ${sh(toJson(next))} > ~/.local/share/tide/tasks.json")
+      }
+      Box {
+        size: 34
+        align: center
+        Box {
+          size: 22
+          radius: 11
+          border: 2
+          borderColor: t.done == true ? green : faint
+          background: t.done == true ? green : alpha(foreground, 0)
+          align: center
+          if t.done == true { Image { src: i_check; size: 16; tint: background } }
+        }
+      }
+      T { s: t.t; sz: 14; w: 520; col: t.done == true ? faint : foreground; lines: 2; weight: 1 }
+    }
+  }
+
+  // A reading at a glance: a ring with an icon in it, a number and what it is.
+  component Chip(id, ring, tint, glyph, big, small) {
+    Row {
+      gap: 10
+      align: center
+      padding: [10, 10, 8, 10]
+      background: glass
+      frost: fz
+      radius: R
+      border: 1
+      borderColor: hair
+      scale: held == id ? 0.95 : 1
+      animate scale: spring(0.55, 600)
+      onPress: held = id
+      onRelease: held = ""
+      onTap: {
+        haptic("light")
+        if id == "bat" { settings("battery") } else if id == "claude" { url("https://claude.ai/settings/usage") } else if clockApp != null { androidApp(clockApp.key) }
+      }
+      Box {
+        size: 40
+        align: center
+        Ring { value: ring; max: 1; size: 40; thickness: 4; color: tint; track: alpha(foreground, 0.12) }
+        Image { src: glyph; size: 18; tint: tint }
+      }
+      Column {
+        gap: 0
+        weight: 1
+        T { s: big; sz: 17; w: 650 }
+        T { s: small; sz: 11; w: 500; col: soft }
+      }
+    }
+  }
+
+  // The page's tint over the wallpaper: darker under the clock and the dock, even through the middle, where the list
+  // scrolls and its fades match it.
+  on inset first { if value <= 120 { navInset = value } }
+  // The keyboard put away: the add box lets go, so it stays away.
+  on kb { if !value { inputGen = inputGen + 1 } }
+
+  background: linear(0, 0, 0, 1, [alpha(background, 0.55), alpha(background, 0.22), alpha(background, 0.22), alpha(background, 0.22), alpha(background, 0.5)])
+
+  Column {
+    fill: true
+    gap: 12
+    padding: [16, (screenTop ?? 24) + 4, 16, 0]
+
+    // ── the time and the weather ──
+    Column {
+      gap: 0
+      padding: [4, 6, 4, 0]
+      onTap: { haptic("light"); if clockApp != null { androidApp(clockApp.key) } }
+      T { s: "${greeting} · ${fmtTime(now, "EEEE, MMMM d")}"; sz: 14; w: 550; col: soft }
+      Row {
+        align: center
+        Text {
+          spans: [fmtTime(now, "h:mm"), {text: " " + lower(fmtTime(now, "a")), fontSize: 20, fontWeight: 500, letterSpacing: 0, color: soft}]
+          font: inter
+          fontSize: 76
+          fontWeight: 200
+          letterSpacing: -3
+          maxLines: 1
+          weight: 1
+        }
+        if cur != null {
+          Column {
+            gap: 0
+            align: end
+            onTap: { haptic("light"); unitF = !unitF }
+            Row {
+              gap: 4
+              align: center
+              Text { text: weatherIcon(cur.weatherCode, night); font: icon; fontSize: 30; color: skyTint }
+              T { s: "${temp}°"; sz: 30; w: 300 }
+            }
+            T { s: cur.weatherDesc[0].value; sz: 12; w: 500; col: soft; al: "end" }
+            T { s: "H ${hi}°  L ${lo}°"; sz: 12; w: 500; col: faint; al: "end" }
+          }
+        }
+      }
+    }
+
+    // ── at a glance ──
+    Row {
+      gap: 8
+      Chip {
+        id: "bat"; ring: (bat.level ?? 0) / 100; tint: bat.level <= 15 && !bat.charging ? red : bat.charging ? green : foreground
+        glyph: bat.charging ? i_bolt : i_battery_full; big: "${bat.level ?? "…"}%"; small: bat.charging ? "Charging" : "Battery"
+        weight: 1
+      }
+      Chip {
+        id: "claude"; ring: (week ?? 0) / 100; tint: usageTint; glyph: i_bolt
+        big: week == null ? "—" : "${round(week)}%"; small: five != null ? "5h ${round(five)}%" : "Claude · wk"
+        weight: 1
+      }
+      Chip {
+        id: "alarm"; ring: alarm.set ? 1 : 0; tint: alarm.set ? accent : faint; glyph: i_alarm
+        big: alarm.set ? fmtTime(alarm.time, "h:mm") : "Off"; small: alarm.set ? fmtTime(alarm.time, "EEE a") : "Alarm"
+        weight: 1
+      }
+    }
+
+    // ── tasks: a box to add one, staying put while the list below scrolls ──
+      Column {
+        gap: 12
+        padding: [16, 14]
+        background: glass
+        frost: fz
+        radius: R
+        border: 1
+        borderColor: hair
+        Row {
+          align: center
+          T { s: openCount > 0 ? "TASKS · ${openCount}" : "TASKS"; sz: 11; w: 700; col: faint; weight: 1 }
+          if len(done) > 0 {
+            Row {
+              padding: [8, 2, 0, 2]
+              onTap: {
+                haptic("medium")
+                pend = todo
+                run("mkdir -p ~/.local/share/tide && printf '%s' ${sh(toJson(todo))} > ~/.local/share/tide/tasks.json")
+              }
+              T { s: "Clear ${len(done)} done"; sz: 12; w: 600; col: accent }
+            }
+          }
+        }
+        Row {
+          gap: 10
+          align: center
+          padding: [12, 4, 6, 4]
+          radius: r2
+          background: alpha(foreground, 0.06)
+          border: 1
+          borderColor: hair
+          Image { src: i_add; size: 20; tint: accent }
+          // Built anew (under a new key) once the keyboard goes away, so it lets go of the focus and Android doesn't
+          // bring the keyboard back; what's typed is kept in draft meanwhile.
+          for g in [inputGen] key g {
+            Input {
+              text: draft
+              placeholder: "Add a task…"
+              underline: false
+              clear: true
+              fontSize: 15
+              weight: 1
+              onChange: draft = value
+              onSubmit: {
+                if trim(value) != "" {
+                  haptic("light")
+                  let next = flatten([[{id: now * 1000 + random(100000), t: trim(value), done: false}], tasks])
+                  pend = next
+                  draft = ""
+                  run("mkdir -p ~/.local/share/tide && printf '%s' ${sh(toJson(next))} > ~/.local/share/tide/tasks.json")
+                }
+              }
+            }
+          }
+        }
+        if len(rows) == 0 {
+          T { s: "Nothing to do. Add the first thing above."; sz: 13; w: 500; col: faint }
+        }
+      }
+
+
+    // ── the tasks: only the list scrolls, built as rows come into view and fading out at its edges. Pulled down at
+    // the top, it reads the tasks again. Built anew (under a new key) when the back-to-top key is tapped, so it
+    // starts again at its top ──
+    Box {
+      weight: 1
+      for g in [topGen] key g {
+        Column {
+          fill: true
+          lazy: true
+          gap: 8
+          onPull: refresh()
+          Spacer { height: 12 }
+
+      // ── every task, each on its own tile. A touch on a row, even the one that starts a scroll, notes how far down
+      // the list it is, for the back-to-top key ──
+      for r, i in rows key r.id {
+        if r.head != null {
+          Row {
+            padding: [0, 8, 0, 0]
+            onPress: seen = i
+            Row {
+              padding: [12, 5]
+              radius: 99
+              background: glass
+              frost: fz
+              border: 1
+              borderColor: hair
+              T { s: r.head; sz: 10.5; w: 700; col: soft }
+            }
+          }
+        } else {
+          Row {
+            gap: 2
+            align: center
+            padding: [4, 6, 6, 6]
+            background: glass
+            frost: fz
+            radius: r2
+            border: 1
+            borderColor: hair
+            onPress: seen = i
+            AnyTask { t: r; weight: 1 }
+            if true {
+              Box {
+                size: 32
+                align: center
+                onTap: {
+                  haptic("light")
+                  let next = tasks.filter(x => x.id != r.id)
+                  pend = next
+                  run("mkdir -p ~/.local/share/tide && printf '%s' ${sh(toJson(next))} > ~/.local/share/tide/tasks.json")
+                }
+                Image { src: i_close; size: 18; tint: faint }
+              }
+            }
+          }
+        }
+      }
+      // The end of the list: the way back up.
+      if len(rows) > 12 {
+        Row {
+          gap: 8
+          padding: [0, 6, 0, 0]
+          Spacer { weight: 1 }
+          if len(rows) > 12 {
+            Row {
+              gap: 4
+              align: center
+              padding: [14, 8]
+              radius: 99
+              background: glass
+              frost: fz
+              border: 1
+              borderColor: hair
+              onTap: { haptic("light"); seen = 0; topGen = topGen + 1 }
+              Image { src: i_arrow_upward; size: 16; tint: foreground }
+              T { s: "Top"; sz: 12; w: 650 }
+            }
+          }
+        }
+      }
+          Spacer { height: 16 }
+        }
+      }
+      Column {
+        fill: true
+        gap: 0
+        Fade { up: true; tint: alpha(background, 0.22); fr: 1 }
+        Spacer { weight: 1 }
+        if showTop {
+          Row {
+            fill: width
+            justify: end
+            padding: [0, 0, 8, 6]
+            Row {
+              gap: 6
+              align: center
+              padding: [14, 9]
+              radius: 99
+              background: accent
+              scale: held == "top" ? 0.9 : 1
+              animate scale: spring(0.55, 600)
+              onPress: held = "top"
+              onRelease: held = ""
+              onTap: { haptic("light"); seen = 0; topGen = topGen + 1 }
+              Image { src: i_arrow_upward; size: 18; tint: background }
+              T { s: "Top"; sz: 13; w: 700; col: background }
+            }
+          }
+        }
+        Fade { up: false; tint: alpha(background, 0.22); fr: 1 }
+      }
+    }
+
+    // ── the dock and the pages, in the same place on every page ──
+    Bottom { cur: "now" }
+    Spacer { height: max(navInset, 10) }
+  }
+}
