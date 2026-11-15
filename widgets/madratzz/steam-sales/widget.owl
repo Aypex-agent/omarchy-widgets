@@ -1,0 +1,196 @@
+widget "steam sales" {
+  page: 5
+  order: 6
+  size: 6x3
+  minSize: 3x2
+
+  meta { owl: 11; description: "The next Steam sale, with a picture and a countdown to its start, and every sale Valve has announced behind a tap"; version: "1.0"; license: "MIT"; category: "games" }
+  requires { pacman: ["python"] }
+
+  // The dates are Valve's own, from the Steamworks page that announces them to developers: the four
+  // seasonal sales and the themed fests. Sales open and close at 10:00 Pacific. Valve shows a sale's
+  // artwork only once it opens, so the picture is the best-known game of the sale's theme (the top
+  // seller for a seasonal sale), kept per sale so it doesn't change with every fetch.
+  let py = """
+import json, os, re, sys, time, html, datetime, urllib.request, urllib.parse
+from zoneinfo import ZoneInfo
+
+CACHE = os.path.expanduser("~/.cache/steam-sales.json")
+IMG = "https://shared.akamai.steamstatic.com/"
+PT = ZoneInfo("America/Los_Angeles")
+MONTHS = {m: i + 1 for i, m in enumerate("jan feb mar apr may jun jul aug sep oct nov dec".split())}
+
+def get(url):
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    return urllib.request.urlopen(req, timeout=20).read().decode("utf-8", "replace")
+
+def text(s):
+    return re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", s))).strip()
+
+def stamp(year, month, day):
+    return int(datetime.datetime(year, month, day, 10, tzinfo=PT).timestamp())
+
+def day(s):
+    # "17 December", "Nov 16" or "March 1": a month and a day in either order
+    m = re.search(r"([A-Za-z]{3})[a-z]*\.?\s+(\d{1,2})|(\d{1,2})\s+([A-Za-z]{3})", s)
+    if not m: return None
+    mon, d = (m.group(1), m.group(2)) if m.group(1) else (m.group(4), m.group(3))
+    mon = MONTHS.get(mon.lower())
+    return (mon, int(d)) if mon else None
+
+def picture(term):
+    q = {"json": 1, "category1": 998}
+    if term: q["term"] = term
+    else: q["filter"] = "topsellers"
+    items = json.loads(get("https://store.steampowered.com/search/results/?" + urllib.parse.urlencode(q))).get("items", [])
+    for it in items[:3]:
+        m = re.search(r"/apps/(\d+)/", it.get("logo", ""))
+        if not m: continue
+        d = json.loads(get("https://store.steampowered.com/api/appdetails?filters=basic&appids=" + m.group(1)))
+        src = ((d.get(m.group(1)) or {}).get("data") or {}).get("header_image") or ""
+        if src.startswith(IMG):
+            return {"img": src[len(IMG):], "game": it.get("name")}
+    return None
+
+try:
+    old = json.load(open(CACHE))
+except Exception:
+    old = {"events": []}
+
+try:
+    page = get("https://partner.steamgames.com/doc/marketing/upcoming_events")
+    events = []
+    for name, dates in re.findall(r"<strong>([^<]*Sale \d{4})</strong>\s*\|\s*([^<]+)</h2>", page):
+        parts = dates.split(" - ")
+        years = re.findall(r"\d{4}", dates)
+        if len(parts) != 2 or not years: continue
+        a, b = day(parts[0]), day(parts[1])
+        if not a or not b: continue
+        ya = int(re.search(r"\d{4}", parts[0]).group()) if re.search(r"\d{4}", parts[0]) else int(years[0])
+        events.append({"name": name.strip(), "kind": "seasonal", "start": stamp(ya, *a), "end": stamp(int(years[-1]), *b), "desc": None})
+    for year, table in re.findall(r"<strong>(\d{4}) Fests</strong></h2>\s*<table>(.*?)</table>", page, re.S):
+        for row in re.findall(r"<tr>(.*?)</tr>", table, re.S):
+            cells = re.findall(r"<td>(.*?)</td>", row, re.S)
+            if len(cells) < 2: continue
+            span = re.split(r"<br\s*/?>|\s[-–]\s", cells[0])
+            a, b = day(span[0]), day(span[-1])
+            if not a or not b: continue
+            y = int(year)
+            desc = text(cells[3]) if len(cells) > 3 else ""
+            desc = re.sub(r"\s*More info\s*\.?\s*$", "", desc)
+            events.append({"name": text(cells[1]), "kind": "fest", "start": stamp(y, *a), "end": stamp(y + (1 if b < a else 0), *b), "desc": desc or None})
+    now = time.time()
+    events = sorted((e for e in events if e["end"] > now), key=lambda e: e["start"])
+    if not events and old["events"]: raise ValueError("no sales found on the page")
+    known = {e["name"]: e for e in old["events"] if e.get("img")}
+    for i, e in enumerate(events):
+        k = known.get(e["name"])
+        if k:
+            e["img"], e["game"] = k["img"], k.get("game")
+        elif i < 4:
+            term = None if e["kind"] == "seasonal" else re.sub(r"\s*Fest$", "", e["name"]).replace("-", " ")
+            try:
+                e.update(picture(term) or (picture(term.split()[0]) if term else None) or {})
+            except Exception:
+                pass
+    out = {"events": events, "at": int(now)}
+    os.makedirs(os.path.dirname(CACHE), exist_ok=True)
+    with open(CACHE + ".tmp", "w") as f: json.dump(out, f)
+    os.replace(CACHE + ".tmp", CACHE)
+except Exception as ex:
+    out = dict(old, error=f"{type(ex).__name__}: {ex}"[:200])
+print(json.dumps(out))
+"""
+  source data = cmd("python3 -I -c ${sh(py)}") every 6h json timeout 90s
+  source now = clock every 1s
+
+  let all = (data.events ?? []).filter(e => e.end > now)
+  let live = all.filter(e => e.start <= now)
+  let coming = all.filter(e => e.start > now)
+  // The next one to start; with nothing announced, the one that's on.
+  let ev = first(coming) ?? first(live)
+  let on = ev != null && ev.start <= now
+  let left = ev == null ? null : max(0, (on ? ev.end : ev.start) - now)
+  let d = floor(left / 86400)
+  let h = floor(left % 86400 / 3600)
+  let m = floor(left % 3600 / 60)
+  let s = floor(left % 60)
+  let img = "https://shared.akamai.steamstatic.com"
+  let narrow = (tileWidth ?? 400) < 260
+
+  component Unit(n, label) {
+    Row { gap: 2; align: bottom
+      Text { text: pad(n, 2, "0"); fontSize: 30; bold: true; font: mono; color: "#ffffff" }
+      Text { text: label; style: small; color: "#b8c4d0"; padding: [0, 0, 0, 5] }
+    }
+  }
+
+  onTap: screen()
+  padding: 0
+
+  Box {
+    fill: true
+    background: linear(0, 0, 1, 1, ["#1b2838", "#2a475e"])
+    if ev != null && ev.img != null {
+      Image { src: "${img}/${ev.img}"; fit: cover; fill: true; label: ev.game ?? ev.name }
+    }
+    Box { fill: true; background: linear(0, 0, 0, 1, [rgb(0, 0, 0, 0.55), rgb(0, 0, 0, 0.25), rgb(0, 0, 0, 0.9)]) }
+    Column {
+      fill: true
+      padding: 12
+      gap: 2
+      Row {
+        Text { text: on ? "LIVE NOW" : "NEXT STEAM SALE"; style: label; color: on ? "#a4d007" : "#66c0f4"; bold: true; weight: 1 }
+        if len(live) > 0 && !on && !narrow {
+          Text { text: "on now: ${live[0].name}"; style: small; color: "#a4d007"; maxLines: 1 }
+        }
+      }
+      Spacer { weight: 1 }
+      if ev == null {
+        Text { text: data == null ? "loading…" : "no sale announced"; style: title; color: "#ffffff" }
+        if data.error != null { Text { text: data.error; style: small; color: "#b8c4d0"; maxLines: 2 } }
+      } else {
+        Text { text: ev.name; style: title; color: "#ffffff"; bold: true; maxLines: 2 }
+        Text {
+          text: "${fmtTime(ev.start, "EEE d MMM")} – ${fmtTime(ev.end, "EEE d MMM")}${on ? "" : ", ${fmtTime(ev.start, "HH:mm")}"}"
+          style: small; color: "#dfe6ee"; maxLines: 1
+        }
+        Row { gap: narrow ? 6 : 12; align: bottom; padding: [0, 4, 0, 0]
+          if !narrow { Text { text: on ? "ends in" : "starts in"; style: small; color: "#b8c4d0"; padding: [0, 0, 0, 5] } }
+          if d > 0 { Unit { n: d; label: "d" } }
+          Unit { n: h; label: "h" }
+          Unit { n: m; label: "m" }
+          if d == 0 || !narrow { Unit { n: s; label: "s" } }
+        }
+      }
+    }
+  }
+
+  screen {
+    title: "steam sales"
+    Column {
+      scroll: true
+      padding: 12
+      gap: 10
+      if len(all) == 0 { Text { text: data == null ? "loading…" : "no sale announced"; color: muted } }
+      for e in all key e.name {
+        let run = e.start <= now
+        Row { gap: 12; align: center
+          if e.img != null {
+            Image { src: "${img}/${e.img}"; width: 110; height: 52; fit: cover; radius: 6 * corners; clip: true; label: e.game ?? e.name }
+          } else {
+            Box { width: 110; height: 52; radius: 6 * corners; background: linear(0, 0, 1, 1, ["#1b2838", "#2a475e"]) }
+          }
+          Column { weight: 1; gap: 1
+            Text { text: e.name; bold: true; maxLines: 2 }
+            Text { text: "${fmtTime(e.start, "d MMM")} – ${fmtTime(e.end, "d MMM yyyy")}"; style: small; color: muted }
+            if e.desc != null { Text { text: e.desc; style: small; color: muted; maxLines: 2 } }
+          }
+          Text { text: run ? "live" : fmtDuration(e.start - now); style: small; bold: true; color: run ? green : accent }
+        }
+      }
+      if data.error != null { Text { text: "couldn't refresh: ${data.error}"; style: small; color: muted } }
+      Button { text: "open steam"; onTap: url("https://store.steampowered.com/") }
+    }
+  }
+}
