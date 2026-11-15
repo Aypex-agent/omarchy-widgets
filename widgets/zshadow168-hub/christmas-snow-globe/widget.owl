@@ -1,0 +1,548 @@
+widget "christmas snow globe" {
+  meta { owl: 21; description: "A colourful Christmas snow globe: tilt to swirl the snow, shake it, and count the days to Christmas"; version: "1.3"; license: "MIT"; category: "fun" }
+  size: 3x2
+  minSize: 3x2
+  fps: 30
+
+  source m = android.motion
+  source now = clock every 60s
+
+  // ---------- Christmas countdown ----------
+  let year = int(fmtTime(now ?? 0, "yyyy"))
+  let xmasThis = parseTime("${year}-12-25")
+  let xmasNext = parseTime("${year + 1}-12-25")
+  let pastXmas = (now ?? 0) >= (xmasThis ?? 0) + 86400
+  let target = pastXmas ? xmasNext : xmasThis
+  let xmasDay = now != null && xmasThis != null && now >= xmasThis && now < xmasThis + 86400
+  let daysLeft = target == null || now == null ? null : max(0, ceil((target - now) / 86400))
+  let countdown = xmasDay ? "Merry Christmas!" : (daysLeft == null ? "…" : (daysLeft == 1 ? "1 day to Christmas" : "${daysLeft} days to Christmas"))
+  let bigNum = daysLeft == null ? "…" : "${daysLeft}"
+
+  // ---------- orientation ----------
+  // screenWidth/screenHeight are the screen's own size, so a rotated phone gives SW > SH.
+  // The landscape row is built from these numbers: the globe is as wide as its height
+  // needs (no dead space beside the glass) and the words take the rest, so the two
+  // always add up to the width whatever the phone or window is.
+  let SW = screenWidth ?? 0
+  let SH = screenHeight ?? 0
+  let land = SW > SH
+  let pW = SW > 0 ? SW : 380
+  let lw = SW - 50
+  let gW = min(SH * 0.86, lw * 0.40)
+  let tW = min(lw * 0.60, 460)
+
+  // ---------- festival palette ----------
+  let cRed = #ff4d6d
+  let cGold = #ffd166
+  let cMint = #7ae582
+  let cSky = #4cc9f0
+  let cMagenta = #f72585
+  let bulbColors = [cRed, cGold, cMint, cSky, cMagenta]
+
+  // ---------- compact tile snow ----------
+  let flakes = range(26).map(i => {
+    x: hash(i, 1),
+    y: hash(i, 2),
+    s: 0.55 + hash(i, 3) * 1.05,
+    drift: (hash(i, 4) - 0.5) * 0.10
+  })
+
+  // ---------- globe snow particles ----------
+  state snow = range(130).map(i => {
+    x: 0.18 + hash(i, 11) * 0.64,
+    y: 0.12 + hash(i, 12) * 0.68,
+    vx: (hash(i, 13) - 0.5) * 0.02,
+    vy: (hash(i, 14) - 0.5) * 0.02,
+    r: 1.4 + hash(i, 15) * 2.4
+  })
+  state restX = 0
+  state restY = 0
+  state calibrated = false
+  state shake = 0
+
+  let tilted = m.available == true
+  let gx = calibrated ? (m.x - restX) : (tilted ? m.x : sin(time * 0.55) * 0.30)
+  let gy = calibrated ? (m.y - restY) : (tilted ? m.y : 0.70 + cos(time * 0.8) * 0.12)
+
+  onTap: screen()
+
+  // physics: runs only while the screen shows
+  every frame {
+    if screenWidth != null {
+      if tilted && !calibrated {
+        restX = m.x
+        restY = m.y
+        calibrated = true
+      }
+      if !tilted {
+        calibrated = false
+      }
+      shake = max(0, shake - dt * 0.55)
+
+      let J = 0.05 + shake * 1.1
+      let D = pow(0.45, dt)
+      let moved = snow.map((p, i) => {
+        vx: (p.vx + (gx * 0.50 + (hash(i, floor(time * 6)) - 0.5) * J) * dt) * D,
+        vy: (p.vy + (gy * 0.50 + 0.10) * dt) * D,
+        x: p.x,
+        y: p.y,
+        r: p.r
+      })
+      // fall, and a flake that reaches the bottom drifts back to the top, so it never all piles up
+      snow = moved.map((p, i) => {
+        x: p.y + p.vy * dt > 0.845 ? 0.22 + hash(i, 101 + floor(time / 9)) * 0.56 : p.x + p.vx * dt,
+        y: p.y + p.vy * dt > 0.845 ? 0.10 + hash(i, 102) * 0.10 : p.y + p.vy * dt,
+        vx: p.vx,
+        vy: p.vy,
+        r: p.r
+      })
+      // keep every flake inside the glass (circular wall)
+      let RAD = 0.405
+      snow = snow.map(p => {
+        x: sqrt((p.x - 0.5) * (p.x - 0.5) + (p.y - 0.47) * (p.y - 0.47)) > RAD ? 0.5 + (p.x - 0.5) * RAD / sqrt((p.x - 0.5) * (p.x - 0.5) + (p.y - 0.47) * (p.y - 0.47)) : p.x,
+        y: sqrt((p.x - 0.5) * (p.x - 0.5) + (p.y - 0.47) * (p.y - 0.47)) > RAD ? 0.47 + (p.y - 0.47) * RAD / sqrt((p.x - 0.5) * (p.x - 0.5) + (p.y - 0.47) * (p.y - 0.47)) : p.y,
+        vx: sqrt((p.x - 0.5) * (p.x - 0.5) + (p.y - 0.47) * (p.y - 0.47)) > RAD ? p.vx * 0.65 : p.vx,
+        vy: sqrt((p.x - 0.5) * (p.x - 0.5) + (p.y - 0.47) * (p.y - 0.47)) > RAD ? p.vy * 0.65 : p.vy,
+        r: p.r
+      })
+    }
+  }
+
+  // ================= SHARED GLOBE SCENE (portrait and landscape) =================
+  component ChristmasGlobe(rf = 0.39) {
+    Canvas {
+      fill: true
+      let cx = width / 2
+        let R = min(width * 0.47, height * rf)
+        let cy = height / 2 - R * 0.07
+        let bT = cy + R * 0.86
+
+      // colourful twinkling stars, outside the glass
+      for i in range(26) {
+        let sx = hash(i, 31) * width
+        let sy = hash(i, 32) * height
+        let tw = 0.18 + 0.60 * ((sin(time * (0.7 + hash(i, 34) * 1.5) + i * 1.7) + 1) / 2)
+        if sqrt((sx - cx) * (sx - cx) + (sy - cy) * (sy - cy)) > R * 1.04 {
+          circle(sx, sy, 0.7 + hash(i, 33) * 1.6, fill: alpha(i % 3 == 0 ? #ffd166 : (i % 3 == 1 ? #7ae582 : #4cc9f0), tw))
+        }
+      }
+
+      // halo: rose, mint and sky, so the glass glows in colour
+      circle(cx, cy, R * 1.22, fill: radial(cx, cy, R * 1.22, [alpha(#ffd166, 0.045), alpha(#f72585, 0.045), alpha(#4cc9f0, 0.018), alpha(#4cc9f0, 0)]))
+      // shadow under the base
+      scale(1, 0.15, cx, cy + R * 1.24) {
+        circle(cx, cy + R * 1.24, R * 0.75, fill: radial(cx, cy + R * 1.24, R * 0.75, [alpha(#000000, 0.24), alpha(#000000, 0)]))
+      }
+
+      // ---------- moon in the background: a glowing crescent ----------
+      let mX = cx + R * 0.55
+      let mY = cy - R * 0.90
+      let mR = R * 0.16
+      circle(mX, mY, mR * 1.5, fill: radial(mX, mY, mR * 1.5, [alpha(#fff3d6, 0.16), alpha(#fff3d6, 0)]))
+      circle(mX, mY, mR, fill: alpha(#fff3d6, 0.90))
+      circle(mX + mR * 0.55, mY - mR * 0.55, mR * 0.86, fill: alpha(#0f3358, 0.97))
+
+      // glass
+      circle(cx, cy, R, fill: radial(cx - R * 0.20, cy - R * 0.26, R * 1.45, [alpha(#d9f2ff, 0.20), alpha(#8ecae6, 0.10), alpha(#2a1a4a, 0.34)]))
+
+      clip(cx - R, cy - R, R * 2, R * 2) {
+        // inside sky: teal at the top, violet in the middle, rose at the horizon
+        circle(cx, cy, R, fill: linear(0, cy - R, 0, cy + R, [alpha(#0f3358, 0.80), alpha(#2a1b52, 0.70), alpha(#6b1f4a, 0.62)]))
+        // aurora ribbons
+        arc(cx, cy - R * 0.12, R * 0.92, 205, 130, stroke: alpha(#7ae582, 0.09), width: R * 0.11, cap: round)
+        arc(cx, cy - R * 0.02, R * 1.00, 225, 90, stroke: alpha(#4cc9f0, 0.08), width: R * 0.09, cap: round)
+
+        // falling snow, behind everything so it never covers the scene
+        for p in snow {
+          let px = cx + (p.x - 0.5) * R * 2
+          let py = cy + (p.y - 0.47) * R * 2
+          circle(px, py, p.r, fill: alpha(#ffffff, 0.90))
+        }
+
+        // snow drift, inscribed in the glass
+        let arcB = range(13).map(i => [cx + cos(rad(25 + i * 10.8333)) * (R - 1.5), cy + sin(rad(25 + i * 10.8333)) * (R - 1.5)])
+        path([[cx - R * 0.906, cy + R * 0.423], [cx - R * 0.55, cy + R * 0.20], [cx - R * 0.12, cy + R * 0.30], [cx + R * 0.32, cy + R * 0.18], [cx + R * 0.906, cy + R * 0.423]] + arcB, closed: true, fill: linear(0, cy + R * 0.15, 0, cy + R, [#f2faff, #cfe6f7, #9dc4dd]))
+        // soft blue depth at the bottom of the drift
+        scale(1, 0.30, cx, cy + R * 0.80) {
+          circle(cx, cy + R * 0.80, R * 0.62, fill: radial(cx, cy + R * 0.80, R * 0.62, [alpha(#8ecae6, 0.16), alpha(#8ecae6, 0)]))
+        }
+
+        // ---------- house ----------
+        let hL = cx - R * 0.40
+        let hW = R * 0.28
+        let hB = cy + R * 0.33
+        let hH = R * 0.19
+        circle(hL + hW * 0.70, hB - hH * 0.55, R * 0.19, fill: radial(hL + hW * 0.70, hB - hH * 0.55, R * 0.19, [alpha(#ffd166, 0.16), alpha(#ff9f1c, 0.05), alpha(#ff9f1c, 0)]))
+        rect(hL, hB - hH, hW, hH, fill: #8b4a2f)
+        path([[hL - R * 0.03, hB - hH], [hL + hW / 2, hB - hH - R * 0.12], [hL + hW + R * 0.03, hB - hH]], closed: true, fill: #5a2a1e)
+        path([[hL - R * 0.03, hB - hH], [hL + hW / 2, hB - hH - R * 0.12], [hL + hW * 0.74, hB - hH]], closed: true, fill: alpha(#ffffff, 0.90))
+        rect(hL + hW * 0.12, hB - hH * 0.52, hW * 0.24, hH * 0.52, fill: #3a2118)
+        rect(hL + hW * 0.58, hB - hH * 0.72, hW * 0.26, hH * 0.30, fill: #ffd166)
+        circle(hL + hW * 0.71, hB - hH * 0.57, R * 0.030, fill: alpha(#ffb703, 0.55))
+        // little wreath on the door
+        circle(hL + hW * 0.24, hB - hH * 0.28, R * 0.024, stroke: #2aa06a, width: R * 0.010)
+        circle(hL + hW * 0.24, hB - hH * 0.28, R * 0.008, fill: cRed)
+
+        // ---------- trees, each with its own sway and its own lights ----------
+        // left
+        let lA = cx - R * 0.66
+        let lB = cy + R * 0.35
+        let lW = R * 0.152
+        let lH = R * 0.46
+        let lS = sin(time * 9.0) * shake * R * 0.050
+        path([[lA - lW, lB], [lA + lS, lB - lH], [lA + lW, lB]], closed: true, fill: #1f8a5b)
+        path([[lA - lW * 0.42, lB - lH * 0.72], [lA + lS, lB - lH], [lA + lW * 0.42, lB - lH * 0.72]], closed: true, fill: alpha(#ffffff, 0.90))
+        let lBulbs = range(4).map(k => [lA + lS * (0.24 + k * 0.20) - lW * (1 - 0.24 - k * 0.20) * 0.86, lB - lH * (0.24 + k * 0.20)])
+        for b, k in lBulbs {
+          circle(b[0], b[1], R * 0.14, fill: alpha(bulbColors[(k * 2) % 5], 0.10))
+          circle(b[0], b[1], R * 0.023, fill: bulbColors[(k * 2) % 5])
+        }
+
+        // middle (tallest, with a star on top)
+        let mA = cx + R * 0.15
+        let mB = cy + R * 0.32
+        let mW = R * 0.135
+        let mH = R * 0.41
+        let mS = sin(time * 10.5 + 0.8) * shake * R * 0.045
+        path([[mA - mW, mB], [mA + mS, mB - mH], [mA + mW, mB]], closed: true, fill: #26a269)
+        path([[mA - mW * 0.42, mB - mH * 0.70], [mA + mS, mB - mH], [mA + mW * 0.42, mB - mH * 0.70]], closed: true, fill: alpha(#ffffff, 0.92))
+        let mBulbs = range(4).map(k => [mA + mS * (0.24 + k * 0.20) - mW * (1 - 0.24 - k * 0.20) * 0.86, mB - mH * (0.24 + k * 0.20)])
+        for b, k in mBulbs {
+          circle(b[0], b[1], R * 0.14, fill: alpha(bulbColors[(k * 2 + 1) % 5], 0.10))
+          circle(b[0], b[1], R * 0.023, fill: bulbColors[(k * 2 + 1) % 5])
+        }
+        // star topper
+        let starY = mB - mH - R * 0.035
+        circle(mA + mS, starY, R * 0.15, fill: radial(mA + mS, starY, R * 0.15, [alpha(#ffd166, 0.26), alpha(#ffb703, 0.05), alpha(#ffb703, 0)]))
+        path([[mA + mS, starY - R * 0.080], [mA + mS + R * 0.021, starY - R * 0.021], [mA + mS + R * 0.080, starY], [mA + mS + R * 0.021, starY + R * 0.021], [mA + mS, starY + R * 0.080], [mA + mS - R * 0.021, starY + R * 0.021], [mA + mS - R * 0.080, starY], [mA + mS - R * 0.021, starY - R * 0.021]], closed: true, fill: #ffd166)
+
+        // right
+        let rA = cx + R * 0.60
+        let rB = cy + R * 0.35
+        let rW = R * 0.125
+        let rH = R * 0.34
+        let rS = sin(time * 11.5 + 1.7) * shake * R * 0.050
+        path([[rA - rW, rB], [rA + rS, rB - rH], [rA + rW, rB]], closed: true, fill: #1f8a5b)
+        path([[rA - rW * 0.42, rB - rH * 0.70], [rA + rS, rB - rH], [rA + rW * 0.42, rB - rH * 0.70]], closed: true, fill: alpha(#ffffff, 0.88))
+        let rBulbs = range(3).map(k => [rA + rS * (0.26 + k * 0.24) - rW * (1 - 0.26 - k * 0.24) * 0.86, rB - rH * (0.26 + k * 0.24)])
+        for b, k in rBulbs {
+          circle(b[0], b[1], R * 0.14, fill: alpha(bulbColors[(k * 2 + 2) % 5], 0.10))
+          circle(b[0], b[1], R * 0.021, fill: bulbColors[(k * 2 + 2) % 5])
+        }
+
+        // ---------- a string of lights across the snow ----------
+        for k in range(9) {
+          let bx = cx - R * 0.70 + k * R * 0.175
+          let by = cy + R * 0.31 + sin(rad(k * 24)) * R * 0.045
+          circle(bx, by, R * 0.12, fill: alpha(bulbColors[k % 5], 0.14))
+          circle(bx, by, R * 0.020, fill: bulbColors[k % 5])
+          scale(1, 0.45, bx, by + R * 0.06) {
+            circle(bx, by + R * 0.06, R * 0.12, fill: alpha(bulbColors[k % 5], 0.07))
+          }
+        }
+
+        // a few tiny near flakes, high above the scene
+        for i in range(8) {
+          let fx = cx + (hash(i, 51) - 0.5) * R * 1.45
+          let fy = cy - R * 0.76 + ((hash(i, 52) + time * 0.05) % 1) * R * 1.05
+          if sqrt((fx - cx) * (fx - cx) + (fy - cy) * (fy - cy)) < R - 3 {
+            circle(fx, fy, 0.95, fill: alpha(#ffffff, 0.45))
+          }
+        }
+      }
+
+        // ---------- a few gifts, in front of the decorated tree ----------
+        let gY = cy + R * 0.70
+        rect(cx + R * 0.04, gY - R * 0.045, R * 0.09, R * 0.045, fill: cRed)
+        rect(cx + R * 0.04, gY - R * 0.034, R * 0.09, R * 0.011, fill: cGold)
+        rect(cx + R * 0.12, gY - R * 0.045, R * 0.085, R * 0.045, fill: cMint)
+        rect(cx + R * 0.12, gY - R * 0.034, R * 0.085, R * 0.011, fill: cSky)
+        rect(cx + R * 0.00, gY - R * 0.045, R * 0.08, R * 0.045, fill: cGold)
+        rect(cx + R * 0.00, gY - R * 0.034, R * 0.08, R * 0.011, fill: cRed)
+
+      // glass rim and highlight
+      arc(cx, cy, R * 0.88, 200, 55, stroke: alpha(#ffffff, 0.16), width: R * 0.045, cap: round)
+      circle(cx, cy, R, stroke: alpha(#eafcff, 0.55), width: 2.4)
+
+      // ---------- base ----------
+      path([[cx - R * 0.72, bT], [cx + R * 0.72, bT], [cx + R * 0.84, bT + R * 0.36], [cx - R * 0.84, bT + R * 0.36]], closed: true, fill: linear(0, bT, 0, bT + R * 0.36, [#c14a3a, #7a241f, #4a100c]))
+      rect(cx - R * 0.76, bT - R * 0.03, R * 1.52, R * 0.10, radius: R * 0.05, fill: linear(0, bT - R * 0.03, 0, bT + R * 0.07, [#ffe9a8, #ffd166, #c9982c]))
+      rect(cx - R * 0.34, bT + R * 0.10, R * 0.68, R * 0.15, radius: R * 0.03, fill: alpha(#3a0f0b, 0.45))
+      for i in range(7) {
+        circle(cx - R * 0.58 + i * R * 0.193, bT + R * 0.29, R * 0.012, fill: alpha(bulbColors[i % 5], 0.85))
+      }
+      }
+  }
+
+  // ================= COMPACT TILE =================
+  Box {
+    fill: true
+    radius: 8 * corners
+    background: linear(0, 0, 0, 1, [#0d1b3a, #231a46, #3a1530])
+    clip: true
+    onTap: screen()
+
+    Canvas {
+      fill: true
+      let W = width
+      let H = height
+      let R = min(W * 0.30, H * 0.40)
+      let cx = W * 0.27
+      let cy = H * 0.472
+
+      // colourful halo
+      circle(cx, cy, R * 1.50, fill: radial(cx, cy, R * 1.50, [alpha(#ffd166, 0.14), alpha(#f72585, 0.12), alpha(#4cc9f0, 0)]))
+      // shadow under the base
+      scale(1, 0.20, cx, cy + R * 1.30) {
+        circle(cx, cy + R * 1.30, R * 0.88, fill: radial(cx, cy + R * 1.30, R * 0.88, [alpha(#000000, 0.42), alpha(#000000, 0)]))
+      }
+
+      // glass
+      circle(cx, cy, R, fill: radial(cx - R * 0.18, cy - R * 0.22, R * 1.15, [alpha(#eaf9ff, 0.24), alpha(#8ecae6, 0.12), alpha(#2a1a4a, 0.34)]))
+
+      clip(cx - R, cy - R, R * 2, R * 2) {
+        circle(cx, cy, R, fill: linear(0, cy - R, 0, cy + R, [alpha(#0f3358, 0.76), alpha(#2a1b52, 0.64), alpha(#6b1f4a, 0.58)]))
+
+        // snow flakes (kept inside the glass)
+        for f in flakes {
+          let fx = cx - R + ((f.x + f.drift * time * 0.35 + 1) % 1) * R * 2
+          let fy = cy - R + ((f.y + time * (0.045 + f.s * 0.05)) % 1) * R * 2
+          if sqrt((fx - cx) * (fx - cx) + (fy - cy) * (fy - cy)) < R - 1.5 {
+            circle(fx, fy, f.s * 0.80, fill: alpha(#ffffff, 0.85))
+          }
+        }
+
+        // snow drift, inscribed in the glass
+        let arcT = range(9).map(i => [cx + cos(rad(25 + i * 16.25)) * (R - 1), cy + sin(rad(25 + i * 16.25)) * (R - 1)])
+        path([[cx - R * 0.906, cy + R * 0.423], [cx - R * 0.30, cy + R * 0.20], [cx + R * 0.30, cy + R * 0.22], [cx + R * 0.906, cy + R * 0.423]] + arcT, closed: true, fill: linear(0, cy + R * 0.18, 0, cy + R, [#f2faff, #cfe6f7, #a9cde3]))
+
+        // trees
+        path([[cx - R * 0.56, cy + R * 0.30], [cx - R * 0.41, cy - R * 0.04], [cx - R * 0.26, cy + R * 0.30]], closed: true, fill: #1f8a5b)
+        path([[cx - R * 0.44, cy + R * 0.14], [cx - R * 0.41, cy - R * 0.04], [cx - R * 0.38, cy + R * 0.14]], closed: true, fill: alpha(#ffffff, 0.88))
+        path([[cx - R * 0.17, cy + R * 0.31], [cx + R * 0.0, cy - R * 0.13], [cx + R * 0.17, cy + R * 0.31]], closed: true, fill: #26a269)
+        path([[cx - R * 0.06, cy + R * 0.09], [cx + R * 0.0, cy - R * 0.13], [cx + R * 0.06, cy + R * 0.09]], closed: true, fill: alpha(#ffffff, 0.92))
+        path([[cx + R * 0.25, cy + R * 0.30], [cx + R * 0.41, cy - R * 0.01], [cx + R * 0.57, cy + R * 0.30]], closed: true, fill: #1f8a5b)
+
+        // star on the middle tree
+        let sy = cy - R * 0.17
+        circle(cx, sy, R * 0.10, fill: radial(cx, sy, R * 0.10, [alpha(#ffd166, 0.55), alpha(#ffb703, 0)]))
+        path([[cx, sy - R * 0.058], [cx + R * 0.016, sy - R * 0.016], [cx + R * 0.058, sy], [cx + R * 0.016, sy + R * 0.016], [cx, sy + R * 0.058], [cx - R * 0.016, sy + R * 0.016], [cx - R * 0.058, sy], [cx - R * 0.016, sy - R * 0.016]], closed: true, fill: #ffd166)
+
+        // warm coloured lights on the trees
+        circle(cx - R * 0.41, cy + R * 0.10, R * 0.075, fill: radial(cx - R * 0.41, cy + R * 0.10, R * 0.075, [alpha(#ff4d6d, 0.45), alpha(#ff4d6d, 0)]))
+        circle(cx - R * 0.41, cy + R * 0.10, R * 0.040, fill: #ff4d6d)
+        circle(cx - R * 0.05, cy + R * 0.13, R * 0.075, fill: radial(cx - R * 0.05, cy + R * 0.13, R * 0.075, [alpha(#7ae582, 0.45), alpha(#7ae582, 0)]))
+        circle(cx - R * 0.05, cy + R * 0.13, R * 0.038, fill: #7ae582)
+        circle(cx + R * 0.36, cy + R * 0.10, R * 0.070, fill: radial(cx + R * 0.36, cy + R * 0.10, R * 0.070, [alpha(#ffd166, 0.45), alpha(#ffd166, 0)]))
+        circle(cx + R * 0.36, cy + R * 0.10, R * 0.036, fill: #ffd166)
+        circle(cx + R * 0.44, cy + R * 0.20, R * 0.065, fill: radial(cx + R * 0.44, cy + R * 0.20, R * 0.065, [alpha(#4cc9f0, 0.45), alpha(#4cc9f0, 0)]))
+        circle(cx + R * 0.44, cy + R * 0.20, R * 0.034, fill: #4cc9f0)
+        circle(cx + R * 0.05, cy + R * 0.24, R * 0.055, fill: #f72585)
+      }
+
+      // glass rim
+      circle(cx, cy, R, stroke: alpha(#eafcff, 0.62), width: 1.6)
+
+      // base
+      let bT = cy + R * 0.88
+      path([[cx - R * 0.66, bT], [cx + R * 0.66, bT], [cx + R * 0.76, bT + R * 0.26], [cx - R * 0.76, bT + R * 0.26]], closed: true, fill: linear(0, bT, 0, bT + R * 0.26, [#c14a3a, #7a241f, #4e120e]))
+      rect(cx - R * 0.70, bT - R * 0.035, R * 1.40, R * 0.085, radius: R * 0.04, fill: linear(0, bT - R * 0.035, 0, bT + R * 0.05, [#ffe9a8, #ffd166, #c9982c]))
+
+      // countdown
+      let tx = W * 0.735
+      let numSize = (daysLeft ?? 0) >= 100 ? H * 0.235 : H * 0.295
+      if xmasDay {
+        text("Merry", tx, H * 0.44, size: H * 0.135, align: center, color: #ffe9b0, bold: true)
+        text("Christmas!", tx, H * 0.645, size: H * 0.105, align: center, color: #ffe9b0, bold: true)
+      } else {
+        text(bigNum, tx, H * 0.43, size: numSize, align: center, color: #ffe9b0, bold: true)
+        text("days", tx, H * 0.645, size: H * 0.110, align: center, color: #9be7c4)
+        text("to christmas", tx, H * 0.795, size: H * 0.082, align: center, color: alpha(#8ecae6, 0.95))
+      }
+
+      // expand control (drawn, no font glyph)
+      let ex = W - 8
+      let ey = 8
+      let es = 3.2
+      circle(ex, ey, 6, fill: alpha(#000000, 0.32), stroke: alpha(#ffffff, 0.38), width: 1)
+      line(ex - es, ey - es + 2, ex - es, ey - es, stroke: #ffffff, width: 1.4, cap: round)
+      line(ex - es, ey - es, ex - es + 2, ey - es, stroke: #ffffff, width: 1.4, cap: round)
+      line(ex + es, ey - es + 2, ex + es, ey - es, stroke: #ffffff, width: 1.4, cap: round)
+      line(ex + es, ey - es, ex + es - 2, ey - es, stroke: #ffffff, width: 1.4, cap: round)
+      line(ex - es, ey + es - 2, ex - es, ey + es, stroke: #ffffff, width: 1.4, cap: round)
+      line(ex - es, ey + es, ex - es + 2, ey + es, stroke: #ffffff, width: 1.4, cap: round)
+      line(ex + es, ey + es - 2, ex + es, ey + es, stroke: #ffffff, width: 1.4, cap: round)
+      line(ex + es, ey + es, ex + es - 2, ey + es, stroke: #ffffff, width: 1.4, cap: round)
+    }
+  }
+
+  // ================= FULL SCREEN =================
+  screen {
+    title: "christmas snow globe"
+
+    Box {
+      fill: true
+      background: linear(0, 0, 0, 1, [#0b1d3a, #16264f, #2a1a4a, #120f26])
+
+      if land {
+        // ---------- landscape: globe on the left, words on the right ----------
+        Row {
+          fill: true
+          align: center
+          justify: center
+          padding: [14, 14]
+          gap: 22
+
+          Box {
+            width: gW
+            fill: height
+            ChristmasGlobe { rf: 0.40 }
+          }
+
+          Column {
+            width: tW
+            fill: height
+            justify: center
+            gap: 12
+
+            Column {
+              gap: 2
+              Text { text: "Christmas Snow Globe"; fontSize: 21; fontWeight: 700; color: #fff4d6; maxLines: 2 }
+              Text { text: tilted ? "tilt to swirl the snow" : "no motion sensor — gentle snowfall"; fontSize: 12; color: alpha(#cfe6f5, 0.95); maxLines: 2 }
+            }
+
+            Row {
+              fill: width
+              align: center
+              gap: 10
+              padding: [12, 10]
+              radius: 14 * corners
+              background: alpha(#2a1f52, 0.75)
+              border: 1
+              borderColor: alpha(#ffd166, 0.34)
+              Column {
+                weight: 1
+                gap: 1
+                Text { text: "countdown"; style: label; color: alpha(#ffd166, 0.95) }
+                Text { text: countdown; fontSize: 17; fontWeight: 700; color: #fff4d6; maxLines: 1 }
+              }
+              Text { text: target == null ? "…" : fmtTime(target, "d MMM"); style: small; color: alpha(#9be7c4, 0.95) }
+            }
+
+            Row {
+              fill: width
+              gap: 10
+              Box {
+                weight: 1
+                height: 48
+                align: center
+                radius: 12 * corners
+                background: alpha(#ffd166, 0.16)
+                border: 1
+                borderColor: alpha(#ffd166, 0.55)
+                onTap: {
+                  shake = 1
+                  haptic()
+                  snow = snow.map((p, i) => merge(p, {
+                    vx: p.vx + (hash(i, 71) - 0.5) * 0.95,
+                    vy: p.vy + (hash(i, 72) - 0.5) * 0.95 - 0.10
+                  }))
+                }
+                Text { text: "shake"; align: center; fontSize: 16; fontWeight: 600; color: #ffe9b0 }
+              }
+              Box {
+                weight: 1
+                height: 48
+                align: center
+                radius: 12 * corners
+                background: alpha(#ffffff, 0.08)
+                border: 1
+                borderColor: alpha(#ffffff, 0.24)
+                onTap: close()
+                Text { text: "close"; align: center; fontSize: 16; fontWeight: 600; color: #e6f2fb }
+              }
+            }
+          }
+        }
+      } else {
+        // ---------- portrait ----------
+        Column {
+          fill: true
+          justify: center
+          padding: [18, 20, 18, 20]
+          gap: 16
+
+          Column {
+            gap: 3
+            Text { text: "Christmas Snow Globe"; fontSize: 23; fontWeight: 700; color: #fff4d6 }
+            Text {
+              text: tilted ? "tilt your phone to swirl the snow" : "no motion sensor — gentle snowfall instead"
+              fontSize: 13
+              color: alpha(#cfe6f5, 0.95)
+            }
+          }
+
+          Box {
+            fill: width
+            height: min(pW * 1.10, max(SH - 274, 120))
+            ChristmasGlobe { rf: 0.39 }
+          }
+
+          // countdown card
+          Row {
+            fill: width
+            align: center
+            gap: 10
+            padding: [16, 12]
+            radius: 16 * corners
+            background: alpha(#2a1f52, 0.72)
+            border: 1
+            borderColor: alpha(#ffd166, 0.34)
+            Column {
+              weight: 1
+              gap: 1
+              Text { text: "countdown"; style: label; color: alpha(#ffd166, 0.95) }
+              Text { text: countdown; fontSize: 18; fontWeight: 700; color: #fff4d6 }
+            }
+            Text { text: target == null ? "…" : fmtTime(target, "d MMM"); style: small; color: alpha(#9be7c4, 0.95) }
+          }
+
+          // controls
+          Row {
+            fill: width
+            gap: 12
+            Box {
+              weight: 1
+              height: 54
+              align: center
+              radius: 14 * corners
+              background: alpha(#ffd166, 0.16)
+              border: 1
+              borderColor: alpha(#ffd166, 0.55)
+              onTap: {
+                shake = 1
+                haptic()
+                snow = snow.map((p, i) => merge(p, {
+                  vx: p.vx + (hash(i, 71) - 0.5) * 0.95,
+                  vy: p.vy + (hash(i, 72) - 0.5) * 0.95 - 0.10
+                }))
+              }
+              Text { text: "shake"; align: center; fontSize: 17; fontWeight: 600; color: #ffe9b0 }
+            }
+            Box {
+              weight: 1
+              height: 54
+              align: center
+              radius: 14 * corners
+              background: alpha(#ffffff, 0.08)
+              border: 1
+              borderColor: alpha(#ffffff, 0.24)
+              onTap: close()
+              Text { text: "close"; align: center; fontSize: 17; fontWeight: 600; color: #e6f2fb }
+            }
+          }
+        }
+      }
+    }
+  }
+}
