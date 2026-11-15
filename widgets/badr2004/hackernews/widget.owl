@@ -5,7 +5,7 @@ widget "hackernews" {
   meta {
     owl: 18
     description: "The Hacker News in-widget morning briefing and article reader with text selection, copying, search, unread tracking, and archive loading"
-    version: "2.1"
+    version: "2.2"
     license: "MIT"
     category: "news"
   }
@@ -32,7 +32,7 @@ cat > "$t" <<'OWL_THN_PY'
 import sys, json, re, html, urllib.request
 from datetime import datetime
 
-USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+USER_AGENT = "omarchy-hackernews-widget"
 
 def get_feed():
     url = "https://thehackernews.com/feeds/posts/default?alt=json&max-results=45"
@@ -178,7 +178,7 @@ echo ok
 """)
 
   source feed = cmd("python3 ~/.cache/omalauncher-hackernews/thn.py feed") every 1h json timeout 20s
-  source article = cmd("python3 ~/.cache/omalauncher-hackernews/thn.py read ${sh(readUrl ?? '')}") json timeout 15s
+  source article = cmd("python3 ~/.cache/omalauncher-hackernews/thn.py read ${sh(readUrl ?? '')}") every 24h json timeout 15s
 
   let items = feed.items ?? []
   let top = items[0]
