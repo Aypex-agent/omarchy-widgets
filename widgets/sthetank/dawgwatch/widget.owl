@@ -1,0 +1,1360 @@
+widget "dawgwatch" {
+  meta {
+    description: "Washington Huskies football dashboard: live score, schedule, Big Ten standings, and team news"
+    version: "1.0"
+    license: "MIT"
+    category: "sport"
+    owl: 17
+  }
+
+  size: 6x4
+  minSize: 3x3
+
+  source now = clock every 1m
+  source scoreboard = http("https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?groups=5") every 1m json timeout 20s
+  source schedule = http("https://site.api.espn.com/apis/site/v2/sports/football/college-football/teams/264/schedule") every 10m json timeout 20s
+  source standings = http("https://site.api.espn.com/apis/v2/sports/football/college-football/standings?group=5") every 30m json timeout 20s
+  source newsFeed = http("https://site.api.espn.com/apis/site/v2/sports/football/college-football/news?team=264") every 15m json timeout 20s
+  source uwNews = http("https://gohuskies.com/api/v2/stories?sportId=3") every 15m json timeout 20s
+  source foxRss = http("https://api.foxsports.com/v2/content/optimized-rss?partnerKey=MB0Wehpmuj2lUhuRhQaafhBjAJqaPU244mlTDK1i&size=15&tags=washington-huskies") every 15m timeout 20s
+  source b1gRss = http("https://bigten.org/rss.aspx?path=football") every 15m timeout 20s
+
+  state tab = "score"
+  state screenTab = "game"
+  state newsFilter = "all"
+
+  let uwPurple = mix(#4b2e83, foreground, 0.55)
+  let uwGold = mix(#c5a45c, foreground, 0.25)
+
+  let teamInfo = schedule.team ?? {}
+  let recordStr = teamInfo.recordSummary ?? "–"
+  let standingStr = teamInfo.standingSummary ?? "Washington Huskies"
+
+  // Season schedule & history
+  let schedEvents = schedule.events ?? []
+  let pastGames = schedEvents.filter(e => e.competitions[0].status.type.state == 'post')
+  let lastGame = last(pastGames)
+  let futureGames = schedEvents.filter(e => e.competitions[0].status.type.state == 'pre')
+  let nextSchedGame = first(futureGames)
+  let liveSchedGames = schedEvents.filter(e => e.competitions[0].status.type.state == 'in')
+
+  // Live scoreboard (Big Ten + non-conference UW games)
+  let sbEvents = scoreboard.events ?? []
+  let sbUwGame = sbEvents.find(e => any(e.competitions[0].competitors ?? [], c => (c.team.id ?? '') == '264'))
+  let isSbLive = sbUwGame != null && sbUwGame.competitions[0].status.type.state == 'in'
+
+  let liveGame = isSbLive ? sbUwGame : first(liveSchedGames)
+  // Featured game: live game first; if not live, next upcoming matchup; fallback to last game
+  let featuredGame = liveGame ?? nextSchedGame ?? lastGame ?? sbUwGame
+  let prevGame = lastGame
+
+  // Big Ten Standings (18 teams)
+  let b1gEntries = standings.standings.entries ?? []
+  let b1gTop3 = take(b1gEntries, 3)
+  let uwStandingsEntry = b1gEntries.find(e => (e.team.id ?? '') == '264')
+  let uwInTop3 = any(b1gTop3, e => (e.team.id ?? '') == '264')
+  let b1gStrip = uwInTop3 ? take(b1gEntries, 4) : (uwStandingsEntry != null ? flatten([b1gTop3, [uwStandingsEntry]]) : b1gTop3)
+
+  // Featured game telemetry
+  let fgComp = featuredGame.competitions[0]
+  let fgAway = fgComp.competitors.filter(t => t.homeAway == 'away')[0] ?? fgComp.competitors[1]
+  let fgHome = fgComp.competitors.filter(t => t.homeAway == 'home')[0] ?? fgComp.competitors[0]
+  let fgIsHome = (fgHome.team.id ?? '') == '264'
+  let fgUw = fgIsHome ? fgHome : fgAway
+  let fgOpp = fgIsHome ? fgAway : fgHome
+
+  let fgOppId = fgOpp.team.id ?? ''
+  let fgOppAbbr = fgOpp.team.abbreviation ?? ''
+  let fgAwayRankNum = fgAway.curatedRank.current ?? 99
+  let fgHomeRankNum = fgHome.curatedRank.current ?? 99
+  let fgAwayRank = fgAwayRankNum <= 25 ? fgAwayRankNum : null
+  let fgHomeRank = fgHomeRankNum <= 25 ? fgHomeRankNum : null
+  let fgAwayAbbr = fgAway.team.abbreviation ?? ''
+  let fgHomeAbbr = fgHome.team.abbreviation ?? ''
+  let fgAwayName = fgAway.team.shortDisplayName ?? fgAway.team.displayName ?? fgAwayAbbr
+  let fgHomeName = fgHome.team.shortDisplayName ?? fgHome.team.displayName ?? fgHomeAbbr
+
+  // Opponent record lookup from Big Ten standings if not in schedule event
+  let oppEntry = b1gEntries.find(e => (e.team.id ?? '') == fgOppId)
+  let oppRecStr = (oppEntry.stats.find(s => s.name == 'overall') ?? {}).displayValue ?? fgOpp.records[0].summary ?? ''
+  let fgAwayRec = fgIsHome ? oppRecStr : recordStr
+  let fgHomeRec = fgIsHome ? recordStr : oppRecStr
+
+  let fgAwayScore = fgAway.score.displayValue ?? fgAway.score ?? '–'
+  let fgHomeScore = fgHome.score.displayValue ?? fgHome.score ?? '–'
+
+  let fgState = fgComp.status.type.state ?? 'pre'
+  let fgIsLive = fgState == 'in'
+  let fgIsFinal = fgState == 'post'
+  let fgIsPre = fgState == 'pre'
+
+  let fgTimeValid = fgComp.timeValid != false
+  let fgDate = parseTime(featuredGame.date)
+  let fgKickDate = fgDate != null ? (fgTimeValid ? fmtTime(fgDate, "EEE, M/d") : fmtTime(fgDate, "EEE, M/d", "America/New_York")) : 'Upcoming'
+  let fgKickTime = fgDate != null && fgTimeValid ? fmtTime(fgDate, "h:mm a") : (fgComp.status.type.shortDetail ?? 'TBD')
+  let fgStatusText = fgIsLive ? "${fgComp.status.displayClock} Q${fgComp.status.period}" : (fgIsFinal ? "Final" : "${fgKickDate} • ${fgKickTime}")
+  let fgVenue = fgComp.venue.fullName ?? 'Husky Stadium'
+  let fgCity = fgComp.venue.address.city ?? ''
+  let fgStateCode = fgComp.venue.address.state ?? ''
+  let fgLocation = fgCity != '' && fgStateCode != '' ? "${fgVenue} (${fgCity}, ${fgStateCode})" : fgVenue
+
+  let fgBcList = fgComp.broadcasts ?? []
+  let fgBcNames = fgBcList[0].names ?? []
+  let fgBcMedia = fgBcList[0].media.shortName ?? ''
+  let fgBroadcast = fgBcNames[0] ?? fgBcMedia ?? ''
+
+  // Live situation (down, distance, red zone)
+  let fgSit = fgComp.situation
+  let fgDownDist = fgSit != null ? (fgSit.downDistanceText ?? fgSit.shortDownDistanceText ?? '') : ''
+  let fgIsRedZone = fgSit != null && fgSit.isRedZone == true
+
+  // Previous game details
+  let pgComp = prevGame.competitions[0]
+  let pgAway = pgComp.competitors.filter(t => t.homeAway == 'away')[0] ?? pgComp.competitors[1]
+  let pgHome = pgComp.competitors.filter(t => t.homeAway == 'home')[0] ?? pgComp.competitors[0]
+  let pgIsHome = (pgHome.team.id ?? '') == '264'
+  let pgUw = pgIsHome ? pgHome : pgAway
+  let pgOpp = pgIsHome ? pgAway : pgHome
+  let pgWon = pgUw.winner == true
+  let pgUwScore = pgUw.score.displayValue ?? pgUw.score ?? '0'
+  let pgOppScore = pgOpp.score.displayValue ?? pgOpp.score ?? '0'
+  let pgOppId = pgOpp.team.id ?? ''
+  let pgOppAbbr = pgOpp.team.abbreviation ?? ''
+  let pgResult = "${pgWon ? 'W' : 'L'} ${pgUwScore}-${pgOppScore} ${pgIsHome ? 'vs' : '@'} ${pgOppAbbr}"
+
+  let uwItems = (uwNews.items ?? []).map(s => ({
+    id: "uw-${s.contentId}",
+    src: "GoHuskies",
+    title: replace(trim(s.contentTitle ?? ""), "&amp;", "&"),
+    desc: replace(trim(join(matchAll(s.teaser ?? "", "(?:^|>)([^<]+)").map(m => m[0]), "")), "&amp;", "&"),
+    link: startsWith(s.contentUrl ?? "", "http") ? s.contentUrl : "https://gohuskies.com${s.contentUrl ?? ''}",
+    ts: parseTime(s.contentDate, null, "America/Los_Angeles")
+  }))
+
+  let espnItems = (newsFeed.articles ?? []).map(a => ({
+    id: "espn-${a.id}",
+    src: "ESPN",
+    title: trim(a.headline ?? ""),
+    desc: trim(a.description ?? ""),
+    link: a.links.web.href ?? "https://www.espn.com/college-football/team/_/id/264/washington-huskies",
+    ts: parseTime(a.published)
+  }))
+
+  let foxItems = matchAll(foxRss ?? "", "<item>[\\s\\S]*?<title>\\s*(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?\\s*</title>[\\s\\S]*?<link>\\s*([^<]+?)\\s*</link>[\\s\\S]*?<category>([^<]+)</category>[\\s\\S]*?<description>\\s*(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?\\s*</description>[\\s\\S]*?<pubDate>\\s*([^<]+?)\\s*</pubDate>")
+    .filter(m => trim(m[2]) == "college-football")
+    .map(m => ({
+      id: "fox-${trim(m[1])}",
+      src: "Fox Sports",
+      title: replace(trim(m[0]), "&amp;", "&"),
+      desc: replace(trim(m[3]), "&amp;", "&"),
+      link: trim(m[1]),
+      ts: parseTime(trim(m[4]))
+    }))
+
+  let b1gItems = matchAll(b1gRss ?? "", "<item>[\\s\\S]*?<title>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?</title>[\\s\\S]*?<link>([^<]+)</link>[\\s\\S]*?<description>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?</description>[\\s\\S]*?<pubDate>([^<]+)</pubDate>")
+    .map(m => ({
+      id: "b1g-${trim(m[1])}",
+      src: "Big Ten",
+      title: replace(trim(m[0]), "&amp;", "&"),
+      desc: replace(trim(join(matchAll(m[2], "(?:^|>)([^<]+)").map(x => x[0]), "")), "&amp;", "&"),
+      link: trim(m[1]),
+      ts: parseTime(trim(m[3]))
+    }))
+
+  let allArticles = flatten([uwItems, espnItems, foxItems, b1gItems])
+    .filter(a => a.title != "" && a.link != "")
+    .sortBy(a => -(a.ts ?? 0))
+
+  let newsSources = [
+    {id: "all", label: "All"},
+    {id: "GoHuskies", label: "GoHuskies"},
+    {id: "ESPN", label: "ESPN"},
+    {id: "Fox Sports", label: "Fox"},
+    {id: "Big Ten", label: "Big Ten"}
+  ]
+
+  let articles = newsFilter == "all" ? allArticles : allArticles.filter(a => a.src == newsFilter)
+
+  component TeamLogo(id, px = 20) {
+    let tid = str(id ?? '')
+    if tid != '' && tid != 'null' {
+      Image {
+        src: "https://a.espncdn.com/i/teamlogos/ncaa/500/${tid}.png"
+        size: px
+        fit: contain
+      }
+    }
+  }
+
+  onTap: { haptic(); screen() }
+
+  Column {
+    gap: 5
+    fill: width
+
+    // Header
+    Row {
+      gap: 6
+      fill: width
+      align: center
+      Image {
+        src: "https://a.espncdn.com/i/teamlogos/ncaa/500/264.png"
+        size: 24
+        fit: contain
+      }
+      Column {
+        gap: 0
+        Row {
+          gap: 4
+          align: center
+          Text { text: "DawgWatch"; style: title; bold: true }
+          Text {
+            text: recordStr
+            style: small
+            bold: true
+            color: uwGold
+            padding: [4, 1]
+            radius: 4
+            background: alpha(uwGold, 0.2)
+          }
+        }
+        Text { text: standingStr; style: small; color: muted; maxLines: 1 }
+      }
+      Spacer { weight: 1 }
+      if fgIsLive {
+        Text {
+          text: "● LIVE"
+          style: small
+          bold: true
+          color: red
+          padding: [5, 2]
+          radius: 4
+          background: alpha(red, 0.2)
+        }
+      } else {
+        Text { text: "⤢"; style: body; color: muted; onTap: { haptic(); screen() } }
+      }
+    }
+
+    // Tabs
+    Row {
+      fill: width
+      gap: 4
+      Box {
+        weight: 1
+        padding: [0, 5]
+        radius: 6 * corners
+        background: tab == "score" ? alpha(uwPurple, 0.22) : alpha(surface, 0.4)
+        border: 1
+        borderColor: tab == "score" ? uwPurple : border
+        onTap: { haptic(); tab = "score" }
+        Text {
+          text: "Score"
+          style: small
+          bold: tab == "score"
+          color: tab == "score" ? uwPurple : muted
+          align: center
+        }
+      }
+      Box {
+        weight: 1
+        padding: [0, 5]
+        radius: 6 * corners
+        background: tab == "standings" ? alpha(uwPurple, 0.22) : alpha(surface, 0.4)
+        border: 1
+        borderColor: tab == "standings" ? uwPurple : border
+        onTap: { haptic(); tab = "standings" }
+        Text {
+          text: "Big Ten"
+          style: small
+          bold: tab == "standings"
+          color: tab == "standings" ? uwPurple : muted
+          align: center
+        }
+      }
+      Box {
+        weight: 1
+        padding: [0, 5]
+        radius: 6 * corners
+        background: tab == "news" ? alpha(uwPurple, 0.22) : alpha(surface, 0.4)
+        border: 1
+        borderColor: tab == "news" ? uwPurple : border
+        onTap: { haptic(); tab = "news" }
+        Text {
+          text: "News"
+          style: small
+          bold: tab == "news"
+          color: tab == "news" ? uwPurple : muted
+          align: center
+        }
+      }
+      Box {
+        weight: 1
+        padding: [0, 5]
+        radius: 6 * corners
+        background: tab == "schedule" ? alpha(uwPurple, 0.22) : alpha(surface, 0.4)
+        border: 1
+        borderColor: tab == "schedule" ? uwPurple : border
+        onTap: { haptic(); tab = "schedule" }
+        Text {
+          text: "Schedule"
+          style: small
+          bold: tab == "schedule"
+          color: tab == "schedule" ? uwPurple : muted
+          align: center
+        }
+      }
+    }
+
+    // Tab content
+    Column {
+      weight: 1
+      scroll: true
+      onPull: refresh()
+      gap: 5
+
+      if tab == "score" {
+        // Featured Game Card (Upcoming or Live)
+        Box {
+          fill: width
+          padding: [8, 6]
+          radius: 8 * corners
+          background: alpha(surface, 0.6)
+          border: 1
+          borderColor: fgIsLive ? uwPurple : border
+
+          Column {
+            gap: 4
+            fill: width
+
+            Row {
+              fill: width
+              align: center
+              Text {
+                text: fgIsLive ? "LIVE GAME" : (fgIsFinal ? "RECENT GAME" : "UPCOMING • WEEK ${featuredGame.week.number ?? ''}")
+                style: small
+                bold: true
+                color: fgIsLive ? uwPurple : (fgIsPre ? uwGold : muted)
+              }
+              Spacer { weight: 1 }
+              if fgBroadcast != "" {
+                Text {
+                  text: fgBroadcast
+                  style: label
+                  bold: true
+                  color: foreground
+                  padding: [4, 1]
+                  radius: 3
+                  background: alpha(uwGold, 0.25)
+                }
+              }
+            }
+
+            // Teams and scores/time
+            Row {
+              fill: width
+              align: center
+              gap: 4
+
+              // Away Team
+              Column {
+                weight: 1
+                align: center
+                gap: 2
+                TeamLogo { id: fgAway.team.id; px: 32 }
+                Text {
+                  text: fgAwayRank != null ? "#${fgAwayRank} ${fgAwayAbbr}" : fgAwayAbbr
+                  bold: true
+                  style: small
+                  color: fgIsFinal && !fgAway.winner ? muted : foreground
+                  align: center
+                }
+                if fgAwayRec != "" {
+                  Text { text: fgAwayRec; style: label; color: muted; align: center }
+                }
+              }
+
+              // Center Score or Kickoff
+              Column {
+                align: center
+                gap: 2
+                width: 120
+                if fgIsPre {
+                  Text { text: "VS"; style: label; color: muted; bold: true; align: center }
+                  Text { text: fgKickDate; style: small; color: uwPurple; bold: true; align: center }
+                  Text { text: fgKickTime; style: small; color: uwGold; align: center; bold: true }
+                } else {
+                  Row {
+                    gap: 6
+                    align: center
+                    Text {
+                      text: fgAwayScore
+                      style: title
+                      bold: true
+                    }
+                    Text { text: "-"; style: title; color: muted }
+                    Text {
+                      text: fgHomeScore
+                      style: title
+                      bold: true
+                    }
+                  }
+                  Text {
+                    text: fgStatusText
+                    style: small
+                    color: fgIsLive ? uwPurple : muted
+                    bold: fgIsLive
+                    align: center
+                    maxLines: 1
+                  }
+                }
+              }
+
+              // Home Team
+              Column {
+                weight: 1
+                align: center
+                gap: 2
+                TeamLogo { id: fgHome.team.id; px: 32 }
+                Text {
+                  text: fgHomeRank != null ? "#${fgHomeRank} ${fgHomeAbbr}" : fgHomeAbbr
+                  bold: true
+                  style: small
+                  color: fgIsFinal && !fgHome.winner ? muted : foreground
+                  align: center
+                }
+                if fgHomeRec != "" {
+                  Text { text: fgHomeRec; style: label; color: muted; align: center }
+                }
+              }
+            }
+
+            // Live down & distance or venue
+            if fgIsLive && fgDownDist != "" {
+              Row {
+                align: center
+                gap: 6
+                Text { text: "🏈 ${fgDownDist}"; style: small; bold: true; color: uwPurple }
+                if fgIsRedZone {
+                  Text {
+                    text: "RED ZONE"
+                    style: label
+                    bold: true
+                    color: red
+                    padding: [4, 1]
+                    radius: 3
+                    background: alpha(red, 0.2)
+                  }
+                }
+              }
+            } else if fgVenue != "" && fgIsPre {
+              Text { text: "📍 ${fgVenue}"; style: label; color: muted; align: center; maxLines: 1 }
+            }
+          }
+        }
+
+        // Previous Game Summary (when featured is upcoming)
+        if fgIsPre && prevGame != null {
+          Box {
+            fill: width
+            padding: [6, 4]
+            radius: 6 * corners
+            background: alpha(surface, 0.6)
+            border: 1
+            borderColor: border
+
+            Row {
+              fill: width
+              align: center
+              gap: 6
+              Text { text: "Last:"; style: small; color: muted }
+              Text {
+                text: pgWon ? "W" : "L"
+                style: small
+                bold: true
+                color: pgWon ? green : red
+                padding: [4, 1]
+                radius: 3
+                background: pgWon ? alpha(green, 0.2) : alpha(red, 0.2)
+              }
+              TeamLogo { id: pgOppId; px: 18 }
+              Text {
+                text: "${pgUwScore}-${pgOppScore} ${pgIsHome ? 'vs' : '@'} ${pgOppAbbr}"
+                style: small
+                bold: true
+              }
+              Spacer { weight: 1 }
+              Text { text: "W${prevGame.week.number} Final"; style: label; color: muted; maxLines: 1 }
+            }
+          }
+        }
+
+        // Big Ten Quick Strip (Top 3 + WASH)
+        Box {
+          fill: width
+          padding: [6, 4]
+          radius: 6 * corners
+          background: alpha(surface, 0.6)
+          border: 1
+          borderColor: border
+          onTap: { haptic(); tab = "standings" }
+
+          Row {
+            fill: width
+            align: center
+            gap: 6
+
+            Text { text: "B1G"; style: label; bold: true; color: muted; width: 26 }
+
+            for entry in b1gStrip key entry.team.id {
+              let isUw = (entry.team.id ?? '') == '264'
+              let rec = (entry.stats.find(s => s.name == 'overall') ?? {}).displayValue ?? '–'
+
+              Row {
+                align: center
+                gap: 3
+                TeamLogo { id: entry.team.id; px: 14 }
+                Text {
+                  text: "${entry.team.abbreviation} ${rec}"
+                  style: label
+                  bold: isUw
+                  color: isUw ? uwPurple : muted
+                }
+                if isUw {
+                  Box {
+                    width: 4
+                    height: 4
+                    radius: 2
+                    background: uwGold
+                  }
+                }
+              }
+            }
+            Spacer { weight: 1 }
+            Text { text: "›"; style: small; color: muted }
+          }
+        }
+      }
+
+      if tab == "standings" {
+        Box {
+          fill: width
+          padding: 8
+          radius: 8 * corners
+          background: alpha(surface, 0.6)
+          border: 1
+          borderColor: border
+
+          Column {
+            gap: 4
+            fill: width
+
+            Row {
+              fill: width
+              align: center
+              gap: 6
+              padding: [4, 2]
+              Text { text: "#"; style: label; color: muted; width: 16 }
+              Text { text: "TEAM"; style: label; color: muted; weight: 1 }
+              Text { text: "OVR"; style: label; color: muted; width: 38; align: end }
+              Text { text: "CONF"; style: label; color: muted; width: 38; align: end }
+              Text { text: "STRK"; style: label; color: muted; width: 34; align: end }
+              Text { text: "DIFF"; style: label; color: muted; width: 36; align: end }
+            }
+
+            for entry, i in b1gEntries key entry.team.id {
+              let isUw = (entry.team.id ?? '') == '264'
+              let rec = (entry.stats.find(s => s.name == 'overall') ?? {}).displayValue ?? '–'
+              let confRec = (entry.stats.find(s => s.name == 'vs. Conf.') ?? {}).displayValue ?? '–'
+              let strk = (entry.stats.find(s => s.name == 'streak') ?? {}).displayValue ?? '–'
+              let diff = (entry.stats.find(s => s.name == 'pointDifferential') ?? {}).displayValue ?? '–'
+
+              Row {
+                fill: width
+                align: center
+                gap: 6
+                padding: [4, 3]
+                radius: 4
+                background: isUw ? alpha(uwPurple, 0.16) : rgb(0, 0, 0, 0)
+
+                Text { text: "${i + 1}"; style: small; color: isUw ? uwGold : muted; bold: isUw; width: 16 }
+                TeamLogo { id: entry.team.id; px: 18 }
+                Text {
+                  text: entry.team.shortDisplayName ?? entry.team.displayName
+                  style: small
+                  bold: isUw
+                  color: isUw ? uwPurple : foreground
+                  weight: 1
+                  maxLines: 1
+                }
+                Text {
+                  text: rec
+                  style: small
+                  bold: true
+                  color: isUw ? uwPurple : foreground
+                  width: 38
+                  align: end
+                }
+                Text {
+                  text: confRec
+                  style: small
+                  color: muted
+                  width: 38
+                  align: end
+                }
+                Text {
+                  text: strk
+                  style: small
+                  color: startsWith(strk, 'W') ? green : (startsWith(strk, 'L') ? red : muted)
+                  width: 34
+                  align: end
+                }
+                Text {
+                  text: diff
+                  style: label
+                  color: startsWith(diff, '+') ? green : (startsWith(diff, '-') ? red : muted)
+                  width: 36
+                  align: end
+                }
+              }
+            }
+          }
+        }
+      }
+
+      if tab == "news" {
+        Column {
+          gap: 4
+          fill: width
+          Row {
+            fill: width
+            gap: 4
+            for f in newsSources key f.id {
+              let active = newsFilter == f.id
+              Box {
+                weight: 1
+                padding: [3, 4]
+                radius: 6 * corners
+                background: active ? alpha(uwPurple, 0.22) : alpha(surface, 0.4)
+                border: 1
+                borderColor: active ? uwPurple : border
+                onTap: { haptic(); newsFilter = f.id }
+                Text {
+                  text: f.label
+                  style: label
+                  bold: active
+                  color: active ? uwPurple : muted
+                  align: center
+                  maxLines: 1
+                }
+              }
+            }
+          }
+
+          if len(articles) == 0 {
+            Text { text: "Loading Huskies news…"; style: small; color: muted; align: center }
+          } else {
+            for item in articles.take(6) key item.id {
+              Box {
+                fill: width
+                padding: [6, 4]
+                radius: 6 * corners
+                onTap: { haptic(); url(item.link) }
+
+                Row {
+                  fill: width
+                  gap: 6
+                  align: top
+                  Box {
+                    width: 4
+                    height: 14
+                    radius: 2
+                    background: uwGold
+                    offset: [0, 3]
+                  }
+                  Column {
+                    gap: 2
+                    weight: 1
+                    Text {
+                      text: item.title
+                      style: small
+                      bold: true
+                      maxLines: 2
+                    }
+                    Row {
+                      gap: 6
+                      if item.ts > 0 {
+                        Text { text: fmtAgo(item.ts, now); style: label; color: uwPurple; bold: true }
+                      }
+                      Text { text: item.src; style: label; color: muted; maxLines: 1 }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      if tab == "schedule" {
+        for g in schedEvents key g.id {
+          let gc = g.competitions[0]
+          let gcomps = gc.competitors ?? []
+          let gUw = gcomps.find(t => (t.team.id ?? '') == '264')
+          let gOpp = gcomps.find(t => (t.team.id ?? '') != '264')
+          let gOppId = gOpp.team.id ?? ''
+          let gOppAbbr = gOpp.team.abbreviation ?? ''
+          let gOppRankNum = gOpp.curatedRank.current ?? 99
+          let gOppLabel = gOppRankNum <= 25 ? "#${gOppRankNum} ${gOppAbbr}" : gOppAbbr
+          let gState = gc.status.type.state ?? 'pre'
+          let gWon = gUw.winner == true
+          let isDone = gState == 'post'
+          let isCurrent = g.id == featuredGame.id
+          let scUw = gUw.score.displayValue ?? gUw.score ?? '–'
+          let scOpp = gOpp.score.displayValue ?? gOpp.score ?? '–'
+          let dt = parseTime(g.date)
+          let gTimeValid = gc.timeValid != false
+
+          Box {
+            fill: width
+            padding: [4, 2]
+            radius: 4 * corners
+            background: isCurrent ? alpha(uwPurple, 0.14) : rgb(0, 0, 0, 0)
+            border: isCurrent ? 1 : 0
+            borderColor: uwPurple
+
+            Row {
+              fill: width
+              align: center
+              gap: 6
+
+              Text { text: "W${g.week.number}"; style: small; color: isCurrent ? uwPurple : muted; width: 28; bold: isCurrent }
+              TeamLogo { id: gOppId; px: 18 }
+              Text {
+                text: "${gOpp.homeAway == 'home' ? '@' : 'vs'} ${gOppLabel}"
+                style: small
+                bold: isCurrent || gState == 'in'
+                color: gState == 'in' ? uwPurple : foreground
+              }
+              Spacer { weight: 1 }
+              if isDone {
+                Text {
+                  text: "${gWon ? 'W' : 'L'} ${scUw}-${scOpp}"
+                  style: small
+                  bold: true
+                  color: gWon ? green : red
+                  align: end
+                }
+              } else if gState == 'in' {
+                Text { text: "LIVE"; style: small; bold: true; color: uwPurple; align: end }
+              } else {
+                Text {
+                  text: dt != null ? (gTimeValid ? fmtTime(dt, "M/d h:mma") : "${fmtTime(dt, "M/d", "America/New_York")} TBD") : (gc.status.type.shortDetail ?? 'TBD')
+                  style: small
+                  color: isCurrent ? uwGold : muted
+                  bold: isCurrent
+                  align: end
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Full-screen Game Center
+  screen {
+    title: "DawgWatch"
+
+    Column {
+      scroll: true
+      onPull: refresh()
+      gap: 12
+      padding: 12
+
+      // Top Hero Banner
+      Box {
+        fill: width
+        padding: 14
+        radius: 12 * corners
+        background: alpha(surface, 0.6)
+        border: 1
+        borderColor: uwPurple
+
+        Row {
+          fill: width
+          align: center
+          gap: 12
+          Image {
+            src: "https://a.espncdn.com/i/teamlogos/ncaa/500/264.png"
+            size: 52
+            fit: contain
+          }
+          Column {
+            gap: 2
+            weight: 1
+            Text { text: "DawgWatch"; style: title; bold: true }
+            Text { text: standingStr; style: small; color: uwGold; bold: true }
+          }
+          Column {
+            align: end
+            width: 95
+            gap: 2
+            Text { text: recordStr; style: title; bold: true; color: uwPurple; align: end }
+            Text { text: "RECORD"; style: label; color: muted; align: end }
+          }
+        }
+      }
+
+      // Screen navigation tabs
+      Row {
+        fill: width
+        gap: 6
+        Box {
+          weight: 1
+          padding: [0, 8]
+          radius: 8 * corners
+          background: screenTab == "game" ? alpha(uwPurple, 0.22) : alpha(surface, 0.4)
+          border: 1
+          borderColor: screenTab == "game" ? uwPurple : border
+          onTap: { haptic(); screenTab = "game" }
+          Text {
+            text: "Game Center"
+            style: small
+            bold: screenTab == "game"
+            color: screenTab == "game" ? uwPurple : muted
+            align: center
+          }
+        }
+        Box {
+          weight: 1
+          padding: [0, 8]
+          radius: 8 * corners
+          background: screenTab == "news" ? alpha(uwPurple, 0.22) : alpha(surface, 0.4)
+          border: 1
+          borderColor: screenTab == "news" ? uwPurple : border
+          onTap: { haptic(); screenTab = "news" }
+          Text {
+            text: "Huskies News"
+            style: small
+            bold: screenTab == "news"
+            color: screenTab == "news" ? uwPurple : muted
+            align: center
+          }
+        }
+        Box {
+          weight: 1
+          padding: [0, 8]
+          radius: 8 * corners
+          background: screenTab == "schedule" ? alpha(uwPurple, 0.22) : alpha(surface, 0.4)
+          border: 1
+          borderColor: screenTab == "schedule" ? uwPurple : border
+          onTap: { haptic(); screenTab = "schedule" }
+          Text {
+            text: "Full Schedule"
+            style: small
+            bold: screenTab == "schedule"
+            color: screenTab == "schedule" ? uwPurple : muted
+            align: center
+          }
+        }
+      }
+
+      // Screen Tab 1: Game Center
+      if screenTab == "game" {
+        Column {
+          gap: 10
+          fill: width
+
+          Text { text: "CURRENT / UPCOMING GAME"; style: label; color: muted }
+
+          Box {
+            fill: width
+            padding: 14
+            radius: 10 * corners
+            background: alpha(surface, 0.6)
+            border: 1
+            borderColor: fgIsLive ? uwPurple : border
+
+            Column {
+              gap: 12
+              fill: width
+
+              Row {
+                fill: width
+                align: center
+                Text {
+                  text: fgIsLive ? "● LIVE IN PROGRESS" : (fgIsFinal ? "FINAL SCORE" : "WEEK ${featuredGame.week.number ?? ''} MATCHUP")
+                  style: small
+                  bold: true
+                  color: fgIsLive ? uwPurple : uwGold
+                }
+                Spacer { weight: 1 }
+                if fgBroadcast != "" {
+                  Text {
+                    text: "TV: ${fgBroadcast}"
+                    style: small
+                    color: uwGold
+                    padding: [6, 2]
+                    radius: 4
+                    background: alpha(uwGold, 0.15)
+                  }
+                }
+              }
+
+              // Large Matchup View
+              Row {
+                fill: width
+                align: center
+
+                // Away Team
+                Column {
+                  weight: 1
+                  align: center
+                  gap: 4
+                  TeamLogo { id: fgAway.team.id; px: 56 }
+                  Text {
+                    text: fgAwayRank != null ? "#${fgAwayRank} ${fgAwayName}" : fgAwayName
+                    style: body
+                    bold: true
+                    align: center
+                    maxLines: 1
+                  }
+                  Text {
+                    text: fgAwayRec
+                    style: small
+                    color: muted
+                    align: center
+                  }
+                }
+
+                // Middle Score / Clock
+                Column {
+                  width: 130
+                  align: center
+                  gap: 4
+
+                  if fgIsPre {
+                    Text { text: "AT"; style: title; color: muted; bold: true; align: center }
+                    Text { text: "${fgKickDate} • ${fgKickTime}"; style: small; color: uwPurple; align: center; bold: true }
+                  } else {
+                    Row {
+                      gap: 10
+                      align: center
+                      Text {
+                        text: fgAwayScore
+                        style: huge
+                        bold: true
+                      }
+                      Text { text: "-"; style: huge; color: muted }
+                      Text {
+                        text: fgHomeScore
+                        style: huge
+                        bold: true
+                      }
+                    }
+                    Text {
+                      text: fgStatusText
+                      style: body
+                      color: fgIsLive ? uwPurple : muted
+                      bold: true
+                      align: center
+                    }
+                    if fgDownDist != "" {
+                      Row {
+                        align: center
+                        gap: 4
+                        Text { text: "🏈 ${fgDownDist}"; style: small; bold: true; color: uwPurple }
+                        if fgIsRedZone {
+                          Text { text: "RED ZONE"; style: label; bold: true; color: red }
+                        }
+                      }
+                    }
+                  }
+                }
+
+                // Home Team
+                Column {
+                  weight: 1
+                  align: center
+                  gap: 4
+                  TeamLogo { id: fgHome.team.id; px: 56 }
+                  Text {
+                    text: fgHomeRank != null ? "#${fgHomeRank} ${fgHomeName}" : fgHomeName
+                    style: body
+                    bold: true
+                    align: center
+                    maxLines: 1
+                  }
+                  Text {
+                    text: fgHomeRec
+                    style: small
+                    color: muted
+                    align: center
+                  }
+                }
+              }
+
+              // Venue and Details
+              Box {
+                fill: width
+                padding: [10, 8]
+                radius: 6 * corners
+                background: alpha(surface, 0.4)
+
+                Column {
+                  gap: 4
+                  Row {
+                    Text { text: "Stadium:"; style: small; color: muted; width: 70 }
+                    Text { text: fgLocation; style: small; weight: 1 }
+                  }
+                  if featuredGame.weather != null {
+                    Row {
+                      Text { text: "Weather:"; style: small; color: muted; width: 70 }
+                      Text {
+                        text: "${featuredGame.weather.displayValue ?? ''}, ${featuredGame.weather.temperature ?? ''}°F"
+                        style: small
+                        weight: 1
+                      }
+                    }
+                  }
+                }
+              }
+
+              // ESPN Gamecast button
+              Button {
+                text: "ESPN Gamecast & Preview ↗"
+                fill: width
+                onTap: { haptic(); url("https://www.espn.com/college-football/game/_/gameId/${featuredGame.id}") }
+              }
+            }
+          }
+
+          // Big Ten Conference Race Table
+          Text { text: "BIG TEN CONFERENCE STANDINGS"; style: label; color: muted }
+          Box {
+            fill: width
+            padding: 10
+            radius: 8 * corners
+            background: alpha(surface, 0.6)
+            border: 1
+            borderColor: border
+
+            Column {
+              gap: 4
+              fill: width
+
+              Row {
+                fill: width
+                align: center
+                gap: 6
+                padding: [6, 2]
+                Text { text: "#"; style: label; color: muted; width: 18 }
+                Text { text: "TEAM"; style: label; color: muted; weight: 1 }
+                Text { text: "OVR"; style: label; color: muted; width: 42; align: end }
+                Text { text: "CONF"; style: label; color: muted; width: 42; align: end }
+                Text { text: "STRK"; style: label; color: muted; width: 38; align: end }
+                Text { text: "DIFF"; style: label; color: muted; width: 44; align: end }
+              }
+
+              for entry, i in b1gEntries key entry.team.id {
+                let isUw = (entry.team.id ?? '') == '264'
+                let rec = (entry.stats.find(s => s.name == 'overall') ?? {}).displayValue ?? '–'
+                let confRec = (entry.stats.find(s => s.name == 'vs. Conf.') ?? {}).displayValue ?? '–'
+                let strk = (entry.stats.find(s => s.name == 'streak') ?? {}).displayValue ?? '–'
+                let diff = (entry.stats.find(s => s.name == 'pointDifferential') ?? {}).displayValue ?? '–'
+
+                Row {
+                  fill: width
+                  align: center
+                  gap: 6
+                  padding: [6, 4]
+                  radius: 4
+                  background: isUw ? alpha(uwPurple, 0.16) : rgb(0, 0, 0, 0)
+
+                  Text { text: "${i + 1}"; style: small; color: isUw ? uwGold : muted; bold: isUw; width: 18 }
+                  TeamLogo { id: entry.team.id; px: 20 }
+                  Text {
+                    text: entry.team.shortDisplayName ?? entry.team.displayName
+                    style: small
+                    bold: isUw
+                    color: isUw ? uwPurple : foreground
+                    weight: 1
+                    maxLines: 1
+                  }
+                  Text {
+                    text: rec
+                    style: small
+                    bold: true
+                    color: isUw ? uwPurple : foreground
+                    width: 42
+                    align: end
+                  }
+                  Text {
+                    text: confRec
+                    style: small
+                    color: muted
+                    width: 42
+                    align: end
+                  }
+                  Text {
+                    text: strk
+                    style: small
+                    color: startsWith(strk, 'W') ? green : (startsWith(strk, 'L') ? red : muted)
+                    width: 38
+                    align: end
+                  }
+                  Text {
+                    text: diff
+                    style: label
+                    color: startsWith(diff, '+') ? green : (startsWith(diff, '-') ? red : muted)
+                    width: 44
+                    align: end
+                  }
+                }
+              }
+            }
+          }
+
+          // Previous Result
+          if prevGame != null {
+            Text { text: "PREVIOUS RESULT"; style: label; color: muted }
+            Box {
+              fill: width
+              padding: 10
+              radius: 8 * corners
+              background: alpha(surface, 0.6)
+              border: 1
+              borderColor: border
+              onTap: { haptic(); url("https://www.espn.com/college-football/game/_/gameId/${prevGame.id}") }
+
+              Row {
+                fill: width
+                align: center
+                gap: 8
+                Text {
+                  text: pgWon ? "WIN" : "LOSS"
+                  style: small
+                  bold: true
+                  color: pgWon ? green : red
+                  padding: [6, 3]
+                  radius: 4
+                  background: pgWon ? alpha(green, 0.2) : alpha(red, 0.2)
+                }
+                TeamLogo { id: pgOppId; px: 28 }
+                Column {
+                  gap: 1
+                  weight: 1
+                  Text {
+                    text: "Week ${prevGame.week.number}: ${pgResult}"
+                    style: body
+                    bold: true
+                  }
+                  Text { text: "Final Score • Tap for ESPN Recap ↗"; style: small; color: muted }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Screen Tab 2: All News
+      if screenTab == "news" {
+        Column {
+          gap: 8
+          fill: width
+
+          Text { text: "LATEST WASHINGTON HUSKIES NEWS"; style: label; color: muted }
+
+          Row {
+            fill: width
+            gap: 6
+            for f in newsSources key f.id {
+              let active = newsFilter == f.id
+              Box {
+                weight: 1
+                padding: [4, 6]
+                radius: 8 * corners
+                background: active ? alpha(uwPurple, 0.22) : alpha(surface, 0.4)
+                border: 1
+                borderColor: active ? uwPurple : border
+                onTap: { haptic(); newsFilter = f.id }
+                Text {
+                  text: f.label
+                  style: label
+                  bold: active
+                  color: active ? uwPurple : muted
+                  align: center
+                  maxLines: 1
+                }
+              }
+            }
+          }
+
+          if len(articles) == 0 {
+            Text { text: "Fetching Huskies football news…"; style: small; color: muted }
+          } else {
+            for item in articles.take(20) key item.id {
+              Box {
+                fill: width
+                padding: 10
+                radius: 8 * corners
+                background: alpha(surface, 0.6)
+                border: 1
+                borderColor: border
+                onTap: { haptic(); url(item.link) }
+
+                Column {
+                  gap: 4
+                  fill: width
+
+                  Row {
+                    gap: 6
+                    align: center
+                    if item.ts > 0 {
+                      Text { text: fmtAgo(item.ts, now); style: label; color: uwPurple; bold: true }
+                      Text { text: "•"; style: label; color: muted }
+                    }
+                    Text { text: item.src; style: label; color: muted }
+                  }
+
+                  Text {
+                    text: item.title
+                    style: body
+                    bold: true
+                  }
+
+                  if (item.desc ?? "") != "" {
+                    Text {
+                      text: item.desc
+                      style: small
+                      color: muted
+                      maxLines: 3
+                    }
+                  }
+
+                  Row {
+                    align: center
+                    gap: 4
+                    Text { text: "Read story ↗"; style: small; color: uwGold; bold: true }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Screen Tab 3: Full Schedule
+      if screenTab == "schedule" {
+        Column {
+          gap: 6
+          fill: width
+
+          Text { text: "${schedule.season.year ?? 2026} WASHINGTON HUSKIES SCHEDULE"; style: label; color: muted }
+
+          for g in schedEvents key g.id {
+            let gc = g.competitions[0]
+            let gcomps = gc.competitors ?? []
+            let gUw = gcomps.find(t => (t.team.id ?? '') == '264')
+            let gOpp = gcomps.find(t => (t.team.id ?? '') != '264')
+            let gOppId = gOpp.team.id ?? ''
+            let gOppAbbr = gOpp.team.abbreviation ?? ''
+            let gOppRankNum = gOpp.curatedRank.current ?? 99
+            let gOppFullName = gOpp.team.displayName ?? gOppAbbr
+            let gOppFullLabel = gOppRankNum <= 25 ? "#${gOppRankNum} ${gOppFullName}" : gOppFullName
+            let gState = gc.status.type.state ?? 'pre'
+            let gWon = gUw.winner == true
+            let isDone = gState == 'post'
+            let isCurrent = g.id == featuredGame.id
+            let scUw = gUw.score.displayValue ?? gUw.score ?? '–'
+            let scOpp = gOpp.score.displayValue ?? gOpp.score ?? '–'
+            let dt = parseTime(g.date)
+            let gTimeValid = gc.timeValid != false
+
+            Box {
+              fill: width
+              padding: [8, 6]
+              radius: 6 * corners
+              background: isCurrent ? alpha(uwPurple, 0.15) : (gState == 'in' ? alpha(uwPurple, 0.15) : alpha(surface, 0.6))
+              border: 1
+              borderColor: (isCurrent || gState == 'in') ? uwPurple : border
+
+              Row {
+                fill: width
+                align: center
+                gap: 8
+
+                Text { text: "W${g.week.number}"; style: small; color: isCurrent ? uwPurple : muted; width: 32; bold: isCurrent }
+                TeamLogo { id: gOppId; px: 22 }
+                Column {
+                  gap: 1
+                  weight: 1
+                  Text {
+                    text: "${gOpp.homeAway == 'home' ? '@' : 'vs'} ${gOppFullLabel}"
+                    style: small
+                    bold: true
+                    color: (isCurrent || gState == 'in') ? uwPurple : foreground
+                  }
+                  if dt != null {
+                    Text {
+                      text: gTimeValid ? fmtTime(dt, "EEE, MMM d • h:mm a") : "${fmtTime(dt, "EEE, MMM d", "America/New_York")} • TBD"
+                      style: label
+                      color: muted
+                    }
+                  }
+                }
+                Spacer { weight: 1 }
+                if isDone {
+                  Text {
+                    text: "${gWon ? 'W' : 'L'} ${scUw}-${scOpp}"
+                    style: small
+                    bold: true
+                    color: gWon ? green : red
+                    padding: [6, 2]
+                    radius: 4
+                    background: gWon ? alpha(green, 0.2) : alpha(red, 0.2)
+                  }
+                } else if gState == 'in' {
+                  Text {
+                    text: "LIVE"
+                    style: small
+                    bold: true
+                    color: uwPurple
+                    padding: [6, 2]
+                    radius: 4
+                    background: alpha(uwPurple, 0.2)
+                  }
+                } else {
+                  Text {
+                    text: gc.status.type.shortDetail ?? 'Scheduled'
+                    style: small
+                    color: isCurrent ? uwGold : muted
+                    bold: isCurrent
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Actions
+      Row {
+        gap: 8
+        fill: width
+        Button {
+          text: "Official GoHuskies.com ↗"
+          weight: 1
+          onTap: { haptic(); url("https://gohuskies.com/sports/football") }
+        }
+        Button {
+          text: "Close"
+          width: 80
+          onTap: { haptic(); close() }
+        }
+      }
+    }
+  }
+}
