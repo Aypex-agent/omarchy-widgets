@@ -1,5 +1,5 @@
 widget "fish pond" {
-  meta { description: "A clownfish and a goldfish under moving water in a painted pond, with refraction, ripples and weather. Tap the water to feed them"; version: "1.1"; license: "MIT"; category: "fun"; owl: 10 }
+  meta { description: "A clownfish and a goldfish under moving water in a painted pond, with refraction, ripples and weather. Tap the water to feed them"; version: "1.2"; license: "MIT"; category: "fun"; owl: 10 }
   page: 3
   order: 1
   size: 6x3
@@ -37,10 +37,8 @@ widget "fish pond" {
   //
   // `time`, the tile's frame clock, is smooth, but stands still while the
   // page is off screen and starts again from 0 when it's back. So on screen
-  // the pond is `time` plus `off`. Ticks bring the phone's clock to a quarter
-  // of a second (`lastE`): from Linux four times a second (a read that times
-  // out, so no process is started each time), or once a second from `wall`,
-  // in whole seconds, without it. They keep coming while a page next to this
+  // the pond is `time` plus `off`. Ticks bring the phone's clock (`lastE`)
+  // once a second from `wall`, in whole seconds. They keep coming while a page next to this
   // one shows, and stop further away. A tick that finds `time` where the last
   // left it, a while later, means the page is away. Back, from its very first
   // frame, the pond runs from the last tick's clock, and the next tick keeps
@@ -51,7 +49,6 @@ widget "fish pond" {
   // swimming at most about a fifth faster for a while, too little to see (`fix`,
   // eased out from `fixAt` over `fixFor` seconds), on up to 10 s; the rest,
   // `lag`, the pond just runs behind the phone's clock, rather than rush.
-  source tick = stream('f=$(mktemp -u); mkfifo $f; exec 3<>$f; rm $f; while :; do read -t 0.25 -u 3; echo $EPOCHREALTIME; done') optional
   source wall = clock every 1s
   state off = null
   state fix = 0
@@ -66,32 +63,6 @@ widget "fish pond" {
   // on where it left off, in small numbers, as the GPU wants them. Past
   // about six hours it starts again from 0 while away, where it can't show.
   state sOff = 0
-  on tick {
-    let E = num(value, 0)
-    if off != null && time == ranFor && E - tickE > 0.6 {
-      away = true
-    } else {
-      if off == null || away || time < ranFor {
-        let el = time < ranFor ? time : time - ranFor
-        off = (lastE > 0 ? lastE : (wall ?? 0) + 0.5) + 0.05 - lag + el - time
-        sOff = (sOff + ranFor > 20000 ? 0 : sOff + ranFor) + el - time
-        fix = 0
-        away = false
-      }
-      if abs(E - lag - time - off) > 2 {
-        let shown = off + fix * (1 - pow(clamp((time - fixAt) / fixFor, 0, 1), 2) * (3 - 2 * clamp((time - fixAt) / fixFor, 0, 1)))
-        let keep = clamp(E - lag - time - shown, -10, 10)
-        lag = E - time - shown - keep
-        off = shown + keep
-        fix = -keep
-        fixAt = time
-        fixFor = max(abs(keep) / 0.15, 1.5)
-      }
-      if time != ranFor { tickE = E }
-      ranFor = time
-    }
-    lastE = max(lastE, E)
-  }
   on wall first {
     let E = value + 0.5
     if off != null && time == ranFor && E - tickE > 0.6 {
