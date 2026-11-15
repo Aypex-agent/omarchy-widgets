@@ -1,0 +1,673 @@
+face "snow globe" {
+  meta { owl: 23; description: "A Christmas snow globe: a lit little town under glass. Shake the phone to whirl the snow, tap the tree, the houses and the snowman, and watch the sky follow the real time."; version: "1.0"; license: "MIT"; category: "fun" }
+
+  // run under the status and navigation bars, so the layout knows exactly how much room it has
+  edge: true
+
+  // ═══════════════════════════ CONFIG ═══════════════════════════
+  // Everything you may want to tweak lives in this block.
+  let FLAKES = 180            // snow particles in total, resting + flying (30 - 400)
+  let IDLE_FLAKES = 22        // flakes that keep drifting down by themselves when the globe is calm
+  let SHAKE_THRESHOLD = 3.5   // how hard the phone must move to count as a shake (lower = more sensitive)
+  let SHAKE_POWER = 1         // how much snow one shake stirs up (0.3 - 2)
+  let EVENT_MIN = 18          // a sleigh or a puff of chimney smoke every EVENT_MIN .. EVENT_MAX seconds
+  let EVENT_MAX = 45
+  let PARALLAX = 4            // how far the scene slides inside the glass when you tilt the phone (0 = off)
+  let FPS_BUSY = 60           // frames a second while something moves
+  let FPS_IDLE = 24           // frames a second when the globe is calm (saves battery)
+  let REDUCE_MOTION = false   // true: no whirl, no sleigh, no parallax, fewer frames
+  // palette
+  let C_SNOW = #f2f7ff
+  let C_NAVY = #0b1230
+  let C_AMBER = #ffc15e
+  let C_RED = #e8453c
+  let C_GREEN = #46c37b
+  let C_ICE = #8fd3ff
+  let LIGHTS = [#ff5b4d, #ffc15e, #5fd68c, #8fd3ff]
+
+  // ═══════════════════════════ SOURCES ═══════════════════════════
+  source now = clock every 10s
+  source m = android.motion
+  // approximate local weather, by IP, no permission needed
+  source wx = http("https://wttr.in/?format=j1") every 30m timeout 15s json
+
+  // ═══════════════════════════ STATE ═══════════════════════════
+  state hourSet = -1          // owl-send <file> set hourSet 22   pins the sky to an hour; -1 = real time
+  state buzzAt = 0            // when the phone may buzz again while it is being shaken
+  state kick = 0              // owl-send <file> set kick 1       shakes the globe (for testing)
+  state gt = 0                // seconds the globe has been awake
+  state energy = 0            // how shaken the globe is, 0 - 1
+  state pileShown = 0.5       // the settled snow as drawn, which eases towards restN / FLAKES
+  state pmx = 0
+  state pmy = 0
+  state pmz = 0
+  state restX = 0             // the tilt that counts as level, slowly following the phone
+  state restY = 0
+  state parX = 0
+  state parY = 0
+  state wins = [true, true, true]   // house windows lit or dark
+  state winB = [1, 1, 1]            // ...as drawn, easing
+  state treeOn = true
+  state treeB = 1
+  state waveAt = -10          // when the snowman was last tapped
+  state nextEv = 6            // when the next random event happens
+  state sleighP = -1          // sleigh progress 0 - 1, -1 = not flying
+  state sleighDir = 1
+  state sleighY = -40
+  state sleighSpeed = 0.09
+  state sleighPhase = 0
+  state smokeHouse = 0
+  state smokeUntil = 0
+  state puffAt = 0
+  state windX = 3
+  state puffs = []
+
+  // ═══════════════════════════ APPS DOCK ═══════════════════════════
+  // The apps under the globe, picked and ordered in the settings screen (the gear).
+  source apps = android.apps every 1m
+  state picks = [] persist
+  state names = true persist
+  state framed = false persist
+  state colCount = 5 persist
+  state corner = "soft" persist
+  state q = ""
+  state pg = 0
+  let all = (apps ?? []).sortBy(a => lower(a.name))
+  let items = picks.map(k => find(all, a => a.key == k)).filter(a => a != null)
+  // the picks still installed: the list buttons edit these, so an uninstalled app drops out
+  let keys = items.map(a => a.key)
+  let rad = corner == "edge" ? 0 : corner == "soft" ? 6 : 12
+  let cw = floor(((tileWidth ?? 412) - 24 - 8 * (colCount - 1)) / colCount)
+  let lines = range(ceil(len(items) / colCount)).map(r => items.drop(r * colCount).take(colCount))
+  let avail = all.filter(a => !any(picks, k => k == a.key) && (q == "" || contains(lower(a.name), lower(q))))
+
+  // ═══════════════════════════ CHRISTMAS COUNTDOWN ═══════════════════════════
+  let script = "https://raw.githubusercontent.com/google/fonts/main/apache/mountainsofchristmas/MountainsofChristmas-Bold.ttf"
+  let xmY0 = int(fmtTime(now, "yyyy"))
+  let xmY = now >= parseTime("${xmY0}-12-25") + 86400 ? xmY0 + 1 : xmY0
+  let xmAt = parseTime("${xmY}-12-25")
+  let xmIsDay = now >= xmAt && now < xmAt + 86400
+  let xmLeft = max(0, xmAt - now)
+  let xmDays = floor(xmLeft / 86400)
+  let xmHours = floor((xmLeft % 86400) / 3600)
+  let xmText = xmIsDay ? "It's Christmas Day!" : (xmDays == 0 ? "${xmHours} hours to go" : "${xmDays} ${xmDays == 1 ? "day" : "days"} · ${xmHours} h to Christmas")
+
+  // ═══════════════════════════ LAYOUT ═══════════════════════════
+  // The globe is drawn in its own units: the glass has radius 100 and its centre is (0, 0); the wooden
+  // base reaches y = 160. U turns those units into dp.
+  let W = tileWidth ?? 412
+  let H = (tileHeight ?? 880) - (screenInset ?? 0) - (screenTop ?? 0) - 6
+  // top banner, the globe, and the app dock at the bottom
+  let bannerH = 92
+  // The globe takes the room its width allows; the dock gets everything left below it.
+  let Uw = W * 0.47 / 104
+  let GH = min(262 * Uw + 10, H - bannerH - 110)
+  let U = min(Uw, (GH - 10) / 262)
+  let OX = W / 2
+  let OY = 5 + 100 * U
+
+  // ═══════════════════════════ SKY & LIGHT ═══════════════════════════
+  let hr = hourSet >= 0 ? hourSet : num(fmtTime(now, "H"), 12) + num(fmtTime(now, "m"), 0) / 60
+  let hours = [0, 5, 6.5, 8.5, 16, 18, 19.5, 21, 24]
+  let tops = [#080d24, #0a1030, #3a4a8c, #5a93dc, #5a93dc, #3b3f86, #141c48, #080d24, #080d24]
+  let bots = [#1b2a5c, #1a2858, #f0a07a, #bfe0f5, #bfe0f5, #f08c5c, #2a2f6a, #1b2a5c, #1b2a5c]
+  let si = min(len(hours.filter(a => a <= hr)) - 1, len(hours) - 2)
+  let st = (hr - hours[si]) / (hours[si + 1] - hours[si])
+  let skyTop = mix(tops[si], tops[si + 1], st)
+  let skyBot = mix(bots[si], bots[si + 1], st)
+  let day = clamp(min(hr - 5.5, 20 - hr) / 2.5, 0, 1)
+  let dark = 1 - day
+  let warm = clamp(1 - abs(hr - 6.4) / 1.5, 0, 1) + clamp(1 - abs(hr - 18.6) / 1.5, 0, 1)
+  let starA = clamp(dark * 1.4 - 0.4, 0, 1)
+  // the sun by day and the moon by night, each crossing the sky in twelve hours
+  let isSun = hr >= 6 && hr <= 18
+  let bodyU = isSun ? (hr - 6) / 12 : ((hr > 18 ? hr - 18 : hr + 6) / 12)
+  let bodyX = -62 * cos(bodyU * 3.1416)
+  let bodyY = 36 - 80 * sin(bodyU * 3.1416)
+  let sunCol = mix(#fff0b0, #ff9a4a, clamp(1 - sin(bodyU * 3.1416) * 1.6, 0, 1))
+  // colours of things, pulled towards navy at night
+  let snowCol = mix(mix(C_SNOW, #ffd2a8, clamp(warm, 0, 1) * 0.3), #7f93c4, dark * 0.7)
+  let snowShade = mix(#bccbe8, #3d4c86, dark * 0.8)
+  let treeCol = mix(#1f6a4c, #0e2a44, dark * 0.6)
+  let treeCol2 = mix(#2b8a60, #153a55, dark * 0.6)
+  let wood = mix(#8c5a45, #2c2442, dark * 0.5)
+
+  // ═══════════════════════════ STATIC SHAPES ═══════════════════════════
+  // The town: x, the ground y it stands on, wall width/height, roof height.
+  let houses = [
+    {x: -58, base: 45, w: 34, wh: 22, rh: 18, wall: mix(#9a5f47, #2c2442, dark * 0.5), roof: mix(#34406a, #141a38, dark * 0.5), door: mix(#4a2f3a, #14122a, dark * 0.5), chim: 0.26},
+    {x: 59, base: 41, w: 30, wh: 20, rh: 16, wall: mix(#5a79a6, #232c52, dark * 0.5), roof: mix(#6b3b4e, #231a34, dark * 0.5), door: mix(#2e3a5a, #10142e, dark * 0.5), chim: -0.26},
+    {x: 31, base: 35, w: 18, wh: 12, rh: 10, wall: mix(#7b6a90, #232846, dark * 0.5), roof: mix(#3a4a6a, #141a38, dark * 0.5), door: mix(#3a3050, #10142e, dark * 0.5), chim: 0.22}
+  ]
+  // chimney tops, where the smoke comes out
+  let chims = houses.map(h => {x: h.x + h.w * h.chim, y: h.base - h.wh - h.rh * (1 - abs(h.chim) * 2 * h.w / (h.w + 6)) - 9})
+  // garland bulbs along each roof
+  let roofBulbs = flatten(houses.map((h, hi) => range(10).map(i => {
+    x: h.x + (i < 5 ? -1 : 1) * (h.w / 2 + 3) * (1 - ((i % 5) + 0.6) / 5.4),
+    y: h.base - h.wh - h.rh * (((i % 5) + 0.6) / 5.4) + 1.6,
+    c: (i + hi) % 4, p: i + hi * 3
+  })))
+  // the tree: three tiers
+  let tiers = [{t: -24, hw: 13}, {t: -6, hw: 19}, {t: 12, hw: 25}]
+  let treeBulbs = range(18).map(i => {
+    x: (hash(i, 1) * 2 - 1) * (4 + (hash(i, 2) * 0.55 + 0.3) * 20),
+    y: -16 + hash(i, 2) * 0.55 * 60 + 8,
+    c: i % 4, p: i * 1.7
+  })
+  let gifts = [
+    {x: 14, y: 58, w: 11, h: 8, c: #d63c3c, r: #ffd479},
+    {x: 27, y: 56, w: 8, h: 7, c: #3d78d8, r: #f2f7ff},
+    {x: 36, y: 53, w: 6, h: 5, c: #3fa56b, r: #ff6a5a},
+    {x: -8, y: 59, w: 8, h: 6, c: #8a4bd0, r: #ffd479}
+  ]
+  let stars = range(46).map(i => {
+    x: sqrt(hash(i, 1)) * 88 * cos(hash(i, 2) * 6.283),
+    y: -abs(sqrt(hash(i, 1)) * 88 * sin(hash(i, 2) * 6.283)) * 0.95 - 2,
+    s: 0.45 + hash(i, 3) * 0.8, p: hash(i, 4) * 6
+  })
+  // ground and far hills: a wavy top edge between the glass walls, closed along the glass underneath
+  let gYs = range(25).map(i => 46 + 3 * sin((i - 12) / 12 * 5 + 1))
+  let gPts = gYs.map((y, i) => [(i - 12) / 12 * sqrt(9400 - y * y) * 0.995, y])
+  let gPhiR = atan2(gPts[24][1], gPts[24][0])
+  let gPhiL = atan2(gPts[0][1], gPts[0][0])
+  let ground = flatten([gPts,
+    range(5).map(k => lerp(gPhiR, 0.74, k / 4)).map(a => [97 * cos(a), 97 * sin(a)]),
+    range(5).map(k => lerp(3.1416 - 0.74, gPhiL, k / 4)).map(a => [97 * cos(a), 97 * sin(a)])])
+  let hYs = range(25).map(i => 29 + 7 * sin((i - 12) / 12 * 4 + 0.6) - 3 * cos((i - 12) / 12 * 9))
+  let hPts = hYs.map((y, i) => [(i - 12) / 12 * sqrt(9400 - y * y) * 0.995, y])
+  let hPhiR = atan2(hPts[24][1], hPts[24][0])
+  let hPhiL = atan2(hPts[0][1], hPts[0][0])
+  let hills = flatten([hPts,
+    range(5).map(k => lerp(hPhiR, 0.74, k / 4)).map(a => [97 * cos(a), 97 * sin(a)]),
+    range(5).map(k => lerp(3.1416 - 0.74, hPhiL, k / 4)).map(a => [97 * cos(a), 97 * sin(a)])])
+  // fresh snow lying on the ground, as thick as what has settled
+  let pq = round(pileShown * 30) / 30
+  let pile = flatten([
+    gPts.map((p, i) => [p[0], p[1] - 7 * pq * (1 - pow(abs((i - 12) / 12), 4)) - 0.6]),
+    reverse(gPts)])
+
+  // ═══════════════════════════ PHYSICS ═══════════════════════════
+  let busy = energy > 0.02 || sleighP >= 0 || len(puffs) > 0
+  fps: REDUCE_MOTION ? 12 : (busy ? FPS_BUSY : FPS_IDLE)
+
+  // A flake's start: the flying ones begin spread through the glass, half the snow already lies settled.
+  state air = range(FLAKES / 2).map(i => {
+    x: (random() * 2 - 1) * 70, y: -80 + random() * 120, vx: 0, vy: 8, s: 0.7 + random() * 1.3, ph: random() * 6.28, idle: i < IDLE_FLAKES
+  })
+  state restN = floor(FLAKES / 2)
+
+  on kick { energy = 1 }
+
+  every frame {
+    gt = gt + dt
+    // ── the tilt: parallax, and the shake sensor ──
+    let mx = num(m.x, 0)
+    let my = num(m.y, 0)
+    let mz = num(m.z, 0)
+    let jerk = gt > 0.6 && m.available == true ? (abs(mx - pmx) + abs(my - pmy) + abs(mz - pmz)) / max(dt, 0.008) : 0
+    pmx = mx
+    pmy = my
+    pmz = mz
+    restX = restX + (mx - restX) * (1 - pow(0.9, dt))
+    restY = restY + (my - restY) * (1 - pow(0.9, dt))
+    let ease = 1 - pow(0.002, dt)
+    parX = parX + ((REDUCE_MOTION ? 0 : clamp((mx - restX) * 1.5, -0.6, 0.6)) - parX) * ease
+    parY = parY + ((REDUCE_MOTION ? 0 : clamp((my - restY) * 1.5, -0.6, 0.6)) - parY) * ease
+    let hit = jerk > SHAKE_THRESHOLD ? (jerk - SHAKE_THRESHOLD) * dt * 0.5 * SHAKE_POWER : 0
+    let wasCalm = energy < 0.05
+    energy = min(1, energy * pow(0.3, dt) + (REDUCE_MOTION ? hit * 0.3 : hit))
+    let e = energy
+    // a firm buzz when a shake starts, then light ticks for as long as it goes on
+    if hit > 0 && gt >= buzzAt {
+      haptic(wasCalm ? "strong" : "light")
+      buzzAt = gt + 0.12
+    }
+    // ── settled snow wakes up when the globe is shaken ──
+    let wake = e > 0.12 && restN > 0 ? min(restN, ceil(restN * min(1, e * dt * 8))) : 0
+    // ── every flying flake: fall, sway, get thrown about, land ──
+    let k = 1 - pow(0.55, dt)
+    let wind = REDUCE_MOTION ? 0 : 1
+    let moved = (air + range(wake).map(i => {
+      x: (random() * 2 - 1) * 78, y: 44, vx: 0, vy: -random(30, 120), s: 0.7 + random() * 1.3, ph: random() * 6.28, idle: false
+    })).map(f => merge(f, {
+      vx: f.vx + (sin(gt * 0.8 + f.ph) * 3 - f.vx) * k + (random() - 0.5) * 900 * e * dt - f.y * 0.5 * e * dt * wind,
+      vy: f.vy + (4 + f.s * 6 - f.vy) * k + (random() - 0.5) * 900 * e * dt + f.x * 0.5 * e * dt * wind - 220 * e * dt
+    })).map(f => merge(f, {x: f.x + f.vx * dt, y: f.y + f.vy * dt}))
+    let placed = moved.map(f => merge(f, {
+      hitWall: f.x * f.x + f.y * f.y > 8649,
+      land: f.y > 45 + 3 * sin(0.06 * f.x + 1) || (f.y > 34 && f.x * f.x + f.y * f.y > 8100)
+    })).map(f => f.hitWall ? merge(f, {x: f.x * 0.95, y: f.y * 0.95, vx: -f.vx * 0.4, vy: -f.vy * 0.4}) : f)
+    // calm flakes that land start over at the top; the others lie still
+    let renew = placed.map(f => f.land && f.idle ? {x: (random() * 2 - 1) * 60, y: -88, vx: 0, vy: 6, s: f.s, ph: f.ph, idle: true, land: false} : f)
+    restN = restN - wake + len(renew.filter(f => f.land))
+    air = renew.filter(f => !f.land)
+    pileShown = pileShown + (restN / FLAKES - pileShown) * (1 - pow(0.25, dt))
+    // ── lights ease on and off ──
+    winB = winB.map((b, i) => b + ((wins[i] ? 1 : 0) - b) * (1 - pow(0.02, dt)))
+    treeB = treeB + ((treeOn ? 1 : 0) - treeB) * (1 - pow(0.02, dt))
+    // ── random events: a sleigh crosses the sky, or a chimney smokes ──
+    if gt >= nextEv && !REDUCE_MOTION {
+      let roll = random(10)
+      if roll < 5 && sleighP < 0 {
+        sleighP = 0
+        sleighDir = random(2) == 0 ? 1 : -1
+        sleighY = random(-60, -28)
+        sleighSpeed = random(0.07, 0.12)
+        sleighPhase = random() * 6.28
+      } else {
+        smokeHouse = random(3)
+        smokeUntil = gt + random(5, 12)
+        windX = random(-6, 6)
+      }
+      nextEv = gt + random(EVENT_MIN, EVENT_MAX)
+    }
+    if sleighP >= 0 {
+      sleighP = sleighP + sleighSpeed * dt
+      if sleighP > 1 { sleighP = -1 }
+    }
+    let spawn = gt < smokeUntil && gt >= puffAt
+    if spawn { puffAt = gt + 0.3 }
+    puffs = (spawn ? puffs + [{x: chims[smokeHouse].x, y: chims[smokeHouse].y, vx: windX + random(-2, 2), vy: -random(5, 9), r: 1.6, life: 1}] : puffs)
+      .map(p => merge(p, {x: p.x + p.vx * dt, y: p.y + p.vy * dt, vx: p.vx * (1 - 0.4 * dt), r: p.r + 2.2 * dt, life: p.life - dt * 0.2}))
+      .filter(p => p.life > 0)
+  }
+
+  // ═══════════════════════════ TOUCH ═══════════════════════════
+  background: linear(0, 0, 0, 1, [alpha(#050816, 0.82), alpha(#0b1230, 0.72)])
+  padding: 0
+
+  Column {
+    Spacer { height: screenTop ?? 0 }
+    Column {
+      height: bannerH
+      align: center
+      justify: end
+      gap: 2
+      Text { spans: [{text: "Merry ", color: C_RED}, {text: "Christmas", color: mix(C_GREEN, #ffffff, 0.15)}]; font: script; fontSize: 50; fontWeight: 700; align: center }
+      Text { spans: [{text: "❄  ", color: C_ICE}, {text: xmText, color: C_AMBER}, {text: "  ❄", color: C_ICE}]; style: label; align: center; letterSpacing: 1.5 }
+    }
+    Canvas {
+      width: W
+      height: GH
+      ripple: false
+      onTap: {
+        // taps arrive in dp; turn them into globe units
+        let lx = (x - OX) / U
+        let ly = (y - OY) / U
+        let hk = indexOf(houses.map(h => abs(lx - h.x) < h.w / 2 + 4 && ly > h.base - h.wh - h.rh && ly < h.base + 2), true)
+        if ly > 146 && ly < 168 && abs(lx) < 50 {
+          screen()
+        } else if ly > -26 && ly < 56 && abs(lx) < 6 + (ly + 26) * 0.27 {
+          treeOn = !treeOn
+          haptic("light")
+        } else if (lx + 27) * (lx + 27) + (ly - 36) * (ly - 36) < 330 {
+          waveAt = gt
+          haptic("light")
+        } else if hk >= 0 {
+          wins = wins.map((w, i) => i == hk ? !w : w)
+          haptic("light")
+        } else if lx * lx + ly * ly < 9000 && ly < 62 {
+          // tapping the empty glass gives it a little shake
+          energy = min(1, energy + 0.6)
+          haptic("medium")
+        }
+      }
+
+      translate(OX, OY) {
+        scale(U, U, 0, 0) {
+          // ── sky ──
+          circle(0, 0, 99, fill: linear(0, -100, 0, 60, [skyTop, skyBot]))
+          translate(parX * PARALLAX * 0.15, parY * PARALLAX * 0.15) {
+            if starA > 0.01 {
+              for s in stars {
+                circle(s.x, s.y, s.s, fill: alpha(#f4f8ff, starA * (0.55 + 0.45 * sin(gt * (1 + s.p * 0.3) + s.p * 9))))
+              }
+            }
+            // sun or moon
+            if isSun {
+              circle(bodyX, bodyY, 17, fill: radial(bodyX, bodyY, 17, [alpha(sunCol, 0.45), alpha(sunCol, 0)]))
+              circle(bodyX, bodyY, 6.5, fill: sunCol)
+            } else {
+              circle(bodyX, bodyY, 16, fill: radial(bodyX, bodyY, 16, [alpha(#cfe0ff, 0.35), alpha(#cfe0ff, 0)]))
+              circle(bodyX, bodyY, 6, fill: #f3f6ff)
+              circle(bodyX + 2.4, bodyY - 1.4, 5.2, fill: mix(skyTop, skyBot, 0.35))
+              circle(bodyX - 2.4, bodyY + 1.4, 0.9, fill: alpha(#b8c4e8, 0.6))
+            }
+          }
+
+          // ── sleigh ──
+          if sleighP >= 0 {
+            let sp = sleighP
+            let sx = lerp(-68, 68, sp) * sleighDir
+            let sy = sleighY + 7 * sin(sp * 6.283 + sleighPhase) - 5 * sin(sp * 3.1416)
+            let fade = clamp(min(sp, 1 - sp) / 0.1, 0, 1)
+            let gal = gt * 9
+            layer(fade) {
+              translate(sx, sy) {
+                scale(0.5 * sleighDir, 0.5, 0, 0) {
+                  // sparkling trail
+                  for i in range(7) {
+                    circle(-18 - i * 6, 2 + sin(gt * 6 + i * 1.7) * 2.2, 1.6 - i * 0.18, fill: alpha(C_AMBER, 0.8 - i * 0.1))
+                  }
+                  // runner and body
+                  path([[-14, 4], [11, 4], [15, 0]], stroke: #e8c46a, width: 1.4, cap: round)
+                  path([[-12, -7], [-12, 1], [8, 1], [11, -3], [11, -7]], closed: true, fill: #c4302b)
+                  path([[-12, -7], [11, -7]], stroke: #e8c46a, width: 1.2)
+                  // Santa and his sack
+                  circle(-9, -10, 3.4, fill: #7a5232)
+                  rect(-5.5, -12, 6, 6, radius: 2, fill: #e03a34)
+                  circle(-2.5, -14, 2.1, fill: #f2c9a5)
+                  path([[-4.6, -15], [-0.4, -15], [-3.2, -20]], closed: true, fill: #e03a34)
+                  circle(-3.2, -20, 1, fill: #ffffff)
+                  // harness and two reindeer
+                  line(11, -3, 22, -3, stroke: #e8c46a, width: 0.7)
+                  for r in range(2) {
+                    let rx = 26 + r * 17
+                    rect(rx - 6, -8, 12, 5, radius: 2.4, fill: #6b4423)
+                    circle(rx + 7.5, -10.5, 2.6, fill: #6b4423)
+                    path([[rx + 7, -13], [rx + 5.5, -17], [rx + 8, -16]], stroke: #8a5a30, width: 0.8)
+                    path([[rx + 8.5, -13], [rx + 9, -18], [rx + 11, -16.5]], stroke: #8a5a30, width: 0.8)
+                    if r == 0 {
+                      circle(rx + 10, -10, 3.4, fill: alpha(#ff3b30, 0.35))
+                      circle(rx + 10, -10, 1, fill: #ff3b30)
+                    }
+                    line(rx - 4, -3, rx - 4 + sin(gal + r * 2) * 3, 3, stroke: #4a2f18, width: 1, cap: round)
+                    line(rx + 4, -3, rx + 4 + sin(gal + r * 2 + 2.4) * 3, 3, stroke: #4a2f18, width: 1, cap: round)
+                  }
+                }
+              }
+            }
+          }
+
+          // ── far hills ──
+          translate(parX * PARALLAX * 0.4, parY * PARALLAX * 0.25) {
+            path(hills, closed: true, fill: linear(0, 18, 0, 45, [mix(snowCol, skyBot, 0.35), mix(snowShade, skyBot, 0.25)]))
+          }
+
+          // ── the town ──
+          translate(parX * PARALLAX * 0.7, parY * PARALLAX * 0.5) {
+            for h in houses {
+              let hi = indexOf(houses, h)
+              let hw = h.w / 2 + 3
+              let ry = h.base - h.wh - h.rh
+              let cx = h.x + h.w * h.chim
+              let cy = ry + abs(h.chim * h.w) * h.rh / hw
+              // chimney, wall, roof
+              rect(cx - 2.6, cy - 9, 5.2, 11, fill: mix(h.wall, #000000, 0.25))
+              rect(cx - 3.2, cy - 10.4, 6.4, 2.4, fill: snowCol)
+              rect(h.x - h.w / 2, h.base - h.wh, h.w, h.wh, fill: h.wall)
+              path([[h.x - hw, h.base - h.wh], [h.x, ry], [h.x + hw, h.base - h.wh]], closed: true, fill: h.roof)
+              // snow on the roof, thicker the more has settled
+              let f = 0.3 + 0.5 * pq
+              path([[h.x, ry - 0.8], [h.x + f * hw, ry + f * h.rh + 1.2], [h.x + f * hw * 0.5, ry + f * h.rh * 0.72],
+                [h.x, ry + f * h.rh * 0.5 + 1.4], [h.x - f * hw * 0.5, ry + f * h.rh * 0.72], [h.x - f * hw, ry + f * h.rh + 1.2]], closed: true, fill: snowCol)
+              // door
+              rect(h.x - 2.4, h.base - h.wh * 0.46, 4.8, h.wh * 0.46, radius: 1, fill: h.door)
+              // windows: warm when lit
+              let wb = winB[hi]
+              for sd in [-1, 1] {
+                let wx = h.x + sd * h.w * 0.27
+                let wy = h.base - h.wh * 0.72
+                let ws = h.w * 0.15
+                rect(wx - ws / 2, wy, ws, ws * 1.1, fill: mix(mix(#3a4a78, #0e1430, dark * 0.5), #ffd58a, wb * (0.55 + 0.45 * dark)))
+              }
+              // snow drift at the foot
+              rect(h.x - h.w / 2 - 5, h.base - 2.5, h.w + 10, 6, radius: 3, fill: snowCol)
+            }
+          }
+
+          // ── ground ──
+          translate(parX * PARALLAX, parY * PARALLAX * 0.7) {
+            path(ground, closed: true, fill: linear(0, 40, 0, 75, [snowCol, snowShade]))
+            path(pile, closed: true, fill: snowCol)
+          }
+
+          // ── tree, snowman and gifts ──
+          translate(parX * PARALLAX, parY * PARALLAX * 0.7) {
+            rect(-4, 40, 8, 13, fill: mix(#5a3a26, #1a1426, dark * 0.5))
+            for t in tiers {
+              path([[0, t.t], [t.hw, t.t + 30], [-t.hw, t.t + 30]], closed: true, fill: linear(-t.hw, 0, t.hw, 0, [treeCol2, treeCol]))
+              let cap = 0.26 + 0.32 * pq
+              path([[0, t.t - 0.5], [t.hw * cap * 1.15, t.t + 30 * cap], [t.hw * cap * 0.4, t.t + 30 * cap * 0.78], [0, t.t + 30 * cap * 1.05],
+                [-t.hw * cap * 0.4, t.t + 30 * cap * 0.78], [-t.hw * cap * 1.15, t.t + 30 * cap]], closed: true, fill: snowCol)
+            }
+            circle(0, 55, 0.1, fill: alpha(#000000, 0))
+            // gifts
+            for g in gifts {
+              rect(g.x - g.w / 2, g.y - g.h, g.w, g.h, radius: 0.8, fill: mix(g.c, C_NAVY, dark * 0.35))
+              rect(g.x - g.w / 2, g.y - g.h, g.w, g.h * 0.28, fill: alpha(#000000, 0.15))
+              rect(g.x - 0.9, g.y - g.h, 1.8, g.h, fill: g.r)
+              rect(g.x - g.w / 2, g.y - g.h * 0.58, g.w, 1.6, fill: g.r)
+              circle(g.x - 1.6, g.y - g.h - 1, 1.5, fill: g.r)
+              circle(g.x + 1.6, g.y - g.h - 1, 1.5, fill: g.r)
+              rect(g.x - g.w / 2 - 1.5, g.y - 1, g.w + 3, 2.6, radius: 1.3, fill: snowCol)
+            }
+            // snowman
+            let wv = gt - waveAt
+            let waving = wv < 2.4
+            let armA = waving ? 1.15 + 0.45 * sin(wv * 13) : 0.35
+            circle(-27, 47.5, 9.5, fill: snowCol)
+            circle(-24.4, 49, 7.6, fill: alpha(snowShade, 0.55))
+            circle(-27, 47.5, 9.5, fill: alpha(snowCol, 0.72))
+            circle(-27, 35.5, 6.8, fill: snowCol)
+            circle(-27, 26, 5, fill: snowCol)
+            line(-33, 35, -40, 31 + 0, stroke: #5a3a26, width: 1.2, cap: round)
+            line(-21, 35, -21 + 11 * cos(armA), 35 - 11 * sin(armA), stroke: #5a3a26, width: 1.2, cap: round)
+            circle(-28.6, 25, 0.7, fill: #1b2036)
+            circle(-25.4, 25, 0.7, fill: #1b2036)
+            path([[-27.4, 26.4], [-27, 28.2], [-23.6, 27.6]], closed: true, fill: #ff8a2a)
+            for bi in range(3) { circle(-27, 33 + bi * 3.6, 0.8, fill: #1b2036) }
+            rect(-33, 29.6, 12, 2.4, radius: 1.2, fill: C_RED)
+            rect(-24.4, 29.6, 2.6, 6.4, radius: 1, fill: C_RED)
+            rect(-31, 17, 8, 7, fill: #1b2036)
+            rect(-32.6, 23.2, 11.2, 1.8, radius: 0.9, fill: #1b2036)
+            rect(-31, 21.4, 8, 1.6, fill: C_RED)
+            rect(-34, 56, 14, 3, radius: 1.5, fill: snowCol)
+          }
+
+          // ── lights: garlands, windows, the tree ──
+          translate(parX * PARALLAX * 0.7, parY * PARALLAX * 0.5) {
+            let glowA = 0.1 + 0.5 * dark
+            for h in houses {
+              let hi = indexOf(houses, h)
+              for sd in [-1, 1] {
+                let wb = winB[hi]
+                if wb > 0.02 {
+                  circle(h.x + sd * h.w * 0.27 + h.w * 0.075, h.base - h.wh * 0.72 + h.w * 0.08, h.w * 0.24, fill: radial(h.x + sd * h.w * 0.27 + h.w * 0.075, h.base - h.wh * 0.72 + h.w * 0.08, h.w * 0.24, [alpha(#ffc15e, glowA * 0.9 * wb), alpha(#ffc15e, 0)]))
+                }
+              }
+            }
+            for b in roofBulbs {
+              let tw = 0.65 + 0.35 * sin(gt * 3 + b.p)
+              circle(b.x, b.y, 3.6, fill: alpha(LIGHTS[b.c], glowA * 0.5 * tw))
+              circle(b.x, b.y, 1.15, fill: mix(LIGHTS[b.c], #ffffff, 0.2 + 0.2 * tw))
+            }
+          }
+          translate(parX * PARALLAX, parY * PARALLAX * 0.7) {
+            let glowT = (0.2 + 0.5 * dark) * treeB
+            if treeB > 0.02 {
+              circle(0, 20, 34, fill: radial(0, 20, 34, [alpha(#ffc15e, 0.2 * glowT), alpha(#ffc15e, 0)]))
+              for b in treeBulbs {
+                let tw = 0.6 + 0.4 * sin(gt * 3.2 + b.p)
+                circle(b.x, b.y, 4, fill: alpha(LIGHTS[b.c], glowT * 0.8 * tw))
+                circle(b.x, b.y, 1.3, fill: alpha(mix(LIGHTS[b.c], #ffffff, 0.25), 0.4 + 0.6 * treeB))
+              }
+            }
+            // the star on top
+            let starTw = 0.8 + 0.2 * sin(gt * 2)
+            circle(0, -26, 11, fill: radial(0, -26, 11, [alpha(#ffd77a, 0.5 * (0.3 + 0.7 * treeB) * starTw), alpha(#ffd77a, 0)]))
+            path([[0, -32], [1.7, -27.6], [6.2, -27.4], [2.6, -24.6], [3.8, -20.2], [0, -22.8], [-3.8, -20.2], [-2.6, -24.6], [-6.2, -27.4], [-1.7, -27.6]], closed: true, fill: mix(#b89a4a, #ffd77a, 0.4 + 0.6 * treeB))
+          }
+
+          // ── chimney smoke ──
+          translate(parX * PARALLAX * 0.7, parY * PARALLAX * 0.5) {
+            for p in puffs {
+              circle(p.x, p.y, p.r, fill: alpha(mix(#e8eefc, #7f8fb8, dark * 0.7), 0.5 * p.life))
+            }
+          }
+
+          // ── snow ──
+          translate(parX * PARALLAX * 1.3, parY * PARALLAX * 1.1) {
+            for f in air {
+              circle(f.x, f.y, f.s * 0.55, fill: alpha(#f4f8ff, 0.5 + f.s * 0.25))
+            }
+          }
+
+          // ── the glass: fixed on top, it doesn't move with the scene ──
+          circle(0, 0, 99, fill: radial(-28, -34, 140, [alpha(#ffffff, 0.12), alpha(#ffffff, 0), alpha(#000000, 0.28)]))
+          circle(0, 0, 97.5, stroke: alpha(#bfe0ff, 0.22), width: 5)
+          circle(0, 0, 99.4, stroke: alpha(#e8f4ff, 0.65), width: 1.4)
+          arc(0, 0, 88, -78, 52, stroke: alpha(#ffffff, 0.7), width: 3.2, cap: round)
+          arc(0, 0, 88, -18, 10, stroke: alpha(#ffffff, 0.5), width: 3.2, cap: round)
+          arc(0, 0, 90, 118, 44, stroke: alpha(#ffffff, 0.16), width: 2, cap: round)
+          circle(-44, -58, 5.5, fill: alpha(#ffffff, 0.2))
+          circle(-54, -48, 2, fill: alpha(#ffffff, 0.28))
+
+          // ── the wooden base ──
+          rect(-96, 61, 192, 14, radius: 5, fill: linear(0, 61, 0, 75, [#7a4e2f, #3a2214]))
+          rect(-96, 61, 192, 2.4, radius: 1.2, fill: alpha(#ffd9a8, 0.35))
+          path([[-92, 75], [92, 75], [105, 154], [-105, 154]], closed: true, fill: linear(0, 75, 0, 154, [#6d4428, #4a2d1b, #3a2214]))
+          rect(-110, 150, 220, 13, radius: 6, fill: linear(0, 150, 0, 163, [#5a3820, #2a180d]))
+          for gi in range(7) {
+            path([[-92 + gi * 2.6 - 6, 84 + gi * 10], [-40, 82 + gi * 10 + (gi % 2) * 2], [20, 86 + gi * 10 - (gi % 3)], [96 + gi * 2.6, 84 + gi * 10]], stroke: alpha(#1c0f08, 0.14), width: 0.8)
+          }
+          // the add-apps button: a brass plate on the foot of the base, opens the dock settings
+          rect(-34, 151.4, 68, 10.2, radius: 5.1, fill: linear(0, 151, 0, 162, [#f0d28a, #b98a3e, #8a6024]))
+          rect(-33, 152.2, 66, 2.2, radius: 1.1, fill: alpha(#ffffff, 0.35))
+          text("+ APPS", 0.5, 157.2, size: 6.6, align: center, color: alpha(#ffe9b8, 0.5), font: serif, bold: true, letterSpacing: 1.6)
+          text("+ APPS", 0, 156.6, size: 6.6, align: center, color: alpha(#3a2208, 0.9), font: serif, bold: true, letterSpacing: 1.6)
+          // the time and the weather, engraved: a pale edge below and a dark one above
+          let cur = wx.current_condition[0]
+          let clk = fmtTime(now, "HH:mm")
+          text(clk, 0.9, 106.9, size: 34, align: center, color: alpha(#ffcf9a, 0.35), font: serif, bold: true, letterSpacing: 3)
+          text(clk, 0, 106, size: 34, align: center, color: alpha(#1c0f08, 0.82), font: serif, bold: true, letterSpacing: 3)
+          if cur != null {
+            let wxt = "${cur.temp_C}°C  ${cur.weatherDesc[0].value}"
+            text(wxt, 0.6, 132.6, size: 11, align: center, color: alpha(#ffcf9a, 0.3), font: serif, letterSpacing: 1.5)
+            text(wxt, 0, 132, size: 11, align: center, color: alpha(#1c0f08, 0.75), font: serif, letterSpacing: 1.5)
+          }
+        }
+      }
+    }
+    // ── the dock: the apps you picked, using all the room under the globe, aligned to the top ──
+    Column {
+      weight: 1
+      justify: start
+      if len(items) == 0 {
+        Text { text: "tap + apps on the base to add your apps"; style: muted; align: center; onTap: screen() }
+      } else {
+        Column {
+          weight: 1
+          scroll: true
+          justify: start
+          gap: 8
+          for r, ri in lines key ri {
+            Row {
+              gap: 8
+              justify: center
+              fill: width
+              for a in r key a.key {
+                Column {
+                  gap: 2
+                  align: center
+                  width: cw
+                  padding: framed ? 5 : 0
+                  border: framed ? 1 : 0
+                  borderColor: border
+                  radius: rad
+                  onTap: androidApp(a.key)
+                  Image { src: a.icon; size: 44 }
+                  if names { Text { text: a.name; style: small; align: center; maxLines: 1 } }
+                }
+              }
+            }
+          }
+          Spacer { height: 8 }
+        }
+      }
+    }
+    Spacer { height: screenInset }
+  }
+
+  // ═══════════════════════════ SETTINGS SCREEN ═══════════════════════════
+  screen {
+    title: "dock apps"
+    Column {
+      scroll: true
+      gap: 10
+      padding: 8
+      Row {
+        align: center
+        Text { text: "show app names"; weight: 1 }
+        Button { text: names ? "on" : "off"; width: 56; onTap: names = !names }
+      }
+      Row {
+        align: center
+        Text { text: "icon border"; weight: 1 }
+        Button { text: framed ? "on" : "off"; width: 56; onTap: framed = !framed }
+      }
+      Row {
+        align: center
+        Text { text: "corners"; weight: 1 }
+        Row {
+          gap: 0
+          border: 1
+          borderColor: accent
+          radius: 8 * corners
+          clip: true
+          for c in ["edge", "soft", "round"] {
+            Text { text: "${c}"; width: 64; align: center; padding: [0, 8]; background: corner == c ? accent : alpha(accent, 0); color: corner == c ? background : foreground; onTap: corner = c }
+          }
+        }
+      }
+      Row {
+        align: center
+        Text { text: "columns"; weight: 1 }
+        Row {
+          gap: 0
+          border: 1
+          borderColor: accent
+          radius: 8 * corners
+          clip: true
+          for c in [3, 4, 5] {
+            Text { text: "${c}"; width: 48; align: center; padding: [0, 8]; background: colCount == c ? accent : alpha(accent, 0); color: colCount == c ? background : foreground; onTap: colCount = c }
+          }
+        }
+      }
+      Spacer { height: 12 }
+      Text { text: "in the dock (${len(items)})"; fontSize: 16; color: accent }
+      for a, i in items key a.key {
+        Row {
+          align: center
+          gap: 8
+          Image { src: a.icon; size: 32 }
+          Text { text: a.name; weight: 1; maxLines: 1 }
+          Button { text: "↑"; width: 40; visible: i > 0; onTap: picks = set(set(keys, i, keys[i - 1]), i - 1, keys[i]) }
+          Button { text: "↓"; width: 40; visible: i < len(keys) - 1; onTap: picks = set(set(keys, i, keys[i + 1]), i + 1, keys[i]) }
+          Button { text: "✕"; width: 40; color: red; onTap: picks = remove(keys, i) }
+        }
+      }
+      Spacer { height: 12 }
+      Text { text: "add an app"; fontSize: 16; color: accent }
+      Input { text: q; placeholder: "search…"; onChange: { q = value; pg = 0 } }
+      for a in avail.drop(pg * 30).take(30) key a.key {
+        Row {
+          align: center
+          gap: 8
+          onTap: picks = flatten([picks, [a.key]])
+          Image { src: a.icon; size: 32 }
+          Text { text: a.name; weight: 1; maxLines: 1 }
+          Text { text: "+"; width: 20; color: accent }
+        }
+      }
+      Row {
+        align: center
+        gap: 8
+        Button { text: "‹ prev"; width: 80; visible: pg > 0; onTap: pg = pg - 1 }
+        Text { text: "${pg + 1} / ${max(1, ceil(len(avail) / 30))}  (${len(avail)} apps)"; align: center; weight: 1 }
+        Button { text: "next ›"; width: 80; visible: (pg + 1) * 30 < len(avail); onTap: pg = pg + 1 }
+      }
+      Spacer { height: 20 }
+    }
+  }
+}
