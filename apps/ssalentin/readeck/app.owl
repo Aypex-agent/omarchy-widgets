@@ -1,28 +1,42 @@
 app "readeck" {
   edge: true
 
-  meta { owl: 9; description: "A Readeck client for a server or an export: lists, labels, search, a reader, notes and bulk changes. Summary and tidy-up use Claude Code, which sends the text to Anthropic"; version: "1.4"; license: "MIT"; category: "news" }
+  meta { owl: 18; description: "A Readeck client for a server or an export: lists, labels, search, a reader with pictures, notes and bulk changes. Summary and tidy-up use Claude Code, which sends the text to Anthropic"; version: "2.3"; license: "MIT"; category: "news" }
 
-  title: readId != "" ? item.title ?? "reading" : view == "setup" ? "connect" : view == "labels" ? "labels" : view == "search" ? "search" : label == "" ? view : label
-  back: readId != "" || view == "labels" || view == "search" || view == "setup" || label != ""
+  title: readId != "" ? item.title ?? "reading" : view == "setup" ? "connect" : view == "labels" ? "labels" : label != "" ? label : capitalize(view)
+  back: readId != "" || view == "labels" || view == "setup" || label != ""
   onBack: {
+    notice = ""
     if readId != "" {
-      if editing { editing = false } else { readId = "" }
+      if editing {
+        editing = false
+      } else {
+        // Leaving keeps what was actually read in Readeck, not an instant "read": the
+        // last page counts as finished. It goes in the same queue as every other tap.
+        if reading && len(para) > 0 && item.prog != 100 {
+          wants = wants + [toJson({mode: "change", id: item.id, json: "{\"read_progress\":" + "${int(readPct)}" + "}", patch: {read_progress: int(readPct)}})]
+        }
+        readId = ""
+      }
     } else if view == "setup" {
       view = "unread"
     } else if label != "" {
+      // A label's bookmarks go back to the list of labels they came from.
       label = ""
+      view = "labels"
     } else {
       view = "unread"
     }
   }
-  // Readeck's own mark: the yellow, blue and teal page and arrow, drawn on a square that
-  // is transparent around it. The arrow takes the theme's accent, as the store asks.
-  icon: """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
-    <g transform="translate(4.6 4.5) scale(0.1813)">
+  // Readeck's own mark, on a deep sea-blue tile of its own as the launcher's apps.md asks:
+  // a 256 canvas with the rounded plate the drawer draws no frame around. The arrow takes
+  // the theme's accent (currentColor); the rest keep Readeck's yellow, blue and teal.
+  icon: """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+    <rect width="256" height="256" rx="56" fill="#0e2b38"/>
+    <g transform="translate(24.9 29.4) scale(0.842)">
       <path fill="#ffcb5c" d="m191.012 69.77-99.82 46.539V187.8l127.203-59.309Z"/>
       <path fill="#37bed9" d="M91.191 117.809v71.496l105.887 49.367-6.348-38.711 33.73-20.012Z"/>
-      <path fill="#187995" d="M26.387 38.969H91.19v191.98H26.387Z"/>
+      <path fill="#2c93b6" d="M26.387 38.969H91.19v191.98H26.387Z"/>
       <path fill="#37bed9" d="M91.191 3.223 26.387 38.969l192.008 89.523V57Z"/>
       <path fill="currentColor" d="M91.191 69.188v47.12l50.536-23.558Z"/>
     </g>
@@ -30,43 +44,94 @@ app "readeck" {
 
   // The library, from the server or from an export of it, as the app's own helper
   // (owl-readeck, installed above) fetches it: one bookmark a line.
-  requires { pacman: ["jq", "curl", "unzip", "python"] }
+  requires { pacman: ["bash", "coreutils", "curl", "findutils", "grep", "jq", "python", "sed", "unzip", "util-linux"] }
 
   // The app's helpers: owl-readeck talks to the server and keeps the library on disk,
   // owl-readeck-read turns an article's HTML into the text the reader draws. They are
   // in this file as plaintext, and are written to ~/.local/bin on first run, so the
   // app is one self-contained file. Nothing is downloaded, decoded or installed from
-  // anywhere else. The app's own traffic is to the Readeck server the user names; the
-  // summary and tidy buttons run Claude Code, which sends the article's text to Anthropic.
+  // anywhere else; the only network traffic is to the Readeck server the user names.
   source installer = cmd("""# Installs the app's own helpers from this file into ~/.local/bin, and only when
 # their version marker is missing: owl-readeck talks to the Readeck server, and
 # owl-readeck-read turns an article's HTML into the text the reader draws. Both are
 # plaintext in this file, written by cat with a quoted heredoc, so nothing is decoded
 # or fetched; they live beside the app's cache, not on a command line.
-# Each helper's second line is its marker, alone on the line, and a helper is written
-# again when that exact line isn't there. Bump a helper's marker whenever the helper
-# changes, or phones that have it keep the old one.
 set -uo pipefail
 umask 077
 bin="$HOME/.local/bin"
 mkdir -p "$bin" || exit 1
-if ! grep -qxF '# owl-readeck 1.1' "$bin/owl-readeck" 2>/dev/null; then
+if ! grep -qF '# owl-readeck 1.18' "$bin/owl-readeck" 2>/dev/null; then
   cat > "$bin/owl-readeck" << 'READECK_LIB_END'
 #!/bin/bash
-# owl-readeck 1.1
-# The script side of the Readeck app (readeck.owl).
+# owl-readeck 1.18: the script side of the Readeck app (readeck.owl).
 # Fetches a Readeck server's bookmarks into the export the app reads, imports
 # a Readeck export without a server, and saves changes to bookmarks.
+# Every run says what it is doing in readeck-sync.json or readeck-op.err, so the
+# app can show a sync or a failed change instead of guessing.
 set -u
 umask 077
 cache="$HOME/.cache/omalauncher"
 out="$cache/readeck.jsonl"
+status="$cache/readeck-sync.json"
+journal="$cache/readeck-ops.jsonl"
+opfail="$cache/readeck-op-failed.txt"
 mode="${1:-}"
 mkdir -p "$HOME/.cache/omalauncher" 2>/dev/null || true
-: > "$HOME/.cache/omalauncher/readeck-last.err" 2>/dev/null || true
+# Ops and syncs keep their errors apart: a fetch can't make a change look failed.
+errfile="$cache/readeck-other.err"
+case "$mode" in
+  fetch | reload) errfile="$cache/readeck-sync.err" ;;
+  change | bulk | add | delete | labelrm | import | import-file)
+    errfile="$cache/readeck-op.err" ;;
+esac
+: > "$errfile" 2>/dev/null || true
+case "$mode" in
+  bulk | change) : > "$opfail" 2>/dev/null || true ;;
+esac
+
+# sync_state STATE [MESSAGE] [ITEMS]: the one line the app reads to show whether
+# the library is being fetched, when it last worked, and why it didn't.
+sync_state() {
+  s="$1" m="${2:-}" n="${3:-0}" at=$(date +%s)
+  # Keep the last time a fetch worked when this one is still running or failed, so the
+  # app can say both "synced 5m ago" and "the last try failed".
+  ok=$(jq -r '.lastOk // (if .state == "ok" then .at else 0 end)' "$status" 2>/dev/null || echo 0)
+  case "$ok" in ''|*[!0-9]*) ok=0 ;; esac
+  [ "$s" = ok ] && ok="$at"
+  jq -cn --arg s "$s" --arg m "$m" --argjson at "$at" --argjson n "$n" --argjson ok "$ok" \
+    '{state: $s, msg: $m, at: $at, items: $n, lastOk: $ok}' > "$status.tmp" 2>/dev/null \
+    && mv "$status.tmp" "$status"
+}
+
+# journal_pending ID JSON: a change the app's copy has already taken, written before
+# the server is asked, so a fetch that replaces the list while it is in flight can
+# still replay it. Prints the entry's token; journal_drop takes it back when the
+# server refuses the change and the copy is restored.
+journal_pending() {
+  [ -n "${journal:-}" ] || return 0
+  t="$(date +%s).$$.$RANDOM"
+  (
+    flock 7
+    jq -cn --arg id "$1" --argjson p "$2" --argjson at "$(date +%s)" --arg t "$t" \
+      '{id: $id, p: $p, at: $at, t: $t}' >> "$journal" 2>/dev/null
+  ) 7> "$journal.lock"
+  printf '%s' "$t"
+}
+journal_drop() {
+  [ -n "${1:-}" ] && [ -f "$journal" ] || return 0
+  (
+    flock 7
+    jq -c --arg t "$1" 'select(.t != $t)' "$journal" > "$journal.tmp" 2>/dev/null \
+      && mv "$journal.tmp" "$journal"
+  ) 7> "$journal.lock"
+  return 0
+}
 
 die() {
-  echo "$*" > "$HOME/.cache/omalauncher/readeck-last.err" 2>/dev/null || true
+  echo "$*" >> "$errfile" 2>/dev/null || true
+  if [ "${mode:-}" = fetch ] || [ "${mode:-}" = reload ]; then
+    sync_state failed "$*"
+  fi
   echo "readeck: $*" >&2
   exit 1
 }
@@ -108,36 +173,29 @@ normalise='
 command -v jq >/dev/null || die "jq is missing (pacman -S jq)"
 
 # A Readeck export (the zip its profile's export button makes: data.json and a
-# bookmarks/<id>/info.json each), or that zip unzipped into a folder, to the app's
-# list: one line per bookmark, only what the app shows. A data.jsonl, one bookmark a
-# line, is read too. The zip's data.json is only its index (ids, no titles or links),
-# so a data.json on its own has nothing to import.
+# bookmarks/<id>/info.json each) to the app's list: one line per bookmark, only
+# what the app shows. A data.jsonl, from other exports, is read too.
 import_from() {
-  [ -e "$1" ] || die "no such file: $1"
+  [ -f "$1" ] || die "no such file: $1"
   mkdir -p "$cache"
+  # One library writer at a time: an import waits for a fetch to finish, and no fetch
+  # starts under it, so neither can replace the other's result.
+  exec 8> "$cache/readeck-fetch.lock"
+  flock 8
   work=$(mktemp -d "$cache/readeck-import.XXXXXX") || die "couldn't make a temporary folder"
   trap 'rm -rf "$work"' EXIT
 
-  root="$work"
-  if [ -d "$1" ]; then
-    root="$1"
-  else
-    case "$1" in
-      *.zip) unzip -q -o "$1" -d "$work" || die "couldn't open $1" ;;
-      *.jsonl) cp "$1" "$work/data.jsonl" || die "couldn't read $1" ;;
-      *.json) die "$(basename "$1") is only the export's index; import the export zip" ;;
-      *) die "import the export zip, its unzipped folder, or a .jsonl" ;;
-    esac
-  fi
+  case "$1" in
+    *.zip) unzip -q -o "$1" -d "$work" || die "couldn't open $1" ;;
+    *.jsonl) cp "$1" "$work/data.jsonl" || die "couldn't read $1" ;;
+    *) cp "$1" "$work/data.json" || die "couldn't read $1" ;;
+  esac
 
-  # Every bookmark's info.json (capitalised fields), and a data.jsonl (lower case), as
-  # one stream of objects.
-  { find "$root" -name info.json -type f -exec cat {} + 2>/dev/null
-    [ -f "$root/data.jsonl" ] && cat "$root/data.jsonl"; } > "$work/all.json"
-  if [ ! -s "$work/all.json" ]; then
-    [ -f "$root/data.json" ] && die "data.json is only the index; import the export zip"
-    die "no bookmarks in $1"
-  fi
+  # Every bookmark's info.json (capitalised fields), or a data.jsonl (lower case).
+  files=$(find "$work" -name info.json; [ -f "$work/data.jsonl" ] && echo "$work/data.jsonl")
+  [ -n "$files" ] || die "no bookmarks in $1"
+  # shellcheck disable=SC2086
+  # shellcheck disable=SC2086
   jq -c -s '
     [ .[] | select(type == "object") ]
     | map(select((.UID // .id) != null))
@@ -161,20 +219,19 @@ import_from() {
         has_article: ((.HasArticle // .has_article) == true or (.DocumentType // .document_type // "") == "article")
       })
     | '"$normalise"'
-' "$work/all.json" > "$out.tmp" 2>/dev/null || die "couldn't read the bookmarks in $1"
-  [ -s "$out.tmp" ] || { rm -f "$out.tmp"; die "no bookmarks in $1"; }
-  mv "$out.tmp" "$out"
+' $files > "$out.tmp" 2>/dev/null || die "couldn't read the bookmarks in $1"
+  ( flock 9; mv "$out.tmp" "$out" ) 9> "$out.lock"
 
   # The articles' text and pictures too, so the export reads without the
   # server: each bookmark's container/index.html, and the files its info.json
   # names (img/icon.png, img/thumbnail.jpeg, ...), copied to img/<id>-<name>.
   mkdir -p "$img_dir" || die "couldn't make the pictures' folder"
   : > "$work/paths.tmp"
-  for info in "$root"/bookmarks/*/info.json; do
+  for info in "$work"/bookmarks/*/info.json; do
     [ -f "$info" ] || continue
     box=$(dirname "$info")
     id=$(basename "$box")
-    [ -f "$box/container/index.html" ] && { extract "$id" "$box/container/index.html" || true; }
+    [ -f "$box/container/index.html" ] && { extract "$id" "$box/container/index.html" || true; localize_images "$id" "" "" || true; }
     for name in $(jq -r '(.Files // {}) | to_entries[]
                           | select(.key as $k | ["article", "log", "props"] | index($k) | not)
                           | .value.name' "$info" 2>/dev/null); do
@@ -190,6 +247,11 @@ import_from() {
       jq -cn --arg id "$id" --arg k "$key" --arg f "$copy" '{id: $id, k: $k, f: $f}' \
         >> "$work/paths.tmp"
     done
+    # The article's own pictures (_resources/) too, so its img lines localise.
+    for res in "$box/container/_resources/"*; do
+      [ -f "$res" ] || continue
+      cp "$res" "$img_dir/$id-$(basename "$res")" 2>/dev/null || continue
+    done
   done
   # Point each bookmark's pictures at their copies, in one pass over the list.
   if [ -s "$work/paths.tmp" ]; then
@@ -203,20 +265,25 @@ import_from() {
       ' "$out" > "$out.img" 2>/dev/null \
       && mv "$out.img" "$out" || true
   fi
+  # An import is the whole library now; changes from before it must not replay over it.
+  ( flock 7; : > "$journal" ) 7> "$journal.lock"
 }
 # The AI harness, Claude Code: a prompt in, text out, with no tools and no session, so
 # it only writes an answer. It is not local: Claude Code sends the prompt and the
-# article's text to Anthropic, on the user's own Claude account. Found in mise's installs
-# first (a mise shim fails when mise has no version set for it), then on the PATH.
+# article's text to Anthropic, on the user's own Claude account. Finds it even when
+# mise has no version set for the shim, which is how it is on this phone.
 ai_bin() {
   if [ -n "${OWL_READECK_AI:-}" ] && [ -x "${OWL_READECK_AI}" ]; then
     echo "$OWL_READECK_AI"
     return 0
   fi
+  if command -v mise >/dev/null 2>&1; then
+    dir=$(mise where claude 2>/dev/null) && [ -x "$dir/claude" ] && { echo "$dir/claude"; return 0; }
+  fi
   for dir in "$HOME"/.local/share/mise/installs/claude/*/; do
     [ -x "$dir/claude" ] && { echo "${dir}claude"; return 0; }
   done
-  command -v claude
+  return 1
 }
 
 # ai "$PROMPT" < input: the harness's answer, or nothing when it isn't there.
@@ -254,6 +321,49 @@ http() {
   esac
 }
 
+# urienc VALUE: one path or query component, escaped, for a bookmark's id.
+urienc() {
+  jq -rn --arg v "$1" '$v|@uri'
+}
+# jid VALUE: VALUE as a one-item JSON array, as apply() takes it.
+jid() {
+  jq -cn --arg v "$1" '[$v]'
+}
+
+# apply JSON IDSJSON: what the app's own copy of these bookmarks should say from now
+# on, so a change shows in the list at once instead of after a whole library fetch.
+# IDSJSON is a JSON array of ids; the change's fields are merged into their lines.
+apply() {
+  [ -f "$out" ] || return 0
+  json="$1" ids="$2"
+  # One patch at a time, and a temp name of its own, so a change can't collide with
+  # a fetch writing the list at the same moment.
+  (
+    flock 9
+    jq -c --argjson j "$json" --argjson ids "$ids" \
+      '. as $b | if ($ids | index($b.id | tostring)) then . * $j else . end' \
+      "$out" > "$out.patch.tmp" 2>/dev/null \
+      && mv "$out.patch.tmp" "$out" || rm -f "$out.patch.tmp"
+  ) 9> "$out.lock"
+  return 0
+}
+
+# restore ID FILE: the bookmark's line as FILE had it, putting back a change the
+# server refused after the app's own copy had already been patched.
+restore() {
+  id="$1" from="$2"
+  [ -f "$from" ] || return 0
+  (
+    flock 9
+    jq -c --arg id "$id" --slurpfile old "$from" '
+      . as $cur
+      | ($old | map(select((.id | tostring) == $id)) | first) as $o
+      | if ($cur.id | tostring) == $id and $o != null then $o else $cur end
+    ' "$out" > "$out.patch.tmp" 2>/dev/null && mv "$out.patch.tmp" "$out" || rm -f "$out.patch.tmp"
+  ) 9> "$out.lock"
+  return 0
+}
+
 # The reader: one article as the light text the app draws, in
 # $cache/readeck-read/<id>.jsonl (owl-readeck-read does the HTML).
 read_dir="$cache/readeck-read"
@@ -266,6 +376,54 @@ extract() {
   mv "$read_dir/$1.jsonl.tmp" "$read_dir/$1.jsonl"
 }
 
+# localize_images ID BASE TOKEN: point the article's img lines at files on disk,
+# so the reader draws them without the server and without a token in a URL.
+# Server-relative srcs are downloaded with the token; an export's relative srcs
+# already have their copies in img_dir; external http srcs are left for the
+# Image node to fetch. One jq pass in, one out, so long articles stay fast.
+localize_images() {
+  id="$1" base="$2" token="$3"
+  f="$read_dir/$id.jsonl"
+  [ -f "$f" ] || return 0
+  mkdir -p "$img_dir" 2>/dev/null || return 0
+  work=$(mktemp -d "$cache/readeck-img.XXXXXX") || return 0
+  jq -s -r 'to_entries[] | select(.value.k == "img") | "\(.key)\t\(.value.t // "")"' \
+    "$f" > "$work/list" 2>/dev/null || { rm -rf "$work"; return 0; }
+  [ -s "$work/list" ] || { rm -rf "$work"; return 0; }
+  : > "$work/map"
+  while IFS=$'\t' read -r i t; do
+    [ -n "$t" ] || continue
+    new=""; url=""
+    case "$t" in
+      http://* | https://*)
+        [ -n "$base" ] && [ "${t#"$base"/}" != "$t" ] && url="$t" ;;
+      /*) [ -n "$base" ] && url="$base$t" ;;
+      *) cand="$img_dir/$id-$(basename "$t")"; [ -f "$cand" ] && new="$cand" ;;
+    esac
+    if [ -n "$url" ]; then
+      ext="${t##*.}"
+      case "$ext" in jpg | jpeg | png | gif | webp | svg | avif) ;; *) ext=jpg ;; esac
+      dest="$img_dir/$id-img$i.$ext"
+      curl -fsS --max-time 30 -H "Authorization: Bearer $token" -o "$dest" "$url" 2>/dev/null \
+        && new="$dest"
+    fi
+    [ -n "$new" ] && jq -cn --argjson i "$i" --arg f "$new" '{i: $i, f: $f}' >> "$work/map"
+  done < "$work/list"
+  if [ -s "$work/map" ]; then
+    jq -c -s --slurpfile m "$work/map" '
+      $m as $ix
+      | to_entries
+      | map(.key as $k | .value
+            | if .k == "img" then
+                (first($ix[] | select(.i == $k)) // null) as $e
+                | if $e != null then .t = $e.f else . end
+              else . end)
+      | .[]
+    ' "$f" > "$f.img" 2>/dev/null && mv "$f.img" "$f"
+  fi
+  rm -rf "$work"
+}
+
 case "$mode" in
 add)
   # add BASE TOKEN URL: save a link to read.
@@ -274,26 +432,71 @@ add)
     "couldn't save the link"
   ;;
 change)
-  # change BASE TOKEN ID JSON: one change to a bookmark.
+  # change BASE TOKEN ID JSON: one change to a bookmark. The app's own copy is patched
+  # first, so the row shows it at once, without waiting for the server; with a server it
+  # then goes there, and is put back if the server refuses it. An imported library is
+  # changed on disk alone.
   [ $# -eq 5 ] || die "usage: $0 change BASE TOKEN ID '{json}'"
-  http PATCH "$2/api/bookmarks/$(jq -rn --arg v "$4" '$v|@uri')" "$3" "$5" \
-    "couldn't save the change"
+  # With a server, journal the local change before it is made: a fetch replacing the
+  # list while the request is in flight can then replay it, not put the old value back.
+  token=""
+  if [ -n "$2" ] && [ -n "$3" ]; then
+    token=$(journal_pending "$4" "$5")
+  fi
+  prev=$(mktemp "$out.before.XXXXXX") || die "couldn't make a temporary file"
+  ( flock 9; cp -f "$out" "$prev" 2>/dev/null ) 9> "$out.lock"
+  apply "$5" "$(jq -cn --arg v "$4" '[$v]')"
+  if [ -n "$2" ] && [ -n "$3" ]; then
+    # In a subshell, so http's die only ends it: the change can be put back first.
+    if ! ( http PATCH "$2/api/bookmarks/$(jq -rn --arg v "$4" '$v|@uri')" "$3" "$5" \
+             "couldn't save the change" ); then
+      # Drop the replay first: a fetch that already saw the pending entry must not put
+      # the refused value back after the restore.
+      journal_drop "$token"
+      restore "$4" "$prev"
+      echo "$4" >> "$opfail" 2>/dev/null || true
+      rm -f "$prev"
+      exit 1
+    fi
+  fi
+  rm -f "$prev"
   ;;
 bulk)
-  # bulk BASE TOKEN JSON 'ID ID ...': the same change to several bookmarks, one after
-  # another. The ids come as one word, split on spaces here (Readeck's ids have none).
-  # Prints how many worked, and stops keeping the count on the first failure.
-  [ $# -eq 5 ] || die "usage: $0 bulk BASE TOKEN JSON 'ID ID ...'"
-  base="$2" token="$3" json="$4"
-  read -ra ids <<< "$5"
-  [ "${#ids[@]}" -gt 0 ] || die "nothing picked"
-  ok=0
-  for id in "${ids[@]}"; do
-    http PATCH "$base/api/bookmarks/$(jq -rn --arg v "$id" '$v|@uri')" "$token" "$json" \
-      "couldn't change $id" || exit 1
-    ok=$((ok + 1))
-  done
-  echo "changed $ok"
+  # bulk BASE TOKEN JSON IDSJSON: the same change to several bookmarks. IDSJSON is a
+  # JSON array of their ids, so the app can pass them as one quoted word. Requests go
+  # four at a time (a slow server doesn't make a long queue take minutes), each is
+  # patched in the app's copy as it lands, and the ids the server refused go to
+  # readeck-op-failed.txt so the app can show and retry only those.
+  [ $# -eq 5 ] || die "usage: $0 bulk BASE TOKEN JSON IDSJSON"
+  base="$2" token="$3" json="$4"; ok=0
+  total=$(printf '%s' "$5" | jq -r 'if type == "array" then length else 0 end' 2>/dev/null || echo 0)
+  if [ -n "$base" ] && [ -n "$token" ]; then
+    work=$(mktemp -d "$cache/readeck-bulk.XXXXXX") || die "couldn't make a temporary folder"
+    trap 'rm -rf "$work"' EXIT
+    printf '%s' "$5" | jq -r '.[] | tostring' > "$work/ids" 2>/dev/null || : > "$work/ids"
+    export base token json errfile opfail out journal mode
+    export -f http apply journal_pending journal_drop die urienc jid
+    xargs -P 4 -n 1 bash -c '
+      id="$1"
+      if ( http PATCH "$base/api/bookmarks/$(urienc "$id")" "$token" "$json" \
+               "couldn'"'"'t change $id" ); then
+        journal_pending "$id" "$json" >/dev/null
+        apply "$json" "$(jid "$id")"
+      else
+        printf "%s\n" "$id" >> "$opfail"
+      fi
+    ' _ < "$work/ids" 2>/dev/null
+    # wc -l, not grep -c: grep -c prints 0 but exits 1 on an empty file, and the
+    # "|| echo 0" then made nfail "0\n0", killing the script after every all-ok bulk.
+    nfail=$(wc -l < "$opfail" 2>/dev/null || echo 0)
+    case "$nfail" in ''|*[!0-9]*) nfail=0 ;; esac
+    ok=$((total - nfail))
+  else
+    apply "$json" "$5"
+    ok="$total"
+  fi
+  echo "changed $ok/$total"
+  [ "$ok" -eq "$total" ] || exit 1
   ;;
 delete)
   # delete BASE TOKEN ID: delete a bookmark for good (the app's "delete" only marks it).
@@ -302,10 +505,9 @@ delete)
     "couldn't delete the bookmark"
   ;;
 ai-check)
-  # ai-check: "ok" when Claude Code is there to use, "no" when it isn't. It only looks
-  # for the program, and starts nothing.
-  if ai_bin >/dev/null; then
-    echo ok
+  # ai-check: "ok" when Claude Code is there to use, "no" when it isn't.
+  if bin=$(ai_bin); then
+    echo "ok $("$bin" --version 2>/dev/null | head -1)"
   else
     echo "no"
   fi
@@ -331,12 +533,12 @@ labels)
   [ $# -eq 3 ] || die "usage: $0 labels BASE TOKEN"
   curl -fsS --max-time 20 -H 'Accept: application/json' -H "Authorization: Bearer $3" \
     "$2/api/bookmarks/labels" > "$cache/readeck-labels.json" || die "couldn't fetch the labels"
-  jq -r 'if type == "array" then .[] | "\(.name)\t\(.count // 0)" else empty end' \
+  jq -r 'if type == "array" then .[] | "\(.name)\t\(.bookmark_count // .count // 0)" else empty end' \
     "$cache/readeck-labels.json" 2>/dev/null || true
   ;;
 labelrm)
-  # labelrm BASE TOKEN NAME: take a label off every bookmark that has it (the bookmarks
-  # stay). Readeck has no empty labels: one comes with the first bookmark given it.
+  # labelrm BASE TOKEN NAME: delete a label. Readeck has no API to make one; a label
+  # comes with the first bookmark given it.
   [ $# -eq 4 ] || die "usage: $0 labelrm BASE TOKEN NAME"
   http DELETE "$2/api/bookmarks/labels?name=$(jq -rn --arg v "$4" '$v|@uri')" "$3" "" "couldn't delete the label"
   ;;
@@ -365,7 +567,7 @@ summary)
   out_file="$ai_dir/$id.summary"
   [ -s "$out_file" ] && { cat "$out_file"; exit 0; }
   mkdir -p "$ai_dir" || die "couldn't make the AI folder"
-  body=$(jq -r '.t' "$src" 2>/dev/null | head -c 12000) || die "couldn't read the article"
+  body=$(jq -r 'select(.k != "img") | .t' "$src" 2>/dev/null | head -c 12000) || die "couldn't read the article"
   [ -n "$body" ] || die "the article's text is empty"
   ans=$(printf '%s' "$body" | ai 'You are a summariser. The text given to you is one article. Write a summary of it in at most 3 sentences and no more than 70 words: plain prose, no headings, no bullet points, no commentary about the text, no questions, no preamble. Reply with the summary alone.') \
     || die "the AI harness couldn't summarise it"
@@ -390,7 +592,7 @@ pretty)
   batch=; size=0
   tidy() {
     [ -n "$batch" ] || return 0
-    ans=$(printf '%s' "$batch" | ai 'You tidy extracted web article text. The input is JSON lines: {"k": kind, "t": text}, where kind is h (heading), p (paragraph), q (quote), li (list item) or fig (caption).
+    ans=$(printf '%s' "$batch" | ai 'You tidy extracted web article text. The input is JSON lines: {"k": kind, "t": text}, where kind is h (heading), p (paragraph), q (quote), li (list item), fig (caption) or img (an image path). Keep img lines exactly as they are, path included.
 
 Rewrite each "t" so it reads cleanly: mend sentences broken by extraction, fix stray spaces, doubled punctuation and hyphenation, and use typographic quotes and dashes. Keep the same words and the same meaning: do not summarise, shorten, add or reorder anything. Keep the same kinds and exactly one output line for each input line.
 
@@ -418,8 +620,7 @@ Reply with those JSON lines only, no code fence, no comment.') || return 1
   mv "$out_file.tmp" "$out_file"
   ;;
 import-file)
-  # import-file FILE: a Readeck export zip, its unzipped folder or a data.jsonl, no
-  # server needed.
+  # import-file FILE: a data.jsonl from a Readeck export, no server needed.
   [ $# -eq 2 ] || die "usage: $0 import-file FILE"
   import_from "$2"
   ;;
@@ -430,6 +631,7 @@ read)
     "$2/api/bookmarks/$(jq -rn --arg v "$4" '$v|@uri')/article") \
     || die "couldn't fetch the article"
   printf '%s' "$body" | extract "$4" -
+  localize_images "$4" "$2" "$3"
   ;;
 import)
   # import BASE TOKEN: the server's export, made now, read here.
@@ -441,61 +643,145 @@ import)
   import_from "$cache/readeck-export.zip"
   ;;
 fetch | reload)
-  # fetch BASE TOKEN [PAGES]: the library as the server has it now. Each of the list
-  # tabs is asked for 100 bookmarks at a time (the most Readeck gives at once), moving
-  # on by offset until a page comes back short or the server's Total-Count is reached,
-  # and at most PAGES pages a tab (default 50), so a big library isn't cut off at 100.
+  # fetch BASE TOKEN [PAGES]: the library as the server has it now. Two lists (not
+  # archived and archived) hold every tab and label; pages of 100 are fetched in
+  # parallel, and the labels at the same time. A change accepted while this ran is
+  # replayed from the journal, so a sync can't put an old value back. Progress and
+  # errors go to readeck-sync.json, which the app shows as its syncing line.
   [ $# -ge 3 ] || die "usage: $0 fetch|reload BASE TOKEN [PAGES]"
-  pages="${4:-50}"
+  pages="${4:-10}"
   case "$pages" in ''|*[!0-9]*) die "PAGES must be a number" ;; esac
+  [ "$pages" -ge 1 ] || pages=1
   mkdir -p "$cache"
-  tmp="$cache/readeck-fetch.jsonl"
-  hdr="$cache/readeck-fetch.hdr"
-  : > "$tmp"
-  # What each tab asks for. "all" is everything not archived (unread and read).
-  for q in "is_archived=false&read_status=unread" \
-           "is_marked=true&is_archived=false" \
-           "is_archived=true" \
-           "is_archived=false"; do
-    page=0
-    offset=0
-    while [ "$page" -lt "$pages" ]; do
-      body=$(curl -fsS --max-time 30 -D "$hdr" -H 'Accept: application/json' -H "Authorization: Bearer $3" \
-        "$2/api/bookmarks?$q&limit=100&offset=$offset&sort=-created") \
-        || { rm -f "$tmp" "$hdr"; die "couldn't reach the server"; }
-      n=$(printf '%s' "$body" | jq -r 'if type == "array" then length else 0 end' 2>/dev/null || echo 0)
-      printf '%s' "$body" | jq -c 'if type == "array" then .[] else empty end' >> "$tmp" 2>/dev/null || true
-      total=$(grep -i '^total-count:' "$hdr" 2>/dev/null | tr -dc 0-9)
-      page=$((page + 1))
-      offset=$((offset + 100))
-      [ "$n" -lt 100 ] && break
-      [ -n "$total" ] && [ "$offset" -ge "$total" ] && break
+  # One fetch at a time: a second tap waits for the first rather than corrupting it.
+  exec 8> "$cache/readeck-fetch.lock"
+  flock 8
+  base="$2" token="$3"
+  start=$(date +%s)
+  sync_state running "" 0
+  work=$(mktemp -d "$cache/readeck-fetch.XXXXXX") || die "couldn't make a temporary folder"
+  trap 'rm -rf "$work"; rm -f "$out.tmp" "$out.merge.tmp" "$journal.tmp"' EXIT
+  : > "$work/fail"
+
+  # get_page QUERY TAG PAGE: one page, in the background; a failed one is named.
+  # A page past the end (404) is empty, not an error.
+  get_page() {
+    q="$1" tag="$2" page="$3"
+    code=$(curl -sS --compressed --max-time 25 -H 'Accept: application/json' \
+      -H "Authorization: Bearer $token" -w '%{http_code}' \
+      "$base/api/bookmarks?$q&limit=100&offset=$(( (page - 1) * 100 ))&sort=-created" \
+      -o "$work/$tag-$page.json" 2>/dev/null) || {
+      echo "$q page $page" >> "$work/fail"; return 1; }
+    case "$code" in
+      2*) ;;
+      404) printf '[]\n' > "$work/$tag-$page.json" ;;
+      *) echo "$q page $page ($code)" >> "$work/fail"; return 1 ;;
+    esac
+    jq -r 'if type == "array" then length else 0 end' "$work/$tag-$page.json" \
+      > "$work/$tag-$page.n" 2>/dev/null || echo 0 > "$work/$tag-$page.n"
+  }
+
+  # Page one of both lists, and the labels, together.
+  get_page "is_archived=false" unarch 1 &
+  p1=$!
+  get_page "is_archived=true" arch 1 &
+  p2=$!
+  curl -sS --compressed --max-time 20 -H 'Accept: application/json' \
+    -H "Authorization: Bearer $token" -o "$work/labels.json" \
+    "$base/api/bookmarks/labels" 2>/dev/null &
+  pl=$!
+  wait "$p1" "$p2" "$pl" || true
+  if [ -s "$work/fail" ]; then
+    die "couldn't reach the server"
+  fi
+  # Keep the labels only when the answer is valid JSON; their counts are a nicety.
+  if jq -e . "$work/labels.json" >/dev/null 2>&1; then
+    cp "$work/labels.json" "$cache/readeck-labels.json" 2>/dev/null || true
+  fi
+  # What the server keeps beside labels, if anything: collections or saved filters,
+  # as the official app organises bookmarks in collections too. Only the answer is
+  # kept, for the app to read; a server without them leaves the old file alone.
+  for ep in collections filters; do
+    pcode=$(curl -sS --compressed --max-time 15 -H 'Accept: application/json' \
+      -H "Authorization: Bearer $token" -w '%{http_code}' \
+      -o "$work/probe-$ep.json" "$base/api/$ep" 2>/dev/null) || pcode=000
+    if [ "$pcode" = 200 ] && jq -e . "$work/probe-$ep.json" >/dev/null 2>&1; then
+      cp "$work/probe-$ep.json" "$cache/readeck-$ep.json" 2>/dev/null || true
+    fi
+  done
+
+  # More pages only where page one was full, six requests at a time.
+  for spec in "unarch:is_archived=false" "arch:is_archived=true"; do
+    tag=${spec%%:*}; q=${spec#*:}
+    n=$(cat "$work/$tag-1.n" 2>/dev/null || echo 0)
+    [ "$n" -ge 100 ] || continue
+    page=2
+    while [ "$page" -le "$pages" ]; do
+      # Six at a time, then wait for the batch: under proot `jobs -rp`/`wait -n`
+      # can spin forever on unreaped children and stall the whole sync.
+      n=0
+      while [ "$n" -lt 6 ] && [ "$page" -le "$pages" ]; do
+        get_page "$q" "$tag" "$page" &
+        page=$((page + 1)); n=$((n + 1))
+      done
+      wait
     done
   done
-  rm -f "$hdr"
-  # The server's labels, with their counts: not every label is on a fetched bookmark.
-  labels=$(curl -fsS --max-time 20 -H 'Accept: application/json' -H "Authorization: Bearer $3" \
-    "$2/api/bookmarks/labels") || labels=""
-  printf '%s' "$labels" > "$cache/readeck-labels.json" 2>/dev/null || true
+  wait
+  if [ -s "$work/fail" ]; then
+    die "couldn't reach the server"
+  fi
 
-  jq -c -s "$normalise" "$tmp" > "$out.tmp" 2>/dev/null || { rm -f "$tmp"; die "couldn't merge the list"; }
-  mv "$out.tmp" "$out"
-  rm -f "$tmp"
+  # Every page as one list of bookmarks.
+  jq -c 'if type == "array" then .[] else empty end' \
+    "$work"/unarch-*.json "$work"/arch-*.json > "$work/raw.jsonl" 2>/dev/null \
+    || die "couldn't read the server's answer"
+  jq -c -s "$normalise" "$work/raw.jsonl" > "$out.tmp" 2>/dev/null \
+    || die "couldn't merge the list"
+
+  # Replay changes made since this fetch began, so its older answer can't undo them in
+  # the app's copy.
+  [ -f "$journal" ] || : > "$journal" 2>/dev/null || true
+  # The journal snapshot and the replacement happen under the library's lock: a change
+  # whose local copy is written before this replace is replayed, and one written after
+  # it runs on the new list. Taking the snapshot earlier let a change that landed in
+  # between be overwritten by the server's older answer.
+  (
+    flock 9
+    ( flock 7; cp "$journal" "$work/ops.jsonl" 2>/dev/null || : > "$work/ops.jsonl" ) \
+      7> "$journal.lock"
+    jq -c -s --argjson since "$((start - 10))" --slurpfile log "$work/ops.jsonl" '
+      . as $list
+      | reduce (($log // [])[] | select((.at // 0) >= $since)) as $o
+          ($list; map(if (.id | tostring) == ($o.id | tostring) then . * $o.p else . end))
+      | .[]
+    ' "$out.tmp" > "$out.merge.tmp" 2>/dev/null || exit 1
+    mv "$out.merge.tmp" "$out"
+  ) 9> "$out.lock" || die "couldn't merge the list"
+  rm -f "$out.tmp"
+  # Keep a short history of accepted changes; older ones are on both sides already.
+  ( flock 7
+    if [ -s "$journal" ]; then
+      jq -c --argjson cut "$((start - 3600))" 'select((.at // 0) >= $cut)' "$journal" \
+        > "$journal.tmp" 2>/dev/null && mv "$journal.tmp" "$journal"
+    fi
+  ) 7> "$journal.lock"
+  n=$(wc -l < "$out" 2>/dev/null || echo 0)
+  sync_state ok "" "$n"
   ;;
 *)
   die "usage: $0 fetch|reload|import BASE TOKEN [PAGES] | read BASE TOKEN ID |
        import-file FILE | add BASE TOKEN URL | change BASE TOKEN ID JSON | delete BASE TOKEN ID |
        labels BASE TOKEN | labelrm BASE TOKEN NAME | status BASE TOKEN | find WORDS |
-       bulk BASE TOKEN JSON 'ID ID ...' | summary ID | pretty ID | ai-check"
+       bulk BASE TOKEN JSON IDSJSON | summary ID | pretty ID | ai-check"
   ;;
 esac
 READECK_LIB_END
 fi
-if ! grep -qxF '# owl-readeck-read 1.1' "$bin/owl-readeck-read" 2>/dev/null; then
+if ! grep -qF '# owl-readeck-read 1.2' "$bin/owl-readeck-read" 2>/dev/null; then
   cat > "$bin/owl-readeck-read" << 'READECK_READ_END'
 #!/usr/bin/env python3
-# owl-readeck-read 1.1
-# The reader side of the launcher's Readeck app (readeck.owl).
+# owl-readeck-read 1.2: the reader side of the launcher's Readeck app (readeck.owl).
 # Turns a Readeck article's HTML (its export's container/index.html, or the
 # server's /article endpoint) into the light text the app draws: one element a
 # line, "heading: ", "quote: " and "list: " marking what isn't a paragraph, so
@@ -504,7 +790,8 @@ if ! grep -qxF '# owl-readeck-read 1.1' "$bin/owl-readeck-read" 2>/dev/null; the
 #   owl-readeck-read HTMLFILE OUT    write OUT (JSON lines: {"k": kind, "t": text})
 #   owl-readeck-read - OUT           read the HTML from stdin
 #
-# Kinds: h (heading), p (paragraph), q (quote), li (list item), pre (code), fig.
+# Kinds: h (heading), p (paragraph), q (quote), li (list item), pre (code), fig,
+# img (an image's src, drawn by the reader; the helper localises it).
 import json
 import re
 import sys
@@ -550,6 +837,14 @@ class Reader(HTMLParser):
             self.flush()
             self.skip = 1
             return
+        if tag == "img":
+            at = dict(attrs)
+            self.flush()
+            if at.get("src"):
+                self.blocks.append({"k": "img", "t": at["src"]})
+            if at.get("alt"):
+                self.blocks.append({"k": "fig", "t": at["alt"]})
+            return
         if tag in BLOCK:
             self.flush()
             if tag in ("h1", "h2", "h3", "h4", "h5", "h6"):
@@ -566,6 +861,9 @@ class Reader(HTMLParser):
             self.pre += 1
 
     def handle_startendtag(self, tag, attrs):
+        if tag.lower() == "img":
+            self.handle_starttag(tag, attrs)
+            return
         if tag.lower() in BLOCK and not self.skip:
             self.flush()
 
@@ -634,20 +932,26 @@ echo ready""") every 1h
   let helpers = trim(ready ?? "") == "yes"
 
   // The server and an API token from its settings (made in its profile page). Either
-  // "readeck.example.org" or "https://readeck.example.org" will do.
+  // "readeck.example.org" or "https://readeck.example.org" will do. The setup page
+  // edits drafts, so typing an address or a token doesn't start a fetch per letter.
   state base = "" persist
-  // The server as it's being typed on the setup page; it becomes base on connect, so the
-  // token never goes to a half-typed address.
-  state typedBase = null
   state token = "" persist
+  state draftBase = ""
+  state draftToken = ""
   // As the server is written: the scheme added when it's missing, a trailing / dropped.
   let raw = base == "" ? "" : (contains(base, "://") ? base : "https://" + base)
   let server = endsWith(raw, "/") ? sub(raw, 0, len(raw) - 1) : raw
-  // What's on show: a list tab ("unread", "favorite", "archived", "all"), labels, search, or a bookmark.
+  let draftRaw = draftBase == "" ? "" : (contains(draftBase, "://") ? trim(draftBase) : "https://" + trim(draftBase))
+  let draftServer = endsWith(draftRaw, "/") ? sub(draftRaw, 0, len(draftRaw) - 1) : draftRaw
+  // What's on show: a list tab ("unread", "favorite", "archived", "all"), the labels
+  // screen, the bookmarks of one label (view "label" with `label` set), the server
+  // setup, or one bookmark.
   state view = "unread" persist
   state label = "" persist
   state query = ""
   state typed = ""
+  // A successful change's answer; shown until the next tap.
+  state notice = ""
   state readId = ""
   state editing = false
   // Whether the article's text is on show under its details, and not only the page's link.
@@ -657,17 +961,33 @@ echo ready""") every 1h
   state pretty = true persist
   state aiWant = ""
   state newUrl = ""
-  // The bookmark a change was for, so its own answer shows beside it.
-  state changedId = ""
-  // The file imported, so its list can be read again when it changes.
-  state imported = null
-  // Bumped by connect and by "fetch", which fetches the list; 0 means no fetch.
+  // Changes are queued, one at a time, instead of one command being rewritten under
+  // the last: a tap never cancels or loses the change before it. `override` shows a
+  // change at once; `saving`, `okIds` and `failed` say what each bookmark is doing.
+  // The queue and its statuses persist, so a reload or a closed app resumes the change
+  // instead of leaving it stuck on "saving" or failing it with no answer.
+  state wants = []
+  state current = null persist
+  state pending = [] persist
+  state opSeq = 0 persist
+  // Every queued op by its number, so an answer that lands after the queue has
+  // moved on (a retry, a restarted command) still finds its op and its row.
+  state sent = {} persist
+  state override = {} persist
+  state saving = {} persist
+  state okIds = {} persist
+  state failed = {} persist
+  state retry = {} persist
+  state lastOpAt = 0 persist
+  // The row under a sideways swipe: its id and how far it moved (negative is left).
+  state swipeId = ""
+  state swipeX = 0
+  // Bumped by connect, "sync now" and pull-to-refresh; the fetch below reads it, so
+  // each tap runs the fetch at once instead of waiting for the minute to pass. A tap
+  // during a fetch asks for one more instead of cancelling this one.
   state fetchN = 0 persist
-  // A change to send, in pieces the command can quote one by one: what to do, the
-  // JSON for it (empty for the label and link ones) and the bookmarks it's for.
-  state todoMode = ""
-  state todoJson = ""
-  state todoIds = []
+  state syncAgain = false
+  state syncAsk = 0
   // The script's own words when a change failed, so a tap that didn't work says why.
   state lastErr = ""
   // How the list is ordered and grouped: "-created" (newest), "created", "title",
@@ -688,47 +1008,247 @@ echo ready""") every 1h
   state connectMsg = ""
   // Copied or shared, to say so.
   state said = ""
-  // A change to give every picked bookmark; sending it clears the pick.
-  state bulkFor = ""
   // Whether "test the token" is asking now, so the command runs once and says its answer.
   state connectCheck = false
-  // The time of the last list fetched, and whether it worked.
-  state synced = 0 persist
+  // The server's answer to the change last sent from the phone: {code, ok, out, err}.
+  state opResult = null
+  // Whether the "save a link" bar is open: it stays out of the way until asked for.
+  state showAdd = false
+  // The reader's typography, as the official app's: a font and a spacing, kept per phone.
+  state readFont = "sans" persist
+  state readGap = 1 persist
+  // Paragraphs kept highlighted in the reader, by article id: the official app's
+  // highlights, kept on this phone since the server's API has no word for them.
+  state hl = {} persist
 
   // The library the helper writes: one bookmark per line.
   source lib = file("~/.cache/omalauncher/readeck.jsonl")
   // For "3d" beside a date.
   source now = clock every 1m
 
-  // Fetches the server's list every 15 minutes, and at once whenever `fetchN` goes up:
-  // "connect", "sync now" and a change that worked (it is in the command, and owl runs a
-  // command again as soon as what it reads changes). It also runs once when the app
-  // opens, so a reconnect needs no tap at all.
-  source fetched = cmd(!helpers || server == "" || token == "" ? "echo waiting" : "n=${int(fetchN)}; owl-readeck fetch ${sh(server)} ${sh(token)} 50 >/dev/null 2>&1 && echo done || echo failed") every 15m timeout 120s
-  // Saves and changes go through the helper too: a tap sets todoMode, todoJson and
-  // todoIds, and the source runs it (an empty todoMode does nothing).
+  // The fetch's own status: running, the last success and its item count, or why it
+  // failed. The app reads it instead of guessing from a command's output, so an
+  // automatic sync says it is syncing too, and a killed one doesn't stay "syncing".
+  source syncFile = file("~/.cache/omalauncher/readeck-sync.json") json
+  let syncState = syncFile ?? {}
+  let syncing = syncState.state == "running" && now - (syncState.at ?? 0) < 300
+  let syncStalled = syncState.state == "running" && !syncing
+  let syncFailed = syncState.state == "failed"
+  let syncMsg = syncState.state == "failed" ? (syncState.msg ?? "couldn't reach the server") : syncStalled ? "sync timed out" : ""
+  let lastSync = syncState.lastOk ?? 0
+
+  // Fetches the server's list whenever `fetchN` goes up (owl runs a command again as soon
+  // as what it reads changes), so "sync now", pull-to-refresh and connect act at once
+  // instead of on the next minute. The helper does the pages in parallel and writes
+  // readeck-sync.json, which says when it began and how it ended.
+  source fetched = cmd(!helpers || server == "" || token == "" ? "echo waiting ${sh(fetchN)}" : "owl-readeck fetch ${sh(server)} ${sh(token)} 10 >/dev/null 2>&1 && echo done ${sh(fetchN)} || echo failed ${sh(fetchN)}") every 15m timeout 240s
+  // One change at a time: `current` is sent, `pending` waits behind it. The command
+  // depends on `current` alone, so a second tap can't rewrite or cancel the first; its
+  // answer carries the op's own number, so identical answers still count.
+  // The changes that need the Linux side: bulk (many requests at once), import
+  // (a file on disk), and every change while offline (the imported library is
+  // edited on disk alone). The single changes with a server go from the phone,
+  // in the trigger below, so nothing here can come between a tap and the server.
   source ran = cmd(
-    !helpers || todoMode == "" ? "echo idle"
-    : todoMode == "change" ? "owl-readeck change ${sh(server)} ${sh(token)} ${sh(first(todoIds) ?? "")} ${sh(todoJson)} && echo ok || echo failed"
-    : todoMode == "bulk" ? "owl-readeck bulk ${sh(server)} ${sh(token)} ${sh(todoJson)} ${sh(join(todoIds, " "))} && echo ok || echo failed"
-    : todoMode == "add" ? "owl-readeck add ${sh(server)} ${sh(token)} ${sh(first(todoIds) ?? "")} && echo ok || echo failed"
-    : todoMode == "labelrm" ? "owl-readeck labelrm ${sh(server)} ${sh(token)} ${sh(first(todoIds) ?? "")} && echo ok || echo failed"
-    : "echo idle") every 1m timeout 120s
+    !helpers || current == null || (server != "" && token != "" && (current.mode == "change" || current.mode == "add")) ? "echo idle"
+    : current.mode == "change" ? "owl-readeck change ${sh(server)} ${sh(token)} ${sh(current.id)} ${sh(current.json)} >/dev/null 2>&1; rc=$?; echo ${int(current.n)} $rc; head -1 \"$HOME/.cache/omalauncher/readeck-op.err\" 2>/dev/null; echo @@IDS@@; cat \"$HOME/.cache/omalauncher/readeck-op-failed.txt\" 2>/dev/null"
+    : current.mode == "bulk" ? "owl-readeck bulk ${sh(server)} ${sh(token)} ${sh(current.json)} ${sh(toJson(current.ids ?? []))} >/dev/null 2>&1; rc=$?; echo ${int(current.n)} $rc; head -1 \"$HOME/.cache/omalauncher/readeck-op.err\" 2>/dev/null; echo @@IDS@@; cat \"$HOME/.cache/omalauncher/readeck-op-failed.txt\" 2>/dev/null"
+    : current.mode == "add" ? "owl-readeck add ${sh(server)} ${sh(token)} ${sh(current.id)} >/dev/null 2>&1; rc=$?; echo ${int(current.n)} $rc; head -1 \"$HOME/.cache/omalauncher/readeck-op.err\" 2>/dev/null; echo @@IDS@@"
+
+    : current.mode == "labelrm" ? "owl-readeck labelrm ${sh(server)} ${sh(token)} ${sh(current.id)} >/dev/null 2>&1; rc=$?; echo ${int(current.n)} $rc; head -1 \"$HOME/.cache/omalauncher/readeck-op.err\" 2>/dev/null; echo @@IDS@@"
+    : current.mode == "import" ? "owl-readeck import-file ${sh(current.id)} >/dev/null 2>&1; rc=$?; echo ${int(current.n)} $rc; head -1 \"$HOME/.cache/omalauncher/readeck-op.err\" 2>/dev/null; echo @@IDS@@"
+    : "echo ${int(current.n)} 1; echo @@IDS@@") every 12h timeout 900s
   // "test the token" on the setup page: the script asks the server what it makes of it.
-  source checked = cmd(!helpers || !connectCheck ? "echo" : "owl-readeck status ${sh(server)} ${sh(token)} | sed -e 's/^ok .*/ok/' -e 's/^error /error: /'") every 1m
-  on checked {
+  // It uses the drafts, so the test doesn't start a fetch with half-typed values.
+  source checked = cmd(!helpers || !connectCheck ? "echo" : "set -o pipefail; owl-readeck status ${sh(draftServer)} ${sh(draftToken)} 2>/dev/null | sed -e 's/^ok .*/ok/' -e 's/^error /error: /' || echo \"error: couldn't reach the server\"") every 1m
+  on checked first {
     if value != "" && value != "checking…" {
       connectMsg = value == "ok" ? "the token works" : sub(value, 0, 70)
       connectCheck = false
     }
   }
-  // When the list last came in, for the line above it: the first value counts too, so a
-  // sync that worked as the app opened is noted.
-  on fetched first {
-    synced = value == "done" ? now : synced
+
+  // A sync's end: with no change left in the queue, the fetched list is the truth, so
+  // the optimistic overlay and "saved" ticks can go. A tap during the fetch asks for
+  // one more run instead of cancelling it.
+  on syncFile first {
+    if value != null {
+      let st = value.state ?? ""
+      // A change that landed during this fetch may be newer than its answer, so its
+      // overlay stays until a quiet sync (no change in the last half-minute) proves it.
+      if st == "ok" && current == null && len(pending) == 0 && now - lastOpAt > 300 {
+        override = {}
+        okIds = {}
+        saving = {}
+      }
+      if (st == "ok" || st == "failed") && syncAgain {
+        syncAgain = false
+        fetchN = fetchN + 1
+      }
+    }
   }
-  on fetched {
-    synced = value == "done" ? now : synced
+  // Every "sync now", pull and connect is one ask; while a fetch runs it becomes a
+  // follow-up, never a second process over the same file.
+  on syncAsk first {
+    if value > 0 {
+      if syncing { syncAgain = true } else { fetchN = fetchN + 1 }
+    }
+  }
+
+  // `wants` is a list of changes as JSON: a tap appends one, and this queues the
+  // first. A list, not one value, so two taps in a row can't overwrite each other.
+  on wants first {
+    if len(wants) > 0 {
+      let want = first(wants) ?? ""
+      let o = parseJson(want)
+      if o != null && o.mode != null && (o.mode != "bulk" || len(o.ids ?? []) > 0) {
+        opSeq = opSeq + 1
+        let ids = o.mode == "bulk" ? (o.ids ?? []) : o.mode == "change" && o.id != null ? [o.id] : []
+        saving = reduce(ids, (acc, id) => set(acc, id, get(acc, id, 0) + 1), saving)
+        okIds = reduce(ids, (acc, id) => remove(acc, id), okIds)
+        failed = reduce(ids, (acc, id) => remove(acc, id), failed)
+        retry = reduce(ids, (acc, id) => remove(acc, id), retry)
+        if o.patch != null {
+          override = reduce(ids, (acc, id) => set(acc, id, merge(get(acc, id, {}), o.patch)), override)
+        }
+        let op = merge(o, {n: opSeq})
+        sent = set(sent, "${opSeq}", op)
+        if current == null { current = op } else { pending = pending + [op] }
+        if o.mode == "bulk" { picked = []; picking = false }
+        notice = ""
+        lastErr = ""
+      }
+      wants = drop(wants, 1)
+    }
+  }
+
+  // A change's end: a success marks the bookmark saved; a refusal says the server's
+  // own words, puts the old value back, and offers a retry. Bulk failures name only
+  // the ids the server refused, so the rest stay changed.
+  on ran first {
+    let out = trim(value ?? "")
+    if out != "" && out != "idle" {
+      // The command prints "number exit-code", the server's first error line, then
+      // "@@IDS@@" and the ids it refused: all in one value, so the handler never
+      // reads a file the helper may not have finished writing.
+      let parts = split(out, "@@IDS@@")
+      let head = trim(parts[0] ?? "")
+      let tail = len(parts) > 1 ? parts[1] : ""
+      let w = words(head)
+      let n = num(w[0] ?? "0")
+      let code = w[1] ?? ""
+      let op = current != null && n == current.n ? current : get(sent, "${n}", null)
+      if op != null {
+        sent = remove(sent, "${n}")
+        let ids = op.mode == "bulk" ? (op.ids ?? []) : op.mode == "change" ? [op.id] : []
+        if code == "0" {
+          saving = reduce(ids, (acc, id) => set(acc, id, max(0, get(acc, id, 0) - 1)), saving)
+          okIds = reduce(ids, (acc, id) => set(acc, id, true), okIds)
+          failed = reduce(ids, (acc, id) => remove(acc, id), failed)
+          retry = reduce(ids, (acc, id) => remove(acc, id), retry)
+          notice = op.mode == "bulk" ? "changed" : op.mode == "import" ? "imported" : op.mode == "add" ? "link saved" : op.mode == "labelrm" ? "label deleted" : "saved"
+          lastErr = ""
+          lastOpAt = now
+          if op.mode == "import" {
+            // An import is the whole library: no old optimistic value may hide it.
+            override = {}
+            okIds = {}
+            saving = {}
+            failed = {}
+            retry = {}
+          }
+          if op.mode == "add" || op.mode == "labelrm" {
+            if syncing { syncAgain = true } else { fetchN = fetchN + 1 }
+          }
+        } else {
+          // Everything after the number and the exit code is the server's answer;
+          // the ids, if any, come after @@IDS@@.
+          let rawMsg = trim(join(drop(lines(head), 1), " "))
+          if rawMsg == "" && (op.mode == "change" || op.mode == "bulk") && (op.tries ?? 0) < 2 {
+            // No words from the script means it was killed or timed out, not refused:
+            // whether the server took the change is unknown, so queue it again (the
+            // same PATCH twice is harmless, and the journal replays it either way)
+            // and keep showing "saving", instead of calling it failed and putting
+            // the old value back over a change the server may well have kept.
+            saving = reduce(ids, (acc, id) => set(acc, id, max(0, get(acc, id, 0) - 1)), saving)
+            wants = wants + [toJson(merge(op, {tries: (op.tries ?? 0) + 1}))]
+            if current != null && n == current.n {
+              current = len(pending) > 0 ? first(pending) : null
+              pending = drop(pending, 1)
+            }
+          } else {
+            let msg = rawMsg == "" ? "interrupted; tap retry" : replace(rawMsg, "readeck: ", "")
+            let bad = lines(tail).filter(l => l != "" && l != "@@IDS@@")
+            let badIds = len(bad) > 0 ? bad : ids
+            saving = reduce(ids, (acc, id) => set(acc, id, max(0, get(acc, id, 0) - 1)), saving)
+            okIds = reduce(badIds, (acc, id) => remove(acc, id), okIds)
+            failed = reduce(badIds, (acc, id) => set(acc, id, msg), failed)
+            override = reduce(badIds, (acc, id) => remove(acc, id), override)
+            retry = reduce(badIds, (acc, id) => op.mode == "bulk" || op.mode == "change" ? set(acc, id, {mode: "change", id: id, json: op.json, patch: op.patch}) : remove(acc, id), retry)
+            lastErr = msg
+            notice = ""
+            if op.mode == "import" {
+              // It may have replaced the library before failing on a picture.
+              override = {}
+              okIds = {}
+              saving = {}
+              failed = {}
+              retry = {}
+            }
+          }
+        }
+        if current != null && n == current.n {
+          current = len(pending) > 0 ? first(pending) : null
+          pending = drop(pending, 1)
+        }
+      }
+    }
+  }
+
+  // A single change with a server goes out from the phone itself, so no process on
+  // the Linux side can die between the tap and the server: the queue's `current`
+  // says what to send, and the answer lands in `opResult`.
+  on current first {
+    if current != null && !offline {
+      if current.mode == "change" {
+        opResult = post(server + "/api/bookmarks/" + enc(current.id), parseJson(current.json), {Authorization: "Bearer ${token}"}, method: "PATCH")
+      } else if current.mode == "add" {
+        opResult = post(server + "/api/bookmarks", {url: current.id}, {Authorization: "Bearer ${token}"}, method: "POST")
+      }
+    }
+  }
+  // The server's answer: the row's tick or its reason, then the queue moves on.
+  // The optimistic value stays until a quiet sync proves it, as before.
+  on opResult first {
+    if opResult != null && current != null {
+      let op = current
+      sent = remove(sent, "${op.n}")
+      let ids = op.mode == "change" ? [op.id] : []
+      if opResult.ok {
+        saving = reduce(ids, (acc, id) => set(acc, id, max(0, get(acc, id, 0) - 1)), saving)
+        okIds = reduce(ids, (acc, id) => set(acc, id, true), okIds)
+        failed = reduce(ids, (acc, id) => remove(acc, id), failed)
+        retry = reduce(ids, (acc, id) => remove(acc, id), retry)
+        notice = op.mode == "add" ? "link saved" : op.mode == "labelrm" ? "label deleted" : "saved"
+        lastErr = ""
+        lastOpAt = now
+        if op.mode == "add" || op.mode == "labelrm" {
+          if syncing { syncAgain = true } else { fetchN = fetchN + 1 }
+        }
+      } else {
+        let msg = opResult.code == -1 ? "no answer from the server; tap retry" : opResult.code == 401 || opResult.code == 403 ? "the token isn't accepted (${opResult.code})" : opResult.out != null && opResult.out.message != null ? opResult.out.message : opResult.err != null && opResult.err != "" ? opResult.err : "the server answered ${opResult.code}"
+        saving = reduce(ids, (acc, id) => set(acc, id, max(0, get(acc, id, 0) - 1)), saving)
+        okIds = reduce(ids, (acc, id) => remove(acc, id), okIds)
+        failed = reduce(ids, (acc, id) => set(acc, id, msg), failed)
+        override = reduce(ids, (acc, id) => remove(acc, id), override)
+        retry = reduce(ids, (acc, id) => op.mode == "change" ? set(acc, id, {mode: "change", id: id, json: op.json, patch: op.patch}) : remove(acc, id), retry)
+        lastErr = msg
+        notice = ""
+      }
+      current = len(pending) > 0 ? first(pending) : null
+      pending = drop(pending, 1)
+      opResult = null
+    }
   }
 
   // The article's text, as the reader draws it (owl-readeck-read, through the script):
@@ -740,10 +1260,10 @@ echo ready""") every 1h
   // Claude Code, when it's installed, for a summary and for tidying the text. It is not
   // local: it sends the article's text to Anthropic, on the user's Claude account, and
   // only when a button asks. Both are made once per article and kept, and neither is
-  // needed to read. The check only looks for the program.
+  // needed to read.
   source aiCheck = cmd(!helpers ? "echo no" : "owl-readeck ai-check 2>/dev/null || echo no") every 15m
   let aiOk = startsWith(aiCheck ?? "", "ok")
-  // The harness's name, for the buttons and the line saying where the text goes.
+  // The harness's name, for the buttons: Claude Code, which sends the text to Anthropic.
   let aiName = "Claude Code"
   // What the harness made of this article: a summary, and the tidied text.
   source madeSummary = file("~/.cache/omalauncher/readeck-ai/${readId}.summary")
@@ -751,7 +1271,23 @@ echo ready""") every 1h
   let summary = trim(madeSummary ?? "")
   let prettied = lines(madePretty).map(l => parseJson(l)).filter(p => p != null)
   let para = pretty && len(prettied) > 0 ? prettied : plain
+  // The reader is paged: `where` keeps the paragraph each article was left at, and a
+  // page is `pageLen` of them. A long piece opens where it was left, and the pager
+  // moves a page at a time instead of leaving the whole article to scroll from the top.
+  let pageLen = 12
+  let atNow = find(where, w => w.id == readId) ?? {id: readId, i: 0}
+  let pageStart = clamp(pageLen * floor(atNow.i / pageLen), 0, max(0, len(para) - 1))
+  let pageCount = max(1, ceil(len(para) / pageLen))
+  let pageNo = floor(pageStart / pageLen) + 1
+  // The detail column is keyed by this: a new page, a new article or switching to or
+  // from reading builds it again, which starts its scroll at the top of the reader.
+  let viewKey = readId + ":" + (reading ? "read:" : "details:") + "${pageNo}"
+  let shown = drop(para, pageStart).take(pageLen)
+  let readPct = len(para) == 0 ? 0 : (pageStart + len(shown)) / len(para) * 100
   let needle = lower(trim(query))
+  // What's typed but not sent yet: the list narrows on titles, sites and labels as you
+  // type (no command runs), and only Enter looks through the articles' own text.
+  let typedNeedle = lower(trim(typed))
   // The articles whose own text holds the search's words: the script looks through the
   // text it saved (no shell tools beyond grep), and says which ids match.
   source textHits = cmd(!helpers || needle == "" ? "echo" : "owl-readeck find ${sh(needle)}") every 1m
@@ -769,19 +1305,22 @@ echo ready""") every 1h
   }
 
   // Off the server, or from the export (importing one writes its articles' text too).
-  source got = cmd(!helpers || readId == "" ? "echo idle" : "owl-readeck read ${sh(server)} ${sh(token)} ${sh(readId)} >/dev/null 2>&1; echo done") every 5m
+  source got = cmd(!helpers || readId == "" ? "echo idle" : "owl-readeck read ${sh(server)} ${sh(token)} ${sh(readId)} >/dev/null 2>&1; echo done") every 5m timeout 60s
 
   // Each bookmark as one text line, so a broken one can't hide the rest: id, title, url,
   // site, favorite, archived, progress (null without it in the export), labels, and what
   // its page shows: description, authors, language, length, date, pictures.
-  let all = range(len(lines(lib))).filter(i => parseJson(lines(lib)[i]) != null).map(i => parseJson(lines(lib)[i])).filter(b => b.id != null && b.is_deleted != true).map(b => {id: "${b.id}", title: b.title ?? "", url: b.url ?? "", site: b.site_name ?? "", fav: b.is_marked == true, arch: b.is_archived == true, prog: b.read_progress, labels: join(b.labels ?? [], ", "), note: b.note ?? "", desc: b.description ?? "", authors: join(b.authors ?? [], ", "), lang: b.lang ?? "", mins: b.reading_time, words: b.word_count, when: b.published ?? b.created, added: b.created, icon: b.site_icon ?? "", thumb: b.thumbnail ?? b.image ?? ""})
+  let parsed = lines(lib).map(l => parseJson(l)).filter(b => b != null && b.id != null)
+  let all = parsed.map(b => merge(b, get(override, "${b.id}", {}))).filter(b => b.is_deleted != true).map(b => {id: "${b.id}", title: b.title ?? "", url: b.url ?? "", site: b.site_name ?? "", fav: b.is_marked == true, arch: b.is_archived == true, prog: b.read_progress, labels: join(b.labels ?? [], ", "), note: b.note ?? "", desc: b.description ?? "", authors: join(b.authors ?? [], ", "), lang: b.lang ?? "", mins: b.reading_time, words: b.word_count, when: b.published ?? b.created, added: b.created, icon: b.site_icon ?? "", thumb: b.thumbnail ?? b.image ?? "", dtype: b.document_type ?? ""})
 
   let item = all.find(b => b.id == readId) ?? {}
-  // The tab's bookmarks, then the label picked, then the words searched for.
-  let tabbed = all.filter(b => view == "favorite" ? b.fav : view == "archived" ? b.arch : view == "unread" ? b.prog != 100 && !b.arch : !b.arch)
+  // The label picked (every bookmark with it, archived or not), else the tab's bookmarks;
+  // then the words searched for, in the page's facts and in the articles' own text.
+  let tabbed = label != "" ? all.filter(b => contains(lower(", " + b.labels + ","), ", " + lower(label) + ","))
+    : all.filter(b => view == "favorite" ? b.fav : view == "archived" ? b.arch : view == "unread" ? b.prog != 100 && !b.arch : !b.arch)
   let filtered = tabbed.filter(b =>
-    (label == "" || contains(lower(", " + b.labels + ","), ", " + lower(label) + ",")) &&
-    (needle == "" || contains(lower(b.title + " " + b.site + " " + b.labels + " " + b.url + " " + b.desc + " " + b.authors + " " + (hits.any(id => id == b.id) ? "text" : "")), needle)))
+    (typedNeedle == "" || contains(lower(b.title + " " + b.site + " " + b.labels + " " + b.url + " " + b.desc + " " + b.authors), typedNeedle)) &&
+    (needle == "" || contains(lower(b.title + " " + b.site + " " + b.labels + " " + b.url + " " + b.desc + " " + b.authors), needle) || hits.any(id => id == b.id)))
   let seen = (sort == "title" ? filtered.sortBy(b => lower(b.title))
     : sort == "length" ? filtered.sortBy(b => -(b.mins ?? 0))
     : sort == "shortest" ? filtered.sortBy(b => b.mins ?? 9999)
@@ -803,83 +1342,171 @@ echo ready""") every 1h
   let labelNames = unique((flatten(all.map(b => split(b.labels, ", "))) + (parseJson(serverLabels) ?? []).map(l => l.name ?? "")).filter(l => l != "")).sortBy(l => lower(l))
   let labels = labelNames.map(l => {name: l, count: all.count(b => contains(lower(", " + b.labels + ","), ", " + lower(l) + ","))})
   let offline = server == "" || token == ""
-  // What the last change got back: "ok" from the script or "failed", then why.
-  let saved = ran == "ok" ? "saved" : ran == "failed" ? (lastErr == "" ? "couldn't do it" : lastErr) : ""
-
-  // A fetch that worked clears the last message.
-  on fetched first {
-    if value == "done" { todoMode = "" }
-  }
-  // A change to give every picked bookmark goes out as one command of its own: a button
-  // sets `bulkFor` to the change, and this sends it to each pick, keeping the first error.
-  on bulkFor first {
-    if value != "" && picked != [] {
-      // The picks go into the change before the pick is cleared.
-      todoIds = picked
-      todoJson = value
-      todoMode = "bulk"
-      bulkFor = ""
-      picked = []
-      picking = false
-      changedId = ""
-    }
-  }
-  // A change that worked brings the list up to date; one that failed says why, in the
-  // script's own words (read back from its error file).
-  on ran {
-    if value == "ok" {
-      lastErr = ""
-      said = ""
-      todoMode = ""
-      fetchN = fetchN + 1
-    } else if value == "failed" {
-      lastErr = first(lines(fileErr)) ?? "couldn't do it"
-      todoMode = ""
-    } else if value == "" {
-      lastErr = "the server took too long"
-      todoMode = ""
-      fetchN = fetchN + 1
-    }
-  }
-  source fileErr = file("~/.cache/omalauncher/readeck-last.err")
 
   component Tab(name, count) {
     Column {
       weight: 1
-      gap: 2
-      padding: [6, 8]
-      radius: 8 * corners
+      gap: 3
+      padding: [8, 9]
+      radius: 10 * corners
       align: center
       background: view == name && label == "" ? alpha(foreground, 0.10) : null
-      onTap: { view = name; label = ""; typed = ""; haptic() }
-      Text { text: name; style: small; align: center; maxLines: 1; bold: view == name && label == ""; color: view == name && label == "" ? foreground : muted }
-      Text { text: count > 999 ? "${floor(count / 1000)}k" : "${count}"; style: label; align: center; color: muted }
+      onTap: { view = name; label = ""; typed = ""; query = ""; notice = ""; haptic() }
+      Text { text: name; style: body; fontSize: 15; align: center; maxLines: 1; bold: view == name && label == ""; color: view == name && label == "" ? foreground : muted }
+      Text { text: count > 999 ? "${floor(count / 1000)}k" : "${count}"; style: label; fontSize: 12; align: center; color: muted }
     }
   }
 
-  // An entry in the list: the site's icon and the story's picture, its title, the site
-  // and labels, how long a read it is and how old, and a tick when it's picked for a
-  // bulk change. Tapping opens it; the button at its end archives or unarchives it,
-  // which is the one change worth a single tap from the list (it is reversible).
-  component Entry(b) {
-    Row {
-      gap: 10
-      align: top
-      padding: [10, 9]
-      radius: 8 * corners
-      background: picked.any(id => id == b.id) ? alpha(accent, 0.12) : alpha(foreground, 0.04)
+  // A change the server refused: one tap queues the same change again, now that the
+  // old value is back on show.
+  component Retry(id) {
+    Text {
+      text: "retry"
+      style: label
+      color: red
+      padding: [2, 4]
+      maxLines: 1
       onTap: {
-        if picking {
-          picked = picked.any(id => id == b.id) ? picked.filter(id => id != b.id) : picked + [b.id]
-        } else {
-          readId = b.id
-          editing = false
-          confirmId = ""
-          reading = true
+        let op = get(retry, id, null)
+        if op != null {
+          wants = wants + [toJson(op)]
           haptic()
-          if b.prog != 100 { changedId = b.id; todoMode = "change"; todoJson = "{\"read_progress\":100}"; todoIds = [b.id] }
         }
       }
+    }
+  }
+
+  // An entry in the list: the story's picture or the site's icon (never both, so a
+  // long list stays under the image limit), its title, the site and labels, how long a
+  // read it is and how old, what its change is doing, and a tick when it's picked for a
+  // bulk change. Tapping opens it; a left swipe archives or restores it, a right swipe
+  // marks it read or unread. The action's tab shows at the edge while the row moves.
+  component Entry(b) {
+    Box {
+      fill: width
+      radius: 8 * corners
+      clip: true
+      // The strip's colour is the row's own background: the content slides over it
+      // and uncovers it at the edge the finger opens, deepening as the swipe nears
+      // the point where letting go does the action.
+      background: swipeId == b.id && swipeX > 0
+        ? linear(0, 0, 1, 0, range(31).map(i => i / 30 <= 0.26 ? mix(background, accent, 0.14 + 0.30 * min(1, abs(swipeX) / 88)) : mix(background, foreground, 0.04)))
+        : swipeId == b.id && swipeX < 0
+        ? linear(0, 0, 1, 0, range(31).map(i => i / 30 >= 0.74 ? mix(background, red, 0.12 + 0.30 * min(1, abs(swipeX) / 88)) : mix(background, foreground, 0.04)))
+        : mix(background, foreground, 0.04)
+      // The action tabs ride in from the edges on the same spring as the content, so
+      // each label arrives with the row it belongs to instead of sitting over it;
+      // a row left open keeps its tab uncovered, to tap.
+      Row {
+        fill: width
+        align: center
+        Box {
+          width: 96
+          height: 56
+          align: center
+          offset: [swipeId == b.id && swipeX > 0 ? swipeX - 96 : -96, 0]
+          animate offset: spring(0.85, 500)
+          onTap: {
+            wants = wants + [toJson({mode: "change", id: b.id, json: b.prog == 100 ? "{\"read_progress\":0}" : "{\"read_progress\":100}", patch: {read_progress: b.prog == 100 ? 0 : 100}})]
+            swipeId = ""
+            swipeX = 0
+            haptic()
+          }
+          Text { text: b.prog == 100 ? "mark unread" : "mark read"; style: label; color: foreground; maxLines: 1; align: center; padding: [0, 8] }
+        }
+        Spacer { weight: 1 }
+        Box {
+          width: 96
+          height: 56
+          align: center
+          offset: [swipeId == b.id && swipeX < 0 ? swipeX + 96 : 96, 0]
+          animate offset: spring(0.85, 500)
+          onTap: {
+            wants = wants + [toJson({mode: "change", id: b.id, json: b.arch ? "{\"is_archived\":false}" : "{\"is_archived\":true}", patch: {is_archived: !b.arch}})]
+            swipeId = ""
+            swipeX = 0
+            haptic()
+          }
+          Text { text: b.arch ? "restore" : "archive"; style: label; color: foreground; maxLines: 1; align: center; padding: [0, 8] }
+        }
+      }
+      Row {
+        let st = get(saving, b.id, 0) > 0 ? "saving" : get(failed, b.id, "") != "" ? "failed" : get(okIds, b.id, false) ? "saved" : ""
+        fill: width
+        gap: 10
+        align: top
+        padding: [10, 9]
+        radius: 8 * corners
+        // Opaque, so the content hides the tabs where it still covers them.
+        background: picked.any(id => id == b.id) ? mix(background, accent, 0.12) : mix(background, foreground, 0.04)
+        // Sideways only: the list still scrolls up and down under a finger on a row.
+        offset: [swipeId == b.id ? swipeX : 0, 0]
+        animate offset: spring(0.85, 500)
+        drag: horizontal
+        onDrag: {
+          if !picking {
+            if swipeId != b.id {
+              swipeId = b.id
+              swipeX = 0
+            }
+            let was = abs(swipeX)
+            swipeX = clamp(swipeX + dx, -96, 96)
+            // A tick when the swipe reaches "let go and it happens", so the thumb
+            // knows the difference between opening the row and doing the action.
+            if was < 88 && abs(swipeX) >= 88 { haptic() }
+          }
+        }
+        onDragEnd: {
+          if swipeId == b.id {
+            // Past the mark (or flung) the action runs at once; a shorter swipe leaves
+            // the row open on its actions, to tap or to drag back.
+            let archive = swipeX <= -88 || (vx < -500 && swipeX < -24)
+            let mark = swipeX >= 88 || (vx > 500 && swipeX > 24)
+            if archive {
+              wants = wants + [toJson({mode: "change", id: b.id, json: b.arch ? "{\"is_archived\":false}" : "{\"is_archived\":true}", patch: {is_archived: !b.arch}})]
+              swipeId = ""
+              swipeX = 0
+              haptic()
+            } else if mark {
+              wants = wants + [toJson({mode: "change", id: b.id, json: b.prog == 100 ? "{\"read_progress\":0}" : "{\"read_progress\":100}", patch: {read_progress: b.prog == 100 ? 0 : 100}})]
+              swipeId = ""
+              swipeX = 0
+              haptic()
+            } else if swipeX < -24 {
+              swipeX = -96
+            } else if swipeX > 24 {
+              swipeX = 96
+            } else {
+              swipeId = ""
+              swipeX = 0
+            }
+          }
+        }
+        // A long press picks without leaving the list; a tap opens, or picks while picking.
+        onLongPress: {
+          picking = true
+          picked = picked.any(id => id == b.id) ? picked.filter(id => id != b.id) : picked + [b.id]
+          haptic()
+        }
+        onTap: {
+          if swipeId == b.id && swipeX != 0 {
+            // A tap on an open row closes its actions before it opens the bookmark.
+            swipeId = ""
+            swipeX = 0
+          } else if picking {
+            picked = picked.any(id => id == b.id) ? picked.filter(id => id != b.id) : picked + [b.id]
+          } else {
+            notice = ""
+            lastErr = ""
+            readId = b.id
+            editing = false
+            confirmId = ""
+            reading = true
+            swipeId = ""
+            swipeX = 0
+            haptic()
+          }
+        }
       Box {
         width: 6
         height: 52
@@ -893,17 +1520,30 @@ echo ready""") every 1h
         Row {
           gap: 6
           align: center
-          if b.icon != "" {
+          if b.icon != "" && b.thumb == "" {
             Box { width: 14; height: 14; Image { src: b.icon; fill: true; fit: contain } }
           }
-          // A width, not a weight: beside a sized Box a weighted Text is squeezed to nothing.
-          Text { text: b.site; style: small; color: muted; maxLines: 1; width: 150 }
-          Spacer { weight: 1 }
-          if b.mins != null {
-            Text { text: "${b.mins} min"; style: label; color: muted; maxLines: 1; width: 46; align: end }
+          // What kind of thing was saved: the official app keeps videos and pictures
+          // beside articles, and says so on the row.
+          if b.dtype == "video" {
+            Text { text: "▶"; style: small; color: accent; maxLines: 1 }
+          } else if b.dtype == "image" {
+            Text { text: "▣"; style: small; color: accent; maxLines: 1 }
           }
-          if b.when != null {
-            Text { text: fmtAgo(parseTime(b.when), now); style: label; color: muted; maxLines: 1; width: 40; align: end }
+          // The site takes the free width; length and age share one label at the end.
+          Text { text: b.site; style: small; color: muted; maxLines: 1; weight: 1 }
+          if b.note != "" {
+            Text { text: "✎"; style: small; color: muted; maxLines: 1 }
+          }
+          // One right-aligned label for both, so the site keeps the width it can.
+          Text {
+            text: "${b.mins != null ? "${b.mins}m" : ""}${b.mins != null && b.when != null ? " · " : ""}${b.when != null ? fmtAgo(parseTime(b.when), now) : ""}"
+            style: label
+            color: muted
+            maxLines: 1
+            width: 66
+            align: end
+            visible: b.mins != null || b.when != null
           }
         }
         // The authors when they're not just the site's name; else the labels.
@@ -912,52 +1552,51 @@ echo ready""") every 1h
         } else if b.labels != "" {
           Text { text: b.labels; style: label; color: accent; maxLines: 1 }
         }
+        // How far into a piece you got, for one you started and didn't finish.
+        if b.prog > 0 && b.prog < 100 {
+          Progress { value: b.prog; height: 2; color: accent; radius: 1 }
+        }
+        // What the last change to this bookmark is doing.
+        if st == "saving" {
+          Text { text: "saving…"; style: label; color: accent; maxLines: 1 }
+        } else if st == "failed" {
+          Row {
+            gap: 6
+            Text { text: get(failed, b.id, "couldn't save"); style: label; color: red; maxLines: 3; weight: 1 }
+            Retry { id: b.id }
+          }
+        } else if st == "saved" {
+          Text { text: "✓ saved"; style: label; color: green; maxLines: 1 }
+        }
       }
       if b.thumb != "" {
         Box { width: 76; height: 52; radius: 6 * corners; clip: true; Image { src: b.thumb; fill: true; fit: cover } }
       } else if b.fav {
         Text { text: "★"; color: orange; width: 20; align: end; maxLines: 1 }
       }
-      // Archive, or bring one back: a tap here, not on the row, so it never opens the
-      // bookmark. It says what it did beside the row until the list is fetched again.
-      // Archive, or bring one back: a box on the row's end, away from its text so a
-      // tap here never opens the bookmark. A picture in the row leaves no room for
-      // the word, so there it is one glyph; the title keeps the width either way.
-      Box {
-        width: b.thumb != "" ? 40 : 62
-        height: 40
-        align: center
-        radius: 6 * corners
-        background: changedId == b.id && !picking ? alpha(accent, 0.18) : alpha(foreground, 0.06)
-        onTap: {
-          changedId = b.id
-          todoMode = "change"
-          todoJson = b.arch ? "{\"is_archived\":false}" : "{\"is_archived\":true}"
-          todoIds = [b.id]
-          haptic()
-        }
-        Text {
-          text: b.arch ? "↺" : "⌸"
-          fontSize: 15
-          color: b.arch ? muted : accent
-          align: center
-          maxLines: 1
-        }
-      }
       if picked.any(id => id == b.id) {
         Text { text: "✓"; color: accent; width: 20; align: end; maxLines: 1 }
       } else if b.thumb != "" && b.fav {
         Text { text: "★"; color: orange; width: 16; align: end; maxLines: 1 }
+      }
       }
     }
   }
 
   component List(rows, loading) {
     Column {
-      scroll: true
+      // lazy: only the rows in view are built, so a library of a thousand opens at the
+      // same speed as a short one; a pull at the top fetches it again.
+      lazy: true
       weight: 1
       gap: 6
-      padding: [4, 8, 12, 8]
+      padding: [12, 4, 12, 12]
+      onPull: {
+        notice = ""
+        lastErr = ""
+        syncAsk = syncAsk + 1
+        haptic()
+      }
       if loading {
         // The first run, and until something is there: both ways in, whichever fits.
         Column {
@@ -966,17 +1605,28 @@ echo ready""") every 1h
           Text { text: offline ? "Nothing to read yet." : "Fetching your bookmarks…"; style: body; color: muted }
           if offline {
             Text { text: "Point the app at your Readeck server, and its API token, to fetch your library. Or import an export of it, to read offline."; style: small; color: muted }
-            Button { text: "connect a server"; color: accent; onTap: { view = "setup"; haptic() } }
+            Button { text: "connect a server"; color: accent; onTap: { draftBase = base; draftToken = token; view = "setup"; haptic() } }
           } else {
             Text { text: "The app's library is empty. Fetch the list, or import an export of yours."; style: small; color: muted }
-            Button { text: "fetch now"; color: muted; onTap: { fetchN = fetchN + 1; haptic() } }
+            Button { text: "fetch now"; color: muted; onTap: { notice = ""; syncAsk = syncAsk + 1; haptic() } }
           }
-          Text { text: "Import an export: the zip, or the folder it unzips to"; style: label; color: muted }
-          Input { placeholder: "/path/to/readeck-export.zip"; onSubmit: { imported = run("owl-readeck import-file ${sh(value)}") } }
+          Text { text: "Import an export (its data.json, or the zip)"; style: label; color: muted }
+          Input { placeholder: "/path/to/data.json or .zip"; clear: true; onSubmit: { notice = ""; wants = wants + [toJson({mode: "import", id: trim(value)})] } }
+          if current != null && current.mode == "import" {
+            Text { text: "importing…"; style: label; color: accent }
+          }
         }
       }
       if !loading && len(rows) == 0 {
-        Text { text: needle == "" ? "nothing here" : "nothing found"; color: muted; style: small; padding: [8, 4] }
+        Column {
+          gap: 6
+          padding: [12, 18]
+          Text { text: typed != "" || query != "" ? "nothing found for “${trim(typed != "" ? typed : query)}”" : label != "" ? "nothing under this label" : "nothing here"; color: muted; style: small }
+          if typed != "" || query != "" {
+            Text { text: "enter searches the articles' own text too, not just titles"; color: muted; style: label; visible: query == "" }
+            Text { text: "clear the search"; style: label; color: accent; padding: [4, 0]; onTap: { typed = ""; query = ""; haptic() } }
+          }
+        }
       }
       for r, i in rows key r.b.id {
         if r.h != "" && (i == 0 || rows[i - 1].h != r.h) {
@@ -994,11 +1644,125 @@ echo ready""") every 1h
 
     if readId != "" && len(all) > 0 {
       // One bookmark.
+      for k in [viewKey] key k {
       Column {
         scroll: true
         fill: true
-        gap: 10
+        gap: readGap == 0 ? 8 : readGap == 1 ? 12 : 16
         padding: [12, 8]
+        // The paragraphs kept highlighted here, and the space between them the
+        // spacing control asks for.
+        let hlList = get(hl, readId, [])
+        let pgap = readGap == 0 ? 2 : readGap == 1 ? 6 : 12
+        // The reader: the article's text, as the script pulled it out of its page, at the
+        // size chosen, opened where you stopped last time.
+        if reading {
+          Column {
+            gap: 10
+            padding: [4, 0]
+            if len(para) == 0 {
+              // A video or a picture has no text to draw: the official app saves them
+              // to open in their own place, and says what they are.
+              Text { text: item.dtype == "video" ? "A video, saved for later: watch it in the browser." : item.dtype == "image" ? "A picture, saved for later: see it in the browser." : offline ? "This article's text isn't saved. Import an export of your library to read it here." : article != null && trim(article) == "" ? "This page has no readable text: open it in the browser." : "Fetching the article…"; style: small; color: muted }
+              if item.dtype == "video" || item.dtype == "image" {
+                Button { text: "open it"; color: accent; onTap: url(item.url) }
+              }
+            } else {
+              // How the text is set: the page, its size, its font and its spacing,
+              // as the official app's typography controls, and the way back to the
+              // article's details.
+              Row {
+                gap: 6
+                align: center
+                wrap: true
+                Text { text: "page ${pageNo} of ${pageCount}"; style: label; color: muted; weight: 1; maxLines: 1 }
+                Text { text: "A−"; style: small; color: muted; padding: [4, 8]; onTap: { textSize = clamp(textSize - 2, 12, 26); haptic() } }
+                Text { text: "${textSize}"; style: label; color: muted; width: 30; align: center }
+                Text { text: "A+"; style: body; color: muted; padding: [4, 8]; onTap: { textSize = clamp(textSize + 2, 12, 26); haptic() } }
+                Text { text: readFont == "serif" ? "serif" : "sans"; style: label; color: muted; padding: [4, 8]; onTap: { readFont = readFont == "serif" ? "sans" : "serif"; haptic() } }
+                Text { text: readGap == 0 ? "compact" : readGap == 1 ? "cozy" : "wide"; style: label; color: muted; padding: [4, 8]; onTap: { readGap = (readGap + 1) % 3; haptic() } }
+                // The reader is first while reading; this gets back to the article's details.
+                Text { text: "details"; style: label; color: muted; padding: [4, 6]; onTap: { reading = false; haptic() } }
+              }
+              Progress { value: readPct; height: 3; color: accent; radius: 2 }
+              if len(hlList) == 0 {
+                Text { text: "long-press a paragraph to highlight it"; style: label; color: muted; maxLines: 1 }
+              }
+              for p, i in shown key i {
+                if p.k == "h" {
+                  // a section heading: larger than the text, but not a page title
+                  Text { text: p.t; style: body; bold: true; fontSize: textSize + 3; font: readFont; padding: [pgap + 8, 2, 2, 2]; radius: 4 * corners; background: hlList.any(x => x == i) ? alpha(accent, 0.16) : null; onLongPress: { hl = set(hl, readId, hlList.any(x => x == i) ? hlList.filter(x => x != i) : hlList + [i]); haptic() } }
+                } else if p.k == "q" {
+                  Text { text: p.t; style: body; fontSize: textSize; font: readFont; italic: true; color: muted; padding: [pgap + 2, 10]; radius: 4 * corners; background: hlList.any(x => x == i) ? alpha(accent, 0.16) : alpha(foreground, 0.05); onLongPress: { hl = set(hl, readId, hlList.any(x => x == i) ? hlList.filter(x => x != i) : hlList + [i]); haptic() } }
+                } else if p.k == "li" {
+                  Row {
+                    gap: 6
+                    padding: [pgap, 2]
+                    radius: 4 * corners
+                    background: hlList.any(x => x == i) ? alpha(accent, 0.16) : null
+                    onLongPress: { hl = set(hl, readId, hlList.any(x => x == i) ? hlList.filter(x => x != i) : hlList + [i]); haptic() }
+                    Text { text: "•"; style: body; fontSize: textSize; font: readFont; color: muted; width: 10 }
+                    Text { text: p.t; style: body; fontSize: textSize; font: readFont; weight: 1 }
+                  }
+                } else if p.k == "img" {
+                  // A picture in the article, localised by the helper so it reads
+                  // offline; contained, not cropped, so diagrams stay whole.
+                  Box {
+                    fill: width
+                    height: 240
+                    radius: 6 * corners
+                    clip: true
+                    background: alpha(foreground, 0.04)
+                    onLongPress: { hl = set(hl, readId, hlList.any(x => x == i) ? hlList.filter(x => x != i) : hlList + [i]); haptic() }
+                    Image { src: p.t; fill: true; fit: contain }
+                  }
+                } else if p.k == "fig" {
+                  Text { text: p.t; style: small; color: muted; padding: [pgap, 2]; radius: 4 * corners; background: hlList.any(x => x == i) ? alpha(accent, 0.16) : null; onLongPress: { hl = set(hl, readId, hlList.any(x => x == i) ? hlList.filter(x => x != i) : hlList + [i]); haptic() } }
+                } else {
+                  Text { text: p.t; style: body; fontSize: textSize; font: readFont; padding: [pgap, 2]; radius: 4 * corners; background: hlList.any(x => x == i) ? alpha(accent, 0.16) : null; onLongPress: { hl = set(hl, readId, hlList.any(x => x == i) ? hlList.filter(x => x != i) : hlList + [i]); haptic() } }
+                }
+              }
+              // A page at a time, the position kept per article so the next open starts
+              // here. At the last page, the way on is to finish it: mark it read.
+              Row {
+                gap: 8
+                align: center
+                Button {
+                  text: "‹ back"
+                  color: pageNo > 1 ? foreground : muted
+                  onTap: {
+                    if pageNo > 1 {
+                      where = where.filter(w => w.id != readId) + [{id: readId, i: max(0, pageStart - pageLen)}]
+                      haptic()
+                    }
+                  }
+                }
+                Spacer { weight: 1 }
+                Button {
+                  text: "next ›"
+                  color: pageNo < pageCount ? accent : muted
+                  onTap: {
+                    if pageNo < pageCount {
+                      where = where.filter(w => w.id != readId) + [{id: readId, i: pageStart + pageLen}]
+                      haptic()
+                    }
+                  }
+                }
+              }
+              if pageNo == pageCount && item.prog != 100 {
+                Button {
+                  text: "finish: mark read"
+                  color: accent
+                  onTap: {
+                    wants = wants + [toJson({mode: "change", id: item.id, json: "{\"read_progress\":100}", patch: {read_progress: 100}})]
+                    haptic()
+                  }
+                }
+              }
+              Spacer { height: 8 }
+            }
+          }
+        }
         // The story's own picture, full width, when its page has one.
         if item.thumb != "" {
           Box { fill: width; height: 190; radius: 8 * corners; clip: true; Image { src: item.thumb; fill: true; fit: cover } }
@@ -1010,6 +1774,11 @@ echo ready""") every 1h
           align: center
           if item.icon != "" {
             Box { width: 14; height: 14; Image { src: item.icon; fill: true; fit: contain } }
+          }
+          if item.dtype == "video" {
+            Text { text: "▶"; style: small; color: accent; maxLines: 1 }
+          } else if item.dtype == "image" {
+            Text { text: "▣"; style: small; color: accent; maxLines: 1 }
           }
           Text { text: item.site; style: small; color: muted; maxLines: 1; width: 130 }
           Spacer { weight: 1 }
@@ -1031,7 +1800,7 @@ echo ready""") every 1h
               Text { text: "summary"; style: label; color: accent; width: 80 }
               Text { text: "made by ${aiName} · text sent to Anthropic"; style: label; color: muted; maxLines: 1 }
             }
-            Text { text: summary; style: body; fontSize: textSize }
+            Text { text: summary; style: body; fontSize: textSize; font: readFont }
           }
         } else if item.desc != "" {
           // The page's own summary, in italic, like a standfirst.
@@ -1039,16 +1808,15 @@ echo ready""") every 1h
         }
         // The AI's buttons: a summary if there isn't one, and the text tidied or plain.
         if aiOk && len(plain) > 0 {
-          Text { text: "${aiName} sends this article's text to Anthropic."; style: small; color: muted }
           Row {
             gap: 6
             wrap: true
             if summary == "" {
-              Button { text: aiWant == "summary " + item.id ? "summarising…" : "summarise (${aiName})"; color: accent; onTap: { aiWant = "summary " + item.id; haptic() } }
+              Button { text: aiWant == "summary " + item.id ? "summarising…" : "summarise"; color: accent; onTap: { aiWant = "summary " + item.id; haptic() } }
             }
             // Tidied (the AI's) or as it came (the page's own words).
             Button {
-              text: len(prettied) == 0 ? (aiWant == "pretty " + item.id ? "tidying…" : "tidy the text (${aiName})") : pretty ? "tidied text" : "tidy the text (${aiName})"
+              text: len(prettied) == 0 ? (aiWant == "pretty " + item.id ? "tidying…" : "tidy the text") : pretty ? "tidied text" : "tidy the text"
               color: pretty && len(prettied) > 0 ? foreground : muted
               onTap: {
                 if len(prettied) > 0 {
@@ -1064,7 +1832,7 @@ echo ready""") every 1h
             }
           }
           if aiWant == "pretty " + item.id {
-            Text { text: "tidying the text with ${aiName} (sent to Anthropic)…"; style: small; color: muted }
+            Text { text: "tidying the text with ${aiName}…"; style: small; color: muted }
           }
         }
         Text { text: "${item.url}"; style: small; color: muted; maxLines: 2 }
@@ -1077,64 +1845,21 @@ echo ready""") every 1h
         Row {
           gap: 6
           wrap: true
-          Button { text: reading ? "hide the text" : "read here"; color: reading ? muted : accent; onTap: { reading = !reading; haptic() } }
-          Button { text: "open the article"; onTap: url(item.url) }
-        }
-        // The reader: the article's text, as the script pulled it out of its page, at the
-        // size chosen, opened where you stopped last time.
-        if reading {
-          Column {
-            gap: 8
-            padding: [4, 0]
-            if len(para) == 0 {
-              Text { text: offline ? "This article's text isn't saved. Import an export of your library to read it here." : "Fetching the article…"; style: small; color: muted }
-            } else {
-              Row {
-                gap: 6
-                align: center
-                Text { text: "${len(para)} parts"; style: label; color: muted; width: 90 }
-                Text { text: "A-"; style: small; color: muted; padding: [4, 6]; width: 40; align: end; onTap: { textSize = clamp(textSize - 2, 12, 26); haptic() } }
-                Text { text: "${textSize}"; style: label; color: muted; width: 34; align: center }
-                Text { text: "A+"; style: body; color: muted; padding: [4, 6]; width: 40; onTap: { textSize = clamp(textSize + 2, 12, 26); haptic() } }
-              }
-            }
-            for p, i in para key i {
-              if p.k == "h" {
-                // a section heading: larger than the text, but not a page title
-                Text { text: p.t; style: body; bold: true; fontSize: textSize + 3; padding: [12, 0, 2, 0] }
-              } else if p.k == "q" {
-                Text { text: p.t; style: body; fontSize: textSize; italic: true; color: muted; padding: [4, 10]; radius: 4 * corners; background: alpha(foreground, 0.05) }
-              } else if p.k == "li" {
-                Row {
-                  gap: 6
-                  Text { text: "•"; style: body; fontSize: textSize; color: muted; width: 10 }
-                  Text { text: p.t; style: body; fontSize: textSize; weight: 1 }
-                }
-              } else if p.k == "fig" {
-                Text { text: p.t; style: small; color: muted; padding: [4, 0] }
-              } else {
-                Text { text: p.t; style: body; fontSize: textSize; padding: [2, 0] }
-              }
-            }
-            // Where you got to: kept per article, so the next open starts here.
-            Row {
-              gap: 8
-              align: center
-              let at = find(where, w => w.id == readId) ?? {id: readId, i: 0}
-              Text { text: "you're at ${at.i + 1} of ${len(para)}"; style: label; color: muted; width: 150; visible: at.i > 0 }
-              Spacer { weight: 1 }
-              Button { text: "next part"; color: muted; onTap: { where = where.filter(w => w.id != readId) + [{id: readId, i: min(at.i + 1, len(para) - 1)}]; haptic() } }
-            }
-            Spacer { height: 8 }
+          if item.dtype != "video" && item.dtype != "image" {
+            Button { text: reading ? "hide the text" : "read here"; color: reading ? muted : accent; onTap: { reading = !reading; haptic() } }
           }
+          Button { text: item.dtype == "video" ? "open the video" : item.dtype == "image" ? "open the image" : "open the article"; onTap: url(item.url) }
         }
         if editing {
           Text { text: "title"; style: label; color: muted }
-          Input { text: item.title; onSubmit: { changedId = item.id; todoMode = "change"; todoJson = "{\"title\":" + toJson(value) + "}"; todoIds = [item.id] } }
+          Input { text: item.title; onSubmit: { wants = wants + [toJson({mode: "change", id: item.id, json: "{\"title\":" + toJson(value) + "}", patch: {title: value}})] } }
           Text { text: "labels, comma separated"; style: label; color: muted }
-          Input { text: item.labels; onSubmit: { changedId = item.id; let ls = split(value, ",").map(s => trim(s)).filter(s => s != ""); todoMode = "change"; todoJson = "{\"labels\":" + toJson(ls) + "}"; todoIds = [item.id] } }
+          Input { text: item.labels; onSubmit: {
+            let ls = split(value, ",").map(s => trim(s)).filter(s => s != "")
+            wants = wants + [toJson({mode: "change", id: item.id, json: "{\"labels\":" + toJson(ls) + "}", patch: {labels: ls}})]
+          } }
           Text { text: "your note"; style: label; color: muted }
-          Input { text: item.note; placeholder: "a note about this one…"; onSubmit: { changedId = item.id; todoMode = "change"; todoJson = "{\"note\":" + toJson(value) + "}"; todoIds = [item.id] } }
+          Input { text: item.note; placeholder: "a note about this one…"; onSubmit: { wants = wants + [toJson({mode: "change", id: item.id, json: "{\"note\":" + toJson(value) + "}", patch: {note: value}})] } }
           // Where you are in it, by hand.
           Text { text: "read ${item.prog ?? 0}%"; style: label; color: muted }
           Slider {
@@ -1142,18 +1867,18 @@ echo ready""") every 1h
             max: 100
             step: 5
             color: accent
-            onChange: { changedId = item.id; todoMode = "change"; todoJson = "{\"read_progress\":" + "${int(value)}" + "}"; todoIds = [item.id] }
+            onChange: { wants = wants + [toJson({mode: "change", id: item.id, json: "{\"read_progress\":" + "${int(value)}" + "}", patch: {read_progress: int(value)}})] }
           }
         }
         Row {
           gap: 8
           wrap: true
-          Button { text: item.fav ? "★ favorite" : "☆ favorite"; color: item.fav ? orange : muted; onTap: { changedId = item.id; todoMode = "change"; todoJson = "{\"is_marked\":" + toJson(!item.fav) + "}"; todoIds = [item.id] } }
-          Button { text: item.arch ? "unarchive" : "archive"; color: muted; onTap: { changedId = item.id; todoMode = "change"; todoJson = "{\"is_archived\":" + toJson(!item.arch) + "}"; todoIds = [item.id] } }
+          Button { text: item.fav ? "★ favorite" : "☆ favorite"; color: item.fav ? orange : muted; onTap: { wants = wants + [toJson({mode: "change", id: item.id, json: "{\"is_marked\":" + toJson(!item.fav) + "}", patch: {is_marked: !item.fav}})] } }
+          Button { text: item.arch ? "unarchive" : "archive"; color: muted; onTap: { wants = wants + [toJson({mode: "change", id: item.id, json: "{\"is_archived\":" + toJson(!item.arch) + "}", patch: {is_archived: !item.arch}})] } }
           if item.prog == 100 {
-            Button { text: "mark unread"; color: muted; onTap: { changedId = item.id; todoMode = "change"; todoJson = "{\"read_progress\":0}"; todoIds = [item.id] } }
+            Button { text: "mark unread"; color: muted; onTap: { wants = wants + [toJson({mode: "change", id: item.id, json: "{\"read_progress\":0}", patch: {read_progress: 0}})] } }
           } else {
-            Button { text: "mark read"; color: muted; onTap: { changedId = item.id; todoMode = "change"; todoJson = "{\"read_progress\":100}"; todoIds = [item.id] } }
+            Button { text: "mark read"; color: muted; onTap: { wants = wants + [toJson({mode: "change", id: item.id, json: "{\"read_progress\":100}", patch: {read_progress: 100}})] } }
           }
           Button { text: editing ? "close edit" : "edit"; color: muted; onTap: editing = !editing }
           // Delete asks once more, then goes.
@@ -1163,10 +1888,7 @@ echo ready""") every 1h
             onTap: {
               if confirmId == item.id {
                 confirmId = ""
-                changedId = item.id
-                todoMode = "change"
-                todoJson = "{\"is_deleted\":true}"
-                todoIds = [item.id]
+                wants = wants + [toJson({mode: "change", id: item.id, json: "{\"is_deleted\":true}", patch: {is_deleted: true}})]
                 if readId == item.id { readId = "" }
               } else {
                 confirmId = item.id
@@ -1185,8 +1907,16 @@ echo ready""") every 1h
         if said != "" {
           Text { text: said; style: label; color: green }
         }
-        if changedId == item.id {
-          Text { text: saved == "" ? ran : saved; style: small; color: saved == "saved" ? green : red }
+        if get(saving, item.id, 0) > 0 {
+          Text { text: "saving…"; style: small; color: accent }
+        } else if get(failed, item.id, "") != "" {
+          Row {
+            gap: 8
+            Text { text: "couldn't save: ${get(failed, item.id, "")}"; style: small; color: red; weight: 1; maxLines: 4 }
+            Retry { id: item.id }
+          }
+        } else if get(okIds, item.id, false) {
+          Text { text: "✓ saved"; style: label; color: green }
         }
         if item.note != "" {
           Text { text: "note"; style: label; color: muted }
@@ -1195,28 +1925,44 @@ echo ready""") every 1h
         if item.prog == 100 { Text { text: "read"; style: small; color: muted } }
         if item.arch { Text { text: "archived"; style: small; color: muted } }
       }
+      }
     } else {
       // The list: what's copied is a link to save.
       Column {
         fill: true
         gap: 0
+
         if view == "labels" {
           Column {
             scroll: true
             weight: 1
             padding: [8, 8]
             gap: 2
+            onPull: {
+              notice = ""
+              lastErr = ""
+              syncAsk = syncAsk + 1
+              haptic()
+            }
             Text { text: "${len(labels)} labels"; style: label; color: muted; padding: [0, 4] }
-            // Readeck has no empty labels: one comes with the first bookmark given it, in that
-            // bookmark's edit. The × takes a label off every bookmark (asks twice).
-            Text { text: "A label is added to a bookmark, in its edit."; style: small; color: muted; padding: [0, 4, 6, 4] }
+            // The × deletes a label (asks twice, since it's for good). Readeck has no
+            // API to make one: a label comes with the first bookmark given it.
+            if current != null && current.mode == "labelrm" {
+              Text { text: "deleting the label…"; style: label; color: accent; padding: [2, 4] }
+            }
+            if notice != "" {
+              Text { text: "✓ ${notice}"; style: label; color: green; padding: [2, 4] }
+            } else if lastErr != "" {
+              Text { text: lastErr; style: label; color: red; padding: [2, 4]; maxLines: 2 }
+            }
             for l in labels key l.name {
               Row {
                 gap: 10
                 padding: [12, 8]
                 radius: 6 * corners
                 background: label == l.name ? alpha(accent, 0.14) : null
-                onTap: { label = l.name; typed = ""; query = ""; haptic() }
+                // A label opens its bookmarks; Back comes back here.
+                onTap: { label = l.name; view = "label"; typed = ""; query = ""; notice = ""; confirmLabel = ""; haptic() }
                 Text { text: l.name; maxLines: 1; weight: 1; color: label == l.name ? accent : foreground }
                 Text { text: "${l.count}"; style: small; color: muted; width: 44; align: end; maxLines: 1 }
                 Text {
@@ -1227,8 +1973,7 @@ echo ready""") every 1h
                   onTap: {
                     if confirmLabel == l.name {
                       confirmLabel = ""
-                      todoMode = "labelrm"
-                      todoIds = [l.name]
+                      wants = wants + [toJson({mode: "labelrm", id: l.name})]
                     } else {
                       confirmLabel = l.name
                       haptic()
@@ -1247,74 +1992,156 @@ echo ready""") every 1h
             padding: [12, 8]
             gap: 8
             Text { text: "Readeck server"; style: label; color: muted }
-            Input { text: typedBase ?? base; placeholder: "readeck.example.org"; onChange: typedBase = trim(value); onSubmit: { base = trim(value); typedBase = null } }
+            Input { text: draftBase; placeholder: "readeck.example.org"; onChange: draftBase = trim(value); onSubmit: draftBase = trim(value) }
             Text { text: "In your Readeck, Settings → API tokens makes one for this app. Paste it here."; style: small; color: muted }
-            Input { text: token; placeholder: "API token"; onChange: token = trim(value); onSubmit: token = trim(value) }
+            Input { text: draftToken; placeholder: "API token"; password: true; onChange: draftToken = trim(value); onSubmit: draftToken = trim(value) }
             Row {
               gap: 8
               wrap: true
-              Button { text: "connect"; onTap: { base = trim(typedBase ?? base); typedBase = null; token = trim(token); view = "unread"; fetchN = fetchN + 1; haptic() } }
-              Button { text: "test the token"; color: muted; onTap: { base = trim(typedBase ?? base); typedBase = null; connectMsg = "checking…"; connectCheck = true; haptic() } }
+              Button { text: "connect"; color: accent; onTap: {
+                // Only what is connected is fetched; drafts don't start a sync as they type.
+                base = trim(draftBase)
+                token = trim(draftToken)
+                view = "unread"
+                notice = ""
+                lastErr = ""
+                syncAsk = syncAsk + 1
+                haptic()
+              } }
+              Button { text: "test the token"; color: muted; onTap: {
+                draftBase = trim(draftBase)
+                draftToken = trim(draftToken)
+                connectMsg = "checking…"
+                connectCheck = true
+                haptic()
+              } }
+              if token != "" {
+                Button { text: "forget it"; color: red; onTap: { token = ""; draftToken = ""; connectMsg = ""; haptic() } }
+              }
             }
             if connectMsg != "" {
               Text { text: connectMsg; style: small; color: startsWith(connectMsg, "ok") ? green : red }
             }
+            if notice != "" {
+              Text { text: "✓ ${notice}"; style: label; color: green }
+            }
             Spacer { height: 8 }
+            // Without a server, an export works on its own; importing writes its text too,
+            // so the reader and search work offline.
             Text { text: "Without a server, an export of your library works on its own: import it from the Readeck web app (Settings → Export), and the app reads it offline."; style: small; color: muted }
+            Text { text: "Import an export (its data.json, or the zip)"; style: label; color: muted }
+            Input {
+              placeholder: "/path/to/data.json or .zip"
+              clear: true
+              onSubmit: {
+                let f = trim(value)
+                if f != "" {
+                  notice = ""
+                  wants = wants + [toJson({mode: "import", id: f})]
+                  haptic()
+                }
+              }
+            }
+            if current != null && current.mode == "import" {
+              Text { text: "importing…"; style: label; color: accent }
+            }
             Button { text: "back"; color: muted; onTap: view = "unread" }
           }
-        } else if view == "search" {
-          Column {
-            padding: [8, 8, 6, 8]
-            Row {
-              gap: 8
-              Input { text: typed; placeholder: "title, site, label or words in the text"; focus: true; weight: 1; onChange: typed = value; onSubmit: query = value }
-              Button { text: "find"; onTap: { query = typed; haptic() } }
-            }
-          }
-          List { rows: rows; loading: len(all) == 0 }
         } else {
-          Row {
-            padding: [4, 8]
-            for t in ["unread", "favorite", "archived", "all"] key t {
-              Tab { name: t; count: counted[t] ?? 0 }
+          // Unread, favorites, archive or everything: hidden while one label's bookmarks
+          // are on show, since the label says what the list holds.
+          if label == "" {
+            Row {
+              gap: 6
+              padding: [12, 8, 12, 6]
+              for t in ["unread", "favorite", "archived", "all"] key t {
+                Tab { name: t; count: counted[t] ?? 0 }
+              }
             }
           }
-          // How fresh the list is, and what went wrong when something did.
+          // Search, labels and the server setup are always one tap away: the box narrows
+          // the list as you type, and Enter also looks through the articles' own text.
           Row {
             gap: 8
             align: center
-            padding: [0, 10, 0, 10]
-            Text { text: offline ? "no server: reading an imported export" : synced == 0 ? "not synced yet" : (startsWith(fmtAgo(synced, now), "in ") ? "sync ${fmtAgo(synced, now)}" : fmtAgo(synced, now) == "now" ? "synced just now" : "synced ${fmtAgo(synced, now)} ago"); style: label; color: muted; width: 250; maxLines: 1 }
+            padding: [12, 4, 12, 6]
+            Input {
+              text: typed
+              placeholder: "search…"
+              weight: 1
+              fontSize: 15
+              underline: false
+              background: alpha(foreground, 0.06)
+              radius: 8 * corners
+              padding: [10, 4]
+              onChange: typed = value
+              onSubmit: { query = trim(value); typed = trim(value); haptic() }
+            }
+            if typed != "" || query != "" {
+              Text { text: "×"; fontSize: 17; color: muted; padding: [10, 6]; onTap: { typed = ""; query = ""; haptic() } }
+            }
+            // The save-a-link bar, opened only when wanted: one less row between the
+            // list and the top of the screen.
+            Text { text: showAdd ? "−" : "+"; fontSize: 17; color: showAdd ? accent : muted; padding: [10, 6]; onTap: { showAdd = !showAdd; haptic() } }
+            Text { text: "labels"; style: small; fontSize: 14; color: accent; padding: [7, 8]; onTap: { view = "labels"; label = ""; query = ""; typed = ""; notice = ""; haptic() } }
+            Text { text: "setup"; style: small; fontSize: 14; color: muted; padding: [7, 8]; onTap: { draftBase = base; draftToken = token; view = "setup"; notice = ""; haptic() } }
+          }
+          // How fresh the list is, and the way to fetch it now. The last answer rides
+          // on this one line too — green when it worked, red when it didn't — so the
+          // list keeps the height a notice would have taken.
+          Row {
+            gap: 8
+            align: center
+            padding: [12, 2]
+            Text {
+              text: notice != "" ? "✓ ${notice}" : lastErr != "" ? lastErr : syncMsg != "" ? syncMsg : offline ? "reading an imported export" : syncing ? "syncing…" : syncStalled ? "sync stalled" : syncFailed ? "sync failed" : lastSync == 0 ? "not synced yet" : fmtAgo(lastSync, now) == "now" ? "synced just now" : "synced ${fmtAgo(lastSync, now)} ago"
+              style: small
+              fontSize: 13
+              color: notice != "" ? green : lastErr != "" || syncMsg != "" ? red : syncing ? accent : muted
+              weight: 1
+              maxLines: 2
+            }
             if !offline {
-              Text { text: "sync now"; style: label; color: accent; padding: [4, 4]; onTap: { fetchN = fetchN + 1; haptic() } }
+              Text {
+                text: "sync now"
+                style: small
+                fontSize: 14
+                color: syncing ? muted : accent
+                padding: [4, 6]
+                onTap: {
+                  if !syncing { notice = ""; lastErr = ""; syncAsk = syncAsk + 1; haptic() }
+                }
+              }
             }
           }
-          if lastErr != "" && changedId == "" {
-            Text { text: saved == "" ? lastErr : saved; style: label; color: red; padding: [0, 10]; maxLines: 2 }
+          if current != null && current.mode == "add" {
+            Text { text: "saving the link…"; style: label; color: accent; padding: [12, 2, 12, 4]; maxLines: 1 }
           }
-          // What the queue amounts to, and how the list is ordered and grouped. The
-          // widths add up to less than the screen, so the row fits on one line.
+          // What the queue amounts to (or how many matches), how the list is ordered and
+          // grouped, and the way to pick several. The first takes the free width, so the
+          // row always fits on one line.
           Row {
-            gap: 4
-            padding: [0, 8, 4, 8]
-            Text { text: queue == [] ? "nothing to read" : "${len(queue)} · ${queueText}"; style: label; color: muted; width: 110; maxLines: 1 }
-            Text { text: sort == "-created" ? "newest" : sort == "created" ? "oldest" : sort == "title" ? "title" : sort == "length" ? "longest" : "shortest"; style: label; color: accent; padding: [4, 4]; width: 76; maxLines: 1; onTap: { sort = sort == "-created" ? "created" : sort == "created" ? "title" : sort == "title" ? "length" : sort == "length" ? "shortest" : "-created"; haptic() } }
-            Text { text: group == "" ? "no group" : group; style: label; color: group == "" ? muted : accent; padding: [4, 4]; width: 84; maxLines: 1; onTap: { group = group == "" ? "day" : group == "day" ? "site" : group == "site" ? "label" : ""; haptic() } }
-            Text { text: picking ? (picked == [] ? "picking" : "${len(picked)} picked") : "select"; style: label; color: picking ? orange : muted; padding: [4, 4]; width: 84; maxLines: 1; onTap: { picking = !picking; picked = []; haptic() } }
+            gap: 6
+            padding: [12, 2, 12, 6]
+            Text { text: typed != "" || query != "" ? "${len(seen)} found" : queue == [] ? "nothing to read" : "${len(queue)} · ${queueText}"; style: small; fontSize: 13; color: muted; weight: 1; maxLines: 1 }
+            Text { text: sort == "-created" ? "newest" : sort == "created" ? "oldest" : sort == "title" ? "title" : sort == "length" ? "longest" : "shortest"; style: small; fontSize: 13; color: accent; padding: [2, 6]; width: 76; maxLines: 1; align: end; onTap: { sort = sort == "-created" ? "created" : sort == "created" ? "title" : sort == "title" ? "length" : sort == "length" ? "shortest" : "-created"; haptic() } }
+            Text { text: group == "" ? "no group" : group; style: small; fontSize: 13; color: group == "" ? muted : accent; padding: [2, 6]; width: 84; maxLines: 1; align: end; onTap: { group = group == "" ? "day" : group == "day" ? "site" : group == "site" ? "label" : ""; haptic() } }
+            Text { text: picking ? (picked == [] ? "picking" : "${len(picked)} picked") : "select"; style: small; fontSize: 13; color: picking ? orange : muted; padding: [2, 6]; width: 80; maxLines: 1; align: end; onTap: { picking = !picking; picked = []; notice = ""; haptic() } }
           }
-          // What's picked, acted on together.
+          // What's picked, acted on together. One tap queues it for every pick, so the
+          // rows change at once and only the server's refusals come back to retry.
           if picking {
             Row {
               gap: 6
               wrap: true
-              padding: [0, 10, 6, 10]
-              Button { text: "archive"; color: muted; onTap: bulkFor = "{\"is_archived\":true}" }
-              Button { text: "unarchive"; color: muted; onTap: bulkFor = "{\"is_archived\":false}" }
-              Button { text: "favorite"; color: orange; onTap: bulkFor = "{\"is_marked\":true}" }
-              Button { text: "unread"; color: muted; onTap: bulkFor = "{\"read_progress\":0}" }
-              Button { text: "read"; color: muted; onTap: bulkFor = "{\"read_progress\":100}" }
-              Button { text: "delete"; color: red; onTap: bulkFor = "{\"is_deleted\":true}" }
+              padding: [12, 0, 12, 8]
+              Button { text: "pick all"; color: muted; onTap: { picked = seen.map(x => x.id); haptic() } }
+              Button { text: "archive"; color: muted; onTap: wants = wants + [toJson({mode: "bulk", ids: picked, json: "{\"is_archived\":true}", patch: {is_archived: true}})] }
+              Button { text: "unarchive"; color: muted; onTap: wants = wants + [toJson({mode: "bulk", ids: picked, json: "{\"is_archived\":false}", patch: {is_archived: false}})] }
+              Button { text: "favorite"; color: orange; onTap: wants = wants + [toJson({mode: "bulk", ids: picked, json: "{\"is_marked\":true}", patch: {is_marked: true}})] }
+              Button { text: "unread"; color: muted; onTap: wants = wants + [toJson({mode: "bulk", ids: picked, json: "{\"read_progress\":0}", patch: {read_progress: 0}})] }
+              Button { text: "read"; color: muted; onTap: wants = wants + [toJson({mode: "bulk", ids: picked, json: "{\"read_progress\":100}", patch: {read_progress: 100}})] }
+              Button { text: "delete"; color: red; onTap: wants = wants + [toJson({mode: "bulk", ids: picked, json: "{\"is_deleted\":true}", patch: {is_deleted: true}})] }
               Button { text: "done"; color: muted; onTap: { picking = false; picked = [] } }
             }
           }
@@ -1326,28 +2153,51 @@ echo ready""") every 1h
               align: center
               // A tap text, not a Button: a Button makes its whole row tall.
               Text { text: token == "" ? "no token set" : server == "" ? "no server set" : ""; style: small; color: muted; width: 250 }
-              Text { text: "connect"; style: label; color: accent; padding: [4, 4]; onTap: { view = "setup"; haptic() } }
+              Text { text: "connect"; style: label; color: accent; padding: [4, 4]; onTap: { draftBase = base; draftToken = token; view = "setup"; haptic() } }
             }
-          } else {
+          } else if showAdd {
             Row {
               gap: 8
-              padding: [2, 8, 8, 8]
+              padding: [12, 3, 12, 10]
               align: center
-              Input { text: newUrl; placeholder: "save a link…"; weight: 1; onSubmit: { todoMode = "add"; todoIds = [newUrl]; newUrl = "" } }
-              Button { text: "save"; onTap: { todoMode = "add"; todoIds = [newUrl] } }
+              Input {
+                text: newUrl
+                placeholder: "save a link…"
+                weight: 1
+                onSubmit: {
+                  let u = trim(value)
+                  if u != "" {
+                    newUrl = ""
+                    notice = ""
+                    wants = wants + [toJson({mode: "add", id: u})]
+                    haptic()
+                  }
+                }
+              }
+              Button {
+                text: "save"
+                color: accent
+                onTap: {
+                  let u = trim(newUrl)
+                  if u != "" {
+                    newUrl = ""
+                    notice = ""
+                    wants = wants + [toJson({mode: "add", id: u})]
+                    haptic()
+                  }
+                }
+              }
             }
           }
+          // The label whose bookmarks are on show, and the way back to all of them.
           if label != "" {
             Row {
-              padding: [0, 10, 6, 10]
+              padding: [12, 0, 12, 8]
               gap: 8
               align: center
-              Text { text: "label: ${label}"; style: small; color: accent; maxLines: 1 }
-              Text { text: "×"; color: muted; padding: [4, 6]; onTap: label = "" }
+              Text { text: "label: ${label}"; style: small; color: accent; maxLines: 1; weight: 1 }
+              Text { text: "all labels"; style: label; color: muted; padding: [4, 6]; onTap: { label = ""; view = "labels"; haptic() } }
             }
-          }
-          if saved != "" {
-            Text { text: saved; style: label; color: saved == "saved" ? green : red; padding: [0, 10, 4, 10] }
           }
           List { rows: rows; loading: len(all) == 0 }
         }
@@ -1355,3 +2205,4 @@ echo ready""") every 1h
     }
   }
 }
+
