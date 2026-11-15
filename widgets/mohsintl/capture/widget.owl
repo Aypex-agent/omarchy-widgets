@@ -1,10 +1,10 @@
 widget "capture" {
   size: 3x3
-  minSize: 2x3
+  minSize: 3x3
 
   meta {
     description: "Dictate or type a thought, fix the words in the tile, save it to ~/inbox.md: a to-do list your terminal can read too. Tap an entry to edit it, its circle to tick it off, its × to delete."
-    version: "1.0"
+    version: "1.1"
     license: "MIT"
     category: "productivity"
     owl: 18
@@ -28,9 +28,13 @@ widget "capture" {
   state draft = "" persist
   state editingLine = "" persist
   state savedAt = 0
+  // An empty field opened from the "Aa" chip: a thought typed rather than spoken.
+  state typing = false
   // The entry whose × you have tapped once, by its text for the same reason: it asks
   // again before throwing words away.
   state confirmLine = ""
+  // Beats once a second while listening, so the microphone breathes.
+  state pulse = false
 
   // Android hands the words over when it stops listening, and only then: said.text is
   // still filling in while you speak, so taking it early would save half a sentence.
@@ -38,9 +42,12 @@ widget "capture" {
   on said.final {
     if value != null && trim(value) != "" {
       draft = draft == "" ? trim(value) : draft + " " + trim(value)
+      typing = false
       savedAt = 0
     }
   }
+
+  every 1s { if said.listening { pulse = !pulse } }
 
   // One entry a line: "- [ ] ..." to do, "- [x] ..." done. New ones go on top.
   let all = (inbox ?? "") == "" ? [] : lines(inbox).filter(l => l != "")
@@ -59,91 +66,162 @@ widget "capture" {
   let sp = " "
 
   // A draft being made, or a saved line being fixed: either way the tile shows the field.
-  let composing = draft != "" || editingLine != "" || said.listening
+  // A draft of only spaces isn't one: dictation can hand those over.
+  let composing = trim(draft) != "" || editingLine != "" || said.listening || typing
+  // What the field shows: while listening, the words as they are heard. The draft itself
+  // takes them only once dictation stops (on said.final), so half a sentence is never saved.
+  let shown = !said.listening || said.text == ""
+    ? draft
+    : (draft == "" ? said.text : draft + " " + said.text)
+
+  // The look: change it here, the whole tile follows. A tile is small, so what fits comes
+  // from its height: a 3x3 one shows one line an entry, a taller one two, and only a
+  // taller one has room for the list and the draft field at once.
+  let rCard = 9 * corners
+  let rBar = 13 * corners
+  let airy = (tileHeight ?? 999) > 175
+  let hot = said.listening ? red : accent
+  let ring = airy ? 30 : 26
+
+  // A chip of text: the count, a mode, a button face.
+  component Chip(label, tint = muted, bg = alpha(foreground, 0.07)) {
+    Text { text: label; style: label; color: tint; bold: true; maxLines: 1; padding: [7, 3]; background: bg; radius: 6 * corners }
+  }
+
+  // The microphone, at the right of the row that carries it: the tile's one action.
+  component Mic() {
+    Box {
+      width: ring
+      height: ring
+      radius: ring / 2
+      align: center
+      background: hot
+      scale: said.listening && pulse ? 1.1 : 1
+      animate scale: tween(600ms, "ease")
+      Image { src: said.listening ? stop : mic; size: ring - 11; tint: background }
+    }
+  }
+
+  // Throw the draft away, at the left of the field.
+  component Discard() {
+    Box {
+      width: airy ? 34 : 28
+      height: airy ? 34 : 28
+      align: center
+      background: alpha(foreground, 0.06)
+      radius: 8 * corners
+      onTap: { speech("cancel"); draft = ""; editingLine = ""; typing = false }
+      Text { text: "×"; style: label; bold: true; color: muted; align: center }
+    }
+  }
+
+  // The field the words land in: what is heard while listening, the draft otherwise.
+  component Field(lines) {
+    Box {
+      background: alpha(foreground, 0.05)
+      border: 1
+      borderColor: said.listening ? alpha(red, 0.55) : alpha(accent, 0.35)
+      radius: rCard
+      padding: 6
+      Input {
+        lines: lines
+        text: shown
+        placeholder: typing ? "type a thought…" : said.listening ? "listening…" : "speak, then fix the words"
+        underline: false
+        onChange: { if !said.listening { draft = value } }
+      }
+    }
+  }
+
+  // Save what is in the field: a new entry on top, or the line being fixed in its place.
+  component Save() {
+    Text {
+      text: "save"
+      style: label
+      bold: true
+      color: background
+      padding: [9, 6]
+      background: accent
+      radius: 8 * corners
+      onTap: {
+        // Words split over lines in the field are one entry: newlines collapse to spaces.
+        let flat = join(words(draft), sp)
+        if flat != "" {
+          // Find the entry again by its text: if it was changed or deleted meanwhile, this is a new one.
+          let e = editingLine == "" ? -1 : all.indexOf(editingLine)
+          let b = e >= 0 ? set(all, e, "- [ ] " + flat) : all.take(lead) + ["- [ ] " + flat] + all.drop(lead)
+          run("printf '%s\n' ${sh(join(b, nl))} > ~/inbox.md")
+          draft = ""
+          editingLine = ""
+          typing = false
+          savedAt = now
+        }
+      }
+    }
+  }
 
   Column {
     gap: 6
     fill: true
 
+    // Header: which mode the tile is in on the left, the count on the right.
     Row {
-      gap: 8
-      Text { text: composing ? (editingLine != "" ? "fixing" : "draft") : "inbox"; style: muted; weight: 1; maxLines: 1 }
-      Text {
-        text: now - savedAt < 3
-          ? "saved ✓"
-          : (len(done) > 0 ? "${len(open)} to do · ${len(done)} ✓" : "${len(open)} to do")
-        style: muted
-        maxLines: 1
-        color: now - savedAt < 3 ? green : muted
+      gap: 6
+      align: center
+      if composing {
+        Text {
+          text: said.listening ? "listening…" : editingLine != "" ? "fixing" : "draft"
+          style: label
+          color: said.listening ? red : accent
+          maxLines: 1
+        }
+      } else {
+        Text {
+          text: "Aa"
+          style: label
+          bold: true
+          color: accent
+          padding: [7, 3]
+          background: alpha(accent, 0.12)
+          radius: 6 * corners
+          onTap: { speech("cancel"); draft = ""; editingLine = ""; typing = true }
+        }
+      }
+      Spacer { weight: 1 }
+      if now - savedAt < 3 {
+        Chip { label: "saved ✓"; tint: green; bg: alpha(green, 0.14) }
+      } else {
+        Chip {
+          label: len(open) == 0 && len(done) > 0 ? "all done" : "${len(open)} to do"
+          tint: len(open) > 0 ? accent : green
+        }
       }
     }
 
-    // Composing in place: the words, fixable with the keyboard, saved or thrown away.
-    // The tile keeps the whole flow, so the list gives up its room until you are done.
-    if composing {
+    // The list stays put while a draft is open when the tile has the room for both. A small
+    // tile hasn't: there the field takes its place, and the list is back on save or ×.
+    if !composing || airy {
       Column {
-        gap: 6
-        weight: 1
-        justify: spaceBetween
-        Box {
-          height: 84
-          background: alpha(foreground, 0.05)
-          border: 1
-          borderColor: said.listening ? alpha(red, 0.5) : alpha(foreground, 0.14)
-          radius: 8 * corners
-          padding: 8
-          Input {
-            lines: 3
-            text: draft
-            placeholder: "speak, then fix the words"
-            underline: false
-            onChange: draft = value
-          }
-        }
-        if said.listening {
-          Text { text: said.text == "" ? "listening…" : said.text; style: small; color: red; maxLines: 2 }
-        }
-        Row {
-          gap: 6
-          // Save is the one thing to hit when the words are right.
-          Button {
-            text: "save"
-            onTap: {
-              // Words split over lines in the field are one entry: newlines collapse to spaces.
-              let flat = join(words(draft), sp)
-              if flat != "" {
-                // Find the entry again by its text: if it was changed or deleted meanwhile, this is a new one.
-                let e = editingLine == "" ? -1 : all.indexOf(editingLine)
-                let b = e >= 0 ? set(all, e, "- [ ] " + flat) : all.take(lead) + ["- [ ] " + flat] + all.drop(lead)
-                run("printf '%s\n' ${sh(join(b, nl))} > ~/inbox.md")
-                draft = ""
-                editingLine = ""
-                savedAt = now
-              }
-            }
-          }
-          Button { text: said.listening ? "stop" : "speak"; onTap: speech("toggle") }
-          Button {
-            text: "cancel"
-            color: muted
-            onTap: { speech("cancel"); draft = ""; editingLine = "" }
-          }
-        }
-      }
-    } else {
-      Column {
-        gap: 4
+        gap: 3
         weight: 1
         scroll: true
         justify: len(rows) == 0 ? "center" : "start"
-        for i in rows.take(5) {
+        for i in rows.take(airy ? 6 : 4) {
           Row {
-            gap: 4
+            gap: 6
+            align: center
+            padding: [6, 4]
+            background: alpha(foreground, 0.04)
+            radius: rCard
             // Tick it off, or tick it back. Done stays in the file and in this list, dimmed.
             Box {
-              width: 26
-              height: 26
+              width: 18
+              height: 18
+              radius: 9
               align: center
+              background: startsWith(all[i], "- [ ]") ? alpha(foreground, 0) : green
+              border: startsWith(all[i], "- [ ]") ? 1.5 : 0
+              borderColor: alpha(foreground, 0.28)
               onTap: {
                 confirmLine = ""
                 let b = startsWith(all[i], "- [ ]")
@@ -151,27 +229,27 @@ widget "capture" {
                   : set(all, i, replace(all[i], "- [x]", "- [ ]"))
                 run("printf '%s\n' ${sh(join(b, nl))} > ~/inbox.md")
               }
-              Text {
-                text: startsWith(all[i], "- [ ]") ? "○" : "●"
-                style: small
-                color: startsWith(all[i], "- [ ]") ? muted : green
+              if !startsWith(all[i], "- [ ]") {
+                Text { text: "✓"; style: label; color: background; bold: true; align: center }
               }
             }
-            // The words: tap to fix them in the field above.
+            // The words: tap to fix them in the field below.
             Text {
               text: sub(all[i], 6, len(all[i]))
               style: small
               weight: 1
-              maxLines: 2
+              maxLines: airy ? 2 : 1
               color: startsWith(all[i], "- [ ]") ? foreground : muted
-              onTap: { confirmLine = ""; editingLine = all[i]; draft = sub(all[i], 6, len(all[i])) }
+              onTap: { confirmLine = ""; typing = false; editingLine = all[i]; draft = sub(all[i], 6, len(all[i])) }
             }
             // Gone from the file altogether, for a thought that turned out not to be one.
             // Tapped once it asks, so a slip of the thumb doesn't lose what you said.
             Box {
-              width: confirmLine == all[i] ? 52 : 26
-              height: 26
+              width: confirmLine == all[i] ? 42 : 16
+              height: 18
               align: center
+              background: confirmLine == all[i] ? alpha(red, 0.16) : alpha(foreground, 0)
+              radius: 5 * corners
               onTap: {
                 if confirmLine == all[i] {
                   let b = remove(all, i)
@@ -183,7 +261,8 @@ widget "capture" {
               }
               Text {
                 text: confirmLine == all[i] ? "delete?" : "×"
-                style: small
+                style: label
+                align: center
                 bold: confirmLine == all[i]
                 color: confirmLine == all[i] ? red : muted
               }
@@ -191,20 +270,72 @@ widget "capture" {
           }
         }
         if len(rows) == 0 {
-          Text { text: "nothing waiting"; style: small; color: muted }
+          Column {
+            gap: 4
+            align: center
+            justify: center
+            weight: 1
+            Image { src: mic; size: 24; tint: muted; opacity: 0.25 }
+            Text { text: "nothing waiting"; style: small; color: muted }
+          }
         }
       }
+    }
 
-      // The capture bar, the biggest target on the tile.
+    if composing {
+      // A tile with the height for it keeps the list and puts the whole flow on one line:
+      // ×, field, save, microphone.
+      if airy {
+        Row {
+          gap: 6
+          align: center
+          Discard { }
+          Field { lines: 3; weight: 1 }
+          Save { }
+          Mic { }
+        }
+      } else {
+        // A small one gives the field the tile, with the buttons under it.
+        Column {
+          gap: 6
+          weight: 1
+          justify: spaceBetween
+          Row {
+            gap: 6
+            align: center
+            Discard { }
+            Field { lines: 3; weight: 1 }
+          }
+          Row {
+            gap: 6
+            align: center
+            Save { }
+            Spacer { weight: 1 }
+            Box { onTap: speech("toggle")  Mic { } }
+          }
+        }
+      }
+    } else {
+      // The bar: what the tile is showing on the left, the microphone on the right.
       Box {
-        background: alpha(accent, 0.14)
-        radius: 8 * corners
-        padding: 8
         onTap: speech("toggle")
         Row {
           gap: 8
-          Image { src: mic; size: 20; tint: accent }
-          Text { text: "tap to speak"; style: small; weight: 1; maxLines: 1; color: accent }
+          align: center
+          padding: [8, 6]
+          background: linear(0, 0, 1, 1, [alpha(accent, 0.26), alpha(accent, 0.08)])
+          border: 1
+          borderColor: alpha(accent, 0.34)
+          radius: rBar
+          Text {
+            text: "inbox"
+            style: small
+            bold: true
+            color: accent
+            weight: 1
+            maxLines: 1
+          }
+          Mic { }
         }
       }
     }
