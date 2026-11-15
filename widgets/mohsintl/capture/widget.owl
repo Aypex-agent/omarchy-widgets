@@ -4,7 +4,7 @@ widget "capture" {
 
   meta {
     description: "Dictate or type a thought, fix the words in the tile, save it to ~/inbox.md: a to-do list your terminal can read too. Tap an entry to edit it, its circle to tick it off, its × to delete."
-    version: "1.1"
+    version: "1.1.1"
     license: "MIT"
     category: "productivity"
     owl: 18
@@ -284,15 +284,33 @@ widget "capture" {
 
     if composing {
       // A tile with the height for it keeps the list and puts the whole flow on one line:
-      // ×, field, save, microphone.
-      if airy {
+      // ×, field, save, microphone. On a narrow one the buttons would leave the field a few
+      // letters wide, so save and the microphone go on a line under it.
+      if airy && (tileWidth ?? 999) >= 260 {
         Row {
           gap: 6
           align: center
           Discard { }
           Field { lines: 3; weight: 1 }
           Save { }
-          Mic { }
+          Box { onTap: speech("toggle")  Mic { } }
+        }
+      } else if airy {
+        Column {
+          gap: 6
+          Row {
+            gap: 6
+            align: center
+            Discard { }
+            Field { lines: 2; weight: 1 }
+          }
+          Row {
+            gap: 6
+            align: center
+            Save { }
+            Spacer { weight: 1 }
+            Box { onTap: speech("toggle")  Mic { } }
+          }
         }
       } else {
         // A small one gives the field the tile, with the buttons under it.
