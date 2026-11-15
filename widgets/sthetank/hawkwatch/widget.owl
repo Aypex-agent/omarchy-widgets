@@ -1,7 +1,7 @@
 widget "hawkwatch" {
   meta {
     description: "Real-time Seattle Seahawks dashboard: live score, schedule, NFC West standings, and breaking news"
-    version: "1.0"
+    version: "1.1"
     license: "MIT"
     category: "sport"
     owl: 17
@@ -15,9 +15,13 @@ widget "hawkwatch" {
   source schedule = http("https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/sea/schedule") every 10m json timeout 20s
   source standings = http("https://site.api.espn.com/apis/v2/sports/football/nfl/standings") every 30m json timeout 20s
   source rss = http("https://www.seahawks.com/rss/news") every 10m timeout 20s
+  source espnNews = http("https://site.api.espn.com/apis/site/v2/sports/football/nfl/news?team=26") every 10m json timeout 20s
+  source foxRss = http("https://api.foxsports.com/v2/content/optimized-rss?partnerKey=MB0Wehpmuj2lUhuRhQaafhBjAJqaPU244mlTDK1i&size=15&tags=seattle-seahawks") every 10m timeout 20s
+  source fgRss = http("https://www.fieldgulls.com/rss/current.xml") every 10m timeout 20s
 
   state tab = "score"
   state screenTab = "game"
+  state newsFilter = "all"
 
   let seaGreen = #69be28
 
@@ -104,7 +108,94 @@ widget "hawkwatch" {
   let pgOppName = pgOpp.team.shortDisplayName ?? pgOpp.team.displayName ?? pgOppAbbr
   let pgResult = "${pgWon ? 'W' : 'L'} ${pgSeaScore}-${pgOppScore} ${pgIsHome ? 'vs' : '@'} ${pgOppAbbr}"
 
-  let articles = take(matchAll(rss ?? "", "<item>[\\s\\S]*?<title>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?</title>[\\s\\S]*?<description>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?</description>[\\s\\S]*?<link>([^<]+)</link>[\\s\\S]*?<pubDate>([^<]+)</pubDate>").map(m => ({title: trim(m[0]), desc: trim(m[1]), link: trim(m[2]), pub: trim(m[3])})), 15)
+  let seaItems = take(matchAll(rss ?? "", "<item>[\\s\\S]*?<title>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?</title>[\\s\\S]*?<description>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?</description>[\\s\\S]*?<link>([^<]+)</link>[\\s\\S]*?<pubDate>([^<]+)</pubDate>")
+    .map(m => ({
+      id: "sea-${trim(m[2])}",
+      src: "Seahawks.com",
+      title: trim(m[0]),
+      desc: trim(m[1]),
+      link: trim(m[2]),
+      ts: parseTime(trim(m[3]))
+    })), 15)
+
+  let espnItems = (espnNews.articles ?? []).map(a => ({
+    id: "espn-${a.id}",
+    src: "ESPN",
+    title: trim(a.headline ?? ""),
+    desc: trim(a.description ?? ""),
+    link: a.links.web.href ?? "https://www.espn.com/nfl/team/_/name/sea/seattle-seahawks",
+    ts: parseTime(a.published)
+  }))
+
+  let foxItems = matchAll(foxRss ?? "", "<item>[\\s\\S]*?<title>\\s*(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?\\s*</title>[\\s\\S]*?<link>\\s*([^<]+?)\\s*</link>[\\s\\S]*?<category>([^<]+)</category>[\\s\\S]*?<description>\\s*(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?\\s*</description>[\\s\\S]*?<pubDate>\\s*([^<]+?)\\s*</pubDate>")
+    .filter(m => trim(m[2]) == "nfl")
+    .map(m => ({
+      id: "fox-${trim(m[1])}",
+      src: "Fox Sports",
+      title: trim(m[0]),
+      desc: trim(m[3]),
+      link: trim(m[1]),
+      ts: parseTime(trim(m[4]))
+    }))
+
+  let fgItems = matchAll(fgRss ?? "", "<entry>[\\s\\S]*?<title[^>]*>\\s*(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?\\s*</title>[\\s\\S]*?<link[^>]*href=\"([^\"]+)\"[\\s\\S]*?<published>([^<]+)</published>[\\s\\S]*?<summary[^>]*>\\s*(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?\\s*</summary>")
+    .map(m => ({
+      id: "fg-${trim(m[1])}",
+      src: "Field Gulls",
+      title: trim(m[0]),
+      desc: trim(m[3]),
+      link: trim(m[1]),
+      ts: parseTime(trim(m[2]))
+    }))
+
+  let allArticles = flatten([seaItems, espnItems, foxItems, fgItems])
+    .filter(a => a.title != "" && a.link != "")
+    .map(a => ({
+      id: a.id,
+      src: a.src,
+      title: replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(a.title, "&amp;", "&"), "&#038;", "&"), "&#039;", "'"), "&#8217;", "'"), "&#8216;", "'"), "&#8220;", "\""), "&#8221;", "\""), "&quot;", "\""), "&#8211;", "-"), "&#8212;", "-"),
+      desc: replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(trim(join(matchAll(a.desc ?? "", "(?:^|>)([^<]+)").map(x => x[0]), "")), "&amp;", "&"), "&#038;", "&"), "&#039;", "'"), "&#8217;", "'"), "&#8216;", "'"), "&#8220;", "\""), "&#8221;", "\""), "&quot;", "\""), "&#8230;", "..."), "&#8211;", "-"), "&#8212;", "-"), "&mdash;", "-"),
+      link: a.link,
+      ts: a.ts
+    }))
+    .sortBy(a => -(a.ts ?? 0))
+
+  let newsSources = [
+    {id: "all", label: "All", w: 2},
+    {id: "Seahawks.com", label: "Seahawks", w: 4},
+    {id: "ESPN", label: "ESPN", w: 3},
+    {id: "Fox Sports", label: "Fox", w: 2},
+    {id: "Field Gulls", label: "Field Gulls", w: 5}
+  ]
+
+  let articles = newsFilter == "all" ? allArticles : allArticles.filter(a => a.src == newsFilter)
+
+  component NewsFilterBar(padY = 3, chipRadius = 6) {
+    Row {
+      fill: width
+      gap: 4
+      for f in newsSources key f.id {
+        let active = newsFilter == f.id
+        Box {
+          weight: f.w
+          padding: [padY, 4]
+          radius: chipRadius * corners
+          background: active ? alpha(seaGreen, 0.25) : alpha(surface, 0.4)
+          border: 1
+          borderColor: active ? seaGreen : border
+          onTap: { haptic(); newsFilter = f.id }
+          Text {
+            text: f.label
+            style: label
+            bold: active
+            color: active ? seaGreen : muted
+            align: center
+            maxLines: 1
+          }
+        }
+      }
+    }
+  }
 
   component TeamLogo(abbr, px = 20) {
     let a = lower(abbr ?? '')
@@ -552,43 +643,49 @@ widget "hawkwatch" {
       }
 
       if tab == "news" {
-        if len(articles) == 0 {
-          Text { text: "Loading Seahawks news…"; style: small; color: muted; align: center }
-        } else {
-          for item in articles.take(5) key item.link {
-            Box {
-              fill: width
-              padding: [6, 4]
-              radius: 6 * corners
-              onTap: { haptic(); url(item.link) }
+        Column {
+          gap: 4
+          fill: width
 
-              Row {
+          NewsFilterBar { padY: 3; chipRadius: 6 }
+
+          if len(articles) == 0 {
+            Text { text: "Loading Seahawks news…"; style: small; color: muted; align: center }
+          } else {
+            for item in articles.take(6) key item.id {
+              Box {
                 fill: width
-                gap: 6
-                align: top
-                Box {
-                  width: 4
-                  height: 14
-                  radius: 2
-                  background: seaGreen
-                  offset: [0, 3]
-                }
-                Column {
-                  gap: 2
-                  weight: 1
-                  Text {
-                    text: item.title
-                    style: small
-                    bold: true
-                    maxLines: 2
+                padding: [6, 4]
+                radius: 6 * corners
+                onTap: { haptic(); url(item.link) }
+
+                Row {
+                  fill: width
+                  gap: 6
+                  align: top
+                  Box {
+                    width: 4
+                    height: 14
+                    radius: 2
+                    background: seaGreen
+                    offset: [0, 3]
                   }
-                  Row {
-                    gap: 6
-                    let pt = parseTime(item.pub)
-                    if pt != null {
-                      Text { text: fmtAgo(pt, now); style: label; color: seaGreen }
+                  Column {
+                    gap: 2
+                    weight: 1
+                    Text {
+                      text: item.title
+                      style: small
+                      bold: true
+                      maxLines: 2
                     }
-                    Text { text: "Seahawks.com"; style: label; color: muted }
+                    Row {
+                      gap: 6
+                      if item.ts != null && item.ts > 0 {
+                        Text { text: fmtAgo(item.ts, now); style: label; color: seaGreen }
+                      }
+                      Text { text: item.src; style: label; color: muted }
+                    }
                   }
                 }
               }
@@ -1057,12 +1154,14 @@ widget "hawkwatch" {
           gap: 8
           fill: width
 
-          Text { text: "LATEST OFFICIAL SEAHAWKS NEWS"; style: label; color: muted }
+          Text { text: "LATEST SEAHAWKS NEWS"; style: label; color: muted }
+
+          NewsFilterBar { padY: 4; chipRadius: 8 }
 
           if len(articles) == 0 {
-            Text { text: "Fetching news from Seahawks.com…"; style: small; color: muted }
+            Text { text: "Fetching Seahawks news…"; style: small; color: muted }
           } else {
-            for item in articles key item.link {
+            for item in articles.take(20) key item.id {
               Box {
                 fill: width
                 padding: 10
@@ -1079,12 +1178,11 @@ widget "hawkwatch" {
                   Row {
                     gap: 6
                     align: center
-                    let pt = parseTime(item.pub)
-                    if pt != null {
-                      Text { text: fmtAgo(pt, now); style: label; color: seaGreen; bold: true }
+                    if item.ts != null && item.ts > 0 {
+                      Text { text: fmtAgo(item.ts, now); style: label; color: seaGreen; bold: true }
                       Text { text: "•"; style: label; color: muted }
                     }
-                    Text { text: "Seahawks.com"; style: label; color: muted }
+                    Text { text: item.src; style: label; color: muted }
                   }
 
                   Text {
@@ -1093,7 +1191,7 @@ widget "hawkwatch" {
                     bold: true
                   }
 
-                  if item.desc != "" {
+                  if (item.desc ?? "") != "" {
                     Text {
                       text: item.desc
                       style: small
