@@ -1,5 +1,5 @@
 face "snow globe" {
-  meta { owl: 23; description: "A Christmas snow globe: a lit little town under glass. Shake the phone to whirl the snow, tap the tree, the houses and the snowman, and watch the sky follow the real time."; version: "1.0"; license: "MIT"; category: "fun" }
+  meta { owl: 23; description: "A Christmas snow globe: a lit little town under glass. Shake the phone to whirl the snow, tap the tree, the houses and the snowman, and watch the sky follow the real time."; version: "1.1"; license: "MIT"; category: "fun" }
 
   // run under the status and navigation bars, so the layout knows exactly how much room it has
   edge: true
@@ -71,14 +71,20 @@ face "snow globe" {
   state colCount = 5 persist
   state corner = "soft" persist
   state q = ""
+  state dockPage = 0
+  state dragX = 0
   state pg = 0
   let all = (apps ?? []).sortBy(a => lower(a.name))
   let items = picks.map(k => find(all, a => a.key == k)).filter(a => a != null)
   // the picks still installed: the list buttons edit these, so an uninstalled app drops out
   let keys = items.map(a => a.key)
   let rad = corner == "edge" ? 0 : corner == "soft" ? 6 : 12
-  let cw = floor(((tileWidth ?? 412) - 24 - 8 * (colCount - 1)) / colCount)
-  let lines = range(ceil(len(items) / colCount)).map(r => items.drop(r * colCount).take(colCount))
+    // the dock is one row, in pages of colCount apps, swiped sideways
+  let pw = tileWidth ?? 412
+  let cw = floor((pw - 24 - 8 * (colCount - 1)) / colCount)
+  let pagesList = chunk(items, colCount)
+  let npages = max(1, len(pagesList))
+  let pageNow = clamp(dockPage, 0, npages - 1)
   let avail = all.filter(a => !any(picks, k => k == a.key) && (q == "" || contains(lower(a.name), lower(q))))
 
   // ═══════════════════════════ CHRISTMAS COUNTDOWN ═══════════════════════════
@@ -98,11 +104,11 @@ face "snow globe" {
   let W = tileWidth ?? 412
   let H = (tileHeight ?? 880) - (screenInset ?? 0) - (screenTop ?? 0) - 6
   // top banner, the globe, and the app dock at the bottom
-  let bannerH = 92
+  let bannerH = 112
   // The globe takes the room its width allows; the dock gets everything left below it.
   let Uw = W * 0.47 / 104
-  let GH = min(262 * Uw + 10, H - bannerH - 110)
-  let U = min(Uw, (GH - 10) / 262)
+  let GH = min(262 * Uw + 5, H - bannerH - 130)
+  let U = min(Uw, (GH - 5) / 262)
   let OX = W / 2
   let OY = 5 + 100 * U
 
@@ -285,6 +291,7 @@ face "snow globe" {
       gap: 2
       Text { spans: [{text: "Merry ", color: C_RED}, {text: "Christmas", color: mix(C_GREEN, #ffffff, 0.15)}]; font: script; fontSize: 50; fontWeight: 700; align: center }
       Text { spans: [{text: "❄  ", color: C_ICE}, {text: xmText, color: C_AMBER}, {text: "  ❄", color: C_ICE}]; style: label; align: center; letterSpacing: 1.5 }
+      Spacer { height: 20 }
     }
     Canvas {
       width: W
@@ -543,50 +550,129 @@ face "snow globe" {
           text(clk, 0, 106, size: 34, align: center, color: alpha(#1c0f08, 0.82), font: serif, bold: true, letterSpacing: 3)
           if cur != null {
             let wxt = "${cur.temp_C}°C  ${cur.weatherDesc[0].value}"
-            text(wxt, 0.6, 132.6, size: 11, align: center, color: alpha(#ffcf9a, 0.3), font: serif, letterSpacing: 1.5)
-            text(wxt, 0, 132, size: 11, align: center, color: alpha(#1c0f08, 0.75), font: serif, letterSpacing: 1.5)
+            text(wxt, 0.6, 132.6, size: len(wxt) > 16 ? 8.6 : 11, align: center, color: alpha(#ffcf9a, 0.3), font: serif, letterSpacing: 1.5)
+            text(wxt, 0, 132, size: len(wxt) > 16 ? 8.6 : 11, align: center, color: alpha(#1c0f08, 0.75), font: serif, letterSpacing: 1.5)
           }
         }
       }
     }
-    // ── the dock: the apps you picked, using all the room under the globe, aligned to the top ──
+    // ── the display case: a Christmas vitrina the globe stands on, with the apps on its shelves ──
+    // cornice with a garland: the top of the case, where the globe's base rests
+    Canvas {
+      width: W
+      height: 26
+      rect(0, 0, width, 12, fill: linear(0, 0, 0, 12, [#9a6a40, #5f3b22]))
+      rect(0, 0, width, 2, fill: alpha(#ffd9a8, 0.45))
+      rect(0, 12, width, 4, fill: #3a2214)
+      rect(0, 11, width, 1, fill: alpha(#e8c46a, 0.7))
+      rect(0, 16, width, 10, fill: #4a2d1b)
+      let n = max(3, floor(width / 30))
+      let step = (width - 16) / n
+      path(flatten(range(n).map(j => range(5).map(k => [8 + (j + k / 4) * step, 15 + 5 * sin(k / 4 * 3.1416)]))), stroke: #1d3b2b, width: 1.3)
+      for j in range(n) {
+        let tw = 0.65 + 0.35 * sin(gt * 3 + j * 1.9)
+        let bx = 8 + (j + 0.5) * step
+        circle(bx, 23, 6, fill: alpha(LIGHTS[j % 4], 0.3 * tw))
+        circle(bx, 22.5, 2.1, fill: mix(LIGHTS[j % 4], #ffffff, 0.2 + 0.25 * tw))
+      }
+    }
     Column {
       weight: 1
-      justify: start
-      if len(items) == 0 {
-        Text { text: "tap + apps on the base to add your apps"; style: muted; align: center; onTap: screen() }
-      } else {
+      padding: 0
+      background: linear(0, 0, 0, 1, [#6a4228, #4a2d1b, #34200f])
+      // the glass front: no frame and no fill, just a reflection across it
+      Box {
+        weight: 1
+        clip: true
         Column {
-          weight: 1
-          scroll: true
-          justify: start
-          gap: 8
-          for r, ri in lines key ri {
-            Row {
-              gap: 8
-              justify: center
-              fill: width
-              for a in r key a.key {
-                Column {
-                  gap: 2
-                  align: center
-                  width: cw
-                  padding: framed ? 5 : 0
-                  border: framed ? 1 : 0
-                  borderColor: border
-                  radius: rad
-                  onTap: androidApp(a.key)
-                  Image { src: a.icon; size: 44 }
-                  if names { Text { text: a.name; style: small; align: center; maxLines: 1 } }
+          padding: 0
+          if len(items) == 0 {
+            Text { text: "tap + apps on the base to fill the shelves"; style: muted; align: center; onTap: screen() }
+          } else {
+            // one shelf: the apps in pages as wide as the case, swiped sideways, with a dot for each page
+            Column {
+              weight: 1
+              gap: 0
+              Spacer { height: 18 }
+              Box {
+                width: pw
+                clip: true
+                // every page sits in the same spot and is slid sideways, so swiping drags this one and the next together
+                for pgItems, pi in pagesList key pi {
+                  Row {
+                    width: pw
+                    gap: 8
+                    justify: center
+                    drag: horizontal
+                    offset: [(pi - pageNow) * pw + dragX, 0]
+                    animate offset: spring()
+                    onDrag: dragX = dragX + dx
+                    onDragEnd: {
+                      if dragX < -pw * 0.18 && pageNow < npages - 1 {
+                        dockPage = pageNow + 1
+                        haptic("light")
+                      } else if dragX > pw * 0.18 && pageNow > 0 {
+                        dockPage = pageNow - 1
+                        haptic("light")
+                      } else {
+                        dockPage = pageNow
+                      }
+                      dragX = 0
+                    }
+                    for a in pgItems key a.key {
+                      Column {
+                        gap: 2
+                        align: center
+                        width: cw
+                        padding: framed ? 5 : 0
+                        border: framed ? 1 : 0
+                        borderColor: alpha(#e8c46a, 0.5)
+                        radius: rad
+                        onTap: androidApp(a.key)
+                        Image { src: a.icon; size: 44 }
+                        if names { Text { text: a.name; style: small; align: center; maxLines: 1 } }
+                      }
+                    }
+                  }
+                }
+              }
+              Spacer { height: 14 }
+              // the shelf the row stands on
+              Column {
+                padding: [14, 0, 14, 0]
+                Box { height: 5; fill: width; background: linear(0, 0, 0, 1, [#c99a5a, #7a4e2f]); radius: 2 }
+              }
+              // page dots
+              if npages > 1 {
+                Row {
+                  fill: width
+                  gap: 10
+                  justify: center
+                  padding: [0, 14, 0, 0]
+                  for di in range(npages) {
+                    Box {
+                      width: di == pageNow ? 18 : 7
+                      height: 7
+                      radius: 4
+                      background: di == pageNow ? C_AMBER : alpha(#ffe9b8, 0.3)
+                      onTap: dockPage = di
+                    }
+                  }
                 }
               }
             }
           }
-          Spacer { height: 8 }
+        }
+        Canvas {
+          fill: true
+          path([[width * 0.14, 0], [width * 0.28, 0], [width * 0.02, height], [-width * 0.12, height]], closed: true, fill: alpha(#ffffff, 0.05))
+          path([[width * 0.32, 0], [width * 0.36, 0], [width * 0.1, height], [width * 0.06, height]], closed: true, fill: alpha(#ffffff, 0.04))
+          rect(0, 0, width, 2, fill: alpha(#ffffff, 0.1))
         }
       }
+      // the plinth under the case, down to the navigation bar
+      Box { height: 10 + (screenInset ?? 0); background: linear(0, 0, 0, 1, [#4a2d1b, #2a180d]) }
     }
-    Spacer { height: screenInset }
   }
 
   // ═══════════════════════════ SETTINGS SCREEN ═══════════════════════════
