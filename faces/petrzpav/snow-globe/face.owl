@@ -1,0 +1,2241 @@
+face "snow globe" {
+  meta { owl: 21; description: "A pixel-art snow globe that fills up as you get ready for Christmas: gifts bought land under the tree, tasks done hang on it. Shake it to see what's left"; version: "1.0"; license: "MIT"; category: "fun" }
+
+  // How it works: gifts and tasks are kept by the launcher (persist). What's done shows in the globe:
+  // a box under the tree for each gift bought (wrapped ones get paper and a ribbon), an ornament for each
+  // task done, the scene's extras at a quarter and at half, lights (and the northern lights) at three
+  // quarters, and the star when it's all done. Four scenes, picked with the arrows on the stand. The art
+  // is ASCII pixel art whose letters are colors mixed from the theme (PAL), so it follows theme changes.
+  // The snow is ~70 flakes moved in `every frame` along the phone's real gravity (android.motion):
+  // tilting tips it, and a quick turn or shake (the tilt changing fast) or a tap stirs it up. As it
+  // stirs, the globe picks one thing still to do and shows it.
+
+  padding: 0
+  background: linear(0, 0, 0, 1, [alpha(background, 0.92), alpha(background, 0.72), alpha(background, 0.95)])
+
+  source now = clock every 1m
+  source m = android.motion
+
+  strings {
+    en {
+      untilXmas: d => d == 1 ? "day until Christmas" : "days until Christmas"
+      today: "It's Christmas!"
+      after: "Merry Christmas!"
+      left: n => n == 0 ? "all ready" : (n == 1 ? "1 thing left" : "${n} things left")
+      empty: "add gifts and tasks below"
+      shakeHint: "shake the phone or tap the globe"
+      scene: i => ["Forest cabin", "Village", "Mountains", "North Pole"][i]
+      gifts: "Gifts"
+      tasks: "To do"
+      idea: "idea"
+      bought: "bought"
+      wrapped: "wrapped"
+      giftPh: "Who: what 30"
+      noGifts: "Add who you're buying for, like \"Anna: scarf 30\". Every gift you buy lands under the tree."
+      taskPh: "Add a task…"
+      spent: a => "spent ${a} of"
+      budget: "set budget"
+      helpGifts: "enter: add · tap: idea → bought → wrapped · hold: delete"
+      helpTasks: "enter: add · tap: done · hold: delete"
+      helpEggs: "find all ten and the snow turns gold · hold the countdown for a full globe"
+      locked: "from 25 % of your list"
+      spentOnly: a => "spent ${a}"
+      eggs: "Secrets"
+      eggName: i => ["Moon wink", "Flying hat", "Rudolph", "Chimney Santa", "Midnight bell", "Igloo guest", "Ticklish penguin", "Gift from the sky", "Wish", "Upside down"][i]
+      eggHint: i => ["Say hello to the moon.", "Someone's hat sits loose.", "Boop a red nose in the mountains.", "Who's stuck in the chimney?", "Ring for midnight mass.", "Knock on the ice house.", "Tickle whoever walks past the stand.", "Catch the sleigh as it flies over.", "Make a wish on a falling star.", "Turn the world upside down."][i]
+      found: (name, n, t) => "Secret ${n}/${t}: ${name}"
+      allEggs: "All ten secrets found! The snow turns gold."
+      undo: "undo"
+      needGift: w => "${w} has no gift yet"
+      needWrap: w => "Wrap the gift for ${w}"
+      todo: t => "Still to do: ${t}"
+      allDone: "All done. Happy holidays!"
+      seeds: "Put up the snow globe|Bake cookies|Get a tree|Decorate the tree|Send cards|Plan Christmas dinner|Clean up"
+      preview: "preview · hold the number to leave"
+    }
+    cs {
+      untilXmas: d => d == 1 ? "den do Štědrého dne" : (d >= 2 && d <= 4 ? "dny do Štědrého dne" : "dní do Štědrého dne")
+      today: "Dnes je Štědrý den!"
+      after: "Veselé Vánoce!"
+      left: n => n == 0 ? "vše připraveno" : (n == 1 ? "zbývá 1 věc" : (n <= 4 ? "zbývají ${n} věci" : "zbývá ${n} věcí"))
+      empty: "dole přidej dárky a úkoly"
+      shakeHint: "zatřes telefonem nebo klepni na kouli"
+      scene: i => ["Lesní chaloupka", "Vesnice", "Hory", "Severní pól"][i]
+      gifts: "Dárky"
+      tasks: "Úkoly"
+      idea: "nápad"
+      bought: "koupeno"
+      wrapped: "zabaleno"
+      giftPh: "Komu: co 500"
+      noGifts: "Přidej, komu kupuješ, třeba „Anna: šála 500“. Každý koupený dárek přistane pod stromkem."
+      taskPh: "Přidat úkol…"
+      spent: a => "utraceno ${a} z"
+      budget: "nastav rozpočet"
+      helpGifts: "enter: přidat · klepni: nápad → koupeno → zabaleno · podrž: smazat"
+      helpTasks: "enter: přidat · klepni: hotovo · podrž: smazat"
+      helpEggs: "najdi všech deset a sníh zezlátne · podrž číslo dní pro plnou kouli"
+      locked: "od 25 % seznamu"
+      spentOnly: a => "utraceno ${a}"
+      eggs: "Tajemství"
+      eggName: i => ["Mrkající měsíc", "Létající klobouk", "Rudolf", "Santa v komíně", "Zvon na půlnoční", "Host v iglú", "Lechtivý tučňák", "Dárek z nebe", "Přání", "Vzhůru nohama"][i]
+      eggHint: i => ["Pozdrav měsíc.", "Někomu nedrží klobouk.", "Zmáčkni červený nos v horách.", "Kdo uvízl v komíně?", "Zazvoň na půlnoční.", "Zaklepej na ledový dům.", "Polechtej toho, kdo chodí kolem podstavce.", "Chyť sáně, až poletí kolem.", "Přej si něco, když padá hvězda.", "Obrať svět vzhůru nohama."][i]
+      found: (name, n, t) => "Tajemství ${n}/${t}: ${name}"
+      allEggs: "Všech deset tajemství nalezeno! Sníh zezlátne."
+      undo: "vrátit"
+      needGift: w => "${w} ještě nemá dárek"
+      needWrap: w => "Zabalit dárek: ${w}"
+      todo: t => "Ještě: ${t}"
+      allDone: "Vše hotovo. Krásné svátky!"
+      seeds: "Postavit sněžnou kouli|Upéct cukroví|Koupit stromek|Ozdobit stromek|Koupit kapra|Napsat přáníčka|Uklidit"
+      preview: "ukázka · podrž číslo pro návrat"
+    }
+  }
+
+  // {id, who, what, price, st}: st 0 idea, 1 bought, 2 wrapped
+  state gifts = [] persist
+  // {id, name, done}; null until the first start fills in a few to begin with
+  state tasks = null persist
+  state budget = 0 persist
+  state tab = "gifts" persist
+  state scene = 0 persist
+  state shaken = false persist
+  state addReq = null
+  state undo = null
+  // a full globe for screenshots, without touching the lists
+  state demo = false
+
+  // the snow: x, y in globe radii from its middle (y down), speed, settled, fall speed, phase
+  state flakes = range(70).map(i => {x: random() * 1.6 - 0.8, y: random() * 1.1 - 0.95, vx: 0, vy: 0, s: false, f: 0.2 + random() * 0.22, ph: random() * 6.28})
+  state calm = false
+  state pm = null
+  state shakeE = 0
+  state kick = 0
+  state gt = 0
+  state hint = ""
+  state hintAt = -100
+  state hintFor = 12
+  // Now and then something happens: a sleigh flies over the page, a star shoots across the globe, a penguin
+  // walks along the stand, and the snowman's hat jumps off when the globe is shaken.
+  state flyAt = -100
+  state nextFly = random(6, 12)
+  state shootAt = -100
+  state nextShoot = random(8, 20)
+  state walkAt = -100
+  state nextWalk = random(15, 25)
+  state hatAt = -100
+  // Easter eggs: ten hidden things to find, kept across restarts. A tap on a spot in the scene, on the walking
+  // penguin, on a shooting star or on the flying sleigh finds one; so does holding the phone upside down.
+  state eggs = [] persist
+  state foundReq = null
+  // the egg playing in the scene now: {id, at, p}
+  state egg = null
+  state slipAt = -100
+  state wishAt = -100
+  state dropAt = -100
+  state dropX = 0
+  state dropY = 0
+  state upT = 0
+  state pdt = 0
+
+  when tasks == null { tasks = split(str.seeds, "|").map((s, i) => {id: i + 1, name: s, done: i == 0}) }
+
+  let EGG_IDS = ["moon", "snowman", "rudolph", "chimney", "bell", "igloo", "penguin", "sleigh", "wish", "upside"]
+  // the progress a secret needs before its spot shows up anywhere
+  let EGG_LV = [0, 0.25, 0.25, 0, 0, 0.25, 0, 0, 0, 0]
+
+  when foundReq != null {
+    let id = foundReq
+    if !contains(eggs, id) {
+      eggs = eggs + [id]
+      hint = len(eggs) >= len(EGG_IDS) ? str.allEggs : str.found(str.eggName(indexOf(EGG_IDS, id)), len(eggs), len(EGG_IDS))
+      hintAt = gt - 0.8
+      hintFor = 5
+      haptic()
+    }
+    foundReq = null
+  }
+
+  when addReq != null {
+    let v = trim(addReq)
+    if v != "" {
+      if tab == "gifts" {
+        let pm2 = match(v, "^(.*?)[\\s,;]*(\\d+)\\s*(?:kč|Kč|KČ|,-|€|\\$|£|eur|EUR|usd|USD)?$")
+        let body = pm2 == null ? v : trim(pm2[0])
+        let price = pm2 == null ? 0 : num(pm2[1], 0)
+        let sep = contains(body, ":") ? ":" : " - "
+        let parts = split(body, sep)
+        let who = trim(parts[0])
+        let what = trim(join(drop(parts, 1), sep))
+        gifts = gifts + [{id: random(1000000000), who: who == "" ? v : who, what: what, price: price, st: 0}]
+      } else {
+        tasks = (tasks ?? []) + [{id: random(1000000000), name: v, done: false}]
+      }
+      undo = null
+    }
+    addReq = null
+  }
+
+  // Light themes: Omarchy themes say "mode = light" in colors.toml. There the globe keeps its night by
+  // swapping background and foreground; without Linux (no files to read) it takes the theme as dark.
+  source styleToml = file("~/.config/omalauncher/style/style.toml") optional
+  let themeName = (match(styleToml ?? "", "(?m)^theme\\s*=\\s*\"([^\"]+)\"") ?? ["-"])[0]
+  source themeToml = file("~/.config/omarchy/themes/${themeName}/colors.toml") optional
+  let LIGHT = contains(themeToml ?? "", "mode = \"light\"")
+  let NIGHT = LIGHT ? foreground : background
+  let SNOW = LIGHT ? background : foreground
+
+  // ---- ART: made by /root/src/omalauncher-snowglobe/art2.py from ASCII art; letters are theme colors (PAL) ----
+  let PAL = {
+    a: mix(NIGHT, blue, 0.07),
+    b: mix(NIGHT, blue, 0.11),
+    c: mix(NIGHT, blue, 0.15),
+    d: mix(mix(NIGHT, blue, 0.2), magenta, 0.06),
+    e: mix(mix(NIGHT, blue, 0.24), magenta, 0.12),
+    u: mix(NIGHT, blue, 0.05),
+    v: mix(NIGHT, blue, 0.1),
+    x: mix(NIGHT, mix(blue, magenta, 0.5), 0.17),
+    M: mix(NIGHT, mix(blue, magenta, 0.5), 0.27),
+    w: mix(SNOW, mix(blue, magenta, 0.5), 0.38),
+    L: mix(SNOW, blue, 0.5),
+    S: SNOW,
+    s: mix(SNOW, blue, 0.14),
+    t: mix(mix(SNOW, blue, 0.4), NIGHT, 0.32),
+    T: mix(mix(SNOW, blue, 0.4), NIGHT, 0.55),
+    G: mix(green, NIGHT, 0.18),
+    g: mix(green, NIGHT, 0.42),
+    E: mix(green, NIGHT, 0.66),
+    K: mix(orange, NIGHT, 0.38),
+    k: mix(orange, NIGHT, 0.6),
+    m: mix(SNOW, yellow, 0.25),
+    n: mix(mix(SNOW, yellow, 0.25), NIGHT, 0.25),
+    y: yellow,
+    Y: mix(yellow, NIGHT, 0.72),
+    W: mix(yellow, SNOW, 0.55),
+    r: red,
+    R: mix(red, NIGHT, 0.42),
+    j: mix(NIGHT, SNOW, 0.08),
+    J: mix(NIGHT, SNOW, 0.24),
+    l: orange,
+    i: mix(SNOW, NIGHT, 0.5),
+    I: mix(SNOW, NIGHT, 0.68),
+    A: mix(magenta, NIGHT, 0.5),
+    B: mix(magenta, NIGHT, 0.68),
+    C: mix(blue, NIGHT, 0.55),
+    D: mix(blue, NIGHT, 0.72),
+    F: mix(orange, NIGHT, 0.45),
+    f: mix(orange, NIGHT, 0.62),
+    H: mix(orange, SNOW, 0.45),
+    o: alpha(mix(muted, SNOW, 0.35), 0.55),
+    O: alpha(muted, 0.32),
+    h: alpha(SNOW, 0.5),
+    p: mix(NIGHT, accent, 0.24),
+    P: mix(NIGHT, accent, 0.08),
+    q: mix(accent, NIGHT, 0.52),
+    Q: mix(accent, NIGHT, 0.28),
+    U: accent,
+    z: alpha(NIGHT, 0.55)
+  }
+  let ART_W = 132
+  let ART_H = 148
+  let ART_CX = 66
+  let ART_CY = 62
+  let ART_R = 59.0
+  let ART_S = 2
+  let STAND_Y = 112
+  let PLAQUE_Y = 126
+  let ARROWS = [24, 102, 122]
+  let TREE = [
+    ".......................G.......................",
+    ".......................G.......................",
+    "......................GEE......................",
+    "......................ggE......................",
+    ".....................SGgEE.....................",
+    "....................GGGggEE....................",
+    "....................GGGggEE....................",
+    "....................SggggEE....................",
+    "...................GGGgggEEE...................",
+    "..................GGGGgggEEEE..................",
+    "..................SGGGggggEEE..................",
+    "..................GGgGEgggEEE..................",
+    ".................GSSGSSgggEssE.................",
+    "................GSSGSSgEggEsEsE................",
+    "................SSGSSgSggggEssE................",
+    ".................g..gGgEEEE..E.................",
+    ".................g.SEGEgEgEE.E.................",
+    ".................EGEGEgEgEEEEE.................",
+    "..................GGGGgggggEE..................",
+    ".................SgGGGggggEEEE.................",
+    "................GGGGGEggggggEEE................",
+    "..............GGGGGGGggggggEEEEEE..............",
+    "...............SGGGGGgEggggEgEEE...............",
+    "..............GGGgGGGgggggggEEEEE..............",
+    ".............SGSSGSSgggEggggEgEsEs.............",
+    "...........GSGSSGSSGggggggggEEEEssEE...........",
+    "............GSSGSSGGggggEgggEEgEsEs............",
+    "..............gGggGGEggEggEEEEEEE..............",
+    "..............EGEgEgEgEgEEEEEEEgE..............",
+    "..............SEGEGEGEgEgEgEEEEEE..............",
+    "..............GGGGGGGgggggEgEEEEg..............",
+    "............GGGgGGGGgEggggggEEEEEEE............",
+    "............SGGGGGgGgggggggEEEEEEgE............",
+    "...........GGGGGGGGGggEggggggEEEEEEE...........",
+    "..........GgGGGGGGGgggggggggEEEEEEgEE..........",
+    "........GSGGGGgGGGGggggEgggggEEEEEEEEEE........",
+    "........GSSGSSGGGgGggggggggggEEEEEEgssE........",
+    "........SSGSSGGGGGGgggggEgggggEEEEEEsEs........",
+    ".......SSGSSGSGGGGggggggggggggEEEEEEgssE.......",
+    "........g..gGggGGgGGEggEgEEggEEEEEEE..E........",
+    "........E..gEGEGEGEGEgEgEgEgEEEEEEEE..E........",
+    "...........SGEGEGEGEgEgEgEEEgEEEEEEE...........",
+    "..........GGGGGGGGGGgggggggggEEEEEEEE..........",
+    "........GGGGgGGGGGGggggggggEgggEEEEEEEE........",
+    "........SGGGGGGgGGGgggggggggggEEEEEEEEE........",
+    ".......GGGGGGGGGGGggggggggggEgEgEEEEEEEE.......",
+    "......GGgGGGGGGGGGgggggggggggggEEEEEEEEEg......",
+    "....GSGGGGGgGGGGGGEggggggggggEgEgEEEEEEEEEE....",
+    "....SGSSGSGGGGgGGGggggggggggggggEEEEEEEEsgs....",
+    "...SgSSGSGGGGGGGGggEggggggggggEgEgEEEEEEEssE...",
+    ".SSGSSGSGGGGGGGGGggggggggggggggggEEEEEEEEEgssE.",
+    "..g..g..g..g..g..E..E..E..E..E..E..E..E..E..E..",
+    "..g..g..g..g.........KKKkk.........E..E..E..E..",
+    ".....................KKKkk.....................",
+    ".....................KKKkk.....................",
+    ".....................KKKkk.....................",
+    ".....................KKKkk.....................",
+    ".....................KKKkk.....................",
+    ".....................KKKkk.....................",
+    ".................TTTTKKKkkTTTTTTT.............."
+  ]
+  let ORN = [[23, 44], [22, 6], [28, 23], [15, 31], [37, 47], [10, 45], [32, 35], [19, 18], [24, 31], [16, 40], [30, 42], [17, 47], [30, 29], [25, 18], [22, 23], [19, 35], [24, 11], [28, 47]]
+  let LIGHTS = [[20, 16], [20, 17], [21, 17], [21, 18], [22, 18], [23, 19], [24, 20], [25, 20], [27, 21], [28, 21], [30, 22], [18, 26], [18, 27], [19, 28], [20, 28], [22, 29], [23, 30], [25, 31], [27, 32], [29, 32], [31, 33], [34, 34], [16, 38], [17, 39], [18, 40], [19, 40], [21, 41], [23, 42], [25, 43], [28, 44], [30, 44], [34, 45], [37, 46]]
+  let STAR = [
+    ".............",
+    "......y......",
+    "......y......",
+    "......y......",
+    ".....yyy.....",
+    ".yyyyWWWyyyy.",
+    "..yyWWWWWyy..",
+    "....WWWWW....",
+    "....yWWWy....",
+    "....yyyyy....",
+    "...yy...yy...",
+    "...y.....y...",
+    "............."
+  ]
+  let STAR_AT = [60, -10]
+  let SLEIGH = [
+    "..KK..KK..........KK..KK..........................",
+    "..KK..KK..........KK..KK..........................",
+    "...KKKK............KKKK..................rrrSS....",
+    "....KK..............KK.................rrrrrSS....",
+    "...FFF.............FFF.................rrrrr......",
+    "..FFFFF...........FFFFF...............rrrrrr......",
+    "rrFFFFFFFFFFF.....FFFFFFFFFFF.........SSSSSS......",
+    "rrFFFFFFFFFFFF....FFFFFFFFFFFF........SSSSSS......",
+    "...FFFFFFFFFFFiiiiiFFFFFFFFFFFiiiiiiHHSSSSSr......",
+    "....FFFFFFFFFFiiiiiiFFFFFFFFFFiiiiiiHSSSSrrrr.....",
+    "....FFF..FFFF.......FFF..FFFF.....rrSSSSSrrrrrrrR.",
+    "....FF....FF........FF....FF......rrrSSrrrrrrrrrRR",
+    "..................................RrrrrrrrrrrrrrRR",
+    "...................................RrrrrrrrrrrrrR.",
+    "....................................ii........ii..",
+    "...................................iiii......iiii.",
+    "..................................iiiiiiiiiiiiiiii",
+    "..................................iiiiiiiiiiiiiiii"
+  ]
+  let PENGUIN = [
+    [
+      "...jjjj...",
+      "..jjjjjj..",
+      "..jjjjSj..",
+      ".jjjjjjll.",
+      ".jjjjSSl..",
+      "jjjjSSSS..",
+      "jjjSSSSSS.",
+      "jjjSSSSSS.",
+      "jjjSSSSSS.",
+      ".jjSSSSSS.",
+      ".jjjSSSS..",
+      "..jjSSS...",
+      "..ll..ll.."
+    ],
+    [
+      "...jjjj...",
+      "..jjjjjj..",
+      "..jjjjSj..",
+      ".jjjjjjll.",
+      ".jjjjSSl..",
+      "jjjjSSSS..",
+      ".jjSSSSSS.",
+      "jjjSSSSSS.",
+      "jjjSSSSSS.",
+      ".jjSSSSSS.",
+      ".jjjSSSS..",
+      "..jjSSS...",
+      "...llll..."
+    ]
+  ]
+  let BOOT = [
+    "jj.",
+    "jj.",
+    "jjj",
+    "SS.",
+    "rr.",
+    "rR.",
+    "rR.",
+    "rr."
+  ]
+  let PENGUIN_HEAD = [
+    "...jjjj...",
+    "..jjjjjj..",
+    "..jjjjSj..",
+    ".jjjjjjll.",
+    ".jjjjSSl..",
+    "jjjjSSSS.."
+  ]
+  let LIP = [0, 122, 129]
+  let SKY = [
+    "....................................................................................................................................",
+    "....................................................................................................................................",
+    "....................................................................................................................................",
+    "..........................................................aaaaaaaaaaaaaaaa..........................................................",
+    ".....................................................aaaaaaaaaaaaaaaaaaaaaaaaaa.....................................................",
+    ".................................................aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.................................................",
+    "..............................................aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa..............................................",
+    "...........................................aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa...........................................",
+    ".........................................aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.........................................",
+    ".......................................aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.......................................",
+    ".....................................aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.....................................",
+    "...................................aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa...................................",
+    "..................................aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa..................................",
+    "................................aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa................................",
+    "...............................aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa...............................",
+    "..............................aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa..............................",
+    "............................aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa............................",
+    "...........................aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa...........................",
+    "..........................aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa..........................",
+    ".........................aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.........................",
+    "........................aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa........................",
+    ".......................aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.......................",
+    "......................aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa......................",
+    ".....................aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.....................",
+    "....................aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa....................",
+    "....................aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa....................",
+    "...................aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa...................",
+    "..................aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa..................",
+    ".................aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.................",
+    ".................aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.................",
+    "................aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa................",
+    "...............aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa...............",
+    "...............acacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacac...............",
+    "..............acacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacac..............",
+    "..............cacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacaca..............",
+    ".............cacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacaca.............",
+    ".............cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.............",
+    "............cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc............",
+    "............cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc............",
+    "...........cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc...........",
+    "...........cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc...........",
+    "...........cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc...........",
+    "..........cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc..........",
+    "..........cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc..........",
+    "..........cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc..........",
+    ".........cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.........",
+    ".........cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.........",
+    ".........cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.........",
+    ".........cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.........",
+    "........cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc........",
+    "........cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc........",
+    "........cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc........",
+    "........cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc........",
+    "........cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc........",
+    ".......cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.......",
+    ".......cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.......",
+    ".......cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.......",
+    ".......cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.......",
+    ".......cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.......",
+    ".......cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.......",
+    ".......cecececececececececececececececececececececececececececececececececececececececececececececececececececececececececece.......",
+    ".......ececececececececececececececececececececececececececececececececececececececececececececececececececececececececececec.......",
+    ".......cecececececececececececececececececececececececececececececececececececececececececececececececececececececececececece.......",
+    ".......ececececececececececececececececececececececececececececececececececececececececececececececececececececececececececec.......",
+    ".......eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.......",
+    ".......eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.......",
+    ".......eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.......",
+    ".......eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.......",
+    ".......eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.......",
+    ".......eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.......",
+    "........eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee........",
+    "........eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee........",
+    "........eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee........",
+    "........eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee........",
+    "........eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee........",
+    ".........eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.........",
+    ".........eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.........",
+    ".........eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.........",
+    ".........eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.........",
+    "..........eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee..........",
+    "..........eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee..........",
+    "..........eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee..........",
+    "...........eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee...........",
+    "...........eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee...........",
+    "...........eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee...........",
+    "............eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee............",
+    "............eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee............",
+    ".............eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.............",
+    ".............eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.............",
+    "..............eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee..............",
+    "..............eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee..............",
+    "...............eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee...............",
+    "...............eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee...............",
+    "................eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee................",
+    ".................eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.................",
+    ".................eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.................",
+    "..................eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee..................",
+    "...................eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee...................",
+    "....................eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee....................",
+    "....................eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee....................",
+    ".....................eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.....................",
+    "......................eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee......................",
+    ".......................eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.......................",
+    "........................eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee........................",
+    ".........................eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.........................",
+    "..........................eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee..........................",
+    "...........................eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee...........................",
+    "............................eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee............................",
+    "..............................eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee..............................",
+    "...............................eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee...............................",
+    "................................eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee................................",
+    "..................................eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee..................................",
+    "...................................eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee..................................."
+  ]
+  let GLASS = [
+    ".........................................................oooooooooooooooooo.........................................................",
+    "....................................................oooooooooooooooooooooooooooo....................................................",
+    "................................................oooooooooooooooooooooooooooooooooooo................................................",
+    ".............................................ooooooooooooo................ooooooooooooo.............................................",
+    "..........................................ooooooooooo..........................ooooooooooo..........................................",
+    "........................................ooooooooo..................................ooooooooo........................................",
+    "......................................oooooooo........................................oooooooo......................................",
+    "....................................ooooooo..............................................ooooooo....................................",
+    "..................................ooooooo..................hhhhhh..........................ooooooo..................................",
+    ".................................oooooo.....................hhhhh............................oooooo.................................",
+    "...............................oooooo............hhhh..........................................oooooo...............................",
+    "..............................ooooo...........hhhhhhh............................................ooooo..............................",
+    "............................oooooo..........hhhhh.................................................oooooo............................",
+    "...........................ooooo..........hhhhh.....................................................ooooo...........................",
+    "..........................ooooo.........hhhh.........................................................ooooo..........................",
+    ".........................ooooo........hhhh............................................................ooooo.........................",
+    "........................oooo.........hhh................................................................oooo........................",
+    ".......................oooo........hhhh..................................................................oooo.......................",
+    "......................oooo........hhh.....................................................................oooo......................",
+    ".....................oooo.......hhhh.......................................................................oooo.....................",
+    "....................oooo.......hhh..........................................................................oooo....................",
+    "...................oooo.......hhh............................................................................oooo...................",
+    "..................oooo.......hhh..............................................................................oooo..................",
+    ".................oooo.......hhh................................................................................ooOO.................",
+    "................oooo.......hhh..................................................................................OOOO................",
+    "................oooo......hhh...................................................................................OOOO................",
+    "...............oooo......hhh.....................................................................................OOOO...............",
+    "..............oooo......hhh.......................................................................................OOOO..............",
+    "..............ooo......hhh.........................................................................................OOO..............",
+    ".............oooo......hh..........................................................................................OOOO.............",
+    "............oooo......hh............................................................................................OOOO............",
+    "............ooo......hhh.............................................................................................OOO............",
+    "...........oooo......hh..............................................................................................OOOO...........",
+    "...........ooo......hh................................................................................................OOO...........",
+    "..........oooo.....hhh................................................................................................OOOO..........",
+    "..........ooo......hh..................................................................................................OOO..........",
+    ".........oooo.....hh...................................................................................................OOOO.........",
+    ".........ooo......hh....................................................................................................OOO.........",
+    "........oooo.....hh.....................................................................................................OOOO........",
+    "........ooo......hh......................................................................................................OOO........",
+    "........ooo.....hh.......................................................................................................OOO........",
+    ".......oooo.....hh.......................................................................................................OOOO.......",
+    ".......ooo.....hhh........................................................................................................OOO.......",
+    ".......ooo.....hh.........................................................................................................OOO.......",
+    "......oooo.....hh.........................................................................................................OOOO......",
+    "......ooo.....hh...........................................................................................................OOO......",
+    "......ooo.....hh...........................................................................................................OOO......",
+    "......ooo.....hh...........................................................................................................OOO......",
+    ".....oooo.....hh...........................................................................................................OOOO.....",
+    ".....ooo....................................................................................................................OOO.....",
+    ".....ooo....................................................................................................................OOO.....",
+    ".....ooo....................................................................................................................OOO.....",
+    ".....ooo....................................................................................................................OOO.....",
+    "....oooo....................................................................................................................OOOO....",
+    "....ooo......................................................................................................................OOO....",
+    "....ooo......................................................................................................................OOO....",
+    "....ooo......................................................................................................................OOO....",
+    "....ooo......................................................................................................................OOO....",
+    "....ooo......................................................................................................................OOO....",
+    "....ooo......................................................................................................................OOO....",
+    "....ooo......................................................................................................................OOO....",
+    "....ooo......................................................................................................................OOO....",
+    "....ooo......................................................................................................................OOO....",
+    "....ooo......................................................................................................................OOO....",
+    "....ooo......................................................................................................................OOO....",
+    "....ooo......................................................................................................................OOO....",
+    "....ooo......................................................................................................................OOO....",
+    "....ooo......................................................................................................................OOO....",
+    "....ooo......................................................................................................................OOO....",
+    "....ooo......................................................................................................................OOO....",
+    "....oooo....................................................................................................................OOOO....",
+    ".....ooo....................................................................................................................OOO.....",
+    ".....ooo....................................................................................................................OOO.....",
+    ".....ooo....................................................................................................................OOO.....",
+    ".....ooo....................................................................................................................OOO.....",
+    ".....oooo..................................................................................................................OOOO.....",
+    "......ooo..................................................................................................................OOO......",
+    "......ooo..................................................................................................................OOO......",
+    "......ooo..................................................................................................................OOO......",
+    "......oooo................................................................................................................OOOO......",
+    ".......ooo................................................................................................................OOO.......",
+    ".......ooo................................................................................................................OOO.......",
+    ".......oooo..............................................................................................................OOOO.......",
+    "........ooo..............................................................................................................OOO........",
+    "........ooo..............................................................................................................OOO........",
+    "........oooo............................................................................................................OOOO........",
+    ".........ooo............................................................................................................OOO.........",
+    ".........oooo..........................................................................................................OOOO.........",
+    "..........ooo..........................................................................................................OOO..........",
+    "..........oooo........................................................................................................OOOO..........",
+    "...........ooo........................................................................................................OOO...........",
+    "...........oooo......................................................................................................OOOO...........",
+    "............ooo......................................................................................................OOO............",
+    "............oooo....................................................................................................OOOO............",
+    ".............oooo..................................................................................................OOOO.............",
+    "..............ooo..................................................................................................OOO..............",
+    "..............oooo................................................................................................OOOO..............",
+    "...............oooo..............................................................................................OOOO...............",
+    "................oooo............................................................................................OOOO................",
+    "................oooo............................................................................................OOOO................",
+    ".................oooo..........................................................................................OOOO.................",
+    "..................oooo........................................................................................OOOO..................",
+    "...................oooo......................................................................................OOOO...................",
+    "....................oooo....................................................................................OOOO....................",
+    ".....................oooo..................................................................................OOOO.....................",
+    "......................oooo................................................................................OOOO......................",
+    ".......................oooo..............................................................................OOOO.......................",
+    "........................oooo............................................................................OOOO........................",
+    ".........................oooOO........................................................................OOOOO.........................",
+    "..........................oOOOO......................................................................OOOOO..........................",
+    "...........................OOOOO....................................................................OOOOO...........................",
+    "............................OOOOOO................................................................OOOOOO............................",
+    "..............................OOOOO..............................................................OOOOO..............................",
+    "...............................OOOOOO..........................................................OOOOOO...............................",
+    ".................................OOOOOO......................................................OOOOOO.................................",
+    "..................................OOOOOOO..................................................OOOOOOO..................................",
+    "....................................OOOOOOO..............................................OOOOOOO....................................",
+    "......................................OOOOOOOO........................................OOOOOOOO......................................",
+    "........................................OOOOOOOOO..................................OOOOOOOOO........................................",
+    "..........................................OOOOOOOOOOO..........................OOOOOOOOOOO..........................................",
+    ".............................................OOOOOOOOOOOOO................OOOOOOOOOOOOO.............................................",
+    "................................................OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO................................................",
+    "....................................................OOOOOOOOOOOOOOOOOOOOOOOOOOOO....................................................",
+    ".........................................................OOOOOOOOOOOOOOOOOO.........................................................",
+    "....................................................................................................................................",
+    "....................................................................................................................................",
+    "....................................................................................................................................",
+    "...................................................................................................................................."
+  ]
+  let STAND = [
+    "...........................QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ...........................",
+    "...........................QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ...........................",
+    "..........................qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq..........................",
+    "..........................qQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQq..........................",
+    ".........................qppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppq.........................",
+    ".........................qppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppq.........................",
+    "........................qpppppppppqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqpppppppq........................",
+    "........................qpppppppppqppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppqpppppppq........................",
+    "........................qpppppppppqpPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPqpppppppq........................",
+    ".......................qppppppppppqpPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPqppppppppq.......................",
+    ".......................qppppppppppqpPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPqppppppppq.......................",
+    "......................qpppppppppppqpPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPqpppppppppq......................",
+    "......................qpppppppppppqpPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPqpppppppppq......................",
+    "......................qpppppppppppqpPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPqpppppppppq......................",
+    ".....................qppppppppppppqpPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPqppppppppppq.....................",
+    ".....................qppppppppppppqpPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPqppppppppppq.....................",
+    "....................qpppppppppppppqpPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPqpppppppppppq....................",
+    "....................qpppppppppppppqpPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPqpppppppppppq....................",
+    "...................qppppppppppppppqpPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPqppppppppppppq...................",
+    "...................qppppppppppppppqpPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPqppppppppppppq...................",
+    "...................qppppppppppppppqpPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPqppppppppppppq...................",
+    "..................qpppppppppppppppqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqpppppppppppppq..................",
+    "..................qppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppq..................",
+    ".................qppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppq.................",
+    ".................qppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppq.................",
+    "................qppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppq................",
+    "..............qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq..............",
+    ".............QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ.............",
+    "............qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq............",
+    "...........qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq...........",
+    "........z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.........",
+    "...........z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z............",
+    "..............z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z...............",
+    ".................z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z..................",
+    "....................z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.....................",
+    ".......................z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z........................"
+  ]
+  let ARROW_L = [
+    "....UU",
+    "...UUU",
+    "...UUU",
+    ".UUUUU",
+    "UUUUUU",
+    "UUUUUU",
+    ".UUUUU",
+    "...UUU",
+    "...UUU",
+    "....UU"
+  ]
+  let ARROW_R = [
+    "UU....",
+    "UUU...",
+    "UUU...",
+    "UUUUU.",
+    "UUUUUU",
+    "UUUUUU",
+    "UUUUU.",
+    "UUU...",
+    "UUU...",
+    "UU...."
+  ]
+  let PRESENTS = [
+    [
+      "..N..N..",
+      ".N.NN.N.",
+      ".NNNNNN.",
+      "VVVZZVVX",
+      "VVVZZVVX",
+      "VVVZZVVX",
+      "ZZZZZZZZ",
+      "ZZZZZZZZ",
+      "VVVZZVVX",
+      "XXXZZXXX"
+    ],
+    [
+      "....N..N....",
+      "...N.NN.N...",
+      "...NNNNNN...",
+      "VVVVVZZVVVVX",
+      "VVVVVZZVVVVX",
+      "VVVVVZZVVVVX",
+      "ZZZZZZZZZZZZ",
+      "ZZZZZZZZZZZZ",
+      "VVVVVZZVVVVX",
+      "VVVVVZZVVVVX",
+      "XXXXXZZXXXXX"
+    ],
+    [
+      ".....N..N.....",
+      "....N.NN.N....",
+      "....NNNNNN....",
+      "VVVVVVZZVVVVVX",
+      "VVVVVVZZVVVVVX",
+      "VVVVVVZZVVVVVX",
+      "VVVVVVZZVVVVVX",
+      "ZZZZZZZZZZZZZZ",
+      "ZZZZZZZZZZZZZZ",
+      "VVVVVVZZVVVVVX",
+      "VVVVVVZZVVVVVX",
+      "VVVVVVZZVVVVVX",
+      "XXXXXXZZXXXXXX"
+    ],
+    [
+      "..N..N..",
+      ".N.NN.N.",
+      ".NNNNNN.",
+      "VVVZZVVX",
+      "VVVZZVVX",
+      "VVVZZVVX",
+      "VVVZZVVX",
+      "VVVZZVVX",
+      "ZZZZZZZZ",
+      "ZZZZZZZZ",
+      "VVVZZVVX",
+      "VVVZZVVX",
+      "VVVZZVVX",
+      "VVVZZVVX",
+      "XXXZZXXX"
+    ]
+  ]
+  let SLOTS = [[54, 100], [78, 100], [42, 105], [90, 105], [66, 107], [32, 101], [100, 101], [54, 108], [78, 108]]
+  let SCENES = [
+    {
+      id: "forest", tx: 43, ty: 32, aurora: false, sleigh: false,
+      gnd: [92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 91, 91, 91, 91, 91, 91, 90, 90, 90, 90, 90, 89, 89, 89, 89, 89, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 88, 88, 88, 88, 88, 88, 88, 87, 87, 87, 87, 87, 87, 87, 87, 87, 87, 87, 87, 87, 87, 87, 87, 87, 87, 88, 88, 88, 88, 88, 88, 89, 89, 89, 89, 90, 90, 90, 90, 90, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 91, 91, 91, 91, 91, 91, 90, 90, 90, 90, 90, 89],
+      sky: [112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 74, 73, 72, 70, 69, 68, 66, 67, 67, 67, 67, 67, 67, 67, 67, 67, 67, 67, 67, 61, 61, 61, 61, 61, 61, 70, 71, 72, 73, 74, 83, 84, 89, 87, 82, 82, 81, 79, 78, 78, 70, 67, 67, 66, 57, 57, 56, 53, 53, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 53, 53, 56, 57, 57, 66, 67, 67, 20, 18, 16, 16, 15, 15, 14, 14, 14, 15, 15, 16, 16, 18, 20, 76, 75, 71, 66, 66, 63, 62, 62, 62, 62, 63, 66, 66, 72, 69, 68, 67, 65, 67, 68, 69, 73, 74, 78, 78, 77, 112, 112, 112, 112, 112, 112, 112, 112, 112],
+      stars: [[77, 22], [32, 34], [41, 20], [39, 24], [50, 28], [38, 16], [52, 23], [53, 12], [57, 21], [27, 31], [31, 24], [44, 31], [56, 35], [78, 29], [77, 11], [109, 31], [45, 17], [21, 33], [34, 28], [55, 29], [51, 16], [101, 21], [48, 11], [103, 33], [66, 12], [52, 33]],
+      smoke: [{x: 32, y: 60, lv: 0.5}],
+      hat: {x: 94, y: 62, spr: [
+        ".........IIII.........",
+        "........IIIIII........",
+        "........rrrrrr........",
+        "........rrrrrr........",
+        "......IIIIIIIIII......",
+        "......IIIIIIIIII......"
+      ]},
+      nose: null,
+      spots: [{id: "snowman", lv: 0.25, b: [92, 60, 118, 94], p: [94, 62]}, {id: "chimney", lv: 0.5, b: [24, 54, 40, 72], p: [31, 61]}, {id: "moon", lv: 0, b: [79, 11, 100, 32], p: [82, 14]}],
+      unlocks: [
+        {lv: 0.25, x: 94, y: 62, spr: [
+          ".......................",
+          ".......................",
+          ".......................",
+          ".......................",
+          ".......................",
+          ".......................",
+          "........SSSSss.........",
+          ".......SSSSSsss........",
+          ".......SjjSSjss........",
+          "......SSjjSSjjss.......",
+          "......SSSSSSlllltt.....",
+          ".......SSSSSlllltt.....",
+          ".......SSSSstt.........",
+          "........SSsstt.........",
+          ".......rrrrrrrR........",
+          "......rrrrrrrrRR.......",
+          "KK....SSSSsrrrRR....KK.",
+          "KKK...SSSSssrRRR....KK.",
+          ".KKK..SSSSssRRRst...KK.",
+          "..KKK.SSSSssRRsstt.KKK.",
+          "...K.KSSSSjjssssKKK.K..",
+          "....KSSSSSjjssssKKKK...",
+          "....SSSSSSsssssstttt...",
+          "...SSSSSSSssssssttttt..",
+          "...SSSSSSSjjssssttTTt..",
+          "..SSSSSSSSjjssssttTTtt.",
+          "..SSSSSSSsssssssttTTtt.",
+          "...SSSSSsssssssttTTTt..",
+          "...SSSSSssssssstTTTtt..",
+          ".....SSSssssssttTTt....",
+          ".....TTTTTTTTTTTTTTT..."
+        ]},
+        {lv: 0.5, x: 10, y: 61, spr: [
+          "...................jjjjjj......",
+          "....................SSSS.......",
+          "....................iiII.......",
+          "....................iiII.......",
+          "....................iiII.......",
+          "....................iiII.......",
+          ".......sSSSSSSSSSSSssssI.......",
+          "......SSSSSSSSSSSSSsssss.......",
+          ".....SSSSSSSSSSSSSsssssss......",
+          "....SSSSSSSSSSSSSSssssssss.....",
+          "...SSSSSSSSSSSSSSSsssssssss....",
+          "..SSSSSSSSSSSSSSSSssssssssss...",
+          ".SSSSSSSSSSSSSSSSssssssssssss..",
+          "SSSSSSSSSSSSSSSSSsssssssssssss.",
+          "tttttttttttttttttttttttttttttt.",
+          ".LkKLKKLKKLKKLKKLKKLKKLKKLKkL..",
+          ".LkkkkkLkkkkkLkkkkkLkkkkkLkk...",
+          "..kKKKKKKKKKKKKKKKKKKKKKKKKk...",
+          "..kkkkkkkkkkkkkkkkkkkkkkkkkk...",
+          "..kKKkWWykyykKKKKKKKKKKKKKKk...",
+          "..kkkkWWykyykkkkkkkkkkkkkkkk...",
+          "..kKKkkkkkkkkKKKKKKkjjjjkKKk...",
+          "..kkkkyyykyykkkkkkkkjjjjkkkk...",
+          "..kKKkkkkkkkkKKKKKKkjjjjkKKk...",
+          "..kkksssssssskkkkkkkjjjjkkkk...",
+          "..kKKKKKKKKKKKKKKKKkjjyjkKKk...",
+          "...kkkkkkkkkkkkkkkkkjjjjkkkk...",
+          "...KKKKKKKKKKKKKKKKkjjjjkKKk...",
+          "....kkkkkkkkkkkkkkkkjjjjkkkk...",
+          "....TTTTTTTTTTTTTTTTTTTTTTTTT.."
+        ]}
+      ],
+      lit: [
+
+      ],
+      land: [
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "........................................................................................mmm.........................................",
+        "......................................................................................mmmmmmm.......................................",
+        "....................................................................................mmmmmmmmmmm.....................................",
+        "....................................................................................mmmmmmmmmmm.....................................",
+        "...................................................................................mmmnnmmmmnnmm....................................",
+        "...................................................................................mmnnnnmmmnmmm....................................",
+        "..................................................................................mmmmnnmmmmmmmmn...................................",
+        "..................................................................................mmmmmmmmmnnmmnn...................................",
+        "..................................................................................mmmmmmmmnnnnnnn...................................",
+        "...................................................................................mmmmmmmnnnnnn....................................",
+        "...................................................................................mmmmnnnmnnmnn....................................",
+        "....................................................................................mmmmnmmmmnn.....................................",
+        "....................................................................................mmmmmmnnnnn.....................................",
+        "......................................................................................mmmnnnn.......................................",
+        "........................................................................................nnn.........................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "..................................................................................................................v.................",
+        "................v.................................................................................................v.................",
+        "................v.....................................................................................v..........vvv................",
+        "...............vvv....................................................................................v.........vvvvv...............",
+        "..............vvvvv..................................................................................vvv.......vvvvvvv..............",
+        ".............vvvvvvv......v.........................................................................vvvvv.......vvvvv...............",
+        "..............vvvvv.......v........................................................................vvvvvvv......vvvvv...............",
+        "..............vvvvv......vvv........................................................................vvvvv......vvvvvvv..............",
+        ".............vvvvvvv....vvvvv...............................................................v.......vvvvv.....vvvvvvvvv.............",
+        "............vvvvvvvvv..vvvvvvv..............................................................v......vvvvvvv...vvvvvvvvvvv............",
+        "...........vvvvvvvvvvv..vvvvv.......v......................................................vvv....vvvvvvvvv...vvvvvvvvv.............",
+        "............vvvvvvvvv...vvvvv.......v.............................................v.......vvvvv..vvvvvvvvvvv..vvvvvvvvv.............",
+        "............vvvvvvvvv..vvvvvvv.....vvv............................................v......vvvvvvv..vvvvvvvvv..vvvvvvvvvvv..v.........",
+        "...........vvvvvvvvvvvvvvvvvvvv...vvvvv.........v................................vvv......vvvvv...vvvvvvvvv.vvvvvvvvvvEvvvv.........",
+        "..........vvEvvvvvvvvvvvvvvvvvvv.vvvvvvv........v...............................vvvvv.....vvvvv..vvvvvvvvvvvvvvvvvvvvvEvvv..........",
+        "..........vvEvvvvvvvvvvvvvvvvvv...vvvvv........vvv.............................vvvvvvv...vvvvvvvvvvvvvvvvvvvvvvvvvvvvEEEv...........",
+        "..........vEEEvvvvvvvvvvvvvvvvv...vvvvv.......vvvvv.............................vvvvv...vvvvvvvvvvvvvvvvvvvvvvvvvvvvEEEEEv..........",
+        "...........EEEEvvvvvvvvvvvvvvvvv.vvvvvvv.....vvvvvvv............................vvvvv..vvvvvvvvvvvvvvvvvvvvvvvvvvvvEEEEEE...........",
+        "...........EEEEEvvvvvvvvvvvvvvvvvvvvvvvvv.....vvvvv............................vvvvvvv..vvvvvvvvvvvvvvvvvvvvvvvvvvvvEEEEE...........",
+        "...........EEEEvvvvvvvvvvvvvvvvvvvvvvvvvvv....vvvvv...........................vvvvvvvvv.vvvvvvvvvvvvvvvvvvvvvvvvvvvvEEEEE...........",
+        "............EEEvvvvvvvvvvvvvvvvvvvvvvvvvv....vvvvvvv.........................vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvEEEEE............",
+        "............EEEEvvvvvvvvvvvvvvvvvvvvvvvvv...vvvvvvvvv.........................vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvEEEEEE............",
+        ".............EEEEvvvvvvvvvvvvvvvvvvvvvvvvv.vvvvvvvvvvv.................SSSSSSSSSSSSSSSSSSvvvvvvvvvvvvvvvvvvvvvvvvEEEEEE.............",
+        ".............EEEEEvvvvvvvvvSSSSSSSSSSSSSS...vvvvvvvvv...........SSSSSSSssssssssssssssssssSSSSSSvvvvvvvvvvvvvvvvvvvEEEEE.............",
+        "..............EEEvvvvvSSSSSssssssssssssssSSSSSSSSSSSSSSSSSSSSSSSsssssssssssssssssssssssssssssssSSSSvvvvvvvvvvvvvvvEEEE..............",
+        "..............EEESSSSSsssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssSSSSSvvvvvvvvvEEEEE..............",
+        "...............SSttsssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssSSSSSSvvEEEEE...............",
+        "...............ttttsssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssSSSSSSS...............",
+        "................ttttsssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssstttt................",
+        ".................ttttsssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssstttt.................",
+        ".................ttttsssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssstttt.................",
+        "..................ttttsssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssstttt..................",
+        "...................ttttsssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssstttt...................",
+        "....................ttttsssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssstttt....................",
+        "....................tttttssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssttttt....................",
+        ".....................ttttttststststststststststststststststststststststststststststststststststststststststtttt.....................",
+        "......................ttttttstststststststststststststststststststststststststststststststststststststststtttt......................",
+        ".......................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt.......................",
+        "........................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt........................",
+        ".........................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt.........................",
+        "..........................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt..........................",
+        "...........................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt...........................",
+        "............................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt............................",
+        "..............................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt..............................",
+        "...............................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt...............................",
+        "................................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt................................",
+        "..................................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt..................................",
+        "...................................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt..................................."
+      ]
+    },
+    {
+      id: "village", tx: 43, ty: 34, aurora: false, sleigh: false,
+      gnd: [93, 93, 93, 93, 93, 93, 93, 92, 92, 92, 92, 92, 92, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 93, 93, 93, 93, 93, 93, 93, 93, 93, 93, 93, 93, 93, 93, 93, 93, 93, 93],
+      sky: [112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 82, 81, 80, 79, 78, 77, 77, 77, 77, 77, 77, 77, 77, 78, 79, 79, 78, 77, 76, 75, 75, 75, 75, 75, 75, 69, 69, 69, 69, 69, 69, 76, 77, 78, 79, 80, 81, 80, 72, 69, 69, 68, 59, 59, 58, 55, 55, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 55, 55, 58, 59, 59, 68, 69, 69, 20, 18, 16, 16, 15, 15, 14, 14, 14, 15, 15, 16, 16, 18, 20, 52, 39, 39, 38, 38, 39, 39, 62, 63, 72, 72, 72, 72, 72, 72, 72, 74, 75, 76, 77, 78, 79, 80, 84, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112],
+      stars: [[55, 30], [67, 10], [73, 16], [44, 29], [106, 28], [40, 34], [104, 34], [77, 29], [54, 19], [76, 21], [47, 12], [35, 33], [30, 21], [43, 19], [26, 25], [80, 33], [56, 35], [102, 30], [38, 25], [101, 23], [57, 16], [49, 21], [37, 16], [75, 10], [49, 31], [62, 9]],
+      smoke: [{x: 40, y: 68, lv: 0}],
+      hat: null,
+      nose: null,
+      spots: [{id: "chimney", lv: 0, b: [32, 62, 48, 80], p: [39, 69]}, {id: "bell", lv: 0, b: [92, 38, 120, 92], p: [100, 70]}, {id: "moon", lv: 0, b: [79, 11, 100, 32], p: [82, 14]}],
+      unlocks: [
+        {lv: 0.25, x: 94, y: 77, spr: [
+          "....jj.....",
+          "...jjjj....",
+          "...jjjj....",
+          ".jjjjjjjj..",
+          ".jjyWWyjj..",
+          "jjyyWWyyjj.",
+          "jjyyWWyyjj.",
+          ".jjyWWyjj..",
+          ".jjjjjjjj..",
+          "...jjjj....",
+          "...jjjj....",
+          "....jj.....",
+          "....jj.....",
+          "....jj.....",
+          "....jj.....",
+          "....jj.....",
+          "....jj.....",
+          "....jj.....",
+          "....jj.....",
+          "....jj.....",
+          "....jj.....",
+          "....jj.....",
+          "....jj.....",
+          "...jjjj....",
+          "...jjjj....",
+          ".jjjjjjjj..",
+          "jjjjjjjjjj.",
+          "jjjjjjjjjj.",
+          "TTTTTTTTTTT"
+        ]}
+      ],
+      lit: [
+        {x: 12, y: 77, spr: [
+          "..................",
+          "..................",
+          "..................",
+          "..................",
+          "..................",
+          "..................",
+          "..................",
+          "..................",
+          "..................",
+          "......yy.y........",
+          "......yy.y........",
+          "..................",
+          "..................",
+          "..................",
+          ".................."
+        ]},
+        {x: 26, y: 69, spr: [
+          "......................",
+          "......................",
+          "......................",
+          "......................",
+          "......................",
+          "......................",
+          "......................",
+          "......................",
+          "......................",
+          "......................",
+          "......................",
+          "......................",
+          "......................",
+          "......................",
+          "......................",
+          "......yy.y............",
+          "......yy.y............",
+          "......................",
+          "......yy.y............",
+          "......................",
+          "......................",
+          "......................",
+          "......................"
+        ]},
+        {x: 92, y: 38, spr: [
+          "........yy..................",
+          "......yyyyyy................",
+          "........yy..................",
+          "........yy..................",
+          "........yy..................",
+          "............................",
+          "............................",
+          "............................",
+          "............................",
+          "............................",
+          "............................",
+          "............................",
+          "............................",
+          "............................",
+          "............................",
+          "............................",
+          "............................",
+          "............................",
+          "............................",
+          "............................",
+          "............................",
+          "............................",
+          "............................",
+          "............................",
+          "............................",
+          "............................",
+          "............................",
+          "............................",
+          "............................",
+          "............................",
+          "......yyyy..................",
+          "......yyyy..................",
+          "......yyyy..................",
+          "......yyyy..................",
+          "............................",
+          "............................",
+          "............................",
+          "............................",
+          "............................",
+          "............................",
+          "............................",
+          "............................",
+          "............................",
+          "............................",
+          "............................",
+          "................y.......y...",
+          "................yy......yy..",
+          "................yy......yy..",
+          "................yy......yy..",
+          "................yy......yy..",
+          "................yy......yy..",
+          "............................",
+          "............................",
+          "............................"
+        ]}
+      ],
+      land: [
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "........................................................................................mmm.........................................",
+        "......................................................................................mmmmmmm.......................................",
+        "....................................................................................mmmmmmmmmmm.....................................",
+        "....................................................................................mmmmmmmmmmm.....................................",
+        "...................................................................................mmmnnmmmmnnmm....................................",
+        "...................................................................................mmnnnnmmmnmmm....................................",
+        "..................................................................................mmmmnnmmmmmmmmn...................................",
+        "..................................................................................mmmmmmmmmnnmmnn...................................",
+        "..................................................................................mmmmmmmmnnnnnnn...................................",
+        "...................................................................................mmmmmmmnnnnnn....................................",
+        "...................................................................................mmmmnnnmnnmnn....................................",
+        "....................................................................................mmmmnmmmmnn.....................................",
+        "....................................................................................mmmmmmnnnnn.....................................",
+        "......................................................................................mmmnnnn.......................................",
+        "........................................................................................nnn.........................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................YY..............................",
+        "..................................................................................................YYYYYY............................",
+        "....................................................................................................YY..............................",
+        "....................................................................................................YY..............................",
+        "....................................................................................................YY..............................",
+        "...................................................................................................Ss...............................",
+        "...................................................................................................Ss...............................",
+        "...................................................................................................Ss...............................",
+        "...................................................................................................Ss...............................",
+        "..................................................................................................SSss..............................",
+        "..................................................................................................SSss..............................",
+        "..................................................................................................SSss..............................",
+        "..................................................................................................SSss..............................",
+        "..................................................................................................SSss..............................",
+        ".................................................................................................SSSsss.............................",
+        ".................................................................................................SSSsss.............................",
+        ".................................................................................................SSSsss.............................",
+        ".................................................................................................SSSsss.............................",
+        ".................................................................................................SSSsss.............................",
+        "................................................................................................SSSSssss............................",
+        "................................................................................................SSSSssss............................",
+        "................................................................................................SSSSssss............................",
+        "................................................................................................SSSSssss............................",
+        "................................................................................................SSSSssss............................",
+        "...............................................................................................SSSSSsssss...........................",
+        "..............................................................................................tttttttttttt..........................",
+        "................................................................................................iiiiIIII............................",
+        "................................................................................................iiiiIIII............................",
+        "................................................................................................iiiiIIII............................",
+        "................................................................................................iiiiIIII............................",
+        "................................................................................................iiYYYYII............................",
+        ".....................................jjjjjj.....................................................iiYYYYII............................",
+        "......................................SSSS......................................................iiYYYYII............................",
+        "......................................iiII......................................................iiYYYYII............................",
+        "......................................iiII......................................................iiiiIIIISSSSSSSSS...................",
+        "......................................iiII......................................................iiiiIIIISSSSSSSSS...................",
+        "......................................iiII......................................................iiiiIIIISSSSSSSSSS..................",
+        "...............................sSSSSSSSSsss.....................................................iiiiIIIISSSSSSSSSSS.................",
+        "..............................SSSSSSSSSSssss....................................................iiiiIIIISSSSSSSSSSSS................",
+        ".................sSSSSSSs....SSSSSSSSSSSsssss.............MMMMM.................................iiiiIIIISSSSSSSSSSSSS...............",
+        "................SSSSSSSsss..SSSSSSSSSSSsssssss.........MMMMMMMMMMMM.............................iiiiIIIISSSSSSSSSSSSSS..............",
+        "...............SSSSSSSSssssSSSSSSSSSSSSssssssss.....MMMMMMxxxxxMMMMMMM..........................iiiiIIIIttttttttttttttt.............",
+        "..............SSSSSSSSSsssSSSSSSSSSSSSSsssssssss..MMMMMxxxxxxxxxxxxMMMMMM.......................iiiiIIIIiiiiiiiiiiIIIIII............",
+        ".............SSSSSSSSSssssttttttttttttttttttttttMMMMxxxxxxxxxxxxxxxxxxMMMMMMM........MMMMMMMM...iiiiIIIIiiiiiiiiiiIIIIII............",
+        "............SSSSSSSSSSssssssBBBBBBBBBBBBBBBBBBMMMMxxxxxxxxxxxxxxxxxxxxxxxMMMMMMMMMMMMMMMMMMMMMMMiiiiIIIIiiiiiiiiiiIIIIII............",
+        "............ttttttttttttttttAAABBBBBBAAABBBBBBMxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxMMMMMMMMxxxxxxxxMMMiiiiIIIIiiiiYiiiiiIIYIII............",
+        "..............DDDDDDDDDDDDDDAAABYYBYBAAABBBBBBxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxiiiiIIIIiiiiYYiiiiIIYYIIM...........",
+        "..............CCCDDDDDDDDDDDAAABYYBYBAAABBBBBBxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxiiiiIIIIiiiiYYiiiiIIYYII............",
+        "............MMCCCDYYDYDDDDDDAAABBBBBBAAABBBBBBxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxiiiiIIIIiiiiYYiiiiIIYYII............",
+        ".............MCCCDYYDYDDDDDDAAABYYBYBAAABBBBBBxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxiiiiIIIIiiiiYYiiiiIIYYI.............",
+        ".............xCCCDDDDDDDDDDDAAABBBBBBAAABBBBBBxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxiiiiIIIIiiiiYYiiiiIIYYI.............",
+        "..............CCCssssssDDDDDAAAssssssAAABBBBBBxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxiiiiIIIIiiiiiiiiiiIIII..............",
+        "..............CCCCCCCCCDDDDDAAAAAAAAAAAABBBBBBxxxxxxxxxxxxxxxxxxxSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSiiIIIIiiiiiiiiiiIIII..............",
+        "...............SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSsssssssssssssssssssssssssssssssssSSSSSSSSiiiiiiiiIII...............",
+        "...............ttttsssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssSSSSSSSSxxx...............",
+        "................ttttssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssttSS................",
+        ".................ttttsssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssstttt.................",
+        ".................ttttsssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssstttt.................",
+        "..................ttttsssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssstttt..................",
+        "...................ttttsssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssstttt...................",
+        "....................ttttsssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssstttt....................",
+        "....................tttttssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssttttt....................",
+        ".....................ttttttststststststststststststststststststststststststststststststststststststststststtttt.....................",
+        "......................ttttttstststststststststststststststststststststststststststststststststststststststtttt......................",
+        ".......................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt.......................",
+        "........................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt........................",
+        ".........................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt.........................",
+        "..........................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt..........................",
+        "...........................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt...........................",
+        "............................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt............................",
+        "..............................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt..............................",
+        "...............................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt...............................",
+        "................................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt................................",
+        "..................................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt..................................",
+        "...................................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt..................................."
+      ]
+    },
+    {
+      id: "mountains", tx: 43, ty: 33, aurora: true, sleigh: false,
+      gnd: [93, 93, 93, 93, 93, 93, 93, 94, 94, 94, 94, 94, 93, 93, 93, 93, 93, 93, 92, 92, 92, 92, 92, 91, 91, 91, 91, 91, 91, 90, 90, 90, 90, 90, 90, 90, 90, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 91, 91, 91, 91, 91, 90, 90, 90, 90, 89, 89, 89, 89, 89, 89, 88, 88, 88, 88, 88, 89, 89, 89, 89, 89, 89, 90, 90, 90, 90, 91, 91, 91, 92, 92, 92, 92, 93, 93, 93, 93, 93, 93, 93, 94, 94, 94, 93, 93, 93, 93, 93, 93, 93, 93, 92, 92, 92, 92, 91, 91, 91, 91, 91, 91, 91, 90, 90, 90, 90, 90, 91, 91, 91, 91],
+      sky: [112, 112, 112, 112, 112, 112, 112, 56, 55, 54, 54, 54, 53, 52, 50, 49, 47, 46, 45, 45, 45, 44, 43, 42, 40, 38, 37, 38, 39, 41, 43, 44, 45, 46, 46, 44, 43, 42, 42, 42, 42, 41, 40, 38, 37, 35, 34, 33, 33, 33, 33, 32, 31, 29, 27, 26, 25, 26, 28, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 42, 42, 43, 45, 47, 48, 49, 50, 50, 50, 51, 52, 53, 55, 56, 58, 57, 56, 54, 52, 51, 50, 49, 49, 49, 48, 47, 45, 44, 42, 41, 40, 40, 40, 39, 38, 37, 35, 33, 34, 35, 36, 38, 40, 41, 42, 43, 43, 45, 49, 54, 112, 112, 112, 112, 112, 112, 112],
+      stars: [[106, 26], [49, 26], [51, 19], [40, 17], [82, 19], [21, 32], [89, 19], [105, 33], [91, 29], [89, 25], [29, 30], [102, 22], [82, 35], [68, 8], [94, 20], [59, 10], [99, 25], [37, 22], [64, 14], [56, 14], [89, 35], [78, 15], [31, 22], [95, 32], [40, 31], [84, 29]],
+      smoke: [{x: 24, y: 63, lv: 0.5}],
+      hat: null,
+      nose: [92, 76],
+      spots: [{id: "rudolph", lv: 0.25, b: [90, 66, 120, 96], p: [92, 76]}, {id: "chimney", lv: 0.5, b: [16, 57, 32, 75], p: [23, 64]}],
+      unlocks: [
+        {lv: 0.25, x: 92, y: 68, spr: [
+          "KK..KK.....................",
+          "KK..KK.....................",
+          ".KKKKK..KK.................",
+          "..KKKK..KK.................",
+          "...KKKK.K..................",
+          "....KKKK...................",
+          "....FFFF...................",
+          "...FFFFF...................",
+          "rrFFjjFF...................",
+          "rrFFjjFFF..................",
+          "..FFFFFFF..................",
+          "...FFFFFFFF................",
+          ".....FFFFFFFFFFFFFFFFFH....",
+          "......FFFFFFFFFFFFFFFFFHH..",
+          "......FFFFFFFFFFFFFFFFFHHH.",
+          "......FFFFFFFFFFFFFFFFFFHH.",
+          "......HFFFFFFFFFFFFFFFFf...",
+          ".......HHFFFFFFFFFFFFff....",
+          ".......HHHHHHHHHHHHHff.....",
+          "........HHHHHHHHHHHHf......",
+          "........FF..ff....FF.fff...",
+          "........FF..ff....FF..ff...",
+          "........FF..ff....FF..ff...",
+          "........FF..ff....FF..ff...",
+          "........jj..jj....jj..jj...",
+          "........jj..jj....jj..jj...",
+          "........TTT.TTT...TTT.T...."
+        ]},
+        {lv: 0.5, x: 14, y: 64, spr: [
+          ".......jjjjjj......................",
+          "........SSSS.......................",
+          "........iiII.......................",
+          "........iiII.......................",
+          "........iiII.......................",
+          "........iiII.......................",
+          ".....sSSSSSSSSSSSSSSSSsssssss......",
+          "....SSSSSSSSSSSSSSSSSsssssssss.....",
+          "...SSSSSSSSSSSSSSSSSSssssssssss....",
+          "..SSSSSSSSSSSSSSSSSSSsssssssssss...",
+          ".SSSSSSSSSSSSSSSSSSSsssssssssssss..",
+          "SSSSSSSSSSSSSSSSSSSSssssssssssssss.",
+          "tttttttttttttttttttttttttttttttttt.",
+          ".LkKLKKLKKLKKLKKLKKLKKLKKLKKLKKL...",
+          ".LkkkkkLkkkkkLkkkkkLkkkkkLkkkkkL...",
+          "..kKKKKKKKKKKKKKKKKKKKKKKKKKKKKk...",
+          "..kkkkkkkkkkkkkkkkkkkkkkkkkkkkkk...",
+          "..kKKkWWkykKKKKKKKKKKKKkWWkykKKk...",
+          "..kkkkWWkykkkkkkkkkkkkkkWWkykkkk...",
+          "..kKKkkkkkkKKKKkjjjjkKKkkkkkkKKk...",
+          "..kkkkyykykkkkkkjjjjkkkkyykykkkk...",
+          "..kKKkkkkkkKKKKkjjjjkKKkkkkkkKKk...",
+          "..kkksssssskkkkkjjjjkkksssssskkk...",
+          "..kKKKKKKKKKKKKkjjyjkKKKKKKKKKKk...",
+          "..kkkkkkkkkkkkkkjjjjkkkkkkkkkkkk...",
+          "..kKKKKKKKKKKKKkjjjjkKKKKKKKKKKk...",
+          "..kkkkkkkkkkkkkkjjjjkkkkkkkkkkkk...",
+          "..TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT.."
+        ]}
+      ],
+      lit: [
+
+      ],
+      land: [
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "........................................................w...........................................................................",
+        ".......................................................Lww..........................................................................",
+        "......................................................LLww..........................................................................",
+        "......................................................LLwww.........................................................................",
+        ".....................................................LLLwwww........................................................................",
+        ".....................................................LLLwwww........................................................................",
+        "....................................................LLLLwwwww.......................................................................",
+        "...................................................LLLLLwwwwwwww....................................................................",
+        "...............................................LLLLLLLLLwwwwwwwwww..............................................L...................",
+        "..............................................LLLLLLLLLLwxwwwwwwwww.............................................Lw..................",
+        ".............................................LLLLLLLLLLLxxwwwwwwwww............................................LLww.................",
+        ".............................................LLLLLLLLLLLxxxwwwwwwwww...........................................LLwww................",
+        "..........................L.................LLLLLLLLLLLLxxxwwwwwwwwww.........................................LLLwww................",
+        ".........................LLw...............LLLLLLLLLLLLLxxxxwwwwwwwww........................................LLLLwwww...............",
+        ".........................LLww..............LLLLLLLLLMMMMxxxxwwwwwwwwww......................................LLLLLwwww...............",
+        "........................LLLww.............LLLLLLLLLMMMMMxxxxwwwwwwwwwww..................................LLLLLLLLwwwww..............",
+        "........................LLLwww...........LLLLLLLLLLMMMMMxxxxwwwwxwwwwwwwww..............................LLLLLLLLLwwwwww.............",
+        ".......................LLLLwww.......LLLLLLLLLLLLLLMMMMxxxxxwwwxxxwwwwwwwwww...........................LLLLLLLLLMwwwwwww............",
+        "......................LLLLLwwww.....LLLLLLLLLLMLLLMMMMMMxxxxxwwxxxwwwwwwwwwww..........................LLLLLLLLMMwwwwwwwww..........",
+        ".....................LLLLLLwwwww...LLLLLLLLLLMMMLMMMMMMMxxxxxxxxxxxwwwwwwwwww.........................LLLLLLLLLMMwwwwwwwww..........",
+        "..................LLLLLLLLLwwwwww..LLLLLLLLLMMMMMMMMMMxMxxxxxxxxxxxwwwwwwwwwww.......................LLLLLLLLLLMMxwwwwwwwww.........",
+        ".................LLLLLLLLLMwwwwwwLLLLLLLLLLLMMxMMMMMMMMMxxxxxxxxxxxwwwwwwwwwww.......................LLLLLLLLLMMMxwwwwwwwww.........",
+        "................LLLLLLLLLMMwwwwwwLLLLLLLLLLLMMMMMMMMMMMMxxxxxxxxxxxwwwwwwwwwwww.....................LLLLLLLLLLMMMxxwxwwwwww.........",
+        "................LLLLLLLLMMMwwwwwwLLLLLLLLLLMMMMMMMMMMxMMxxxxxxxxxxxxwwwwwwwwwwww...................LLLLLLLLLLMMMMxxwxxwwwww.........",
+        "...............LLLLLLLLLMMMxwwwwwLLLLLLLLLLMMxMMMMMMMMMMxxxxxxxxxxxxxwwxxwwwwwwww...............LLLLLLLLMMLLLMMMMxxxxxxwwwww........",
+        "..............LLLLLLLLLLMMMxwwwwwLLLLLMLLLLMMMMMMMMMMMMMxxxxxxxxxxxxxxxxxwwwwwwwwwww...........LLLLLLLLLMMxLLMMMMxxxxxxwwwww........",
+        "..............LLLLLLLLLLMMMxxwwwwLLLLMMMLLLMMMMMMMMMxMMMxxxxxxxxxxxxxxxxxwwwwwwwwwwww.........LLLLLLLLLMMMMLMMMMMxxxxxxwwwww........",
+        ".............MLLLLLLLLLMMMMxxwwxwLLLLMMMLLMMxMMMMMMMMMMMxxxxxxxxxxxxxxxxxxwwwwwwwwwwwx.......MLLLLLLLLLMMMMMMMMMMxxxxxxxwwww........",
+        "............MxLLLLMMLLLMMMMxxxxxxLLLLMMMLMMMMMMMMMMMMMMMxxxxxxxxxxxxxxxxxxwwxxwwwwwwwxx......MLLLLLLLLLMMxMMMMMMMxxxxxxxwwwx........",
+        ".........MMMMMLLLLMMLLLMMMMxxxxxxLLLMMMMMMMMMMMMMMMxMMMMxxxxxxxxxxxxxxxxxxxwxxwwwwwwwxx.....MMLLLLLLLLLMMMMMMMMMMxxxxxxxwwxxx.......",
+        "........MMMMMMLLLMMMLLMMMMMxxxxxxLLLMMMMMMMxMMMMMMMMMMMMxxxxxxxxxxxxxxxxxxxxxxxwwwwwwxxx....MMLSSssLLLMMMMMMMMMMxxxxxxxxwxxxx.......",
+        ".......MMMMMxMMMMMMMMMMMMMMxxxxxxMMxMMMMMMMMMMMMMMMMMMMMxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx..MMMSSSssssMMMxMMMMMMMMxxxxxxxxxxxx.......",
+        ".......MMMMMMMMMMMMMMMMMMMMxxxxxxMMMMMMMMMMMMMMMMMxMMMMMxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.MMMSSSSsssssssMMMMMMMMMxxxxxxxxxxxx.......",
+        ".......MMMMMMMMMMMMxMMMMMMMxxxxxxMMMMMMMMMxMMMMMMMMMMMMMxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxMMMSSSSssssssssMMMMMMxMxxxxxxxxxxxx.......",
+        ".......MMMMxMMMMMMMMMMMMMMMxxxxxxMxMMMMMMMSSsMMMMMMMMMMMxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxMMSSSSSsssssssssMMMMMMMxxxxxxxxxxxx.......",
+        ".......MMMMMMMMMMMMMMMMMMMxxxxxxxMMMMMMMSSSSsssMMxMMMMMMxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxMSSSSSSssssssssssMMMMMMxxxxxxxxxxxx.......",
+        ".......MMMMMMMMMMMxMMMMMMMMxxxxxxMMMMSSSSSSSssssMMMMMMMMxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxSSSSSSSuusssssssssMMxMMxxxxxxxxxxxx.......",
+        ".......MMMxMMMMMMMMMMMMMMMMxxxxxxxMMSSSSSSSSssssMMMMMMMMxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxSSSSSSSSSuusssssssssMMMMMxxxxxxxxxxxx.......",
+        ".......MMMMMMMMMMMMMMMMMMxMxxxxxxMMSSSSSSSSSsssssMMMMMMMxxxxxxxxxxxxxxxxxxxxxxxxxxxxxSSSSSSSSSSSvuussssssssssMMMMxxxxxxxxxxxx.......",
+        ".......MMMMMMMMMMxMMMMMMMMMxxxxxxMSSSSSSSSSSssssssMMMMMMxxxxxxxxxxxxxxxxxxxxxxxxxxxxSSSSSSSSSSSSvuuusssuussssssssxxxxxxxxxxxx.......",
+        ".......MMxMMMMMMMMMMMMMMMMMxxxxxxMSSSSSSSSSSussssssMMMMxxxxxxxxxxxxxxxxxxxxxxxxxxxxSSSSSSSSSSSSSvuuusssuusssssssssxxxxxxxxxxx.......",
+        ".......MMMMMMMMMMMMMMMMMxMMxxxxxxSSSSSSSSSSSusssssssMMMMxxxxxxxxxxxxxxxxxxxxxxxxxxxSSSSSSSSvvuvvvuuussuuuusssssssssxxxxxxxxxx.......",
+        ".......MMMMMMMMMxMMMMMMMMMMxxxxxSSSSSSvSSSSvuuusssssssssxxxxxxxxxxxxxxxxxxxxxxxxxxSSSSSSSSSvvvvvvuuuuuuuuussssssssssxxxxxxxxx.......",
+        ".......uxMMMMMMMMMMMMMMMMMMxxvvuSSSSSvvvSSSvuuusssssssssuxxxxxxxxxxxxxxxxxxxxxxxxvSSSSSSSSvvvvvvvuuuuuuuuuusssssssssuxxxxxxxx.......",
+        ".......uuMMMMMMMMMMMMMMxMMMvvvvvSSSSSvvvSSvvuuusssssssssuuxxxxxxxxxxxxxxxxxxxxxxvvSSSSSSSSvvuvvvvuuuuuuuuuusssssssssuuxxxxxxx.......",
+        "........uMMMMMMxMMMMMMMMMMvvvvvvSSSSSvuvvvvvuuuussssssssuuxxxxxxxxxxxxxxxxxxvvvvvvSSuvSSSSvvvvvvvuuuuuuuuuussssussssuuxxxxxx........",
+        "........uuMMMMMMMMMMMMMMMvvvvvuvSSSSvvvvvvvvuuuussssssssuuuxxxxxxxxxxxxxxxxvuvvvvvSSvvvSSvvvvvvvvuuuuuuuuuuussuuusssuuuuxxxx........",
+        "........uuuMMMMMMMMMMMxMMvvvvvvvvvvvvvvvvvvvuuuuuuuuuuuuuuuuxxxxxxxxxxxxxxvvvvvvvvvvvvvvvvvuvvvvvuuuuuuuuuuuuuuuuuuuuuuuuuux........",
+        "........uuuMMMxMMMMMMMMMvvvvvvvvvvvvvuvvvvvvuuuuuuuuuuuuuuuuuxxxxxxxxxxxxvvvvvvvvvvuvvvvvvvvvvvvvuuuuuuuuuuuuuuuuuuuuuuuuuuu........",
+        "........uuuuMMMMMMMMMMMvvvvvvuvvvvvvvvvvvvvvuuuuuuuuuuuuuuuuuuxxxxxxxxxxxvvuvvvvvvvvvvvvvvvvvvvvvuuuuuuuuuuuuuuuuuuuuuuuuuuu........",
+        ".........uuuuMMMMMMMMxvvvvvvvvvvvvvvvvvvvvvvuuuuuuuuuuuuuuuuuuuuuuxxxxxxvvvvvvvvvvvvvvvvvvuvvvvvvuuuuuuuuuuuuuuuuuuuuuuuuuu.........",
+        ".........uuuuuuMMMvvvvvvvvvvvvvvvvvvuvvvvvvvuuuuuuuuuuuuuuuuuuuuuuuxxxxvvvvvvvvvvvuvvvvvvvvvvvvvvuuuuuuuuuuuuuEuuuuuuuuuuuu.........",
+        ".........uuuuuuuvvvvEvvvvvvvuvvvvvvvvvvvvvvvuuuuuuuuuuuuuuuuuuuuuuuxxvvvvvuvvvvvvvvvvvvvvvvvvvvvvuuuuuuuuuuuuuEuuuuuuuuuuuu.........",
+        ".........uuuuuuuvvvvEvvvvvvvvvvvvvvvvvvvvvvuuuuuuuuuuuuuuuuuuuuuuuuuuvvvvvvvvvvvvvvvvvvvvuvvvvvvvuuuuuuuuuuuuEEEuuuuuuEuuuu.........",
+        "..........uuuuuuvvvEEEvvvvvvvvvvvvvuvvvvvvvvuuuuuuuuuuuuuuuuuuuuuuuuuvvvvvvvvvvvvuvvvvvvvvvvvvvvvuuuuuuuuuuuEEEEEuuuuuEuuu..........",
+        "..........uuuuuuvvEEEEEvvvvuEvvvvvvvvvvvvvvvuuuuuuuuuuuuuuuuuuuuuuuuuvvvvuvvvvvvvvvvvvvvvvvvvvvvuuuuuuuuuuuEEEEEEEuuuEEEuu..........",
+        "..........uuuuuuvEEEEEEEvvvvEvvvvvvvvvvvvvuvuuuuuuuuuuuuuuuuuuuuuuuuuvvvvvvvvvvvvvvvvvvvuvvvvvvvvuuuuuuuuuuuEEEEEuuuEEEEEu..........",
+        "...........uuuuuvvEEEEEvvvvEEEvvvvuvvvvvvvvvuuuuuuuuuuuuuuuuuuuuuuuuuvvvvvvvvvvvuvvvvvvvvvvvvvvvvuuuuuuuuuuuEEEEEuuEEEEEE...........",
+        "...........uuuuuvvEEEEEvvvEEEEEvvvvvvvvvvvvvuuuuuuuuuuuuuuuuuuuuuuuuuvvvuvvvvvvvvvvvvvvvvvvvvvvuvuuuuuuuuuuEEEEEEEuuEEEEE...........",
+        "...........uuuuuvEEEEEEEvEEEEEEEvvvvvvvvvuvvuuuuuuuuuuuuuuuuuuuuuuuuuvvvvvvvvvvvvvvvvvvuvvvvvvvvvuuuuuuuuuEEEEEEEEEuEEEEE...........",
+        "............uuuuEEEEEEEEEvEEEEEvvuvvvvvvvvvvuuuuuuuuuuuuuuuuuuuuuuuuuvvvvvvvvvvuvvvvvvvvvvvvvvvvvuuuuuuuuEEEEEEEEEEEEEEE............",
+        "............uuuEEEEEEEEEEEEEEEEvvvvvvvvvvvvvuuuuuuuuuuuuuuuuuuuuuuuuuvvuvvvvvvvvvvvvvvvvvvvvvvuvvuuuuuuuuuEEEEEEEEEEEEEE............",
+        ".............uuuEEEEEEEEEEEEEEEEvvvvvvvvuvvvuuuuuuuuuuuuuuuuuuuuuuuuuvvvvvvvvvvvvvvvvvuvvvvvvvvvvuuuuuuuuuEEEEEEEEEEEEE.............",
+        ".............uuuEEEEEEEEEEEEEEEEEvvvvvvvvvvvuuuuuuuuuuuuuuuuuuuuuuuuuvvvSSSSSvuvvvvvvvvvvvvvvvvvvuuuuuuuuEEEEEEEEEEEEEE.............",
+        "..............uEEEEEEEEEEEEEEEEEEEvvvvvvvvvvuuuuuuuuuuuuuuuuuuuuuuSSSSSSsssssSSSSSSvvvvvvvvvvuvvvuuuuuuuEEEEEEEEEEEEEE..............",
+        "..............EEEEEEEEEEEEEEESSSSSSSSvvuvvvvuuuuuuuuuuuuuuuuuuSSSSsssssssssssssssssSSSSvvvvvvvvvvuuuuuuEEEEEEEEEEEEEEE..............",
+        "...............EEEEEEEESSSSSSssssssssSSSSSSSSuuuuuuuuuuuuSSSSSsssssssssssssssssssssssssSSSvvvvvvvuuuuuuuEEEEEEEEEEEES...............",
+        "...............uvvSSSSSssssssssssssssssssssssSSSSSSSSSSSSsssssssssssssssssssssssssssssssssSSSSvvvuuuuuuuEEEEEEEESSSSt...............",
+        "................SSttssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssSSSSSSSuuuSSSSSSSStttt................",
+        ".................ttttssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssSSSssssssstttt.................",
+        ".................ttttsssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssstttt.................",
+        "..................ttttsssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssstttt..................",
+        "...................ttttsssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssstttt...................",
+        "....................ttttsssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssstttt....................",
+        "....................tttttssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssttttt....................",
+        ".....................ttttttststststststststststststststststststststststststststststststststststststststststtttt.....................",
+        "......................ttttttstststststststststststststststststststststststststststststststststststststststtttt......................",
+        ".......................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt.......................",
+        "........................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt........................",
+        ".........................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt.........................",
+        "..........................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt..........................",
+        "...........................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt...........................",
+        "............................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt............................",
+        "..............................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt..............................",
+        "...............................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt...............................",
+        "................................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt................................",
+        "..................................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt..................................",
+        "...................................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt..................................."
+      ]
+    },
+    {
+      id: "pole", tx: 43, ty: 34, aurora: true, sleigh: true,
+      gnd: [93, 93, 93, 93, 93, 93, 93, 93, 93, 93, 93, 93, 93, 93, 93, 93, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92],
+      sky: [112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 83, 74, 73, 72, 71, 70, 69, 68, 67, 67, 67, 67, 67, 67, 67, 67, 67, 67, 67, 67, 67, 67, 67, 67, 61, 61, 61, 61, 61, 61, 70, 71, 72, 73, 74, 76, 76, 75, 74, 72, 69, 69, 68, 59, 59, 58, 55, 55, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 55, 55, 58, 59, 59, 68, 69, 69, 72, 75, 76, 76, 76, 77, 77, 78, 79, 79, 80, 81, 81, 82, 82, 82, 81, 81, 81, 81, 81, 81, 81, 81, 81, 82, 82, 82, 81, 81, 57, 56, 56, 56, 56, 57, 80, 80, 80, 80, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112],
+      stars: [[92, 24], [95, 29], [41, 29], [39, 24], [60, 8], [66, 16], [72, 13], [53, 23], [49, 13], [104, 27], [77, 35], [35, 26], [89, 30], [38, 19], [34, 21], [84, 26], [95, 21], [108, 31], [28, 29], [66, 10], [80, 16], [87, 13], [44, 17], [57, 26], [74, 19], [100, 31]],
+      smoke: [{x: 38, y: 60, lv: 0.5}],
+      hat: null,
+      nose: null,
+      spots: [{id: "igloo", lv: 0.25, b: [86, 79, 119, 94], p: [108, 91]}, {id: "chimney", lv: 0.5, b: [30, 54, 46, 72], p: [37, 61]}],
+      unlocks: [
+        {lv: 0.25, x: 88, y: 81, spr: [
+          "..........SSSSSsSSS...........",
+          ".......ssssssssssssttt........",
+          ".....SsSSSSSsSSSSSssssss......",
+          "....SSsSSSSSsSSSSSssssssT.....",
+          "...sssssssssssssssSSssstTT....",
+          "..SsSSSSSsSSSSSsSSSjjjssttt...",
+          ".SSsSSSSSsSSSSSsSSjjjjjstttT..",
+          ".sssssssssssssssSjjjjjjjsTTT..",
+          "sSSSSSsSSSSSsSSSSjjjjjjjstttt.",
+          "sSSSSSsSSSSSsSSSSjjjjjjjstttt.",
+          "ssssssssssssssssSjjjjjjjsTTTT.",
+          "TTTTTTTTTTTTTTTTTTTTTTTTTTTTT."
+        ]},
+        {lv: 0.5, x: 12, y: 61, spr: [
+          ".......................jjjjjj......",
+          "........................SSSS.......",
+          "........................iiII.......",
+          "........................iiII.......",
+          "........................iiII.......",
+          "........................iiII.......",
+          ".......sSSSSSSSSSSSSSSsssssI.......",
+          "......SSSSSSSSSSSSSSSsssssss.......",
+          ".....SSSSSSSSSSSSSSSSssssssss......",
+          "....SSSSSSSSSSSSSSSSSsssssssss.....",
+          "...SSSSSSSSSSSSSSSSSsssssssssss....",
+          "..SSSSSSSSSSSSSSSSSSssssssssssss...",
+          ".SSSSSSSSSSSSSSSSSSSsssssssssssss..",
+          "SSSSSSSSSSSSSSSSSSSsssssssssssssss.",
+          "tttttttttttttttttttttttttttttttttt.",
+          ".LRRLRRLRRLRRLRRLRRLRRLRRLRRLRRL...",
+          ".LrrrrrLrrrrrLrrrrrLrRRRRLRRRRRL...",
+          "..rrrrrrrrrrrrrrrrrrrRRRRRRRRRRR...",
+          "..rrrSSSSSSrrrrrrrrrrRRSSSSSSRRR...",
+          "..rrrSWWSySrrrrrrrrrrRRSWWSySRRR...",
+          "..rrrSWWSySrrrrrrrrrrRRSWWSySRRR...",
+          "..rrrSyySySrrrrrrrrrrRRSyySySRRR...",
+          "..rrrSSSSSSrrSSSSSSSSRRSSSSSSRRR...",
+          "..rrrSyySySrrSjjjjjjSRRSyySySRRR...",
+          "..rrrSyySySrrSjjjjjjSRRSyySySRRR...",
+          "..rrrSSSSSSrrSjjjjjjSRRSSSSSSRRR...",
+          "..rrrssssssrrSjjjjjjSRRssssssRRR...",
+          "..rrrrrrrrrrrSjjjjyjSRRRRRRRRRRR...",
+          "..rrrrrrrrrrrSjjjjjjSRRRRRRRRRRR...",
+          "..rrrrrrrrrrrSjjjjjjSRRRRRRRRRRR...",
+          "...rrrrrrrrrrSjjjjjjSRRRRRRRRRRR...",
+          "...TTTTTTTTTTTTTTTTTTTTTTTTTTTTTT.."
+        ]}
+      ],
+      lit: [
+
+      ],
+      land: [
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        "....................................................................................................................................",
+        ".................................................................................................................SrrS...............",
+        "................................................................................................................SrrrrS..............",
+        "................................................................................................................rrSSSr..............",
+        "................................................................................................................rrSSrr..............",
+        "................................................................................................................SSS.rr..............",
+        "................................................................................................................SS..rr..............",
+        "....................................................................................................................SS..............",
+        "....................................................................................................................SS..............",
+        "....................................................................................................................rr..............",
+        "....................................................................................................................rr..............",
+        "....................................................................................................................SS..............",
+        "....................................................................................................................SS..............",
+        "....................................................................................................................rr..............",
+        "....................................................................................................................rr..............",
+        "....................................................................................................................SS..............",
+        "....................................................................................................................SS..............",
+        "......................................................MMMM..........................................................rr..............",
+        "...................................................MMMMMMMMMM.......................................................rr..............",
+        ".................................................MMMMMxxxxMMMMMM....................................................SS..............",
+        "................................................MMMxxxxxxxxxxMMMMMM..........MMMMMMM................................SS..............",
+        "..............................................MMMxxxxxxxxxxxxxxxMMMMMMMMMMMMMMMMMMMMMMM.............................rr..............",
+        ".............................................MMMxxxxxxxxxxxxxxxxxxxMMMMMMMMMMxxxxxxxMMMMM...........................rr..............",
+        "...........................................MMMxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxMMM..........................SS..............",
+        "..........................................MMMxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxMMM........................SS..............",
+        ".....................MMMMMMMM..........MMMMxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxMMM....................MMMrrMMMM..........",
+        "..................MMMMMMMMMMMMMMMMMMMMMMMMxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxMMM...............MMMMSMrrMMMM..........",
+        "...............MMMMMMxxxxxxxxMMMMMMMMMMxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxMMMM...........MMMMSSwSSSxxx...........",
+        "...........MMMMMMMxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxMMMM.....MMMMMMxSLLwwSSxxx...........",
+        "...........MMMMxxxSxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxMMMMMMMMMMMxxSLLLwwrrSxx...........",
+        "............xxxxSSwSSxxxxxxxxxxxxxxxxxSxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxMMMMMxxxxxSLLLLwwrrwS............",
+        "............xxxxLLwwwSSxxxxxxxxxxxxxSSwSSSxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxSSSxxxxxxxxxxSLLLLLwwSSww............",
+        ".............xSSLLwwwwwSxxxxxxxxxxxSLLwwwwSxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxSLwwSxxxxxxxxSLLLLLLwwSSw.............",
+        ".............SLLLLwwwwwwSSxxxxxxxxSLLLwwwwwSxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxSSLLwwwSSSxxxxxLLLLLLLwwrrw.............",
+        "..............LLLLwwwwwwwwSxxxxxxSLLLLwwwwwwSxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxSLLLLwwwwwwSxxxSLLLLLLLwwrr..............",
+        "..............LLLLwwwwwwwwwxxxxxSLLLLLwwwSSSSSSSSSSSSSSSSSSSSSSSSSSSSSxxxxxxxxxxxxxxxxxxxxSLLLLLwwwwwwwSxxLLLLLLLLwwSS..............",
+        "...............LLLwwwwwwwwwSSSSSSSSSSSSSSsssssssssssssssssssssssssssssSSSSSSSSSSSxxxxxxxxSLLLLLLwwwwwSSSSSSSSSSSSSSSS...............",
+        "...............LSSSSSSSSSSSSsssssssssssssssssssssssssssssssssssssssssssssssssssssSSSSSSSSSSSSSSSSSSSSsssssssssssstttt...............",
+        "................ttttsssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssstttt................",
+        ".................ttttsssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssstttt.................",
+        ".................ttttsssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssstttt.................",
+        "..................ttttsssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssstttt..................",
+        "...................ttttsssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssstttt...................",
+        "....................ttttsssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssstttt....................",
+        "....................tttttssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssttttt....................",
+        ".....................ttttttststststststststststststststststststststststststststststststststststststststststtttt.....................",
+        "......................ttttttstststststststststststststststststststststststststststststststststststststststtttt......................",
+        ".......................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt.......................",
+        "........................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt........................",
+        ".........................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt.........................",
+        "..........................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt..........................",
+        "...........................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt...........................",
+        "............................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt............................",
+        "..............................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt..............................",
+        "...............................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt...............................",
+        "................................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt................................",
+        "..................................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt..................................",
+        "...................................tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt..................................."
+      ]
+    }
+  ]
+  // ---- END ART ----
+
+  // the pixel font, from Google Fonts (OFL)
+  let BLOCK = "https://raw.githubusercontent.com/google/fonts/main/ofl/pressstart2p/PressStart2P-Regular.ttf"
+
+  let demoGifts = [
+    {id: 1, who: "Anna", what: "scarf", price: 30, st: 2}, {id: 2, who: "Dad", what: "book", price: 20, st: 2},
+    {id: 3, who: "Mum", what: "mug", price: 15, st: 2}, {id: 4, who: "Tom", what: "lego", price: 60, st: 2},
+    {id: 5, who: "Eva", what: "puzzle", price: 25, st: 2}, {id: 6, who: "Grandpa", what: "slippers", price: 25, st: 2},
+    {id: 7, who: "Kim", what: "socks", price: 10, st: 2}, {id: 8, who: "Leo", what: "sled", price: 40, st: 2},
+    {id: 9, who: "Mia", what: "paints", price: 18, st: 2}
+  ]
+  let demoTasks = split(str.seeds, "|").map((s, i) => {id: i + 1, name: s, done: true})
+  let GL = demo ? demoGifts : gifts
+  let TL = demo ? demoTasks : (tasks ?? [])
+  let nBought = count(GL, g => g.st >= 1)
+  let nWrapped = count(GL, g => g.st == 2)
+  let nDone = count(TL, t => t.done)
+  let total = len(TL) + 2 * len(GL)
+  let prog = total == 0 ? 0 : (nDone + nBought + nWrapped) / total
+  let leftN = len(TL) - nDone + len(GL) - nWrapped
+  let spent = sum(GL.filter(g => g.st >= 1).map(g => g.price ?? 0))
+
+  // Christmas Eve where it's the day (Czech, Slovak, German, Polish, Hungarian), Christmas Day elsewhere
+  let yr = num(fmtTime(now, "yyyy"))
+  let xday = contains(["cs", "sk", "de", "pl", "hu"], lang()) ? 24 : 25
+  let today0 = parseTime(fmtTime(now, "yyyy-MM-dd"))
+  let past = today0 > parseTime("${yr}-12-26")
+  let xyear = past ? yr + 1 : yr
+  let days = round((parseTime("${xyear}-12-${xday}") - today0) / 86400)
+
+  let SC = SCENES[scene]
+  // the ground's top in globe radii, column by column, for the snow to land on
+  let GNDN = SC.gnd.map(v => (v - ART_CY) / ART_R)
+  // ornaments and the lights' colors, from the theme
+  let ORNC = [red, yellow, magenta, orange, accent, blue]
+  let LITC = [yellow, red, accent, green]
+  let WRAPS = [[red, yellow], [blue, yellow], [green, red], [magenta, yellow], [yellow, red], [orange, green]]
+  let KRAFT = {V: mix(orange, NIGHT, 0.42), X: mix(orange, NIGHT, 0.6), Z: mix(orange, NIGHT, 0.72)}
+  // a box under the tree for each gift bought, back row first
+  let shown = GL.filter(g => g.st >= 1).take(9).map((g, i) => {
+    k: floor(hash(g.id, 4) * 4), sx: SLOTS[i][0], sy: SLOTS[i][1],
+    pal: g.st == 2 ? {V: WRAPS[floor(hash(g.id, 3) * 6)][0], X: mix(WRAPS[floor(hash(g.id, 3) * 6)][0], NIGHT, 0.4), Z: WRAPS[floor(hash(g.id, 3) * 6)][1], N: WRAPS[floor(hash(g.id, 3) * 6)][1]} : KRAFT
+  }).sortBy(p => p.sy)
+
+  // the page: portrait, the globe over the lists; wide (unfolded, sideways), side by side
+  let W = tileWidth ?? 400
+  let H = tileHeight ?? 800
+  let wide = W > H
+  let typing = (screenInset ?? 0) > 120
+  // the size of an art pixel in dp, in half dp steps
+  let PX = max(1, floor(4 * (wide ? min((W * 0.5 - 40) / ART_W, (H - 140) / ART_H) : min((W - 32) / ART_W, H * 0.45 / ART_H))) / 4)
+  let CW = ART_W * PX
+  let CH = ART_H * PX
+  let hintOn = hint != "" && gt - hintAt > 0.8 && gt - hintAt < hintFor
+  let flying = gt >= flyAt && gt - flyAt < 7
+  let shooting = gt >= shootAt && gt - shootAt < 1.4
+  let walking = gt >= walkAt && gt - walkAt < 6
+  let hatting = gt >= hatAt && gt - hatAt < 1
+  let eggOn = egg != null && gt >= egg.at && gt - egg.at < 2.5
+  let busy = flying || shooting || walking || hatting || eggOn
+  let golden = len(eggs) >= len(EGG_IDS)
+  // frames: few while the snow lies still, more while it falls or something happens
+  fps: calm && !busy ? 12 : 30
+
+  // how much the tilt has to change, summed over about a third of a second: a little stirs the snow,
+  // picking the phone up does about 0.5 to 1.2; a real shake shows what's left to do
+  let SHAKE = 0.9
+  let SHAKE_HINT = 1.6
+  let RF = (ART_R - 1.5) / ART_R
+
+  every frame {
+    gt = gt + dt
+    let has_motion = m.available == true
+    if gt > nextFly { flyAt = gt; nextFly = gt + random(45, 110) }
+    if gt > nextShoot { shootAt = gt; nextShoot = gt + random(12, 35) }
+    if gt > nextWalk { walkAt = gt; nextWalk = gt + random(70, 160) }
+    // holding the phone upside down for a moment and a half finds an egg
+    upT = has_motion && m.y < -0.7 ? upT + dt : 0
+    if upT > 1.5 { upT = -100; foundReq = "upside" }
+    if nextFly > gt + 200 || nextShoot > gt + 100 || nextWalk > gt + 300 { nextFly = gt + 40; nextShoot = gt + 15; nextWalk = gt + 80 }
+    let has = m.available == true
+    let mx = has ? m.x : 0
+    let my = has ? m.y : 1
+    let mz = has ? m.z : 0
+    // How far the tilt moved since the last frame. The first reading after the sensor starts, after a
+    // pause (dt is capped at 0.1) or after a reload, can jump further in one frame than a hand moves it:
+    // that's the globe catching up, not a shake.
+    let delta = pm == null || !has ? 0 : abs(mx - pm[0]) + abs(my - pm[1]) + abs(mz - pm[2])
+    let pause = dt >= 0.099 && pdt < 0.099
+    let jump = delta > max(0.9, dt * 12) || pause
+    pdt = dt
+    pm = has ? [mx, my, mz] : null
+    shakeE = shakeE * pow(0.03, dt) + (jump ? 0 : delta)
+    // gravity across the screen; lying flat there's little, so the snow still drifts down slowly
+    let glen = sqrt(mx * mx + my * my)
+    let gX = mx
+    let gY = glen < 0.6 ? my + 0.6 - glen : my
+    let stir = shakeE > SHAKE ? min((shakeE - SHAKE) * 2, 3) : 0
+    // a tap (kick 1.4) or a real shake picks what to show; the stand's arrows (kick 0.5) only stir the snow
+    if (kick >= 1 || shakeE > SHAKE_HINT) && (calm || gt - hintAt > 10) {
+      let cands = GL.filter(g => g.st == 0).map(g => str.needGift(g.who)) + GL.filter(g => g.st == 1).map(g => str.needWrap(g.who)) + TL.filter(t => !t.done).map(t => str.todo(t.name))
+      hint = len(cands) > 0 ? cands[random(len(cands))] : (total == 0 ? str.empty : (days < 0 ? str.after : str.allDone))
+      hintAt = gt
+      hintFor = 12
+      shaken = true
+      haptic()
+      if SC.hat != null && prog >= 0.25 && random() < 0.5 { hatAt = gt; foundReq = "snowman" }
+      if !walking && random() < 0.35 { nextWalk = min(nextWalk, gt + 2) }
+    }
+    if kick > 0 {
+      flakes = flakes.map(f => merge(f, {vx: f.vx + (random() - 0.5) * 2 * kick - gX * random() * kick, vy: f.vy + (random() - 0.5) * kick - gY * random() * kick * 1.6, s: false}))
+      kick = 0
+    }
+    if stir > 0 {
+      flakes = flakes.map(f => merge(f, {vx: f.vx + ((random() - 0.5) * 2 - gX * random()) * stir * 6 * dt, vy: f.vy + ((random() - 0.5) * 2 - gY * random() * 1.5) * stir * 6 * dt, s: false}))
+    }
+    // snow that lies somewhere comes loose once the globe turns away from it
+    flakes = flakes.map(f => !f.s ? f : (f.y >= GNDN[clamp(floor(ART_CX + f.x * ART_R), 0, ART_W - 1)] - 0.02 ? (gY > 0.12 ? f : merge(f, {s: false})) : ((gX * f.x + gY * f.y) / max(sqrt(f.x * f.x + f.y * f.y), 0.01) > 0.55 ? f : merge(f, {s: false}))))
+    if any(flakes, f => !f.s) {
+      let ease = 1 - pow(0.3, dt)
+      flakes = flakes
+        .map(f => f.s ? f : merge(f, {vx: lerp(f.vx, gX * f.f + 0.05 * sin(gt * 1.3 + f.ph), ease), vy: lerp(f.vy, gY * f.f + 0.03 * cos(gt * 1.1 + f.ph), ease)}))
+        .map(f => f.s ? f : merge(f, {x: f.x + f.vx * dt, y: f.y + f.vy * dt}))
+        .map(f => f.s ? f : merge(f, {d: max(sqrt(f.x * f.x + f.y * f.y), 0.001)}))
+        // the glass: slide along it, and rest on it where gravity presses the snow into it
+        .map(f => f.s || f.d <= RF ? f : merge(f, {
+          x: f.x * RF / f.d, y: f.y * RF / f.d,
+          vx: f.vx - max(0, (f.vx * f.x + f.vy * f.y) / f.d) * f.x / f.d,
+          vy: f.vy - max(0, (f.vx * f.x + f.vy * f.y) / f.d) * f.y / f.d,
+          s: (gX * f.x + gY * f.y) / f.d > 0.75
+        }))
+        // the snowy ground
+        .map(f => f.s || f.y < GNDN[clamp(floor(ART_CX + f.x * ART_R), 0, ART_W - 1)] ? f : merge(f, {y: GNDN[clamp(floor(ART_CX + f.x * ART_R), 0, ART_W - 1)], vy: min(f.vy, 0), vx: f.vx * 0.5, s: gY > 0.2}))
+    }
+    calm = all(flakes, f => f.s)
+  }
+
+  component Globe() {
+    Box {
+      ripple: false
+      // a tap finds an egg where there's one to find, and otherwise shakes the globe
+      onTap: {
+        let ax = x / PX
+        let ay = y / PX
+        let pw = lerp(LIP[0], LIP[1], (gt - walkAt) / 6)
+        let sst = min(1, (gt - shootAt) / 1.4)
+        let shx = ART_CX - 0.6 * ART_R + hash(floor(shootAt), 1) * 0.35 * ART_R + sst * 34 * ART_S
+        let shy = ART_CY - 0.82 * ART_R + hash(floor(shootAt), 2) * 0.2 * ART_R + sst * 12 * ART_S
+        let spot = SC.spots.find(sp => prog >= sp.lv && ax >= sp.b[0] && ax <= sp.b[2] && ay >= sp.b[1] && ay <= sp.b[3])
+        if walking && ax >= pw - 4 && ax <= pw + 14 && ay >= LIP[2] - 4 && ay <= LIP[2] + 16 {
+          slipAt = gt
+          foundReq = "penguin"
+        } else if gt >= shootAt && gt - shootAt < 2.2 && abs(ax - shx) < 22 && abs(ay - shy) < 22 {
+          wishAt = gt
+          foundReq = "wish"
+        } else if spot != null {
+          egg = {id: spot.id, at: gt, p: spot.p}
+          if spot.id == "snowman" { hatAt = gt }
+          foundReq = spot.id
+        } else {
+          kick = 1.4
+        }
+      }
+
+      // the sky, the same in every scene
+      Canvas {
+        width: CW
+        height: CH
+        sprite(SKY, 0, 0, PX, palette: PAL)
+      }
+      // what stands against it, and the snowy ground
+      Canvas {
+        width: CW
+        height: CH
+        sprite(SC.land, 0, 0, PX, palette: PAL)
+      }
+      // what grows with the lists: the scene's extras, the tree with its ornaments and star, the boxes
+      Canvas {
+        width: CW
+        height: CH
+        for u in SC.unlocks {
+          if prog >= u.lv { sprite(u.spr, u.x * PX, u.y * PX, PX, palette: PAL) }
+        }
+        if prog >= 0.5 {
+          for w in SC.lit { sprite(w.spr, w.x * PX, w.y * PX, PX, palette: PAL) }
+        }
+        sprite(TREE, SC.tx * PX, SC.ty * PX, PX, palette: PAL)
+        for o, j in ORN.take(min(nDone, 18)) {
+          rect((SC.tx + o[0]) * PX, (SC.ty + o[1] + 2) * PX, 2 * PX, PX, fill: PAL.E)
+          rect((SC.tx + o[0]) * PX, (SC.ty + o[1]) * PX, 2 * PX, 2 * PX, fill: ORNC[j % 6])
+          rect((SC.tx + o[0]) * PX, (SC.ty + o[1]) * PX, PX, PX, fill: alpha(SNOW, 0.55))
+        }
+        if total > 0 && prog >= 1 { sprite(STAR, STAR_AT[0] * PX, (SC.ty + STAR_AT[1]) * PX, PX, palette: PAL) }
+        for p in shown {
+          rect((p.sx - floor(len(PRESENTS[p.k][0]) / 2) + 1) * PX, (p.sy + 1) * PX, len(PRESENTS[p.k][0]) * PX, PX, fill: PAL.T)
+          sprite(PRESENTS[p.k], (p.sx - floor(len(PRESENTS[p.k][0]) / 2)) * PX, (p.sy - len(PRESENTS[p.k]) + 1) * PX, PX, palette: p.pal)
+        }
+      }
+
+      // what moves: stars, a shooting star, the northern lights, smoke, lights, the hat, the nose, the sleigh,
+      // the penguin and the snow
+      Canvas {
+        width: CW
+        height: CH
+        for s, i in SC.stars {
+          rect(s[0] * PX, s[1] * PX, PX, PX, fill: alpha(SNOW, 0.35 + 0.65 * abs(sin(time * (0.4 + hash(i, 7)) + i))))
+        }
+        if shooting {
+          let st = (gt - shootAt) / 1.4
+          let wished = wishAt >= shootAt
+          let sx0 = ART_CX - 0.6 * ART_R + hash(floor(shootAt), 1) * 0.35 * ART_R
+          let sy0 = ART_CY - 0.82 * ART_R + hash(floor(shootAt), 2) * 0.2 * ART_R
+          for k in range(7) {
+            rect(floor(sx0 + (st * 34 - k * 1.6) * ART_S) * PX, floor(sy0 + (st * 12 - k * 0.55) * ART_S) * PX, PX, PX, fill: alpha(wished ? yellow : SNOW, (1 - k / 7) * min(1, (1 - st) * 3)))
+          }
+          if wished {
+            for k in range(8) {
+              let wr = (gt - wishAt) * 26
+              rect(floor(sx0 + st * 34 * ART_S + cos(k * 0.785) * wr) * PX, floor(sy0 + st * 12 * ART_S + sin(k * 0.785) * wr) * PX, PX, PX, fill: alpha(yellow, max(0, 1 - (gt - wishAt) * 1.2)))
+            }
+          }
+        }
+        if SC.aurora && prog >= 0.75 {
+          for c in range(12 * ART_S, 60 * ART_S) {
+            let rim = ART_CY - sqrt(max(0, ART_R * ART_R - (c + 0.5 - ART_CX) * (c + 0.5 - ART_CX))) + 6 * ART_S
+            let top = max(ceil(rim), round((9 + 2 * sin(c / ART_S * 0.19 + time * 0.45) + 1.5 * sin(c / ART_S * 0.47 - time * 0.8)) * ART_S))
+            let bot = min(SC.sky[c] - 2, 22 * ART_S, round(top + (7 + 3 * sin(c / ART_S * 0.13 + time * 0.3)) * ART_S) - floor(hash(c, 3) * 5))
+            let fold = 0.5 + 0.5 * sin(c / ART_S * 0.55 - time * 1.3)
+            if bot > top + 3 {
+              rect(c * PX, (top + 3) * PX, PX, (bot - top - 3) * PX, fill: alpha(mix(green, accent, c / ART_W), 0.14 + 0.4 * fold))
+              rect(c * PX, top * PX, PX, 3 * PX, fill: alpha(mix(green, magenta, c / ART_W), 0.35 + 0.6 * fold))
+            }
+          }
+        }
+        for sm in SC.smoke {
+          if prog >= sm.lv {
+            for k in range(5) {
+              let ph = (time * 0.25 + k / 5 + sm.x * 0.03) % 1
+              rect(floor(sm.x + (sin(ph * 6.28 + k) * 1.2 + ph * 2.5) * ART_S) * PX, floor(sm.y - ph * 10 * ART_S) * PX, (ph > 0.4 ? 3 : 2) * PX, (ph > 0.4 ? 3 : 2) * PX, fill: alpha(SNOW, 0.4 * (1 - ph)))
+            }
+          }
+        }
+        if prog >= 0.75 {
+          for l, i in LIGHTS {
+            if sin(time * 2.2 + i * 1.7) > -0.3 {
+              rect((SC.tx + l[0] - 1) * PX, (SC.ty + l[1] - 1) * PX, 3 * PX, 3 * PX, fill: alpha(LITC[i % 4], 0.28))
+              rect((SC.tx + l[0]) * PX, (SC.ty + l[1]) * PX, PX, PX, fill: LITC[i % 4])
+            } else {
+              rect((SC.tx + l[0]) * PX, (SC.ty + l[1]) * PX, PX, PX, fill: alpha(LITC[i % 4], 0.35))
+            }
+          }
+        }
+        // the snowman's hat, which jumps off now and then when the globe is shaken
+        if SC.hat != null && prog >= 0.25 {
+          let ht = hatting ? (gt - hatAt) : 0
+          sprite(SC.hat.spr, (SC.hat.x + round(sin(ht * 14) * 2 * (1 - ht))) * PX, (SC.hat.y - round(sin(ht * 3.14159) * 14)) * PX, PX, palette: PAL)
+        }
+        // the egg found last, playing in the scene
+        if eggOn {
+          let et = gt - egg.at
+          if egg.id == "moon" {
+            rect((egg.p[0] + 3) * PX, (egg.p[1] + 6) * PX, 3 * PX, PX, fill: PAL.j)
+            rect((egg.p[0] + 9) * PX, (egg.p[1] + 5) * PX, PX, 2 * PX, fill: PAL.j)
+            for k in range(5) {
+              rect((egg.p[0] + 5 + k) * PX, (egg.p[1] + (k == 0 || k == 4 ? 9 : 10)) * PX, PX, PX, fill: PAL.j)
+            }
+          }
+          if egg.id == "chimney" {
+            let kk = floor(time * 7) % 2
+            let rise = min(et * 30, 8)
+            sprite(BOOT, (egg.p[0] - 2) * PX, (egg.p[1] - rise - kk) * PX, PX, palette: PAL)
+            sprite(BOOT, (egg.p[0] + 2) * PX, (egg.p[1] - rise - 1 + kk) * PX, PX, palette: PAL)
+          }
+          if egg.id == "bell" {
+            for k in range(2) {
+              let rr = (et * 14 + k * 7) % 16 + 3
+              for a in range(12) {
+                rect(floor(egg.p[0] + cos(a * 0.5236) * rr) * PX, floor(egg.p[1] + sin(a * 0.5236) * rr * 0.7) * PX, 2 * PX, 2 * PX, fill: alpha(yellow, 1 - rr / 20))
+              }
+            }
+          }
+          if egg.id == "igloo" {
+            let up = round(clamp(min(et * 10, 6) - max(0, et - 1.9) * 12, 0, 6))
+            sprite(PENGUIN_HEAD, (egg.p[0] - 5) * PX, (egg.p[1] - up - 5) * PX, PX, palette: PAL)
+          }
+          if egg.id == "rudolph" {
+            let gl = 0.7 + 0.3 * sin(et * 12)
+            rect((egg.p[0] - 4) * PX, egg.p[1] * PX, 10 * PX, 2 * PX, fill: alpha(red, 0.3 * gl))
+            rect(egg.p[0] * PX, (egg.p[1] - 4) * PX, 2 * PX, 10 * PX, fill: alpha(red, 0.3 * gl))
+            rect((egg.p[0] - 2) * PX, (egg.p[1] - 2) * PX, 6 * PX, 6 * PX, fill: alpha(red, 0.35 * gl))
+            rect(egg.p[0] * PX, egg.p[1] * PX, 2 * PX, 2 * PX, fill: mix(red, SNOW, 0.6))
+          }
+        }
+        // the deer's red nose, glowing now and then
+        if SC.nose != null && prog >= 0.25 {
+          let glow = pow(max(0, sin(time * 1.1)), 16)
+          if glow > 0.04 {
+            rect((SC.nose[0] - 2) * PX, (SC.nose[1] - 2) * PX, 6 * PX, 6 * PX, fill: alpha(red, 0.3 * glow))
+            rect(SC.nose[0] * PX, SC.nose[1] * PX, 2 * PX, 2 * PX, fill: mix(red, SNOW, 0.5 * glow))
+          }
+        }
+        if SC.sleigh && total > 0 && prog >= 1 {
+          let sx = (54 - (time * 4) % 90) * ART_S
+          if sx > 15 * ART_S && sx < 29 * ART_S { sprite(SLEIGH, floor(sx) * PX, floor((9 + sin(time * 1.5)) * ART_S) * PX, PX, palette: PAL) }
+        }
+        for f in flakes {
+          // snow lying on the ground is part of it; draw only what's in the air or on the glass
+          if f.s && f.y >= GNDN[clamp(floor(ART_CX + f.x * ART_R), 0, ART_W - 1)] - 0.02 {
+          } else if f.ph < 2.5 {
+            rect(floor(ART_CX + f.x * ART_R) * PX, floor(ART_CY + f.y * ART_R) * PX, PX, PX, fill: alpha(golden ? yellow : SNOW, 0.5))
+          } else {
+            rect(floor(ART_CX + f.x * ART_R) * PX, floor(ART_CY + f.y * ART_R) * PX, 2 * PX, 2 * PX, fill: alpha(golden ? mix(yellow, SNOW, 0.35) : SNOW, 0.92))
+          }
+        }
+      }
+
+      // the glass in front, and the stand with the scene's name on its plaque
+      Canvas {
+        width: CW
+        height: CH
+        sprite(GLASS, 0, 0, PX, palette: PAL)
+        sprite(STAND, 0, STAND_Y * PX, PX, palette: PAL)
+        sprite(ARROW_L, ARROWS[0] * PX, ARROWS[2] * PX, PX, palette: PAL)
+        sprite(ARROW_R, ARROWS[1] * PX, ARROWS[2] * PX, PX, palette: PAL)
+        text(upper(str.scene(scene)), ART_CX * PX, PLAQUE_Y * PX, size: min(1.8 * ART_S * PX, 28 * ART_S * PX / len(str.scene(scene))), color: golden ? yellow : accent, align: center, font: BLOCK)
+      }
+
+      // a penguin out for a walk on the table, in front of the stand
+      if walking {
+        Canvas {
+          width: CW
+          height: CH
+          let wt = (gt - walkAt) / 6
+          let step = floor(time * 6) % 2
+          let pxl = floor(lerp(LIP[0], LIP[1], wt))
+          layer(clamp(min(wt, 1 - wt) * 10, 0, 1)) {
+            if gt >= slipAt && gt - slipAt < 1.3 {
+              rotate(90, (pxl + 5) * PX, (LIP[2] + 7) * PX) { sprite(PENGUIN[0], pxl * PX, (LIP[2] + 2) * PX, PX, palette: PAL) }
+              for k in range(3) {
+                rect((pxl + 5 + cos(time * 9 + k * 2.1) * 6) * PX, (LIP[2] + 1 + sin(time * 9 + k * 2.1) * 2) * PX, PX, PX, fill: yellow)
+              }
+            } else {
+              sprite(PENGUIN[step], pxl * PX, (LIP[2] - step) * PX, PX, palette: PAL)
+            }
+          }
+        }
+      }
+
+      // what's still to do, as a notification in the sky once the snow is stirred
+      Column {
+        width: CW
+        padding: [0, 0, 0, 0]
+        align: center
+        Text {
+          text: hint
+          width: floor(PX * 56 * ART_S)
+          align: center
+          maxLines: 2
+          fontSize: 12
+          color: foreground
+          padding: [10, 7]
+          background: alpha(background, 0.88)
+          border: 2
+          borderColor: accent
+          radius: 4 * corners
+          opacity: hintOn ? 1 : 0
+          animate opacity: tween(500ms, "ease")
+        }
+      }
+
+      // the arrows on the stand turn to the next scene
+      Column {
+        width: CW
+        gap: 0
+        Spacer { height: (ARROWS[2] - 2 * ART_S) * PX }
+        Row {
+          gap: 0
+          width: CW
+          Spacer { width: 8 * ART_S * PX }
+          Box {
+            width: 11 * ART_S * PX
+            height: 9 * ART_S * PX
+            ripple: false
+            onTap: { scene = (scene + 3) % 4; kick = 0.5; hint = str.scene((scene + 3) % 4); hintAt = gt - 0.8; hintFor = 3 }
+          }
+          Box {
+            weight: 1
+            height: 9 * ART_S * PX
+            ripple: false
+            onLongPress: { if m.available != true { foundReq = "upside" } }
+          }
+          Box {
+            width: 11 * ART_S * PX
+            height: 9 * ART_S * PX
+            ripple: false
+            onTap: { scene = (scene + 1) % 4; kick = 0.5; hint = str.scene((scene + 1) % 4); hintAt = gt - 0.8; hintFor = 3 }
+          }
+          Spacer { width: 8 * ART_S * PX }
+        }
+      }
+    }
+  }
+
+  component Header() {
+    Row {
+      gap: 14
+      align: center
+      Box {
+        width: 34 * len(days > 0 ? "${days}" : "*") + 6
+        height: 40
+        onLongPress: demo = !demo
+        Text { text: days > 0 ? "${days}" : "*"; font: BLOCK; fontSize: 34; color: mix(accent, background, 0.65); offset: [3, 3]; maxLines: 1 }
+        Text { text: days > 0 ? "${days}" : "*"; font: BLOCK; fontSize: 34; color: accent; maxLines: 1 }
+      }
+      Column {
+        weight: 1
+        gap: 6
+        Text { text: days > 0 ? str.untilXmas(days) : (days == 0 ? str.today : str.after); style: body; maxLines: 1 }
+        Row {
+          gap: 10
+          align: center
+          Text { text: demo ? str.preview : (total == 0 ? str.empty : str.left(leftN)); style: small; color: demo ? accent : muted; maxLines: 1 }
+          if total > 0 && !demo {
+            // 20 blocks in four groups: each group is one step of the globe (extras, more extras, lights, the star)
+            Canvas {
+              weight: 1
+              height: 8
+              let bw = (width - 19 * 2 - 3 * 3) / 20
+              for i in range(20) {
+                rect(i * (bw + 2) + floor(i / 5) * 3, 0, bw, 8, fill: i < round(prog * 20) ? accent : mix(background, accent, 0.2))
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  component Tab(tabId, caption) {
+    Text {
+      text: caption
+      style: small
+      color: tab == tabId ? accent : muted
+      border: 1
+      borderColor: tab == tabId ? accent : alpha(border, 0)
+      padding: [12, 6]
+      radius: 3 * corners
+      onTap: tab = tabId
+    }
+  }
+
+  // a gift's state as a little pixel picture: a bulb for an idea, a plain box, a wrapped one
+  component GiftIcon(st, gid) {
+    Canvas {
+      width: 22
+      height: 22
+      if st == 0 {
+        sprite([".yyy.", "yyWyy", "yyyyy", ".yyy.", ".JJJ.", "..J.."], 3.5, 2, 3, palette: PAL)
+      } else {
+        sprite(PRESENTS[0], 3, 1, 2, palette: st == 2 ? {V: WRAPS[floor(hash(gid, 3) * 6)][0], X: mix(WRAPS[floor(hash(gid, 3) * 6)][0], NIGHT, 0.4), Z: WRAPS[floor(hash(gid, 3) * 6)][1], N: WRAPS[floor(hash(gid, 3) * 6)][1]} : KRAFT)
+      }
+    }
+  }
+
+  component GiftRow(g, i) {
+    Row {
+      gap: 10
+      align: center
+      padding: [4, 3]
+      onTap: { if demo { demo = false } else { gifts = gifts.map(it => it.id == g.id ? merge(it, {st: (it.st + 1) % 3}) : it) } }
+      onLongPress: { if demo { demo = false } else { undo = {k: "g", item: g, i: i}; gifts = gifts.filter(it => it.id != g.id) } }
+      GiftIcon { st: g.st; gid: g.id }
+      Column {
+        weight: 1
+        gap: 0
+        Text { text: g.who; maxLines: 1; color: g.st == 2 ? muted : foreground }
+        if g.what != "" { Text { text: g.what; style: small; color: muted; maxLines: 1 } }
+      }
+      if g.price > 0 { Text { text: fmtNum(g.price); style: small; color: muted } }
+      Text { text: g.st == 0 ? str.idea : (g.st == 1 ? str.bought : str.wrapped); style: small; color: g.st == 0 ? yellow : (g.st == 1 ? orange : green) }
+    }
+  }
+
+  component TaskRow(t, i) {
+    Row {
+      gap: 10
+      align: center
+      padding: [4, 4]
+      onTap: { if demo { demo = false } else { tasks = tasks.map(it => it.id == t.id ? merge(it, {done: !it.done}) : it) } }
+      onLongPress: { if demo { demo = false } else { undo = {k: "t", item: t, i: i}; tasks = tasks.filter(it => it.id != t.id) } }
+      Text { text: t.done ? "[x]" : "[ ]"; color: t.done ? green : muted }
+      Text { text: t.name; weight: 1; maxLines: 2; color: t.done ? muted : foreground }
+    }
+  }
+
+  // an egg in the collection: its name once found, its riddle always
+  // one line per secret: its name once found, its riddle (and what it waits for) until then; a bauble icon
+  component EggRow(e, i) {
+    Row {
+      gap: 10
+      align: center
+      padding: [4, 3]
+      Canvas {
+        width: 16
+        height: 18
+        sprite(["..cc..", "..cc..", ".abba.", "abWbba", "abbbba", "abbbba", ".abba.", "..aa.."], 2, 1, 2, palette: contains(eggs, e) ? {a: mix(red, NIGHT, 0.3), b: red, c: yellow, W: mix(red, SNOW, 0.6)} : {a: alpha(muted, 0.6), b: alpha(muted, 0.25), c: alpha(muted, 0.5), W: alpha(muted, 0.4)})
+      }
+      Text {
+        text: contains(eggs, e) ? str.eggName(i) : (prog < EGG_LV[i] ? "${str.eggHint(i)} (${str.locked})" : str.eggHint(i))
+        weight: 1
+        maxLines: 1
+        style: small
+        color: contains(eggs, e) ? foreground : muted
+      }
+      if contains(eggs, e) { Text { text: "✓"; style: small; color: green } }
+    }
+  }
+
+  component Lists() {
+    Column {
+      gap: 8
+      padding: 12
+      background: alpha(background, tileOpacity)
+      frost: tileFrost
+      border: borderWidth
+      borderColor: border
+      radius: 8 * corners
+      Row {
+        gap: 6
+        align: center
+        Tab { tabId: "gifts"; caption: "${str.gifts} ${nWrapped}/${len(GL)}" }
+        Tab { tabId: "tasks"; caption: "${str.tasks} ${nDone}/${len(TL)}" }
+        Tab { tabId: "eggs"; caption: "${str.eggs} ${len(eggs)}/${len(EGG_IDS)}" }
+        Spacer { weight: 1 }
+        if undo != null {
+          Text {
+            text: "↶ ${str.undo}"
+            style: small
+            color: accent
+            padding: [8, 6]
+            onTap: {
+              if undo.k == "g" { gifts = take(gifts, undo.i) + [undo.item] + drop(gifts, undo.i) } else { tasks = take(tasks, undo.i) + [undo.item] + drop(tasks, undo.i) }
+              undo = null
+            }
+          }
+        }
+      }
+      if tab == "gifts" {
+        Row {
+          gap: 6
+          align: center
+          Text { text: budget > 0 ? str.spent(fmtNum(spent)) : str.spentOnly(fmtNum(spent)); style: small; color: muted }
+          if !demo { Input { text: budget > 0 ? "${budget}" : ""; placeholder: str.budget; width: 96; fontSize: 13; color: muted; onSubmit: budget = num(value, 0) } }
+        }
+        if budget > 0 { Progress { value: min(spent, budget); max: budget; color: spent > budget ? red : green } }
+      }
+      Column {
+        weight: 1
+        scroll: true
+        gap: 2
+        if tab == "gifts" {
+          if len(GL) == 0 { Text { text: str.noGifts; style: small; color: muted; padding: [4, 8] } }
+          for g, i in GL key g.id { GiftRow { g: g; i: i } }
+        } else if tab == "tasks" {
+          for t, i in TL key t.id { TaskRow { t: t; i: i } }
+        } else {
+          for e, i in EGG_IDS { EggRow { e: e; i: i } }
+        }
+      }
+      // the list's last rows fade out, so it shows there's more to scroll to
+      Spacer { fill: width; height: 14; offset: [0, -18]; background: linear(0, 0, 0, 1, [alpha(background, 0), alpha(background, 0.8)]) }
+      // Enter adds, and puts the keyboard away
+      if tab != "eggs" && !demo { Input { placeholder: tab == "gifts" ? str.giftPh : str.taskPh; clear: true; onSubmit: addReq = value } }
+      Text { text: tab == "gifts" ? str.helpGifts : (tab == "tasks" ? str.helpTasks : str.helpEggs); style: small; color: muted }
+    }
+  }
+
+  Box {
+    fill: true
+    Column {
+      fill: true
+      padding: [16, 8, 16, 8]
+      gap: 10
+      Header { }
+      if wide {
+        Row {
+          gap: 16
+          weight: 1
+          Column {
+            align: center
+            justify: center
+            Globe { }
+            if !shaken { Text { text: str.shakeHint; style: small; color: muted } }
+          }
+          Lists { weight: 1 }
+        }
+      } else {
+        if !typing {
+          Column {
+            fill: width
+            align: center
+            gap: 4
+            Globe { }
+            if !shaken { Text { text: str.shakeHint; style: small; color: muted; align: center } }
+          }
+        }
+        Lists { weight: 1 }
+      }
+      Spacer { height: screenInset ?? 0 }
+    }
+    // the sleigh, flying over the page from right to left, with a trail of sparkles
+    if flying {
+      Canvas {
+        fill: width
+        height: 170
+        onTap: {
+          let ft2 = (gt - flyAt) / 7
+          let sw2 = len(SLEIGH[0]) * PX
+          let fx2 = lerp(W + 10, -sw2 - 120, ft2)
+          let fy2 = 18 + 70 * ft2 + 10 * sin(ft2 * 8)
+          if x >= fx2 - 20 && x <= fx2 + sw2 + 20 && y >= fy2 - 20 && y <= fy2 + 18 * PX + 20 {
+            dropAt = gt
+            dropX = x
+            dropY = y
+            foundReq = "sleigh"
+          } else {
+            kick = 1.4
+          }
+        }
+        let ft = (gt - flyAt) / 7
+        let sw = len(SLEIGH[0]) * PX
+        let fx = lerp(width + 10, -sw - 120, ft)
+        let fy = 18 + 70 * ft + 10 * sin(ft * 8)
+        for k in range(12) {
+          let tx = fx + sw + 6 + k * 9
+          let tw = abs(sin(time * 9 + k * 1.7))
+          rect(floor(tx / PX) * PX, floor((fy + 10 * PX - k * 2.2 + 4 * sin(k * 1.3 + time * 3)) / PX) * PX, PX, PX, fill: alpha(k % 3 == 0 ? yellow : SNOW, (1 - k / 12) * tw))
+        }
+        sprite(SLEIGH, floor(fx / PX) * PX, floor(fy / PX) * PX, PX, palette: PAL)
+        if dropAt >= flyAt && gt - dropAt < 1.6 {
+          let dt2 = gt - dropAt
+          sprite(PRESENTS[0], floor(dropX / PX) * PX, floor((dropY + 220 * dt2 * dt2) / PX) * PX, PX, palette: {V: red, X: mix(red, NIGHT, 0.4), Z: yellow, N: yellow})
+        }
+      }
+    }
+  }
+}
