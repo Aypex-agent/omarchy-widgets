@@ -1,0 +1,887 @@
+widget "hackernews" {
+  size: 4x3
+  minSize: 3x2
+
+  meta {
+    owl: 18
+    description: "The Hacker News in-widget morning briefing and article reader with text selection, copying, search, unread tracking, and archive loading"
+    version: "2.1"
+    license: "MIT"
+    category: "news"
+  }
+
+  requires { pacman: ["python"] }
+
+  // Persistent tracking of seen/read articles across launcher restarts
+  state seen = [] persist
+  state readUrl = null
+  state query = ""
+  state tab = "all"
+  state showCount = 8
+  state selectMode = false
+  state selectedPara = -1
+  state copiedMsg = ""
+
+  // Standalone helper script cached for store installation
+  source boot = cmd("""
+d=~/.cache/omalauncher-hackernews
+mkdir -p "$d"
+t="$d/thn.py.tmp"
+cat > "$t" <<'OWL_THN_PY'
+#!/usr/bin/env python3
+import sys, json, re, html, urllib.request
+from datetime import datetime
+
+USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+
+def get_feed():
+    url = "https://thehackernews.com/feeds/posts/default?alt=json&max-results=45"
+    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.load(resp)
+        entries = data.get("feed", {}).get("entry", [])
+        items = []
+        keywords = ["0-day", "zero-day", "critical", "exploit", "breach", "bypass", "rce", "malware", "flaw", "hijack", "vulnerability"]
+        for i, e in enumerate(entries):
+            title = e.get("title", {}).get("$t", "").strip()
+            pub = e.get("published", {}).get("$t", "")
+            link = ""
+            for l in e.get("link", []):
+                if l.get("rel") == "alternate":
+                    link = l.get("href", "").replace("http://", "https://")
+                    break
+            summary = e.get("summary", {}).get("$t", "")
+            summary = re.sub(r"<[^>]+>", "", summary)
+            summary = html.unescape(summary).strip().replace("\n", " ")
+
+            dt_str = ""
+            is_new = False
+            if pub:
+                try:
+                    dt = datetime.fromisoformat(pub)
+                    dt_str = dt.strftime("%b %d")
+                    diff = (datetime.now().astimezone() - dt).total_seconds()
+                    # New if published within last 36 hours
+                    is_new = diff < 36 * 3600
+                except Exception:
+                    dt_str = pub[:10]
+                    is_new = (i < 4)
+
+            img = ""
+            if "media$thumbnail" in e:
+                img = e["media$thumbnail"].get("url", "")
+
+            author = ""
+            if "author" in e and len(e["author"]) > 0:
+                author = e["author"][0].get("name", {}).get("$t", "")
+
+            is_urgent = any(k in title.lower() for k in keywords)
+
+            items.append({
+                "id": i,
+                "title": title,
+                "link": link,
+                "desc": summary,
+                "date": dt_str,
+                "author": author,
+                "img": img,
+                "mustKnow": (i == 0) or is_urgent,
+                "isNew": is_new
+            })
+
+        now = datetime.now()
+        period = "Morning" if now.hour < 12 else ("Afternoon" if now.hour < 18 else "Evening")
+        return {
+            "ok": True,
+            "items": items,
+            "count": len(items),
+            "newCount": len([x for x in items if x["isNew"]]),
+            "updated": now.strftime("%H:%M"),
+            "edition": f"{period} Briefing"
+        }
+    except Exception as e:
+        return {"ok": False, "items": [], "error": str(e), "updated": "", "edition": "Morning Briefing"}
+
+def read_article(url):
+    if not url:
+        return {"ok": False, "paras": [], "url": ""}
+    url = url.replace("http://", "https://")
+    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    try:
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            doc = resp.read().decode("utf-8", errors="ignore")
+
+        # Title
+        title_m = re.search(r"<meta\s+content=[\x27\"]([^\x27\"]+)[\x27\"]\s+itemprop=[\x27\"]headline[\x27\"]", doc)
+        if not title_m:
+            title_m = re.search(r"itemprop=[\x27\"]headline[\x27\"]\s+content=[\x27\"]([^\x27\"]+)[\x27\"]", doc)
+        if not title_m:
+            title_m = re.search(r"<title>([^<]+)</title>", doc)
+        title = html.unescape(title_m.group(1)).strip() if title_m else ""
+
+        # Author
+        author_m = re.search(r"<div itemprop=[\x27\"]author[\x27\"][^>]*><meta content=[\x27\"]([^\x27\"]+)[\x27\"]", doc)
+        if not author_m:
+            author_m = re.search(r"<span\s+class=[\x27\"]author[\x27\"]>([^<]+)</span>", doc)
+        author = author_m.group(1).strip() if author_m else ""
+
+        # Date
+        date_m = re.search(r"<span\s+class=[\x27\"]author[\x27\"]>([A-Za-z]+\s+\d{1,2},\s+\d{4})</span>", doc)
+        date = date_m.group(1).strip() if date_m else ""
+
+        # Tags
+        tags_m = re.search(r"<span\s+class=[\x27\"]p-tags[\x27\"]>([^<]+)</span>", doc)
+        tags = tags_m.group(1).strip() if tags_m else ""
+
+        # Article body paragraphs
+        m = re.search(r"id=[\x27\"]articlebody[\x27\"][^>]*>(.*?)</div>\s*<div\s+class=[\x27\"]post-share-buttons", doc, re.DOTALL)
+        if not m:
+            m = re.search(r"id=[\x27\"]articlebody[\x27\"][^>]*>(.*?)<div[^>]+id=[\x27\"]post-share-buttons", doc, re.DOTALL)
+        if not m:
+            m = re.search(r"id=[\x27\"]articlebody[\x27\"][^>]*>(.*)", doc, re.DOTALL)
+        body = m.group(1) if m else ""
+        paras = []
+        for p in re.findall(r"<p[^>]*>(.*?)</p>", body, re.DOTALL):
+            clean = re.sub(r"<[^>]+>", "", p)
+            clean = html.unescape(clean).strip()
+            if clean and not clean.startswith("Found this article interesting?") and not clean.startswith("Follow us on") and not clean.startswith("Note: This article"):
+                paras.append(clean)
+
+        words = sum(len(p.split()) for p in paras)
+        read_min = max(1, round(words / 180))
+
+        return {
+            "ok": True,
+            "title": title,
+            "author": author,
+            "date": date,
+            "tags": tags,
+            "readMin": f"{read_min} min read",
+            "paras": paras,
+            "url": url
+        }
+    except Exception as e:
+        return {"ok": False, "error": str(e), "paras": [], "url": url}
+
+if __name__ == "__main__":
+    mode = sys.argv[1] if len(sys.argv) > 1 else "feed"
+    if mode == "read":
+        url = sys.argv[2] if len(sys.argv) > 2 else ""
+        print(json.dumps(read_article(url)))
+    else:
+        print(json.dumps(get_feed()))
+OWL_THN_PY
+chmod 700 "$t" 2>/dev/null
+mv -f "$t" "$d/thn.py"
+echo ok
+""")
+
+  source feed = cmd("python3 ~/.cache/omalauncher-hackernews/thn.py feed") every 1h json timeout 20s
+  source article = cmd("python3 ~/.cache/omalauncher-hackernews/thn.py read ${sh(readUrl ?? '')}") json timeout 15s
+
+  let items = feed.items ?? []
+  let top = items[0]
+  let extraCount = (rows ?? 3) >= 4 ? 2 : 1
+  let rest = items.drop(1).take(extraCount)
+
+  let unreadCount = len(items.filter(a => !contains(seen, a.link)))
+  let newCount = feed.newCount ?? len(items.filter(a => a.isNew))
+
+  let q = lower(trim(query))
+  let byTab = tab == "new" ? items.filter(a => a.isNew) : tab == "must-know" ? items.filter(a => a.mustKnow) : tab == "unread" ? items.filter(a => !contains(seen, a.link)) : items
+  let filtered = q == "" ? byTab : byTab.filter(a => contains(lower(a.title), q) || contains(lower(a.desc), q))
+
+  let newFiltered = filtered.filter(a => a.isNew)
+  let oldFiltered = filtered.filter(a => !a.isNew)
+
+  let curr = items.find(a => a.link == readUrl)
+  let currIdx = items.indexOf(curr)
+  let prevArticle = currIdx > 0 ? items[currIdx - 1] : null
+  let nextArticle = currIdx >= 0 && currIdx < len(items) - 1 ? items[currIdx + 1] : null
+  let isCurrSeen = readUrl != null && contains(seen, readUrl)
+
+  let parasList = (article != null && article.paras != null && len(article.paras) > 0) ? article.paras : (curr != null && curr.desc != null ? [curr.desc] : [])
+  let allParasText = join(parasList, "\n\n")
+  let fullArticleText = "${article.title != '' ? article.title : (curr.title ?? 'Article')}\nBy ${article.author != '' ? article.author : (curr.author ?? 'The Hacker News')} · ${article.date != '' ? article.date : (curr.date ?? '')}\nLink: ${readUrl ?? ''}\n\n${allParasText}"
+
+  onTap: screen()
+
+  component ArticleItem(a) {
+    let isSeen = contains(seen, a.link)
+    let qIdx = q != "" ? indexOf(lower(a.title), q) : -1
+    let dIdx = q != "" ? indexOf(lower(a.desc), q) : -1
+
+    Column {
+      gap: 5
+      padding: [12, 10]
+      background: isSeen ? alpha(surface, 0.25) : alpha(surface, 0.45)
+      border: isSeen ? 0 : 1
+      borderColor: alpha(accent, 0.2)
+      radius: 12 * corners
+      onTap: {
+        readUrl = a.link
+        selectedPara = -1
+        selectMode = false
+        copiedMsg = ""
+        if !isSeen {
+          seen = flatten([seen, [a.link]])
+        }
+      }
+      onLongPress: {
+        haptic()
+        copy("${a.title}\n${a.link}")
+        copiedMsg = "Headline & link copied!"
+      }
+
+      Row {
+        gap: 6
+        align: center
+        if a.mustKnow {
+          Text {
+            text: "MUST KNOW"
+            style: label
+            color: red
+            fontSize: 10
+            bold: true
+            padding: [4, 2]
+            background: alpha(red, 0.2)
+            radius: 4 * corners
+          }
+        }
+        if a.isNew {
+          Text {
+            text: "NEW"
+            style: label
+            color: accent
+            fontSize: 10
+            bold: true
+            padding: [4, 2]
+            background: alpha(accent, 0.2)
+            radius: 4 * corners
+          }
+        }
+        if isSeen {
+          Text {
+            text: "✓ seen"
+            style: label
+            color: muted
+            fontSize: 10
+            padding: [4, 2]
+          }
+        }
+        Spacer { weight: 1 }
+        Text { text: a.date; style: label; color: muted }
+        Text { text: "read 📖"; style: label; color: isSeen ? muted : accent }
+      }
+
+      // Title with search highlight
+      if qIdx >= 0 {
+        let b = sub(a.title, 0, qIdx)
+        let m = sub(a.title, qIdx, qIdx + len(q))
+        let af = sub(a.title, qIdx + len(q), len(a.title))
+        Text {
+          spans: [b, {text: m, color: yellow, bold: true}, af]
+          bold: true
+          fontSize: 14
+          color: isSeen ? alpha(foreground, 0.55) : foreground
+        }
+      } else {
+        Text {
+          text: a.title
+          bold: true
+          fontSize: 14
+          color: isSeen ? alpha(foreground, 0.55) : foreground
+        }
+      }
+
+      // Description snippet with search highlight
+      if dIdx >= 0 {
+        let db = sub(a.desc, 0, dIdx)
+        let dm = sub(a.desc, dIdx, dIdx + len(q))
+        let daf = sub(a.desc, dIdx + len(q), len(a.desc))
+        Text {
+          spans: [db, {text: dm, color: yellow, bold: true}, daf]
+          style: small
+          color: isSeen ? alpha(foreground, 0.45) : alpha(foreground, 0.75)
+          maxLines: 2
+        }
+      } else {
+        Text {
+          text: a.desc
+          style: small
+          color: isSeen ? alpha(foreground, 0.45) : alpha(foreground, 0.75)
+          maxLines: 2
+        }
+      }
+    }
+  }
+
+  // --- Tile layout on home screen ---
+  Column {
+    fill: true
+    gap: 6
+
+    Row {
+      align: center
+      gap: 6
+      Text { text: "THE HACKER NEWS"; style: label; color: accent; bold: true }
+      Spacer { weight: 1 }
+      if unreadCount > 0 {
+        Text {
+          text: "${unreadCount} new"
+          style: label
+          color: accent
+          fontSize: 10
+          bold: true
+          padding: [4, 1]
+          background: alpha(accent, 0.15)
+          radius: 4 * corners
+        }
+      }
+      Text { text: feed.edition ?? "Morning"; style: small; color: muted; maxLines: 1 }
+    }
+
+    if top != null {
+      let topSeen = contains(seen, top.link)
+
+      Column {
+        gap: 3
+        padding: [8, 6]
+        background: topSeen ? alpha(surface, 0.3) : alpha(surface, 0.45)
+        border: topSeen ? 0 : 1
+        borderColor: alpha(accent, 0.2)
+        radius: 8 * corners
+        onTap: {
+          readUrl = top.link
+          selectedPara = -1
+          selectMode = false
+          copiedMsg = ""
+          if !topSeen {
+            seen = flatten([seen, [top.link]])
+          }
+          screen()
+        }
+
+        Row {
+          gap: 6
+          align: center
+          if top.mustKnow {
+            Text {
+              text: "MUST KNOW"
+              style: label
+              color: red
+              fontSize: 10
+              bold: true
+              padding: [4, 2]
+              background: alpha(red, 0.2)
+              radius: 4 * corners
+            }
+          }
+          if top.isNew && !topSeen {
+            Text {
+              text: "NEW"
+              style: label
+              color: accent
+              fontSize: 10
+              bold: true
+              padding: [4, 2]
+              background: alpha(accent, 0.2)
+              radius: 4 * corners
+            }
+          }
+          if topSeen {
+            Text { text: "✓ seen"; style: label; color: muted; fontSize: 10 }
+          }
+          Text { text: top.date; style: label; color: muted; weight: 1 }
+          Text { text: "read 📖"; style: label; color: topSeen ? muted : accent }
+        }
+
+        Text {
+          text: top.title
+          bold: true
+          style: small
+          color: topSeen ? alpha(foreground, 0.6) : foreground
+          maxLines: 2
+        }
+
+        Text {
+          text: top.desc
+          style: label
+          color: topSeen ? alpha(foreground, 0.45) : alpha(foreground, 0.75)
+          maxLines: 1
+        }
+      }
+
+      for a in rest key a.link {
+        let aSeen = contains(seen, a.link)
+        Row {
+          gap: 6
+          align: center
+          padding: [2, 0]
+          onTap: {
+            readUrl = a.link
+            selectedPara = -1
+            selectMode = false
+            copiedMsg = ""
+            if !aSeen {
+              seen = flatten([seen, [a.link]])
+            }
+            screen()
+          }
+          Text { text: aSeen ? "✓" : "•"; color: aSeen ? muted : (a.mustKnow ? red : accent); bold: true }
+          Text {
+            text: a.title
+            style: small
+            color: aSeen ? alpha(foreground, 0.55) : foreground
+            weight: 1
+            maxLines: 1
+          }
+          Text { text: a.date; style: label; color: muted; align: end }
+        }
+      }
+    } else {
+      Text { text: feed == null ? "loading briefing…" : "offline"; style: small; color: muted }
+    }
+  }
+
+  // --- Full-screen view: In-Widget Reader & Feed ---
+  screen {
+    title: "the hacker news"
+
+    if readUrl != null && readUrl != "" {
+      // === IN-WIDGET ARTICLE READER VIEW ===
+      Column {
+        fill: true
+        gap: 10
+        padding: [16, 12]
+
+        // Top navigation & actions bar
+        Row {
+          align: center
+          gap: 6
+          Button {
+            text: "← Feed"
+            color: accent
+            onTap: { readUrl = null; selectedPara = -1; selectMode = false; copiedMsg = "" }
+          }
+          Button {
+            text: selectMode ? "Read Mode 📖" : "Select Text 📋"
+            color: selectMode ? yellow : alpha(foreground, 0.85)
+            onTap: selectMode = !selectMode
+          }
+          Spacer { weight: 1 }
+          Button {
+            text: "Web ↗"
+            color: muted
+            onTap: url(readUrl)
+          }
+        }
+
+        // Quick copy action toolbar
+        Row {
+          align: center
+          gap: 6
+          Button {
+            text: "Copy 📄"
+            color: muted
+            onTap: {
+              haptic()
+              copy(fullArticleText)
+              copiedMsg = "Full article copied to clipboard!"
+            }
+          }
+          Button {
+            text: "Title 🏷️"
+            color: muted
+            onTap: {
+              haptic()
+              copy(article.title != "" ? article.title : (curr.title ?? "Article"))
+              copiedMsg = "Headline copied!"
+            }
+          }
+          Button {
+            text: "Link 🔗"
+            color: muted
+            onTap: {
+              haptic()
+              copy(readUrl)
+              copiedMsg = "Link copied!"
+            }
+          }
+          Button {
+            text: isCurrSeen ? "Unread" : "Seen"
+            color: muted
+            onTap: {
+              if isCurrSeen {
+                seen = seen.filter(l => l != readUrl)
+              } else {
+                seen = flatten([seen, [readUrl]])
+              }
+            }
+          }
+        }
+
+        // Copy notification feedback banner
+        if copiedMsg != "" {
+          Row {
+            align: center
+            gap: 8
+            padding: [10, 6]
+            background: alpha(green, 0.2)
+            border: 1
+            borderColor: green
+            radius: 8 * corners
+            Text { text: "✓ ${copiedMsg}"; style: small; color: green; weight: 1; bold: true }
+            Text { text: "✕"; style: small; color: muted; onTap: copiedMsg = "" }
+          }
+        }
+
+        // Scrollable reading / selection area
+        Column {
+          scroll: true
+          weight: 1
+          gap: 12
+
+          Text {
+            text: article.title != "" ? article.title : (curr.title ?? "Article")
+            style: title
+            fontSize: 18
+            bold: true
+            maxLines: 4
+            color: foreground
+            onLongPress: {
+              haptic()
+              copy(article.title != "" ? article.title : (curr.title ?? "Article"))
+              copiedMsg = "Headline copied!"
+            }
+          }
+
+          Row {
+            align: center
+            gap: 6
+            if article.author != null && article.author != "" {
+              Text { text: article.author; style: small; color: accent; bold: true }
+              Text { text: "·"; style: small; color: muted }
+            } else if curr != null && curr.author != "" {
+              Text { text: curr.author; style: small; color: accent; bold: true }
+              Text { text: "·"; style: small; color: muted }
+            }
+            Text { text: article.date != "" ? article.date : (curr.date ?? ""); style: small; color: muted }
+            if article.readMin != null {
+              Text { text: "·"; style: small; color: muted }
+              Text { text: article.readMin; style: small; color: muted }
+            }
+          }
+
+          if article.tags != null && article.tags != "" {
+            Text {
+              text: "Topic: ${article.tags}"
+              style: label
+              color: alpha(accent, 0.85)
+              padding: [6, 3]
+              background: alpha(accent, 0.12)
+              radius: 4 * corners
+            }
+          }
+
+          Spacer { height: 1; fill: width; background: alpha(muted, 0.3) }
+
+          if selectMode {
+            // === NATIVE TEXT SELECTION MODE ===
+            Column {
+              gap: 8
+              Text {
+                text: "Touch, hold and drag cursor handles below to select any word, sentence, or section with Android's native text selection:"
+                style: small
+                color: alpha(foreground, 0.8)
+              }
+              Input {
+                text: fullArticleText
+                lines: 20
+                underline: false
+                fill: width
+                fontSize: 15
+                color: foreground
+              }
+            }
+          } else {
+            // === INTERACTIVE PARAGRAPH READER MODE ===
+            Text {
+              text: "Tip: Tap a paragraph to select it, or long-press to copy directly"
+              style: label
+              color: muted
+            }
+
+            if article.paras != null && len(article.paras) > 0 {
+              for p, i in article.paras key i {
+                let isSelected = selectedPara == i
+                Column {
+                  gap: 4
+                  padding: [8, 6]
+                  background: isSelected ? alpha(accent, 0.2) : transparent
+                  border: isSelected ? 1 : 0
+                  borderColor: accent
+                  radius: 6 * corners
+                  onTap: selectedPara = (selectedPara == i ? -1 : i)
+                  onLongPress: {
+                    haptic()
+                    copy(p)
+                    copiedMsg = "Paragraph ${i + 1} copied to clipboard!"
+                  }
+
+                  Text {
+                    text: p
+                    style: body
+                    fontSize: 15
+                    color: foreground
+                  }
+
+                  if isSelected {
+                    Row {
+                      align: center
+                      gap: 6
+                      padding: [4, 0]
+                      Button {
+                        text: "Copy Paragraph 📋"
+                        color: accent
+                        onTap: {
+                          haptic()
+                          copy(p)
+                          copiedMsg = "Paragraph ${i + 1} copied!"
+                          selectedPara = -1
+                        }
+                      }
+                      Button {
+                        text: "Deselect"
+                        color: muted
+                        onTap: selectedPara = -1
+                      }
+                    }
+                  }
+                }
+              }
+            } else {
+              Column {
+                gap: 8
+                if curr != null {
+                  Text {
+                    text: curr.desc
+                    style: body
+                    fontSize: 15
+                    color: foreground
+                    onLongPress: {
+                      haptic()
+                      copy(curr.desc)
+                      copiedMsg = "Summary copied!"
+                    }
+                  }
+                }
+                Row {
+                  gap: 6
+                  align: center
+                  Text { text: "loading full article text…"; style: small; color: muted; italic: true }
+                }
+              }
+            }
+          }
+
+          Spacer { height: 16 }
+          Spacer { height: 1; fill: width; background: alpha(muted, 0.3) }
+
+          // Story navigation buttons
+          Row {
+            align: center
+            justify: spaceBetween
+            if prevArticle != null {
+              Button {
+                text: "← Earlier"
+                onTap: {
+                  readUrl = prevArticle.link
+                  selectedPara = -1
+                  copiedMsg = ""
+                  if !contains(seen, prevArticle.link) {
+                    seen = flatten([seen, [prevArticle.link]])
+                  }
+                }
+              }
+            } else {
+              Spacer { width: 10 }
+            }
+
+            Button {
+              text: "Back to Feed"
+              color: accent
+              onTap: { readUrl = null; selectedPara = -1; selectMode = false; copiedMsg = "" }
+            }
+
+            if nextArticle != null {
+              Button {
+                text: "Next →"
+                onTap: {
+                  readUrl = nextArticle.link
+                  selectedPara = -1
+                  copiedMsg = ""
+                  if !contains(seen, nextArticle.link) {
+                    seen = flatten([seen, [nextArticle.link]])
+                  }
+                }
+              }
+            } else {
+              Spacer { width: 10 }
+            }
+          }
+
+          Spacer { height: 24 }
+        }
+      }
+    } else {
+      // === ARTICLE LIST & SEARCH VIEW ===
+      Column {
+        fill: true
+        gap: 10
+        padding: [16, 12]
+
+        Row {
+          align: center
+          gap: 8
+          Text { text: "The Hacker News"; style: title; color: accent; weight: 1 }
+          Button { text: "refresh"; onTap: refresh() }
+        }
+
+        Row {
+          align: center
+          gap: 6
+          Text { text: "${feed.edition ?? "Morning Briefing"} · synced ${feed.updated ?? ""}"; style: small; color: muted; weight: 1 }
+          Text { text: "${unreadCount} unread"; style: label; color: unreadCount > 0 ? accent : muted }
+        }
+
+        // Search bar
+        Row {
+          align: center
+          gap: 8
+          Input {
+            text: query
+            placeholder: "search articles (e.g. git, exploit, rce)..."
+            clear: true
+            weight: 1
+            onChange: { query = value; showCount = 8 }
+          }
+          if query != "" {
+            Button { text: "✕"; color: muted; onTap: query = "" }
+          }
+        }
+
+        // Filter tabs
+        Row {
+          gap: 6
+          Text {
+            text: "all (${len(items)})"
+            style: label
+            color: tab == "all" ? accent : muted
+            padding: [8, 4]
+            radius: 6 * corners
+            background: tab == "all" ? alpha(surface, 0.7) : transparent
+            onTap: { tab = "all"; showCount = 8 }
+          }
+          Text {
+            text: "new (${newCount})"
+            style: label
+            color: tab == "new" ? accent : muted
+            padding: [8, 4]
+            radius: 6 * corners
+            background: tab == "new" ? alpha(surface, 0.7) : transparent
+            onTap: { tab = "new"; showCount = 8 }
+          }
+          Text {
+            text: "must know"
+            style: label
+            color: tab == "must-know" ? red : muted
+            padding: [8, 4]
+            radius: 6 * corners
+            background: tab == "must-know" ? alpha(surface, 0.7) : transparent
+            onTap: { tab = "must-know"; showCount = 8 }
+          }
+          Text {
+            text: "unread (${unreadCount})"
+            style: label
+            color: tab == "unread" ? accent : muted
+            padding: [8, 4]
+            radius: 6 * corners
+            background: tab == "unread" ? alpha(surface, 0.7) : transparent
+            onTap: { tab = "unread"; showCount = 8 }
+          }
+        }
+
+        // Scrollable feed list
+        Column {
+          scroll: true
+          onPull: refresh()
+          weight: 1
+          gap: 12
+
+          if q == "" && tab == "all" {
+            // Section 1: New articles
+            if len(newFiltered) > 0 {
+              Row {
+                align: center
+                gap: 6
+                Text { text: "⚡ NEW TODAY / MORNING SYNC"; style: label; color: accent; bold: true }
+                Spacer { weight: 1 }
+                Text { text: "${len(newFiltered)} fresh"; style: label; color: muted }
+              }
+
+              for a in newFiltered.take(showCount) key a.link {
+                ArticleItem { a: a }
+              }
+            }
+
+            // Section 2: Earlier stories separator
+            if showCount > len(newFiltered) && len(oldFiltered) > 0 {
+              Row {
+                align: center
+                gap: 10
+                padding: [0, 8]
+                Spacer { height: 1; weight: 1; background: alpha(muted, 0.35) }
+                Text { text: "📅 EARLIER STORIES"; style: label; color: muted; bold: true }
+                Spacer { height: 1; weight: 1; background: alpha(muted, 0.35) }
+              }
+
+              for a in oldFiltered.take(showCount - len(newFiltered)) key a.link {
+                ArticleItem { a: a }
+              }
+            }
+          } else {
+            // Filtered or search results list
+            for a in filtered.take(showCount) key a.link {
+              ArticleItem { a: a }
+            }
+          }
+
+          // Show more older articles button
+          if showCount < len(filtered) {
+            Row {
+              justify: center
+              padding: [8, 12]
+              Button {
+                text: "show more (${len(filtered) - showCount} older articles) ↓"
+                color: accent
+                onTap: showCount = showCount + 8
+              }
+            }
+          } else if len(filtered) > 8 {
+            Text {
+              text: "✓ all ${len(filtered)} articles loaded"
+              style: small
+              color: muted
+              align: center
+              padding: [4, 8]
+            }
+          }
+
+          Spacer { height: 20 }
+        }
+      }
+    }
+  }
+}
