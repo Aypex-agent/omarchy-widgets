@@ -1,19 +1,29 @@
-# Omagara v1.7
+# Omagara v1.8
 
 Niagara-inspired OWL 21 home face for [Omalauncher](https://github.com/SimonSchubert/omalauncher). No additional packages required.
 
 ## Features
 
-- **Alphabet:** Elastic A–Z navigation with app previews biased toward frequently launched apps (less aggressively near A), a letter-sized Settings cog in the shaded worm tail, distance/speed-sensitive wiggle, optional opposite-edge input, and configurable haptics.
+- **Alphabet:** Elastic A–Z navigation, frequently launched app previews, hide apps from the worm without hiding them from Search, optional launch-score sorting within letters, a Settings cog, optional opposite-edge input, and configurable haptics.
 - **Apps:** Buffered full-height browser with elastic ends, adjustable scale, padded A–Z headings, and two compact bottom settings actions without a separate heading. Holding the cog previews only Omagara settings and Omalauncher settings. Empty Search places the most recently opened app first.
-- **Notifications:** Compact grouped cards with consistently aligned optional timestamps, magnetic swipe feedback, expandable actions/replies, native list scrolling, bottom clearance, and matching rubber-band rebound when pulling the top header or bottom footer.
-- **Appearance:** Compact clock, date and event shades; theme or custom shade colors, independent opacity sliders, adjustable text colors, and individual or global corner rounding.
-- **Settings:** Home, Clock, Apps, Alphabet, Notifications, Appearance, Holidays, and Backup. Manual 12-hour/24-hour format (24-hour default), custom text hex, icons, fonts, and Reduce Motion.
-- **Utilities:** Calendar, next alarm, timer, stopwatch, and world clocks.
+- **Notifications:** Grouped cards, optional per-app hiding (Omagara only) and alert compression, adjustable start height with automatic space recovery, optional timestamps, swipe feedback, expandable actions/replies, and native scrolling.
+- **Appearance:** Clock, date and event alignment with the notification column (or screen center), automatic centering when the home alphabet is hidden, adjustable text/shade colors, opacity, and corners.
+- **Settings:** Home, Clock, Apps, Alphabet, Notifications, Appearance, Holidays, and Backup; 12/24-hour time, icons, fonts, and Reduce Motion.
+- **Media:** Optional compact native playback controls and expandable, user-selected music-app launch shortcuts on external audio devices.
+- **Utilities:** Calculator in Search, calendar, next alarm, timer, stopwatch, and world clocks.
 
 Slide onto the cog below the last alphabet letter (with haptic feedback) to navigate to the bottom settings menu. Select Omagara settings or Omalauncher settings there. Long-press Search still opens Omagara settings directly.
 
 Time format is selected under **Clock** in Omagara settings; OWL does not expose Android's system format. **Home** offers two buttons to set the persistent default: Omagara (`home.home-page = 0`) or the original tile home (`home.home-page = 1`). An optional background command changes `~/.config/omalauncher/style/style.toml` without opening a terminal. Omagara displays success or failure in Home settings and saves a backup. Omalauncher Linux is required for these two buttons, not for the face itself. Separate page-navigation buttons do not change the default. World clocks appear under Clock, corner rounding under Appearance, and export/import/reset under Backup.
+
+## v1.8 changes
+
+- Hide apps from the alphabetical worm while keeping them accessible in normal Search. Sort apps within letters by recent launcher usage.
+- Adjust notification start height automatically or manually. Hide selected apps' notifications only in Omagara, or compress repetitive alerts. Hidden notifications remain in Android's shade and are unaffected by Omagara Clear all.
+- Add a compact media player with two-line song titles, fixed play/pause control and simple chevrons. Expand music-app shortcuts manually when external audio is connected.
+- Align the clock, date and event with the media/notification column by default, or choose screen center. Hiding the home alphabet centers the content automatically.
+- Keep left/right alphabet input independently configurable. Identify duplicate app names by icon, package ID and profile in settings.
+- Preserve older settings backups and the existing notification gestures, holidays and Reduce Motion support.
 
 ## v1.7 changes
 
