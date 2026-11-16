@@ -1,0 +1,622 @@
+app "cook" {
+  // Recipes from a Cooklang server (CookCLI's `cook server`): browse and search the
+  // collection by category, open a recipe with its picture, ingredients and steps,
+  // scale it to the number of servings, and cook it step by step with timers.
+  // The setup page names the server (kept from then on); reads on a CookCLI server
+  // are open, so no token is needed. Recipes read once are kept as offline copies.
+  // The helper owl-cook, written to ~/.local/bin on first run, does the fetching
+  // with curl and the parsing with jq, so the address can be anything the user
+  // names — including http:// one on their own network.
+  meta { owl: 17; description: "Browse, search and cook from your own Cooklang (CookCLI) server: recipes with pictures, ingredients, serving scaling, a step-by-step cooking mode with timers, offline copies"; version: "1.0"; license: "MIT"; category: "home" }
+
+  title: openPath != "" ? openName : view == "setup" || server == "" ? str.connect : str.title
+  back: cooking || openPath != "" || view == "setup" || server == ""
+  onBack: {
+    copied = false
+    if cooking {
+      cooking = false
+    } else if openPath != "" {
+      openPath = ""
+      wantServings = 0
+      timerRunning = false
+      timerTotal = 0
+      timerLeft = 0
+      timerLabel = ""
+    } else if server == "" {
+      close()
+    } else {
+      view = "list"
+    }
+  }
+  edge: true
+
+  // A steaming pot on a dark tile: the steam takes the theme's accent.
+  icon: """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+    <rect width="256" height="256" rx="56" fill="#1a1b26"/>
+    <path d="M92 80c-8-12 8-20 0-32" stroke="currentColor" stroke-width="9" stroke-linecap="round" fill="none"/>
+    <path d="M128 76c-8-12 8-20 0-32" stroke="currentColor" stroke-width="9" stroke-linecap="round" fill="none"/>
+    <path d="M164 80c-8-12 8-20 0-32" stroke="currentColor" stroke-width="9" stroke-linecap="round" fill="none"/>
+    <rect x="38" y="128" width="22" height="16" rx="8" fill="#b8503c"/>
+    <rect x="196" y="128" width="22" height="16" rx="8" fill="#b8503c"/>
+    <rect x="52" y="118" width="152" height="92" rx="22" fill="#d96a4f"/>
+    <path d="M74 118h20v92H74a22 22 0 0 1-22-22v-48a22 22 0 0 1 22-22z" fill="#ef8266"/>
+    <rect x="44" y="102" width="168" height="20" rx="10" fill="#f2a65a"/>
+    <rect x="118" y="88" width="20" height="14" rx="7" fill="#f4e3a1"/>
+  </svg>"""
+
+  requires { pacman: ["bash", "coreutils", "curl", "grep", "jq"] }
+
+  strings {
+    en {
+      title: "recipes"
+      connect: "connect"
+      search: "search recipes…"
+      count: n => "${n} recipes"
+      loading: "loading…"
+      offline: "couldn't reach the server"
+      retry: "retry"
+      empty: "no recipes found"
+      other: "other"
+      setupIntro: "Read recipes from a Cooklang server (CookCLI's cook server). Enter its address:"
+      setupHint: "For example https://rezepte.example.com — or http://192.168.1.20:9080 for one on your network."
+      ingredients: "ingredients"
+      steps: "steps"
+      cookware: "cookware"
+      servings: "servings"
+      copy: "copy"
+      copied: "copied ✓"
+      optional: "optional"
+      source: "source"
+      recipeError: "couldn't load the recipe"
+      cookMode: "cooking mode"
+      step: "step"
+      next: "next"
+      prev: "back"
+      done: "done"
+      start: "start"
+      pause: "pause"
+      reset: "reset"
+      timer: "timer"
+      timerDone: "timer done"
+      offlineCopy: "offline copy"
+    }
+    de {
+      title: "Rezepte"
+      connect: "verbinden"
+      search: "Rezepte suchen…"
+      count: n => "${n} Rezepte"
+      loading: "lädt…"
+      offline: "Server nicht erreichbar"
+      retry: "erneut versuchen"
+      empty: "keine Rezepte gefunden"
+      other: "Sonstige"
+      setupIntro: "Rezepte von einem Cooklang-Server (CookCLI: cook server) lesen. Adresse eingeben:"
+      setupHint: "Zum Beispiel https://rezepte.example.com — oder http://192.168.1.20:9080 für einen Server im eigenen Netz."
+      ingredients: "Zutaten"
+      steps: "Zubereitung"
+      cookware: "Utensilien"
+      servings: "Portionen"
+      copy: "kopieren"
+      copied: "kopiert ✓"
+      optional: "optional"
+      source: "Quelle"
+      recipeError: "Rezept konnte nicht geladen werden"
+      cookMode: "Kochmodus"
+      step: "Schritt"
+      next: "Weiter"
+      prev: "Zurück"
+      done: "Fertig"
+      start: "Start"
+      pause: "Pause"
+      reset: "Reset"
+      timer: "Timer"
+      timerDone: "Timer abgelaufen"
+      offlineCopy: "Offline-Kopie"
+    }
+  }
+
+  // The server, as typed: https:// added when missing, a trailing / dropped.
+  // Empty until the setup page names one; it is kept from then on. The setup
+  // page edits a draft, so typing doesn't start a fetch per letter.
+  state server = "" persist
+  state draft = ""
+  state view = "list"
+  state query = ""
+  // The open recipe: its path in the collection, its name for the title while
+  // loading, and the servings wanted (0 = as written).
+  state openPath = ""
+  state openName = ""
+  state wantServings = 0
+  // Bumped by connect, retry and pull-to-refresh; the fetch reads it, so each
+  // tap runs it at once instead of waiting for the interval.
+  state fetchN = 0
+  state copied = false
+  // Cooking mode: one step at a time, and one countdown at a time. The timer
+  // keeps running while the steps move on; when it ends, a notification says so.
+  state cooking = false
+  state cookStep = 0
+  state timerTotal = 0
+  state timerLeft = 0
+  state timerEnd = 0
+  state timerRunning = false
+  state timerLabel = ""
+  source tick = clock every 1s
+  on tick {
+    if timerRunning && timerEnd > 0 && value >= timerEnd {
+      timerRunning = false
+      timerLeft = 0
+      notify("cook", timerLabel == "" ? str.timerDone : "${str.timerDone}: ${timerLabel}")
+      haptic()
+    }
+  }
+  let timerLeftNow = timerRunning ? max(0, timerEnd - (tick ?? 0)) : timerLeft
+  let timerMins = int(timerLeftNow / 60)
+  let timerSecs = timerLeftNow - timerMins * 60
+  let timerText = "${timerMins}:${timerSecs < 10 ? "0" : ""}${timerSecs}"
+
+  // The app's helper, written from this file on first run: owl-cook talks to
+  // the CookCLI server and turns its answers into what the app draws. Plaintext
+  // in a quoted heredoc, nothing downloaded or decoded from anywhere else.
+  source installer = cmd("""
+set -u
+umask 077
+bin="$HOME/.local/bin"
+mkdir -p "$bin" || exit 1
+if ! grep -qF '# owl-cook 1.5' "$bin/owl-cook" 2>/dev/null; then
+  cat > "$bin/owl-cook" << 'COOK_LIB_END'
+#!/bin/bash
+# owl-cook 1.5: the script side of the Cooklang app (cook.owl).
+# Talks to a CookCLI server (cook server): "list" fetches the recipe tree into
+# cook-list.jsonl, one recipe a line; "read" turns one parsed recipe into the
+# compact JSON the app draws, downloads its title picture, and keeps a copy of
+# every recipe it fetched (per servings scale) so it can be read again offline.
+# Nothing is sent anywhere but the server the user names.
+set -u
+umask 077
+cache="$HOME/.cache/omalauncher"
+imgdir="$cache/cook-img"
+mkdir -p "$cache" "$imgdir" 2>/dev/null || true
+if [ $# -lt 1 ]; then
+  echo "usage: owl-cook list SERVER | read SERVER PATH SCALE" >&2
+  exit 1
+fi
+mode="$1"
+
+die() { echo "cook: $*" >&2; exit 1; }
+command -v jq >/dev/null 2>&1 || die "jq is missing (pacman -S jq)"
+command -v curl >/dev/null 2>&1 || die "curl is missing (pacman -S curl)"
+
+case "$mode" in
+list)
+  [ $# -eq 2 ] || die "usage: owl-cook list SERVER"
+  server="$2"
+  err=$(curl -fsS --max-time 30 "$server/api/recipes" -o "$cache/cook-tree.json" 2>&1) \
+    || die "couldn't fetch the recipe list: $err"
+  jq -c '
+    . as $root | ($root.path // "") as $prefix |
+    [ recurse(.children[]?) | select(.recipe != null and (.path | endswith(".cook"))) |
+      (.path | ltrimstr($prefix) | ltrimstr("/")) as $rel |
+      (.recipe.metadata // {}) as $m |
+      { path: $rel,
+        name: .name,
+        title: ($m.title // .name),
+        folder: ($rel | split("/") | if length > 1 then .[:-1] | join("/") else "" end),
+        servings: ($m.servings // null),
+        duration: ($m.duration // null),
+        author: ($m.author // null),
+        tags: ($m.tags // []) } ]
+    | sort_by(.folder, .title)
+    | .[]
+  ' "$cache/cook-tree.json" > "$cache/cook-list.jsonl.tmp" \
+    || die "couldn't read the recipe tree"
+  mv "$cache/cook-list.jsonl.tmp" "$cache/cook-list.jsonl"
+  ;;
+read)
+  [ $# -eq 4 ] || die "usage: owl-cook read SERVER PATH SCALE"
+  server="$2" path="$3" scale="$4"
+  mkdir -p "$cache/cook-cache"
+  keyhash=$(printf '%s' "$path@$scale" | md5sum | cut -d" " -f1)
+  basehash=$(printf '%s' "$path@1" | md5sum | cut -d" " -f1)
+  # Encode each path segment, keeping the slashes: a recipe can sit in any
+  # subdirectory, with spaces or umlauts in its name.
+  encpath=$(jq -rn --arg p "$path" '$p | split("/") | map(@uri) | join("/")')
+  err=$(curl -fsS --max-time 30 "$server/api/recipes/$encpath?scale=$scale" -o "$cache/cook-recipe.json" 2>&1) || {
+    # Offline: the last copy fetched, at this scale or as written. It carries
+    # its own scale, and the app says it is an offline copy.
+    for h in "$keyhash" "$basehash"; do
+      if [ -f "$cache/cook-cache/$h.json" ]; then
+        jq -c '. + {cached: true}' "$cache/cook-cache/$h.json" && exit 0
+      fi
+    done
+    die "couldn't fetch the recipe: $err"
+  }
+  # The title picture: the server's own (under /api/static/) or one the
+  # metadata names. Downloaded once per URL, kept under its hash.
+  imgurl=$(jq -r '.image // empty' "$cache/cook-recipe.json" 2>/dev/null)
+  imgfile=""
+  if [ -n "$imgurl" ]; then
+    case "$imgurl" in
+      http://* | https://*) full="$imgurl" ;;
+      *) full="$server$imgurl" ;;
+    esac
+    case "$full" in
+      *.jpg | *.jpeg) ext=jpg ;;
+      *.png) ext=png ;;
+      *.webp) ext=webp ;;
+      *.gif) ext=gif ;;
+      *) ext="" ;;
+    esac
+    if [ -n "$ext" ]; then
+      hash=$(printf '%s' "$full" | md5sum | cut -d" " -f1)
+      if curl -fsS --max-time 30 -o "$imgdir/$hash.$ext" "$full" 2>/dev/null; then
+        imgfile="$imgdir/$hash.$ext"
+      fi
+    fi
+  fi
+  jq -c --arg img "$imgfile" --arg path "$path" '
+    def numfmt:
+      if . == null then ""
+      elif type == "number" then (if . == (. | floor) then (. | tostring | split(".")[0]) else tostring end)
+      elif .type == "regular" then (.value | if . == (. | floor) then (. | tostring | split(".")[0]) else tostring end)
+      elif .type == "fraction" then
+        ((if (.value.whole // 0) > 0 then "\(.value.whole) " else "" end)
+         + "\(.value.num)/\(.value.den)")
+      elif .type == "range" then ((.value.start | numfmt) + "–" + (.value.end | numfmt))
+      else "" end;
+    def valfmt:
+      if . == null then ""
+      elif .type == "number" then (.value | numfmt)
+      elif .type == "text" then (.value // "")
+      elif .type == "range" then ((.value.start | numfmt) + "–" + (.value.end | numfmt))
+      else "" end;
+    def qtyfmt:
+      if . == null then ""
+      else ((.value | valfmt) as $n
+        | ($n + (if (.unit // "") != "" then (if $n != "" then " " else "" end) + .unit else "" end)))
+      end;
+    def valnum:
+      if . == null then 0
+      elif .type == "number" then
+        (if .value.type == "regular" then .value.value
+         elif .value.type == "fraction" then ((.value.whole // 0) + ((.value.num // 0) / (.value.den // 1)))
+         elif .value.type == "range" then (.value.start | valnum)
+         else 0 end)
+      elif .type == "text" then ((.value // "0") | tonumber? // 0)
+      elif .type == "range" then (.value.start | valnum)
+      else 0 end;
+    # Timer seconds: a time unit, or no unit at all, read as minutes; a timer
+    # written with a non-time unit (a quirk of the recipe) gets no countdown.
+    def timersecs:
+      if . == null then 0
+      else ((.value | valnum) as $n
+        | ((.unit // "") | ascii_downcase) as $u
+        | (if $u == "" then $n * 60
+           elif ($u | test("^(h|hr|hrs|std|stunde|stunden|hour|hours)$")) then $n * 3600
+           elif ($u | test("^(s|sec|secs|sek|sekunde|sekunden|second|seconds)$")) then $n
+           elif ($u | test("^(m|min|mins|minute|minuten)$")) then $n * 60
+           else 0 end)
+        | floor)
+      end;
+    .recipe as $r
+    | ($r.ingredients // []) as $ings
+    | ($r.metadata.map // {}) as $m
+    | {
+        path: $path,
+        scale: (.scale // 1),
+        cached: false,
+        title: ($m.title // null),
+        author: ($m.author // null),
+        duration: ($m.duration // null),
+        servings: ($m.servings // null),
+        tags: ($m.tags // []),
+        source: ($m.source // null),
+        description: ($m.description // null),
+        image: (if $img != "" then $img else null end),
+        ingredients: [($r.grouped_ingredients // [])[]
+          | . as $g
+          | ($ings[$g.index] // {}) as $i
+          | { name: ($i.alias // $i.name // ""),
+              qty: ([$g.quantities[]? | qtyfmt] | map(select(. != "")) | join(" + ")),
+              note: ($i.note // null),
+              optional: (($i.modifiers // "") | contains("OPT")) }],
+        cookware: ([($r.cookware // [])[]
+          | select(((.modifiers // "") | contains("HIDDEN")) | not)
+          | { name: (.alias // .name // ""), qty: (.quantity | qtyfmt) }]
+          | unique_by(.name)),
+        steps: [($r.sections // [])[]
+          | . as $s
+          | (.content // [])[]
+          | if .type == "step" then
+              { n: .value.number, section: ($s.name // null),
+                parts: [(.value.items // [])[]
+                  | if .type == "text" then { t: "text", v: .value }
+                    elif .type == "ingredient" then
+                      (($ings[.index] // {}) as $i
+                       | (if $i.quantity == null and ($i.relation.relation.type // "") == "reference"
+                          then ($ings[$i.relation.relation.references_to].quantity // null)
+                          else $i.quantity end) as $q
+                       | { t: "ing",
+                           v: ((($q | qtyfmt) as $qv
+                                | (if $qv != "" then $qv + " " else "" end)
+                                + ($i.alias // $i.name // ""))) })
+                    elif .type == "cookware" then
+                      { t: "ware", v: (($r.cookware[.index].alias // $r.cookware[.index].name // "")) }
+                    elif .type == "timer" then
+                      (($r.timers[.index] // {}) as $t
+                       | { t: "time",
+                           v: ((($t.quantity | qtyfmt) as $tv
+                                | $tv
+                                + (if ($t.name // "") != "" then (if $tv != "" then " " else "" end) + $t.name else "" end))) })
+                    elif .type == "inlineQuantity" then
+                      { t: "time", v: (($r.inline_quantities[.index] // null) | qtyfmt) }
+                    else empty end],
+                timers: [(.value.items // [])[] | select(.type == "timer")
+                  | ($r.timers[.index] // {}) as $t
+                  | { label: ($t.name // ""),
+                      text: (($t.quantity // null) | qtyfmt),
+                      seconds: (($t.quantity // null) | timersecs) }] }
+            elif .type == "text" then
+              { n: 0, section: ($s.name // null), parts: [{ t: "text", v: (.value | sub("^#+ *"; "")) }], timers: [] }
+            else empty end]
+      }
+  ' "$cache/cook-recipe.json" > "$cache/cook-cache/$keyhash.json.tmp" || die "couldn't read the recipe"
+  mv "$cache/cook-cache/$keyhash.json.tmp" "$cache/cook-cache/$keyhash.json"
+  cat "$cache/cook-cache/$keyhash.json"
+  ;;
+*)
+  die "usage: owl-cook list SERVER | read SERVER PATH SCALE"
+  ;;
+esac
+COOK_LIB_END
+fi
+chmod 755 "$bin/owl-cook"
+echo ready""") every 1h
+
+  source ready = cmd('test -x "$HOME/.local/bin/owl-cook" && echo yes || echo no') every 10s
+  let helpers = trim(ready ?? "") == "yes"
+
+  // The collection: the helper flattens the server's recipe tree into one
+  // recipe a line, and the app reads the file the moment it changes.
+  source fetched = cmd(!helpers || server == "" ? "echo waiting ${sh(fetchN)}" : "owl-cook list ${sh(server)} >/dev/null && echo done ${sh(fetchN)}") every 10m timeout 60s status
+  source lib = file("~/.cache/omalauncher/cook-list.jsonl")
+  let recipes = lines(lib ?? "").map(l => parseJson(l)).filter(r => r != null)
+  let listFailed = helpers && server != "" && fetched != null && !fetched.ok
+  let listDone = fetched != null && fetched.ok && startsWith(fetched.out ?? "", "done")
+  let shown = query == "" ? recipes : recipes.filter(r => contains(lower(r.title), lower(query)) || contains(lower(r.folder ?? ""), lower(query)) || any(r.tags ?? [], t => contains(lower(t), lower(query))))
+  // The categories the list is grouped under, in the order the recipes come in
+  // (the helper sorts by folder, then title).
+  let folders = unique(shown.map(r => r.folder ?? ""))
+
+  // The open recipe's servings as written, and the factor the server scales by.
+  let openEntry = find(recipes, r => r.path == openPath)
+  let baseServings = num(openEntry.servings) ?? 0
+  let shownServings = wantServings > 0 ? wantServings : baseServings
+  let scale = baseServings > 0 && wantServings > 0 ? wantServings / baseServings : 1
+
+  // One recipe, parsed and scaled by the server. The answer carries the path
+  // it was fetched for, so the last recipe doesn't show under a new one's name
+  // while the fetch is on its way.
+  source detail = cmd(openPath == "" || !helpers || server == "" ? "echo null" : "owl-cook read ${sh(server)} ${sh(openPath)} ${sh(scale)}") every 1h timeout 30s json status
+  let recipe = detail != null && detail.ok && detail.out != null && detail.out.path == openPath ? detail.out : null
+  let recipeFailed = openPath != "" && detail != null && !detail.ok
+
+  Column {
+    gap: 10
+    padding: [12, 0]
+    if cooking && recipe != null {
+      let r = recipe
+      let steps = r.steps.filter(s => s.n > 0)
+      let si = len(steps) > 0 ? min(cookStep, len(steps) - 1) : 0
+      let step = len(steps) > 0 ? steps[si] : null
+      Column {
+        weight: 1
+        gap: 12
+        if step != null {
+          Row {
+            Text { text: "${str.step} ${si + 1}/${len(steps)}"; style: label; color: muted; weight: 1 }
+            if r.cached == true { Text { text: str.offlineCopy; style: small; color: yellow } }
+          }
+          if step.section != null { Text { text: step.section; style: label; color: accent } }
+          Column {
+            scroll: true
+            weight: 1
+            gap: 12
+            Text { text: "${step.n}"; fontSize: 40; bold: true; color: accent }
+            Text { spans: step.parts.map(p => p.t == "text" ? p.v : {text: p.v, color: p.t == "ing" ? accent : p.t == "time" ? yellow : blue, bold: true}); fontSize: 21 }
+            for tm in step.timers {
+              Row {
+                gap: 8
+                align: center
+                Text { text: tm.text == "" ? str.timer : tm.text; style: muted; weight: 1 }
+                if tm.seconds > 0 {
+                  Button { text: str.start; onTap: { timerTotal = tm.seconds; timerLeft = tm.seconds; timerEnd = (tick ?? 0) + tm.seconds; timerRunning = true; timerLabel = tm.label } }
+                }
+              }
+            }
+          }
+          if timerTotal > 0 {
+            Row {
+              gap: 8
+              align: center
+              padding: 10
+              background: alpha(surface, 0.6)
+              radius: 8 * corners
+              Text { text: timerLabel == "" ? str.timer : timerLabel; style: muted; weight: 1; maxLines: 1 }
+              Text { text: timerText; font: mono; fontSize: 24; bold: true; color: timerRunning ? accent : muted }
+              Button { text: timerRunning ? str.pause : str.start; onTap: { if timerRunning { timerLeft = timerLeftNow; timerRunning = false } else { timerEnd = (tick ?? 0) + (timerLeft > 0 ? timerLeft : timerTotal); timerRunning = true } } }
+              Button { text: str.reset; onTap: { timerTotal = 0; timerLeft = 0; timerRunning = false; timerLabel = "" } }
+            }
+          }
+          Row {
+            gap: 8
+            Button { text: str.prev; weight: 1; onTap: { if cookStep > 0 { cookStep = cookStep - 1 } else { cooking = false } } }
+            Button { text: si >= len(steps) - 1 ? str.done : str.next; weight: 1; onTap: { if si >= len(steps) - 1 { cooking = false } else { cookStep = cookStep + 1 } } }
+          }
+          Spacer { height: screenInset }
+        }
+      }
+    } else if view == "setup" || server == "" {
+      Column {
+        gap: 10
+        Text { text: str.setupIntro; style: muted }
+        Input {
+          text: draft
+          placeholder: "https://…"
+          focus: true
+          underline: false
+          onChange: draft = value
+          onSubmit: {
+            let raw = trim(draft)
+            if raw != "" {
+              let s = contains(raw, "://") ? raw : "https://" + raw
+              server = endsWith(s, "/") ? sub(s, 0, len(s) - 1) : s
+              view = "list"
+              fetchN = fetchN + 1
+            }
+          }
+        }
+        Button {
+          text: str.connect
+          onTap: {
+            let raw = trim(draft)
+            if raw != "" {
+              let s = contains(raw, "://") ? raw : "https://" + raw
+              server = endsWith(s, "/") ? sub(s, 0, len(s) - 1) : s
+              view = "list"
+              fetchN = fetchN + 1
+            }
+          }
+        }
+        Text { text: str.setupHint; style: small; color: muted }
+      }
+    } else if openPath != "" {
+      Column {
+        scroll: true
+        weight: 1
+        gap: 12
+        onPull: refresh()
+        if recipeFailed {
+          Text { text: str.recipeError; color: red }
+          Text { text: sub(detail.err ?? "", 0, 160); style: small; color: muted; maxLines: 3 }
+          Button { text: str.retry; onTap: refresh() }
+        } else if recipe == null {
+          Text { text: str.loading; style: muted }
+        } else {
+          let r = recipe
+          let ingText = join(r.ingredients.map(i => (i.qty == "" ? "" : i.qty + " ") + i.name + (i.note != null ? " (${i.note})" : "")), "\n")
+          if r.image != null {
+            Image { src: r.image; height: 180; fill: width; fit: cover; radius: 8 * corners; clip: true }
+          }
+          Flow {
+            gap: 6
+            if r.cached == true { Text { text: str.offlineCopy; style: small; padding: [8, 3]; background: alpha(yellow, 0.15); radius: 4 * corners; color: yellow } }
+            if r.duration != null { Text { text: r.duration; style: small; padding: [8, 3]; background: alpha(surface, 0.8); radius: 4 * corners; color: muted } }
+            if r.author != null { Text { text: r.author; style: small; padding: [8, 3]; background: alpha(surface, 0.8); radius: 4 * corners; color: muted } }
+            for t in r.tags { Text { text: t; style: small; padding: [8, 3]; background: alpha(accent, 0.15); radius: 4 * corners; color: accent } }
+          }
+          if r.description != null { Text { text: r.description; style: muted } }
+          Row {
+            gap: 8
+            align: center
+            Text { text: str.servings; style: muted; weight: 1 }
+            if baseServings > 0 && r.cached != true {
+              Button { text: "−"; onTap: wantServings = max(1, shownServings - 1) }
+              Text { text: "${shownServings}"; bold: true; fontSize: 18 }
+              Button { text: "+"; onTap: wantServings = shownServings + 1 }
+            } else if r.servings != null {
+              Text { text: "${r.servings}"; bold: true }
+            }
+          }
+          Row {
+            Text { text: str.ingredients; style: label; weight: 1 }
+            Text { text: copied ? str.copied : str.copy; color: accent; style: small; onTap: { copy(ingText); copied = true } }
+          }
+          Column {
+            gap: 4
+            for i in r.ingredients {
+              Row {
+                gap: 8
+                Text { text: i.qty == "" ? "–" : i.qty; color: accent; width: 92; align: end; style: small }
+                Text { spans: [i.name, i.note != null ? {text: " (${i.note})", color: muted} : null, i.optional ? {text: " (${str.optional})", color: muted} : null].filter(x => x != null); weight: 1 }
+              }
+            }
+          }
+          if len(r.cookware) > 0 {
+            Text { text: str.cookware; style: label }
+            Flow {
+              gap: 6
+              for c in r.cookware { Text { text: c.qty == "" ? c.name : "${c.qty} ${c.name}"; style: small; padding: [8, 3]; background: alpha(blue, 0.15); radius: 4 * corners; color: blue } }
+            }
+          }
+          Row {
+            Text { text: str.steps; style: label; weight: 1 }
+            if len(r.steps.filter(s => s.n > 0)) > 0 {
+              Text { text: str.cookMode; color: accent; style: small; onTap: { cooking = true; cookStep = 0 } }
+            }
+          }
+          Column {
+            gap: 10
+            for s, i in r.steps {
+              if s.section != null && (i == 0 || r.steps[i - 1].section != s.section) {
+                Text { text: s.section; style: label; color: accent }
+              }
+              if s.n == 0 {
+                Text { text: join(s.parts.map(p => p.v), ""); style: muted }
+              } else {
+                Row {
+                  gap: 10
+                  Text { text: "${s.n}"; color: accent; bold: true; width: 24 }
+                  Text { spans: s.parts.map(p => p.t == "text" ? p.v : {text: p.v, color: p.t == "ing" ? accent : p.t == "time" ? yellow : blue, bold: true}); weight: 1 }
+                }
+              }
+            }
+          }
+          if r.source != null {
+            Text { text: startsWith(r.source, "http") ? str.source : r.source; style: small; color: startsWith(r.source, "http") ? accent : muted; onTap: { if startsWith(r.source, "http") { url(r.source) } } }
+          }
+          Spacer { height: screenInset }
+        }
+      }
+    } else {
+      Column {
+        gap: 8
+        weight: 1
+        Row {
+          gap: 8
+          Input { text: query; placeholder: str.search; onChange: query = value; weight: 1; underline: false }
+          Text { text: "⚙"; fontSize: 22; color: muted; onTap: { draft = server; view = "setup" } }
+        }
+        Row {
+          Text { text: !helpers || fetched == null ? str.loading : listFailed ? str.offline : str.count(len(shown)); style: muted; weight: 1 }
+          if listFailed { Text { text: str.retry; color: accent; onTap: fetchN = fetchN + 1 } }
+        }
+        if listFailed && (fetched.err ?? "") != "" {
+          Text { text: sub(fetched.err, 0, 160); style: small; color: red; maxLines: 2 }
+        }
+        Column {
+          scroll: true
+          lazy: true
+          weight: 1
+          gap: 6
+          onPull: fetchN = fetchN + 1
+          if listDone && len(shown) == 0 { Text { text: str.empty; style: muted } }
+          for f in folders key f {
+            Text { text: f == "" ? str.other : f; style: label; color: accent; padding: [0, 4] }
+            for r in shown.filter(x => (x.folder ?? "") == f) key r.path {
+              Column {
+                gap: 2
+                padding: 10
+                background: alpha(surface, 0.6)
+                radius: 8 * corners
+                onTap: { openPath = r.path; openName = r.title; wantServings = 0; copied = false; cooking = false; cookStep = 0 }
+                Text { text: r.title; bold: true }
+                Text { text: join([r.duration, r.servings != null ? (num(r.servings) != null ? "${r.servings} ${str.servings}" : "${r.servings}") : null].filter(x => x != null && x != ""), " · "); style: small; color: muted; maxLines: 2 }
+              }
+            }
+          }
+          Spacer { height: screenInset }
+        }
+      }
+    }
+  }
+}
