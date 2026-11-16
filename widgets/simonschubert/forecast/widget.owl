@@ -1,5 +1,5 @@
 widget "forecast" {
-  meta { description: "Three-day weather forecast with an hourly temperature curve, located by IP or a city you type, via wttr.in"; version: "1.8"; license: "MIT"; category: "world"; owl: 16 }
+  meta { description: "Three-day weather forecast with an hourly temperature curve, located by IP or a city you type, via wttr.in"; version: "1.9"; license: "MIT"; category: "world"; owl: 16 }
 
   // What it says, in the phone's language where it has a set. wttr names the sky in English, so other
   // languages name it from wttr's weather codes, as the today widget does.
@@ -114,6 +114,25 @@ widget "forecast" {
         "371": "сильный снегопад", "374": "небольшая ледяная крупа", "377": "сильная ледяная крупа",
         "386": "небольшой дождь с грозой", "389": "сильный дождь с грозой", "392": "небольшой снег с грозой",
         "395": "сильный снег с грозой"
+      }, code, lower(trim(desc)))
+    }
+    ja {
+      title: "天気予報"; today: "今日"; city: "都市 · 空欄 = 自動"
+      // The words Japanese forecasts use: 弱い, 強い and 激しい for how hard it falls, にわか for showers.
+      sky: (code, desc) => get({
+        "113": "晴れ", "116": "晴れ時々曇り", "119": "曇り", "122": "本曇り", "143": "もや",
+        "176": "ところにより雨", "179": "ところにより雪", "182": "ところによりみぞれ", "185": "ところにより着氷性の霧雨",
+        "200": "ところにより雷", "227": "地吹雪", "230": "猛吹雪", "248": "霧", "260": "着氷性の霧",
+        "263": "ところにより弱い霧雨", "266": "弱い霧雨", "281": "着氷性の霧雨", "284": "強い着氷性の霧雨",
+        "293": "ところにより小雨", "296": "小雨", "299": "時々雨", "302": "雨",
+        "305": "時々強い雨", "308": "強い雨", "311": "弱い着氷性の雨", "314": "強い着氷性の雨",
+        "317": "弱いみぞれ", "320": "強いみぞれ", "323": "ところにより小雪", "326": "小雪",
+        "329": "ところにより雪", "332": "雪", "335": "ところにより大雪", "338": "大雪",
+        "350": "凍雨", "353": "弱いにわか雨", "356": "強いにわか雨", "359": "激しいにわか雨",
+        "362": "弱いみぞれ", "365": "強いみぞれ", "368": "弱いにわか雪",
+        "371": "強いにわか雪", "374": "弱い凍雨", "377": "強い凍雨",
+        "386": "雷を伴う弱い雨", "389": "雷を伴う強い雨", "392": "雷を伴う弱い雪",
+        "395": "雷を伴う強い雪"
       }, code, lower(trim(desc)))
     }
   }

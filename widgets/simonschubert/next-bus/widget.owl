@@ -2,7 +2,7 @@ widget "next bus" {
   size: 6x2
   minSize: 4x2
   requires { pacman: [] }
-  meta { description: "Your next bus, tram or train, live, and whether you need to run for it: pick a stop, a line and how long you walk there, anywhere Transitous has open timetables. Tap the tile to change them"; version: "1.6"; license: "MIT"; category: "world"; owl: 17 }
+  meta { description: "Your next bus, tram or train, live, and whether you need to run for it: pick a stop, a line and how long you walk there, anywhere Transitous has open timetables. Tap the tile to change them"; version: "1.7"; license: "MIT"; category: "world"; owl: 17 }
 
   // What it says, in the phone's language where it has a set. Stops, lines and directions come as Transitous
   // names them. leaveNow and run sit in a 170dp column at 22 and 26sp: about 12 letters at most.
@@ -83,6 +83,17 @@ widget "next bus" {
       search: "найти остановку"; change: "сменить остановку"; searching: "поиск…"; noStops: q => "нет остановок «${q}»"
       yourLine: "ваша линия"; anyLine: "любая линия"; whatever: "что уйдёт первым"; walkTo: "пешком до остановки"
       data: "данные: Transitous, из открытых расписаний. Задержки видны там, где перевозчик публикует данные в реальном времени"
+    }
+    ja {
+      title: "次のバス"; relax: "ゆっくりで大丈夫"; leaveInMin: m => "あと ${m} 分で出発"; leaveIn: "出発まで"; leaveNow: "今すぐ出発"
+      brisk: "早歩きで"; run: "走って！"; toStop: t => "停留所まで ${t}"
+      pick: "タップして停留所、路線、停留所まで歩く時間を選んでください。"; nothing: "まもなく出る便はありません"
+      to: d => "${d} 行き"; walkMin: m => "徒歩 ${m} 分"; fromWalk: (stop, m) => "${stop} · 徒歩 ${m} 分"
+      min: "分"; mins: m => "${m} 分"; yourStop: "いつもの停留所"; timetable: "時刻表"; onTime: "定刻"; then: "その次"
+      noneLater: "この後の便はまだありません"; noLater: "この後の便はまだありません"; tooMany: "リクエストが多すぎます"; offline: "transitous に接続できません"
+      search: "停留所を検索"; change: "停留所を変更"; searching: "検索中…"; noStops: q => "「${q}」という停留所はありません"
+      yourLine: "いつもの路線"; anyLine: "すべての路線"; whatever: "先に出る便"; walkTo: "停留所までの徒歩"
+      data: "データ: Transitous（公開時刻表）。運行会社がリアルタイムの時刻を公開している路線では遅れも表示されます"
     }
   }
 

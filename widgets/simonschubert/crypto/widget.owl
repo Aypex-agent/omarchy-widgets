@@ -1,5 +1,5 @@
 widget "bitcoin" {
-  meta { description: "Bitcoin from CoinGecko: price, change over 1 hour, 24 hours and 7 days, the day's range and a 7-day chart. Tap it for market cap, volume, supply and the all-time high"; version: "2.5"; license: "MIT"; category: "finance"; owl: 17 }
+  meta { description: "Bitcoin from CoinGecko: price, change over 1 hour, 24 hours and 7 days, the day's range and a 7-day chart. Tap it for market cap, volume, supply and the all-time high"; version: "2.6"; license: "MIT"; category: "finance"; owl: 17 }
 
   // What it says, in the phone's language where it has a set. Prices stay in US dollars, written the US way.
   strings {
@@ -58,6 +58,14 @@ widget "bitcoin" {
       ath: "рекорд"; rank: "место"; byCap: "по капитализации"; supply: "предложение"
       mined: m => "добыто ${m} млн"; of: m => "из ${m} млн"; toGo: (p, k) => "добыто ${p}%, осталось ${k} тыс. btc"
       open: "открыть на coingecko"; updated: t => "данные: coingecko · обновлено в ${t} utc"
+    }
+    ja {
+      busy: "coingecko が混み合っています。再試行中"; offline: "coingecko に接続できません"; h1: "1時間"; h24: "24時間"; d7: "7日"
+      hour: "1 時間"; day: "24 時間"; week: "7 日間"; last7: "過去 7 日間"; now: "現在"; daysAgo: d => "${d}日前"
+      market: "マーケット"; cap: "時価総額"; today: p => "今日 ${p}%"; volume: "24 時間の取引高"; ofCap: p => "時価総額の ${p}%"
+      ath: "過去最高値"; rank: "順位"; byCap: "時価総額順"; supply: "供給量"
+      mined: m => "採掘済み ${m}M"; of: m => "上限 ${m}M"; toGo: (p, k) => "${p}% 採掘済み、残り ${k}k btc"
+      open: "coingecko で開く"; updated: t => "データ: coingecko · ${t} utc 更新"
     }
   }
   size: 3x3

@@ -1,5 +1,5 @@
 widget "air and pollen" {
-  meta { description: "Air quality and today's pollen where you are, from Open-Meteo (Copernicus), located by IP or a city you type, via wttr.in. Tap it for the next 24 hours, pollutants and every pollen type"; version: "1.7"; license: "MIT"; category: "world"; owl: 17 }
+  meta { description: "Air quality and today's pollen where you are, from Open-Meteo (Copernicus), located by IP or a city you type, via wttr.in. Tap it for the next 24 hours, pollutants and every pollen type"; version: "1.8"; license: "MIT"; category: "world"; owl: 17 }
 
   // What it says, in the phone's language where it has a set. us and eu are the two indexes' levels, good
   // to worst, in each agency's words where it has them; advice goes with them, pollen is none to high.
@@ -103,6 +103,20 @@ widget "air and pollen" {
       ozone: "озон"; uvIndex: "уф-индекс"; pollenLong: "пыльца · ближайшие 24 часа"
       europeOnlyLong: "open-meteo прогнозирует пыльцу только в европе."; peak: v => "пик ${v}"
       data: "данные: copernicus atmosphere monitoring service через open-meteo"
+    }
+    ja {
+      title: "大気と花粉"; air: "大気"; city: "都市 · 空欄 = 自動"; unknown: "現在地が不明です"; offline: "open-meteo に接続できません"
+      us: ["良い", "普通", "敏感な人には不健康", "不健康", "非常に不健康", "危険"]
+      eu: ["良い", "まずまず", "普通", "悪い", "非常に悪い", "極めて悪い"]
+      advice: ["外で過ごすのに最適です", "いつもどおり外で過ごして大丈夫です", "敏感な人は外で無理をしないようにしましょう", "外での激しい運動は控えましょう", "外での活動を減らしましょう", "外での活動は避けてください"]
+      pollen: ["なし", "少ない", "やや多い", "多い"]
+      plant: k => get({"birch": "シラカバ", "alder": "ハンノキ", "olive": "オリーブ", "grass": "イネ科", "mugwort": "ヨモギ", "ragweed": "ブタクサ"}, k, k)
+      plantLevel: (plant, level) => "${plant} ${level}"; pollenLevel: (plant, level) => "${plant}花粉 ${level}"
+      noPollen: "花粉なし"; uv: v => "UV ${v}"; pollenShort: "花粉 · 今後 24 時間"; europeOnly: "この地域の花粉予報はありません（ヨーロッパのみ）"
+      noneInAir: "飛散なし"; next24: "今後 24 時間"; now: "現在"; pollutants: "現在の汚染物質 · µg/m³"
+      ozone: "オゾン"; uvIndex: "UV 指数"; pollenLong: "花粉 · 今後 24 時間"
+      europeOnlyLong: "open-meteo の花粉予報はヨーロッパのみです。"; peak: v => "最大 ${v}"
+      data: "データ: copernicus atmosphere monitoring service（open-meteo 経由）"
     }
   }
   size: 3x2

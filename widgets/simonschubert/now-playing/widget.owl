@@ -2,7 +2,7 @@ widget "now-playing" {
   size: 6x2
   minSize: 3x2
   requires { pacman: [] }
-  meta { description: "What's playing on your phone, from any music or podcast app: album art, track, progress and play, pause and skip. Tap the tile to open the app"; version: "1.8"; license: "MIT"; category: "media"; owl: 19 }
+  meta { description: "What's playing on your phone, from any music or podcast app: album art, track, progress and play, pause and skip. Tap the tile to open the app"; version: "1.9"; license: "MIT"; category: "media"; owl: 19 }
   fps: modes.saver ? 15 : 30
   source modes = android.modes
 
@@ -35,6 +35,10 @@ widget "now-playing" {
     ru {
       title: "сейчас играет"; nothing: "ничего не играет"; start: "включите музыку в любом приложении"
       allow: "Разрешите доступ к уведомлениям, чтобы лаунчер видел, что играет. Нажмите, чтобы открыть настройки."
+    }
+    ja {
+      title: "再生中"; nothing: "再生していません"; start: "好きなアプリで音楽を再生してください"
+      allow: "再生中の曲をランチャーが表示できるよう、通知へのアクセスを許可してください。タップすると設定が開きます。"
     }
   }
 

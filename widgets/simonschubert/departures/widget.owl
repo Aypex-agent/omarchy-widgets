@@ -2,7 +2,7 @@ widget "departures" {
   size: 3x2
   minSize: 2x1
   requires { pacman: [] }
-  meta { description: "Live departures from a stop you pick, anywhere Transitous has open timetables: line, direction, platform and minutes to go, with delays. Tap the tile for the full board or to change the stop"; version: "1.8"; license: "MIT"; category: "world"; owl: 17 }
+  meta { description: "Live departures from a stop you pick, anywhere Transitous has open timetables: line, direction, platform and minutes to go, with delays. Tap the tile for the full board or to change the stop"; version: "1.9"; license: "MIT"; category: "world"; owl: 17 }
 
   // What it says, in the phone's language where it has a set. Stops, lines, directions and modes come as Transitous names them.
   strings {
@@ -47,6 +47,12 @@ widget "departures" {
       tooMany: "слишком много запросов"; offline: "transitous офлайн"; search: "найти остановку"; change: "сменить остановку"
       searching: "поиск…"; noStops: q => "нет остановок «${q}»"; next: "ближайшие отправления"; refresh: "обновить"
       data: "данные: Transitous, из открытых расписаний. Задержки видны там, где перевозчик публикует данные в реальном времени"
+    }
+    ja {
+      title: "発車案内"; pick: "タップして停留所を選んでください。"; noneSoon: "まもなく出る便はありません"; now: "まもなく"; min: "分"
+      tooMany: "リクエストが多すぎます"; offline: "transitous に接続できません"; search: "停留所を検索"; change: "停留所を変更"
+      searching: "検索中…"; noStops: q => "「${q}」という停留所はありません"; next: "次の発車"; refresh: "更新"
+      data: "データ: Transitous（公開時刻表）。運行会社がリアルタイムの時刻を公開している路線では遅れも表示されます"
     }
   }
 
