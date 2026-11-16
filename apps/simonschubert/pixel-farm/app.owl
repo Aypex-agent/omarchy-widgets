@@ -10,7 +10,7 @@ app "pixel farm" {
   // reeling the hook and the fish slide by formulas of the time since it was hooked, so a tap
   // only has to compare where both are.
 
-  meta { owl: 14; description: "A cozy pixel art farm: plant crops that grow in real time, even while the app is closed, harvest them for coins and fish the pond between harvests"; version: "1.0.1"; license: "MIT"; category: "games" }
+  meta { owl: 23; description: "A cozy pixel art farm: plant crops that grow in real time, even while the app is closed, harvest them for coins and fish the pond between harvests"; version: "1.0.2"; license: "MIT"; category: "games" }
 
   title: ""
   statusBar: false
@@ -413,7 +413,7 @@ app "pixel farm" {
           let z = 0.5 + 0.22 * sin(rt * (0.9 + fish * 0.08)) + 0.14 * sin(rt * (2.3 + fish * 0.1) + 1.7)
           if abs(m - z) <= f.w / 2 + 0.03 {
             hits = hits + 1
-            haptic()
+            haptic("light")
             if hits >= f.need {
               fresh = caught[fish] == 0
               caught = set(caught, fish, caught[fish] + 1)
@@ -491,7 +491,7 @@ app "pixel farm" {
           grown = set(grown, k, grown[k] + 1)
           field = set(field, p, {k: -1, t: 0})
           pops = drop(pops, max(0, len(pops) - 7)) + [{p: p, s: big ? "GIANT! +${v}" : "+${v}", t: time}]
-          haptic()
+          haptic("light")
         } else if field[p].k >= 0 {
           msg = "${CROPS[field[p].k].n}|READY IN ${[CROPS[field[p].k].g - (tnow - field[p].t)].map(fmtT)[0]}"
           msgT = time
@@ -553,7 +553,7 @@ app "pixel farm" {
           grown = set(grown, k, grown[k] + 1)
           field = set(field, p, {k: -1, t: 0})
           pops = drop(pops, max(0, len(pops) - 7)) + [{p: p, s: big ? "GIANT! +${v}" : "+${v}", t: time}]
-          haptic()
+          haptic("light")
         } else if field[p].k < 0 && seed >= 0 && bank >= CROPS[seed].cost {
           bank = bank - CROPS[seed].cost
           field = set(field, p, {k: seed, t: tnow})

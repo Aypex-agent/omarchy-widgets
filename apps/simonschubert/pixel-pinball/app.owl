@@ -23,7 +23,7 @@ app "pixel pinball" {
   // their angles at the start, hL and hR held or not. fk and ek count in steps of this film, so
   // they go negative for what came before it.
 
-  meta { owl: 14; description: "Pixel art pinball on four tables in space: bumpers, slingshots, lanes, targets, a black hole that warps you to the next table, light shows and a dot-matrix score"; version: "1.0"; license: "MIT"; category: "games" }
+  meta { owl: 23; description: "Pixel art pinball on four tables in space: bumpers, slingshots, lanes, targets, a black hole that warps you to the next table, light shows and a dot-matrix score"; version: "1.1"; license: "MIT"; category: "games" }
 
   title: ""
   statusBar: false
@@ -719,7 +719,7 @@ app "pixel pinball" {
       msgT = time
       ball = ball + 1
       seg = merge(park, {mu: 1, kb: true, bs: true})
-      haptic()
+      haptic("strong")
     } else {
       mode = "over"
       last = fin.sc
@@ -728,7 +728,7 @@ app "pixel pinball" {
       msgT = time
       overReady = false
       seg = park
-      haptic()
+      haptic("strong")
     }
     segT = time
   }
@@ -742,7 +742,7 @@ app "pixel pinball" {
     warpT = time
     tb = (tb + 1) % 4
     lvl = lvl + 1
-    haptic()
+    haptic("strong")
   }
   when mode == "over" && !overReady && msgT >= 0 && time > msgT + 1.5 { overReady = true }
 
@@ -1420,7 +1420,7 @@ app "pixel pinball" {
               rot = 1
               pend = true
               tapT = time
-              haptic()
+              haptic("light")
             } else if mode == "pause" {
               want = "resume"
               pend = true
@@ -1461,7 +1461,7 @@ app "pixel pinball" {
                 rot = 2
                 pend = true
                 tapT = time
-                haptic()
+                haptic("light")
               }
             } else if mode == "pause" {
               want = "resume"

@@ -1,5 +1,5 @@
 app "hacker news" {
-  meta { owl: 8; description: "A Hacker News reader: the front page, newest, Ask and Show HN, and every story's comments, threaded and in HN's order"; version: "2.1"; license: "MIT"; category: "news" }
+  meta { owl: 23; description: "A Hacker News reader: the front page, newest, Ask and Show HN, and every story's comments, threaded and in HN's order"; version: "2.2"; license: "MIT"; category: "news" }
   // A story's comments are a view of their own; Back returns to the list.
   title: open == 0 ? "hacker news" : story.comments == 1 ? "1 comment" : "${story.comments ?? 0} comments"
   back: open != 0
@@ -115,7 +115,7 @@ app "hacker news" {
       align: center
       gap: 4
       padding: [0, 6]
-      onTap: { feed = name; open = 0; expanded = []; haptic() }
+      onTap: { feed = name; open = 0; expanded = []; haptic("light") }
       Box {
         align: center
         width: 56

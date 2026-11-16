@@ -9,7 +9,7 @@ app "delve" {
   // turn. Both leave timed events (`fx`, in seconds from the turn's start) that the canvases play
   // from `fxAt`, the frame clock when the turn began.
 
-  meta { owl: 14; description: "A roguelike dungeon crawl in pixel art: swipe to move and fight, one floor per screen; potions, bombs and scrolls, stairs down to worse monsters, and death is for good"; version: "1.0.1"; license: "MIT"; category: "games" }
+  meta { owl: 23; description: "A roguelike dungeon crawl in pixel art: swipe to move and fight, one floor per screen; potions, bombs and scrolls, stairs down to worse monsters, and death is for good"; version: "1.0.2"; license: "MIT"; category: "games" }
 
   title: ""
   statusBar: false
@@ -362,7 +362,7 @@ app "delve" {
           fxLen = max(fxLen, 1.8)
           let nl2 = log + ["YOU REACH LEVEL ${hero.lv}"]
           log = nl2.drop(max(0, len(nl2) - 3))
-          haptic()
+          haptic("strong")
         }
       }
       xpGain = 0

@@ -1,5 +1,5 @@
 app "skyline bay" {
-  meta { owl: 22; description: "A 3D island city builder: lay roads, zone homes, shops and industry, bring power and water, add services and parks, and grow a hamlet into a skyline"; version: "1.9"; license: "MIT"; category: "games" }
+  meta { owl: 23; description: "A 3D island city builder: lay roads, zone homes, shops and industry, bring power and water, add services and parks, and grow a hamlet into a skyline"; version: "1.10"; license: "MIT"; category: "games" }
   // How it works. The island is 22 x 22 tiles, kept in two persisted lists: g (what's on a tile) and lv (how far a
   // zoned lot has grown, 0 to 3). Every 2 seconds a tick settles the cash, and lots with demand for their zone grow a
   // level if what they need is there: a road that reaches the highway, power, water (from level 2), land value
@@ -1421,7 +1421,7 @@ app "skyline bay" {
                   bank = coins - TCOST[25]
                   since = tnow
                   stops = BSTOPS + [cell]
-                  haptic()
+                  haptic("light")
                   if snd { sound(SBUILD) }
                 }
               } else if tool == 10 {
@@ -1440,7 +1440,7 @@ app "skyline bay" {
                   lf = FILL + [cell]
                   g = set(g, cell, 0)
                   lv = set(lv, cell, 0)
-                  haptic()
+                  haptic("light")
                   if snd { sound(SBUILD) }
                 }
               } else if tool == 24 && KC[24] >= 1 {
@@ -1467,7 +1467,7 @@ app "skyline bay" {
                 g = set(g, cell, tool)
                 lv = set(lv, cell, 0)
                 fresh = [{c: cell, t: time}]
-                haptic()
+                haptic("light")
                 if snd { sound(SBUILD) }
               }
             } else if tool >= 1 {

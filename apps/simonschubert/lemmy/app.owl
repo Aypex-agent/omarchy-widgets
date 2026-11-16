@@ -1,5 +1,5 @@
 app "lemmy" {
-  meta { owl: 11; description: "A Lemmy reader: hot, new and top posts from across the fediverse or one community, community search, any instance, and every post's comments, threaded"; version: "1.2"; license: "MIT"; category: "news" }
+  meta { owl: 23; description: "A Lemmy reader: hot, new and top posts from across the fediverse or one community, community search, any instance, and every post's comments, threaded"; version: "1.3"; license: "MIT"; category: "news" }
   // A post's comments are a view of their own; Back returns to the list, and from a community's list to all of them.
   title: open != 0 ? (post.comments == 1 ? "1 comment" : "${post.comments ?? 0} comments") : community != "" ? communityTitle : "lemmy"
   back: open != 0 || community != ""
@@ -147,7 +147,7 @@ app "lemmy" {
       align: center
       gap: 4
       padding: [0, 6]
-      onTap: { feed = name; open = 0; expanded = []; replies = {}; haptic() }
+      onTap: { feed = name; open = 0; expanded = []; replies = {}; haptic("light") }
       Box {
         align: center
         width: 56
@@ -170,7 +170,7 @@ app "lemmy" {
       radius: 14 * corners
       color: instance == name ? background : foreground
       background: instance == name ? accent : alpha(foreground, 0.08)
-      onTap: { instance = name; community = ""; query = ""; savedHot = []; savedNew = []; savedTop = []; haptic() }
+      onTap: { instance = name; community = ""; query = ""; savedHot = []; savedNew = []; savedTop = []; haptic("light") }
     }
   }
 

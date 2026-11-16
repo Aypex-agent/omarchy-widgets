@@ -10,7 +10,7 @@ app "gemblade" {
   // frame clock when the move began) for the canvases to play. Swaps (`on swN`) and spells
   // (`on spN`) set up `pend`, the board to resolve, and what happens before it.
 
-  meta { owl: 14; description: "Match-3 with a sword arm, in pixel art: swap gems to strike monsters, raise armor, heal and charge spells; ten foes and a dragon, a camp between fights, then round again"; version: "1.1.0"; license: "MIT"; category: "games" }
+  meta { owl: 23; description: "Match-3 with a sword arm, in pixel art: swap gems to strike monsters, raise armor, heal and charge spells; ten foes and a dragon, a camp between fights, then round again"; version: "1.1.1"; license: "MIT"; category: "games" }
 
   title: ""
   statusBar: false
@@ -345,7 +345,7 @@ app "gemblade" {
       card = "won"
       fx = lFx + [{k: 7, s: "VICTORY", s2: "THE ${KD[mon.k].n} FALLS", t0: tE + 0.3}]
       fxLen = tE + 1.8
-      haptic()
+      haptic("strong")
     } else {
       // the foe's turn: its count goes down unless the move made a line of four, and at none it
       // strikes, gets angrier, and cracks what armor the blow left in half
@@ -377,7 +377,7 @@ app "gemblade" {
         fx = fx + [{k: 7, s: "DEFEAT", s2: "THE ${K.n} WINS", t0: tE + 0.6}]
         fxLen = tE + 2
       }
-      if strike { haptic() }
+      if strike { haptic("strong") }
     }
     fxTap = time
     fxAt = -1

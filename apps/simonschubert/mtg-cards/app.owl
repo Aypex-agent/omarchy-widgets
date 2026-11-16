@@ -1,5 +1,5 @@
 app "mtg cards" {
-  meta { owl: 11; description: "Magic: The Gathering cards from Scryfall: search with Scryfall's syntax, card pages with prices, legality, printings and rulings, a random card, and deck lists"; version: "1.1"; license: "MIT"; category: "games" }
+  meta { owl: 23; description: "Magic: The Gathering cards from Scryfall: search with Scryfall's syntax, card pages with prices, legality, printings and rulings, a random card, and deck lists"; version: "1.2"; license: "MIT"; category: "games" }
   // A card's page and an open deck are levels of their own; Back returns to the tab.
   title: openId != "" ? cd.name ?? "card" : deck != null ? deck.name : view == "search" ? "mtg cards" : view == "random" ? "random card" : view
   back: openId != "" || deck != null || (view == "search" && len(query) > 0)
@@ -278,7 +278,7 @@ app "mtg cards" {
       align: center
       gap: 4
       padding: [0, 6]
-      onTap: { view = name; haptic() }
+      onTap: { view = name; haptic("light") }
       Box {
         align: center
         width: 56
@@ -662,11 +662,11 @@ app "mtg cards" {
                     }
                     Mana { cost: r.cost; sz: 14 }
                     Box {
-                      onTap: { addReq = {did: deckOpen, items: [{id: r.id, name: r.name, qty: 1, side: false, cmc: r.cmc, type: r.type, cost: r.cost, set: r.set, usd: r.usd, eur: r.eur, tix: r.tix}]}; addSeq = addSeq + 1; haptic() }
+                      onTap: { addReq = {did: deckOpen, items: [{id: r.id, name: r.name, qty: 1, side: false, cmc: r.cmc, type: r.type, cost: r.cost, set: r.set, usd: r.usd, eur: r.eur, tix: r.tix}]}; addSeq = addSeq + 1; haptic("light") }
                       Chip { label: have > 0 ? "+ ${have}" : "+"; tint: accent }
                     }
                     Box {
-                      onTap: { addReq = {did: deckOpen, items: [{id: r.id, name: r.name, qty: 1, side: true, cmc: r.cmc, type: r.type, cost: r.cost, set: r.set, usd: r.usd, eur: r.eur, tix: r.tix}]}; addSeq = addSeq + 1; haptic() }
+                      onTap: { addReq = {did: deckOpen, items: [{id: r.id, name: r.name, qty: 1, side: true, cmc: r.cmc, type: r.type, cost: r.cost, set: r.set, usd: r.usd, eur: r.eur, tix: r.tix}]}; addSeq = addSeq + 1; haptic("light") }
                       Chip { label: "side" }
                     }
                   }

@@ -1,5 +1,5 @@
 app "couch" {
-  meta { owl: 8; description: "A movie and TV tracker for Trakt: trending, popular and anticipated titles, cast, seasons and episodes, search; sign in for up next, a calendar, your watchlist, history and ratings"; version: "1.2"; license: "MIT"; category: "media" }
+  meta { owl: 23; description: "A movie and TV tracker for Trakt: trending, popular and anticipated titles, cast, seasons and episodes, search; sign in for up next, a calendar, your watchlist, history and ratings"; version: "1.3"; license: "MIT"; category: "media" }
   // A port of Couch for Trakt (github.com/SimonSchubert/omarchy-couch). Not affiliated with Trakt.
   // A title's page, search, history and settings are a level of their own; Back returns to the tab.
   title: open != null ? (open.m.title ?? "") : view == "search" ? "search" : view == "history" ? "history" : view == "settings" ? "settings" : tab == "upnext" ? "up next" : tab
@@ -481,7 +481,7 @@ app "couch" {
           width: 40
           height: 40
           align: center
-          onTap: { epRes = 0; epRes = post(done ? "https://api.trakt.tv/sync/history/remove" : "https://api.trakt.tv/sync/history", {episodes: [{ids: {trakt: e.ids.trakt}}]}, hdr); epOver = [{k: "${oid}:${e.season}:${e.number}", v: !done}] + epOver; haptic() }
+          onTap: { epRes = 0; epRes = post(done ? "https://api.trakt.tv/sync/history/remove" : "https://api.trakt.tv/sync/history", {episodes: [{ids: {trakt: e.ids.trakt}}]}, hdr); epOver = [{k: "${oid}:${e.season}:${e.number}", v: !done}] + epOver; haptic("light") }
           Image { src: done ? doneIcon : circleIcon; size: 28; tint: done ? green : alpha(muted, 0.8) }
         }
       }
@@ -496,7 +496,7 @@ app "couch" {
       align: center
       gap: 3
       padding: [0, 6]
-      onTap: { tab = name; view = ""; stack = []; haptic() }
+      onTap: { tab = name; view = ""; stack = []; haptic("light") }
       Box {
         align: center
         width: 56
@@ -621,7 +621,7 @@ app "couch" {
                     weight: 1
                     height: 34
                     align: center
-                    onTap: { rateRes = 0; rateRes = post(v == mine ? "https://api.trakt.tv/sync/ratings/remove" : "https://api.trakt.tv/sync/ratings", isShow ? {shows: [{ids: {trakt: oid}, rating: v}]} : {movies: [{ids: {trakt: oid}, rating: v}]}, hdr); rateOver = [{k: okey, v: v == mine ? 0 : v}] + rateOver; haptic() }
+                    onTap: { rateRes = 0; rateRes = post(v == mine ? "https://api.trakt.tv/sync/ratings/remove" : "https://api.trakt.tv/sync/ratings", isShow ? {shows: [{ids: {trakt: oid}, rating: v}]} : {movies: [{ids: {trakt: oid}, rating: v}]}, hdr); rateOver = [{k: okey, v: v == mine ? 0 : v}] + rateOver; haptic("light") }
                     Image { src: v <= mine ? starIcon : starOffIcon; size: 24; tint: v <= mine ? yellow : alpha(muted, 0.7) }
                   }
                 }

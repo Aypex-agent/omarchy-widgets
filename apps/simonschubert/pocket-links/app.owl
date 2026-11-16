@@ -8,7 +8,7 @@ app "pocket links" {
   // forward 60 times a second for up to ten seconds, and the canvas draws the step the clock is
   // in. When the film has stopped, a trigger settles the stroke.
 
-  meta { owl: 14; description: "Pixel art mini golf: nine holes of walls, corner banks, bumpers, sand, slopes and water; drag back to aim, let go to putt, and beat your best round"; version: "1.0"; license: "MIT"; category: "games" }
+  meta { owl: 23; description: "Pixel art mini golf: nine holes of walls, corner banks, bumpers, sand, slopes and water; drag back to aim, let go to putt, and beat your best round"; version: "1.1"; license: "MIT"; category: "games" }
 
   title: ""
   statusBar: false
@@ -305,7 +305,7 @@ app "pocket links" {
     if fin != null && fin.st == 2 {
       cards = set(cards, hole, strokes)
       mode = "holed"
-      haptic()
+      haptic("strong")
     } else {
       if fin != null && fin.st == 3 {
         strokes = strokes + 1

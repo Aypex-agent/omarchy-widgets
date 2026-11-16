@@ -1,5 +1,5 @@
 app "crypto market" {
-  meta { owl: 8; description: "CoinGecko prices: the top 250 coins, coin pages with charts, a watchlist, trending coins, gainers and losers, categories, a converter and a portfolio"; version: "1.1"; license: "MIT"; category: "finance" }
+  meta { owl: 23; description: "CoinGecko prices: the top 250 coins, coin pages with charts, a watchlist, trending coins, gainers and losers, categories, a converter and a portfolio"; version: "1.2"; license: "MIT"; category: "finance" }
   // A coin's page and a search are a level of their own; Back returns to the tab.
   title: openId != "" ? cName : view == "markets" ? "crypto market" : view == "watch" ? "watchlist" : view
   back: openId != "" || len(typed) > 0
@@ -229,7 +229,7 @@ app "crypto market" {
       align: center
       gap: 4
       padding: [0, 6]
-      onTap: { view = name; openId = ""; typed = ""; query = ""; haptic() }
+      onTap: { view = name; openId = ""; typed = ""; query = ""; haptic("light") }
       Box {
         align: center
         width: 56

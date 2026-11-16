@@ -4,9 +4,9 @@ face "boulevard" {
   // The page is the theme's paper and ink: its background and foreground, with the accent for red.
 
   meta {
-    owl: 13
+    owl: 23
     description: "A seaside manga page: halftone palms by a pool, a drive-in's sign, what's playing with its cover, a stock and crypto watchlist and a cat under the stars"
-    version: "1.2"
+    version: "1.3"
     license: "MIT"
     category: "fun"
   }
@@ -24,6 +24,8 @@ face "boulevard" {
   state facing = false
   state turnAt = -100
   state turnTap = 0
+  // Where a finger dragging the track bar has it, 0 to 1, or -1: the track jumps there once, as it lifts.
+  state scrub = -1
 
   let watch = [["BTC-USD", "BTC"], ["SPCX", "SPCX"], ["TSLA", "TSLA"], ["NVDA", "NVDA"], ["ETH-USD", "ETH"], ["^GSPC", "S&P"]]
   let heavy = "https://raw.githubusercontent.com/google/fonts/main/ofl/archivoblack/ArchivoBlack-Regular.ttf"
@@ -468,6 +470,9 @@ face "boulevard" {
   // What's playing on the phone, as a skin of an old desktop player.
   // What's playing on the phone: its cover, the title in the heavy face, and ink keys to drive it.
   component Amp() {
+    // The track bar's width: the panel less its padding. It seeks where the player can.
+    let bw = max(1, CW - 28)
+    let seekable = mp.canSeek == true && dur > 0
     Box {
       fill: true
       Frame { e: [0, 0, 0, 0, 0, 0, 0, 0] }
@@ -527,11 +532,19 @@ face "boulevard" {
             }
           }
         }
+        // Tapped, or dragged and let go, the track jumps there.
         Canvas {
           height: 4
           fill: width
+          drag: horizontal
+          onTap: { if seekable { media("seek", clamp(x / bw, 0, 1) * dur) } }
+          onDrag: { if seekable { scrub = clamp(x / bw, 0, 1) } }
+          onDragEnd: {
+            if scrub >= 0 && seekable { media("seek", scrub * dur) }
+            scrub = -1
+          }
           rect(0, 0, width, height, fill: alpha(foreground, 0.15))
-          rect(0, 0, width * (dur > 0 ? pos / dur : 0), height, fill: accent)
+          rect(0, 0, width * (scrub >= 0 ? scrub : dur > 0 ? pos / dur : 0), height, fill: accent)
         }
         Row {
           gap: 8

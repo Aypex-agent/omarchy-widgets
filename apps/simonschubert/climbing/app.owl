@@ -1,8 +1,8 @@
 app "ifsc" {
   meta {
-    owl: 8
+    owl: 23
     description: "The World Climbing Series on one screen: the next event, results from every stop, and the boulder, lead and speed cup."
-    version: "2.1"
+    version: "2.2"
     license: "MIT"
     category: "sport"
   }
@@ -245,7 +245,7 @@ app "ifsc" {
       align: center
       gap: 4
       padding: [0, 6]
-      onTap: { view = name; openId = 0; haptic() }
+      onTap: { view = name; openId = 0; haptic("light") }
       Box {
         align: center
         width: 64
@@ -401,7 +401,7 @@ app "ifsc" {
               Flow {
                 gap: 6
                 for c in cats key c.id {
-                  Box { onTap: { catId = c.id; haptic() }; Pick { label: c.label; on: shown.id == c.id } }
+                  Box { onTap: { catId = c.id; haptic("light") }; Pick { label: c.label; on: shown.id == c.id } }
                 }
               }
               Row {
@@ -422,7 +422,7 @@ app "ifsc" {
           Flow {
             gap: 6
             for k in RANKS key k {
-              Box { onTap: { rankKey = k; openId = 0; haptic() }; Pick { label: k; on: rankKey == k } }
+              Box { onTap: { rankKey = k; openId = 0; haptic("light") }; Pick { label: k; on: rankKey == k } }
             }
           }
           if cup == null {
@@ -434,7 +434,7 @@ app "ifsc" {
                 padding: [8, 4]
                 radius: 6 * corners
                 background: openId == a.id ? alpha(accent, 0.08) : null
-                onTap: { openId = openId == a.id ? 0 : a.id; haptic() }
+                onTap: { openId = openId == a.id ? 0 : a.id; haptic("light") }
                 Athlete { a: a }
                 if openId == a.id {
                   for s in a.events key s.event {

@@ -1,8 +1,8 @@
 app "formula 1" {
   meta {
-    owl: 11
+    owl: 23
     description: "Formula 1 on one screen: the race weekend and its sessions, the calendar, every result, the driver and team standings, and OpenF1 timing."
-    version: "1.1"
+    version: "1.2"
     license: "MIT"
     category: "sport"
   }
@@ -306,7 +306,7 @@ app "formula 1" {
       align: center
       gap: 4
       padding: [0, 6]
-      onTap: { view = name; openId = ""; haptic() }
+      onTap: { view = name; openId = ""; haptic("light") }
       Box {
         align: center
         width: 64
@@ -482,7 +482,7 @@ app "formula 1" {
                 Flow {
                   gap: 6
                   for k in kinds key k {
-                    Box { onTap: { resKind = k; haptic() }; Pick { label: k; on: resKind == k } }
+                    Box { onTap: { resKind = k; haptic("light") }; Pick { label: k; on: resKind == k } }
                   }
                 }
                 if resRows == null {
@@ -505,8 +505,8 @@ app "formula 1" {
           if view == "standings" {
             Row {
               gap: 6
-              Box { onTap: { table = "drivers"; openId = ""; haptic() }; Pick { label: "drivers"; on: table == "drivers" } }
-              Box { onTap: { table = "teams"; openId = ""; haptic() }; Pick { label: "teams"; on: table == "teams" } }
+              Box { onTap: { table = "drivers"; openId = ""; haptic("light") }; Pick { label: "drivers"; on: table == "drivers" } }
+              Box { onTap: { table = "teams"; openId = ""; haptic("light") }; Pick { label: "teams"; on: table == "teams" } }
               Spacer { weight: 1 }
               Text { text: standRound == "" ? "" : "after round ${standRound}"; style: label; color: muted }
             }
@@ -520,7 +520,7 @@ app "formula 1" {
                   padding: [8, 6]
                   radius: 6 * corners
                   background: openId == d.id ? alpha(accent, 0.08) : null
-                  onTap: { openId = openId == d.id ? "" : d.id; haptic() }
+                  onTap: { openId = openId == d.id ? "" : d.id; haptic("light") }
                   Row {
                     gap: 8
                     align: center
@@ -571,7 +571,7 @@ app "formula 1" {
                   padding: [8, 6]
                   radius: 6 * corners
                   background: openId == t.id ? alpha(accent, 0.08) : null
-                  onTap: { openId = openId == t.id ? "" : t.id; haptic() }
+                  onTap: { openId = openId == t.id ? "" : t.id; haptic("light") }
                   Row {
                     gap: 8
                     align: center
@@ -644,7 +644,7 @@ app "formula 1" {
                 for s in sessions key s.key {
                   let ok = now != null && now >= s.t1 + 1800
                   Box {
-                    onTap: { if ok { sessKey = s.key; haptic() } }
+                    onTap: { if ok { sessKey = s.key; haptic("light") } }
                     opacity: ok ? 1 : 0.45
                     Pick { label: s.short; on: tSess != null && tSess.key == s.key }
                   }

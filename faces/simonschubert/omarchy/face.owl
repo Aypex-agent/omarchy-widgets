@@ -4,9 +4,9 @@ face "omarchy" {
   // Workspace 1 is the desktop. 2 apps, 3 quattro, 4 notifications, 5 agents.
 
   meta {
-    owl: 13
+    owl: 23
     description: "An Omarchy session: a bar, tiled windows, fastfetch, quattro commits, and your apps"
-    version: "1.0"
+    version: "1.1"
     license: "MIT"
     category: "system"
   }
@@ -67,7 +67,7 @@ face "omarchy" {
       align: center
       width: 22
       padding: [0, 1]
-      onTap: { ws = n; haptic() }
+      onTap: { ws = n; haptic("light") }
       Text { text: "${n}"; font: mono; fontSize: 14; fontWeight: ws == n ? 700 : 500; color: ws == n ? accent : alpha(foreground, 0.55); align: center; width: 22 }
       Box { width: 14; height: 2; background: ws == n ? accent : alpha(foreground, 0) }
     }

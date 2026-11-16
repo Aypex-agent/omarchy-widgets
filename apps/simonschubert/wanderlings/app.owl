@@ -13,7 +13,7 @@ app "wanderlings" {
   // which is drawn again only after sixty cells have changed; the cells dug and built since are
   // drawn over it each frame.
 
-  meta { owl: 14; description: "A pixel-art puzzle after the old classic: walkers march blindly from a hatch; give them jobs to dig, bash, mine, build, block, climb, float or blow up, and lead them home through twelve levels"; version: "1.0.1"; license: "MIT"; category: "games" }
+  meta { owl: 23; description: "A pixel-art puzzle after the old classic: walkers march blindly from a hatch; give them jobs to dig, bash, mine, build, block, climb, float or blow up, and lead them home through twelve levels"; version: "1.0.2"; license: "MIT"; category: "games" }
 
   title: ""
   statusBar: false
@@ -190,7 +190,7 @@ app "wanderlings" {
       if hS.done {
         if hS.sv >= LV.need { cleared = max(cleared, lvl + 1) }
         best = range(12).map(i => i == lvl ? max(best[i] ?? 0, hS.sv) : best[i] ?? 0)
-        haptic()
+        haptic("strong")
       }
     }
   }
@@ -787,7 +787,7 @@ app "wanderlings" {
               base = merge(B0, {ls: B0.ls.map(l => l.i != pi ? l : jb == 0 ? merge(l, {cl: true}) : jb == 1 ? merge(l, {fl: true}) : jb == 2 ? merge(l, {b: BOMB}) : merge(l, {j: jb, k: 0, c: jb == 4 ? 6 : 0}))})
               if paused { pauseU = u } else { ev = time - u * DT / SPD }
               sk = set(sk, jb, sk[jb] - 1)
-              haptic()
+              haptic("light")
             }
           }
         }

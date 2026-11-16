@@ -12,7 +12,7 @@ app "runeclash" {
   // died. Both sides go through the same code: the foe's turn is one action at a time, each picked
   // by `AIP` (a card to play) or `AIA` (an attack) once the last one has finished playing.
 
-  meta { owl: 14; description: "A collectible card game in pixel art: summon minions, cast spells, beat eight foes on the ladder, open packs and build your deck; single player and offline"; version: "1.0.1"; license: "MIT"; category: "games" }
+  meta { owl: 23; description: "A collectible card game in pixel art: summon minions, cast spells, beat eight foes on the ladder, open packs and build your deck; single player and offline"; version: "1.0.2"; license: "MIT"; category: "games" }
 
   title: ""
   statusBar: false
@@ -1653,7 +1653,7 @@ app "runeclash" {
             let c = GRID[gk].c
             if len(deck) < 20 && INDK[c] < min(col[c], MAXC[c]) {
               deck = deck + [c]
-              haptic()
+              haptic("light")
             }
           } else if dj != null {
             deck = remove(deck, indexOf(deck, DKU[dj]))
@@ -1662,7 +1662,7 @@ app "runeclash" {
           let pj = range(len(pack)).find(j => x >= PKC[j].x && x < PKC[j].x + 80 * PKS && y >= PKC[j].y && y < PKC[j].y + 112 * PKS)
           if pj != null && !pack[pj].f {
             pack = set(pack, pj, merge(pack[pj], {f: true}))
-            haptic()
+            haptic("light")
           }
         } else if G && live && over == 0 && !busy {
           // a card in the hand, a hero or a minion

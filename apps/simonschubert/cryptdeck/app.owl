@@ -13,7 +13,7 @@ app "cryptdeck" {
   // `drawQ` draws `drawN` cards, `endQ` plays the enemies' turn, `winQ` hands out the spoils and
   // `gainQ` gives the relic `gainR`.
 
-  meta { owl: 14; description: "A deckbuilder roguelite in pixel art: climb three acts of a crypt with a deck of cards, pick your path on a branching map, collect relics and beat the bosses; build your deck from a collection that grows with every run and a free pack a day; taps only, nothing timed"; version: "1.1.0"; license: "MIT"; category: "games" }
+  meta { owl: 23; description: "A pixel-art deckbuilder roguelite: climb a three-act crypt, pick your path on a branching map, collect relics and beat the bosses, with a card collection that grows every run; taps only"; version: "1.1.1"; license: "MIT"; category: "games" }
 
   title: ""
   statusBar: false
@@ -2238,12 +2238,12 @@ app "cryptdeck" {
           } else if t != null && x < t.x + t.h {
             if SD[t.c] > 0 {
               sdeck = set(SD, t.c, SD[t.c] - 1)
-              haptic()
+              haptic("light")
             }
           } else if t != null && x >= t.x + t.w - t.h {
             if SD[t.c] < OWN[t.c] {
               sdeck = set(SD, t.c, SD[t.c] + 1)
-              haptic()
+              haptic("light")
             }
           } else if t != null {
             bv = t.c

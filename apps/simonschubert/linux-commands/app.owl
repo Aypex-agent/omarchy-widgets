@@ -1,5 +1,5 @@
 app "linux commands" {
-  meta { owl: 8; description: "The Linux Command Library: 9,000+ commands with examples and options, cheat sheets and terminal tips"; version: "1.5"; license: "MIT"; category: "dev" }
+  meta { owl: 23; description: "The Linux Command Library: 9,000+ commands with examples and options, cheat sheets and terminal tips"; version: "1.6"; license: "MIT"; category: "dev" }
   title: sel != "" ? sel : basic != "" ? get(titles, basic, basic) : "linux commands"
   // Back goes from a page to the one before it (a command's "see also" chain), then to the list.
   back: sel != "" || basic != ""
@@ -73,7 +73,7 @@ app "linux commands" {
       align: center
       gap: 4
       padding: [0, 6]
-      onTap: { tab = name; sel = ""; basic = ""; back = []; was = name != "tips" || url == TIPS ? null : page; url = name == "tips" ? TIPS : url; haptic() }
+      onTap: { tab = name; sel = ""; basic = ""; back = []; was = name != "tips" || url == TIPS ? null : page; url = name == "tips" ? TIPS : url; haptic("light") }
       Box {
         align: center
         width: 64

@@ -9,7 +9,7 @@ app "wildkin" {
   // seconds from the turn's start) that the battle canvas plays from `fxAt`. A walk works the same
   // way: the path is laid down at the tap and the hero is drawn along it.
 
-  meta { owl: 14; description: "A monster-taming RPG in pixel art: catch wild kin in the tall grass, train them in turn-based battles, evolve them, and beat four keepers and the Elder"; version: "1.0.0"; license: "MIT"; category: "games" }
+  meta { owl: 23; description: "A monster-taming RPG in pixel art: catch wild kin in the tall grass, train them in turn-based battles, evolve them, and beat four keepers and the Elder"; version: "1.0.1"; license: "MIT"; category: "games" }
 
   title: ""
   statusBar: false
@@ -1616,7 +1616,7 @@ app "wildkin" {
             if gold >= ITP[it] {
               gold = gold - ITP[it]
               inv = set(inv, it, min(99, inv[it] + 1))
-              haptic()
+              haptic("light")
             }
           }
         } else if scene == "den" {
@@ -1634,12 +1634,12 @@ app "wildkin" {
             if x < 10 + cw && i < len(party) && len(party) > 1 && any(party.filter((m, j) => j != i), m => m.hp > 0) {
               den = den + [merge(party[i], {hp: party[i].mh})]
               party = party.filter((m, j) => j != i)
-              haptic()
+              haptic("light")
             } else if x > 20 + cw && denPg * 6 + i < len(den) && len(party) < 6 {
               party = party + [den[denPg * 6 + i]]
               den = den.filter((m, j) => j != denPg * 6 + i)
               denPg = min(denPg, max(0, floor((len(den) - 1) / 6)))
-              haptic()
+              haptic("light")
             }
           }
         }

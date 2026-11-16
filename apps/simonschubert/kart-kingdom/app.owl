@@ -10,7 +10,7 @@ app "kart kingdom" {
   // and on every purchase, and a closed app earns for an hour at most. The karts' wear is added up
   // every 20 seconds from how busy each track was. Karts and guests are drawn from the clock.
 
-  meta { owl: 14; description: "A go-kart tycoon: build your own kart tracks cell by cell with ramps, bridges and crossings, buy karts, repair them, and grow your attraction"; version: "1.0"; license: "MIT"; category: "games" }
+  meta { owl: 23; description: "A go-kart tycoon: build your own kart tracks cell by cell with ramps, bridges and crossings, buy karts, repair them, and grow your attraction"; version: "1.1"; license: "MIT"; category: "games" }
 
   title: ""
   statusBar: false
@@ -688,7 +688,7 @@ app "kart kingdom" {
                   msg = "Lay a path to it from the gate"
                   msgT = time
                 }
-                haptic()
+                haptic("light")
               }
             } else {
               let cand = range(5).map(d => [gx + d, gy + d]).filter(q => q[0] >= 0 && q[0] < N && q[1] >= 0 && q[1] < N).map(q => own[q[1] * N + q[0]] >= 0 ? own[q[1] * N + q[0]] : trk[q[1] * N + q[0]] >= 0 ? 1000 + trk[q[1] * N + q[0]] : -1).filter(o => o >= 0)

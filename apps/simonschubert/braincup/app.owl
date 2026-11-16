@@ -1,8 +1,8 @@
 app "braincup" {
   meta {
-    owl: 14
+    owl: 23
     description: "Train your math skills, memory and focus: thirteen brain games from the Braincup app, with levels, medals and best scores."
-    version: "1.0.1"
+    version: "1.0.2"
     license: "Apache-2.0"
     category: "games"
   }
@@ -624,7 +624,7 @@ app "braincup" {
       fill: width
       align: center
       ripple: false
-      onTap: { typed = len(typed) < 4 ? typed + d : typed; haptic() }
+      onTap: { typed = len(typed) < 4 ? typed + d : typed; haptic("light") }
       PKey { label: d; face: P_KEY }
     }
   }
@@ -636,7 +636,7 @@ app "braincup" {
       fill: width
       align: center
       ripple: false
-      onTap: { bGuess = len(bGuess) < 4 && !contains(bGuess, d) && !contains(bOut, d) ? bGuess + d : bGuess; haptic() }
+      onTap: { bGuess = len(bGuess) < 4 && !contains(bGuess, d) && !contains(bOut, d) ? bGuess + d : bGuess; haptic("light") }
       PKey { label: d; h: 52; face: contains(bOut, d) || contains(bGuess, d) ? P_DIM : P_KEY; ink: contains(bOut, d) || contains(bGuess, d) ? P_DIM_INK : "#FFFFFF" }
     }
   }
@@ -648,7 +648,7 @@ app "braincup" {
       fill: width
       align: center
       ripple: false
-      onTap: { moOps = moOps + [o]; haptic() }
+      onTap: { moOps = moOps + [o]; haptic("light") }
       PKey { label: SIGN[o]; face: P_KEY; size: 28 }
     }
   }
@@ -660,7 +660,7 @@ app "braincup" {
       fill: width
       align: center
       ripple: false
-      onTap: { sdVals = sdSel < 0 ? sdVals : sdVals.map((v, j) => j == sdSel ? d : v); haptic() }
+      onTap: { sdVals = sdSel < 0 ? sdVals : sdVals.map((v, j) => j == sdSel ? d : v); haptic("light") }
       if d == 0 {
         Image { src: eraseIcon; size: 26; tint: muted }
       } else {
@@ -1120,7 +1120,7 @@ app "braincup" {
                 score = score + (ok ? 1 : 0)
                 vRound = vRound + 1
                 seed = s4
-                haptic()
+                haptic("light")
               }
             }
           }
@@ -1199,7 +1199,7 @@ app "braincup" {
                   score = score + (ok ? 1 : 0)
                   pRound = pRound + 1
                   seed = s4
-                  haptic()
+                  haptic("light")
                 }
               }
             }
@@ -1223,7 +1223,7 @@ app "braincup" {
                 height: (BOARD - 4 * (sdG - 1)) / sdG
                 fill: width
                 ripple: false
-                onTap: { sdSel = c.given ? sdSel : c.i; haptic() }
+                onTap: { sdSel = c.given ? sdSel : c.i; haptic("light") }
                 PKey {
                   label: c.v == 0 ? "" : "${c.v}"
                   h: (BOARD - 4 * (sdG - 1)) / sdG
@@ -1270,7 +1270,7 @@ app "braincup" {
                 onTap: {
                   lights = lights.map((w, j) => i == j || (floor(i / lG) == floor(j / lG) && abs(i - j) == 1) || abs(i - j) == lG ? !w : w)
                   moves = moves + 1
-                  haptic()
+                  haptic("light")
                 }
               }
             }
@@ -1301,7 +1301,7 @@ app "braincup" {
                   hMoved = (abs(i - sEmpty) == sG || (abs(i - sEmpty) == 1 && floor(i / sG) == floor(sEmpty / sG))) && v != 0
                   tiles = hMoved ? tiles.map((w, j) => j == sEmpty ? v : j == i ? 0 : w) : tiles
                   moves = moves + (hMoved ? 1 : 0)
-                  haptic()
+                  haptic("light")
                 }
               }
             }
@@ -1335,7 +1335,7 @@ app "braincup" {
                   pegs = hMoved ? pegs.map((x, k) => k == hSel ? take(x, len(x) - 1) : k == q ? x + [last(pegs[hSel])] : x) : pegs
                   moves = moves + (hMoved ? 1 : 0)
                   hSel = hSel < 0 && len(p) > 0 ? q : -1
-                  haptic()
+                  haptic("light")
                 }
                 for d in reverse(p) key d {
                   Box {
@@ -1433,7 +1433,7 @@ app "braincup" {
                 score = score + (ok ? 1 : 0)
                 prevInk = inkI
                 seed = s4
-                haptic()
+                haptic("light")
               }
             }
           }
@@ -1458,7 +1458,7 @@ app "braincup" {
                 onTap: {
                   wrongN = c.n == nextN ? 0 : c.n
                   nextN = nextN + (c.n == nextN ? 1 : 0)
-                  haptic()
+                  haptic("light")
                 }
               }
             }

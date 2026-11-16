@@ -13,7 +13,7 @@ app "checkmate" {
   // the solver is to move, and get harder down the list. Any last move that mates counts.
   // Pieces: Colin M.L. Burnett's set from Wikimedia Commons (BSD).
 
-  meta { owl: 14; description: "Mate in two or three: 60 chess puzzles, each unlike the others, from easy to hard, played out to the end against the best defence"; version: "1.1.1"; license: "MIT"; category: "games" }
+  meta { owl: 23; description: "Mate in two or three: 60 chess puzzles, each unlike the others, from easy to hard, played out to the end against the best defence"; version: "1.1.2"; license: "MIT"; category: "games" }
 
   // The header below is the title: no title row.
   title: ""
@@ -273,7 +273,7 @@ app "checkmate" {
 
   on result {
     if value == "mate" {
-      haptic()
+      haptic("strong")
       if again == 0 && !solvedHere {
         done = done + [pz[0]]
         let s = streak + 1

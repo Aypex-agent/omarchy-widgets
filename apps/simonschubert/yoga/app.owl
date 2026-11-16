@@ -1,5 +1,5 @@
 app "yoga" {
-  meta { owl: 8; description: "Guided, spoken yoga sessions with a timer for every pose: 26 sessions, 48 poses with how-tos and benefits, a daily streak and levels. No account needed."; version: "1.3"; license: "MIT"; category: "home" }
+  meta { owl: 23; description: "Guided, spoken yoga sessions with a timer for every pose: 26 sessions, 48 poses with how-tos and benefits, a daily streak and levels. No account needed."; version: "1.4"; license: "MIT"; category: "home" }
   // The window's title names what's open; Back goes to the menu, and during a session it asks first.
   title: view == "pose" ? poses[pid - 1].name : view == "menu" ? "yoga" : session.name
   back: view != "menu"
@@ -188,7 +188,7 @@ app "yoga" {
       align: center
       gap: 4
       padding: [0, 6]
-      onTap: { tab = name; haptic() }
+      onTap: { tab = name; haptic("light") }
       Box {
         align: center
         width: 64
