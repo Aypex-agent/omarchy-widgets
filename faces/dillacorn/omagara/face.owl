@@ -1,5 +1,5 @@
 face "Omagara" {
-  meta { owl: 21; description: "Niagara-inspired transparent home face with elastic alphabetical navigation, app search, notifications, calendar, timers and world clocks"; version: "1.6.1"; license: "MIT"; category: "home" }
+  meta { owl: 21; description: "Niagara-inspired transparent home face with elastic alphabetical navigation, app search, notifications, calendar, timers and world clocks"; version: "1.7"; license: "MIT"; category: "home" }
   // Omalauncher OWL time animations are capped at 60 FPS, regardless of display Hz.
   // Keep the highest supported rate; reduce work rather than reducing responsiveness.
   fps: 60
@@ -108,8 +108,15 @@ face "Omagara" {
   state upcoming = true
   state resetConfirm = false
   state importText = ""
+  state customTextEntry = ""
+  state customShadeEntry = ""
   state importStatus = ""
   state settingsSection = "Home"
+  // Manual holiday previews are temporary; returning to Auto restores the local-date rule.
+  state holidayPreview = "Auto"
+  state holidayAnimPlaying = false
+  state holidayAnimStarted = 0
+  state holidayPlayedStamp = ""
   state homeApplyPage = ""
   state homeApplySerial = 0
   state homeApplyStatus = ""
@@ -119,30 +126,56 @@ face "Omagara" {
   state timerLeft = 0 persist
   state watchStarted = 0
   state watchElapsed = 0
-  let defaults = {idleAlphabet: true, hideEmpty: true, icons: true, iconStyle: "Theme overlay", iconOverlayOpacity: 30, faceFont: "Sans", clock: true, date: true, event: true, notifications: true, previews: true, curve: true, reduceMotion: false, leftInput: true, grouping: true, actions: true, clockTap: true, dateTap: true, eventTap: true, searchContacts: false, calculator: true, appScale: 80, timeFormat: "24-hour", notificationTimes: true, hapticFeedback: "Every letter", roundTime: false, roundDate: false, roundEvent: false, roundAlphabet: false, roundNotifications: false, roundNoticeHeading: false, roundClearAll: false, roundSearch: false, roundClose: false, roundLetterCue: false, roundCalendar: false, bubbleBorder: false, textTone: "Theme", textContrast: "High", shadeHeader: true, shadeAlphabet: true, shadeNoticeLabels: true, shadeAppLabels: true, roundAppLabels: false, centerNotificationsWithoutAlphabet: true, alphabetSide: "Right"}
+  let defaults = {idleAlphabet: true, hideEmpty: true, icons: true, iconStyle: "Theme overlay", iconOverlayOpacity: 30, faceFont: "Sans", clock: true, date: true, event: true, notifications: true, previews: true, curve: true, reduceMotion: false, leftInput: true, grouping: true, actions: true, clockTap: true, dateTap: true, eventTap: true, searchContacts: false, calculator: true, appScale: 80, timeFormat: "24-hour", notificationTimes: true, hapticFeedback: "Every letter", roundTime: false, roundDate: false, roundEvent: false, roundAlphabet: false, roundNotifications: false, roundNoticeHeading: false, roundClearAll: false, roundSearch: false, roundClose: false, roundLetterCue: false, roundCalendar: false, bubbleBorder: false, textTone: "Theme", textContrast: "High", customTextHex: "#FAFAFA", shadeColorMode: "Theme", shadeCustomHex: "#555555", shadeHeader: true, shadeAlphabet: true, shadeNoticeLabels: true, shadeAppLabels: true, shadeHeaderOpacity: 29, shadeAlphabetOpacity: 49, shadeNoticeOpacity: 49, shadeCardOpacity: 48, shadeAppOpacity: 78, shadeButtonOpacity: 85, holidayEasterEggs: true, showSwipeCue: true, roundAppLabels: false, centerNotificationsWithoutAlphabet: true, alphabetSide: "Right", controlSide: "Right", closeSide: "Follow search"}
   let appScaleChoices = [75, 80, 85, 90, 95, 100, 105, 110, 115]
   let hapticChoices = ["Off", "Reduced", "Every letter"]
   let timeFormatChoices = ["12-hour", "24-hour"]
   let iconStyleChoices = ["Colored", "Theme overlay"]
   let iconOverlayChoices = [0, 10, 20, 30, 40, 50, 60]
   let faceFontChoices = ["Sans", "Serif", "Launcher"]
-  let textToneChoices = ["Theme", "Light", "Dark"]
+  let textToneChoices = ["Theme", "Light", "Dark", "Custom"]
+  let customTextPresets = [{name: "White", hex: "#FAFAFA"}, {name: "Warm", hex: "#FFEBD6"}, {name: "Blue", hex: "#CEE4FF"}, {name: "Amber", hex: "#FFDB96"}, {name: "Black", hex: "#101010"}]
+  let shadeColorChoices = ["Theme", "Grey", "Black", "White", "Custom"]
+  let holidayPreviewChoices = ["Auto", "Halloween", "Christmas", "New Year"]
+  let roundingKeys = ["roundTime", "roundDate", "roundEvent", "roundAlphabet", "roundNotifications", "roundNoticeHeading", "roundClearAll", "roundSearch", "roundClose", "roundLetterCue", "roundCalendar", "roundAppLabels"]
   let textContrastChoices = ["High", "Standard"]
-  let cfg = merge(defaults, prefs, {alphabetSide: contains(["Left", "Right"], prefs.alphabetSide) ? prefs.alphabetSide : "Right", searchContacts: false, appScale: contains(appScaleChoices, prefs.appScale) ? prefs.appScale : 80, hapticFeedback: contains(hapticChoices, prefs.hapticFeedback) ? prefs.hapticFeedback : "Every letter", timeFormat: contains(timeFormatChoices, prefs.timeFormat) ? prefs.timeFormat : "24-hour", bubbleBorder: prefs.bubbleBorder == true, iconStyle: contains(iconStyleChoices, prefs.iconStyle) ? prefs.iconStyle : "Theme overlay", iconOverlayOpacity: contains(iconOverlayChoices, prefs.iconOverlayOpacity) ? prefs.iconOverlayOpacity : 30, faceFont: contains(faceFontChoices, prefs.faceFont) ? prefs.faceFont : "Sans", textTone: contains(textToneChoices, prefs.textTone) ? prefs.textTone : "Theme", textContrast: contains(textContrastChoices, prefs.textContrast) ? prefs.textContrast : "High"})
+  let shadeOpacityControls = [{key: "shadeHeaderOpacity", name: "Clock, date and event"}, {key: "shadeAlphabetOpacity", name: "Alphabet worm"}, {key: "shadeNoticeOpacity", name: "Notification headings"}, {key: "shadeCardOpacity", name: "Notification cards"}, {key: "shadeAppOpacity", name: "App labels"}, {key: "shadeButtonOpacity", name: "Search and close buttons"}]
+  let cfg = merge(defaults, prefs, {alphabetSide: contains(["Left", "Right"], prefs.alphabetSide) ? prefs.alphabetSide : "Right", controlSide: contains(["Left", "Right"], prefs.controlSide) ? prefs.controlSide : "Right", closeSide: contains(["Follow search", "Left", "Right"], prefs.closeSide) ? prefs.closeSide : "Follow search", searchContacts: false, appScale: contains(appScaleChoices, prefs.appScale) ? prefs.appScale : 80, hapticFeedback: contains(hapticChoices, prefs.hapticFeedback) ? prefs.hapticFeedback : "Every letter", timeFormat: contains(timeFormatChoices, prefs.timeFormat) ? prefs.timeFormat : "24-hour", shadeHeaderOpacity: contains(range(101), prefs.shadeHeaderOpacity) ? prefs.shadeHeaderOpacity : 29, shadeAlphabetOpacity: contains(range(101), prefs.shadeAlphabetOpacity) ? prefs.shadeAlphabetOpacity : 49, shadeNoticeOpacity: contains(range(101), prefs.shadeNoticeOpacity) ? prefs.shadeNoticeOpacity : 49, shadeCardOpacity: contains(range(101), prefs.shadeCardOpacity) ? prefs.shadeCardOpacity : 48, shadeAppOpacity: contains(range(101), prefs.shadeAppOpacity) ? prefs.shadeAppOpacity : 78, shadeButtonOpacity: contains(range(101), prefs.shadeButtonOpacity) ? prefs.shadeButtonOpacity : 85, bubbleBorder: prefs.bubbleBorder == true, iconStyle: contains(iconStyleChoices, prefs.iconStyle) ? prefs.iconStyle : "Theme overlay", iconOverlayOpacity: contains(iconOverlayChoices, prefs.iconOverlayOpacity) ? prefs.iconOverlayOpacity : 30, faceFont: contains(faceFontChoices, prefs.faceFont) ? prefs.faceFont : "Sans", textTone: contains(textToneChoices, prefs.textTone) ? prefs.textTone : "Theme", customTextHex: match(prefs.customTextHex ?? "", "^#[0-9A-Fa-f]{6}$") != null ? upper(prefs.customTextHex) : "#FAFAFA", shadeColorMode: contains(shadeColorChoices, prefs.shadeColorMode) ? prefs.shadeColorMode : "Theme", shadeCustomHex: match(prefs.shadeCustomHex ?? "", "^#[0-9A-Fa-f]{6}$") != null ? upper(prefs.shadeCustomHex) : "#555555", textContrast: "High"})
+  let allRounded = all(roundingKeys, k => get(cfg, k) == true)
+  let anyRounded = any(roundingKeys, k => get(cfg, k) == true)
   // OWL cannot sample wallpaper brightness; explicit overrides keep text legible.
-  let primaryText = cfg.textTone == "Light" ? #FAFAFA : cfg.textTone == "Dark" ? #101010 : foreground
-  let secondaryText = cfg.textContrast == "High" ? primaryText : cfg.textTone == "Light" ? #CECECE : cfg.textTone == "Dark" ? #474747 : muted
-  // Theme-aware scrim to keep header and index legible over detailed wallpapers.
-  // Forced light/dark text receives its opposite backing color.
-  let legibilityShade = cfg.textTone == "Light" ? alpha(#111111, 0.49) : cfg.textTone == "Dark" ? alpha(#FFFFFF, 0.49) : alpha(mix(background, surface, 0.50), 0.49)
-  // Only the fitted, connected header backdrop uses this subtle scrim.
-  let headerShade = cfg.textTone == "Light" ? alpha(#111111, 0.29) : cfg.textTone == "Dark" ? alpha(#FFFFFF, 0.29) : alpha(mix(background, surface, 0.50), 0.29)
-  // Slightly stronger, compact scrim for app names and section headings.
-  let appLabelShade = cfg.textTone == "Light" ? alpha(#111111, 0.60) : cfg.textTone == "Dark" ? alpha(#FFFFFF, 0.60) : alpha(mix(background, surface, 0.50), 0.60)
+  // The custom #RRGGBB setting is validated before rendering.
+  let primaryText = cfg.textTone == "Custom" ? cfg.customTextHex : cfg.textTone == "Light" ? #FAFAFA : cfg.textTone == "Dark" ? #101010 : foreground
+  let secondaryText = primaryText
+  // Theme reproduces the original theme/text-tone behavior exactly.
+  // Explicit colors override all shaded surfaces, including notification cards.
+  let themeShadeBase = cfg.textTone == "Light" ? #111111 : cfg.textTone == "Dark" ? #FFFFFF : mix(background, surface, 0.50)
+  let shadeBase = cfg.shadeColorMode == "Theme" ? themeShadeBase : cfg.shadeColorMode == "Grey" ? #555555 : cfg.shadeColorMode == "Black" ? #000000 : cfg.shadeColorMode == "White" ? #FFFFFF : cfg.shadeCustomHex
+  // Device-local dates only. Preview overrides the calendar without changing the clock.
+  let holidayDate = fmtTime(now, "MM-dd")
+  let holidayMode = holidayPreview != "Auto" ? holidayPreview : !cfg.holidayEasterEggs ? "None" : holidayDate == "10-31" ? "Halloween" : holidayDate == "12-25" ? "Christmas" : holidayDate == "01-01" ? "New Year" : "None"
+  let holidayTint = holidayMode == "Halloween" ? #F28B2D : holidayMode == "Christmas" ? #7ADDCB : #E9CB76
+  let holidayStamp = fmtTime(now, "yyyy-MM-dd") + "|" + holidayMode
+  let holidaySpent = holidayPlayedStamp == holidayStamp
+  let holidayAge = holidayAnimPlaying ? max(0, time - holidayAnimStarted) : 0
+  let holidayDuration = holidayMode == "Halloween" ? 2.4 : holidayMode == "Christmas" ? 3.2 : 1.25
+  let holidayAnimDone = holidayAnimPlaying && holidayAge >= holidayDuration
+  on holidayAnimDone {
+    if value { holidayAnimPlaying = false; holidayPlayedStamp = holidayStamp }
+  }
+  // Only tint the Theme alphabet shade. Respect explicitly configured shade colors.
+  let alphabetShade = alpha(holidayMode != "None" && cfg.shadeColorMode == "Theme" ? mix(shadeBase, holidayTint, 0.42) : shadeBase, cfg.shadeAlphabetOpacity / 100)
+  let noticeHeadingShade = alpha(shadeBase, cfg.shadeNoticeOpacity / 100)
+  let headerShade = alpha(shadeBase, cfg.shadeHeaderOpacity / 100)
+  let appLabelShade = alpha(shadeBase, cfg.shadeAppOpacity / 100)
+  // Notification cards historically used the unblended theme background.
+  let noticeCardShade = alpha(cfg.shadeColorMode == "Theme" ? background : shadeBase, cfg.shadeCardOpacity / 100)
   // Omalauncher OWL does not expose the Android 12/24-hour setting.
   // Keep the selected manual format consistent across all displayed times.
   let timePattern = cfg.timeFormat == "12-hour" ? "h:mm a" : "HH:mm"
   let alphabetSide = cfg.alphabetSide == "Left" ? -1 : 1
+  let controlSide = cfg.controlSide == "Left" ? -1 : 1
+  let closeSide = cfg.closeSide == "Follow search" ? controlSide : cfg.closeSide == "Left" ? -1 : 1
   let noticePanelShift = cfg.centerNotificationsWithoutAlphabet && !cfg.idleAlphabet ? 0 : alphabetSide == -1 ? 20 : -20
   let chosenFont = cfg.faceFont == "Serif" ? "serif" : cfg.faceFont == "Launcher" ? "mono" : "sans"
   let zoneChoices = ["UTC", "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles", "America/Toronto", "America/Sao_Paulo", "Europe/London", "Europe/Paris", "Europe/Berlin", "Asia/Dubai", "Asia/Kolkata", "Asia/Singapore", "Asia/Tokyo", "Australia/Sydney", "Pacific/Auckland"]
@@ -165,6 +198,8 @@ face "Omagara" {
     {key: "shadeAlphabet", name: "Alphabet shade"},
     {key: "shadeNoticeLabels", name: "Notification heading shade"},
     {key: "shadeAppLabels", name: "App label shade"},
+    {key: "showSwipeCue", name: "Show swipe gesture indicator"},
+    {section: "Holidays", key: "holidayEasterEggs", name: "Automatic holiday Easter eggs"},
     {section: "Corner rounding", key: "roundTime", name: "Clock"},
     {key: "roundDate", name: "Date"},
     {key: "roundEvent", name: "Event"},
@@ -287,12 +322,17 @@ face "Omagara" {
   // Preserve a minimum gap above the independently scrolling notifications.
   let headerBottom = screenTop + 12 + headerPadTop + headerShapeHeight + 30
   let noticeTop = max(headerBottom, screenTop + availableHeight * 0.24)
+  // Search and the gesture cue have their own side preference. Close can
+  // follow Search or use either edge independently, with the same rail clearance.
+  let controlLeft = screenLeft + 60
   let controlRight = screenRight + 60
-  // Center at 89% of inset-safe height, with at least 24dp below the button.
-  let searchBottom = screenInset + max(24, availableHeight * 0.11 - 24)
-  // Notifications can scroll behind the Search button down to the safe bottom.
-  // OWL 21 has no child-alpha masking API for a wallpaper-preserving edge fade.
-  let noticeBottom = max(noticeTop, (tileHeight ?? 800) - screenInset - 10)
+  // Raise Search and Close about 8dp to free a little more room below.
+  // The launcher's native home-swipe handler owns the pull-down gesture.
+  let searchBottom = screenInset + max(36, availableHeight * 0.11 - 16)
+  // The notification list must not capture touches in the native home gesture
+  // area. Stop 12dp above Search, leaving the lower screen clear for up/down
+  // swipes even when notifications are present. Its scroll footer remains inside.
+  let noticeBottom = max(noticeTop, (tileHeight ?? 800) - searchBottom - 60)
   // One source of truth: 20dp outer left; 12dp clear of the 44dp right rail.
   let noticeWidth = max(0, availableWidth - 80)
   // Additional content after the last card: it can scroll above the Search
@@ -320,9 +360,10 @@ face "Omagara" {
   let appPanelHeight = max(0, appSafeBottom - appSafeTop)
   let appFade = min(60, appPanelHeight / 5)
   let appEdgeSpace = appFade + 8
-  // Let app rows accept taps all the way to the right safe edge. The
-  // alphabet rail and Search/Close buttons are rendered above the list.
-  let appPanelWidth = max(80, availableWidth - 48)
+  // Keep icons clear whenever Search or Close occupies the left edge.
+  // Both controls on the right preserve the original app-list placement.
+  let appPanelInset = controlSide == -1 || closeSide == -1 ? 112 : 48
+  let appPanelWidth = max(80, availableWidth - appPanelInset)
   let appSections = fullAlphabet.filter(c => !cfg.hideEmpty || len(get(groups, c, [])) > 0)
   let appSectionEnds = scan(appSections, (height, c) => height + appLabelHeight + len(get(groups, c, [])) * appRowHeight, 0)
   let appSectionStarts = map(appSections, (c, i) => appEdgeSpace + (i == 0 ? 0 : appSectionEnds[i - 1]))
@@ -332,9 +373,9 @@ face "Omagara" {
   let appMenuBottom = appMenuTop + 2 * appRowHeight
   // At the end of the list, align the last Settings action beside the
   // alphabet cog. Keep a small bottom inset rather than the old oversized
-  // padding. Close and Search stay on the right, clear of the menu text.
+  // padding. Search and Close have independent positions, not tied to the rail.
   let appMenuTail = max(28, appSafeBottom - (railTop + railHeight + railStep / 2) - appRowHeight / 2)
-  let appMenuTextWidth = max(32, (tileWidth ?? 400) - screenLeft - controlRight - 110 - 46 * appScale)
+  let appMenuTextWidth = controlSide == -1 || closeSide == -1 ? max(32, min(appPanelWidth - 52 * appScale, (tileWidth ?? 400) - screenLeft - controlRight - 110 - 46 * appScale)) : max(32, (tileWidth ?? 400) - screenLeft - controlRight - 110 - 46 * appScale)
   let appDocumentHeight = appMenuBottom + appMenuTail
   let appMaxScroll = max(0, appDocumentHeight - appPanelHeight)
   // Read time ONLY while gliding. An every-frame trigger would keep OWL's
@@ -593,8 +634,6 @@ face "Omagara" {
     let swipeDistance = abs(noticeDragX)
     // Both branches share the same resistant baseline. No zero reset at haptic.
     let magneticX = sign(noticeDragX) * min(noticeWidth, min(swipeDistance, dismissThreshold) * (stacked ? 0.54 : 0.32) + max(0, swipeDistance - dismissThreshold) * (stacked ? 1.65 : 1.30) + (swipeDistance >= dismissThreshold ? 12 : 0))
-    let swipeArmed = draggingHere && swipeDistance >= dismissThreshold
-    let stackArmed = stacked && swipeArmed
     Column {
       fill: width
       gap: 4
@@ -602,7 +641,7 @@ face "Omagara" {
       radius: cfg.roundNotifications ? 14 : 0
       border: cfg.bubbleBorder ? 1 : 0
       borderColor: border
-      background: alpha(background, 0.48)
+      background: noticeCardShade
       onTap: {
         if summary && len(get(noticeGroups, stack, [])) > 1 {
           expandedStack = expandedStack == stack ? "" : stack
@@ -725,7 +764,7 @@ face "Omagara" {
       }
       if summary && len(get(noticeGroups, stack, [])) > 1 {
         Text {
-          text: stackArmed ? "Release to dismiss ${len(groupClearables)} notifications" : draggingHere ? "Swipe farther to dismiss ${len(groupClearables)} notifications" : "${len(groupItems)} notifications"
+          text: "${len(groupItems)} notifications"
           font: chosenFont
           fontSize: 13
           color: accent
@@ -849,10 +888,9 @@ face "Omagara" {
             text: "Notifications"
             font: chosenFont
             fontSize: 14
-            bold: true
             color: primaryText
             padding: [7, 9]
-            background: cfg.shadeNoticeLabels ? legibilityShade : transparent
+            background: cfg.shadeNoticeLabels ? noticeHeadingShade : transparent
             radius: cfg.roundNoticeHeading ? 7 : 0
           }
           Spacer { weight: 1 }
@@ -860,10 +898,10 @@ face "Omagara" {
             Text {
               text: "Clear all"
               font: chosenFont
-              fontSize: 13
+              fontSize: 14
               color: primaryText
               padding: [7, 9]
-              background: cfg.shadeNoticeLabels ? legibilityShade : transparent
+              background: cfg.shadeNoticeLabels ? noticeHeadingShade : transparent
               radius: cfg.roundClearAll ? 7 : 0
               onTap: notification("clear")
             }
@@ -877,11 +915,13 @@ face "Omagara" {
           for noticeRow in noticeRows key noticeRow.id {
             NotificationRow { item: noticeRow.item; stack: noticeRow.stack; summary: noticeRow.summary }
           }
-          // Scrollable footer makes the last notification readable ABOVE Search.
-          // The shadow only appears when the footer itself is pulled upward.
+          // Keep the existing scroll extent, but let downward/upward drags
+          // starting in the empty area reach the lazy notification list.
+          // A narrow terminal strip retains the end-of-list rebound effect.
+          Spacer { width: noticeWidth; height: max(0, noticeTailSpace - 12) }
           Box {
             width: noticeWidth
-            height: noticeTailSpace
+            height: min(12, noticeTailSpace)
             drag: vertical
             onPress: {
               // Preserve any in-progress rebound when the footer is grabbed.
@@ -919,6 +959,9 @@ face "Omagara" {
       // Hit region stays fixed; the glyph transforms are visual only.
       ripple: false
       onPress: {
+        // Each alphabet opening re-arms the charm for this day.
+        holidayAnimPlaying = false
+        holidayPlayedStamp = ""
         appTracking = false
         appScroll = appOffset
         appVelocity = 0
@@ -1012,7 +1055,7 @@ face "Omagara" {
         replyKey = ""
         replyDraft = ""
       }
-      onTap: { browsing = true; activeSide = 0; railHeld = false; railSettingsSelected = false; railPull = 0 }
+      onTap: { holidayAnimPlaying = false; holidayPlayedStamp = ""; browsing = true; activeSide = 0; railHeld = false; railSettingsSelected = false; railPull = 0 }
       // A press is cancelled when the drag detector consumes its first move.
       // Keep the curve active in either detector order at that transition;
       // a real drag release/cancellation always clears both states below.
@@ -1076,20 +1119,36 @@ face "Omagara" {
           if cfg.shadeAlphabet && len(alphabet) > 0 {
             Canvas {
               width: railMaxReach + 44
-              height: railPaintHeight
-              offset: [alphabetSide == 1 ? -railMaxReach : 0, 0]
+              height: railPaintHeight + 24
+              offset: [alphabetSide == 1 ? -railMaxReach : 0, -12]
               // Use the same wave as the glyphs, sampled at every letter center.
               // In idle/drag states, retain the original four-point contour.
+              // Rounded mode trims only the two end clearances; square mode
+              // keeps its original coordinates and the glyphs never move.
+              let wormCapInset = cfg.roundAlphabet ? min(3, railStep * 0.15) : 0
               let wormSamples = map(range((len(alphabet) + 1) * contourSteps + 1), j => {
                 x: (alphabetSide == 1 ? railMaxReach + 22 : 22) - alphabetSide * railCurvePull *
                   (railCurveStrength > 0 ? (1 + cos(rad(min(abs(j / contourSteps - 0.5 - fingerPosition) / max(10, min(14, len(alphabet) * 0.58)), 1) * 180))) / 2 * railCurveStrength : 0) - alphabetSide * (wiggleActive ? wiggleOffsets[j] : 0),
-                y: cfg.roundAlphabet ? 12 + j / max(1, (len(alphabet) + 1) * contourSteps) * max(0, railPaintHeight - 24) : j * railStep / contourSteps
+                // Fade each inset over one cell so the cap and letter share a smooth outline.
+                y: 12 + j * railStep / contourSteps + wormCapInset * max(0, 1 - j / contourSteps) - wormCapInset * max(0, 1 - ((len(alphabet) + 1) * contourSteps - j) / contourSteps)
               })
-              path(map(wormSamples, p => [p.x - 12, p.y]) + reverse(map(wormSamples, p => [p.x + 12, p.y])), closed: true, fill: legibilityShade)
-              if cfg.roundAlphabet {
-                circle(first(wormSamples).x, first(wormSamples).y, 12, fill: legibilityShade)
-                circle(last(wormSamples).x, last(wormSamples).y, 12, fill: legibilityShade)
-              }
+              // Round each end as a real half-circle, sheared to follow the
+              // ribbon's local tangent when the thumb bends the alphabet.
+              // One translucent filled path prevents overlapping dark seams.
+              let wormTop = first(wormSamples)
+              let wormBottom = last(wormSamples)
+              // Use the actual sample spacing after the subtle cap inset.
+              let wormTopNext = get(wormSamples, 1, wormTop)
+              let wormBottomPrev = get(wormSamples, len(wormSamples) - 2, wormBottom)
+              let wormTopSlope = clamp((wormTopNext.x - wormTop.x) / max(1, wormTopNext.y - wormTop.y), -1.25, 1.25)
+              let wormBottomSlope = clamp((wormBottom.x - wormBottomPrev.x) / max(1, wormBottom.y - wormBottomPrev.y), -1.25, 1.25)
+              let wormLeft = map(wormSamples, p => [p.x - 12, p.y])
+              let wormRight = drop(reverse(map(wormSamples, p => [p.x + 12, p.y])), 1)
+              // Include the 180-degree end exactly, then skip its duplicate on the right edge.
+              let capAngles = map(range(16), i => rad((i + 1) * 11.25))
+              let wormBottomArc = map(capAngles, a => [wormBottom.x - 12 * cos(a) + 12 * wormBottomSlope * sin(a), wormBottom.y + 12 * sin(a)])
+              let wormTopArc = map(capAngles, a => [wormTop.x + 12 * cos(a) - 12 * wormTopSlope * sin(a), wormTop.y - 12 * sin(a)])
+              path(cfg.roundAlphabet ? wormLeft + wormBottomArc + wormRight + wormTopArc : wormLeft + wormRight, closed: true, fill: alphabetShade)
             }
           }
           Column {
@@ -1249,9 +1308,9 @@ face "Omagara" {
             fontSize: 20 * rowScale
             color: primaryText
             maxLines: 1
-            padding: cfg.shadeAppLabels && thumbView ? [2 * rowScale, 5 * rowScale] : [0, 0]
+            padding: cfg.shadeAppLabels && thumbView ? [16 * rowScale, 6 * rowScale] : [0, 0]
             background: cfg.shadeAppLabels && thumbView ? appLabelShade : transparent
-            radius: cfg.shadeAppLabels && cfg.roundAppLabels && thumbView ? 6 * rowScale : 0
+            radius: cfg.shadeAppLabels && cfg.roundAppLabels && thumbView ? 16 * rowScale : 0
           }
         }
         if a.profile != null {
@@ -1263,9 +1322,9 @@ face "Omagara" {
               fontSize: 11 * rowScale
               color: secondaryText
               maxLines: 1
-              padding: cfg.shadeAppLabels && thumbView ? [1 * rowScale, 5 * rowScale] : [0, 0]
+              padding: cfg.shadeAppLabels && thumbView ? [14 * rowScale, 5 * rowScale] : [0, 0]
               background: cfg.shadeAppLabels && thumbView ? appLabelShade : transparent
-              radius: cfg.shadeAppLabels && cfg.roundAppLabels && thumbView ? 4 * rowScale : 0
+              radius: cfg.shadeAppLabels && cfg.roundAppLabels && thumbView ? 11 * rowScale : 0
             }
           }
         }
@@ -1298,7 +1357,7 @@ face "Omagara" {
       padding: [screenLeft + 24, screenTop + 12, screenRight + 24, 0]
       visible: !browsing
       // One uniform-width rectangle behind the time, date and event.
-      // Preserve optional rounding only at the outer corners.
+      // Optional rounding is subtle; the header remains rectangular.
       Box {
         fill: width
         height: headerPadTop + headerShapeHeight
@@ -1310,9 +1369,9 @@ face "Omagara" {
             offset: [0, headerPadTop]
             let topRounded = cfg.clock ? cfg.roundTime : cfg.date ? cfg.roundDate : cfg.roundEvent
             let bottomRounded = cfg.event && todayEvent != null ? cfg.roundEvent : cfg.date ? cfg.roundDate : cfg.roundTime
+            // Restore the compact v1.6 outer-corner treatment, not a capsule.
             let topR = topRounded ? 8 : 0
             let bottomR = bottomRounded ? 8 : 0
-            // Single width for every row; keep the existing outer-corner options.
             let shadeWidth = min(headerShapeMax, 16 + max(cfg.clock ? headerClockWidth : 0, max(cfg.date ? headerDateWidth : 0, cfg.event && todayEvent != null ? headerEventWidth : 0)))
             let slices = map(range(ceil(headerShapeHeight / 2) + 1), i => min(headerShapeHeight, i * 2))
             let shapeEdge = map(slices, y => {
@@ -1387,7 +1446,7 @@ face "Omagara" {
       Box {
         width: appPanelWidth
         height: appPanelHeight
-        offset: [screenLeft + 48, appSafeTop + appElasticVisual]
+        offset: [screenLeft + appPanelInset, appSafeTop + appElasticVisual]
         clip: true
         drag: vertical
         onPress: {
@@ -1459,9 +1518,9 @@ face "Omagara" {
                     fontSize: 22 * appScale
                     color: secondaryText
                     maxLines: 1
-                    padding: cfg.shadeAppLabels ? [8 * appScale, 3 * appScale] : [0, 0]
+                    padding: cfg.shadeAppLabels ? [12 * appScale, 4 * appScale] : [0, 0]
                     background: cfg.shadeAppLabels ? appLabelShade : transparent
-                    radius: cfg.shadeAppLabels && cfg.roundAppLabels ? 4 * appScale : 0
+                    radius: cfg.shadeAppLabels && cfg.roundAppLabels ? 15 * appScale : 0
                   }
                 }
               } else if row.kind == "menuAction" {
@@ -1515,9 +1574,9 @@ face "Omagara" {
                       fontSize: 17 * appScale
                       color: primaryText
                       maxLines: 2
-                      padding: cfg.shadeAppLabels ? [2 * appScale, 5 * appScale] : [0, 0]
+                      padding: cfg.shadeAppLabels ? [14 * appScale, 6 * appScale] : [0, 0]
                       background: cfg.shadeAppLabels ? appLabelShade : transparent
-                      radius: cfg.shadeAppLabels && cfg.roundAppLabels ? 6 * appScale : 0
+                      radius: cfg.shadeAppLabels && cfg.roundAppLabels ? 15 * appScale : 0
                     }
                   }
                 }
@@ -1630,15 +1689,16 @@ face "Omagara" {
     }
     Box {
       fill: true
-      align: bottomEnd
-      padding: [0, 0, controlRight, searchBottom + 64]
+      align: closeSide == -1 ? "bottomStart" : "bottomEnd"
+      // Same edge: X stacks above Search. Opposite edges: align their bottoms.
+      padding: closeSide == -1 ? [controlLeft, 0, 0, searchBottom + (closeSide == controlSide ? 64 : 0)] : [0, 0, controlRight, searchBottom + (closeSide == controlSide ? 64 : 0)]
       visible: browsing && activeSide == 0
       Box {
         size: 48
         radius: cfg.roundClose ? 24 : 0
         border: cfg.bubbleBorder ? 1 : 0
         borderColor: border
-        background: alpha(surface, 0.85)
+        background: alpha(surface, cfg.shadeButtonOpacity / 100)
         align: center
         onTap: { appVelocity = 0; browsing = false; activeSide = 0; railHeld = false; draggingSide = 0; letter = first(liveAlphabet) ?? "A"; appScroll = 0; appAnchor = ""; queryText = ""; menu = ""; expandedStack = ""; replyKey = ""; replyDraft = "" }
         Text { text: "×"; font: chosenFont; fontSize: 26; color: primaryText; align: center }
@@ -1646,8 +1706,8 @@ face "Omagara" {
     }
     Box {
       fill: true
-      align: bottomEnd
-      padding: [0, 0, controlRight, searchBottom]
+      align: controlSide == -1 ? "bottomStart" : "bottomEnd"
+      padding: controlSide == -1 ? [controlLeft, 0, 0, searchBottom] : [0, 0, controlRight, searchBottom]
       Box {
         size: 48
         // Lower-letter magnification crosses this area; restore on release.
@@ -1655,7 +1715,7 @@ face "Omagara" {
         radius: cfg.roundSearch ? 24 : 0
         border: cfg.bubbleBorder ? 1 : 0
         borderColor: border
-        background: alpha(surface, 0.85)
+        background: alpha(surface, cfg.shadeButtonOpacity / 100)
         align: center
         onTap: { activeSide = 0; railHeld = false; draggingSide = 0; letter = first(liveAlphabet) ?? "A"; appScroll = 0; appAnchor = ""; menu = ""; appVelocity = 0; browsing = false; queryText = ""; expandedStack = ""; replyKey = ""; replyDraft = ""; screenMode = "search"; screen() }
         onLongPress: { menu = ""; activeSide = 0; railHeld = false; draggingSide = 0; appScroll = 0; appAnchor = ""; letter = first(liveAlphabet) ?? "A"; appVelocity = 0; browsing = false; resetConfirm = false; screenMode = "settings"; screen() }
@@ -1664,6 +1724,156 @@ face "Omagara" {
           size: 24
           circle(10, 10, 6, stroke: primaryText, width: 2)
           line(14.5, 14.5, 21, 21, stroke: primaryText, width: 2, cap: round)
+        }
+      }
+    }
+    // Passive L-shaped swipe cue: the elbow runs beside Search, then turns
+    // inward toward the six-dot grip. Mirror it with Search and close position.
+    // The cue has no touch handlers; Omalauncher owns the native home swipe.
+    if cfg.showSwipeCue && !browsing && activeSide == 0 {
+      let cueLeft = controlSide == -1
+      let cueElbowX = cueLeft ? 54 : 72
+      let cueDotX = cueLeft ? 90 : 32
+      Box {
+        fill: true
+        align: cueLeft ? "bottomStart" : "bottomEnd"
+        padding: cueLeft ? [controlLeft, 0, 0, searchBottom - 28] : [0, 0, controlRight, searchBottom - 28]
+        Canvas {
+          width: 126
+          height: 58
+          line(cueElbowX, 6, cueElbowX, 40, stroke: alpha(primaryText, 0.55), width: 1.8, cap: round)
+          line(cueElbowX, 40, cueLeft ? 78 : 48, 40, stroke: alpha(primaryText, 0.55), width: 1.8, cap: round)
+          line(cueLeft ? 106 : 20, 40, cueLeft ? 114 : 12, 40, stroke: alpha(primaryText, 0.55), width: 1.8, cap: round)
+          for y in [35, 40, 45] {
+            circle(cueDotX, y, 1.6, fill: alpha(primaryText, 0.86))
+            circle(cueDotX + 4, y, 1.6, fill: alpha(primaryText, 0.86))
+          }
+        }
+      }
+    }
+    // Only a 40x34dp area near the ornament accepts a tap.
+    // Search, notification scrolling, alphabet and native swipe remain clear.
+    if holidayMode != "None" && !holidaySpent && !holidayAnimPlaying && !browsing && activeSide == 0 {
+      Box {
+        fill: true
+        align: controlSide == -1 ? "bottomStart" : "bottomEnd"
+        padding: controlSide == -1 ? [controlLeft, 0, 0, searchBottom - 28] : [0, 0, controlRight, searchBottom - 28]
+        Box {
+          width: 126
+          height: 58
+          let ornamentX = controlSide == -1 ? 90 : 32
+          Canvas {
+            width: 126
+            height: 58
+            if holidayMode == "Halloween" {
+            let glow = cfg.reduceMotion ? 0.18 : 0.16 + 0.08 * (1 + sin(time * 1.8))
+            circle(ornamentX, 17, 12, fill: alpha(#F5A347, glow))
+            circle(ornamentX, 17, 9, fill: #E9852C)
+            // Tiny carved pumpkin, with a green stem and warm ridges.
+            line(ornamentX, 8, ornamentX + 1.2, 5, stroke: #68A26A, width: 2.2, cap: round)
+            line(ornamentX - 4, 12, ornamentX - 4, 22, stroke: alpha(#AE5B1B, 0.52), width: 1)
+            line(ornamentX + 4, 12, ornamentX + 4, 22, stroke: alpha(#AE5B1B, 0.52), width: 1)
+            path([[ornamentX - 5, 14], [ornamentX - 2, 11], [ornamentX - 1, 15]], closed: true, fill: #39261E)
+            path([[ornamentX + 1, 15], [ornamentX + 2, 11], [ornamentX + 5, 14]], closed: true, fill: #39261E)
+            path([[ornamentX - 5, 19], [ornamentX - 2, 22], [ornamentX + 2, 22], [ornamentX + 5, 19], [ornamentX + 2, 20], [ornamentX, 19], [ornamentX - 2, 20]], closed: true, fill: #39261E)
+          } else if holidayMode == "Christmas" {
+            // A single gently drifting snowflake, not continuous snowfall.
+            let snowY = 17 + (cfg.reduceMotion ? 0 : 1.7 * sin(time * 1.2))
+            for i in range(6) {
+              rotate(i * 60, ornamentX, snowY) {
+                line(ornamentX, snowY - 2, ornamentX, snowY - 10, stroke: #D7F5FF, width: 1.7, cap: round)
+                line(ornamentX, snowY - 7, ornamentX - 2.5, snowY - 9, stroke: #A6DFEE, width: 1.2, cap: round)
+                line(ornamentX, snowY - 7, ornamentX + 2.5, snowY - 9, stroke: #A6DFEE, width: 1.2, cap: round)
+              }
+            }
+            circle(ornamentX, snowY, 2.2, fill: #FFFFFF)
+            circle(ornamentX - 14, 22, 1.1, fill: alpha(#D7F5FF, 0.62))
+            circle(ornamentX + 14, 10, 1.1, fill: alpha(#D7F5FF, 0.62))
+          } else if holidayMode == "New Year" {
+            // Brief gold twinkle, with no confetti or persistent timers.
+            let shine = cfg.reduceMotion ? 0.82 : 0.68 + 0.16 * (1 + sin(time * 2.6))
+            for i in range(8) {
+              rotate(i * 45, ornamentX, 17) {
+                line(ornamentX, 12, ornamentX, i % 2 == 0 ? 4 : 8, stroke: alpha(#FFD778, shine), width: i % 2 == 0 ? 1.8 : 1.2, cap: round)
+              }
+            }
+            circle(ornamentX, 17, 2.6, fill: #FFEBB0)
+            circle(ornamentX - 15, 8, 1.4, fill: alpha(#FFDA81, shine))
+            circle(ornamentX + 15, 26, 1.4, fill: alpha(#FFDA81, shine))
+            }
+          }
+          Box {
+            width: 40
+            height: 34
+            offset: [ornamentX - 20, 0]
+            ripple: false
+            onTap: {
+              if cfg.reduceMotion {
+                holidayPlayedStamp = holidayStamp
+              } else {
+                holidayAnimStarted = time
+                holidayAnimPlaying = true
+              }
+            }
+          }
+        }
+      }
+    }
+    // Draw only during the active animation. This Canvas is pointer-free.
+    if holidayAnimPlaying && holidayMode != "None" && !browsing && activeSide == 0 && !cfg.reduceMotion {
+      Canvas {
+        width: tileWidth ?? 400
+        height: tileHeight ?? 800
+        let originX = controlSide == -1 ? controlLeft + 90 : (tileWidth ?? 400) - controlRight - 94
+        let originY = (tileHeight ?? 800) - searchBottom - 13
+        if holidayMode == "Halloween" {
+          // Roll inward, reverse, and disappear beyond the near screen edge.
+          let offscreen = controlSide == -1 ? originX + 24 : (tileWidth ?? 400) - originX + 24
+          let forward = clamp(holidayAge / 0.7, 0, 1)
+          let reverseT = clamp((holidayAge - 0.7) / 1.7, 0, 1)
+          let travel = holidayAge < 0.7 ? 55 * forward : 55 - (55 + offscreen) * reverseT
+          let x = originX + (controlSide == -1 ? 1 : -1) * travel
+          let y = originY - 1.4 * abs(sin(travel / 6))
+          circle(x, y, 13, fill: alpha(#F5A347, 0.18))
+          rotate((controlSide == -1 ? 1 : -1) * travel * 6.37, x, y) {
+            circle(x, y, 9, fill: #E9852C)
+            line(x, y - 9, x + 1.2, y - 12, stroke: #68A26A, width: 2.2, cap: round)
+            line(x - 4, y - 5, x - 4, y + 5, stroke: #AE5B1B, width: 1)
+            line(x + 4, y - 5, x + 4, y + 5, stroke: #AE5B1B, width: 1)
+            path([[x - 5, y - 3], [x - 2, y - 6], [x - 1, y - 2]], closed: true, fill: #39261E)
+            path([[x + 1, y - 2], [x + 2, y - 6], [x + 5, y - 3]], closed: true, fill: #39261E)
+            path([[x - 5, y + 2], [x - 2, y + 5], [x + 2, y + 5], [x + 5, y + 2]], closed: true, fill: #39261E)
+          }
+        } else if holidayMode == "Christmas" {
+          // Brief snow over the whole display; the ornament falls away.
+          let fade = clamp(holidayAge / 0.35, 0, 1) * clamp((holidayDuration - holidayAge) / 0.6, 0, 1)
+          for i in range(30) {
+            let snowX = 12 + (i * 73) % max(1, (tileWidth ?? 400) - 24) + 5 * sin(holidayAge * 1.25 + i * 2.4)
+            let snowY = ((i * 109) % max(1, (tileHeight ?? 800) + 40) + holidayAge * (34 + (i % 5) * 12)) % max(1, (tileHeight ?? 800) + 40) - 20
+            circle(snowX, snowY, i % 5 == 0 ? 2 : 1.2, fill: alpha(#DFF5FF, (i % 3 == 0 ? 0.85 : 0.58) * fade))
+          }
+          let x = originX + 11 * sin(holidayAge * 2.4)
+          let y = originY - 22 + holidayAge * 32
+          for i in range(6) {
+            rotate(i * 60 + holidayAge * 22, x, y) {
+              line(x, y - 3, x, y - 11, stroke: alpha(#D7F5FF, fade), width: 1.8, cap: round)
+              line(x, y - 8, x - 3, y - 10, stroke: alpha(#A6DFEE, fade), width: 1.2, cap: round)
+              line(x, y - 8, x + 3, y - 10, stroke: alpha(#A6DFEE, fade), width: 1.2, cap: round)
+            }
+          }
+          circle(x, y, 2.3, fill: alpha(#FFFFFF, fade))
+        } else if holidayMode == "New Year" {
+          // One brief expanding glow that fades entirely away.
+          let progress = clamp(holidayAge / holidayDuration, 0, 1)
+          let fade = clamp((holidayDuration - holidayAge) / 0.7, 0, 1)
+          circle(originX, originY, 15 + progress * 19, fill: alpha(#FFD36B, 0.21 * fade))
+          circle(originX, originY, 11 + progress * 5, fill: alpha(#FFE9A1, 0.30 * fade))
+          for i in range(8) {
+            rotate(i * 45, originX, originY) {
+              line(originX, originY - 4, originX, originY - (13 + 15 * progress), stroke: alpha(#FFD778, fade), width: 2.2, cap: round)
+            }
+          }
+          circle(originX, originY, 3.2, fill: alpha(#FFF5CB, fade))
         }
       }
     }
@@ -1740,7 +1950,7 @@ face "Omagara" {
         Flow {
           fill: width
           gap: 6
-          for section in ["Home", "Clock", "Apps", "Alphabet", "Notifications", "Appearance", "Backup"] {
+          for section in ["Home", "Clock", "Apps", "Alphabet", "Notifications", "Appearance", "Holidays", "Backup"] {
             Button {
               text: (settingsSection == section ? "✓ " : "") + section
               color: settingsSection == section ? accent : secondaryText
@@ -1858,8 +2068,24 @@ face "Omagara" {
               Flow {
                 fill: width
                 gap: 8
-                for edge in ["Right", "Left"] {
+                for edge in ["Left", "Right"] {
                   Button { text: (cfg.alphabetSide == edge ? "✓ " : "") + edge; onTap: prefs = set(prefs, "alphabetSide", edge) }
+                }
+              }
+              Text { text: "Search position"; font: chosenFont; fontSize: 15; padding: [0, 12, 0, 0] }
+              Flow {
+                fill: width
+                gap: 8
+                for edge in ["Left", "Right"] {
+                  Button { text: (cfg.controlSide == edge ? "✓ " : "") + edge; onTap: prefs = set(prefs, "controlSide", edge) }
+                }
+              }
+              Text { text: "X button position"; font: chosenFont; fontSize: 15; padding: [0, 12, 0, 0] }
+              Flow {
+                fill: width
+                gap: 8
+                for edge in ["Follow search", "Left", "Right"] {
+                  Button { text: (cfg.closeSide == edge ? "✓ " : "") + edge; onTap: prefs = set(prefs, "closeSide", edge) }
                 }
               }
               for pref in preferenceRows.filter(p => contains(["idleAlphabet", "hideEmpty", "leftInput", "centerNotificationsWithoutAlphabet", "curve"], p.key)) {
@@ -1889,12 +2115,23 @@ face "Omagara" {
                   Button { text: (cfg.textTone == tone ? "✓ " : "") + tone; onTap: prefs = set(prefs, "textTone", tone) }
                 }
               }
-              Text { text: "Text contrast"; font: chosenFont; fontSize: 15 }
-              Flow {
-                fill: width
-                gap: 8
-                for level in textContrastChoices {
-                  Button { text: (cfg.textContrast == level ? "✓ " : "") + level; onTap: prefs = set(prefs, "textContrast", level) }
+              if cfg.textTone == "Custom" {
+                Text { text: "Current hex: " + cfg.customTextHex; font: chosenFont; fontSize: 14; color: primaryText }
+                Flow {
+                  fill: width
+                  gap: 6
+                  for preset in customTextPresets {
+                    Button { text: preset.name + " (" + preset.hex + ")"; onTap: prefs = set(prefs, "customTextHex", preset.hex) }
+                  }
+                }
+                Input { text: customTextEntry; placeholder: "#RRGGBB"; onChange: customTextEntry = value }
+                if match(trim(customTextEntry), "^#[0-9A-Fa-f]{6}$") != null {
+                  Button { text: "Apply hex color"; onTap: { prefs = set(prefs, "customTextHex", upper(trim(customTextEntry))); customTextEntry = "" } }
+                } else if trim(customTextEntry) != "" {
+                  Text { text: "Enter a six-digit hex color (example: #FFFFFF)."; font: chosenFont; fontSize: 12; color: muted }
+                }
+                if cfg.customTextHex != "#FAFAFA" {
+                  Button { text: "Reset custom color (#FAFAFA)"; onTap: { prefs = set(prefs, "customTextHex", "#FAFAFA"); customTextEntry = "" } }
                 }
               }
               Text { text: "Font"; font: chosenFont; fontSize: 15 }
@@ -1906,8 +2143,39 @@ face "Omagara" {
                 }
               }
               Text { text: "Shading & motion"; color: accent; font: chosenFont; fontSize: 16; padding: [0, 12, 0, 2] }
-              for pref in preferenceRows.filter(p => contains(["reduceMotion", "shadeHeader", "shadeAlphabet", "shadeNoticeLabels", "shadeAppLabels"], p.key)) {
+              for pref in preferenceRows.filter(p => contains(["reduceMotion", "shadeHeader", "shadeAlphabet", "shadeNoticeLabels", "shadeAppLabels", "showSwipeCue"], p.key)) {
                 SettingToggle { pref: pref }
+              }
+              Text { text: "Shade color"; font: chosenFont; color: accent; fontSize: 16; padding: [0, 12, 0, 2] }
+              Flow {
+                fill: width
+                gap: 6
+                for shadeMode in shadeColorChoices {
+                  Button { text: (cfg.shadeColorMode == shadeMode ? "✓ " : "") + shadeMode; onTap: prefs = set(prefs, "shadeColorMode", shadeMode) }
+                }
+              }
+              if cfg.shadeColorMode == "Custom" {
+                Text { text: "Current shade hex: " + cfg.shadeCustomHex; font: chosenFont; fontSize: 14; color: secondaryText }
+                Input { text: customShadeEntry; placeholder: "#RRGGBB"; onChange: customShadeEntry = value }
+                if match(trim(customShadeEntry), "^#[0-9A-Fa-f]{6}$") != null {
+                  Button { text: "Apply shade color"; onTap: { prefs = set(prefs, "shadeCustomHex", upper(trim(customShadeEntry))); customShadeEntry = "" } }
+                } else if trim(customShadeEntry) != "" {
+                  Text { text: "Enter a six-digit hex color (example: #333333)."; font: chosenFont; fontSize: 12; color: secondaryText }
+                }
+              }
+              if cfg.shadeColorMode != "Theme" {
+                Button { text: "Reset shade color to Theme"; onTap: { prefs = set(prefs, "shadeColorMode", "Theme"); customShadeEntry = "" } }
+              }
+              Text { text: "Shade opacity"; font: chosenFont; color: accent; fontSize: 16; padding: [0, 12, 0, 2] }
+              for shadeControl in shadeOpacityControls {
+                Text { text: shadeControl.name + ": " + str(get(cfg, shadeControl.key)) + "%"; font: chosenFont; color: secondaryText; fontSize: 14 }
+                Slider { value: get(cfg, shadeControl.key); min: 0; max: 100; step: 1; live: true; onChange: prefs = set(prefs, shadeControl.key, clamp(round(value), 0, 100)) }
+                if get(cfg, shadeControl.key) != get(defaults, shadeControl.key) {
+                  Button {
+                    text: "Reset to default (" + str(get(defaults, shadeControl.key)) + "%)"
+                    onTap: prefs = set(prefs, shadeControl.key, get(defaults, shadeControl.key))
+                  }
+                }
               }
               Row {
                 fill: width
@@ -1919,9 +2187,42 @@ face "Omagara" {
                 Text { text: cfg.bubbleBorder ? "ON" : "OFF"; color: cfg.bubbleBorder ? accent : muted; font: chosenFont; fontSize: 14 }
               }
               Text { text: "Rounded corners"; color: accent; font: chosenFont; fontSize: 16; padding: [0, 12, 0, 2] }
-              for pref in preferenceRows.filter(p => contains(["roundTime", "roundDate", "roundEvent", "roundAlphabet", "roundNotifications", "roundNoticeHeading", "roundClearAll", "roundSearch", "roundClose", "roundLetterCue", "roundCalendar", "roundAppLabels"], p.key)) {
+              // One tap rounds every surface, or squares every surface when all
+              // are currently on. Individual toggles still work independently.
+              Row {
+                fill: width
+                gap: 8
+                align: center
+                padding: [12, 14]
+                background: alpha(surface, 0.30)
+                onTap: prefs = reduce(roundingKeys, (m, k) => set(m, k, !allRounded), prefs)
+                Text { text: "All rounded corners"; font: chosenFont; fontSize: 15; weight: 1 }
+                Text { text: allRounded ? "ON" : anyRounded ? "CUSTOM" : "OFF"; font: chosenFont; fontSize: 14; color: allRounded ? accent : muted }
+              }
+              for pref in preferenceRows.filter(p => contains(roundingKeys, p.key)) {
                 SettingToggle { pref: pref }
               }
+            } else if shownSection == "Holidays" {
+              Text { text: "Holiday Easter eggs"; color: accent; font: chosenFont; fontSize: 18; padding: [0, 8, 0, 4] }
+              Text { text: "Small seasonal decorations near Search and a subtle alphabet tint. No new permissions or packages."; font: chosenFont; fontSize: 13; color: secondaryText }
+              for pref in preferenceRows.filter(p => p.key == "holidayEasterEggs") {
+                SettingToggle { pref: pref }
+              }
+              Text { text: "Automatic dates: Oct 31, Dec 25, Jan 1 (phone local time)."; font: chosenFont; fontSize: 13; color: secondaryText }
+              Text { text: "Current effect: " + (holidayMode == "None" ? "None" : holidayMode) + (holidayPreview == "Auto" ? " · Automatic" : " · Preview"); font: chosenFont; fontSize: 14; color: accent; padding: [0, 12, 0, 0] }
+              Text { text: "Preview any holiday now"; font: chosenFont; fontSize: 16 }
+              Flow {
+                fill: width
+                gap: 8
+                for holidayChoice in holidayPreviewChoices {
+                  Button {
+                    text: (holidayPreview == holidayChoice ? "✓ " : "") + (holidayChoice == "Auto" ? "Stop preview / Auto" : "Preview " + holidayChoice)
+                    onTap: { holidayPreview = holidayChoice; holidayAnimPlaying = false; holidayPlayedStamp = ""; close() }
+                  }
+                }
+              }
+              Text { text: "Tap the holiday ornament near Search to play it. When it disappears, opening the alphabet resets it. Previews work even with automatic effects OFF."; font: chosenFont; fontSize: 12; color: secondaryText }
+              Text { text: "Reduce motion skips animation: tap the ornament to dismiss it."; font: chosenFont; fontSize: 12; color: secondaryText }
             } else {
               Text { text: "Backup & reset"; color: accent; font: chosenFont; fontSize: 18; padding: [0, 8, 0, 4] }
               Text { text: "Export or restore Omagara preferences."; font: chosenFont; fontSize: 13; color: secondaryText }
@@ -1931,12 +2232,12 @@ face "Omagara" {
           text: "Import Omagara settings"
           onTap: {
             let imported = parseJson(importText)
-            if imported.version == 1 && all(keys(defaults), k => k == "appScale" ? get(imported.prefs, k) == null || contains(appScaleChoices, get(imported.prefs, k)) : k == "hapticFeedback" ? get(imported.prefs, k) == null || contains(hapticChoices, get(imported.prefs, k)) : k == "bubbleBorder" ? get(imported.prefs, k) == null || get(imported.prefs, k) == true || get(imported.prefs, k) == false : k == "iconStyle" ? get(imported.prefs, k) == null || contains(iconStyleChoices, get(imported.prefs, k)) : k == "iconOverlayOpacity" ? get(imported.prefs, k) == null || contains(iconOverlayChoices, get(imported.prefs, k)) : k == "faceFont" ? get(imported.prefs, k) == null || contains(faceFontChoices, get(imported.prefs, k)) : k == "textTone" ? get(imported.prefs, k) == null || contains(textToneChoices, get(imported.prefs, k)) : k == "textContrast" ? get(imported.prefs, k) == null || contains(textContrastChoices, get(imported.prefs, k)) : k == "timeFormat" ? get(imported.prefs, k) == null || get(imported.prefs, k) == "System" || contains(timeFormatChoices, get(imported.prefs, k)) : k == "alphabetSide" ? get(imported.prefs, k) == null || contains(["Left", "Right"], get(imported.prefs, k)) : get(imported.prefs, k) == true || get(imported.prefs, k) == false || (k == "calculator" || k == "searchContacts" || k == "notificationTimes") && get(imported.prefs, k) == null) && sub(toJson(imported.zones), 0, 1) == "[" && all(imported.zones, z => contains(zoneChoices, z)) {
+            if imported.version == 1 && all(keys(defaults), k => (k == "shadeHeaderOpacity" || k == "shadeAlphabetOpacity" || k == "shadeNoticeOpacity" || k == "shadeCardOpacity" || k == "shadeAppOpacity" || k == "shadeButtonOpacity") ? get(imported.prefs, k) == null || contains(range(101), get(imported.prefs, k)) : k == "appScale" ? get(imported.prefs, k) == null || contains(appScaleChoices, get(imported.prefs, k)) : k == "hapticFeedback" ? get(imported.prefs, k) == null || contains(hapticChoices, get(imported.prefs, k)) : k == "bubbleBorder" ? get(imported.prefs, k) == null || get(imported.prefs, k) == true || get(imported.prefs, k) == false : k == "iconStyle" ? get(imported.prefs, k) == null || contains(iconStyleChoices, get(imported.prefs, k)) : k == "iconOverlayOpacity" ? get(imported.prefs, k) == null || contains(iconOverlayChoices, get(imported.prefs, k)) : k == "faceFont" ? get(imported.prefs, k) == null || contains(faceFontChoices, get(imported.prefs, k)) : k == "textTone" ? get(imported.prefs, k) == null || contains(textToneChoices, get(imported.prefs, k)) : k == "textContrast" ? get(imported.prefs, k) == null || contains(textContrastChoices, get(imported.prefs, k)) : k == "customTextHex" ? get(imported.prefs, k) == null || match(get(imported.prefs, k), "^#[0-9A-Fa-f]{6}$") != null : k == "shadeColorMode" ? get(imported.prefs, k) == null || contains(shadeColorChoices, get(imported.prefs, k)) : k == "shadeCustomHex" ? get(imported.prefs, k) == null || match(get(imported.prefs, k), "^#[0-9A-Fa-f]{6}$") != null : k == "timeFormat" ? get(imported.prefs, k) == null || get(imported.prefs, k) == "System" || contains(timeFormatChoices, get(imported.prefs, k)) : k == "alphabetSide" ? get(imported.prefs, k) == null || contains(["Left", "Right"], get(imported.prefs, k)) : k == "controlSide" ? get(imported.prefs, k) == null || contains(["Left", "Right"], get(imported.prefs, k)) : k == "closeSide" ? get(imported.prefs, k) == null || contains(["Follow search", "Left", "Right"], get(imported.prefs, k)) : k == "showSwipeCue" || k == "holidayEasterEggs" ? get(imported.prefs, k) == null || get(imported.prefs, k) == true || get(imported.prefs, k) == false : get(imported.prefs, k) == true || get(imported.prefs, k) == false || (k == "calculator" || k == "searchContacts") && get(imported.prefs, k) == null) && sub(toJson(imported.zones), 0, 1) == "[" && all(imported.zones, z => contains(zoneChoices, z)) {
               letter = highlightedLetter; appTracking = false
-              prefs = reduce(keys(defaults), (m, k) => set(m, k, k == "searchContacts" ? false : k == "timeFormat" && get(imported.prefs, k) == "System" ? "24-hour" : (get(imported.prefs, k) ?? get(defaults, k))), {})
+              prefs = reduce(keys(defaults), (m, k) => set(m, k, k == "searchContacts" ? false : k == "textContrast" ? "High" : k == "timeFormat" && get(imported.prefs, k) == "System" ? "24-hour" : (get(imported.prefs, k) ?? get(defaults, k))), {})
               worldZones = unique(imported.zones ?? [])
               importStatus = "Settings imported"
-            } else { importStatus = "Invalid settings: export version 1 with boolean preferences, Application Scale 75–115 in steps of 5, valid haptic mode, icon style/overlay, face font, text color/contrast, bubble shape/border, and supported zones required" }
+            } else { importStatus = "Invalid settings: export version 1 with valid preferences, shade opacity 0–100, app scale 75–115, haptic mode, icon style, font, text settings, and supported zones required" }
           }
         }
         if importStatus != "" { Text { text: importStatus; fontSize: 13; color: muted } }
@@ -1944,7 +2245,7 @@ face "Omagara" {
         if resetConfirm {
           Text { text: "Reset Omagara appearance and world clocks?"; font: chosenFont }
           Row {
-            Button { text: "Confirm reset"; onTap: { letter = highlightedLetter; appTracking = false; prefs = {}; worldZones = []; resetConfirm = false; importText = ""; importStatus = "" } }
+            Button { text: "Confirm reset"; onTap: { letter = highlightedLetter; appTracking = false; prefs = {}; worldZones = []; holidayPreview = "Auto"; holidayAnimPlaying = false; holidayPlayedStamp = ""; resetConfirm = false; importText = ""; customTextEntry = ""; customShadeEntry = ""; importStatus = "" } }
             Button { text: "Cancel"; onTap: resetConfirm = false }
           }
         }
@@ -2065,7 +2366,7 @@ face "Omagara" {
                 Column {
                   fill: width
                   padding: [12, 16]
-                  radius: cfg.roundCalendar ? 12 : 0
+                  radius: cfg.roundCalendar ? 999 : 0
                   border: cfg.bubbleBorder ? 1 : 0
                   borderColor: border
                   background: surface
