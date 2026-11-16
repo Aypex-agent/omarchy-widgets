@@ -2,7 +2,7 @@ widget "next bus" {
   size: 6x2
   minSize: 4x2
   requires { pacman: [] }
-  meta { description: "Your next bus, tram or train, live, and whether you need to run for it: pick a stop, a line and how long you walk there, anywhere Transitous has open timetables. Tap the tile to change them"; version: "1.7"; license: "MIT"; category: "world"; owl: 17 }
+  meta { description: "Your next bus, tram or train, live, and whether you need to run for it: pick a stop, a line and how long you walk there, anywhere Transitous has open timetables. Tap the tile to change them"; version: "1.8"; license: "MIT"; category: "world"; owl: 17 }
 
   // What it says, in the phone's language where it has a set. Stops, lines and directions come as Transitous
   // names them. leaveNow and run sit in a 170dp column at 22 and 26sp: about 12 letters at most.
@@ -94,6 +94,17 @@ widget "next bus" {
       search: "停留所を検索"; change: "停留所を変更"; searching: "検索中…"; noStops: q => "「${q}」という停留所はありません"
       yourLine: "いつもの路線"; anyLine: "すべての路線"; whatever: "先に出る便"; walkTo: "停留所までの徒歩"
       data: "データ: Transitous（公開時刻表）。運行会社がリアルタイムの時刻を公開している路線では遅れも表示されます"
+    }
+    uk {
+      title: "найближчий автобус"; relax: "не поспішайте"; leaveInMin: m => "вихід через ${m} хв"; leaveIn: "вихід через"; leaveNow: "виходьте"
+      brisk: "ідіть швидше"; run: "бігом!"; toStop: t => "${t} до зупинки"
+      pick: "Торкніться, щоб вибрати зупинку, лінію і час пішки до неї."; nothing: "найближчих рейсів немає"
+      to: d => "→ ${d}"; walkMin: m => "${m} хв пішки"; fromWalk: (stop, m) => "${stop} · ${m} хв пішки"
+      min: "хв"; mins: m => "${m} хв"; yourStop: "ваша зупинка"; timetable: "за розкладом"; onTime: "вчасно"; then: "потім"
+      noneLater: "наступних поки немає"; noLater: "наступних поки немає"; tooMany: "забагато запитів"; offline: "transitous офлайн"
+      search: "знайти зупинку"; change: "змінити зупинку"; searching: "пошук…"; noStops: q => "немає зупинок «${q}»"
+      yourLine: "ваша лінія"; anyLine: "будь-яка лінія"; whatever: "що поїде першим"; walkTo: "пішки до зупинки"
+      data: "дані: Transitous, з відкритих розкладів. Затримки видно там, де перевізник публікує дані в реальному часі"
     }
   }
 

@@ -2,7 +2,7 @@ widget "notifications" {
   size: 3x4
   minSize: 3x3
   requires { pacman: [] }
-  meta { description: "Your phone's notifications on the home screen, newest first, with a count per app. Tap one to open it, × to dismiss it; tap the tile for all of them by app"; version: "1.5"; license: "MIT"; category: "productivity"; owl: 16 }
+  meta { description: "Your phone's notifications on the home screen, newest first, with a count per app. Tap one to open it, × to dismiss it; tap the tile for all of them by app"; version: "1.6"; license: "MIT"; category: "productivity"; owl: 16 }
 
   // What it says, in the phone's language where it has a set. Apps and their notifications come as they are.
   strings {
@@ -45,6 +45,11 @@ widget "notifications" {
       title: "通知"; now: "今"; minutes: n => "${n} 分"; hours: n => "${n} 時間"; days: n => "${n} 日"
       allow: "ここに表示するには、通知へのアクセスを許可してください。タップすると設定が開きます。"
       loading: "読み込み中…"; caughtUp: "新しい通知はありません"; more: n => "ほか ${n} 件"
+    }
+    uk {
+      title: "сповіщення"; now: "зараз"; minutes: n => "${n} хв"; hours: n => "${n} год"; days: n => "${n} дн"
+      allow: "Надайте доступ до сповіщень, щоб бачити їх тут. Торкніться, щоб відкрити налаштування."
+      loading: "завантаження…"; caughtUp: "усе прочитано"; more: n => "і ще ${n}"
     }
   }
 

@@ -1,5 +1,5 @@
 widget "earthquakes" {
-  meta { description: "Earthquakes of magnitude 4.5 and up worldwide in the last day, from the USGS"; version: "1.7"; license: "MIT"; category: "world"; owl: 16 }
+  meta { description: "Earthquakes of magnitude 4.5 and up worldwide in the last day, from the USGS"; version: "1.8"; license: "MIT"; category: "world"; owl: 16 }
 
   // What it says, in the phone's language where it has a set. Places come as the USGS writes them.
   strings {
@@ -11,6 +11,7 @@ widget "earthquakes" {
     zh { title: "地震 · 24h"; summary: (n, max) => "${n} · 最大 ${max}"; minutes: n => "${n}m"; hours: n => "${n}h" }
     ru { title: "землетрясения · 24ч"; summary: (n, max) => "${n} · макс ${max}"; minutes: n => "${n}мин"; hours: n => "${n} ч" }
     ja { title: "地震 · 24時間"; summary: (n, max) => "${n} 件 · 最大 ${max}"; minutes: n => "${n}分"; hours: n => "${n}時間" }
+    uk { title: "землетруси · 24 год"; summary: (n, max) => "${n} · макс ${max}"; minutes: n => "${n}хв"; hours: n => "${n}год" }
   }
   size: 6x3
   minSize: 3x2

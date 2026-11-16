@@ -2,7 +2,7 @@ widget "bundesliga" {
   meta {
     owl: 17
     description: "Bundesliga results, live scores and kick-offs from ESPN with club crests, and the table with European and relegation places. Tap for every match"
-    version: "1.8"
+    version: "1.9"
     license: "MIT"
     category: "sport"
   }
@@ -17,6 +17,7 @@ widget "bundesliga" {
     zh { matches: "比赛"; table: "积分榜"; loading: "正在加载…"; none: "本周没有比赛"; close: "关闭"; live: n => "${n} 场进行中" }
     ru { matches: "матчи"; table: "таблица"; loading: "загрузка…"; none: "на этой неделе матчей нет"; close: "закрыть"; live: n => "идут: ${n}" }
     ja { matches: "試合"; table: "順位表"; loading: "読み込み中…"; none: "今週は試合がありません"; close: "閉じる"; live: n => "ライブ ${n}" }
+    uk { matches: "матчі"; table: "таблиця"; loading: "завантаження…"; none: "цього тижня матчів немає"; close: "закрити"; live: n => "наживо: ${n}" }
   }
   size: 6x4
   minSize: 3x3

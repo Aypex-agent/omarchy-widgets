@@ -1,5 +1,5 @@
 widget "github trending" {
-  meta { description: "The most-starred GitHub repositories created in the last week; tap one to open it"; version: "1.7"; license: "MIT"; category: "dev"; owl: 16 }
+  meta { description: "The most-starred GitHub repositories created in the last week; tap one to open it"; version: "1.8"; license: "MIT"; category: "dev"; owl: 16 }
 
   // What it says, in the phone's language where it has a set.
   strings {
@@ -11,6 +11,7 @@ widget "github trending" {
     zh { title: "github 热门 · 本周" }
     ru { title: "github trending · за неделю" }
     ja { title: "github トレンド · 今週" }
+    uk { title: "github trending · за тиждень" }
   }
   size: 6x4
   minSize: 4x3

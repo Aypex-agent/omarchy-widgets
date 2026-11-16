@@ -1,5 +1,5 @@
 widget "uptime" {
-  meta { description: "Up or down, HTTP status and response time for the sites listed in ~/.config/omarchy-proot/uptime"; version: "1.6"; license: "MIT"; category: "dev"; owl: 16 }
+  meta { description: "Up or down, HTTP status and response time for the sites listed in ~/.config/omarchy-proot/uptime"; version: "1.7"; license: "MIT"; category: "dev"; owl: 16 }
 
   // What it says, in the phone's language where it has a set. A timeout stays "timeout": its column fits about 9 letters.
   strings {
@@ -11,6 +11,7 @@ widget "uptime" {
     zh { title: "在线状态"; down: n => "${n} 个宕机"; allUp: "全部在线" }
     ru { title: "аптайм"; down: n => "недоступно: ${n}"; allUp: "всё работает" }
     ja { title: "稼働状況"; down: n => "${n} 件ダウン"; allUp: "すべて稼働中" }
+    uk { title: "аптайм"; down: n => "недоступно: ${n}"; allUp: "усе працює" }
   }
   size: 6x3
   minSize: 3x2

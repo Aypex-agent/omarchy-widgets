@@ -1,5 +1,5 @@
 widget "planes overhead" {
-  meta { description: "Aircraft around you on a live radar, from the OpenSky Network, located by IP or a city you type, via wttr.in. Tap it for every flight's altitude, speed and distance"; version: "1.7"; license: "MIT"; category: "world"; owl: 17 }
+  meta { description: "Aircraft around you on a live radar, from the OpenSky Network, located by IP or a city you type, via wttr.in. Tap it for every flight's altitude, speed and distance"; version: "1.8"; license: "MIT"; category: "world"; owl: 17 }
 
   // What it says, in the phone's language where it has a set. Callsigns and OpenSky's country names stay as they come.
   strings {
@@ -58,6 +58,13 @@ widget "planes overhead" {
       clear: r => "半径 ${r} 以内に飛行機はいません"; away: (call, d) => "${call} · ${d} 先"
       flights: (n, r, place) => "${place} の半径 ${r} 以内に ${n} 機"
       data: "データ: opensky network"; map: "ライブマップ ↗"
+    }
+    uk {
+      title: "літаки над вами"; city: "місто · порожньо = авто"; locating: "визначаємо місцезнаходження…"; unknown: "місцезнаходження невідоме"
+      listening: "слухаємо…"; limit: "денний ліміт opensky вичерпано"; offline: "opensky офлайн"
+      clear: r => "у радіусі ${r} літаків немає"; away: (call, d) => "${call} · ${d} від вас"
+      flights: (n, r, place) => "${place}: ${n} " + (n % 10 == 1 && n % 100 != 11 ? "рейс" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "рейси" : "рейсів") + " у радіусі ${r}"
+      data: "дані: opensky network"; map: "карта наживо ↗"
     }
   }
   size: 3x3

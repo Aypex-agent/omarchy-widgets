@@ -1,5 +1,5 @@
 widget "air and pollen" {
-  meta { description: "Air quality and today's pollen where you are, from Open-Meteo (Copernicus), located by IP or a city you type, via wttr.in. Tap it for the next 24 hours, pollutants and every pollen type"; version: "1.8"; license: "MIT"; category: "world"; owl: 17 }
+  meta { description: "Air quality and today's pollen where you are, from Open-Meteo (Copernicus), located by IP or a city you type, via wttr.in. Tap it for the next 24 hours, pollutants and every pollen type"; version: "1.9"; license: "MIT"; category: "world"; owl: 17 }
 
   // What it says, in the phone's language where it has a set. us and eu are the two indexes' levels, good
   // to worst, in each agency's words where it has them; advice goes with them, pollen is none to high.
@@ -117,6 +117,21 @@ widget "air and pollen" {
       ozone: "オゾン"; uvIndex: "UV 指数"; pollenLong: "花粉 · 今後 24 時間"
       europeOnlyLong: "open-meteo の花粉予報はヨーロッパのみです。"; peak: v => "最大 ${v}"
       data: "データ: copernicus atmosphere monitoring service（open-meteo 経由）"
+    }
+    uk {
+      title: "повітря і пилок"; air: "повітря"; city: "місто · порожньо = авто"; unknown: "місцезнаходження невідоме"; offline: "open-meteo офлайн"
+      us: ["добре", "помірно", "шкідливо для деяких", "шкідливо", "дуже шкідливо", "небезпечно"]
+      eu: ["добре", "прийнятно", "помірно", "погано", "дуже погано", "вкрай погано"]
+      advice: ["чудовий час для прогулянки", "можна спокійно займатися звичними справами надворі", "чутливим людям краще не перенапружуватися надворі", "варто зменшити навантаження надворі", "краще менше бувати надворі", "уникайте активності надворі"]
+      pollen: ["немає", "мало", "середньо", "багато"]
+      plant: k => get({"birch": "береза", "alder": "вільха", "olive": "олива", "grass": "злаки", "mugwort": "полин", "ragweed": "амброзія"}, k, k)
+      plantLevel: (plant, level) => "${plant}: ${level}"
+      pollenLevel: (plant, level) => "пилок " + get({"береза": "берези", "вільха": "вільхи", "олива": "оливи", "злаки": "злаків", "полин": "полину", "амброзія": "амброзії"}, plant, plant) + ": ${level}"
+      noPollen: "пилку немає"; uv: v => "уф ${v}"; pollenShort: "пилок · найближчі 24 год"; europeOnly: "тут немає прогнозу пилку (лише європа)"
+      noneInAir: "пилку в повітрі немає"; next24: "найближчі 24 години"; now: "зараз"; pollutants: "забруднювачі зараз · мкг/м³"
+      ozone: "озон"; uvIndex: "уф-індекс"; pollenLong: "пилок · найближчі 24 години"
+      europeOnlyLong: "open-meteo прогнозує пилок лише в європі."; peak: v => "пік ${v}"
+      data: "дані: copernicus atmosphere monitoring service через open-meteo"
     }
   }
   size: 3x2

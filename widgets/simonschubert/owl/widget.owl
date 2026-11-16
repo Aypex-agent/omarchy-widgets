@@ -1,5 +1,5 @@
 widget "owl" {
-  meta { owl: 19; description: "A pixel owl to look after. Tap to hatch it, feed it and pet it; it sleeps at night and dances to your music"; version: "1.8"; license: "MIT"; category: "pets" }
+  meta { owl: 19; description: "A pixel owl to look after. Tap to hatch it, feed it and pet it; it sleeps at night and dances to your music"; version: "1.9"; license: "MIT"; category: "pets" }
   // Breathing, blinking and dancing step a few times a second: 10 is plenty. The rocking egg and the hop
   // and flap after a tap are smooth motion, so 30 for those.
   fps: time >= tapAt && time - tapAt < 3 ? 30 : !hatched ? (modes.saver ? 15 : 30) : modes.saver ? 5 : 10
@@ -55,6 +55,11 @@ widget "owl" {
       eggShort: "タップでふ化"; egg: "たまご · タップでふ化"; hungryShort: "タップでごはん"; hungry: "はらぺこ · タップでごはん"
       music: "音楽"; minutes: n => "${n} 分"; hours: n => "${n} 時間"
       day: d => "${d} 日目"; tiredShort: b => "へとへと · ${b}%"; tired: b => "へとへと · バッテリー ${b}%"; fed: t => "ごはんは ${t}前"
+    }
+    uk {
+      eggShort: "яйце · торкніться"; egg: "яйце · торкніться, і сова вилупиться"; hungryShort: "нагодувати"; hungry: "голодна · торкніться, щоб нагодувати"
+      music: "музика"; minutes: n => "${n} хв"; hours: n => "${n} год"
+      day: d => "день ${d}"; tiredShort: b => "втомилася · ${b}%"; tired: b => "втомилася · заряд ${b}%"; fed: t => "нагодована ${t} тому"
     }
   }
 
