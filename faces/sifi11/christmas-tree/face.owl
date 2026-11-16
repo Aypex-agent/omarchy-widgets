@@ -1,0 +1,218 @@
+face "christmas tree" {
+  meta { owl: 19; description: "A fullscreen Christmas night: a tree hung with Tux and omarchy-logo baubles, twinkling lights, snow and a live countdown to christmas"; version: "1.0"; license: "MIT"; category: "fun" }
+  statusBar: false
+  padding: 0
+  edge: true               // it runs under the navigation bar too
+  fps: 12                  // the snow, the twinkling lights and the star pulse
+
+  background: linear(0, 0, 0, 1, [mix(color0, blue, 0.3), mix(color0, blue, 0.45), mix(color0, blue, 0.6)])
+
+  source now = clock every 1s
+
+  // The countdown: midnight of this year's 25th, else next year's.
+  let yr = num(fmtTime(now, "y"))
+  let thisXmas = parseTime("${yr}-12-25")
+  let nextXmas = parseTime("${yr + 1}-12-25")
+  let isXmas = now >= thisXmas && now < thisXmas + 86400
+  let target = now < thisXmas ? thisXmas : nextXmas
+  let s = isXmas ? 0 : max(0, floor(target - now))
+  let days = floor(s / 86400)
+  let hh = floor((s % 86400) / 3600)
+  let mm = floor((s % 3600) / 60)
+  let ss = s % 60
+  let soon = days <= 7
+
+  let top = screenTop ?? 0
+  let bottom = screenInset ?? 0
+  // Turned on its side the phone is too low for the tree above the countdown: the tree
+  // moves to the left at the full height and the countdown stands beside it.
+  let land = (tileWidth ?? 0) > (tileHeight ?? 1)
+  let lights = [red, green, yellow, blue, magenta, cyan, orange, accent]
+
+  // Tux in a santa hat: one letter per art pixel, "." empty.
+  let tuxArt = [
+    "......ppp.......",
+    ".....ppppp......",
+    "....rrrrrrr.....",
+    "...rrrrrrrrr....",
+    "..rrrrrrrrrrr...",
+    ".WWWWWWWWWWWWW..",
+    ".bbbbbbbbbbbbb..",
+    ".bbbwwbbbbwwbb..",
+    ".bbbwwbbbbwwbb..",
+    ".bbbbooooobbbb..",
+    ".ggggggggggggg..",
+    "bbbbwwwwwwwbbbb.",
+    "bbbwwwwwwwwwbbb.",
+    "bbbwwwwwwwwwbbb.",
+    "bbbwwwwwwwwwbbb.",
+    ".bbwwwwwwwwwbb..",
+    ".bbbwwwwwwwbbb..",
+    "..bbwwwwwwwbb...",
+    "..bbbbbbbbbbb...",
+    "..ooo....ooo...."
+  ]
+  let tuxPal = {
+    p: foreground,                          // pom
+    r: red,                                 // hat
+    W: mix(foreground, background, 0.15),   // trim
+    b: mix(color0, foreground, 0.3),        // body
+    w: foreground,                          // eyes, belly
+    o: orange,                              // beak, feet
+    g: green                                // scarf
+  }
+
+  // The omarchy mark, from the distro's own icon: one letter per art pixel.
+  let omaArt = [
+    "mmmmmmmmmmmmmmmmmmmmmmmmmmm",
+    "mm..........mmm..........mm",
+    "mm..mmmmmmmmmmm....mmmm..mm",
+    "mm..mm...............mm..mm",
+    "mm..mm...............mm..mm",
+    "mm..mm...............mm..mm",
+    "mmmmmm...............mm..mm",
+    "mm..mm...............mm..mm",
+    "mm..mm...............mm..mm",
+    "mm..mm...............mm..mm",
+    "mm..mmmmmmmmmmmmmmmmmmm..mm",
+    "mm..........mmm..........mm",
+    "mmmmmmmmmmmmmmm..mmmmmmmmmm"
+  ]
+  let omaPal = { m: green }
+
+  Box {
+    fill: true
+    Canvas {
+      fill: true
+      // The tree's frame: apex, base, half width and the snowy ground under it.
+      let cx = land ? width * 0.28 : width / 2
+      let tA = top + (land ? 62 : 76)
+      let tB = land ? height - bottom - 56 : height - 182
+      let tH = tB - tA
+      // The baubles shrink with a short tree, so they don't hang over each other.
+      let k = clamp(tH / 420, 0.55, 1)
+      let tW = min(width * 0.4, 118)
+      let groundY = tB + 32
+
+      // Stars in the sky, twinkling.
+      for i in range(40) {
+        circle(hash(i, 1) * width, top + hash(i, 2) * (tB - top) * 0.7, 1, fill: alpha(foreground, 0.12 + 0.22 * abs(sin(time * 0.8 + i * 1.3))))
+      }
+
+      // A star on top, pulsing.
+      let starX = cx
+      let starY = tA - 20
+      circle(starX, starY, 30 + sin(time * 2) * 4, fill: alpha(yellow, 0.22))
+      circle(starX, starY, 19 + sin(time * 2) * 3, fill: alpha(yellow, 0.3))
+      for k in range(5) {
+        rotate(k * 72, starX, starY) {
+          path([{ x: starX, y: starY - 16 }, { x: starX - 5.5, y: starY + 4 }, { x: starX + 5.5, y: starY + 4 }], closed: true, fill: yellow)
+        }
+      }
+      circle(starX, starY, 4, fill: yellow)
+
+      // Five tiers of branches as trapezoids, darker as they go down, snow settled on them.
+      for i in range(5) {
+        let y0 = tA + tH * i / 5
+        let y1 = tA + tH * (i + 1) / 5
+        let wb = tW * (i + 1) / 5
+        let wt = i == 0 ? 0 : wb * 0.55
+        path([{ x: cx - wt, y: y0 }, { x: cx + wt, y: y0 }, { x: cx + wb, y: y1 }, { x: cx - wb, y: y1 }], closed: true, fill: i % 2 == 0 ? mix(green, color0, 0.15) : mix(green, color0, 0.35))
+        for j in range((i + 1) * 5) {
+          let u = hash(i * 61 + j, 7) * 2 - 1
+          circle(cx + u * wb * 0.9, y1 - 2 - hash(i * 61 + j, 8) * 6, 1.4, fill: alpha(foreground, 0.35))
+        }
+      }
+
+      // Trunk, snowy ground and presents.
+      rect(cx - 11, tB - 4, 22, 30, radius: 2, fill: mix(orange, color0, 0.25))
+      rect(0, groundY, width, height - groundY, fill: alpha(foreground, 0.08))
+      for i in range(10) {
+        circle(hash(i, 51) * width, groundY + hash(i, 52) * (height - groundY) * 0.6, 6 + hash(i, 53) * 8, fill: alpha(foreground, 0.05))
+      }
+      for i in range(4) {
+        let px = cx + [-0.6, -0.2, 0.24, 0.62][i] * tW
+        let pw = 18 + hash(i, 41) * 12
+        let ph = 13 + hash(i, 42) * 10
+        let py = groundY - ph
+        rect(px - pw / 2, py, pw, ph, radius: 2, fill: lights[i % 8])
+        rect(px - 1.5, py, 3, ph, fill: alpha(foreground, 0.85))
+        rect(px - pw / 2, py + ph / 2 - 1.5, pw, 3, fill: alpha(foreground, 0.85))
+      }
+
+      // A garland winding down the tree, with blinking lights. Its swing is a
+      // smooth 0.65 of the full triangle, which stays inside the tier silhouette.
+      let segs = 44
+      for i in range(segs) {
+        if i > 0 {
+          let t0 = (i - 1) / (segs - 1)
+          let t1 = i / (segs - 1)
+          line(cx + sin(t0 * 9.42) * tW * t0 * 0.65, tA + tH * t0, cx + sin(t1 * 9.42) * tW * t1 * 0.65, tA + tH * t1, stroke: mix(green, color0, 0.4), width: 2.5)
+        }
+      }
+      for i in range(22) {
+        let t = (i + 0.5) / 22
+        let lx = cx + sin(t * 9.42) * tW * t * 0.65
+        let ly = tA + tH * t + 5
+        let c = lights[i % 8]
+        let on = sin(time * 2.5 + i * 1.7) > -0.4
+        circle(lx, ly, 4.5, fill: alpha(c, on ? 0.3 : 0.05))
+        circle(lx, ly, 2.2, fill: on ? c : alpha(c, 0.3))
+      }
+
+      // Baubles: tux and the omarchy mark, swaying on their threads.
+      let orns = [
+        { t: 0.3, dx: -0.32, kind: "oma" },
+        { t: 0.42, dx: 0.36, kind: "tux" },
+        { t: 0.56, dx: -0.06, kind: "tux" },
+        { t: 0.62, dx: 0.54, kind: "oma" },
+        { t: 0.74, dx: -0.44, kind: "tux" },
+        { t: 0.86, dx: 0.14, kind: "oma" },
+      ]
+      for i in range(6) {
+        let o = orns[i]
+        let ox = cx + o.dx * tW * o.t * 0.65 + sin(time * 1.2 + i * 2.2) * 1.6
+        let oy = tA + tH * o.t + 12 * k
+        line(ox, oy - 22 * k, ox, oy - 16 * k, stroke: alpha(muted, 0.9), width: 1)
+        if o.kind == "tux" {
+          rect(ox - 14 * k, oy - 18 * k, 28 * k, 36 * k, radius: 14 * k, fill: alpha(surface, 0.6))
+          sprite(tuxArt, ox - 11.25 * k, oy - 15 * k, 1.5 * k, palette: tuxPal)
+          rect(ox - 14 * k, oy - 18 * k, 28 * k, 36 * k, radius: 14 * k, stroke: mix(yellow, orange, 0.4), width: 1)
+          rect(ox - 2.5 * k, oy - 21 * k, 5 * k, 4 * k, radius: 1, fill: mix(yellow, orange, 0.4))
+        } else {
+          rect(ox - 21 * k, oy - 13 * k, 42 * k, 26 * k, radius: 13 * k, fill: alpha(surface, 0.6))
+          sprite(omaArt, ox - 17.55 * k, oy - 8.45 * k, 1.3 * k, palette: omaPal)
+          rect(ox - 21 * k, oy - 13 * k, 42 * k, 26 * k, radius: 13 * k, stroke: mix(yellow, orange, 0.4), width: 1)
+          rect(ox - 2.5 * k, oy - 16 * k, 5 * k, 4 * k, radius: 1, fill: mix(yellow, orange, 0.4))
+        }
+      }
+
+      // Snow falls over everything.
+      for i in range(90) {
+        let fl = 1.5 + hash(i, 13) * 1.5
+        let y = (hash(i, 11) * height + time * (3 + hash(i, 12) * 4)) % height
+        rect(floor(hash(i, 10) * width + sin(time * 0.7 + i) * 6), y, fl, fl, fill: alpha(foreground, 0.3 + hash(i, 14) * 0.55))
+      }
+    }
+    Column {
+      fill: true
+      padding: [land ? (tileWidth ?? 0) * 0.5 : 16, top + 6, 16, bottom + 10]
+      Spacer { weight: 1 }
+      Text {
+        text: isXmas ? "merry christmas!" : "${days}d ${pad(hh, 2, "0")}:${pad(mm, 2, "0")}:${pad(ss, 2, "0")}"
+        font: mono
+        fontSize: isXmas ? 40 : 44
+        color: isXmas ? green : soon ? accent : foreground
+        align: center
+      }
+      Text {
+        text: isXmas ? "to everyone at the north pole" : days == 1 ? "day to christmas" : "days to christmas"
+        style: small
+        color: alpha(foreground, 0.7)
+        align: center
+      }
+      Spacer { height: 4 }
+      if land { Spacer { weight: 1 } }
+    }
+  }
+}
