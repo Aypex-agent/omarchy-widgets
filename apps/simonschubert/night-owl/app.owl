@@ -7,7 +7,7 @@ app "night owl" {
   // obstacles and fireflies come from the run's seed, and a tap starts a new arc: from that arc
   // follows the moment the owl next hits something (`dieAt`), so a frame only has to draw.
 
-  meta { owl: 12; description: "A one-button pixel art runner: an owl jumps and flaps through a moonlit forest, over stumps and brambles, catching fireflies"; version: "1.0"; license: "MIT"; category: "games" }
+  meta { owl: 12; description: "A one-button pixel art runner: an owl jumps and flaps through a moonlit forest, over stumps and brambles, catching fireflies"; version: "1.1"; license: "MIT"; category: "games" }
 
   title: ""
   statusBar: false
@@ -128,6 +128,8 @@ app "night owl" {
   state seed = 1
   // the time the run started at
   state t0 = 0
+  // Set by the store's screenshots (screens.txt): the seconds into the run to show, held still while it's drawn.
+  state shot = null
   // the arc the owl is on: when it began (seconds into the run), the height then, the speed up,
   // and the jumps used since it last stood on the ground
   state jt = 0
@@ -198,7 +200,7 @@ app "night owl" {
 
   // A run over: count its fireflies and its score.
   on now {
-    if mode == "play" && time - t0 >= dieAt {
+    if shot == null && mode == "play" && time - t0 >= dieAt {
       got = got + len(caught)
       taken = taken + caughtIds
       final = floor(distAtDeath / 10) + (got + len(caught)) * 5
@@ -564,11 +566,12 @@ app "night owl" {
     let H = height / p
     let GY = floor(min(H * 0.64, H - 24))
     // seconds into the run, stopped where it ended; the distance run
-    let fresh = mode == "title" || time < t0
-    let rt = fresh ? 0 : min(time - t0, dieAt)
+    let el = shot ?? time - t0
+    let fresh = mode == "title" || el < 0
+    let rt = fresh ? 0 : min(el, dieAt)
     let dist = fresh ? time * 28 : rt < TC ? V0 * rt + ACC * rt * rt / 2 : DC + VMAX * (rt - TC)
-    let dead = !fresh && time - t0 >= dieAt
-    let since = time - t0 - dieAt
+    let dead = !fresh && el >= dieAt
+    let since = el - dieAt
     let oy = fresh ? 0 : max(0, jh + jv * (rt - jt) - G / 2 * pow(rt - jt, 2))
     // after a crash the owl pops up and drops back down
     let hop = dead ? max(0, oy + 60 * since - 260 * since * since) : oy
