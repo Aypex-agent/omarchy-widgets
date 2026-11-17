@@ -1,0 +1,2032 @@
+app "funfair" {
+  meta { owl: 23; description: "A 3D fairground to build and run: lay paths, open food, drink, game and gift stands, set their prices, and keep guests fed, amused and tidy with benches, bins, flowers and staff"; version: "1.0"; license: "MIT"; category: "games" }
+  // How it works. The fairground is 24 x 24 tiles, kept in a list, g (what's on a tile). Guests are simulated one by
+  // one: each is a map with a wallet, hunger, thirst, bladder, energy, boredom and mood, walking from tile to tile along
+  // the paths. Every frame moves them; a guest who reaches a tile's middle decides what to do next. Handlers have no
+  // loops, so the deciding is a few passes of map() over the guests, each adding to the ones who are deciding, and
+  // what they did (bought, dropped litter, joined a queue) is read off them afterwards and added to the cash, the
+  // stands' numbers and the litter. No money comes from anywhere else: a sale is the price a guest paid, less what the
+  // goods cost; wages, upkeep and interest go out as the day passes.
+  //
+  // Finding things: for each need (food, drink, toilets, cash, a seat, a game, a shop, the way out) and each staff job
+  // (litter, dry flower beds, broken stands) there's a list of how far every path tile is from the nearest one, walked
+  // out from them breadth first, one list a frame in turn. A guest with a pressing need steps to the neighbour nearer
+  // to it; the others wander. So where paths lead, and what stands along them, is the game.
+  //
+  // Drawing: everything is 3D (Canvas scene and model). The ground is a few meshes of one flat square per tile, made
+  // again only when the park changes, in a scene of its own so nothing is sorted under it. Stands are meshes made once
+  // from boxes, roofs, cylinders, cones and balls, each with something on its roof that says what it sells. One finger
+  // pans (or paints paths while that tool is out and the finger held still first), two fingers zoom and turn, a tap
+  // builds or looks at what's there.
+  title: ""
+  statusBar: false
+  edge: true
+  fps: modes.saver ? 30 : 60
+  source modes = android.modes
+  icon: """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+    <clipPath id="t"><rect width="256" height="256" rx="56"/></clipPath>
+    <g clip-path="url(#t)">
+    <rect width="256" height="256" fill="#8fd3f0"/>
+    <rect y="176" width="256" height="80" fill="#6cc24a"/>
+    <path d="M112 256 L122 176 L134 176 L144 256 Z" fill="#e8cf9a"/>
+    <rect x="52" y="120" width="152" height="70" fill="#fff4dc"/>
+    <rect x="52" y="120" width="19" height="70" fill="#e2483d"/><rect x="90" y="120" width="19" height="70" fill="#e2483d"/>
+    <rect x="147" y="120" width="19" height="70" fill="#e2483d"/><rect x="185" y="120" width="19" height="70" fill="#e2483d"/>
+    <rect x="109" y="140" width="38" height="50" fill="#3a2a3f"/>
+    <path d="M128 44 L224 120 L32 120 Z" fill="#e2483d"/>
+    <path d="M128 44 L160 120 L96 120 Z" fill="#fff4dc"/>
+    <path d="M128 44 L208 120 L186 120 Z" fill="#fff4dc"/><path d="M128 44 L48 120 L70 120 Z" fill="#fff4dc"/>
+    <rect x="126" y="20" width="4" height="26" fill="#3a2a3f"/><path d="M130 20 L156 28 L130 36 Z" fill="#ffc233"/>
+    <circle cx="214" cy="60" r="16" fill="#ffc233"/><circle cx="44" cy="70" r="13" fill="#f48fb1"/>
+    <rect x="43" y="83" width="2" height="40" fill="#3a2a3f"/>
+    </g></svg>"""
+
+  // ---- the park, kept --------------------------------------------------------------------------------------
+  // what's on each tile: 0 grass, 1 path, 2 a stand (which is in stands), 3 bench, 4 bin, 5 lamp, 6 flower bed, 9 a path with benches on it, 10 a path with bins on it,
+  // 7 tree, 8 fountain
+  state g = [] persist
+  // the 16 parcels of land (6 x 6 tiles each, row by row): 1 owned
+  state own = [] persist
+  // stands: {id, k (which, in K), c (its tile), f (the side it serves: 0 north, 1 south, 2 west, 3 east), p (price)},
+  // and beside them their numbers for today: {free (the game time its queue is through), sold, inc, exp (guests who
+  // found it too dear)}; brk lists the broken ones
+  state stands = [] persist
+  state sv = [] persist
+  state brk = [] persist
+  // staff: {id, k (0 janitor, 1 gardener, 2 mechanic, 3 entertainer, 4 guard), a, b (walking from tile a to b),
+  // t (how far, 0 to 1), st (1 working), wt, jt, job}
+  state staff = [] persist
+  // litter on each tile, how full each bin is, when each flower bed was last watered (game time) and whether it's dry
+  state lit = [] persist
+  state binf = [] persist
+  state wat = [] persist
+  state dry = [] persist
+  state cash = 5000 persist
+  state loan = 0 persist
+  state fee = 4 persist
+  // game time in seconds (a day is DAY of them), the day the books were last closed on
+  state gt = 0 persist
+  state dayN = 0 persist
+  // the weather today and tomorrow: 0 sunny, 1 hot, 2 cloudy, 3 rain
+  state wx = 0 persist
+  state wxn = 0 persist
+  // today's and yesterday's books by what the money was for, and everything since the park opened
+  state led = {} persist
+  state ledY = {} persist
+  state net = 0 persist
+  state peak = 0 persist
+  state rating = 40 persist
+  state rbest = 40 persist
+  state qi = 0 persist
+  state nid = 1 persist
+  // what guests grumbled about today (and yesterday), guests in today, turned away at the gate
+  state gripes = {} persist
+  state gripesY = {} persist
+  state dayG = 0 persist
+  state dayGY = 0 persist
+  state turned = 0 persist
+  state yaw = 30 persist
+  state zoom = 30 persist
+  state tx = 0.5 persist
+  state tz = 6 persist
+  state spd = 1 persist
+  // ---- what's going on now -----------------------------------------------------------------------------------
+  state guests = []
+  // the distance lists (see above), and the one worked out next
+  state fld = range(12).map(k => range(576).map(c => 999))
+  state fk = 0
+  // the open toolbar category, the tool (0 look, 1 path, 9 bulldoze, 3-8 what g says, 100 + k a stand), what's
+  // looked at: a stand (its place in stands), a guest or a staff member (their id), a parcel for sale
+  state cat = -1
+  state tool = 0
+  state sel = -1
+  state selG = -1
+  state selS = -1
+  state selL = -1
+  // "park", "report", "new" or ""
+  state panel = ""
+  // the touch: 0 idle, 1 down, 2 panning, 3 painting (after a press held still), 4 two fingers
+  state gm = 0
+  state downT = 0
+  state downC = -1
+  state fingers = []
+  state paint = []
+  state pops = []
+  state msg = ""
+  state msgT = -99
+  // the clock that runs whatever the game's speed
+  state rt = 0
+  state spawnT = 0
+  state tickT = -1
+  state outN = 0
+  state outM = 0
+  // a stand to sell (its place in stands), done by the trigger below so the toolbar and the panel share it
+  state sellI = -1
+  state armNew = false
+  // set by the store's screens.txt so its pictures hold still
+  state still = false
+
+  // ---- the ground ------------------------------------------------------------------------------------------
+  let N = 24
+  let NN = 576
+  let DAY = 300
+  let GATE = 564
+  let CX = range(NN).map(c => c % N)
+  let CZ = range(NN).map(c => floor(c / N))
+  let WX = range(NN).map(c => c % N - 11.5)
+  let WZ = range(NN).map(c => floor(c / N) - 11.5)
+  // neighbours: [north (-z), south (+z), west (-x), east (+x)], -1 off the map
+  let NB4 = range(NN).map(c => [c >= N ? c - N : -1, c < NN - N ? c + N : -1, c % N > 0 ? c - 1 : -1, c % N < N - 1 ? c + 1 : -1])
+  let DX = [0, 0, -1, 1]
+  let DZ = [-1, 1, 0, 0]
+  // how far a model made facing south (+z) turns to face each side
+  let FT = [180, 0, 270, 90]
+  let BIG = range(NN).map(c => 999)
+  let ZERO = range(NN).map(c => 0)
+  let NOL = range(NN).map(c => [])
+  let PARCEL = range(NN).map(c => floor(floor(c / N) / 6) * 4 + floor(c % N / 6))
+  let BINCAP = 12
+  // a flower bed is dry this long after its last watering
+  let WILT = 360
+  let GG = len(g) == NN ? g : ZERO
+  let OWN = len(own) == 16 ? own : [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0]
+  let OWNED = range(NN).map(c => OWN[PARCEL[c]] == 1)
+  let LANDN = sum(OWN)
+  let LANDP = 1500 + (LANDN - 4) * 900
+  // a parcel can be bought beside one that's owned
+  let LANDOK = range(16).map(p => OWN[p] != 1 && any([p >= 4 ? p - 4 : -1, p < 12 ? p + 4 : -1, p % 4 > 0 ? p - 1 : -1, p % 4 < 3 ? p + 1 : -1], n => n >= 0 && OWN[n] == 1))
+  let P = range(NN).map(c => GG[c] == 1 || GG[c] == 9 || GG[c] == 10)
+  let PC = range(NN).filter(c => P[c])
+  let PNB = range(NN).map(c => NB4[c].filter(n => n >= 0 && P[n]))
+  // Benches on a path stand at every free side of the tile, their backs to it: both sides of a straight path,
+  // three at a dead end, one at a T. A side is free when no path leaves by it, no stand serves across it, and
+  // it isn't the gate's way in. BFREE is those sides for each path tile: none at a crossing or a tile hemmed in
+  // by stands' fronts, so no bench goes there, and benches whose sides all get built up are put away until one
+  // is free again.
+  let FMASK = reduce(stands, (A, s) => [NB4[s.c][s.f]].map(n => n < 0 ? A : set(A, n, A[n] + [[1, 0, 3, 2][s.f]]))[0], NOL)
+  let BFREE = range(NN).map(c => !P[c] ? [] : [0, 1, 2, 3].filter(d => (NB4[c][d] < 0 || !P[NB4[c][d]]) && !any(FMASK[c], x => x == d) && !(c == GATE && d == 1)))
+  let BSIDE = range(NN).map(c => GG[c] == 9 ? BFREE[c] : [])
+  // the benches a path tile's walkers can sit on: its own, then those on the grass beside it
+  let BENA = range(NN).map(c => P[c] ? (len(BSIDE[c]) > 0 ? [c] : []) + NB4[c].filter(n => n >= 0 && GG[n] == 3) : [])
+  // (bins on a path stand at its free sides as benches do; a tile holds one or the other)
+  let BINS = range(NN).map(c => GG[c] == 10 ? BFREE[c] : [])
+  let BINA = range(NN).map(c => P[c] ? (len(BINS[c]) > 0 ? [c] : []) + NB4[c].filter(n => n >= 0 && GG[n] == 4) : [])
+  let BEDA = range(NN).map(c => P[c] ? NB4[c].filter(n => n >= 0 && GG[n] == 6) : [])
+  // two can sit on each bench
+  let BCAP = range(NN).map(c => max(1, len(BSIDE[c])) * 2)
+  let LITL = len(lit) == NN ? lit : ZERO
+  let BINL = len(binf) == NN ? binf : ZERO
+  let DRYL = len(dry) == NN ? dry : ZERO
+  let WATL = len(wat) == NN ? wat : ZERO
+  // what's pleasant to walk past, 2 tiles round: trees a little, fresh flower beds and fountains more, dry beds not
+  // (a sweep along each row, then down each column of that)
+  let AMBV = range(NN).map(c => GG[c] == 7 ? 0.2 : GG[c] == 6 ? (DRYL[c] == 1 ? -0.5 : 0.6) : GG[c] == 8 ? 1.2 : 0)
+  let AMBR = range(NN).map(c => sum([-2, -1, 0, 1, 2].map(d => CX[c] + d >= 0 && CX[c] + d < N ? AMBV[c + d] : 0)))
+  let AMB = range(NN).map(c => !P[c] ? 0 : clamp(sum([-2, -1, 0, 1, 2].map(d => CZ[c] + d >= 0 && CZ[c] + d < N ? AMBR[c + d * N] : 0)), -1.5, 3))
+  // tiles a lamp lights after dark: 2 round each
+  let LAMPS = range(NN).filter(c => GG[c] == 5)
+  let LIT = reduce(LAMPS, (A, l) => reduce(range(25), (B, i) => [[CX[l] + i % 5 - 2, CZ[l] + floor(i / 5) - 2]].map(q => q[0] >= 0 && q[0] < N && q[1] >= 0 && q[1] < N ? set(B, q[1] * N + q[0], 1) : B)[0], A), ZERO)
+
+  // ---- what can be built ---------------------------------------------------------------------------------------
+  let WHT = #fbf8f2
+  let RED = #e2483d
+  let YEL = #ffc233
+  let BLU = #3d7fd0
+  let GRN = #4aa36a
+  let TEAL = #22a39a
+  let PNK = #f48fb1
+  let PUR = #8e5bd0
+  let ORG = #f28c28
+  let BRN = #8d5a3a
+  let TAN = #e0b070
+  let CRMC = #fff1d0
+  let DARK = #3a3340
+  let SIL = #c9d1d9
+  let GOLD = #f4c430
+  let CTR = #d9c2a0
+  let DOOR = #7a5236
+  let CYAN = #7fd8f0
+  // Stands. cat: 0 food, 1 drink, 2 gifts, 3 games, 4 services. cost to build, up(keep) a day, ic what one sale's
+  // goods cost, p the price it opens with, sv seconds to serve one guest, tier it unlocks at. What it does to the
+  // guest: hu hunger off, th thirst (drinks take it off, salty food adds), bl bladder, en energy, fn boredom off, nau
+  // queasiness, md mood. eat: seconds the guest carries it, tr: it leaves litter. wx: how much it's wanted when
+  // sunny, hot, cloudy, raining. br: the chance a sale breaks it. pw: the chance of a prize, pc what the prize costs.
+  // an: what a guest does while playing: 1 swings the hammer and the puck runs up, 2 shoots, 3 throws, 4 leans in, 5 hops.
+  // b its booth (0 kiosk, 1 cart, 2 game tent, 3 hut, 4 none: top is all of it, shaped like what it sells, its
+  // serving hatch to the south), wc, rc, r2 its colors, top what stands on it.
+  // what the stands are made of: a window's dark, bread, and the round shapes a lathe turns (a ball, a dome, a blob
+  // of few sides), each scaled by the part's r and h
+  let WIN = #2a2030
+  let BUN = #e3a858
+  let BUN2 = #f0c27a
+  let MEAT = #6b3b24
+  let LETT = #7fc04a
+  let CHS = #ffd23e
+  let BALL = [[0.03, -1], [0.71, -0.71], [1, 0], [0.71, 0.71], [0.03, 1]]
+  let DOME = [[1, 0], [0.92, 0.38], [0.71, 0.71], [0.38, 0.92], [0.03, 1]]
+  let BLOB = [[0.03, -1], [0.8, -0.45], [0.8, 0.45], [0.03, 1]]
+  let KDEF = {an: 0, up: 20, ic: 0.3, sv: 3, tier: 0, hu: 0, th: 0, bl: 0, en: 0, fn: 0, nau: 0, md: 0, eat: 0, tr: false, sp: "", wx: [1, 1, 1, 1], br: 0, pw: 0, pc: 0, b: 0, wc: CRMC, rc: RED, top: [], d: ""}
+  let KRAW = [
+    {n: "hot dogs", cat: 0, b: 4, cost: 400, ic: 0.6, p: 2.5, hu: 30, th: 8, eat: 8, tr: true, rc: RED, r2: YEL, d: "cheap and filling",
+      top: [{k: 8, n: 8, ro: true, pr: [[0.05, -0.46], [0.24, -0.4], [0.33, -0.26], [0.33, 0.26], [0.24, 0.4], [0.05, 0.46]], ax: 1, y: 0.34, c: BUN}, {k: 0, x: 0, y: 0.6, z: 0, w: 0.6, h: 0.035, d: 0.34, c: BUN2},
+        {k: 8, n: 8, ro: true, pr: [[0.04, -0.5], [0.13, -0.46], [0.16, -0.36], [0.16, 0.36], [0.13, 0.46], [0.04, 0.5]], ax: 1, y: 0.68, c: #c0472f}, {k: 0, x: -0.28, y: 0.815, z: -0.045, w: 0.13, h: 0.03, d: 0.07, c: YEL},
+        {k: 0, x: -0.14, y: 0.815, z: 0.045, w: 0.13, h: 0.03, d: 0.07, c: YEL}, {k: 0, x: 0, y: 0.815, z: -0.045, w: 0.13, h: 0.03, d: 0.07, c: YEL}, {k: 0, x: 0.14, y: 0.815, z: 0.045, w: 0.13, h: 0.03, d: 0.07, c: YEL},
+        {k: 0, x: 0.28, y: 0.815, z: -0.045, w: 0.13, h: 0.03, d: 0.07, c: YEL}, {k: 10, z: 0.31, cs: [RED, WHT]}]},
+    {n: "popcorn", cat: 0, b: 4, cost: 350, up: 25, ic: 0.3, p: 2, sv: 2, hu: 15, th: 14, eat: 12, tr: true, wc: RED, rc: WHT, d: "salty: makes guests thirsty",
+      top: [{k: 8, n: 8, ro: true, pr: [[0.3, 0], [0.42, 0.78]], vs: [RED, WHT], nt: true}, {k: 8, n: 8, ro: true, pr: [[0.44, 0.76], [0.44, 0.83]], c: WHT, t: #fff3c4}, {k: 8, n: 7, pr: DOME, r: 0.38, h: 0.18, x: 0, y: 0.83, z: 0, c: #fff3c4},
+        {k: 8, n: 5, pr: BLOB, r: 0.12, h: 0.12, x: -0.16, y: 0.98, z: 0.1, c: CRMC}, {k: 8, n: 5, pr: BLOB, r: 0.11, h: 0.11, x: 0.15, y: 1, z: -0.06, c: #ffe08a}, {k: 8, n: 5, pr: BLOB, r: 0.12, h: 0.12, x: 0, y: 1.1, z: 0, c: WHT},
+        {k: 8, n: 5, pr: BLOB, r: 0.1, h: 0.1, x: 0.16, y: 0.96, z: 0.2, c: WHT}, {k: 8, n: 5, pr: BLOB, r: 0.1, h: 0.1, x: -0.12, y: 0.98, z: -0.2, c: #ffe08a}, {k: 10, z: 0.33, cs: [YEL, RED]}]},
+    {n: "fries", cat: 0, b: 4, cost: 450, ic: 0.5, p: 2.5, hu: 25, th: 16, eat: 8, tr: true, rc: YEL, r2: RED, d: "salty: makes guests thirsty",
+      top: [{k: 8, n: 4, ro: true, pr: [[0.38, 0], [0.52, 0.62]], c: RED, nt: true}, {k: 0, x: 0, y: 0.59, z: 0, w: 0.7, h: 0.03, d: 0.7, c: #f2b61f}, {k: 0, x: -0.24, y: 0.5, z: -0.2, w: 0.1, h: 0.5, d: 0.1, c: YEL, rz: 6},
+        {k: 0, x: -0.08, y: 0.5, z: -0.22, w: 0.1, h: 0.62, d: 0.1, c: #ffd966, rz: 2}, {k: 0, x: 0.1, y: 0.5, z: -0.2, w: 0.1, h: 0.55, d: 0.1, c: YEL, rz: -3}, {k: 0, x: 0.25, y: 0.5, z: -0.18, w: 0.1, h: 0.44, d: 0.1, c: #ffd966, rz: -8},
+        {k: 0, x: -0.22, y: 0.5, z: 0, w: 0.1, h: 0.4, d: 0.1, c: #ffd966, rz: 7}, {k: 0, x: -0.04, y: 0.5, z: 0.02, w: 0.1, h: 0.5, d: 0.1, c: YEL, rz: 0}, {k: 0, x: 0.14, y: 0.5, z: 0, w: 0.1, h: 0.42, d: 0.1, c: #ffd966, rz: -5},
+        {k: 0, x: -0.14, y: 0.5, z: 0.2, w: 0.1, h: 0.3, d: 0.1, c: YEL, rz: 5}, {k: 0, x: 0.06, y: 0.5, z: 0.2, w: 0.1, h: 0.34, d: 0.1, c: #ffd966, rz: -4}, {k: 0, x: 0.24, y: 0.5, z: 0.18, w: 0.1, h: 0.28, d: 0.1, c: YEL, rz: -9},
+        {k: 10, z: 0.32, cs: [YEL, WHT]}]},
+    {n: "burgers", cat: 0, b: 4, cost: 700, up: 40, ic: 1.2, p: 4.5, sv: 4, tier: 1, hu: 50, th: 8, eat: 10, tr: true, rc: ORG, r2: CRMC, d: "a proper meal",
+      top: [{k: 8, n: 8, ro: true, pr: [[0.36, 0], [0.44, 0.08], [0.44, 0.48]], c: BUN, nt: true}, {k: 8, n: 8, ro: true, pr: [[0.46, 0.48], [0.475, 0.54], [0.46, 0.6]], c: MEAT, nt: true},
+        {k: 8, n: 4, pr: [[0.5, 0.58], [0.5, 0.62]], c: CHS, t: CHS}, {k: 8, n: 8, ro: true, pr: [[0.49, 0.62], [0.46, 0.67]], c: LETT, nt: true}, {k: 8, n: 8, ro: true, pr: [[0.43, 0.67], [0.43, 0.71]], c: #e2483d, nt: true},
+        {k: 8, n: 8, ro: true, pr: DOME, r: 0.45, h: 0.36, x: 0, y: 0.71, z: 0, c: BUN, cs: [BUN, BUN, BUN2, BUN2]}, {k: 6, x: 0.2, y: 1, z: 0.2, r: 0.035, ry: 0.02, n: 4, c: CRMC},
+        {k: 6, x: -0.22, y: 0.99, z: 0.12, r: 0.035, ry: 0.02, n: 4, c: CRMC}, {k: 6, x: 0.04, y: 1.07, z: -0.04, r: 0.035, ry: 0.02, n: 4, c: CRMC}, {k: 6, x: -0.1, y: 1.01, z: -0.24, r: 0.035, ry: 0.02, n: 4, c: CRMC},
+        {k: 6, x: 0.24, y: 0.99, z: -0.14, r: 0.035, ry: 0.02, n: 4, c: CRMC}, {k: 6, x: -0.02, y: 1, z: 0.28, r: 0.035, ry: 0.02, n: 4, c: CRMC}, {k: 10, z: 0.41, cs: [ORG, WHT]}]},
+    {n: "pizza", cat: 0, b: 4, cost: 800, up: 40, ic: 1, p: 4, sv: 4, tier: 1, hu: 42, th: 10, eat: 10, tr: true, rc: GRN, r2: RED, d: "a proper meal",
+      top: [{k: 8, n: 8, ro: true, pr: [[0.38, 0], [0.38, 0.52]], c: CRMC, nt: true}, {k: 8, n: 8, ro: true, pr: [[0.39, 0.52], [0.39, 0.6]], vs: [RED, WHT, GRN, WHT], t: CRMC},
+        {k: 8, n: 10, pr: [[0.44, 0], [0.48, 0.03], [0.48, 0.07], [0.42, 0.09]], y: 0.78, c: #d9a45a, t: #f6cf4d, rx: 18}, {k: 8, n: 6, pr: [[0.075, 0.1], [0.075, 0.115]], x: 0, z: 0, y: 0.78, c: #c8322a, t: #d8423a, rx: 18, pv: [0, 0.78, 0]},
+        {k: 8, n: 6, pr: [[0.075, 0.1], [0.075, 0.115]], x: 0.22, z: 0.14, y: 0.78, c: #c8322a, t: #d8423a, rx: 18, pv: [0, 0.78, 0]},
+        {k: 8, n: 6, pr: [[0.075, 0.1], [0.075, 0.115]], x: -0.2, z: 0.18, y: 0.78, c: #c8322a, t: #d8423a, rx: 18, pv: [0, 0.78, 0]},
+        {k: 8, n: 6, pr: [[0.075, 0.1], [0.075, 0.115]], x: -0.18, z: -0.2, y: 0.78, c: #c8322a, t: #d8423a, rx: 18, pv: [0, 0.78, 0]},
+        {k: 8, n: 6, pr: [[0.075, 0.1], [0.075, 0.115]], x: 0.18, z: -0.22, y: 0.78, c: #c8322a, t: #d8423a, rx: 18, pv: [0, 0.78, 0]},
+        {k: 8, n: 6, pr: [[0.075, 0.1], [0.075, 0.115]], x: 0.02, z: 0.3, y: 0.78, c: #c8322a, t: #d8423a, rx: 18, pv: [0, 0.78, 0]}, {k: 0, x: 0.1, y: 0.875, z: -0.06, w: 0.07, h: 0.02, d: 0.05, c: #4aa36a, rx: 18, pv: [0, 0.78, 0]},
+        {k: 0, x: -0.1, y: 0.875, z: 0.04, w: 0.07, h: 0.02, d: 0.05, c: #4aa36a, rx: 18, pv: [0, 0.78, 0]}, {k: 0, x: 0.3, y: 0.875, z: -0.02, w: 0.07, h: 0.02, d: 0.05, c: #4aa36a, rx: 18, pv: [0, 0.78, 0]},
+        {k: 0, x: -0.3, y: 0.875, z: -0.02, w: 0.07, h: 0.02, d: 0.05, c: #4aa36a, rx: 18, pv: [0, 0.78, 0]}, {k: 0, x: 0.06, y: 0.875, z: 0.18, w: 0.07, h: 0.02, d: 0.05, c: #4aa36a, rx: 18, pv: [0, 0.78, 0]},
+        {k: 10, z: 0.36, cs: [GRN, WHT, RED, WHT]}]},
+    {n: "pretzels", cat: 0, b: 4, cost: 400, up: 25, ic: 0.4, p: 2.5, tier: 1, hu: 22, th: 12, eat: 8, wc: BRN, rc: CRMC, d: "no wrapper, no litter",
+      top: [{k: 0, x: 0, y: 0, z: -0.02, w: 0.72, h: 0.46, d: 0.5, c: #8d5a3a, t: CTR}, {k: 0, x: 0, y: 0.46, z: -0.02, w: 0.5, h: 0.04, d: 0.3, c: #6f4429},
+        {k: 8, n: 8, ro: true, pr: [[0.27, -0.07], [0.34, 0], [0.27, 0.07], [0.2, 0], [0.27, -0.07]], ax: 2, y: 0.84, z: -0.02, c: #b5712f, nt: true}, {k: 7, x: 0, y: 0.8, z: -0.02, r: 0.06, l: 0.56, n: 5, c: #b5712f, t: #b5712f, rz: 40},
+        {k: 7, x: 0, y: 0.8, z: -0.02, r: 0.06, l: 0.56, n: 5, c: #b5712f, t: #b5712f, rz: -40}, {k: 0, x: 0, y: 1.1, z: 0.055, w: 0.04, h: 0.04, d: 0.02, c: WHT}, {k: 0, x: 0.24, y: 0.92, z: 0.055, w: 0.04, h: 0.04, d: 0.02, c: WHT},
+        {k: 0, x: -0.24, y: 0.92, z: 0.055, w: 0.04, h: 0.04, d: 0.02, c: WHT}, {k: 0, x: 0.14, y: 0.62, z: 0.055, w: 0.04, h: 0.04, d: 0.02, c: WHT}, {k: 0, x: -0.14, y: 0.62, z: 0.055, w: 0.04, h: 0.04, d: 0.02, c: WHT},
+        {k: 10, z: 0.23, cs: [BRN, CRMC]}]},
+    {n: "ice cream", cat: 0, b: 4, cost: 500, ic: 0.5, p: 2.5, hu: 12, th: -6, md: 3, eat: 6, wx: [1, 1.8, 0.7, 0.2], wc: PNK, rc: CYAN, d: "sells best on hot days",
+      top: [{k: 8, n: 8, ro: true, pr: [[0.2, 0], [0.4, 0.58]], vs: [#e8b86a, #d9a052], nt: true}, {k: 8, n: 8, ro: true, pr: [[0.42, 0.56], [0.42, 0.62]], c: #e8b86a, t: #e8b86a},
+        {k: 8, n: 8, ro: true, pr: BALL, r: 0.42, h: 0.28, x: 0, y: 0.82, z: 0, c: PNK, cs: [#e87aa0, PNK, PNK, #f8b4cb]}, {k: 8, n: 8, ro: true, pr: BALL, r: 0.31, h: 0.23, x: 0, y: 1.16, z: 0, c: #fff3d6, cs: [#f0dfb8, #fff3d6, #fff3d6, WHT]},
+        {k: 8, n: 5, pr: BLOB, r: 0.07, h: 0.07, x: 0, y: 1.42, z: 0, c: #d81e2c}, {k: 10, z: 0.3, cs: [PNK, WHT], w: 0.32}]},
+    {n: "cotton candy", cat: 0, b: 4, cost: 450, up: 25, ic: 0.2, p: 2.5, tier: 1, hu: 10, fn: 8, nau: 8, md: 3, eat: 8, tr: true, wc: CYAN, rc: PNK, d: "sweet: cheers up, a little queasy",
+      top: [{k: 8, n: 8, ro: true, pr: [[0.34, 0], [0.34, 0.46]], vs: [CYAN, WHT], t: CTR}, {k: 8, n: 5, pr: [[0.03, 0.46], [0.08, 0.8]], c: WHT, nt: true}, {k: 8, n: 7, pr: BALL, r: 0.4, h: 0.28, x: 0, y: 1.02, z: 0, c: PNK},
+        {k: 8, n: 5, pr: BLOB, r: 0.22, h: 0.19, x: -0.22, y: 1.2, z: 0.06, c: #f9b4cc}, {k: 8, n: 5, pr: BLOB, r: 0.2, h: 0.18, x: 0.22, y: 1.14, z: -0.08, c: #f7a3c0}, {k: 8, n: 5, pr: BLOB, r: 0.19, h: 0.16, x: 0.02, y: 1.32, z: 0, c: #fbc4d8},
+        {k: 8, n: 5, pr: BLOB, r: 0.17, h: 0.15, x: 0.1, y: 1.06, z: 0.26, c: #f9b4cc}, {k: 10, z: 0.32, cs: [PNK, WHT]}]},
+    {n: "donuts", cat: 0, b: 4, cost: 550, ic: 0.5, p: 3, tier: 2, hu: 24, md: 2, nau: 4, eat: 8, tr: true, rc: PNK, r2: WHT, d: "sweet: cheers up",
+      top: [{k: 0, x: 0, y: 0, z: -0.18, w: 0.62, h: 0.66, d: 0.44, c: CRMC, t: PNK},
+        {k: 8, n: 10, pr: [[0.3, -0.16], [0.439, -0.08], [0.439, 0.08], [0.3, 0.16], [0.161, 0.08], [0.161, -0.08], [0.3, -0.16]], ax: 2, y: 0.5, z: 0.18, cs: [BUN, BUN, PNK, PNK, BUN, BUN], nt: true},
+        {k: 7, x: 0, y: 0.5, z: 0.2, r: 0.17, l: 0.01, n: 8, ax: 1, flat: true, c: WIN, t: WIN}, {k: 0, x: 0, y: 0.3, z: 0.39, w: 0.3, h: 0.035, d: 0.1, c: CTR, t: CRMC}, {k: 0, x: 0.29, y: 0.56, z: 0.33, w: 0.045, h: 0.045, d: 0.02, c: YEL},
+        {k: 0, x: 0.08, y: 0.77, z: 0.33, w: 0.045, h: 0.045, d: 0.02, c: CYAN}, {k: 0, x: -0.21, y: 0.69, z: 0.33, w: 0.045, h: 0.045, d: 0.02, c: WHT}, {k: 0, x: -0.29, y: 0.4, z: 0.33, w: 0.045, h: 0.045, d: 0.02, c: YEL},
+        {k: 0, x: -0.08, y: 0.19, z: 0.33, w: 0.045, h: 0.045, d: 0.02, c: CYAN}, {k: 0, x: 0.21, y: 0.27, z: 0.33, w: 0.045, h: 0.045, d: 0.02, c: WHT}, {k: 0, x: 0.2, y: 0.72, z: 0.33, w: 0.045, h: 0.045, d: 0.02, c: GRN},
+        {k: 0, x: -0.2, y: 0.24, z: 0.33, w: 0.045, h: 0.045, d: 0.02, c: GRN}]},
+    {n: "candy apples", cat: 0, b: 4, cost: 450, up: 25, ic: 0.5, p: 3, tier: 2, hu: 14, md: 3, nau: 5, eat: 8, tr: true, wc: GRN, rc: RED, d: "sweet: cheers up",
+      top: [{k: 8, n: 8, ro: true, pr: BALL, r: 0.43, h: 0.4, x: 0, y: 0.41, z: 0, c: #c8202a, cs: [#a8141f, #c8202a, #d93a3a, #ec7a66]}, {k: 0, x: 0.02, y: 0.76, z: 0, w: 0.05, h: 0.44, d: 0.05, c: TAN, rz: -12},
+        {k: 10, z: 0.36, cs: [RED, WHT], w: 0.34}]},
+    {n: "corn on the cob", cat: 0, b: 4, cost: 500, ic: 0.4, p: 3, tier: 2, hu: 28, th: 6, eat: 9, tr: true, rc: GRN, r2: YEL, d: "filling",
+      top: [{k: 8, n: 8, ro: true, pr: [[0.3, 0], [0.41, 0.3], [0.36, 0.54]], c: #5aa13c, nt: true}, {k: 8, n: 8, ro: true, pr: [[0.32, 0.52], [0.33, 0.8], [0.27, 1.08], [0.14, 1.27], [0.03, 1.33]], vs: [#f7d23e, #eebb24]},
+        {k: 4, x: -0.3, y: 0.36, z: -0.05, r: 0.13, h: 0.56, n: 4, c: #4a9433, rz: 22}, {k: 4, x: 0.3, y: 0.36, z: -0.05, r: 0.13, h: 0.56, n: 4, c: #4a9433, rz: -22}, {k: 4, x: 0, y: 0.36, z: -0.3, r: 0.13, h: 0.56, n: 4, c: #3f8a2c, rx: 22},
+        {k: 10, z: 0.35, cs: [GRN, YEL]}]},
+    {n: "noodles", cat: 0, b: 4, cost: 900, up: 45, ic: 1.3, p: 5.5, sv: 5, tier: 3, hu: 60, th: 4, eat: 12, tr: true, rc: RED, r2: DARK, d: "the biggest meal",
+      top: [{k: 8, n: 4, ro: true, pr: [[0.4, 0], [0.56, 0.66]], c: WHT, nt: true}, {k: 8, n: 4, ro: true, pr: [[0.535, 0.52], [0.565, 0.62]], c: RED, nt: true}, {k: 0, x: 0, y: 0.63, z: 0, w: 0.76, h: 0.03, d: 0.76, c: #f3d27a},
+        {k: 8, n: 6, pr: DOME, r: 0.34, h: 0.16, x: 0, y: 0.65, z: 0, c: #f3d27a, cs: [#e9c462, #f3d27a, #f3d27a, #f8dc90]}, {k: 0, x: 0.1, y: 0.62, z: 0, w: 0.04, h: 0.62, d: 0.04, c: #b5793f, rz: -18},
+        {k: 0, x: 0.2, y: 0.62, z: 0.06, w: 0.04, h: 0.6, d: 0.04, c: #b5793f, rz: -27}, {k: 8, n: 5, pr: BLOB, r: 0.06, h: 0.06, x: -0.14, y: 0.8, z: 0.08, c: #e2483d},
+        {k: 8, n: 5, pr: BLOB, r: 0.06, h: 0.06, x: -0.04, y: 0.82, z: -0.14, c: #5aa13c}, {k: 10, z: 0.33, cs: [RED, WHT]}]},
+    {n: "waffles", cat: 0, b: 4, cost: 700, up: 35, ic: 0.8, p: 4.5, sv: 4, tier: 3, hu: 35, md: 4, nau: 4, eat: 9, tr: true, rc: BRN, r2: CRMC, d: "sweet and filling",
+      top: [{k: 0, x: 0, y: 0, z: -0.04, w: 0.72, h: 0.5, d: 0.6, c: CRMC, t: CTR}, {k: 0, x: 0, y: 0.5, z: -0.04, w: 0.5, h: 0.2, d: 0.4, c: #8d5a3a, nt: true},
+        {k: 0, x: 0, y: 0.68, z: -0.02, w: 0.9, h: 0.1, d: 0.84, c: #d99a4a, t: #e3a95c, rx: 14}, {k: 0, x: -0.28, y: 0.765, z: -0.28, w: 0.2, h: 0.02, d: 0.18, c: #b9772e, rx: 14, pv: [0, 0.68, -0.02]},
+        {k: 0, x: -0.28, y: 0.765, z: -0.02, w: 0.2, h: 0.02, d: 0.18, c: #b9772e, rx: 14, pv: [0, 0.68, -0.02]}, {k: 0, x: -0.28, y: 0.765, z: 0.24, w: 0.2, h: 0.02, d: 0.18, c: #b9772e, rx: 14, pv: [0, 0.68, -0.02]},
+        {k: 0, x: 0, y: 0.765, z: -0.28, w: 0.2, h: 0.02, d: 0.18, c: #b9772e, rx: 14, pv: [0, 0.68, -0.02]}, {k: 0, x: 0, y: 0.765, z: -0.02, w: 0.2, h: 0.02, d: 0.18, c: #b9772e, rx: 14, pv: [0, 0.68, -0.02]},
+        {k: 0, x: 0, y: 0.765, z: 0.24, w: 0.2, h: 0.02, d: 0.18, c: #b9772e, rx: 14, pv: [0, 0.68, -0.02]}, {k: 0, x: 0.28, y: 0.765, z: -0.28, w: 0.2, h: 0.02, d: 0.18, c: #b9772e, rx: 14, pv: [0, 0.68, -0.02]},
+        {k: 0, x: 0.28, y: 0.765, z: -0.02, w: 0.2, h: 0.02, d: 0.18, c: #b9772e, rx: 14, pv: [0, 0.68, -0.02]}, {k: 0, x: 0.28, y: 0.765, z: 0.24, w: 0.2, h: 0.02, d: 0.18, c: #b9772e, rx: 14, pv: [0, 0.68, -0.02]},
+        {k: 8, n: 6, pr: DOME, r: 0.15, h: 0.12, x: 0, y: 0.8, z: -0.06, c: WHT}, {k: 8, n: 5, pr: BLOB, r: 0.06, h: 0.06, x: 0, y: 0.95, z: -0.06, c: #d81e2c}, {k: 10, z: 0.26, cs: [BRN, CRMC]}]},
+    {n: "lemonade", cat: 1, b: 4, cost: 400, up: 25, ic: 0.3, p: 2, sv: 2, th: -45, bl: 18, eat: 6, tr: true, wx: [1, 1.7, 0.8, 0.5], rc: YEL, r2: WHT, d: "sells best on hot days",
+      top: [{k: 8, n: 8, ro: true, pr: [[0.04, -0.5], [0.13, -0.44], [0.32, -0.28], [0.4, 0], [0.32, 0.28], [0.13, 0.44], [0.04, 0.5]], ax: 1, y: 0.42, cs: [#e9b90c, #f6cd1e, #ffdc3a, #ffdc3a, #f6cd1e, #e9b90c]},
+        {k: 6, x: 0.12, y: 0.82, z: 0, r: 0.15, ry: 0.03, n: 4, c: #4aa36a}, {k: 8, n: 6, pr: [[0.08, 0], [0.12, 0.2]], x: -0.12, y: 0.78, c: #fff3b0, t: #ffe36e}, {k: 0, x: -0.1, y: 0.9, z: 0, w: 0.03, h: 0.26, d: 0.03, c: RED, rz: -14},
+        {k: 10, z: 0.36, cs: [YEL, WHT]}]},
+    {n: "soda", cat: 1, b: 4, cost: 450, ic: 0.4, p: 2.5, sv: 2, th: -40, bl: 20, en: 4, nau: 3, eat: 6, tr: true, rc: BLU, r2: WHT, d: "a little pep",
+      top: [{k: 8, n: 8, ro: true, pr: [[0.28, 0], [0.33, 0.36], [0.36, 0.58], [0.4, 0.86]], cs: [RED, WHT, RED], nt: true}, {k: 8, n: 8, ro: true, pr: [[0.42, 0.86], [0.42, 0.91], [0.34, 0.95]], c: WHT, t: #e9eef2},
+        {k: 0, x: 0.08, y: 0.93, z: 0, w: 0.05, h: 0.42, d: 0.05, c: RED, rz: -10}, {k: 10, z: 0.31, cs: [BLU, WHT], w: 0.34}]},
+    {n: "coffee", cat: 1, b: 4, cost: 500, ic: 0.4, p: 2.5, tier: 1, th: -20, bl: 22, en: 30, eat: 6, tr: true, wx: [0.9, 0.4, 1.2, 1.6], rc: BRN, r2: CRMC, d: "wakes tired guests up",
+      top: [{k: 8, n: 8, ro: true, pr: [[0.28, 0], [0.31, 0.24], [0.355, 0.62], [0.38, 0.82]], cs: [CRMC, #8d5a3a, CRMC], nt: true}, {k: 8, n: 8, ro: true, pr: [[0.4, 0.82], [0.4, 0.88], [0.33, 0.9], [0.31, 0.96]], c: WHT, t: #e9e4da},
+        {k: 0, x: 0, y: 0.955, z: 0.16, w: 0.12, h: 0.02, d: 0.05, c: DARK}, {k: 8, n: 5, pr: BLOB, r: 0.07, h: 0.07, x: 0.02, y: 1.14, z: 0, c: WHT}, {k: 8, n: 5, pr: BLOB, r: 0.05, h: 0.05, x: 0.1, y: 1.3, z: 0, c: WHT},
+        {k: 10, z: 0.3, cs: [BRN, CRMC], w: 0.34}]},
+    {n: "slushies", cat: 1, b: 4, cost: 650, up: 35, ic: 0.4, p: 3, tier: 2, th: -50, bl: 18, md: 2, eat: 6, tr: true, wx: [1.1, 2, 0.6, 0.2], br: 0.01, rc: CYAN, r2: BLU, d: "a hit in the heat; the machine can break",
+      top: [{k: 8, n: 8, ro: true, pr: [[0.26, 0], [0.3, 0.24], [0.34, 0.48], [0.38, 0.7]], cs: [#37b6e9, #6fd0f2, #bfeeff], nt: true}, {k: 8, n: 8, ro: true, pr: [[0.4, 0.68], [0.4, 0.73]], c: WHT, nt: true},
+        {k: 8, n: 8, ro: true, pr: DOME, r: 0.38, h: 0.36, x: 0, y: 0.72, z: 0, c: #37b6e9, cs: [#37b6e9, #56c4ee, #8fdcf5, WHT]}, {k: 0, x: 0.1, y: 0.9, z: 0, w: 0.05, h: 0.44, d: 0.05, c: RED, rz: -14}, {k: 10, z: 0.3, cs: [BLU, CYAN], w: 0.34}]},
+    {n: "juice bar", cat: 1, b: 4, cost: 800, up: 40, ic: 1, p: 4.5, sv: 4, tier: 3, th: -55, bl: 20, hu: 8, md: 3, eat: 6, tr: true, rc: ORG, r2: GRN, d: "fresh: quenches and cheers up",
+      top: [{k: 8, n: 8, ro: true, pr: BALL, r: 0.44, h: 0.42, x: 0, y: 0.43, z: 0, c: ORG, cs: [#e07a12, ORG, #f7a13c, #f9b45c]}, {k: 6, x: 0.12, y: 0.86, z: 0, r: 0.15, ry: 0.03, n: 4, c: #4aa36a},
+        {k: 6, x: -0.04, y: 0.87, z: 0.1, r: 0.12, ry: 0.03, n: 4, c: #3f8f45}, {k: 0, x: -0.08, y: 0.8, z: -0.04, w: 0.05, h: 0.42, d: 0.05, c: WHT, rz: 12}, {k: 10, z: 0.37, cs: [GRN, WHT], w: 0.34}]},
+    {n: "hot chocolate", cat: 1, b: 4, cost: 500, ic: 0.5, p: 3, tier: 2, th: -25, bl: 18, md: 4, eat: 7, tr: true, wx: [0.5, 0.1, 1.2, 2.2], rc: #7a4f38, r2: CRMC, d: "sells best in the rain",
+      top: [{k: 8, n: 8, ro: true, pr: [[0.28, 0], [0.32, 0.05], [0.32, 0.62]], x: -0.07, c: RED, t: #5a3520}, {k: 8, n: 8, ro: true, pr: [[0.326, 0.5], [0.326, 0.57]], x: -0.07, c: WHT, nt: true},
+        {k: 8, n: 6, pr: [[0.14, -0.045], [0.185, 0], [0.14, 0.045], [0.095, 0], [0.14, -0.045]], ax: 2, x: 0.3, y: 0.34, c: RED, nt: true}, {k: 8, n: 6, pr: DOME, r: 0.2, h: 0.14, x: -0.07, y: 0.62, z: 0, c: WHT},
+        {k: 0, x: -0.2, y: 0.62, z: 0.14, w: 0.09, h: 0.07, d: 0.09, c: WHT}, {k: 0, x: 0.06, y: 0.62, z: -0.16, w: 0.09, h: 0.07, d: 0.09, c: #ffe9ef}, {k: 0, x: 0.08, y: 0.62, z: 0.14, w: 0.08, h: 0.06, d: 0.08, c: WHT},
+        {k: 8, n: 5, pr: BLOB, r: 0.05, h: 0.05, x: -0.05, y: 0.94, z: 0, c: WHT}, {k: 10, z: 0.29, cs: [RED, WHT], x: -0.07, w: 0.32}]},
+    {n: "balloons", cat: 2, b: 4, cost: 300, up: 20, ic: 0.3, p: 2.5, sv: 2, md: 8, fn: 10, sp: "bal", wc: YEL, rc: BLU, d: "guests carry them round the park",
+      top: [{k: 8, n: 8, ro: true, pr: [[0.3, 0], [0.3, 0.44]], vs: [YEL, BLU], t: CTR}, {k: 0, x: 0, y: 0.44, z: 0, w: 0.03, h: 0.4, d: 0.03, c: WHT}, {k: 8, n: 6, pr: BLOB, r: 0.17, h: 0.2, x: 0, y: 1.12, z: 0, c: RED},
+        {k: 8, n: 6, pr: BLOB, r: 0.16, h: 0.19, x: -0.24, y: 0.96, z: 0.06, c: YEL}, {k: 8, n: 6, pr: BLOB, r: 0.16, h: 0.19, x: 0.24, y: 0.94, z: -0.06, c: BLU}, {k: 8, n: 6, pr: BLOB, r: 0.15, h: 0.18, x: -0.08, y: 0.9, z: -0.24, c: GRN},
+        {k: 8, n: 6, pr: BLOB, r: 0.15, h: 0.18, x: 0.1, y: 0.9, z: 0.24, c: PNK}, {k: 10, z: 0.28, cs: [RED, WHT], w: 0.32, na: true}]},
+    {n: "hats", cat: 2, b: 4, cost: 500, ic: 1.5, p: 6, tier: 1, md: 6, sp: "hat", wx: [1.2, 1.8, 0.8, 0.5], rc: TEAL, r2: CRMC, d: "keeps the sun off: less thirst in the heat",
+      top: [{k: 8, n: 8, ro: true, pr: [[0.34, 0], [0.34, 0.56]], c: TEAL, nt: true}, {k: 8, n: 10, pr: [[0.5, 0.56], [0.5, 0.6]], c: #f0d48a, t: #f6e0a4}, {k: 8, n: 8, ro: true, pr: [[0.3, 0.6], [0.28, 0.8], [0.2, 0.87]], c: #f0d48a, t: #f6e0a4},
+        {k: 8, n: 8, ro: true, pr: [[0.306, 0.61], [0.3, 0.69]], c: RED, nt: true}, {k: 10, z: 0.32, w: 0.34, na: true}]},
+    {n: "umbrellas", cat: 2, b: 4, cost: 450, ic: 2, p: 7, tier: 1, sp: "umb", rc: BLU, r2: YEL, d: "sell when it rains; dry guests stay",
+      top: [{k: 8, n: 8, ro: true, pr: [[0.3, 0], [0.3, 0.42]], c: BLU, t: CTR}, {k: 0, x: 0, y: 0.42, z: 0, w: 0.04, h: 0.5, d: 0.04, c: DARK}, {k: 8, n: 8, ro: true, pr: [[0.5, 0.76], [0.3, 0.93], [0.03, 1.02]], vs: [RED, YEL]},
+        {k: 8, n: 5, pr: BLOB, r: 0.04, h: 0.04, x: 0, y: 1.05, z: 0, c: DARK}, {k: 10, z: 0.28, w: 0.32, na: true}]},
+    {n: "t-shirts", cat: 2, b: 4, cost: 700, up: 35, ic: 3, p: 11, sv: 4, tier: 2, md: 8, rc: PUR, r2: WHT, d: "dear, for guests in a good mood",
+      top: [{k: 0, x: 0, y: 0, z: 0, w: 0.6, h: 0.76, d: 0.4, c: PUR}, {k: 0, x: -0.37, y: 0.52, z: 0, w: 0.24, h: 0.2, d: 0.36, c: PUR, rz: -28}, {k: 0, x: 0.37, y: 0.52, z: 0, w: 0.24, h: 0.2, d: 0.36, c: PUR, rz: 28},
+        {k: 0, x: 0, y: 0.7, z: 0.205, w: 0.22, h: 0.06, d: 0.02, c: WHT}, {k: 0, x: 0, y: 0.54, z: 0.205, w: 0.6, h: 0.07, d: 0.02, c: YEL}, {k: 0, x: 0, y: 0.76, z: 0, w: 0.2, h: 0.03, d: 0.3, c: WHT}, {k: 10, z: 0.2, w: 0.36, na: true}]},
+    {n: "plush toys", cat: 2, b: 4, cost: 650, up: 35, ic: 2.5, p: 9, tier: 2, md: 10, fn: 12, rc: PNK, r2: PUR, d: "dear, for guests in a good mood",
+      top: [{k: 8, n: 8, ro: true, pr: BALL, r: 0.4, h: 0.36, x: 0, y: 0.37, z: 0, c: #b07a4a}, {k: 8, n: 8, ro: true, pr: BALL, r: 0.27, h: 0.24, x: 0, y: 0.93, z: 0, c: #b07a4a},
+        {k: 8, n: 5, pr: BLOB, r: 0.09, h: 0.09, x: -0.2, y: 1.15, z: 0, c: #8d5a3a}, {k: 8, n: 5, pr: BLOB, r: 0.09, h: 0.09, x: 0.2, y: 1.15, z: 0, c: #8d5a3a}, {k: 8, n: 5, pr: BLOB, r: 0.1, h: 0.08, x: 0, y: 0.89, z: 0.22, c: #e3c49a},
+        {k: 0, x: 0, y: 0.9, z: 0.31, w: 0.05, h: 0.04, d: 0.02, c: DARK}, {k: 0, x: -0.1, y: 0.98, z: 0.235, w: 0.045, h: 0.045, d: 0.02, c: DARK}, {k: 0, x: 0.1, y: 0.98, z: 0.235, w: 0.045, h: 0.045, d: 0.02, c: DARK},
+        {k: 8, n: 5, pr: BLOB, r: 0.11, h: 0.11, x: -0.37, y: 0.52, z: 0.1, c: #b07a4a}, {k: 8, n: 5, pr: BLOB, r: 0.11, h: 0.11, x: 0.37, y: 0.52, z: 0.1, c: #b07a4a}, {k: 8, n: 5, pr: BLOB, r: 0.11, h: 0.11, x: -0.22, y: 0.1, z: 0.34, c: #8d5a3a},
+        {k: 8, n: 5, pr: BLOB, r: 0.11, h: 0.11, x: 0.22, y: 0.1, z: 0.34, c: #8d5a3a}, {k: 10, z: 0.33, w: 0.3, na: true}]},
+    {n: "souvenirs", cat: 2, b: 4, cost: 900, up: 45, ic: 4, p: 14, sv: 4, tier: 3, md: 10, rc: GOLD, r2: PUR, d: "the dearest gift",
+      top: [{k: 0, x: 0, y: 0, z: 0, w: 0.7, h: 0.6, d: 0.7, c: PUR, nt: true}, {k: 0, x: 0, y: 0.6, z: 0, w: 0.78, h: 0.12, d: 0.78, c: #a678e0}, {k: 0, x: 0, y: 0, z: 0, w: 0.12, h: 0.725, d: 0.8, c: GOLD},
+        {k: 0, x: 0, y: 0.6, z: 0, w: 0.8, h: 0.125, d: 0.12, c: GOLD}, {k: 8, n: 5, pr: BLOB, r: 0.14, h: 0.1, x: -0.14, y: 0.82, z: 0, c: GOLD}, {k: 8, n: 5, pr: BLOB, r: 0.14, h: 0.1, x: 0.14, y: 0.82, z: 0, c: GOLD},
+        {k: 8, n: 5, pr: BLOB, r: 0.07, h: 0.07, x: 0, y: 0.8, z: 0, c: #d9a400}, {k: 10, z: 0.39, w: 0.36, na: true}]},
+    {n: "face painting", cat: 2, b: 4, cost: 500, up: 40, ic: 0.5, p: 5, sv: 6, tier: 2, md: 10, fn: 15, wc: PNK, rc: CYAN, r2: YEL, d: "slow to serve, much loved",
+      top: [{k: 8, n: 8, ro: true, pr: [[0.4, 0], [0.4, 0.5]], vs: [PNK, WHT], nt: true}, {k: 0, x: 0, y: 0, z: 0.365, w: 0.26, h: 0.4, d: 0.02, c: WIN}, {k: 8, n: 8, ro: true, pr: [[0.48, 0.48], [0.03, 0.92]], vs: [CYAN, YEL]},
+        {k: 7, x: -0.1, y: 1.1, z: 0, r: 0.2, l: 0.04, n: 8, ax: 1, c: #e8c9a0, t: #f3dcb8}, {k: 7, x: -0.2, y: 1.16, z: 0.03, r: 0.045, l: 0.01, n: 6, ax: 1, flat: true, c: RED, t: RED},
+        {k: 7, x: -0.1, y: 1.22, z: 0.03, r: 0.045, l: 0.01, n: 6, ax: 1, flat: true, c: BLU, t: BLU}, {k: 7, x: 0, y: 1.16, z: 0.03, r: 0.045, l: 0.01, n: 6, ax: 1, flat: true, c: YEL, t: YEL},
+        {k: 7, x: -0.04, y: 1.02, z: 0.03, r: 0.045, l: 0.01, n: 6, ax: 1, flat: true, c: GRN, t: GRN}, {k: 0, x: 0.26, y: 0.88, z: 0, w: 0.05, h: 0.42, d: 0.05, c: BRN, rz: -15},
+        {k: 4, x: 0.26, y: 1.3, z: 0, r: 0.05, h: 0.14, n: 5, c: RED, rz: -15, pv: [0.26, 0.88, 0]}]},
+    {n: "photo booth", cat: 2, b: 4, cost: 1200, up: 50, ic: 0.6, p: 5, sv: 4, tier: 3, md: 9, fn: 14, br: 0.015, d: "a keepsake; the machine can break",
+      top: [{k: 0, x: 0, y: 0, z: -0.04, w: 0.84, h: 0.56, d: 0.5, c: #3b3f4a, nt: true}, {k: 0, x: 0, y: 0.56, z: -0.04, w: 0.84, h: 0.07, d: 0.5, c: SIL, t: #dfe5ea},
+        {k: 7, x: -0.16, y: 0.3, z: 0.26, r: 0.2, l: 0.14, n: 8, ax: 1, c: #22242b, t: #22242b}, {k: 7, x: -0.16, y: 0.3, z: 0.335, r: 0.13, l: 0.01, n: 8, ax: 1, flat: true, c: CYAN, t: CYAN},
+        {k: 7, x: -0.2, y: 0.35, z: 0.34, r: 0.04, l: 0.01, n: 5, ax: 1, flat: true, c: WHT, t: WHT}, {k: 0, x: 0.25, y: 0, z: 0.215, w: 0.26, h: 0.46, d: 0.02, c: RED},
+        {k: 8, n: 6, pr: [[0.07, 0.63], [0.07, 0.69]], x: 0.26, z: -0.04, c: RED, t: #f0625a}, {k: 0, x: -0.24, y: 0.63, z: -0.04, w: 0.2, h: 0.1, d: 0.16, c: WHT, t: YEL}]},
+    {n: "lottery tickets", cat: 3, an: 5, b: 4, cost: 350, up: 25, ic: 0.1, p: 2, sv: 2, fn: 18, sp: "lot", rc: GRN, r2: GOLD, d: "1 in 7 wins cash, out of your till",
+      top: [{k: 8, n: 8, ro: true, pr: [[0.36, 0], [0.36, 0.56]], vs: [GRN, WHT], nt: true}, {k: 8, n: 8, ro: true, pr: [[0.46, 0.54], [0.03, 0.84]], c: GRN}, {k: 7, x: 0, y: 1.06, z: 0, r: 0.23, l: 0.06, n: 10, ax: 1, c: #d9a400, t: GOLD},
+        {k: 7, x: 0, y: 1.06, z: 0.032, r: 0.15, l: 0.01, n: 8, ax: 1, flat: true, c: #f9dc5c, t: #f9dc5c}, {k: 10, z: 0.33, cs: [GOLD, GRN], w: 0.34}]},
+    {n: "ring toss", cat: 3, an: 3, b: 4, cost: 600, ic: 0.1, p: 3, sv: 4, tier: 1, fn: 30, pw: 0.2, pc: 2, wc: BLU, rc: YEL, r2: BLU, d: "1 in 5 wins a prize",
+      top: [{k: 8, n: 8, ro: true, pr: [[0.46, 0], [0.46, 0.26]], vs: [BLU, YEL], t: CTR}, {k: 8, n: 6, pr: [[0.06, 0.26], [0.05, 1.04]], c: WHT, nt: true},
+        {k: 8, n: 8, ro: true, pr: [[0.33, -0.085], [0.415, 0], [0.33, 0.085], [0.245, 0], [0.33, -0.085]], y: 0.36, c: RED, nt: true},
+        {k: 8, n: 8, ro: true, pr: [[0.26, -0.075], [0.335, 0], [0.26, 0.075], [0.185, 0], [0.26, -0.075]], y: 0.53, c: YEL, nt: true},
+        {k: 8, n: 8, ro: true, pr: [[0.19, -0.065], [0.255, 0], [0.19, 0.065], [0.125, 0], [0.19, -0.065]], y: 0.68, c: GRN, nt: true},
+        {k: 8, n: 8, ro: true, pr: [[0.13, -0.055], [0.185, 0], [0.13, 0.055], [0.075, 0], [0.13, -0.055]], y: 0.81, c: BLU, nt: true}, {k: 8, n: 6, pr: BLOB, r: 0.08, h: 0.08, x: 0, y: 1.1, z: 0, c: GOLD}]},
+    {n: "shooting gallery", cat: 3, an: 2, b: 4, cost: 900, up: 45, ic: 0.2, p: 4, sv: 5, tier: 1, fn: 38, pw: 0.22, pc: 3, br: 0.008, wc: #7a4f38, rc: RED, r2: CRMC, d: "great fun; 1 in 5 wins a prize",
+      top: [{k: 0, x: 0, y: 0, z: -0.4, w: 0.92, h: 0.9, d: 0.08, c: #7a4f38}, {k: 0, x: -0.43, y: 0, z: -0.04, w: 0.06, h: 0.5, d: 0.66, c: RED}, {k: 0, x: 0.43, y: 0, z: -0.04, w: 0.06, h: 0.5, d: 0.66, c: RED},
+        {k: 0, x: 0, y: 0, z: 0.36, w: 0.92, h: 0.28, d: 0.14, c: RED, t: CTR}, {k: 0, x: -0.2, y: 0.29, z: 0.3, w: 0.05, h: 0.05, d: 0.34, c: DARK}, {k: 0, x: 0.2, y: 0.29, z: 0.3, w: 0.05, h: 0.05, d: 0.34, c: DARK},
+        {k: 0, x: 0, y: 0.26, z: -0.33, w: 0.8, h: 0.03, d: 0.06, c: CTR}, {k: 7, x: -0.26, y: 0.38, z: -0.33, r: 0.085, l: 0.01, n: 6, ax: 1, flat: true, c: YEL, t: YEL},
+        {k: 7, x: 0, y: 0.38, z: -0.33, r: 0.085, l: 0.01, n: 6, ax: 1, flat: true, c: YEL, t: YEL}, {k: 7, x: 0.26, y: 0.38, z: -0.33, r: 0.085, l: 0.01, n: 6, ax: 1, flat: true, c: YEL, t: YEL},
+        {k: 7, x: -0.2, y: 0.68, z: -0.35, r: 0.11, l: 0.01, n: 8, ax: 1, flat: true, c: WHT, t: WHT}, {k: 7, x: -0.2, y: 0.68, z: -0.345, r: 0.055, l: 0.01, n: 6, ax: 1, flat: true, c: RED, t: RED},
+        {k: 7, x: 0.2, y: 0.68, z: -0.35, r: 0.11, l: 0.01, n: 8, ax: 1, flat: true, c: WHT, t: WHT}, {k: 7, x: 0.2, y: 0.68, z: -0.345, r: 0.055, l: 0.01, n: 6, ax: 1, flat: true, c: RED, t: RED},
+        {k: 7, x: 0, y: 1.14, z: -0.4, r: 0.22, l: 0.05, n: 8, ax: 1, c: WHT, t: WHT}, {k: 7, x: 0, y: 1.14, z: -0.37, r: 0.15, l: 0.01, n: 8, ax: 1, flat: true, c: RED, t: RED},
+        {k: 7, x: 0, y: 1.14, z: -0.365, r: 0.07, l: 0.01, n: 6, ax: 1, flat: true, c: WHT, t: WHT}, {k: 11, x: 0, y: 0.92, z: -0.36, w: 0.92, d: 0.3, dr: 0.08, ns: 6, cs: [RED, WHT]}]},
+    {n: "high striker", cat: 3, an: 1, cost: 700, up: 30, ic: 0, p: 3, sv: 4, fn: 30, en: -6, sp: "hit", pw: 0.3, pc: 1.5, b: 4, d: "ring the bell: the strong win",
+      top: [{k: 0, x: 0, y: 0, z: 0, w: 0.42, h: 0.08, d: 0.42, c: RED, t: #b83a31}, {k: 0, x: 0, y: 0.08, z: -0.08, w: 0.14, h: 0.4, d: 0.05, c: YEL}, {k: 0, x: 0, y: 0.48, z: -0.08, w: 0.14, h: 0.4, d: 0.05, c: ORG}, {k: 0, x: 0, y: 0.88, z: -0.08, w: 0.14, h: 0.4, d: 0.05, c: RED},
+        {k: 0, x: 0, y: 0.3, z: -0.05, w: 0.03, h: 0.94, d: 0.02, c: WHT}, {k: 6, x: 0, y: 1.37, z: -0.08, r: 0.1, n: 6, c: GOLD}, {k: 0, x: 0.02, y: 0.08, z: 0.1, w: 0.1, h: 0.05, d: 0.1, c: DARK}, {k: 0, x: 0.2, y: 0.08, z: 0.16, w: 0.3, h: 0.04, d: 0.04, c: BRN}, {k: 0, x: 0.34, y: 0.06, z: 0.16, w: 0.1, h: 0.1, d: 0.12, c: SIL}]},
+    {n: "duck pond", cat: 3, an: 4, cost: 600, ic: 0.1, p: 3, sv: 4, tier: 2, fn: 26, pw: 0.5, pc: 1, b: 4, d: "easy: every other guest wins a small prize",
+      top: [{k: 3, x: 0, y: 0, z: 0, r: 0.42, h: 0.16, n: 8, c: WHT, t: #46b3e6}, {k: 0, x: 0, y: 0.16, z: 0, w: 0.04, h: 0.6, d: 0.04, c: WHT}, {k: 4, x: 0, y: 0.72, z: 0, r: 0.46, h: 0.18, n: 8, c: YEL},
+        {k: 6, x: -0.2, y: 0.2, z: 0.1, r: 0.06, ry: 0.045, n: 4, c: GOLD}, {k: 6, x: -0.16, y: 0.27, z: 0.1, r: 0.035, n: 4, c: GOLD}, {k: 6, x: 0.18, y: 0.2, z: -0.12, r: 0.06, ry: 0.045, n: 4, c: GOLD}, {k: 6, x: 0.22, y: 0.27, z: -0.12, r: 0.035, n: 4, c: GOLD}, {k: 6, x: 0.08, y: 0.2, z: 0.24, r: 0.06, ry: 0.045, n: 4, c: GOLD}, {k: 6, x: 0.12, y: 0.27, z: 0.24, r: 0.035, n: 4, c: GOLD}]},
+    {n: "can knockdown", cat: 3, an: 3, b: 4, cost: 650, ic: 0.1, p: 3.5, sv: 4, tier: 2, fn: 32, pw: 0.25, pc: 2.5, wc: RED, rc: BLU, r2: WHT, d: "1 in 4 wins a prize",
+      top: [{k: 0, x: 0, y: 0, z: 0.02, w: 0.9, h: 0.2, d: 0.56, c: RED, t: CTR}, {k: 0, x: 0, y: 0, z: -0.4, w: 0.9, h: 1, d: 0.06, c: BLU}, {k: 0, x: 0, y: 1, z: -0.4, w: 0.94, h: 0.06, d: 0.1, c: WHT},
+        {k: 8, n: 6, pr: [[0.14, 0], [0.14, 0.07], [0.14, 0.2], [0.14, 0.27]], x: -0.3, y: 0.2, cs: [SIL, RED, SIL], t: #e6ebf0}, {k: 8, n: 6, pr: [[0.14, 0], [0.14, 0.07], [0.14, 0.2], [0.14, 0.27]], x: 0, y: 0.2, cs: [SIL, RED, SIL], t: #e6ebf0},
+        {k: 8, n: 6, pr: [[0.14, 0], [0.14, 0.07], [0.14, 0.2], [0.14, 0.27]], x: 0.3, y: 0.2, cs: [SIL, RED, SIL], t: #e6ebf0},
+        {k: 8, n: 6, pr: [[0.14, 0], [0.14, 0.07], [0.14, 0.2], [0.14, 0.27]], x: -0.15, y: 0.47, cs: [SIL, RED, SIL], t: #e6ebf0},
+        {k: 8, n: 6, pr: [[0.14, 0], [0.14, 0.07], [0.14, 0.2], [0.14, 0.27]], x: 0.15, y: 0.47, cs: [SIL, RED, SIL], t: #e6ebf0},
+        {k: 8, n: 6, pr: [[0.14, 0], [0.14, 0.07], [0.14, 0.2], [0.14, 0.27]], x: 0, y: 0.74, cs: [SIL, RED, SIL], t: #e6ebf0}, {k: 8, n: 5, pr: BLOB, r: 0.07, h: 0.07, x: 0.34, y: 0.86, z: 0.22, c: WHT}]},
+    {n: "wheel of fortune", cat: 3, an: 5, cost: 1100, up: 45, ic: 0, p: 5, sv: 5, tier: 3, fn: 36, sp: "whl", b: 4, d: "1 in 3 wins cash, out of your till",
+      top: [{k: 0, x: 0, y: 0, z: 0.24, w: 0.7, h: 0.26, d: 0.2, c: PUR, t: CTR}, {k: 0, x: 0, y: 0, z: -0.2, w: 0.1, h: 0.7, d: 0.08, c: DARK}, {k: 9, x: 0, y: 0.78, z: -0.14, r: 0.42, n: 10, cs: [RED, YEL, BLU, WHT, GRN]}, {k: 7, x: 0, y: 0.78, z: -0.17, r: 0.44, l: 0.05, n: 10, ax: 1, c: GOLD, t: GOLD}, {k: 0, x: 0, y: 1.2, z: -0.12, w: 0.05, h: 0.1, d: 0.03, c: DARK}]},
+    {n: "fortune teller", cat: 3, an: 4, b: 4, cost: 800, up: 40, ic: 0, p: 5, sv: 7, tier: 2, fn: 34, md: 5, wc: PUR, rc: PUR, r2: GOLD, d: "slow, but guests leave amazed",
+      top: [{k: 8, n: 8, ro: true, pr: [[0.4, 0], [0.4, 0.46]], vs: [PUR, #6f3fb0], nt: true}, {k: 0, x: 0, y: 0, z: 0.365, w: 0.26, h: 0.38, d: 0.02, c: WIN}, {k: 0, x: -0.15, y: 0, z: 0.375, w: 0.06, h: 0.4, d: 0.02, c: GOLD},
+        {k: 0, x: 0.15, y: 0, z: 0.375, w: 0.06, h: 0.4, d: 0.02, c: GOLD}, {k: 8, n: 8, ro: true, pr: [[0.48, 0.44], [0.48, 0.5]], c: GOLD, nt: true},
+        {k: 8, n: 8, ro: true, pr: [[0.47, 0.5], [0.2, 0.82], [0.06, 1.08]], cs: [PUR, #6f3fb0], t: GOLD}, {k: 8, n: 6, pr: [[0.09, 1.08], [0.07, 1.13]], c: GOLD, nt: true},
+        {k: 8, n: 6, pr: BALL, r: 0.13, h: 0.13, x: 0, y: 1.25, z: 0, c: CYAN, cs: [#56c4ee, CYAN, #bfeeff, WHT]}]},
+    {n: "claw crane", cat: 3, an: 4, cost: 1000, up: 40, ic: 0, p: 2, sv: 5, tier: 3, fn: 22, pw: 0.12, pc: 3, br: 0.02, b: 4, d: "cheap to play, rarely pays; it can break",
+      top: [{k: 0, x: 0, y: 0, z: 0, w: 0.54, h: 0.36, d: 0.54, c: RED, t: #b83a31}, {k: 0, x: 0, y: 0.36, z: 0, w: 0.5, h: 0.42, d: 0.5, c: #cfeffa, nt: true}, {k: 0, x: 0, y: 0.78, z: 0, w: 0.56, h: 0.12, d: 0.56, c: RED, t: YEL}, {k: 0, x: 0.1, y: 0.36, z: 0.28, w: 0.04, h: 0.08, d: 0.04, c: DARK}, {k: 6, x: 0, y: 0.98, z: 0, r: 0.08, n: 5, c: PNK}]},
+    {n: "dunk tank", cat: 3, an: 3, cost: 1300, up: 60, ic: 0.2, p: 5, sv: 6, tier: 3, fn: 45, b: 4, d: "the biggest laugh on the midway",
+      top: [{k: 3, x: -0.1, y: 0, z: -0.08, r: 0.34, h: 0.5, n: 8, c: #7fc8ee, t: #46b3e6}, {k: 0, x: -0.1, y: 0, z: -0.44, w: 0.72, h: 0.96, d: 0.05, c: RED}, {k: 0, x: -0.1, y: 0.62, z: -0.3, w: 0.3, h: 0.04, d: 0.24, c: BRN}, {k: 0, x: 0.38, y: 0, z: -0.1, w: 0.04, h: 0.7, d: 0.04, c: DARK}, {k: 7, x: 0.38, y: 0.76, z: -0.08, r: 0.13, l: 0.03, n: 8, ax: 1, c: WHT, t: WHT}, {k: 7, x: 0.38, y: 0.76, z: -0.06, r: 0.06, l: 0.01, n: 6, ax: 1, flat: true, c: RED, t: RED}]},
+    {n: "toilets", cat: 4, b: 4, cost: 500, up: 40, ic: 0.05, p: 0.5, sv: 2, sp: "wc", wc: WHT, rc: TEAL, r2: BLU, d: "every guest needs one sooner or later",
+      top: [{k: 8, n: 8, ro: true, pr: [[0.4, 0], [0.4, 0.8]], c: WHT, nt: true}, {k: 8, n: 8, ro: true, pr: [[0.404, 0.52], [0.404, 0.54]], c: #d6d0c4, nt: true}, {k: 8, n: 8, ro: true, pr: [[0.4, 0.78], [0.4, 0.8]], c: WHT, t: #f4f1ea},
+        {k: 8, n: 8, ro: true, pr: [[0.15, 0.8], [0.15, 0.85]], c: #c9a777, t: #5c4630}, {k: 0, x: -0.15, y: 0, z: 0.31, w: 0.2, h: 0.42, d: 0.14, c: BLU, t: #2f66ad}, {k: 0, x: 0.15, y: 0, z: 0.31, w: 0.2, h: 0.42, d: 0.14, c: PNK, t: #d9749a},
+        {k: 0, x: -0.15, y: 0.05, z: 0.385, w: 0.12, h: 0.3, d: 0.02, c: #2a4f86}, {k: 0, x: 0.15, y: 0.05, z: 0.385, w: 0.12, h: 0.3, d: 0.02, c: #c25f86}, {k: 0, x: 0.43, y: 0.26, z: -0.08, w: 0.02, h: 0.54, d: 0.3, c: WHT, rz: -7},
+        {k: 0, x: 0.445, y: 0.4, z: -0.08, w: 0.02, h: 0.02, d: 0.3, c: #d6d0c4, rz: -7, pv: [0.43, 0.26, -0.08]}]},
+    {n: "cash machine", cat: 4, cost: 800, up: 20, ic: 0, p: 1.5, sv: 3, sp: "atm", br: 0.006, b: 4, d: "guests out of cash draw more, for a fee",
+      top: [{k: 0, x: 0, y: 0, z: -0.06, w: 0.4, h: 0.74, d: 0.34, c: #2a6f6a, t: #1f5450}, {k: 0, x: 0, y: 0.42, z: 0.12, w: 0.26, h: 0.2, d: 0.02, c: #bfeeff}, {k: 0, x: 0, y: 0.26, z: 0.12, w: 0.26, h: 0.08, d: 0.04, c: SIL}, {k: 0, x: 0, y: 0.74, z: 0, w: 0.5, h: 0.06, d: 0.56, c: GRN}, {k: 7, x: 0, y: 0.94, z: 0, r: 0.12, l: 0.04, n: 8, ax: 1, c: #d9a400, t: GOLD}]},
+    {n: "info kiosk", cat: 4, b: 4, cost: 450, up: 25, ic: 0.2, p: 2, tier: 1, sp: "map", rc: BLU, r2: WHT, wc: WHT, d: "sells maps: guests find what they need sooner",
+      top: [{k: 8, n: 8, ro: true, pr: [[0.34, 0], [0.34, 0.56]], vs: [BLU, WHT], nt: true}, {k: 8, n: 8, ro: true, pr: [[0.46, 0.54], [0.03, 0.8]], c: BLU}, {k: 0, x: 0, y: 0.84, z: 0, w: 0.1, h: 0.24, d: 0.08, c: WHT},
+        {k: 8, n: 6, pr: BLOB, r: 0.075, h: 0.075, x: 0, y: 1.2, z: 0, c: WHT}, {k: 10, z: 0.32, cs: [BLU, WHT], w: 0.34}]},
+    {n: "first aid", cat: 4, b: 4, cost: 700, up: 70, ic: 0, p: 0, val: 5, sv: 4, tier: 2, sp: "aid", wc: WHT, rc: RED, r2: #b83a31, d: "free: settles queasy and worn-out guests",
+      top: [{k: 0, x: 0, y: 0, z: 0, w: 0.84, h: 0.78, d: 0.6, c: WHT, t: #f4f1ea}, {k: 0, x: 0, y: 0, z: 0, w: 0.86, h: 0.08, d: 0.62, c: RED}, {k: 0, x: 0, y: 0.78, z: 0, w: 0.52, h: 0.03, d: 0.17, c: RED},
+        {k: 0, x: 0, y: 0.78, z: 0, w: 0.17, h: 0.03, d: 0.52, c: RED}, {k: 0, x: -0.32, y: 0.57, z: 0.305, w: 0.17, h: 0.06, d: 0.02, c: RED}, {k: 0, x: -0.32, y: 0.515, z: 0.305, w: 0.06, h: 0.17, d: 0.02, c: RED},
+        {k: 0, x: 0.32, y: 0.57, z: 0.305, w: 0.17, h: 0.06, d: 0.02, c: RED}, {k: 0, x: 0.32, y: 0.515, z: 0.305, w: 0.06, h: 0.17, d: 0.02, c: RED}, {k: 10, z: 0.3, cs: [RED, WHT], w: 0.3}]}
+  ]
+  let K = KRAW.map(k => merge(KDEF, k, {val: k.val ?? k.p}))
+  let KCAT = range(5).map(c => range(len(K)).filter(i => K[i].cat == c).sortBy(i => K[i].tier * 100 + i))
+  let CATKEY = ["food", "drink", "gifts", "games", "services"]
+  // scenery: what g says (3-8), its price and what it's for
+  let SCN = [
+    {t: 3, n: "bench", cost: 60, d: "on a path: one at each free side. A rest, and food tastes better sitting"},
+    {t: 4, n: "bin", cost: 40, d: "on a path: one at each free side. Guests carry litter a few tiles to one"},
+    {t: 5, n: "lamp", cost: 80, d: "lights 2 tiles round after dark"},
+    {t: 6, n: "flower bed", cost: 90, d: "cheers passers-by; needs a gardener's water"},
+    {t: 7, n: "tree", cost: 50, d: "a little cheer, no care"},
+    {t: 8, n: "fountain", cost: 600, d: "the prettiest thing in the park"}]
+  let SCOST = [0, 10, 0, 60, 40, 80, 90, 50, 600]
+  let STAFFK = [
+    {n: "janitor", wage: 90, col: #3fa7a0, d: "sweeps litter, empties bins"},
+    {n: "gardener", wage: 80, col: #5aa13c, d: "waters flower beds before they dry"},
+    {n: "mechanic", wage: 120, col: #f2a01f, d: "mends broken stands"},
+    {n: "entertainer", wage: 100, col: #e04fa0, d: "cheers and amuses guests nearby"},
+    {n: "guard", wage: 110, col: #2f3f6b, d: "calms angry guests: fewer storm out"}]
+  // tiers: guests in the park at once, and the rating, a tier wants
+  let TIERS = [{g: 0, r: 0}, {g: 20, r: 0}, {g: 50, r: 45}, {g: 90, r: 60}]
+  let TIER = peak >= 90 && rbest >= 60 ? 3 : peak >= 50 && rbest >= 45 ? 2 : peak >= 20 ? 1 : 0
+  let SHIRT = [#e2483d, #3d7fd0, #ffc233, #4aa36a, #f48fb1, #8e5bd0, #f28c28, #fbf8f2, #22a39a, #6b7a99]
+  let BALC = [#e2483d, #ffc233, #3d7fd0, #4aa36a, #f48fb1]
+  let NAMES = ["Ada", "Ben", "Cleo", "Dev", "Elsa", "Finn", "Gus", "Hana", "Ivo", "Jun", "Kira", "Leo", "Mila", "Noor", "Otto", "Pia", "Quin", "Rosa", "Sam", "Tess", "Uma", "Vik", "Wren", "Yara", "Zed", "Abe", "Bea", "Cy", "Dot", "Eli"]
+
+  // ---- models, made once ------------------------------------------------------------------------------------
+  // Parts: k 0 a box standing on y (c its sides, t its top, nt no top), 1 a gabled roof with its ridge along x (e its
+  // ends), 2 a pyramid roof (e its two sides), 3 a cylinder or a cone's cut (r at the bottom, r2 at the top, n
+  // sides), 4 a cone, 6 a ball round y (ry its height's half), 7 a cylinder lying along x, or along z with ax 1 (l
+  // long, t its end's color, flat only the front end), 9 a wheel of colored slices facing south, 8 a lathe: the
+  // profile pr of [radius, height] turned round y (ax 1 round x, ax 2 round z; ro a flat side to the front; cs a
+  // color a band, vs a color a side, t the top's), 10 a serving hatch on a wall at z (a frame, the dark, a counter
+  // and a striped awning unless na), 11 an awning. rz and rx tilt any part round pv, or where it stands.
+  let CORN = [[-0.5, 0, -0.5], [0.5, 0, -0.5], [0.5, 0, 0.5], [-0.5, 0, 0.5], [-0.5, 1, -0.5], [0.5, 1, -0.5], [0.5, 1, 0.5], [-0.5, 1, 0.5]]
+  let BF = [[4, 7, 6, 5], [3, 2, 6, 7], [1, 0, 4, 5], [2, 1, 5, 6], [0, 3, 7, 4]]
+  let SKIN = [#f2c9a0, #d9a074, #a8703f, #f7dcc0]
+  let HAIR = [#3a2a20, #c98a3c, #1c1c22, #8d5a3a]
+  let LEAF = [#4f9f3f, #5cb04a, #3f8f45]
+  let BOOTHS = K.map(k => k.b == 0 ? [
+        {k: 0, x: 0, y: 0, z: 0.02, w: 0.8, h: 0.3, d: 0.6, c: k.wc, t: CTR},
+        {k: 0, x: 0, y: 0.3, z: -0.24, w: 0.8, h: 0.4, d: 0.1, c: k.wc, nt: true},
+        {k: 0, x: -0.36, y: 0.3, z: 0.28, w: 0.05, h: 0.4, d: 0.05, c: WHT},
+        {k: 0, x: 0.36, y: 0.3, z: 0.28, w: 0.05, h: 0.4, d: 0.05, c: WHT},
+        {k: 2, x: 0, y: 0.7, z: 0.02, w: 0.94, h: 0.26, d: 0.76, c: k.rc, e: k.r2 ?? WHT}]
+      : k.b == 1 ? [
+        {k: 0, x: 0, y: 0.1, z: 0, w: 0.5, h: 0.24, d: 0.4, c: k.wc, t: CTR},
+        {k: 0, x: -0.2, y: 0, z: 0, w: 0.06, h: 0.1, d: 0.3, c: DARK},
+        {k: 0, x: 0.2, y: 0, z: 0, w: 0.06, h: 0.1, d: 0.3, c: DARK},
+        {k: 0, x: 0, y: 0.34, z: -0.17, w: 0.03, h: 0.5, d: 0.03, c: WHT},
+        {k: 4, x: 0, y: 0.82, z: -0.06, r: 0.4, h: 0.14, n: 8, c: k.rc}]
+      : k.b == 2 ? [
+        {k: 0, x: 0, y: 0, z: 0.3, w: 0.9, h: 0.26, d: 0.1, c: k.wc, t: CTR},
+        {k: 0, x: 0, y: 0, z: -0.36, w: 0.9, h: 0.66, d: 0.08, c: k.r2 ?? WHT, nt: true},
+        {k: 0, x: -0.42, y: 0, z: -0.02, w: 0.06, h: 0.66, d: 0.6, c: k.wc, nt: true},
+        {k: 0, x: 0.42, y: 0, z: -0.02, w: 0.06, h: 0.66, d: 0.6, c: k.wc, nt: true},
+        {k: 2, x: 0, y: 0.66, z: -0.02, w: 1, h: 0.3, d: 0.86, c: k.rc, e: k.r2 ?? WHT}]
+      : k.b == 3 ? [
+        {k: 0, x: 0, y: 0, z: -0.04, w: 0.8, h: 0.5, d: 0.66, c: k.wc, nt: true},
+        {k: 1, x: 0, y: 0.5, z: -0.04, w: 0.88, h: 0.24, d: 0.74, c: k.rc, e: k.wc},
+        {k: 0, x: -0.02, y: 0, z: 0.3, w: 0.2, h: 0.34, d: 0.02, c: k.r2 ?? DOOR}]
+      : [])
+  // People. Each kind (4 guests, then the 5 staff) is a mesh a pose: 3 of a walk, legs and arms swung -1, 0
+  // (which stands) and 1, and for a guest one sitting. tr the trousers (null takes the model's
+  // color, as the top and sleeves do), dr a dress, hd what's on the neck.
+  let HEAD0 = {k: 0, x: 0, y: 0.255, z: 0, w: 0.085, h: 0.085, d: 0.085}
+  let HUMC = [
+    {tr: #3b4a6b, sk: SKIN[0], ht: HAIR[0], hd: [merge(HEAD0, {c: SKIN[0]}), {k: 0, x: 0, y: 0.3, z: -0.012, w: 0.097, h: 0.062, d: 0.087, c: HAIR[0], all: true}]},
+    {tr: SKIN[1], sk: SKIN[1], dr: true, sho: #c2473d, ht: HAIR[1], hd: [merge(HEAD0, {c: SKIN[1]}), {k: 0, x: 0, y: 0.3, z: -0.012, w: 0.099, h: 0.064, d: 0.089, c: HAIR[1], all: true}, {k: 0, x: 0, y: 0.215, z: -0.045, w: 0.099, h: 0.09, d: 0.032, c: HAIR[1], all: true}]},
+    {tr: #6f6250, sk: SKIN[2], sho: #f2efe6, ht: #f2efe6, hd: [merge(HEAD0, {c: SKIN[2]}), {k: 0, x: 0, y: 0.31, z: -0.012, w: 0.095, h: 0.03, d: 0.085, c: HAIR[2], all: true}, {k: 0, x: 0, y: 0.34, z: 0, w: 0.097, h: 0.035, d: 0.097, c: #f2efe6, all: true},
+      {k: 0, x: 0, y: 0.34, z: 0.07, w: 0.085, h: 0.012, d: 0.05, c: #d8d2c4}]},
+    {tr: SKIN[3], sk: SKIN[3], dr: true, sho: #4a3f66, ht: HAIR[3], hd: [merge(HEAD0, {c: SKIN[3]}), {k: 0, x: 0, y: 0.3, z: -0.012, w: 0.097, h: 0.062, d: 0.087, c: HAIR[3], all: true}, {k: 6, x: 0, y: 0.365, z: -0.035, r: 0.035, n: 5, c: HAIR[3]}]},
+    // the staff: a janitor's flat cap, a gardener's straw hat, a mechanic's hard hat, a mascot (a big head with
+    // ears, all of it the model's color), a guard's peaked cap
+    {tr: #33384a, sk: SKIN[0], ht: WHT, hd: [merge(HEAD0, {c: SKIN[0]}), {k: 0, x: 0, y: 0.34, z: 0.012, w: 0.1, h: 0.035, d: 0.125, c: WHT, all: true}]},
+    {tr: #5a4a3a, sk: SKIN[1], ht: #f0d48a, hd: [merge(HEAD0, {c: SKIN[1]}), {k: 3, x: 0, y: 0.335, z: 0, r: 0.105, h: 0.014, n: 8, c: #e3c57a, t: #f0d48a}, {k: 3, x: 0, y: 0.349, z: 0, r: 0.055, r2: 0.045, h: 0.04, n: 6, c: #e3c57a, t: #f0d48a}]},
+    {tr: #33384a, sk: SKIN[2], ht: YEL, hd: [merge(HEAD0, {c: SKIN[2]}), {k: 3, x: 0, y: 0.335, z: 0, r: 0.07, r2: 0.045, h: 0.05, n: 6, c: YEL, t: YEL}, {k: 0, x: 0, y: 0.335, z: 0.065, w: 0.08, h: 0.012, d: 0.04, c: #e0a820}]},
+    {tr: null, sk: #fbe3b0, sho: #fbe3b0, hd: [{k: 6, x: 0, y: 0.37, z: 0, r: 0.12, n: 6, c: #fbe3b0}, {k: 6, x: -0.1, y: 0.47, z: 0, r: 0.05, n: 4, c: null}, {k: 6, x: 0.1, y: 0.47, z: 0, r: 0.05, n: 4, c: null}, {k: 6, x: 0, y: 0.35, z: 0.115, r: 0.03, n: 4, c: #5a3d2e}]},
+    {tr: #1c2233, sk: SKIN[3], ht: #1c2233, hd: [merge(HEAD0, {c: SKIN[3]}), {k: 0, x: 0, y: 0.34, z: 0, w: 0.097, h: 0.035, d: 0.097, c: #1c2233, all: true}, {k: 0, x: 0, y: 0.34, z: 0.065, w: 0.085, h: 0.012, d: 0.04, c: #10141f}]}
+  ]
+  let HUMP = flatten(range(len(HUMC)).map(ci => range(ci < 4 ? 4 : 3).map(ps => [[ps < 3 ? ps - 1 : 0, HUMC[ci].sho ?? #2a2630, HUMC[ci].dr ?? false, HUMC[ci]]].map(S => flatten([-1, 1].map(e =>
+        (ps == 3 ? [
+            // sitting: the thighs flat on the seat, the shins down, the hands in the lap
+            {k: 0, x: e * 0.031, y: 0.095, z: 0.05, w: 0.047, h: 0.045, d: 0.13, c: S[2] ? null : S[3].tr},
+            {k: 0, x: e * 0.031, y: 0.03, z: 0.095, w: 0.042, h: 0.07, d: 0.042, c: S[3].tr},
+            {k: 0, x: e * 0.031, y: 0, z: 0.108, w: 0.05, h: 0.035, d: 0.075, c: S[1]}]
+          : [
+            // a leg and its shoe swing from the hip, an arm (a sleeve, then the bare forearm) from the shoulder,
+            // the other way
+            {k: 0, x: e * 0.031, y: 0.03, z: 0, w: 0.045, h: 0.105, d: 0.05, c: S[3].tr, rx: e * S[0] * 30, pv: [e * 0.031, 0.135, 0]},
+            {k: 0, x: e * 0.031, y: 0, z: 0.012, w: 0.05, h: 0.035, d: 0.075, c: S[1], rx: e * S[0] * 30, pv: [e * 0.031, 0.135, 0]}])
+        + [[ps == 3 ? -42 : -e * S[0] * 36]].map(A => [
+            {k: 0, x: e * 0.077, y: 0.19, z: 0, w: 0.032, h: 0.06, d: 0.04, c: null, all: true, rx: A[0], pv: [e * 0.077, 0.245, 0]},
+            {k: 0, x: e * 0.077, y: 0.125, z: 0, w: 0.028, h: 0.065, d: 0.034, c: S[3].sk, rx: A[0], pv: [e * 0.077, 0.245, 0]}])[0]))
+      + (S[2] && ps != 3 ? [{k: 3, x: 0, y: 0.07, z: 0, r: 0.085, r2: 0.062, h: 0.07, n: 6, c: null, nt: true}] : [])
+      + [{k: 0, x: 0, y: 0.13, z: 0, w: 0.12, h: 0.125, d: 0.07, c: null}] + S[3].hd)[0])))
+  // the same people for a view from far off, where 160 of them are in sight and none bigger than a fingernail:
+  // legs in one block, no arms, no poses, the hair or hat (ht its color) only the head's top
+  let HUML = HUMC.map(C => [{k: 0, x: 0, y: 0, z: 0, w: 0.1, h: 0.135, d: 0.06, c: (C.dr ?? false) ? null : C.tr, nt: true}, {k: 0, x: 0, y: 0.13, z: 0, w: 0.15, h: 0.125, d: 0.075, c: null}] + (C.ht != null ? [merge(HEAD0, {c: C.sk, t: C.ht})] : C.hd))
+  let FARZ = 16
+  // a flower bed's stone edge, and its blooms' colors (a petal's, then its lighter top)
+  let BEDE = [[0, -0.41, 0.9, 0.08], [0, 0.41, 0.9, 0.08], [-0.41, 0, 0.08, 0.74], [0.41, 0, 0.08, 0.74]].map(e => {k: 0, x: e[0], y: 0, z: e[1], w: e[2], h: 0.11, d: e[3], c: #c9bca6, t: #e6dccb, all: true})
+  let BEDC = [[RED, #f06a5e], [YEL, #ffe08a], [PNK, #f7b3cb], [WHT, #ffe08a], [PUR, #a983de], [ORG, #f7b060]]
+  let SCNP = [
+    // 0 bench
+    [{k: 0, x: 0, y: 0.13, z: 0.02, w: 0.7, h: 0.04, d: 0.22, c: #b07a4a, t: #c48d5a}, {k: 0, x: 0, y: 0.17, z: -0.1, w: 0.7, h: 0.2, d: 0.03, c: #b07a4a}, {k: 0, x: -0.3, y: 0, z: 0, w: 0.05, h: 0.13, d: 0.05, c: DARK}, {k: 0, x: 0.3, y: 0, z: 0, w: 0.05, h: 0.13, d: 0.05, c: DARK}],
+    // 1 bin, 2 a full one
+    [{k: 3, x: 0, y: 0, z: 0, r: 0.13, r2: 0.15, h: 0.28, n: 6, c: #3f8f6a, t: #26323a}],
+    [{k: 3, x: 0, y: 0, z: 0, r: 0.13, r2: 0.15, h: 0.28, n: 6, c: #3f8f6a, t: #26323a}, {k: 6, x: 0.02, y: 0.31, z: 0, r: 0.11, ry: 0.07, n: 5, c: #e8e2d0}, {k: 0, x: -0.05, y: 0.33, z: 0.03, w: 0.08, h: 0.07, d: 0.08, c: RED}],
+    // 3 lamp
+    [{k: 0, x: 0, y: 0, z: 0, w: 0.045, h: 0.72, d: 0.045, c: DARK}, {k: 6, x: 0, y: 0.8, z: 0, r: 0.09, n: 6, c: #fff2b0}],
+    // 4 flower bed, 5 a dry one
+    BEDE + [{k: 0, x: 0, y: 0, z: 0, w: 0.74, h: 0.075, d: 0.74, c: #5b3d28, t: #5b3d28}] + flatten(range(9).map(i => [[(i % 3 - 1) * 0.23 + (hash(i, 7) - 0.5) * 0.07, (floor(i / 3) - 1) * 0.23 + (hash(i, 8) - 0.5) * 0.07, 0.17 + hash(i, 9) * 0.1, BEDC[(i * 5 + floor(i / 3)) % 6]]].map(F => [
+      {k: 6, x: F[0], y: 0.1, z: F[1], r: 0.12, ry: 0.07, n: 6, c: LEAF[i % 3]}, {k: 0, x: F[0], y: 0.1, z: F[1], w: 0.02, h: F[2] - 0.1, d: 0.02, c: #3f8f45}]
+      + (i % 3 == 1 ? [{k: 3, x: F[0], y: F[2] - 0.01, z: F[1], r: 0.025, r2: 0.065, h: 0.085, n: 5, c: F[3][0], t: F[3][1]}]
+        : [{k: 6, x: F[0], y: F[2] + 0.02, z: F[1], r: 0.085, ry: 0.035, n: 6, c: F[3][0]}, {k: 6, x: F[0], y: F[2] + 0.04, z: F[1], r: 0.034, ry: 0.03, n: 4, c: F[3][0] == YEL ? #f28c28 : #ffd84a}]))[0])),
+    BEDE + [{k: 0, x: 0, y: 0, z: 0, w: 0.74, h: 0.075, d: 0.74, c: #8a6f52, t: #8a6f52}] + flatten(range(9).map(i => [[(i % 3 - 1) * 0.23 + (hash(i, 7) - 0.5) * 0.07, (floor(i / 3) - 1) * 0.23 + (hash(i, 8) - 0.5) * 0.07, 0.08 + hash(i, 9) * 0.06]].map(F => [
+      {k: 4, x: F[0], y: 0.07, z: F[1], r: 0.07, h: F[2], n: 5, c: i % 2 == 0 ? #a08a4a : #8d7840, rz: (hash(i, 6) - 0.5) * 70}]
+      + (i % 3 == 0 ? [{k: 6, x: F[0] + 0.05, y: 0.1, z: F[1] + 0.03, r: 0.04, ry: 0.025, n: 5, c: #7a5a3a}] : []))[0])),
+    // 6-8 trees
+    [{k: 0, x: 0, y: 0, z: 0, w: 0.09, h: 0.24, d: 0.09, c: BRN}, {k: 4, x: 0, y: 0.2, z: 0, r: 0.3, h: 0.42, n: 6, c: LEAF[0]}, {k: 4, x: 0, y: 0.46, z: 0, r: 0.22, h: 0.4, n: 6, c: LEAF[1]}],
+    [{k: 0, x: 0, y: 0, z: 0, w: 0.1, h: 0.3, d: 0.1, c: BRN}, {k: 6, x: 0, y: 0.56, z: 0, r: 0.32, ry: 0.3, n: 7, c: LEAF[1]}],
+    [{k: 0, x: 0, y: 0, z: 0, w: 0.09, h: 0.2, d: 0.09, c: BRN}, {k: 4, x: 0, y: 0.16, z: 0, r: 0.26, h: 0.7, n: 6, c: LEAF[2]}],
+    // 9 fountain
+    [{k: 3, x: 0, y: 0, z: 0, r: 0.44, h: 0.14, n: 10, c: #cfc8ba, t: #4fb6ea}, {k: 3, x: 0, y: 0.14, z: 0, r: 0.07, h: 0.3, n: 6, c: #cfc8ba, nt: true}, {k: 3, x: 0, y: 0.44, z: 0, r: 0.06, r2: 0.2, h: 0.07, n: 8, c: #cfc8ba, t: #4fb6ea}, {k: 6, x: 0, y: 0.6, z: 0, r: 0.07, ry: 0.11, n: 5, c: #d8f1fc}],
+    // 10 the gate: two posts, a beam, pennants
+    [{k: 0, x: -0.62, y: 0, z: 0, w: 0.16, h: 1.1, d: 0.16, c: RED, t: WHT}, {k: 0, x: 0.62, y: 0, z: 0, w: 0.16, h: 1.1, d: 0.16, c: RED, t: WHT}, {k: 0, x: 0, y: 0.92, z: 0, w: 1.4, h: 0.22, d: 0.1, c: YEL, t: GOLD}, {k: 4, x: -0.62, y: 1.1, z: 0, r: 0.13, h: 0.22, n: 4, c: BLU}, {k: 4, x: 0.62, y: 1.1, z: 0, r: 0.13, h: 0.22, n: 4, c: BLU},
+      {k: 4, x: 0, y: 1.14, z: 0, r: 0.1, h: 0.26, n: 4, c: RED}],
+    // 11 litter
+    [{k: 0, x: -0.12, y: 0.01, z: 0.08, w: 0.1, h: 0.02, d: 0.08, c: WHT}, {k: 0, x: 0.1, y: 0.01, z: -0.1, w: 0.08, h: 0.02, d: 0.1, c: #e9d36a}, {k: 0, x: 0.05, y: 0.01, z: 0.14, w: 0.07, h: 0.02, d: 0.07, c: #d96a5a}],
+    // 12 a balloon on its string, 13 an umbrella, both the model's color
+    [{k: 0, x: 0, y: 0, z: 0, w: 0.012, h: 0.24, d: 0.012, c: WHT}, {k: 6, x: 0, y: 0.32, z: 0, r: 0.075, ry: 0.09, n: 5, c: null}],
+    [{k: 0, x: 0, y: 0, z: 0, w: 0.012, h: 0.2, d: 0.012, c: DARK}, {k: 4, x: 0, y: 0.17, z: 0, r: 0.17, h: 0.07, n: 6, c: null}],
+    // 14 the mark over what's broken: a spanner's worth of red
+    [{k: 6, x: 0, y: 0, z: 0, r: 0.12, n: 4, c: RED}],
+    // 15 the high striker's puck, and a shot's flash: the model's color
+    [{k: 0, x: 0, y: 0, z: 0, w: 0.16, h: 0.07, d: 0.07, c: null}],
+    // What people carry, drawn where they stand and turned as they are. 16 a janitor's broom, 17 a gardener's
+    // watering can, 18 a mechanic's toolbox and spanner, 19 what a guest is eating or drinking (the model's color)
+    [{k: 0, x: 0.11, y: 0.02, z: 0.1, w: 0.022, h: 0.36, d: 0.022, c: #b5793f, rx: -28}, {k: 0, x: 0.11, y: 0, z: 0.12, w: 0.17, h: 0.05, d: 0.06, c: #e9c84a, t: #d9b53a}],
+    [{k: 0, x: 0.12, y: 0.13, z: 0.07, w: 0.1, h: 0.1, d: 0.1, c: #3f9a8f, t: #2f7f76}, {k: 0, x: 0.12, y: 0.17, z: 0.12, w: 0.03, h: 0.15, d: 0.03, c: #3f9a8f, rx: 55}, {k: 0, x: 0.12, y: 0.23, z: 0.07, w: 0.03, h: 0.035, d: 0.08, c: #2f7f76}],
+    [{k: 0, x: 0.13, y: 0.07, z: 0.03, w: 0.08, h: 0.09, d: 0.17, c: RED, t: #b83a31}, {k: 0, x: 0.13, y: 0.16, z: 0.03, w: 0.025, h: 0.035, d: 0.1, c: DARK}, {k: 0, x: -0.12, y: 0.15, z: 0.07, w: 0.03, h: 0.2, d: 0.03, c: SIL, rx: 30}, {k: 0, x: -0.12, y: 0.31, z: 0.165, w: 0.07, h: 0.05, d: 0.035, c: SIL}],
+    [{k: 0, x: 0.085, y: 0.15, z: 0.06, w: 0.055, h: 0.07, d: 0.055, c: null}]
+  ]
+  let NK = len(K)
+  let ZP = {x: 0, y: 0, z: 0}
+  let DES = (range(NK).map(i => BOOTHS[i] + K[i].top) + HUMP + HUML + SCNP).map(P0 => flatten(P0.map(q => q.k != 10 ? [merge(ZP, q)] : [[q.x ?? 0, q.y ?? 0.22, q.z, q.w ?? 0.38]].map(H => [
+      {k: 0, x: H[0], y: H[1], z: H[2] - 0.05, w: H[3], h: 0.25, d: 0.12, c: WHT},
+      {k: 0, x: H[0], y: H[1] + 0.025, z: H[2] + 0.02, w: H[3] - 0.06, h: 0.2, d: 0.02, c: WIN},
+      {k: 0, x: H[0], y: H[1] - 0.035, z: H[2] + 0.07, w: H[3] + 0.06, h: 0.035, d: 0.1, c: CTR, t: CRMC}]
+      + (q.na ? [] : [{k: 11, x: H[0], y: H[1] + 0.37, z: H[2] - 0.02, w: H[3] + 0.1, d: 0.17, dr: 0.1, ns: 4, cs: q.cs ?? [RED, WHT]}]))[0])))
+  let MGUY = NK
+  let MSTAFF = NK + 16
+  let MLOD = NK + len(HUMP)
+  let MSC = MLOD + len(HUML)
+  // (Made in three goes, the stands, the people and the rest: all at once is more work than one update may take.
+  // The view asks for each on its own before the Canvas draws; see the Box.)
+  let MSF = P0 => [P0.map(q => [q.k == 0 ? [q.all ? [0, 1, 2, 3, 4] : q.h <= 0.03 ? [0] : q.w <= 0.05 && q.d <= 0.05 ? [1, 2, 3, 4] : q.d <= 0.03 ? [1, 2] : q.w <= 0.03 ? [3, 4] : q.nt ? [1, 2, 3, 4] : [0, 1, 2, 3, 4]].map(FI => {p: CORN.map(o => [q.x + o[0] * q.w, q.y + o[1] * q.h, q.z + o[2] * q.d]), f: FI.map(i => BF[i]), c: [[q.t ?? q.c, q.c, q.c, q.c, q.c]].map(L => FI.map(i => L[i]))[0]})[0]
+      : q.k == 1 ? {p: [[q.x - q.w / 2, q.y, q.z - q.d / 2], [q.x + q.w / 2, q.y, q.z - q.d / 2], [q.x + q.w / 2, q.y, q.z + q.d / 2], [q.x - q.w / 2, q.y, q.z + q.d / 2], [q.x - q.w / 2, q.y + q.h, q.z], [q.x + q.w / 2, q.y + q.h, q.z]], f: [[3, 2, 5, 4], [1, 0, 4, 5], [2, 1, 5], [0, 3, 4]], c: [q.c, q.c, q.e ?? q.c, q.e ?? q.c]}
+      : q.k == 2 ? {p: [[q.x - q.w / 2, q.y, q.z - q.d / 2], [q.x + q.w / 2, q.y, q.z - q.d / 2], [q.x + q.w / 2, q.y, q.z + q.d / 2], [q.x - q.w / 2, q.y, q.z + q.d / 2], [q.x, q.y + q.h, q.z]], f: [[3, 2, 4], [1, 0, 4], [2, 1, 4], [0, 3, 4]], c: [q.c, q.c, q.e ?? q.c, q.e ?? q.c]}
+      : q.k == 3 ? {p: range(q.n).map(i => [q.x + cos(2 * pi * i / q.n) * q.r, q.y, q.z + sin(2 * pi * i / q.n) * q.r]) + range(q.n).map(i => [q.x + cos(2 * pi * i / q.n) * (q.r2 ?? q.r), q.y + q.h, q.z + sin(2 * pi * i / q.n) * (q.r2 ?? q.r)]),
+          f: range(q.n).map(i => [(i + 1) % q.n, i, q.n + i, q.n + (i + 1) % q.n]) + (q.nt ? [] : [reverse(range(q.n)).map(i => q.n + i)]), c: range(q.n).map(i => q.c) + (q.nt ? [] : [q.t ?? q.c])}
+      : q.k == 4 ? {p: range(q.n).map(i => [q.x + cos(2 * pi * i / q.n) * q.r, q.y, q.z + sin(2 * pi * i / q.n) * q.r]) + [[q.x, q.y + q.h, q.z]], f: range(q.n).map(i => [(i + 1) % q.n, i, q.n]), c: range(q.n).map(i => q.c)}
+      : q.k == 6 ? {p: range(q.n).map(i => [q.x + cos(2 * pi * i / q.n) * q.r, q.y, q.z + sin(2 * pi * i / q.n) * q.r]) + [[q.x, q.y + (q.ry ?? q.r), q.z], [q.x, q.y - (q.ry ?? q.r), q.z]], f: range(q.n).map(i => [(i + 1) % q.n, i, q.n]) + range(q.n).map(i => [i, (i + 1) % q.n, q.n + 1]), c: range(2 * q.n).map(i => q.c)}
+      : q.k == 7 ? {p: [-0.5, 0.5].map(s => range(q.n).map(i => q.ax == 1 ? [q.x + cos(2 * pi * i / q.n) * q.r, q.y - sin(2 * pi * i / q.n) * q.r, q.z + s * q.l] : [q.x + s * q.l, q.y - cos(2 * pi * i / q.n) * q.r, q.z + sin(2 * pi * i / q.n) * q.r])).flatten(),
+          f: (q.flat ? [] : range(q.n).map(i => [(i + 1) % q.n, i, q.n + i, q.n + (i + 1) % q.n]) + [range(q.n)]) + [reverse(range(q.n)).map(i => q.n + i)], c: (q.flat ? [] : range(q.n + 1).map(i => q.c)) + [q.t ?? q.c]}
+      : q.k == 8 ? [[q.r ?? 1, q.h ?? 1, q.ro ? pi / q.n : 0, len(q.pr), q.nt || last(q.pr)[0] * (q.r ?? 1) < 0.06]].map(S => {
+          p: flatten(q.pr.map(s => range(q.n).map(i => [[cos(S[2] + 2 * pi * i / q.n) * s[0] * S[0], sin(S[2] + 2 * pi * i / q.n) * s[0] * S[0], s[1] * S[1]]].map(v => q.ax == 1 ? [q.x + v[2], q.y - v[0], q.z + v[1]] : q.ax == 2 ? [q.x + v[0], q.y - v[1], q.z + v[2]] : [q.x + v[0], q.y + v[2], q.z + v[1]])[0]))),
+          f: flatten(range(S[3] - 1).map(j => range(q.n).map(i => [j * q.n + (i + 1) % q.n, j * q.n + i, (j + 1) * q.n + i, (j + 1) * q.n + (i + 1) % q.n]))) + (S[4] ? [] : [reverse(range(q.n)).map(i => (S[3] - 1) * q.n + i)]),
+          c: flatten(range(S[3] - 1).map(j => range(q.n).map(i => q.vs != null ? q.vs[i % len(q.vs)] : q.cs != null ? q.cs[j] : q.c))) + (S[4] ? [] : [q.t ?? q.c ?? last(q.cs ?? q.vs)])})[0]
+      : q.k == 11 ? {p: range(q.ns + 1).map(i => [q.x - q.w / 2 + q.w * i / q.ns, q.y, q.z]) + range(q.ns + 1).map(i => [q.x - q.w / 2 + q.w * i / q.ns, q.y - q.dr, q.z + q.d]), f: range(q.ns).map(i => [i, q.ns + 1 + i, q.ns + 2 + i, i + 1]), c: range(q.ns).map(i => q.cs[i % len(q.cs)])}
+      : {p: range(q.n).map(i => [q.x + cos(2 * pi * i / q.n) * q.r, q.y - sin(2 * pi * i / q.n) * q.r, q.z]) + [[q.x, q.y, q.z]], f: range(q.n).map(i => [q.n, (i + 1) % q.n, i]), c: range(q.n).map(i => q.cs[i % len(q.cs)])}]
+        .map(r => (q.rz ?? 0) == 0 && (q.rx ?? 0) == 0 ? r : [[q.pv ?? [q.x, q.y, q.z], cos((q.rz ?? 0) * pi / 180), sin((q.rz ?? 0) * pi / 180), cos((q.rx ?? 0) * pi / 180), sin((q.rx ?? 0) * pi / 180)]].map(T => merge(r, {p: r.p.map(v => [[v[0] - T[0][0], v[1] - T[0][1], v[2] - T[0][2]]].map(d => [[d[0] * T[1] - d[1] * T[2], d[0] * T[2] + d[1] * T[1]]].map(e => [T[0][0] + e[0], T[0][1] + e[1] * T[3] - d[2] * T[4], T[0][2] + e[1] * T[4] + d[2] * T[3]])[0])[0])}))[0])[0])]
+      .map(R => [scan(R, (a, r) => a + len(r.p), 0)].map(O => {p: flatten(R.map(r => r.p)), f: flatten(range(len(R)).map(i => R[i].f.map(f => f.map(j => j + O[i] - len(R[i].p))))), c: flatten(R.map(r => r.c))})[0])[0]
+  let MSA1 = DES.take(NK).map(MSF)
+  let MSA2 = drop(DES, NK).take(MSC - NK).map(MSF)
+  let MSA3 = drop(DES, MSC).map(MSF)
+  let MS = (MSA1 + MSA2 + MSA3).map(A => mesh(A.p, A.f, A.c))
+  // a tile's square, for marks on the ground
+  let SQ = mesh([[-0.5, 0, -0.5], [-0.5, 0, 0.5], [0.5, 0, 0.5], [0.5, 0, -0.5]], [[0, 1, 2, 3]])
+
+  // ---- the stands, worked out again when they change -------------------------------------------------------
+  let SK = stands.map(s => K[s.k])
+  let BRKL = range(len(stands)).map(i => any(brk, b => b == i))
+  // the path tile each stand serves (-1 with no path there), the stands serving each tile, the stand on each tile
+  let SFRONT = stands.map(s => [NB4[s.c][s.f]].map(n => n >= 0 && P[n] ? n : -1)[0])
+  let ATC = reduce(range(len(stands)), (A, i) => SFRONT[i] >= 0 ? set(A, SFRONT[i], A[SFRONT[i]] + [i]) : A, NOL)
+  let STAT = reduce(range(len(stands)), (A, i) => set(A, stands[i].c, i), range(NN).map(c => -1))
+  let NKIND = len(unique(stands.map(s => s.k)))
+  // where each need is met: path tiles in front of an open stand of a kind, or beside a bench, and the gate
+  let SRCC = range(5).map(k => PC.filter(c => any(ATC[c], i => SK[i].cat == k && !BRKL[i])))
+  let SRCS = ["wc", "atm", "aid"].map(s => PC.filter(c => any(ATC[c], i => SK[i].sp == s && !BRKL[i])))
+  // 0 food, 1 drink, 2 toilets, 3 cash, 4 a seat, 5 games, 6 gifts, 7 the way out, (8 litter, 9 dry beds, 10 broken
+  // stands: these change by the minute and are looked up as their turn comes), 11 first aid
+  let SRC = [SRCC[0], SRCC[1], SRCS[0], SRCS[1], PC.filter(c => len(BENA[c]) > 0), SRCC[3], SRCC[2], [GATE], [], [], [], SRCS[2]]
+  let GRN8 = ["food", "drink", "toilet", "cash", "seat", "games", "", "", "", "", "", "aid"]
+  // what a guest's fields go back to once what they did has been counted
+  let RST = {d: 0, bi: -1, ji: -1, xi: -1, drop: -1, bn: -1, bx: -1, gr: "", o: null, gone: 0}
+  let TOD = (gt % DAY) / DAY
+  let WXN = ["sunny", "hot", "cloudy", "rain"]
+  let WAGES = sum(staff.map(s => STAFFK[s.k].wage))
+  let UPKEEP = sum(SK.map(k => k.up))
+  let TODAY = sum(values(led))
+
+  // ---- quests --------------------------------------------------------------------------------------------------
+  let NG = len(guests)
+  let SCOUNT = range(9).map(t => count(GG, v => v == t || t == 3 && v == 9 || t == 4 && v == 10))
+  let QS = [
+    {t: "Lay 8 tiles of path from the gate", r: 150, ok: SCOUNT[1] >= 11},
+    {t: "Open a food stand and a drink stand", r: 250, ok: any(SK, k => k.cat == 0) && any(SK, k => k.cat == 1)},
+    {t: "Build toilets", r: 250, ok: any(SK, k => k.sp == "wc")},
+    {t: "Put benches on 2 path tiles and bins on 2 more", r: 200, ok: SCOUNT[3] >= 2 && SCOUNT[4] >= 2},
+    {t: "Hire a janitor", r: 200, ok: any(staff, s => s.k == 0)},
+    {t: "Have 20 guests in the park at once", r: 400, ok: peak >= 20},
+    {t: "Open a game stand", r: 300, ok: any(SK, k => k.cat == 3)},
+    {t: "Plant 4 flower beds and hire a gardener", r: 350, ok: SCOUNT[6] >= 4 && any(staff, s => s.k == 1)},
+    {t: "Set up a cash machine", r: 400, ok: any(SK, k => k.sp == "atm")},
+    {t: "Reach a park rating of 60", r: 800, ok: rbest >= 60},
+    {t: "Have 50 guests in the park at once", r: 1000, ok: peak >= 50},
+    {t: "Run 12 different kinds of stand", r: 1500, ok: NKIND >= 12},
+    {t: "Make $1,000 in a day", r: 2000, ok: sum(values(ledY)) >= 1000},
+    {t: "Have 100 guests in the park at once", r: 3000, ok: peak >= 100},
+    {t: "Reach a park rating of 80", r: 4000, ok: rbest >= 80},
+    {t: "Run 25 different kinds of stand", r: 6000, ok: NKIND >= 25},
+    {t: "Have 150 guests in the park at once", r: 10000, ok: peak >= 150}]
+  let Q = qi < len(QS) ? QS[qi] : null
+
+  // ---- the camera -----------------------------------------------------------------------------------------
+  let SW = screenWidth ?? 400
+  let SH = screenHeight ?? 800
+  let TOP = max(screenTop ?? 0, 10)
+  let INS = screenInset ?? 0
+  let PIT = 50
+  let FOV = 38
+  let TH = tan(rad(FOV / 2))
+  let EYE = [tx + zoom * cos(rad(PIT)) * sin(rad(yaw)), zoom * sin(rad(PIT)), tz + zoom * cos(rad(PIT)) * cos(rad(yaw))]
+  let CAM = {eye: EYE, look: [tx, 0, tz], fov: FOV, near: 1, far: 140 + zoom * 4}
+  let FW = norm([tx - EYE[0], -EYE[1], tz - EYE[2]])
+  let RT = norm(cross(FW, [0, 1, 0]))
+  let UPV = cross(RT, FW)
+  let LIGHT = [-0.4, 1, 0.55]
+  // how far from the middle of the view anything can show
+  let VR = zoom * 0.8 + 3
+
+  // ---- a new park ----------------------------------------------------------------------------------------------
+  when len(g) != NN {
+    g = range(NN).map(c => c == GATE || c == GATE - N || c == GATE - 2 * N ? 1 : hash(c, 7) < (any([9, 10, 13, 14], p => p == PARCEL[c]) ? 0.035 : 0.17) ? 7 : 0)
+    own = [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0]
+    lit = ZERO
+    binf = ZERO
+    wat = ZERO
+    dry = ZERO
+    wxn = random(0, 2)
+  }
+
+  // ---- selling a stand: half its price back -----------------------------------------------------------------------
+  when sellI >= 0 {
+    if sellI < len(stands) {
+      let i = sellI
+      let back = round(K[stands[i].k].cost * 0.5)
+      cash = cash + back
+      led = set(led, "build", (led.build ?? 0) + back)
+      g = set(g, stands[i].c, 0)
+      // whoever was queuing there walks on, and the stands after it move up a place
+      guests = guests.map(q => q.st == 1 && q.tg == i ? merge(q, {st: 0, t: 1}) : q.st == 1 && q.tg > i ? merge(q, {tg: q.tg - 1}) : q)
+      staff = staff.map(s => s.st == 1 && s.jt == 3 ? merge(s, {st: 0, t: 1}) : s)
+      brk = brk.filter(b => b != i).map(b => b > i ? b - 1 : b)
+      stands = remove(stands, i)
+      sv = remove(sv, i)
+      sel = -1
+      msg = "SOLD FOR $${fmtNum(back)}"
+      msgT = rt
+    }
+    sellI = -1
+  }
+
+  on panel {
+    armNew = false
+  }
+
+  // ---- the park at work ------------------------------------------------------------------------------------------
+  every frame {
+    rt = rt + dt
+    if gm == 1 && rt - downT > 0.25 && (tool == 1 || tool == 9) && downC >= 0 {
+      gm = 3
+      paint = [downC]
+      haptic()
+    }
+    if len(pops) > 0 && rt - pops[0].t > 1.5 {
+      pops = pops.filter(p => rt - p.t < 1.5)
+    }
+    if !still && spd > 0 && len(g) == NN && panel != "report" && panel != "new" {
+      let sdt = dt * spd
+      gt = gt + sdt
+      let rain = wx == 3
+      let hot = wx == 1
+      let eve = (gt % DAY) / DAY > 0.78
+
+      // the distances to one need: walked out from where it's met, a step further each turn
+      let S0 = fk == 8 ? PC.filter(c => lit[c] > 0 || any(BINA[c], b => binf[b] >= 6))
+        : fk == 9 ? PC.filter(c => any(BEDA[c], b => dry[b] == 1 || gt - wat[b] > WILT * 0.45))
+        : fk == 10 ? PC.filter(c => any(ATC[c], i => BRKL[i]))
+        : SRC[fk]
+      fld = set(fld, fk, reduce(range(400), (A, s) => len(A.f) == 0 ? A : [unique(flatten(A.f.map(c => NB4[c]))).filter(n => n >= 0 && P[n] && A.r[n] > 900)].map(nf => {r: reduce(nf, (R, n) => set(R, n, s + 1), A.r), f: nf})[0], {r: reduce(S0, (R, c) => set(R, c, 0), BIG), f: S0}).r)
+      fk = (fk + 1) % 12
+
+      // ---- guests ----
+      let entc = flatten(staff.filter(s => s.k == 3).map(s => [s.b] + PNB[s.b]))
+      // everyone a step on
+      let M = guests.map(q => q.st == 0 ? merge(q, {t: q.t + q.sp * sdt, ct: q.ct - sdt}) : merge(q, {wt: q.wt - sdt, ct: q.ct - sdt}))
+      // the few with something to decide (at a tile's middle, served, or rested) go through the passes below; the
+      // rest are put back as they are
+      let N0 = M.filter(q => !(q.st == 0 ? q.t >= 1 : q.wt <= 0))
+      let M2 = M.filter(q => q.st == 0 ? q.t >= 1 : q.wt <= 0)
+      // served: they pay, and what they bought does what it does
+      let C = M2.map(q => !(q.st == 1 && q.wt <= 0) ? q : q.tg >= len(stands) ? merge(q, {st: 0, t: 1}) : [{k: SK[q.tg], p: stands[q.tg].p, kk: stands[q.tg].k, r: random(), r2: random()}]
+        .map(o => merge(o, {pz: o.k.sp == "lot" ? (o.r < 0.143 ? 3 + floor(o.r2 * 13) : 0) : o.k.sp == "whl" ? (o.r < 0.33 ? 2 + floor(o.r2 * 13) : 0) : 0, win: o.k.pw > 0 && o.r < (o.k.sp == "hit" ? clamp(q.en / 130, 0.1, 0.6) : o.k.pw), atm: o.k.sp == "atm" ? min(q.bank, 60) : 0}))
+        .map(o => merge(q, {
+          st: 0, t: 1, d: 1,
+          w: q.w - o.p + o.atm + o.pz,
+          bank: q.bank - o.atm,
+          hu: clamp(q.hu - o.k.hu, 0, 100),
+          th: clamp(q.th + o.k.th, 0, 100),
+          bl: o.k.sp == "wc" ? 0 : min(100, q.bl + o.k.bl),
+          en: clamp(q.en + o.k.en + (o.k.sp == "aid" ? 40 : 0), 0, 100),
+          fn: max(0, q.fn - o.k.fn),
+          nau: o.k.sp == "aid" ? 0 : min(100, q.nau + o.k.nau),
+          md: clamp(q.md + o.k.md + 2.5 + (o.win ? 6 : 0) + (o.pz > 0 ? 8 : 0), 0, 100),
+          cr: o.k.eat > 0 ? (o.k.cat == 0 ? 1 : 2) : q.cr,
+          ct: o.k.eat > 0 ? o.k.eat * 2 : q.ct,
+          ctr: o.k.eat > 0 ? o.k.tr : q.ctr,
+          seen: drop(q.seen + [o.kk], max(0, len(q.seen) - 7)),
+          has: o.k.cat == 2 || o.k.sp == "map" ? q.has + [o.kk] : q.has,
+          umb: q.umb || o.k.sp == "umb",
+          bal: o.k.sp == "bal" ? floor(o.r2 * 5) : q.bal,
+          mp: q.mp || o.k.sp == "map",
+          hat: q.hat || o.k.sp == "hat",
+          spent: q.spent + o.p,
+          bi: q.tg, bp: o.p, bc: o.k.ic + o.pz + (o.win ? o.k.pc : 0), bk: o.k.cat,
+          bx: o.r2 < o.k.br ? q.tg : -1,
+          say: o.pz > 0 ? "I won $${o.pz}!" : o.win ? "I won a prize!" : o.k.sp == "wc" ? "That's better" : o.k.sp == "atm" ? "Cash in hand again" : o.k.cat == 3 ? "That was fun" : q.say}))[0])
+      // rested
+      let D = C.map(q => !(q.st == 2 && q.wt <= 0) ? q : merge(q, {st: 0, t: 1, en: min(100, q.en + 35), md: min(100, q.md + (q.ate ? 5 : 2)), ct: q.ate ? 0 : q.ct, ate: false, say: q.ate ? (q.cr == 2 ? "A drink in the shade, lovely" : "A meal sitting down, lovely") : "That rest did me good"}))
+      // at a tile's middle: needs grow, and the place does its bit for the mood
+      let A = D.map(q => !(q.st == 0 && q.t >= 1) ? q : [q.b].map(c => merge(q, {
+          d: 1, c: c, r: random(), r2: random(), age: q.age + 1,
+          hu: min(100, q.hu + 0.5),
+          th: min(100, q.th + (hot && !q.hat ? 1.3 : 0.75)),
+          bl: min(100, q.bl + 0.3),
+          en: max(0, q.en - 0.25),
+          fn: any(entc, e => e == c) ? max(0, q.fn - 6) : min(100, q.fn + 0.55),
+          nau: max(0, q.nau - 0.7),
+          md: clamp(q.md + (60 - q.md) * 0.015 + AMB[c] * 0.4 - min(3, lit[c]) * 0.5 - (q.hu > 80 ? 1 : 0) - (q.th > 80 ? 1.3 : 0) - (q.bl > 85 ? 2.2 : 0) - (q.en < 12 ? 0.6 : 0) - (q.fn > 85 ? 0.7 : 0) - (rain && !q.umb ? 0.7 : 0) - (eve && LIT[c] == 0 ? 0.4 : 0) + (any(entc, e => e == c) ? 2.5 : 0), 0, 100),
+          cr: (q.cr == 1 || q.cr == 2) && q.ct <= 0 ? (q.ctr ? 3 : 0) : q.cr,
+          tc: q.cr == 3 ? q.tc + 1 : 0}))[0])
+      // litter: into a bin beside the path if there's one with room, onto the ground once they tire of carrying it
+      let T = A.map(q => !(q.st == 0 && q.t >= 1 && P[q.c] && (q.cr == 3 || q.nau > 85)) ? q
+        : q.nau > 85 ? merge(q, {nau: 25, md: max(0, q.md - 8), drop: q.c, dn: 3, gr: "sick", say: "I feel sick"})
+        : [first(BINA[q.c].filter(b => binf[b] < BINCAP))].map(b => b != null ? merge(q, {cr: 0, bn: b})
+          : q.tc > 4 + hash(q.id) * 8 ? merge(q, {cr: 0, drop: q.c, dn: 1, md: max(0, q.md - 1), gr: len(BINA[q.c]) > 0 ? "binfull" : "bin", say: len(BINA[q.c]) > 0 ? "This bin is overflowing" : "Not a bin in sight"}) : q)[0])
+      // what the stands here are worth to them: the one with the most to spare over its price
+      let O = T.map(q => !(q.st == 0 && q.t >= 1) || q.lv || len(ATC[q.c]) == 0 ? q : merge(q, {o: first(ATC[q.c].filter(i => !BRKL[i]).map(i => [SK[i]].map(k => {i: i, p: stands[i].p, sv: k.sv, atm: k.sp == "atm", n: k.n, v: k.val * k.wx[wx] * (k.cat != 2 && any(q.seen, h => h == stands[i].k) ? 0.8 : 1), v0: k.val,
+          f: (k.cat == 0 ? (q.cr == 0 && q.hu > 30 ? 0.4 + q.hu / 60 : 0)
+            : k.cat == 1 ? (q.cr == 0 && q.th > 30 ? 0.4 + q.th / 60 : 0)
+            : k.cat == 3 ? (q.fn > 30 ? 0.4 + q.fn / 60 : 0)
+            : k.sp == "wc" ? (q.bl > 45 ? 1 + q.bl / 12 : 0)
+            : k.sp == "atm" ? (q.w < 12 && q.bank > 0 ? 6 : 0)
+            : k.sp == "aid" ? (q.nau > 40 || q.en < 15 ? 1 : 0)
+            : any(q.has, h => h == stands[i].k) ? 0
+            : k.sp == "umb" ? (rain ? 3 : 0.12)
+            : k.sp == "map" ? 0.6 + hash(q.id, 3) * 0.9
+            : (0.45 + q.md / 100) * (0.45 + hash(q.id, stands[i].k)))})[0]).filter(o => o.f > 0).map(o => merge(o, {w: o.v * o.f})).sortBy(o => o.p - o.w))}))
+      // they buy if it's worth it to them and they have the money, and the queue isn't too long
+      let X = O.map(q => q.o == null ? q
+        : q.o.p > q.w && !q.o.atm ? merge(q, {o: null, gr: "broke", say: "I can't afford the ${q.o.n}"})
+        // (only those who really wanted it grumble, and only at a price that's over what it's worth to them on a good
+        // day: the rest just weren't hungry enough yet, or had the same an hour ago, or it's the wrong weather for it)
+        : q.o.p > q.o.w ? (q.o.f < 1.25 || q.o.p <= q.o.v0 * q.o.f ? merge(q, {o: null}) : merge(q, {o: null, xi: q.o.i, md: max(0, q.md - 0.4), gr: "dear", say: "$${fixed(q.o.p, 2)} for ${q.o.n}? Too much"}))
+        : [max(0, sv[q.o.i].free - gt)].map(wq => wq > 25 + q.md * 0.25 ? (q.o.f < 1.25 ? merge(q, {o: null}) : merge(q, {o: null, md: max(0, q.md - 0.3), gr: "queue", say: "The queue for ${q.o.n} is too long"}))
+          : merge(q, {o: null, st: 1, tg: q.o.i, wt: wq + q.o.sv, ji: q.o.i, md: min(100, q.md + clamp((q.o.w - q.o.p) / q.o.w, 0, 0.5) * 3)}))[0])
+      // a seat, for the tired and for those with food or a drink in hand, who finish it there
+      let S = X.map(q => !(q.st == 0 && q.t >= 1) || q.lv || len(BENA[q.c]) == 0 || !(q.en < 42 || (q.cr == 1 || q.cr == 2) && q.r < 0.9) ? q
+        : [first(BENA[q.c].filter(b => count(guests, z => z.st == 2 && z.tg == b) < BCAP[b]))].map(b => b == null ? q : merge(q, {st: 2, tg: b, wt: q.cr == 1 || q.cr == 2 ? 8 + q.r2 * 8 : 5 + q.r2 * 5, ate: q.cr == 1 || q.cr == 2}))[0])
+      // (never more than its seats: of those sitting down at the same moment, the later ones walk on)
+      let S1 = S.map(q => q.st == 2 && count(N0, z => z.st == 2 && z.tg == q.tg) + count(S, z => z.st == 2 && z.tg == q.tg && z.id < q.id) >= BCAP[q.tg] ? merge(q, {st: 0, tg: -1}) : q)
+      // and on: home if they've had enough, toward what they need most, or wherever the path leads
+      let V = S1.map(q => !(q.st == 0 && q.t >= 1) ? q
+        : [merge(q, {lv: q.lv || q.md < 12 || q.age > q.stay || q.w < 3 && (q.bank <= 0 || fld[3][q.c] >= 900) || q.en < 4, m: q.mp ? 14 : 0})].map(z => !P[z.c] || z.lv && (z.c == GATE || fld[7][z.c] >= 900) ? merge(z, {gone: 1})
+          : [{nb: PNB[z.c], G: z.lv ? 7 : z.bl > 65 - z.m ? 2 : z.th > 62 - z.m ? 1 : z.hu > 62 - z.m ? 0 : z.nau > 60 ? 11 : z.w < 8 && z.bank > 0 ? 3 : z.en < 28 || (z.cr == 1 || z.cr == 2) && fld[4][z.c] <= 6 ? 4 : z.fn > 58 - z.m ? 5 : z.md > 50 && hash(z.id, floor(z.age / 30)) < 0.3 ? 6 : -1}]
+            .map(h => merge(h, {F0: h.G >= 0 ? fld[h.G][z.c] : 999}))
+            .map(h => len(h.nb) == 0 ? merge(z, {t: 0.5})
+              : merge(z, {a: z.c, t: 0,
+                b: h.G >= 0 && h.F0 > 0 && h.F0 < 900 ? first(h.nb.sortBy(n => fld[h.G][n] + hash(n, z.id) * 0.4)) : [h.nb.filter(n => n != z.a)].map(L => len(L) == 0 ? h.nb[0] : L[floor(z.r2 * len(L))])[0],
+                gr: z.lv && !q.lv ? (z.md < 12 ? "angry" : z.en < 4 ? "tired" : z.w < 3 ? "skint" : z.gr) : h.G >= 0 && h.G != 7 && h.G != 6 && h.F0 >= 900 && z.age % 6 == 0 ? GRN8[h.G] : z.gr,
+                md: h.G >= 0 && h.G != 7 && h.G != 6 && h.F0 >= 900 ? max(0, z.md - 0.5) : z.md,
+                say: z.lv && !q.lv ? (z.md < 12 ? "I've had enough of this place" : z.w < 3 ? "I'm out of money" : "Time to go home") : h.G >= 0 && h.G != 7 && h.G != 6 && h.F0 >= 900 ? ["I'm hungry and there's no food", "I'm thirsty and there's nothing to drink", "I can't find a toilet!", "I need a cash machine", "I need to sit down", "There's nothing to do here", "", "", "", "", "", "I feel ill"][h.G] : z.say}))[0])[0])
+
+      // what they did, counted
+      let E = V.filter(q => q.d == 1)
+      let buys = E.filter(q => q.bi >= 0)
+      if len(buys) > 0 {
+        let inc = sum(buys.map(q => q.bp))
+        let out = sum(buys.map(q => q.bc))
+        cash = cash + inc - out
+        led = reduce(range(5), (L, k) => [sum(buys.filter(q => q.bk == k).map(q => q.bp))].map(v => v > 0 ? set(L, CATKEY[k], (L[CATKEY[k]] ?? 0) + v) : L)[0], merge(led, {stock: (led.stock ?? 0) - out}))
+        sv = reduce(buys, (S2, q) => q.bi < len(S2) ? set(S2, q.bi, merge(S2[q.bi], {sold: S2[q.bi].sold + 1, inc: S2[q.bi].inc + q.bp - q.bc})) : S2, sv)
+        pops = drop(pops + take(buys.filter(q => q.bp > 0), 4).map(q => {c: stands[q.bi].c, s: "$${fixed(q.bp, 2)}", t: rt}), max(0, len(pops) - 10))
+      }
+      let joins = E.filter(q => q.ji >= 0)
+      if len(joins) > 0 {
+        sv = reduce(joins, (S2, q) => set(S2, q.ji, merge(S2[q.ji], {free: max(S2[q.ji].free, gt) + SK[q.ji].sv})), sv)
+      }
+      let dears = E.filter(q => q.xi >= 0)
+      if len(dears) > 0 {
+        sv = reduce(dears, (S2, q) => set(S2, q.xi, merge(S2[q.xi], {exp: S2[q.xi].exp + 1})), sv)
+      }
+      let drops = E.filter(q => q.drop >= 0)
+      if len(drops) > 0 {
+        lit = reduce(drops, (L, q) => set(L, q.drop, L[q.drop] + q.dn), lit)
+      }
+      let binned = E.filter(q => q.bn >= 0)
+      if len(binned) > 0 {
+        binf = reduce(binned, (L, q) => set(L, q.bn, L[q.bn] + 1), binf)
+      }
+      let broke = E.filter(q => q.bx >= 0)
+      if len(broke) > 0 {
+        brk = unique(brk + broke.map(q => q.bx))
+        msg = "${upper(SK[broke[0].bx].n)} BROKE DOWN"
+        msgT = rt
+      }
+      let grs = E.filter(q => q.gr != "")
+      if len(grs) > 0 {
+        gripes = reduce(grs, (G, q) => set(G, q.gr, (G[q.gr] ?? 0) + 1), gripes)
+      }
+      let outs = E.filter(q => q.gone == 1)
+      if len(outs) > 0 {
+        outN = outN + len(outs)
+        outM = outM + sum(outs.map(q => q.md))
+        if any(outs, q => q.id == selG) { selG = -1 }
+      }
+      guests = N0 + V.filter(q => q.gone != 1).map(q => q.d == 1 ? merge(q, RST) : q)
+
+      // ---- new guests: more the better the park, each paying at the gate if the price seems fair ----
+      let want = clamp(round((8 + NKIND * 4 + len(stands) * 1.2) * (0.35 + rating / 110) * [1, 0.9, 0.9, 0.6][wx] * (eve ? 0.6 : 1)), 4, 160)
+      spawnT = spawnT + sdt * (len(guests) < want ? 0.22 + want / 110 : 0)
+      if spawnT >= 1 {
+        spawnT = 0
+        if fee > (3 + rating * 0.1 + NKIND * 0.4) * (0.6 + random() * 0.9) {
+          turned = turned + 1
+          gripes = set(gripes, "gate", (gripes.gate ?? 0) + 1)
+        } else {
+          cash = cash + fee
+          led = set(led, "gate", (led.gate ?? 0) + fee)
+          dayG = dayG + 1
+          guests = guests + [merge(RST, {id: nid, a: GATE, b: GATE, c: GATE, t: 1, sp: 0.75 + random() * 0.5, w: 20 + random(0, 80), bank: random() < 0.55 ? random(30, 140) : 0,
+            hu: random(5, 40), th: random(10, 40), bl: random(0, 30), en: random(70, 100), fn: random(20, 50), nau: 0, md: 62 + random(0, 14),
+            st: 0, wt: 0, tg: -1, cr: 0, ct: 0, ctr: false, tc: 0, has: [], seen: [], umb: false, bal: -1, mp: false, hat: false, lv: false, ate: false, age: 0, stay: random(120, 260), sh: random(10), spent: fee, say: "", r: 0, r2: 0, dn: 0, m: 0})]
+          nid = nid + 1
+        }
+      }
+
+      // ---- staff: the same walk, toward their work ----
+      if len(staff) > 0 {
+        let W1 = staff.map(s => s.st == 0 ? merge(s, {t: s.t + 0.95 * sdt}) : merge(s, {wt: s.wt - sdt}))
+        let W2 = W1.map(s => !(s.st == 1 && s.wt <= 0) ? s : merge(s, {st: 0, t: 1, d: 1, done: s.jt, dj: s.job}))
+        let W3 = W2.map(s => !(s.st == 0 && s.t >= 1) || s.d == 1 ? s
+          : s.k == 0 ? (lit[s.b] > 0 ? merge(s, {st: 1, wt: 1 + lit[s.b] * 0.3, jt: 0, job: s.b}) : [first(BINA[s.b].filter(b => binf[b] >= 6))].map(b => b != null ? merge(s, {st: 1, wt: 2.5, jt: 1, job: b}) : s)[0])
+          : s.k == 1 ? [first(BEDA[s.b].filter(b => dry[b] == 1 || gt - wat[b] > WILT * 0.45))].map(b => b != null ? merge(s, {st: 1, wt: 3, jt: 2, job: b}) : s)[0]
+          : s.k == 2 ? [first(ATC[s.b].filter(i => BRKL[i]))].map(i => i != null ? merge(s, {st: 1, wt: 6, jt: 3, job: i}) : s)[0]
+          : s)
+        let W4 = W3.map(s => !(s.st == 0 && s.t >= 1) ? s : [{nb: PNB[s.b], F: s.k < 3 ? fld[8 + s.k] : null, r: random()}].map(h => len(h.nb) == 0 ? merge(s, {a: GATE, b: GATE, t: 1})
+          : merge(s, {a: s.b, t: 0, b: h.F != null && h.F[s.b] > 0 && h.F[s.b] < 900 ? first(h.nb.sortBy(n => h.F[n] + hash(n, s.id) * 0.4)) : [h.nb.filter(n => n != s.a)].map(L => len(L) == 0 ? h.nb[0] : L[floor(h.r * len(L))])[0]}))[0])
+        let did = W4.filter(s => s.d == 1)
+        if len(did) > 0 {
+          if any(did, s => s.done == 0) { lit = reduce(did.filter(s => s.done == 0), (L, s) => set(L, s.dj, 0), lit) }
+          if any(did, s => s.done == 1) { binf = reduce(did.filter(s => s.done == 1), (L, s) => set(L, s.dj, 0), binf) }
+          if any(did, s => s.done == 2) {
+            wat = reduce(did.filter(s => s.done == 2), (L, s) => set(L, s.dj, gt), wat)
+            dry = reduce(did.filter(s => s.done == 2), (L, s) => set(L, s.dj, 0), dry)
+          }
+          if any(did, s => s.done == 3) { brk = brk.filter(b => !any(did, s => s.done == 3 && s.dj == b)) }
+        }
+        staff = W4.map(s => s.d == 1 ? merge(s, {d: 0, done: -1}) : s)
+      }
+
+      // ---- every 10 seconds of the game: wages and upkeep, the flower beds, the rating ----
+      if tickT < 0 || gt < tickT { tickT = gt }
+      if gt - tickT >= 10 {
+        tickT = gt
+        let wages = WAGES * 10 / DAY
+        let upk = UPKEEP * 10 / DAY
+        cash = cash - wages - upk
+        led = merge(led, {wages: (led.wages ?? 0) - wages, upkeep: (led.upkeep ?? 0) - upk})
+        if rain {
+          if any(dry, v => v == 1) { dry = ZERO }
+          wat = g.map(v => v == 6 ? gt : 0)
+        } else {
+          let nd = range(NN).filter(c => g[c] == 6 && dry[c] != 1 && gt - wat[c] > WILT * (hot ? 0.7 : 1))
+          if len(nd) > 0 { dry = reduce(nd, (L, c) => set(L, c, 1), dry) }
+        }
+        let am = len(guests) > 0 ? avg(guests.map(q => q.md)) : 50
+        let om = outN > 0.5 ? outM / outN : am
+        let clean = clamp(1 - sum(lit) / (len(PC) * 0.3 + 4), 0, 1)
+        rating = rating + (clamp(am * 0.4 + om * 0.2 + clean * 15 + min(1, NKIND / 20) * 25, 0, 100) - rating) * 0.2
+        rbest = max(rbest, rating)
+        peak = max(peak, len(guests))
+        outN = outN * 0.7
+        outM = outM * 0.7
+        // angry guests near a guard calm down
+        let gc = staff.filter(s => s.k == 4).map(s => s.b)
+        if len(gc) > 0 {
+          guests = guests.map(q => q.md < 30 && any(gc, c => abs(CX[c] - CX[q.b]) + abs(CZ[c] - CZ[q.b]) <= 3) ? merge(q, {md: q.md + 7}) : q)
+        }
+      }
+      // ---- the day's end: interest, the books closed, tomorrow's weather ----
+      if floor(gt / DAY) > dayN {
+        dayN = floor(gt / DAY)
+        let interest = round(loan * 0.015)
+        cash = cash - interest
+        ledY = merge(led, {interest: -interest})
+        net = net + sum(values(led)) - interest
+        led = {}
+        gripesY = gripes
+        gripes = {}
+        dayGY = dayG
+        dayG = 0
+        turned = 0
+        sv = sv.map(s => merge(s, {sold: 0, inc: 0, exp: 0}))
+        wx = wxn
+        wxn = [0, 0, 0, 0, 1, 1, 2, 2, 3, 3][random(10)]
+        panel = "report"
+        sel = -1
+        selG = -1
+        selS = -1
+        cat = -1
+        tool = 0
+        // (a run of path held as the day ends is let go)
+        gm = 0
+        paint = []
+      }
+    }
+  }
+
+  // ---- what's drawn ------------------------------------------------------------------------------------------------
+  // the ground: a square a tile, paths sandy, the park's own grass brighter than the land around it
+  let GCOL = range(NN).map(c => P[c] ? (hash(c, 3) < 0.5 ? #e8cf9a : #e2c78e) : OWNED[c] ? ((CX[c] + CZ[c]) % 2 == 0 ? #7cc653 : #74bf4c) : ((CX[c] + CZ[c]) % 2 == 0 ? #5fa14a : #5a9a46))
+  let GROUND = chunk(range(NN), 192).map(Q => mesh(flatten(Q.map(c => [[WX[c] - 0.5, 0, WZ[c] - 0.5], [WX[c] - 0.5, 0, WZ[c] + 0.5], [WX[c] + 0.5, 0, WZ[c] + 0.5], [WX[c] + 0.5, 0, WZ[c] - 0.5]])), range(len(Q)).map(i => [4 * i, 4 * i + 1, 4 * i + 2, 4 * i + 3]), Q.map(c => GCOL[c])))
+  // the fence round the park's land (open at the gate): an upright strip along each edge
+  let FENCEQ = flatten(range(NN).filter(c => OWNED[c]).map(c => range(4).filter(d => (NB4[c][d] < 0 || !OWNED[NB4[c][d]]) && !(c == GATE && d == 1)).map(d =>
+    d == 0 ? [WX[c] - 0.5, WZ[c] - 0.5, WX[c] + 0.5, WZ[c] - 0.5] : d == 1 ? [WX[c] - 0.5, WZ[c] + 0.5, WX[c] + 0.5, WZ[c] + 0.5] : d == 2 ? [WX[c] - 0.5, WZ[c] - 0.5, WX[c] - 0.5, WZ[c] + 0.5] : [WX[c] + 0.5, WZ[c] - 0.5, WX[c] + 0.5, WZ[c] + 0.5])))
+  let FENCE = chunk(FENCEQ, 200).map(Q => mesh(flatten(Q.map(q => [[q[0], 0, q[1]], [q[2], 0, q[3]], [q[2], 0.16, q[3]], [q[0], 0.16, q[1]]])), range(len(Q)).map(i => [4 * i, 4 * i + 1, 4 * i + 2, 4 * i + 3])))
+  // everything that stands still: the stands, then what's on the other tiles
+  let OBJ = range(len(stands)).map(i => {m: MS[stands[i].k], at: [WX[stands[i].c], 0, WZ[stands[i].c]], t: [0, FT[stands[i].f], 0], s: 1})
+    + flatten(range(NN).filter(c => GG[c] == 9).map(c => BSIDE[c].map(d => {m: MS[MSC], at: [WX[c] + DX[d] * 0.36, 0, WZ[c] + DZ[d] * 0.36], t: [0, FT[[1, 0, 3, 2][d]], 0], s: 1})))
+    + flatten(range(NN).filter(c => GG[c] == 10).map(c => BINS[c].map(d => {m: MS[MSC + (BINL[c] >= BINCAP - 2 ? 2 : 1)], at: [WX[c] + DX[d] * 0.4, 0, WZ[c] + DZ[d] * 0.4], t: [0, 0, 0], s: 1})))
+    + range(NN).filter(c => GG[c] >= 3 && GG[c] < 9).map(c => {
+      m: MS[MSC + (GG[c] == 3 || GG[c] == 9 ? 0 : GG[c] == 4 ? (BINL[c] >= BINCAP - 2 ? 2 : 1) : GG[c] == 5 ? 3 : GG[c] == 6 ? (DRYL[c] == 1 ? 5 : 4) : GG[c] == 7 ? 6 + floor(hash(c, 1) * 3) : 9)],
+      at: [WX[c], 0, WZ[c]],
+      t: [0, GG[c] == 3 ? FT[[0, 1, 2, 3].find(d => NB4[c][d] >= 0 && P[NB4[c][d]]) ?? 1] : floor(hash(c, 2) * 4) * 90, 0],
+      s: GG[c] == 7 ? 0.85 + hash(c, 5) * 0.5 : 1})
+  let LITC = range(NN).filter(c => LITL[c] > 0)
+  let NOPATH = range(len(stands)).filter(i => SFRONT[i] < 0)
+  let DIMV = (TOD > 0.75 ? (TOD - 0.75) * 1.5 : 0) + (wx == 3 ? 0.12 : wx == 2 ? 0.05 : 0)
+  let SKY = mix(wx == 3 ? #9fb4c4 : wx == 2 ? #a9cfe0 : #8fd3f0, #1b2550, min(1, DIMV * 1.8))
+  let HH = 9 + TOD * 12
+  let CLOCK = "${floor(HH)}:${pad(floor((HH % 1) * 6) * 10, 2, "0")}"
+
+  // ---- the look of the panels ---------------------------------------------------------------------------------------
+  let FONT = "https://raw.githubusercontent.com/google/fonts/main/ofl/titanone/TitanOne-Regular.ttf"
+  let INK = #2b2140
+  let INK2 = #1c1530
+  let INK3 = #453763
+  let CRM = #fff4dc
+  let MUT = #b3a8c8
+  let SUN = #ffc233
+  let CORAL = #ff6b5e
+  let MINT = #4fd1b5
+  let CATS = ["PATHS", "FOOD", "DRINKS", "GIFTS", "GAMES", "CARE", "DECOR", "STAFF"]
+  let CATK = [-1, 0, 1, 2, 3, 4, -1, -1]
+  // what the picker shows for the category that's open: a card each, with the model to draw on it and how far
+  // back and how high to look at it from
+  let PCH = 132
+  let PBG = [#3a5a40, #5a3d2e, #2e4a5c, #5a2e4f, #4a3a66, #2e5550, #3a5a40, #3d3558]
+  let SCM = [0, 1, 3, 4, 6, 9]
+  let SCU = [0.14, 0.14, 0.4, 0.1, 0.6, 0.35]
+  let SCF = [0.85, 0.55, 1.35, 1.35, 1.7, 1.7]
+  let PICK = cat < 0 ? []
+    : cat == 0 ? [
+      {id: 1, n: "PATH", pr: "$10 A TILE", d: "hold, then drag, to lay a run", cost: 10, m: SQ, col: #e8cf9a, far: 1.9, up: 0},
+      {id: 9, n: "BULLDOZER", pr: "TREES $15", d: "clears a tile; a stand sells for half", cost: 0, m: null}]
+    : cat == 6 ? range(len(SCN)).map(i => {id: SCN[i].t, n: upper(SCN[i].n), pr: "$${SCN[i].cost}", d: SCN[i].d, cost: SCN[i].cost, m: MS[MSC + SCM[i]], far: SCF[i], up: SCU[i], n2: SCOUNT[SCN[i].t] > 0 ? "✓ ${SCOUNT[SCN[i].t]} IN THE PARK" : ""})
+    : cat == 7 ? range(len(STAFFK)).map(i => {hire: i, n: upper(STAFFK[i].n), pr: "$${STAFFK[i].wage} A DAY", d: STAFFK[i].d, cost: 0, m: MS[MSTAFF + i * 3 + 1], col: STAFFK[i].col, far: 0.75, up: 0.2,
+        n2: count(staff, s => s.k == i) > 0 ? "✓ ${count(staff, s => s.k == i)} HIRED" : ""})
+    : KCAT[CATK[cat]].map(i => {id: 100 + i, n: upper(K[i].n), pr: "$${fmtNum(K[i].cost)}", d: K[i].d, cost: K[i].cost, m: MS[i], far: 1.85, up: 0.5,
+        lock: K[i].tier > TIER ? "${TIERS[K[i].tier].g} guests at once" + (TIERS[K[i].tier].r > 0 ? ", rating ${TIERS[K[i].tier].r}" : "") : "",
+        n2: count(stands, z => z.k == i) > 0 ? "✓ ${count(stands, z => z.k == i)} IN THE PARK" : ""})
+  let PROWS = chunk(PICK.map(it => merge({hire: -1, id: -1, lock: "", n2: "", col: null, bg: PBG[max(0, cat)], on: false}, it, {on: (it.id ?? -1) == tool && tool != 0})), 3)
+  let SS = sel >= 0 && sel < len(stands) ? stands[sel] : null
+  let SG = selG >= 0 ? first(guests.filter(q => q.id == selG)) : null
+  let ST = selS >= 0 ? first(staff.filter(s => s.id == selS)) : null
+  let TOOLN = tool == 1 ? "LAYING PATH · $10 A TILE" : tool == 9 ? "BULLDOZER IS ON" : tool >= 100 ? "BUILD ${upper(K[tool - 100].n)} · $${fmtNum(K[tool - 100].cost)}" : tool >= 3 ? "PLACING ${upper(SCN[tool - 3].n)} · $${SCN[tool - 3].cost} EACH" : ""
+  let TOOLH = tool == 1 ? "Hold, then drag, to lay a run. Stays on until you stop." : tool == 9 ? "Every tap clears a tile; hold and drag clears a run. Stays on until you stop."
+    : tool >= 100 ? "Tap grass beside a path. Builds one, then puts the tool away." : tool == 3 || tool == 4 ? "Tap a path. Stays on until you stop." : tool >= 3 ? "Tap grass. Stays on until you stop." : ""
+  // the tool's color (yellow builds, red clears), its category in the toolbar, and its picture
+  let TOOLC = tool == 9 ? #d63a30 : #ffc233
+  let TOOLCAT = tool == 0 ? -1 : tool == 1 || tool == 9 ? 0 : tool >= 100 ? K[tool - 100].cat + 1 : 6
+  let TOOLV = tool >= 100 ? {m: MS[tool - 100], far: 1.85, up: 0.5, col: null} : tool >= 3 && tool <= 8 ? {m: MS[MSC + SCM[tool - 3]], far: SCF[tool - 3], up: SCU[tool - 3], col: null} : tool == 1 ? {m: SQ, far: 1.9, up: 0, col: #e8cf9a} : null
+  let GRT = {food: "couldn't find food", drink: "couldn't find a drink", toilet: "couldn't find a toilet", cash: "needed a cash machine", seat: "found nowhere to sit", games: "were bored: no games", aid: "felt ill, with no first aid", bin: "found no bin and littered", binfull: "found the bins full", dear: "thought a price too high", queue: "gave up on a queue", broke: "couldn't afford something", sick: "were sick on the path", angry: "stormed out in a temper", tired: "went home worn out", skint: "left with empty pockets", gate: "turned back at the gate price"}
+  let LEDK = [["gate", "Gate"], ["food", "Food"], ["drink", "Drinks"], ["gifts", "Gifts"], ["games", "Games"], ["services", "Services"], ["awards", "Awards"], ["stock", "Goods and prizes"], ["wages", "Wages"], ["upkeep", "Upkeep"], ["build", "Building"], ["land", "Land"], ["interest", "Interest"]]
+  // the books and grumbles a panel shows: today's in the park panel, yesterday's in the day's report
+  let BOOK = panel == "report" ? ledY : led
+  let GRP = panel == "report" ? gripesY : gripes
+  let GRK = keys(GRP).sortBy(k => -GRP[k]).take(4)
+  let AVGM = NG > 0 ? avg(guests.map(q => q.md)) : 50
+  // The rating's panel: what the rating is made of, how the guests in the park feel, what they need right now, and
+  // what they've complained of today with what would mend it. Worked out only while it's open.
+  let RON = panel == "rating"
+  let RPART = !RON ? [] : [
+    {n: "GUESTS' MOOD", v: AVGM / 100, w: 40, s: "${round(AVGM)} of 100 on average"},
+    {n: "MOOD ON THE WAY OUT", v: (outN > 0.5 ? outM / outN : AVGM) / 100, w: 20, s: "how those leaving felt"},
+    {n: "CLEAN PATHS", v: clamp(1 - sum(LITL) / (len(PC) * 0.3 + 4), 0, 1), w: 15, s: sum(LITL) == 0 ? "spotless" : "${sum(LITL)} bits of litter"},
+    {n: "VARIETY", v: min(1, NKIND / 20), w: 25, s: NKIND >= 20 ? "${NKIND} kinds of stand" : "${NKIND} of 20 kinds of stand"}]
+  let RMOOD = !RON ? [0, 0, 0] : [count(guests, q => q.md >= 65), count(guests, q => q.md >= 35 && q.md < 65), count(guests, q => q.md < 35)]
+  let RNEED = !RON || NG == 0 ? [] : [
+    {n: "HUNGRY", v: avg(guests.map(q => q.hu)), c: count(guests, q => q.hu > 62), fix: "food stands"},
+    {n: "THIRSTY", v: avg(guests.map(q => q.th)), c: count(guests, q => q.th > 62), fix: "drink stands"},
+    {n: "NEED A TOILET", v: avg(guests.map(q => q.bl)), c: count(guests, q => q.bl > 65), fix: "toilets"},
+    {n: "TIRED", v: 100 - avg(guests.map(q => q.en)), c: count(guests, q => q.en < 28), fix: "benches"},
+    {n: "BORED", v: avg(guests.map(q => q.fn)), c: count(guests, q => q.fn > 58), fix: "games and entertainers"},
+    {n: "FEEL ILL", v: avg(guests.map(q => q.nau)), c: count(guests, q => q.nau > 60), fix: "first aid"},
+    {n: "OUT OF CASH", v: count(guests, q => q.w < 8) / NG * 100, c: count(guests, q => q.w < 8), fix: "a cash machine"}]
+  let GFIX = {food: "Open food stands, or put them where the paths are busy", drink: "Open drink stands; heat makes guests thirstier", toilet: "Build toilets: none can be reached, or they're too far",
+    cash: "Build a cash machine", seat: "Put benches on the paths", games: "Open game stands or hire an entertainer", aid: "Build a first aid post", bin: "Put bins on the paths, every few tiles",
+    binfull: "Hire a janitor to empty the bins, or add bins", dear: "Lower prices: tap a stand to see how many walked off", queue: "Build a second stand of the kind, or one that serves faster",
+    broke: "Build a cash machine, or lower prices", sick: "Fewer sweets close together; a first aid post helps", angry: "Their mood hit bottom: mend what's complained of most",
+    tired: "More benches, so guests can rest and stay", skint: "A cash machine lets them draw more", gate: "Lower the gate price, or raise the rating"}
+  let RGR = !RON ? [] : keys(gripes).sortBy(k => -gripes[k]).take(8)
+  let RGMAX = len(RGR) > 0 ? max(1, gripes[RGR[0]]) : 1
+
+  Box {
+    fill: true
+    background: SKY
+    // each of these makes one share of the models in an update of its own (they draw nothing)
+    if len(MSA1) < 0 {
+      Spacer {}
+    }
+    if len(MSA2) < 0 {
+      Spacer {}
+    }
+    if len(MSA3) < 0 {
+      Spacer {}
+    }
+    Canvas {
+      fill: true
+      // the land around, then the park's ground
+      scene(CAM, light: LIGHT, ambient: 0.75) {
+        model(SQ, at: [0, -0.02, 0], scale: 150, color: #5a9a46)
+      }
+      scene(CAM, light: LIGHT, ambient: 0.75) {
+        for m in GROUND { model(m, at: [0, 0, 0]) }
+      }
+      // marks on the ground: litter, what's being painted, what's looked at
+      scene(CAM, ambient: 1) {
+        for c in LITC {
+          model(MS[MSC + 11], at: [WX[c], 0.01, WZ[c]], turn: [0, hash(c, 4) * 360, 0], scale: min(1.7, 0.75 + 0.25 * LITL[c]))
+        }
+        for c in paint {
+          model(SQ, at: [WX[c], 0.02, WZ[c]], scale: 0.96, color: alpha(tool == 9 ? RED : WHT, 0.55))
+        }
+        for i in NOPATH {
+          model(SQ, at: [WX[stands[i].c] + DX[stands[i].f], 0.02, WZ[stands[i].c] + DZ[stands[i].f]], scale: 0.9, color: alpha(RED, 0.45))
+        }
+        if SS != null {
+          model(SQ, at: [WX[SS.c] + DX[SS.f], 0.025, WZ[SS.c] + DZ[SS.f]], scale: 0.9, color: alpha(SUN, 0.6))
+        }
+        if selL >= 0 {
+          model(SQ, at: [selL % 4 * 6 - 9, 0.02, floor(selL / 4) * 6 - 9], scale: 6, color: alpha(WHT, 0.3))
+        }
+        if DIMV > 0.2 {
+          for l in LAMPS { model(SQ, at: [WX[l], 0.015, WZ[l]], scale: 5, color: alpha(#ffe9a0, 0.16)) }
+        }
+      }
+      // everything that stands up, in one scene so it's sorted together
+      scene(CAM, light: LIGHT, ambient: 0.62) {
+        for m in FENCE { model(m, at: [0, 0, 0], color: WHT, twoSided: true) }
+        model(MS[MSC + 10], at: [WX[GATE], 0, WZ[GATE] + 0.5])
+        for o in OBJ {
+          if abs(o.at[0] - tx) < VR && abs(o.at[2] - tz) < VR { model(o.m, at: o.at, turn: o.t, scale: o.s) }
+        }
+        for i in brk {
+          if i < len(stands) {
+            model(MS[MSC + 14], at: [WX[stands[i].c], 1.55 + 0.06 * sin(time * 5), WZ[stands[i].c]], turn: [0, time * 120, 0], ambient: 1)
+          }
+        }
+        for q in guests {
+          let sq = q.st == 1 && q.tg < len(stands) ? stands[q.tg] : null
+          let f = clamp(q.t, 0, 1)
+          // (seated: at one of the tile's benches, or on the one on the grass beside it)
+          // two to a bench, side by side: the seated at a tile take its seats in order
+          let rk = q.st == 2 ? count(guests, z => z.st == 2 && z.tg == q.tg && z.id < q.id) : 0
+          let sd = q.st == 2 && len(BSIDE[q.tg]) > 0 ? BSIDE[q.tg][floor(rk / 2) % len(BSIDE[q.tg])] : -1
+          let ld = q.st != 2 ? 0 : sd >= 0 ? sd : ([0, 1, 2, 3].find(d => NB4[q.tg][d] >= 0 && P[NB4[q.tg][d]]) ?? 1)
+          let so = (rk % 2 - 0.5) * 0.3
+          let gx = q.st == 2 ? WX[q.tg] + (sd >= 0 ? DX[sd] * 0.36 : 0) + (DX[ld] == 0 ? so : 0) : sq != null ? WX[q.b] - DX[sq.f] * 0.3 + DZ[sq.f] * (q.id % 5 - 2) * 0.16 : WX[q.a] + (WX[q.b] - WX[q.a]) * f + (hash(q.id) - 0.5) * 0.5
+          let gz = q.st == 2 ? WZ[q.tg] + (sd >= 0 ? DZ[sd] * 0.36 : 0) + (DX[ld] == 0 ? 0 : so) : sq != null ? WZ[q.b] - DZ[sq.f] * 0.3 + DX[sq.f] * (q.id % 5 - 2) * 0.16 : WZ[q.a] + (WZ[q.b] - WZ[q.a]) * f + (hash(q.id, 1) - 0.5) * 0.5
+          // whoever's turn it is at a game plays it: a jump into the hammer's swing, a shot's kick, a throw, a hop
+          let an = sq != null && q.wt <= K[sq.k].sv ? K[sq.k].an : 0
+          let ph = an == 0 ? 0 : (gt * (an == 1 ? 0.8 : an == 2 ? 2 : 1.1) + q.id * 0.37) % 1
+          let kick = an == 2 && ph < 0.12 ? 0.05 : 0
+          // a walk is two strides a tile: sw swings from -1 to 1, the body highest as the legs pass
+          let sw = q.st == 0 && q.a != q.b && zoom <= FARZ ? sin((f * 2 + hash(q.id, 5)) * 2 * pi) : 0
+          let pose = q.st == 2 ? 3 : an == 1 && ph < 0.35 || an == 3 && ph < 0.2 ? 2 : an == 5 ? round(sin(gt * 6 + q.id)) + 1 : round(sw) + 1
+          let gy = q.st == 2 ? (zoom > FARZ ? 0.1 : 0.03) : q.st == 0 ? (zoom > FARZ ? abs(sin((q.t * 2 + q.id) * pi)) * 0.025 : (1 - abs(sw)) * 0.022)
+            : an == 1 ? (ph < 0.35 ? sin(ph / 0.35 * pi) * 0.16 : 0) : an == 3 ? (ph < 0.15 ? sin(ph / 0.15 * pi) * 0.06 : 0) : an == 4 ? abs(sin(gt * 3 + q.id)) * 0.02 : an == 5 ? abs(sin(gt * 6 + q.id)) * 0.07 : 0
+          let yw = sq != null ? FT[sq.f] + 180 + (an == 4 ? sin(gt * 3 + q.id) * 14 : 0) : q.st == 2 ? FT[sd >= 0 ? [1, 0, 3, 2][ld] : ld] : q.a == q.b ? q.id * 47 : deg(atan2(WX[q.b] - WX[q.a], WZ[q.b] - WZ[q.a]))
+          if abs(gx - tx) < VR && abs(gz - tz) < VR {
+          model(MS[zoom > FARZ ? MLOD + q.id % 4 : MGUY + q.id % 4 * 4 + pose], at: [gx + (sq != null ? DX[sq.f] * kick : 0), gy, gz + (sq != null ? DZ[sq.f] * kick : 0)], turn: [0, yw, 0], scale: 1.5, color: SHIRT[q.sh])
+          if q.cr == 1 || q.cr == 2 {
+            model(MS[MSC + 19], at: [gx, gy, gz], turn: [0, yw, 0], scale: 1.5, color: q.cr == 1 ? #e3a858 : #7fd8f0)
+          }
+          if an == 1 && ph >= 0.4 {
+            model(MS[MSC + 15], at: [WX[sq.c] - DX[sq.f] * 0.02, 0.12 + (0.3 + 0.82 * hash(q.id, floor(gt * 0.8 + q.id * 0.37))) * sin((ph - 0.4) / 0.6 * pi), WZ[sq.c] - DZ[sq.f] * 0.02], turn: [0, FT[sq.f], 0], color: SUN, ambient: 1)
+          }
+          if an == 2 && ph < 0.12 {
+            model(MS[MSC + 15], at: [gx - DX[sq.f] * 0.2, 0.42, gz - DZ[sq.f] * 0.2], turn: [0, FT[sq.f] + 90, 0], scale: 0.8, color: SUN, ambient: 1)
+          }
+          if an == 3 && ph < 0.6 {
+            model(MS[MSC + 14], at: [gx + (WX[sq.c] - gx) * ph / 0.6, 0.4 + sin(ph / 0.6 * pi) * 0.35 + ph * 0.25, gz + (WZ[sq.c] - gz) * ph / 0.6], scale: 0.4)
+          }
+          if q.bal >= 0 {
+            model(MS[MSC + 12], at: [gx + 0.12, gy + 0.22, gz], turn: [sin(time * 2 + q.id) * 8, 0, 0], scale: 1.4, color: BALC[q.bal])
+          }
+          if q.umb && wx == 3 {
+            model(MS[MSC + 13], at: [gx, gy + 0.42, gz], scale: 1.5, color: SHIRT[(q.sh + 3) % 10])
+          }
+          if q.id == selG {
+            model(MS[MSC + 14], at: [gx, 0.85 + 0.05 * sin(time * 6), gz], scale: 0.7, color: SUN, ambient: 1)
+          }
+          }
+        }
+        for s in staff {
+          let f = clamp(s.t, 0, 1)
+          let gx = WX[s.a] + (WX[s.b] - WX[s.a]) * f + (hash(s.id, 2) - 0.5) * 0.4
+          let gz = WZ[s.a] + (WZ[s.b] - WZ[s.a]) * f + (hash(s.id, 3) - 0.5) * 0.4
+          // at work they stay turned one way: a janitor sweeps, a gardener pours, a mechanic hammers away, and an
+          // entertainer never stops dancing
+          let wk = s.st == 1
+          let yw = wk ? s.id * 67 % 360 : s.a == s.b ? 0 : deg(atan2(WX[s.b] - WX[s.a], WZ[s.b] - WZ[s.a]))
+          let sw = zoom > FARZ ? 0 : s.k == 3 ? sin(gt * 7 + s.id) : !wk && s.a != s.b ? sin((f * 2 + hash(s.id, 5)) * 2 * pi) : 0
+          let sy = s.k == 3 ? abs(sin(gt * 7 + s.id)) * 0.06 : wk && s.k == 2 ? abs(sin(gt * 10)) * 0.03 : (1 - abs(sw)) * 0.022
+          if abs(gx - tx) < VR && abs(gz - tz) < VR {
+            model(MS[zoom > FARZ ? MLOD + 4 + s.k : MSTAFF + s.k * 3 + round(sw) + 1], at: [gx, sy, gz], turn: [0, yw + (s.k == 3 ? sin(gt * 4 + s.id) * 35 : 0), 0], scale: 1.6, color: STAFFK[s.k].col)
+            if s.k == 0 {
+              model(MS[MSC + 16], at: [gx, 0, gz], turn: [0, yw + (wk ? sin(gt * 9) * 38 : 0), 0], scale: 1.6)
+            }
+            if s.k == 1 {
+              model(MS[MSC + 17], at: [gx, wk ? 0.05 : 0, gz], turn: [0, yw, 0], scale: 1.6)
+              if wk {
+                for i in [0, 1, 2] {
+                  model(MS[MSC + 15], at: [gx + sin(rad(yw)) * 0.44 + cos(rad(yw)) * 0.19, 0.4 - (gt * 2.5 + i / 3) % 1 * 0.38, gz + cos(rad(yw)) * 0.44 - sin(rad(yw)) * 0.19], turn: [0, yw, 0], scale: 0.3, color: #6fd0f2, ambient: 1)
+                }
+              }
+            }
+            if s.k == 2 {
+              model(MS[MSC + 18], at: [gx, sy, gz], turn: [0, yw + (wk ? sin(gt * 10) * 14 : 0), 0], scale: 1.6)
+              if wk && (gt * 5) % 1 < 0.3 {
+                model(MS[MSC + 15], at: [gx + sin(rad(yw)) * 0.3, 0.5, gz + cos(rad(yw)) * 0.3], turn: [0, gt * 400, 0], scale: 0.5, color: SUN, ambient: 1)
+              }
+            }
+          }
+          if s.id == selS {
+            model(MS[MSC + 14], at: [gx, 0.95 + 0.05 * sin(time * 6), gz], scale: 0.7, color: SUN, ambient: 1)
+          }
+        }
+      }
+      // evening and clouds dim the light; rain falls
+      if DIMV > 0.01 {
+        rect(0, 0, width, height, fill: alpha(#1b2550, min(0.5, DIMV)))
+      }
+      if wx == 3 {
+        for i in range(46) {
+          rect((hash(i) * width + time * 60) % width, (hash(i, 1) * height + time * (700 + hash(i, 2) * 300)) % height, 1.5, 15, fill: #ffffff55)
+        }
+      }
+      // a tool in hand frames the whole view: yellow to build, red for the bulldozer
+      if tool != 0 {
+        rect(0, 0, 5, height, fill: TOOLC)
+        rect(width - 5, 0, 5, height, fill: TOOLC)
+        rect(0, 0, width, 5, fill: TOOLC)
+        rect(0, height - 5, width, 5, fill: TOOLC)
+      }
+      // prices paid float up from the stands
+      for p in pops {
+        let a = rt - p.t
+        if a >= 0 && a < 1.4 {
+          let pp = project([WX[p.c], 1.1 + a * 0.5, WZ[p.c]], CAM, width, height)
+          if pp != null {
+            text(p.s, pp.x + 1, pp.y + 1, size: 13, font: FONT, align: center, color: #00000066)
+            text(p.s, pp.x, pp.y, size: 13, font: FONT, align: center, color: p.col ?? SUN)
+          }
+        }
+      }
+      if SS != null {
+        let pp = project([WX[SS.c], 1.6, WZ[SS.c]], CAM, width, height)
+        if pp != null {
+          text(upper(K[SS.k].n), pp.x + 1, pp.y + 1, size: 14, font: FONT, align: center, color: #00000088)
+          text(upper(K[SS.k].n), pp.x, pp.y, size: 14, font: FONT, align: center, color: CRM)
+        }
+      }
+
+      // One finger pans, or lays paths and bulldozes with that tool out and the finger held still first; two pinch
+      // and turn; a tap builds, or looks at what's there.
+      onTouch: {
+        let T = touches
+        let f0 = len(fingers) > 0 ? fingers[0] : null
+        let t0 = len(T) > 0 ? T[0] : null
+        let o2 = len(fingers) >= 2 && len(T) >= 2 ? [first(fingers.filter(f => f.id == T[0].id)), first(fingers.filter(f => f.id == T[1].id))] : null
+        let ok2 = o2 != null && o2[0] != null && o2[1] != null
+        // where on the ground these are: where the finger went down, where it was last, where it is, and the middle
+        // of two fingers before and now
+        let GP = [f0 != null ? [f0.startX, f0.startY] : [0, 0], f0 != null ? [f0.x, f0.y] : [0, 0], t0 != null ? [t0.x, t0.y] : [0, 0], ok2 ? [(o2[0].x + o2[1].x) / 2, (o2[0].y + o2[1].y) / 2] : [0, 0], ok2 ? [(T[0].x + T[1].x) / 2, (T[0].y + T[1].y) / 2] : [0, 0]]
+          .map(s => [(2 * s[0] / SW - 1) * TH * SW / SH, (1 - 2 * s[1] / SH) * TH])
+          .map(q => [FW[0] + RT[0] * q[0] + UPV[0] * q[1], FW[1] + RT[1] * q[0] + UPV[1] * q[1], FW[2] + RT[2] * q[0] + UPV[2] * q[1]])
+          .map(d => [EYE[0] - d[0] * EYE[1] / d[1], EYE[2] - d[2] * EYE[1] / d[1]])
+        if len(T) == 0 {
+          if gm == 1 && f0 != null {
+            let hx = floor(GP[0][0] + 12)
+            let hz = floor(GP[0][1] + 12)
+            let cell = hx >= 0 && hx < N && hz >= 0 && hz < N ? hz * N + hx : -1
+            if tool == 0 {
+              // someone under the finger, or what's on the tile
+              let who = first(guests.map(q => {id: q.id, p: project([WX[q.a] + (WX[q.b] - WX[q.a]) * min(1, q.t), 0.2, WZ[q.a] + (WZ[q.b] - WZ[q.a]) * min(1, q.t)], CAM, SW, SH)}).filter(o => o.p != null && abs(o.p.x - f0.startX) < 16 && abs(o.p.y - f0.startY) < 20))
+              let whoS = first(staff.map(s => {id: s.id, p: project([WX[s.a] + (WX[s.b] - WX[s.a]) * min(1, s.t), 0.2, WZ[s.a] + (WZ[s.b] - WZ[s.a]) * min(1, s.t)], CAM, SW, SH)}).filter(o => o.p != null && abs(o.p.x - f0.startX) < 18 && abs(o.p.y - f0.startY) < 22))
+              sel = whoS == null && who == null && cell >= 0 && g[cell] == 2 ? STAT[cell] : -1
+              selS = whoS != null ? whoS.id : -1
+              selG = whoS == null && who != null ? who.id : -1
+              selL = sel < 0 && selS < 0 && selG < 0 && cell >= 0 && !OWNED[cell] ? PARCEL[cell] : -1
+              cat = -1
+              panel = ""
+            } else if cell < 0 {
+              tool = 0
+            } else if !OWNED[cell] {
+              msg = "THAT'S NOT YOUR LAND: PUT THE TOOL AWAY AND TAP IT TO BUY"
+              msgT = rt
+            } else if tool == 9 {
+              if g[cell] == 2 {
+                // (a stand isn't lost to a slip of the finger: the bulldozer opens its panel, where the sell button is)
+                sel = STAT[cell]
+                tool = 0
+                msg = "THE BULLDOZER LEAVES STANDS ALONE: SELL IT FROM HERE"
+                msgT = rt
+              } else if g[cell] != 0 && (cell != GATE || g[cell] >= 9) {
+                let cost = g[cell] == 7 ? 15 : 0
+                if cost > 0 && cash < cost {
+                  msg = "NOT ENOUGH CASH"
+                  msgT = rt
+                } else {
+                  cash = cash - cost
+                  led = set(led, "build", (led.build ?? 0) - cost)
+                  // (a bench on a path goes; the path stays)
+                  g = set(g, cell, g[cell] >= 9 ? 1 : 0)
+                  lit = set(lit, cell, 0)
+                  binf = set(binf, cell, 0)
+                  dry = set(dry, cell, 0)
+                  haptic()
+                }
+              }
+            } else if (tool == 3 || tool == 4) && g[cell] == 1 && len(BFREE[cell]) == 0 {
+              msg = "NO FREE SIDE FOR A ${tool == 3 ? "BENCH" : "BIN"} HERE: NOT AT A CROSSING, NOR ACROSS A STAND'S FRONT"
+              msgT = rt
+            } else if g[cell] != 0 && !((tool == 3 || tool == 4) && g[cell] == 1) {
+              msg = "SOMETHING'S THERE ALREADY"
+              msgT = rt
+            } else {
+              let cost = tool >= 100 ? K[tool - 100].cost : SCOST[tool]
+              if cash < cost {
+                msg = "NOT ENOUGH CASH"
+                msgT = rt
+              } else {
+                cash = cash - cost
+                led = set(led, "build", (led.build ?? 0) - cost)
+                if tool >= 100 {
+                  stands = stands + [{id: nid, k: tool - 100, c: cell, f: [0, 1, 2, 3].find(d => NB4[cell][d] >= 0 && P[NB4[cell][d]]) ?? 1, p: K[tool - 100].p}]
+                  sv = sv + [{free: 0, sold: 0, inc: 0, exp: 0}]
+                  nid = nid + 1
+                  g = set(g, cell, 2)
+                } else {
+                  // (a bench or a bin goes on a path too)
+                  g = set(g, cell, g[cell] == 1 ? (tool == 3 ? 9 : 10) : tool)
+                  if tool == 6 { wat = set(wat, cell, gt) }
+                }
+                pops = drop(pops + [{c: cell, s: "-$${fmtNum(cost)}", t: rt, col: CORAL}], max(0, len(pops) - 13))
+                haptic()
+                // a stand is built one at a time: the tool goes away and the new stand's panel opens, to set its price
+                if tool >= 100 {
+                  tool = 0
+                  sel = len(stands) - 1
+                }
+              }
+            }
+          } else if gm == 3 && len(paint) > 0 {
+            if tool == 1 {
+              let cells = take(paint.filter(c => OWNED[c] && g[c] == 0), floor(cash / 10))
+              if len(cells) > 0 {
+                cash = cash - 10 * len(cells)
+                led = set(led, "build", (led.build ?? 0) - 10 * len(cells))
+                g = reduce(cells, (L, c) => set(L, c, 1), g)
+                pops = drop(pops + [{c: last(cells), s: "-$${fmtNum(10 * len(cells))}", t: rt, col: CORAL}], max(0, len(pops) - 13))
+                haptic()
+              } else {
+                msg = cash < 10 ? "NOT ENOUGH CASH" : "PATHS GO ON YOUR OWN GRASS"
+                msgT = rt
+              }
+            } else if tool == 9 {
+              let cells = paint.filter(c => OWNED[c] && g[c] != 0 && g[c] != 2 && (c != GATE || g[c] >= 9))
+              let cost = 15 * count(cells, c => g[c] == 7)
+              if cost > 0 && cash < cost {
+                msg = "NOT ENOUGH CASH TO FELL THE TREES"
+                msgT = rt
+              } else if len(cells) > 0 {
+                cash = cash - cost
+                led = set(led, "build", (led.build ?? 0) - cost)
+                g = reduce(cells, (L, c) => set(L, c, L[c] >= 9 ? 1 : 0), g)
+                lit = reduce(cells, (L, c) => set(L, c, 0), lit)
+                binf = reduce(cells, (L, c) => set(L, c, 0), binf)
+                dry = reduce(cells, (L, c) => set(L, c, 0), dry)
+                haptic()
+              }
+            }
+          }
+          gm = 0
+          paint = []
+        } else if len(T) == 1 {
+          if gm == 0 {
+            gm = 1
+            downT = rt
+            let hx = floor(GP[2][0] + 12)
+            let hz = floor(GP[2][1] + 12)
+            downC = hx >= 0 && hx < N && hz >= 0 && hz < N ? hz * N + hx : -1
+          }
+          // moved before the hold: it's a pan, whatever tool is out
+          if gm == 1 && abs(t0.x - t0.startX) + abs(t0.y - t0.startY) > 16 {
+            gm = 2
+          }
+          if gm == 2 && f0 != null && f0.id == t0.id {
+            tx = clamp(tx + GP[1][0] - GP[2][0], -12, 12)
+            tz = clamp(tz + GP[1][1] - GP[2][1], -12, 12)
+          }
+          if gm == 3 {
+            let hx = floor(GP[2][0] + 12)
+            let hz = floor(GP[2][1] + 12)
+            let cell = hx >= 0 && hx < N && hz >= 0 && hz < N ? hz * N + hx : -1
+            // (a fast finger skips tiles: the ones between are filled in, in a straight line)
+            if cell >= 0 && len(paint) > 0 && len(paint) < 120 && cell != last(paint) {
+              let l0 = last(paint)
+              let n = max(abs(CX[cell] - CX[l0]), abs(CZ[cell] - CZ[l0]))
+              paint = unique(paint + range(1, n + 1).map(i => round(CZ[l0] + (CZ[cell] - CZ[l0]) * i / n) * N + round(CX[l0] + (CX[cell] - CX[l0]) * i / n)))
+            }
+          }
+        } else {
+          gm = 4
+          paint = []
+          if ok2 {
+            let d1 = sqrt(pow(T[0].x - T[1].x, 2) + pow(T[0].y - T[1].y, 2))
+            let d0 = sqrt(pow(o2[0].x - o2[1].x, 2) + pow(o2[0].y - o2[1].y, 2))
+            zoom = clamp(zoom * d0 / max(1, d1), 6, 60)
+            yaw = yaw + ((deg(atan2(T[1].y - T[0].y, T[1].x - T[0].x) - atan2(o2[1].y - o2[0].y, o2[1].x - o2[0].x)) + 540) % 360 - 180)
+            tx = clamp(tx + GP[3][0] - GP[4][0], -12, 12)
+            tz = clamp(tz + GP[3][1] - GP[4][1], -12, 12)
+          }
+        }
+        fingers = T
+      }
+    }
+
+    // ---- along the top: cash, guests, rating, the day; the speed and the quest ----
+    Column {
+      fill: width
+      gap: 6
+      padding: [10, TOP, 10, 0]
+      Row {
+        fill: width
+        gap: 6
+        Column {
+          gap: 1
+          weight: 1
+          height: 46
+          justify: center
+          padding: [10, 0]
+          background: INK
+          onTap: {
+            panel = panel == "park" ? "" : "park"
+            cat = -1
+          }
+          Text { text: "$${fmtNum(cash)}"; font: FONT; fontSize: 18; color: cash < 0 ? CORAL : CRM; maxLines: 1 }
+          Text { text: "TODAY ${TODAY >= 0 ? "+" : "-"}$${fmtNum(abs(TODAY))}"; font: FONT; fontSize: 9; color: TODAY >= 0 ? MINT : CORAL; maxLines: 1 }
+        }
+        Column {
+          gap: 1
+          width: 62
+          height: 46
+          justify: center
+          padding: [10, 0]
+          background: INK
+          onTap: {
+            panel = panel == "rating" ? "" : "rating"
+            cat = -1
+          }
+          Text { text: "${NG}"; font: FONT; fontSize: 18; color: CRM; maxLines: 1 }
+          Text { text: "GUESTS"; font: FONT; fontSize: 9; color: MUT }
+        }
+        Column {
+          gap: 1
+          width: 64
+          height: 46
+          justify: center
+          padding: [10, 0]
+          background: INK
+          onTap: {
+            panel = panel == "rating" ? "" : "rating"
+            cat = -1
+          }
+          Text { text: "${round(rating)}"; font: FONT; fontSize: 18; color: rating >= 65 ? MINT : rating >= 40 ? SUN : CORAL; maxLines: 1 }
+          Text { text: "RATING"; font: FONT; fontSize: 9; color: MUT }
+        }
+        Column {
+          gap: 1
+          width: 104
+          height: 46
+          justify: center
+          padding: [8, 0]
+          background: INK
+          Text { text: "DAY ${dayN + 1} · ${CLOCK}"; font: FONT; fontSize: 11; color: CRM; maxLines: 1 }
+          Text { text: upper(WXN[wx]); font: FONT; fontSize: 11; color: wx == 3 ? #8fc7ff : wx == 1 ? CORAL : SUN; maxLines: 1 }
+        }
+      }
+      Row {
+        fill: width
+        gap: 6
+        align: top
+        Row {
+          gap: 0
+          for v, i in ["II", "▶", "▶▶", "▶▶▶"] {
+            Text { text: v; font: FONT; fontSize: 11; color: spd == i ? INK : CRM; background: spd == i ? SUN : INK; width: 38; height: 34; align: center; padding: [0, 9]; onTap: spd = i }
+          }
+        }
+        if Q != null {
+          Row {
+            weight: 1
+            gap: 8
+            height: 34
+            align: center
+            padding: [10, 0]
+            background: Q.ok ? SUN : CRM
+            onTap: {
+              if Q.ok {
+                cash = cash + Q.r
+                led = set(led, "awards", (led.awards ?? 0) + Q.r)
+                msg = "WELL DONE! THE FAIR BOARD AWARDS $${fmtNum(Q.r)}"
+                msgT = rt
+                qi = qi + 1
+                haptic()
+              }
+            }
+            Text { text: Q.ok ? "★ ${Q.t} · TAP FOR $${fmtNum(Q.r)}" : "☆ ${Q.t}"; font: FONT; fontSize: 11; color: INK; weight: 1; maxLines: 2 }
+          }
+        }
+      }
+      if rt - msgT < 3.2 {
+        Text { text: msg; font: FONT; fontSize: 12; color: CRM; background: #e2483d; padding: [10, 6]; maxLines: 2 }
+      }
+    }
+
+    // ---- along the bottom: what's looked at, the picker, the tool in hand, the toolbar ----
+    Column {
+      fill: true
+      justify: end
+      padding: [8, 0, 8, INS + 8]
+      gap: 6
+
+      // a stand: its price, its day, turn it, mend it, sell it
+      if SS != null && panel == "" {
+        Column {
+          fill: width
+          gap: 6
+          padding: [12, 10]
+          background: INK
+          onTap: sel = sel
+          Row {
+            fill: width
+            gap: 8
+            align: center
+            Text { text: upper(K[SS.k].n) + (BRKL[sel] ? " · BROKEN" : ""); font: FONT; fontSize: 15; color: BRKL[sel] ? CORAL : SUN; weight: 1; maxLines: 1 }
+            Text { text: "✕"; font: FONT; fontSize: 16; color: MUT; padding: [10, 2]; onTap: sel = -1 }
+          }
+          Text { text: SFRONT[sel] < 0 ? "No path in front of it: nobody can buy here. Lay one, or turn it." : K[SS.k].d; fontSize: 12; color: SFRONT[sel] < 0 ? CORAL : MUT }
+          Row {
+            fill: width
+            gap: 6
+            align: center
+            Text { text: "−"; font: FONT; fontSize: 18; color: INK; background: CRM; width: 44; height: 38; align: center; padding: [0, 6]
+              onTap: stands = set(stands, sel, merge(SS, {p: max(0, SS.p - (SS.p > 5 ? 0.5 : 0.25))})) }
+            Column {
+              weight: 1
+              gap: 0
+              align: center
+              Text { text: K[SS.k].sp == "atm" ? "FEE $${fixed(SS.p, 2)}" : SS.p == 0 ? "FREE" : "$${fixed(SS.p, 2)}"; font: FONT; fontSize: 18; color: CRM }
+              Text { text: "costs you $${fixed(K[SS.k].ic, 2)} a sale · $${K[SS.k].up} a day"; fontSize: 10; color: MUT }
+            }
+            Text { text: "+"; font: FONT; fontSize: 18; color: INK; background: CRM; width: 44; height: 38; align: center; padding: [0, 6]
+              onTap: stands = set(stands, sel, merge(SS, {p: SS.p + (SS.p >= 5 ? 0.5 : 0.25)})) }
+          }
+          Text { text: "Today: ${sv[sel].sold} sold · $${fixed(sv[sel].inc, 2)} made · ${sv[sel].exp} walked off at the price · queue ${round(max(0, sv[sel].free - gt))}s"; fontSize: 12; color: CRM }
+          Row {
+            fill: width
+            gap: 6
+            Text { text: "TURN"; font: FONT; fontSize: 12; color: CRM; background: INK3; weight: 1; align: center; padding: [0, 9]
+              onTap: stands = set(stands, sel, merge(SS, {f: [3, 2, 0, 1][SS.f]})) }
+            if BRKL[sel] {
+              Text { text: "MEND NOW $80"; font: FONT; fontSize: 12; color: INK; background: SUN; weight: 1; align: center; padding: [0, 9]
+                onTap: {
+                  if cash >= 80 {
+                    cash = cash - 80
+                    led = set(led, "upkeep", (led.upkeep ?? 0) - 80)
+                    brk = brk.filter(b => b != sel)
+                  }
+                }
+              }
+            }
+            Text { text: "SELL $${fmtNum(round(K[SS.k].cost * 0.5))}"; font: FONT; fontSize: 12; color: CRM; background: #b83a31; weight: 1; align: center; padding: [0, 9]; onTap: sellI = sel }
+          }
+        }
+      }
+
+      // a guest: what they need, what they have, what they think
+      if SG != null && panel == "" {
+        Column {
+          fill: width
+          gap: 5
+          padding: [12, 10]
+          background: INK
+          onTap: sel = sel
+          Row {
+            fill: width
+            gap: 8
+            align: center
+            Text { text: "${upper(NAMES[SG.id % 30])} · $${fixed(SG.w, 2)} IN POCKET"; font: FONT; fontSize: 14; color: SUN; weight: 1; maxLines: 1 }
+            Text { text: "✕"; font: FONT; fontSize: 16; color: MUT; padding: [10, 2]; onTap: selG = -1 }
+          }
+          Text { text: SG.say == "" ? "Just looking round" : "“${SG.say}”"; fontSize: 13; color: CRM }
+          for b in [["MOOD", SG.md, 1], ["HUNGER", SG.hu, 0], ["THIRST", SG.th, 0], ["TOILET", SG.bl, 0], ["ENERGY", SG.en, 1], ["BOREDOM", SG.fn, 0]] {
+            Row {
+              fill: width
+              gap: 8
+              align: center
+              Text { text: b[0]; font: FONT; fontSize: 10; color: MUT; width: 70 }
+              Box {
+                weight: 1
+                height: 7
+                background: INK3
+                Canvas {
+                  fill: true
+                  rect(0, 0, width * b[1] / 100, height, fill: (b[2] == 1 ? b[1] > 45 : b[1] < 60) ? MINT : (b[2] == 1 ? b[1] > 20 : b[1] < 80) ? SUN : CORAL)
+                }
+              }
+            }
+          }
+          Text { text: "Spent $${fixed(SG.spent, 2)} so far" + (SG.cr == 1 ? " · eating" : SG.cr == 2 ? " · drinking" : SG.cr == 3 ? " · carrying litter" : "") + (SG.lv ? " · heading home" : ""); fontSize: 11; color: MUT }
+        }
+      }
+
+      // one of the staff
+      if ST != null && panel == "" {
+        Column {
+          fill: width
+          gap: 6
+          padding: [12, 10]
+          background: INK
+          onTap: sel = sel
+          Row {
+            fill: width
+            gap: 8
+            align: center
+            Text { text: upper(STAFFK[ST.k].n); font: FONT; fontSize: 15; color: SUN; weight: 1 }
+            Text { text: "✕"; font: FONT; fontSize: 16; color: MUT; padding: [10, 2]; onTap: selS = -1 }
+          }
+          Text { text: "${capitalize(STAFFK[ST.k].d)}. $${STAFFK[ST.k].wage} a day." + (ST.st == 1 ? " At work." : ""); fontSize: 12; color: CRM }
+          Text { text: "LET GO"; font: FONT; fontSize: 12; color: CRM; background: #b83a31; align: center; padding: [14, 9]
+            onTap: {
+              staff = staff.filter(s => s.id != selS)
+              selS = -1
+            }
+          }
+        }
+      }
+
+      // land for sale
+      if selL >= 0 && panel == "" {
+        Column {
+          fill: width
+          gap: 6
+          padding: [12, 10]
+          background: INK
+          onTap: sel = sel
+          Row {
+            fill: width
+            gap: 8
+            align: center
+            Text { text: "LAND FOR SALE"; font: FONT; fontSize: 15; color: SUN; weight: 1 }
+            Text { text: "✕"; font: FONT; fontSize: 16; color: MUT; padding: [10, 2]; onTap: selL = -1 }
+          }
+          Text { text: LANDOK[selL] ? "6 by 6 tiles more for the park. Each parcel costs more than the last." : "The park can only grow onto land beside its own."; fontSize: 12; color: CRM }
+          if LANDOK[selL] {
+            Text { text: "BUY FOR $${fmtNum(LANDP)}"; font: FONT; fontSize: 13; color: INK; background: cash >= LANDP ? SUN : MUT; align: center; padding: [14, 9]
+              onTap: {
+                if cash >= LANDP {
+                  cash = cash - LANDP
+                  led = set(led, "land", (led.land ?? 0) - LANDP)
+                  own = set(OWN, selL, 1)
+                  selL = -1
+                  haptic()
+                } else {
+                  msg = "NOT ENOUGH CASH"
+                  msgT = rt
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // the picker: what a category has to build, three cards a row, each with its model
+      if cat >= 0 && panel == "" {
+        Column {
+          fill: width
+          height: min(len(PROWS) * (PCH + 4) + 6, SH * 0.5)
+          scroll: true
+          gap: 4
+          padding: [4, 4]
+          background: INK2
+          onTap: sel = sel
+          for R in PROWS {
+            Row {
+              fill: width
+              gap: 4
+              for it in R {
+                Column {
+                  weight: 1
+                  height: PCH
+                  gap: 1
+                  padding: [4, 4]
+                  background: it.on ? INK3 : INK
+                  onTap: {
+                    if it.hire >= 0 {
+                      if len(staff) >= 30 {
+                        msg = "THAT'S ALL THE STAFF THE PARK CAN TAKE"
+                        msgT = rt
+                      } else {
+                        staff = staff + [{id: nid, k: it.hire, a: GATE, b: GATE, t: 1, st: 0, wt: 0, jt: -1, job: -1, d: 0, done: -1, dj: -1}]
+                        nid = nid + 1
+                        msg = "${it.n} HIRED: ${it.pr}"
+                        msgT = rt
+                        haptic()
+                      }
+                    } else if it.lock != "" {
+                      msg = "UNLOCKS WITH ${upper(it.lock)}"
+                      msgT = rt
+                    } else {
+                      tool = it.id
+                      cat = -1
+                      sel = -1
+                      selG = -1
+                      selS = -1
+                      selL = -1
+                    }
+                  }
+                  Canvas {
+                    fill: width
+                    height: 66
+                    rect(0, 0, width, height, fill: it.lock != "" ? #241b38 : it.bg)
+                    rect(0, height - 12, width, 12, fill: #00000026)
+                    if it.m != null {
+                      scene({eye: [it.far * 0.62, it.far * 0.72 + it.up, it.far], look: [0, it.up, 0], fov: 30, near: 0.2, far: 40}, light: LIGHT, ambient: it.lock != "" ? 0.35 : 0.75) {
+                        model(it.m, at: [0, 0, 0], color: it.col)
+                      }
+                    } else {
+                      text("✕", width / 2, height / 2, size: 30, font: FONT, align: center, color: #e2483d)
+                    }
+                    if it.lock != "" {
+                      rect(0, 0, width, height, fill: #1c153099)
+                      text("LOCKED", width / 2, height / 2, size: 11, font: FONT, align: center, color: CRM)
+                    }
+                    // what's in the park already says so, across the top of its picture
+                    if it.n2 != "" {
+                      rect(0, 0, width, 17, fill: #2fbf8f)
+                      text(it.n2, width / 2, 8.5, size: 9, font: FONT, align: center, color: #10281f)
+                    }
+                  }
+                  Text { text: it.n; font: FONT; fontSize: 10; color: it.lock != "" ? MUT : CRM; maxLines: 1 }
+                  Text { text: it.pr; font: FONT; fontSize: 11; color: it.lock != "" ? MUT : it.cost <= cash ? SUN : CORAL; maxLines: 1 }
+                  Text { text: it.lock != "" ? it.lock : it.d; fontSize: 9; color: MUT; maxLines: 2 }
+                }
+              }
+              for z in range(3 - len(R)) {
+                Spacer { weight: 1 }
+              }
+            }
+          }
+        }
+      }
+
+      // the tool in hand: what it is, with its picture, and the way out of it
+      if tool != 0 && panel == "" {
+        Row {
+          fill: width
+          gap: 10
+          align: center
+          padding: [8, 0]
+          height: 56
+          background: TOOLC
+          onTap: tool = 0
+          Canvas {
+            width: 44
+            height: 44
+            rect(0, 0, width, height, fill: #00000030)
+            if TOOLV != null {
+              scene({eye: [TOOLV.far * 0.62, TOOLV.far * 0.72 + TOOLV.up, TOOLV.far], look: [0, TOOLV.up, 0], fov: 30, near: 0.2, far: 40}, light: LIGHT, ambient: 0.75) {
+                model(TOOLV.m, at: [0, 0, 0], color: TOOLV.col)
+              }
+            } else {
+              text("✕", width / 2, height / 2, size: 26, font: FONT, align: center, color: CRM)
+            }
+          }
+          Column {
+            weight: 1
+            gap: 1
+            Text { text: TOOLN; font: FONT; fontSize: 13; color: tool == 9 ? CRM : INK; maxLines: 1 }
+            Text { text: TOOLH; fontSize: 10; color: tool == 9 ? CRM : INK; maxLines: 2 }
+          }
+          Text { text: tool == 9 ? "✕ STOP" : "✕ DONE"; font: FONT; fontSize: 13; color: CRM; background: INK; padding: [12, 10]; onTap: tool = 0 }
+        }
+      }
+
+      // the toolbar
+      if panel == "" {
+        Row {
+          fill: width
+          gap: 3
+          for v, i in CATS {
+            Text { text: v; font: FONT; fontSize: SW < 380 ? 8 : 10; color: cat == i || cat < 0 && TOOLCAT == i && tool != 9 ? INK : CRM; background: cat == i ? SUN : cat < 0 && TOOLCAT == i ? TOOLC : INK; weight: 1; height: 40; align: center; padding: [0, 13]; maxLines: 1
+              onTap: {
+                cat = cat == i ? -1 : i
+                sel = -1
+                selG = -1
+                selS = -1
+                selL = -1
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // ---- the rating's panel: the guests, and nothing of the money ----
+    if RON {
+      Column {
+        fill: true
+        justify: center
+        align: center
+        padding: [14, TOP + 8, 14, INS + 14]
+        background: #00000066
+        onTap: panel = ""
+        Column {
+          fill: width
+          scroll: true
+          gap: 7
+          padding: [14, 12]
+          background: INK
+          onTap: sel = sel
+          Row {
+            fill: width
+            gap: 8
+            align: center
+            Text { text: "PARK RATING"; font: FONT; fontSize: 17; color: SUN; weight: 1 }
+            Text { text: "${round(rating)}"; font: FONT; fontSize: 24; color: rating >= 65 ? MINT : rating >= 40 ? SUN : CORAL }
+            Text { text: "✕"; font: FONT; fontSize: 17; color: MUT; padding: [10, 2]; onTap: panel = "" }
+          }
+          Text { text: "WHAT IT'S MADE OF"; font: FONT; fontSize: 12; color: MUT }
+          for p in RPART {
+            Column {
+              fill: width
+              gap: 2
+              Row {
+                fill: width
+                gap: 6
+                Text { text: p.n; font: FONT; fontSize: 11; color: CRM; weight: 1; maxLines: 1 }
+                Text { text: p.s; fontSize: 10; color: MUT; maxLines: 1 }
+                Text { text: "${round(p.v * p.w)}/${p.w}"; font: FONT; fontSize: 11; color: p.v >= 0.65 ? MINT : p.v >= 0.4 ? SUN : CORAL; width: 44; align: end }
+              }
+              Canvas {
+                fill: width
+                height: 7
+                rect(0, 0, width, height, fill: INK3)
+                rect(0, 0, width * clamp(p.v, 0, 1), height, fill: p.v >= 0.65 ? MINT : p.v >= 0.4 ? SUN : CORAL)
+              }
+            }
+          }
+          Text { text: "THE ${NG} GUESTS IN THE PARK"; font: FONT; fontSize: 12; color: MUT; padding: [0, 6, 0, 0] }
+          if NG > 0 {
+            Canvas {
+              fill: width
+              height: 14
+              rect(0, 0, width, height, fill: INK3)
+              rect(0, 0, width * RMOOD[0] / NG, height, fill: MINT)
+              rect(width * RMOOD[0] / NG, 0, width * RMOOD[1] / NG, height, fill: SUN)
+              rect(width * (RMOOD[0] + RMOOD[1]) / NG, 0, width * RMOOD[2] / NG, height, fill: CORAL)
+            }
+            Row {
+              fill: width
+              Text { text: "${RMOOD[0]} HAPPY"; font: FONT; fontSize: 10; color: MINT; weight: 1 }
+              Text { text: "${RMOOD[1]} ALL RIGHT"; font: FONT; fontSize: 10; color: SUN; weight: 1; align: center }
+              Text { text: "${RMOOD[2]} UNHAPPY"; font: FONT; fontSize: 10; color: CORAL; weight: 1; align: end }
+            }
+          } else {
+            Text { text: "Nobody's in yet."; fontSize: 12; color: CRM }
+          }
+          if len(RNEED) > 0 {
+            Text { text: "WHAT THEY NEED RIGHT NOW"; font: FONT; fontSize: 12; color: MUT; padding: [0, 6, 0, 0] }
+            for p in RNEED {
+              Row {
+                fill: width
+                gap: 8
+                align: center
+                Text { text: p.n; font: FONT; fontSize: 10; color: CRM; width: 96; maxLines: 1 }
+                Canvas {
+                  weight: 1
+                  height: 9
+                  rect(0, 0, width, height, fill: INK3)
+                  rect(0, 0, width * clamp(p.v / 100, 0, 1), height, fill: p.c > NG * 0.25 ? CORAL : p.c > NG * 0.1 ? SUN : MINT)
+                }
+                Text { text: p.c == 0 ? "NONE" : "${p.c} LOOKING"; font: FONT; fontSize: 10; color: p.c > NG * 0.25 ? CORAL : p.c > NG * 0.1 ? SUN : MUT; width: 78; align: end; maxLines: 1 }
+              }
+            }
+            Text { text: "The bar is the park's average; the number is how many are looking for it right now."; fontSize: 10; color: MUT }
+          }
+          Text { text: "COMPLAINTS TODAY"; font: FONT; fontSize: 12; color: MUT; padding: [0, 6, 0, 0] }
+          if len(RGR) == 0 {
+            Text { text: "Not one so far."; fontSize: 12; color: CRM }
+          }
+          for k in RGR {
+            Column {
+              fill: width
+              gap: 2
+              Row {
+                fill: width
+                gap: 8
+                align: center
+                Text { text: "${gripes[k]}"; font: FONT; fontSize: 13; color: CORAL; width: 34 }
+                Column {
+                  weight: 1
+                  gap: 1
+                  Text { text: GRT[k] ?? k; fontSize: 12; color: CRM; maxLines: 1 }
+                  Text { text: GFIX[k] ?? ""; fontSize: 10; color: MUT; maxLines: 2 }
+                }
+              }
+              Canvas {
+                fill: width
+                height: 4
+                rect(0, 0, width, height, fill: INK3)
+                rect(0, 0, width * gripes[k] / RGMAX, height, fill: CORAL)
+              }
+            }
+          }
+          Text { text: "Tap a guest in the park to read their own needs and thoughts."; fontSize: 10; color: MUT }
+        }
+      }
+    }
+
+    // ---- the park's panel, and the day's report ----
+    if panel == "park" || panel == "report" {
+      Column {
+        fill: true
+        justify: center
+        align: center
+        padding: [14, TOP + 8, 14, INS + 14]
+        background: #00000066
+        onTap: {
+          if panel == "park" { panel = "" }
+        }
+        Column {
+          fill: width
+          scroll: true
+          gap: 8
+          padding: [14, 12]
+          background: INK
+          onTap: sel = sel
+          Row {
+            fill: width
+            gap: 8
+            align: center
+            Text { text: panel == "report" ? "DAY ${dayN} IS DONE" : "THE PARK · DAY ${dayN + 1}"; font: FONT; fontSize: 17; color: SUN; weight: 1 }
+            if panel == "park" {
+              Text { text: "✕"; font: FONT; fontSize: 17; color: MUT; padding: [10, 2]; onTap: panel = "" }
+            }
+          }
+          if panel == "report" {
+            Text { text: "${dayGY} guests came through the gate. Today is ${WXN[wx]}; tomorrow looks ${WXN[wxn]}."; fontSize: 13; color: CRM }
+          } else {
+            Text { text: "Today is ${WXN[wx]}; tomorrow looks ${WXN[wxn]}."; fontSize: 13; color: CRM }
+            Row {
+              fill: width
+              gap: 6
+              align: center
+              Text { text: "GATE PRICE"; font: FONT; fontSize: 12; color: MUT; weight: 1 }
+              Text { text: "−"; font: FONT; fontSize: 16; color: INK; background: CRM; width: 40; height: 34; align: center; padding: [0, 6]; onTap: fee = max(0, fee - 1) }
+              Text { text: fee == 0 ? "FREE" : "$${fee}"; font: FONT; fontSize: 16; color: CRM; width: 56; align: center }
+              Text { text: "+"; font: FONT; fontSize: 16; color: INK; background: CRM; width: 40; height: 34; align: center; padding: [0, 6]; onTap: fee = fee + 1 }
+            }
+            Text { text: "${dayG} guests in today" + (turned > 0 ? ", ${turned} turned back at that price" : "") + ". A better rating and more kinds of stand make the gate worth more."; fontSize: 11; color: MUT }
+            Row {
+              fill: width
+              gap: 6
+              align: center
+              Text { text: "LOAN $${fmtNum(loan)} · 1.5% A DAY"; font: FONT; fontSize: 12; color: MUT; weight: 1 }
+              Text { text: "REPAY 1,000"; font: FONT; fontSize: 11; color: loan >= 1000 && cash >= 1000 ? INK : INK3; background: loan >= 1000 && cash >= 1000 ? CRM : #5a4d75; padding: [8, 9]
+                onTap: {
+                  if loan >= 1000 && cash >= 1000 {
+                    cash = cash - 1000
+                    loan = loan - 1000
+                  }
+                }
+              }
+              Text { text: "BORROW 1,000"; font: FONT; fontSize: 11; color: loan < 20000 ? INK : INK3; background: loan < 20000 ? SUN : #5a4d75; padding: [8, 9]
+                onTap: {
+                  if loan < 20000 {
+                    cash = cash + 1000
+                    loan = loan + 1000
+                  }
+                }
+              }
+            }
+          }
+          Text { text: panel == "report" ? "YESTERDAY'S BOOKS" : "TODAY'S BOOKS"; font: FONT; fontSize: 12; color: MUT }
+          for e in LEDK {
+            if (BOOK[e[0]] ?? 0) != 0 {
+              Row {
+                fill: width
+                Text { text: e[1]; fontSize: 13; color: CRM; weight: 1 }
+                Text { text: "${BOOK[e[0]] < 0 ? "-" : "+"}$${fmtNum(abs(BOOK[e[0]]))}"; font: FONT; fontSize: 13; color: BOOK[e[0]] < 0 ? CORAL : MINT }
+              }
+            }
+          }
+          Row {
+            fill: width
+            Text { text: "ALL TOLD"; font: FONT; fontSize: 13; color: SUN; weight: 1 }
+            Text { text: "${sum(values(BOOK)) < 0 ? "-" : "+"}$${fmtNum(abs(sum(values(BOOK))))}"; font: FONT; fontSize: 15; color: sum(values(BOOK)) < 0 ? CORAL : MINT }
+          }
+          Text { text: "Staff cost $${WAGES} a day and the stands' upkeep $${UPKEEP}, paid as the day goes."; fontSize: 11; color: MUT }
+          if len(GRK) > 0 && panel == "report" {
+            Text { text: "WHAT GUESTS GRUMBLED ABOUT"; font: FONT; fontSize: 12; color: MUT }
+            for k in GRK {
+              Text { text: "${GRP[k]} ${GRT[k] ?? k}"; fontSize: 13; color: CRM }
+            }
+          }
+          if panel == "report" {
+            Text { text: "OPEN THE GATES"; font: FONT; fontSize: 14; color: INK; background: SUN; align: center; padding: [14, 11]; onTap: panel = "" }
+          } else {
+            if TIER < 3 {
+              Text { text: "More stands unlock with ${TIERS[TIER + 1].g} guests in the park at once" + (TIERS[TIER + 1].r > 0 ? " and a rating of ${TIERS[TIER + 1].r}" : "") + " (most so far: ${peak})."; fontSize: 11; color: MUT }
+            }
+            Text { text: armNew ? "TAP AGAIN: THIS PARK IS GONE FOR GOOD" : "START A NEW PARK"; font: FONT; fontSize: 11; color: CRM; background: armNew ? #b83a31 : INK3; align: center; padding: [12, 8]
+              onTap: {
+                if armNew {
+                  g = []
+                  stands = []
+                  sv = []
+                  brk = []
+                  staff = []
+                  guests = []
+                  cash = 5000
+                  loan = 0
+                  fee = 4
+                  gt = 0
+                  dayN = 0
+                  wx = 0
+                  led = {}
+                  ledY = {}
+                  net = 0
+                  peak = 0
+                  rating = 40
+                  rbest = 40
+                  qi = 0
+                  gripes = {}
+                  gripesY = {}
+                  dayG = 0
+                  turned = 0
+                  tickT = -1
+                  armNew = false
+                  tool = 0
+                  cat = -1
+                  sel = -1
+                  selG = -1
+                  selS = -1
+                  selL = -1
+                  gm = 0
+                  paint = []
+                  panel = ""
+                } else {
+                  armNew = true
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
