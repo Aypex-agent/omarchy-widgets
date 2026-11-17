@@ -4,7 +4,7 @@ face "tide · plan" {
   meta {
     owl: 23
     description: "Four pages of frosted glass in your theme: a month calendar, tasks and the time, notifications and switches, and a koi pond to feed with a music player"
-    version: "1.0"
+    version: "1.1"
     license: "MIT"
     category: "productivity"
   }
