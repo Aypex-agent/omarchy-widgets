@@ -1,0 +1,383 @@
+face "window" {
+  // The page waiting left of home.
+  // Pixel 11 Pro Fold: the cover is about 430dp wide and very tall; the inner
+  // screen is about 890dp wide and slightly taller than wide, so "wider than
+  // tall" never becomes true there. 600dp is the break between the two.
+  page: 0
+  meta {
+    owl: 13
+    description: "The time, five days of weather, and a sky for this hour. On a wide screen each bar is that day's low and high, on one scale shared by all five days."
+    version: "1.6"
+    license: "MIT"
+    category: "home"
+  }
+
+  source now = clock every 1m
+  source place = http("https://wttr.in/?format=j1") every 30m timeout 15s json
+
+  let area = place.nearest_area[0]
+  let cur = place.current_condition[0]
+  let imperial = contains(["united states", "united states of america", "liberia", "myanmar", "burma"], lower(trim(area.country[0].value ?? "")))
+  let tunit = imperial ? "F" : "C"
+  let unit = imperial ? "fahrenheit" : "celsius"
+  let lat = area.latitude
+  let lon = area.longitude
+  let whereName = lower(trim(area.areaName[0].value ?? ""))
+  let night = contains(cur.weatherIconUrl[0].value ?? "", "_night")
+  let sky = contains(["113", "116"], cur.weatherCode) ? (night ? blue : yellow) : foreground
+  // wttr.in only carries three days. Open-Meteo carries the five-day strip.
+  source forecast = http(lat == null ? null : "https://api.open-meteo.com/v1/forecast?latitude=${enc(lat)}&longitude=${enc(lon)}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&forecast_days=5&timezone=auto&temperature_unit=${enc(unit)}") every 30m timeout 15s json
+
+  let wmo = {
+    "0": "113", "1": "113", "2": "116", "3": "122",
+    "45": "143", "48": "143",
+    "51": "263", "53": "266", "55": "281",
+    "56": "284", "57": "284",
+    "61": "296", "63": "302", "65": "308",
+    "66": "314", "67": "317",
+    "71": "326", "73": "332", "75": "338", "77": "338",
+    "80": "176", "81": "176", "82": "299",
+    "85": "179", "86": "179",
+    "95": "200", "96": "200", "99": "200"
+  }
+  let daily = forecast.daily
+  let outlook = daily == null ? [] : range(min(5, len(daily.time ?? []))).map(i => {
+    day: daily.time[i],
+    at: parseTime("${daily.time[i]}T12:00:00"),
+    code: get(wmo, str(int(daily.weather_code[i]))) ?? "119",
+    hi: round(daily.temperature_2m_max[i]),
+    lo: round(daily.temperature_2m_min[i]),
+    rain: round(daily.precipitation_probability_max[i] ?? 0)
+  })
+  let rawLo = len(outlook ?? []) == 0 ? 0 : min(outlook.map(d => num(d.lo)))
+  let rawHi = len(outlook ?? []) == 0 ? 1 : max(outlook.map(d => num(d.hi)))
+  let scalePad = max(1, (rawHi - rawLo) * 0.12)
+  let scaleLo = rawLo - scalePad
+  let scaleHi = rawHi + scalePad
+  let feelsN = round(num(get(cur, "FeelsLike" + tunit)))
+  let windN = round(num(imperial ? cur.windspeedMiles : cur.windspeedKmph))
+  let windU = imperial ? "mph" : "km/h"
+  let windDir = lower(cur.winddir16Point ?? "")
+  let humid = cur.humidity ?? ""
+  let fold = (tileWidth ?? 0) >= 600
+  let short = (tileHeight ?? 900) < 520
+  let clockSize = short ? 36 : fold ? 68 : 56
+  let glass = alpha(surface, 0.92)
+  let line = alpha(muted, 0.28)
+
+  // The window under the forecast. The sky is this hour, from the clock and from
+  // wttr's sunrise and moon; the line under it changes with the light and the weather.
+  let code = cur.weatherCode ?? ""
+  let rain = contains(["176", "263", "266", "281", "284", "293", "296", "299", "302", "305", "308", "311", "314", "353", "356", "359", "386", "389"], code)
+  let snow = contains(["179", "182", "185", "227", "230", "317", "320", "323", "326", "329", "332", "335", "338", "350", "362", "365", "368", "371", "374", "377", "392", "395"], code)
+  let thunder = contains(["200", "386", "389", "392", "395"], code)
+  let fog = contains(["143", "248", "260"], code)
+  let overcast = contains(["119", "122"], code) || rain || snow || thunder || fog
+  let astro = place.weather[0].astronomy[0]
+  let riseMatch = match(astro.sunrise ?? "", "(\\d+):(\\d+)\\s*(AM|PM)")
+  let setMatch = match(astro.sunset ?? "", "(\\d+):(\\d+)\\s*(AM|PM)")
+  let riseH = riseMatch == null || len(riseMatch) < 3 ? 6.5 : num(riseMatch[0]) % 12 + (riseMatch[2] == "PM" ? 12 : 0) + num(riseMatch[1]) / 60
+  let setH = setMatch == null || len(setMatch) < 3 ? 18.75 : num(setMatch[0]) % 12 + (setMatch[2] == "PM" ? 12 : 0) + num(setMatch[1]) / 60
+  let riseText = riseMatch == null || len(riseMatch) < 3 ? "…" : "${int(num(riseMatch[0]))}:${riseMatch[1]} ${lower(riseMatch[2])}"
+  let setText = setMatch == null || len(setMatch) < 3 ? "…" : "${int(num(setMatch[0]))}:${setMatch[1]} ${lower(setMatch[2])}"
+  let hourF = now == null ? 12 : num(fmtTime(now, "H")) + num(fmtTime(now, "m")) / 60
+  let sunUp = hourF >= riseH && hourF < setH
+  let dayAmt = clamp(min(hourF - (riseH - 0.5), (setH + 0.5) - hourF) / 1.25, 0, 1)
+  let glow = clamp(1 - abs(hourF - riseH) / 1.2, 0, 1) + clamp(1 - abs(hourF - setH) / 1.2, 0, 1)
+  let syn = 29.530588853
+  let moonRaw = now == null ? 0 : (now / 86400 - 10963.756) % syn
+  let moonAge = moonRaw < 0 ? moonRaw + syn : moonRaw
+  let moonT = moonAge / syn
+  let moonComputed = moonT < 0.03 || moonT >= 0.97 ? "new moon" : moonT < 0.22 ? "waxing crescent" : moonT < 0.28 ? "first quarter" : moonT < 0.47 ? "waxing gibbous" : moonT < 0.53 ? "full moon" : moonT < 0.72 ? "waning gibbous" : moonT < 0.78 ? "last quarter" : "waning crescent"
+  let moonLabel = lower(trim(astro.moon_phase ?? "")) != "" ? lower(trim(astro.moon_phase ?? "")) : moonComputed
+  let fairNotes = ["one lamp is enough", "the first light is still deciding", "the morning came in through the window", "the day is all the way up", "a long, pale afternoon", "the light leaves without hurrying", "a quiet window, and the day put away"]
+  let roughNotes = ["weather, and the rest of the house asleep", "the rain got here before the light", "a softer morning than the one promised", "noon, with the sky close to the ground", "the afternoon never quite came in", "the light has to come through the weather", "the night has weather in it"]
+  let noteAt = hourF < 5 ? 0 : hourF < 8 ? 1 : hourF < 11 ? 2 : hourF < 14 ? 3 : hourF < 17 ? 4 : hourF < 20 ? 5 : 6
+  let note = snow && noteAt >= 5 ? "snow against the glass" : snow && noteAt < 2 ? "snow, before the day has a name" : (rain || snow || thunder || fog ? roughNotes : fairNotes)[noteAt]
+  let almanac = "light ${riseText}  ·  dark ${setText}"
+  let zenith = mix(mix(mix(background, blue, 0.62), background, dayAmt * 0.28), mix(magenta, orange, 0.45), min(glow, 1) * 0.72)
+  let horizonCol = mix(mix(mix(background, blue, 0.22), mix(cyan, yellow, 0.18), dayAmt * 0.62), mix(orange, yellow, 0.72), min(glow, 1) * 0.88)
+  let zCol = mix(zenith, mix(background, muted, 0.35), overcast ? 0.28 : 0)
+  let hCol = mix(horizonCol, mix(background, muted, 0.22), overcast ? 0.22 : 0)
+
+  background: linear(0, 0, 0, 1, [alpha(background, 0.9), alpha(background, 0.55), alpha(background, 0.92)])
+  padding: 0
+
+  component Mast() {
+    if fold {
+      Row {
+        gap: 10
+        align: bottom
+        Text {
+          spans: [fmtTime(now, "h"), {text: ":", color: accent}, fmtTime(now, "mm")]
+          fontSize: clockSize
+          fontWeight: 200
+          letterSpacing: -2
+          maxLines: 1
+        }
+        Text { text: lower(fmtTime(now, "a")); fontSize: 18; color: muted; padding: [0, 0, 0, 10] }
+        Spacer { weight: 1 }
+        Text { text: lower(fmtTime(now, "EEEE d MMMM")); style: small; color: muted; maxLines: 1; padding: [0, 0, 0, 12] }
+      }
+    } else {
+      Column {
+        gap: 0
+        Row {
+          gap: 8
+          align: bottom
+          Text {
+            spans: [fmtTime(now, "h"), {text: ":", color: accent}, fmtTime(now, "mm")]
+            fontSize: clockSize
+            fontWeight: 200
+            letterSpacing: -2
+            maxLines: 1
+          }
+          Text { text: lower(fmtTime(now, "a")); fontSize: short ? 14 : 18; color: muted; padding: [0, 0, 0, short ? 4 : 8] }
+        }
+        Text { text: lower(fmtTime(now, "EEEE d MMMM")); style: small; color: muted; maxLines: 1 }
+      }
+    }
+  }
+
+  // On a wide screen the bar between the two temperatures is that day's swing,
+  // drawn on one scale shared by all five days. A longer bar is a wider gap
+  // between the low and the high. The number above the bar is the high and the
+  // one below is the low, in the same type.
+  component DayCol(d, i, bars = false) {
+    Column {
+      gap: bars ? 3 : 1
+      weight: 1
+      align: center
+      Text { text: i == 0 ? "today" : lower(fmtTime(d.at, "EEE")); fontSize: bars ? 12 : 11; color: i == 0 ? accent : muted; align: center; maxLines: 1 }
+      Text { text: weatherIcon(d.code, false); font: icon; fontSize: short ? 16 : bars ? 22 : 20; align: center; color: foreground }
+      Text { text: "${d.hi}°"; fontSize: bars ? 14 : 13; color: foreground; align: center; maxLines: 1 }
+      if bars {
+        Canvas {
+          height: 64
+          fill: width
+          let span = max(1, scaleHi - scaleLo)
+          let top = 4 + (1 - (d.hi - scaleLo) / span) * (height - 8)
+          let bot = 4 + (1 - (d.lo - scaleLo) / span) * (height - 8)
+          rect(width / 2 - 1.5, 4, 3, height - 8, radius: 2, fill: alpha(muted, 0.22))
+          rect(width / 2 - 2.5, top, 5, max(6, bot - top), radius: 2.5, fill: i == 0 ? accent : alpha(foreground, 0.78))
+        }
+      }
+      Text { text: "${d.lo}°"; fontSize: bars ? 14 : 11; color: bars ? foreground : muted; align: center; maxLines: 1 }
+      Text { text: "${d.rain}%"; fontSize: bars ? 11 : 10; color: d.rain >= 40 ? blue : muted; align: center; maxLines: 1 }
+    }
+  }
+
+  component Outlook() {
+    Column {
+      gap: fold ? 0 : 10
+      padding: fold ? [16, 14] : [14, 12]
+      radius: 18 * corners
+      background: glass
+      border: 1
+      borderColor: line
+      clip: true
+      if fold {
+        Row {
+          gap: 18
+          align: center
+          Column {
+            gap: 3
+            Text { text: "now"; style: label; color: accent }
+            if cur != null {
+              Row {
+                gap: 8
+                align: center
+                Text { text: weatherIcon(cur.weatherCode, night); font: icon; fontSize: 32; color: sky; width: 36; align: center }
+                Text { text: "${round(num(get(cur, "temp_" + tunit)))}°"; fontSize: 32; fontWeight: 300; maxLines: 1 }
+              }
+              Text { text: "${lower(trim(cur.weatherDesc[0].value ?? ""))} · ${whereName}"; style: small; color: muted; maxLines: 1 }
+              Text { text: "feels ${feelsN}°"; style: small; color: muted; maxLines: 1 }
+              Text { text: "wind ${windDir} ${windN} ${windU} · ${humid}%"; style: small; color: muted; maxLines: 1 }
+            } else {
+              Text { text: "weather…"; style: small; color: muted }
+            }
+          }
+          Column {
+            weight: 1
+            gap: 8
+            if len(outlook ?? []) == 0 {
+              Text { text: forecast == null ? "outlook…" : "outlook offline"; style: small; color: muted }
+            } else {
+              Row {
+                gap: 6
+                for d, i in outlook key d.day {
+                  DayCol { d: d; i: i; bars: true }
+                }
+              }
+            }
+          }
+        }
+      } else {
+        Text { text: "5 day"; style: label; color: accent }
+        if cur != null {
+          Row {
+            gap: 8
+            align: center
+            Text { text: weatherIcon(cur.weatherCode, night); font: icon; fontSize: 22; color: sky; width: 26; align: center }
+            Text { text: "${round(num(get(cur, "temp_" + tunit)))}°"; fontSize: 20; width: 52; maxLines: 1 }
+          }
+          Text { text: "${lower(trim(cur.weatherDesc[0].value ?? ""))} · ${whereName}"; style: small; color: muted; maxLines: 1 }
+        }
+        if len(outlook ?? []) == 0 {
+          Text { text: forecast == null ? "outlook…" : "outlook offline"; style: small; color: muted }
+        } else {
+          Row {
+            gap: 2
+            for d, i in outlook key d.day {
+              DayCol { d: d; i: i }
+            }
+          }
+        }
+      }
+    }
+  }
+
+
+  component Window() {
+    Column {
+      fill: height
+      gap: 10
+      padding: 0
+      radius: 18 * corners
+      background: glass
+      border: 1
+      borderColor: line
+      clip: true
+
+      Canvas {
+        fill: width
+        weight: 1
+
+        rect(0, 0, width, height, fill: linear(0, 0, 0, height, [zCol, mix(zCol, hCol, 0.45), hCol]))
+
+        let body = clamp(min(width, height) * 0.032, 10, 18)
+        let wideSky = width > 700
+
+        if dayAmt < 0.92 {
+          for i in range(wideSky ? 42 : 28) {
+            let a = (0.28 + 0.72 * abs(sin(time * (0.4 + hash(i, 3)) + i * 0.7))) * (1 - dayAmt) * (overcast ? 0.38 : 1)
+            circle(hash(i, 1) * width, hash(i, 2) * height * 0.58, hash(i, 4) > 0.84 ? 1.6 : 0.85, fill: alpha(foreground, a))
+          }
+        }
+
+        if sunUp {
+          let span = max(0.4, setH - riseH)
+          let t = clamp((hourF - riseH) / span, 0, 1)
+          let sx = width * (0.08 + t * 0.84)
+          let sy = height * 0.66 - sin(t * 3.14159265) * height * 0.4
+          circle(sx, sy, body * 4, fill: radial(sx, sy, body * 4, [alpha(yellow, overcast ? 0.22 : 0.5), alpha(yellow, 0)]))
+          circle(sx, sy, body * 0.7, fill: mix(yellow, foreground, 0.12))
+        } else {
+          let nightLen = max(1, 24 - max(0, setH - riseH))
+          let into = hourF >= setH ? hourF - setH : hourF + (24 - setH)
+          let t = clamp(into / nightLen, 0, 1)
+          let mx = width * (0.12 + t * 0.76)
+          let my = height * 0.58 - sin(t * 3.14159265) * height * 0.34
+          circle(mx, my, body * 3.6, fill: radial(mx, my, body * 3.6, [alpha(foreground, overcast ? 0.28 : 0.42), alpha(foreground, 0)]))
+          circle(mx, my, body * 0.75, fill: mix(foreground, yellow, overcast ? 0.2 : 0.34))
+        }
+
+        for i in range(overcast ? (wideSky ? 8 : 6) : (wideSky ? 5 : 3)) {
+          let span = width + 180
+          let x = ((time * (7 + hash(i, 1) * 12) + hash(i, 2) * span) % span) - 90
+          let y = height * (0.06 + hash(i, 3) * (overcast ? 0.4 : 0.2))
+          let s = ((overcast ? 34 : 16) + hash(i, 4) * 28) * (wideSky ? 1.3 : 1)
+          let c = alpha(mix(foreground, background, overcast ? 0.7 : 0.4), overcast ? 0.55 : 0.78)
+          circle(x, y, s * 0.58, fill: c)
+          circle(x + s * 0.52, y + s * 0.1, s * 0.44, fill: c)
+          circle(x - s * 0.46, y + s * 0.08, s * 0.36, fill: c)
+        }
+
+        path(flatten([
+          range(17).map(i => [i / 16 * width, height * 0.74 + sin(i * 0.62) * height * 0.026 + sin(i * 0.24 + 0.7) * height * 0.016]),
+          [[width, height], [0, height]]
+        ]), closed: true, fill: mix(mix(background, green, 0.34 + dayAmt * 0.16), background, (1 - dayAmt) * 0.12))
+        path(flatten([
+          range(15).map(i => [i / 14 * width, height * 0.86 + sin(i * 0.95 + 1.7) * height * 0.018]),
+          [[width, height], [0, height]]
+        ]), closed: true, fill: mix(mix(background, green, 0.1 + dayAmt * 0.08), color0, (1 - dayAmt) * 0.18))
+
+        if !sunUp {
+          for i in range(wideSky ? 6 : 4) {
+            let lamps = wideSky ? 6 : 4
+            let lx = width * (0.14 + i * (0.72 / (lamps - 1)) + (hash(i, 6) - 0.5) * 0.04)
+            let ly = height * (0.748 + hash(i, 7) * 0.02)
+            circle(lx, ly, 7, fill: alpha(yellow, 0.16))
+            rect(lx - 1.1, ly - 1.2, 2.2, 2.4, fill: alpha(mix(yellow, foreground, 0.15), 0.92))
+          }
+        }
+
+        if fog {
+          rect(0, height * 0.32, width, height * 0.5, fill: alpha(mix(foreground, background, 0.5), 0.16))
+        }
+        if rain || thunder {
+          for i in range(32) {
+            let drop = 11 + hash(i, 12) * 16
+            let y = (hash(i, 11) * (height + drop) + time * (78 + hash(i, 13) * 64)) % (height + drop) - drop
+            let x = hash(i, 10) * width
+            line(x, y, x - 1.5, y + drop, stroke: alpha(mix(foreground, cyan, 0.35), 0.42), width: 1.1)
+          }
+        }
+        if snow {
+          for i in range(24) {
+            let y = (hash(i, 11) * height + time * (12 + hash(i, 12) * 14)) % height
+            let x = (hash(i, 10) * width + sin(time * 0.35 + i) * 8 + width) % width
+            circle(x, y, 1.1 + hash(i, 14) * 0.8, fill: alpha(foreground, 0.86))
+          }
+        }
+        if thunder && sin(time * 2.6) > 0.992 {
+          rect(0, 0, width, height, fill: alpha(foreground, 0.15))
+        }
+      }
+
+      if fold {
+        Row {
+          gap: 16
+          align: bottom
+          padding: [16, 0, 16, 14]
+          Column {
+            weight: 1
+            gap: 2
+            Text { text: "window"; style: label; color: accent }
+            Text { text: note; fontSize: 18; fontWeight: 400; italic: true; maxLines: 1 }
+          }
+          Column {
+            gap: 1
+            align: end
+            Text { text: moonLabel; style: small; color: muted; maxLines: 1 }
+            Text { text: almanac; style: small; color: muted; maxLines: 1 }
+          }
+        }
+      } else {
+        Column {
+          gap: 3
+          padding: [14, 0, 14, 12]
+          Row {
+            gap: 8
+            align: center
+            Text { text: "window"; style: label; color: accent }
+            Spacer { weight: 1 }
+            Text { text: moonLabel; style: small; color: muted; maxLines: 1 }
+          }
+          Text { text: note; fontSize: short ? 15 : 17; fontWeight: 400; italic: true; maxLines: short ? 1 : 2 }
+          Text { text: almanac; style: small; color: muted; maxLines: 1 }
+        }
+      }
+    }
+  }
+
+  Column {
+    fill: true
+    gap: 14
+    padding: fold ? [22, 14, 22, 8] : [16, 12, 16, 8]
+    Mast { }
+    Outlook { }
+    Window { weight: 1 }
+    Spacer { height: screenInset }
+  }
+}
