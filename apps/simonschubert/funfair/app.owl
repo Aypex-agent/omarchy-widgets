@@ -1,5 +1,5 @@
 app "funfair" {
-  meta { owl: 23; description: "A 3D fairground to build and run: lay paths, open food, drink, game and gift stands, set their prices, and keep guests fed, amused and tidy with benches, bins, flowers and staff"; version: "1.0"; license: "MIT"; category: "games" }
+  meta { owl: 23; description: "A 3D fairground to build and run: lay paths, open food, drink, game and gift stands, set their prices, and keep guests fed, amused and tidy with benches, bins, flowers and staff"; version: "1.1"; license: "MIT"; category: "games" }
   // How it works. The fairground is 24 x 24 tiles, kept in a list, g (what's on a tile). Guests are simulated one by
   // one: each is a map with a wallet, hunger, thirst, bladder, energy, boredom and mood, walking from tile to tile along
   // the paths. Every frame moves them; a guest who reaches a tile's middle decides what to do next. Handlers have no
@@ -86,7 +86,7 @@ app "funfair" {
   state dayGY = 0 persist
   state turned = 0 persist
   state yaw = 30 persist
-  state zoom = 30 persist
+  state view = 22 persist
   state tx = 0.5 persist
   state tz = 6 persist
   state spd = 1 persist
@@ -511,7 +511,9 @@ app "funfair" {
   // the same people for a view from far off, where 160 of them are in sight and none bigger than a fingernail:
   // legs in one block, no arms, no poses, the hair or hat (ht its color) only the head's top
   let HUML = HUMC.map(C => [{k: 0, x: 0, y: 0, z: 0, w: 0.1, h: 0.135, d: 0.06, c: (C.dr ?? false) ? null : C.tr, nt: true}, {k: 0, x: 0, y: 0.13, z: 0, w: 0.15, h: 0.125, d: 0.075, c: null}] + (C.ht != null ? [merge(HEAD0, {c: C.sk, t: C.ht})] : C.hd))
-  let FARZ = 16
+  let FARZ = 26
+  // seconds a guest takes to step off the path to a stand or a seat, and back on
+  let STEPT = 0.6
   // a flower bed's stone edge, and its blooms' colors (a petal's, then its lighter top)
   let BEDE = [[0, -0.41, 0.9, 0.08], [0, 0.41, 0.9, 0.08], [-0.41, 0, 0.08, 0.74], [0.41, 0, 0.08, 0.74]].map(e => {k: 0, x: e[0], y: 0, z: e[1], w: e[2], h: 0.11, d: e[3], c: #c9bca6, t: #e6dccb, all: true})
   let BEDC = [[RED, #f06a5e], [YEL, #ffe08a], [PNK, #f7b3cb], [WHT, #ffe08a], [PUR, #a983de], [ORG, #f7b060]]
@@ -647,14 +649,14 @@ app "funfair" {
   let PIT = 50
   let FOV = 38
   let TH = tan(rad(FOV / 2))
-  let EYE = [tx + zoom * cos(rad(PIT)) * sin(rad(yaw)), zoom * sin(rad(PIT)), tz + zoom * cos(rad(PIT)) * cos(rad(yaw))]
-  let CAM = {eye: EYE, look: [tx, 0, tz], fov: FOV, near: 1, far: 140 + zoom * 4}
+  let EYE = [tx + view * cos(rad(PIT)) * sin(rad(yaw)), view * sin(rad(PIT)), tz + view * cos(rad(PIT)) * cos(rad(yaw))]
+  let CAM = {eye: EYE, look: [tx, 0, tz], fov: FOV, near: 1, far: 140 + view * 4}
   let FW = norm([tx - EYE[0], -EYE[1], tz - EYE[2]])
   let RT = norm(cross(FW, [0, 1, 0]))
   let UPV = cross(RT, FW)
   let LIGHT = [-0.4, 1, 0.55]
   // how far from the middle of the view anything can show
-  let VR = zoom * 0.8 + 3
+  let VR = view * 0.8 + 3
 
   // ---- a new park ----------------------------------------------------------------------------------------------
   when len(g) != NN {
@@ -730,7 +732,10 @@ app "funfair" {
       let C = M2.map(q => !(q.st == 1 && q.wt <= 0) ? q : q.tg >= len(stands) ? merge(q, {st: 0, t: 1}) : [{k: SK[q.tg], p: stands[q.tg].p, kk: stands[q.tg].k, r: random(), r2: random()}]
         .map(o => merge(o, {pz: o.k.sp == "lot" ? (o.r < 0.143 ? 3 + floor(o.r2 * 13) : 0) : o.k.sp == "whl" ? (o.r < 0.33 ? 2 + floor(o.r2 * 13) : 0) : 0, win: o.k.pw > 0 && o.r < (o.k.sp == "hit" ? clamp(q.en / 130, 0.1, 0.6) : o.k.pw), atm: o.k.sp == "atm" ? min(q.bank, 60) : 0}))
         .map(o => merge(q, {
-          st: 0, t: 1, d: 1,
+          // (they step back onto the path from where they stood: ex, ez is that spot from their place on the path)
+          st: 0, t: 1, d: 1, et: gt,
+          ex: -DX[stands[q.tg].f] * 0.3 + DZ[stands[q.tg].f] * (q.id % 5 - 2) * 0.16 - (hash(q.id) - 0.5) * 0.5,
+          ez: -DZ[stands[q.tg].f] * 0.3 + DX[stands[q.tg].f] * (q.id % 5 - 2) * 0.16 - (hash(q.id, 1) - 0.5) * 0.5,
           w: q.w - o.p + o.atm + o.pz,
           bank: q.bank - o.atm,
           hu: clamp(q.hu - o.k.hu, 0, 100),
@@ -754,7 +759,12 @@ app "funfair" {
           bx: o.r2 < o.k.br ? q.tg : -1,
           say: o.pz > 0 ? "I won $${o.pz}!" : o.win ? "I won a prize!" : o.k.sp == "wc" ? "That's better" : o.k.sp == "atm" ? "Cash in hand again" : o.k.cat == 3 ? "That was fun" : q.say}))[0])
       // rested
-      let D = C.map(q => !(q.st == 2 && q.wt <= 0) ? q : merge(q, {st: 0, t: 1, en: min(100, q.en + 35), md: min(100, q.md + (q.ate ? 5 : 2)), ct: q.ate ? 0 : q.ct, ate: false, say: q.ate ? (q.cr == 2 ? "A drink in the shade, lovely" : "A meal sitting down, lovely") : "That rest did me good"}))
+      // (they get up from the seat they were drawn in, worked out the way the scene does, and step back onto the path)
+      let D = C.map(q => !(q.st == 2 && q.wt <= 0) ? q : [count(guests, z => z.st == 2 && z.tg == q.tg && z.id < q.id)].map(rk => [len(BSIDE[q.tg]) > 0 ? BSIDE[q.tg][floor(rk / 2) % len(BSIDE[q.tg])] : -1]
+        .map(sd => [sd >= 0 ? sd : ([0, 1, 2, 3].find(d => NB4[q.tg][d] >= 0 && P[NB4[q.tg][d]]) ?? 1)].map(ld => merge(q, {et: gt,
+          ex: WX[q.tg] + (sd >= 0 ? DX[sd] * 0.36 : 0) + (DX[ld] == 0 ? (rk % 2 - 0.5) * 0.3 : 0) - WX[q.b] - (hash(q.id) - 0.5) * 0.5,
+          ez: WZ[q.tg] + (sd >= 0 ? DZ[sd] * 0.36 : 0) + (DX[ld] == 0 ? 0 : (rk % 2 - 0.5) * 0.3) - WZ[q.b] - (hash(q.id, 1) - 0.5) * 0.5}))[0])[0])[0])
+        .map(q => !(q.st == 2 && q.wt <= 0) ? q : merge(q, {st: 0, t: 1, en: min(100, q.en + 35), md: min(100, q.md + (q.ate ? 5 : 2)), ct: q.ate ? 0 : q.ct, ate: false, say: q.ate ? (q.cr == 2 ? "A drink in the shade, lovely" : "A meal sitting down, lovely") : "That rest did me good"}))
       // at a tile's middle: needs grow, and the place does its bit for the mood
       let A = D.map(q => !(q.st == 0 && q.t >= 1) ? q : [q.b].map(c => merge(q, {
           d: 1, c: c, r: random(), r2: random(), age: q.age + 1,
@@ -791,10 +801,10 @@ app "funfair" {
         // day: the rest just weren't hungry enough yet, or had the same an hour ago, or it's the wrong weather for it)
         : q.o.p > q.o.w ? (q.o.f < 1.25 || q.o.p <= q.o.v0 * q.o.f ? merge(q, {o: null}) : merge(q, {o: null, xi: q.o.i, md: max(0, q.md - 0.4), gr: "dear", say: "$${fixed(q.o.p, 2)} for ${q.o.n}? Too much"}))
         : [max(0, sv[q.o.i].free - gt)].map(wq => wq > 25 + q.md * 0.25 ? (q.o.f < 1.25 ? merge(q, {o: null}) : merge(q, {o: null, md: max(0, q.md - 0.3), gr: "queue", say: "The queue for ${q.o.n} is too long"}))
-          : merge(q, {o: null, st: 1, tg: q.o.i, wt: wq + q.o.sv, ji: q.o.i, md: min(100, q.md + clamp((q.o.w - q.o.p) / q.o.w, 0, 0.5) * 3)}))[0])
+          : merge(q, {o: null, st: 1, tg: q.o.i, wt: wq + q.o.sv, ji: q.o.i, et: gt, ex: 0, ez: 0, md: min(100, q.md + clamp((q.o.w - q.o.p) / q.o.w, 0, 0.5) * 3)}))[0])
       // a seat, for the tired and for those with food or a drink in hand, who finish it there
       let S = X.map(q => !(q.st == 0 && q.t >= 1) || q.lv || len(BENA[q.c]) == 0 || !(q.en < 42 || (q.cr == 1 || q.cr == 2) && q.r < 0.9) ? q
-        : [first(BENA[q.c].filter(b => count(guests, z => z.st == 2 && z.tg == b) < BCAP[b]))].map(b => b == null ? q : merge(q, {st: 2, tg: b, wt: q.cr == 1 || q.cr == 2 ? 8 + q.r2 * 8 : 5 + q.r2 * 5, ate: q.cr == 1 || q.cr == 2}))[0])
+        : [first(BENA[q.c].filter(b => count(guests, z => z.st == 2 && z.tg == b) < BCAP[b]))].map(b => b == null ? q : merge(q, {st: 2, tg: b, et: gt, ex: 0, ez: 0, wt: q.cr == 1 || q.cr == 2 ? 8 + q.r2 * 8 : 5 + q.r2 * 5, ate: q.cr == 1 || q.cr == 2}))[0])
       // (never more than its seats: of those sitting down at the same moment, the later ones walk on)
       let S1 = S.map(q => q.st == 2 && count(N0, z => z.st == 2 && z.tg == q.tg) + count(S, z => z.st == 2 && z.tg == q.tg && z.id < q.id) >= BCAP[q.tg] ? merge(q, {st: 0, tg: -1}) : q)
       // and on: home if they've had enough, toward what they need most, or wherever the path leads
@@ -1121,20 +1131,30 @@ app "funfair" {
           let sd = q.st == 2 && len(BSIDE[q.tg]) > 0 ? BSIDE[q.tg][floor(rk / 2) % len(BSIDE[q.tg])] : -1
           let ld = q.st != 2 ? 0 : sd >= 0 ? sd : ([0, 1, 2, 3].find(d => NB4[q.tg][d] >= 0 && P[NB4[q.tg][d]]) ?? 1)
           let so = (rk % 2 - 0.5) * 0.3
-          let gx = q.st == 2 ? WX[q.tg] + (sd >= 0 ? DX[sd] * 0.36 : 0) + (DX[ld] == 0 ? so : 0) : sq != null ? WX[q.b] - DX[sq.f] * 0.3 + DZ[sq.f] * (q.id % 5 - 2) * 0.16 : WX[q.a] + (WX[q.b] - WX[q.a]) * f + (hash(q.id) - 0.5) * 0.5
-          let gz = q.st == 2 ? WZ[q.tg] + (sd >= 0 ? DZ[sd] * 0.36 : 0) + (DX[ld] == 0 ? 0 : so) : sq != null ? WZ[q.b] - DZ[sq.f] * 0.3 + DX[sq.f] * (q.id % 5 - 2) * 0.16 : WZ[q.a] + (WZ[q.b] - WZ[q.a]) * f + (hash(q.id, 1) - 0.5) * 0.5
+          let gx0 = q.st == 2 ? WX[q.tg] + (sd >= 0 ? DX[sd] * 0.36 : 0) + (DX[ld] == 0 ? so : 0) : sq != null ? WX[q.b] - DX[sq.f] * 0.3 + DZ[sq.f] * (q.id % 5 - 2) * 0.16 : WX[q.a] + (WX[q.b] - WX[q.a]) * f + (hash(q.id) - 0.5) * 0.5
+          let gz0 = q.st == 2 ? WZ[q.tg] + (sd >= 0 ? DZ[sd] * 0.36 : 0) + (DX[ld] == 0 ? 0 : so) : sq != null ? WZ[q.b] - DZ[sq.f] * 0.3 + DX[sq.f] * (q.id % 5 - 2) * 0.16 : WZ[q.a] + (WZ[q.b] - WZ[q.a]) * f + (hash(q.id, 1) - 0.5) * 0.5
+          // stepping off the path to a stand or a seat (wi from 0 to 1), or back onto it (wo from 1 to 0, ex, ez the
+          // way back from where they were): from and to their own spot on the path tile
+          let el = gt - (q.et ?? -99)
+          let wi = q.st != 0 && el < STEPT ? max(0, el) / STEPT : 1
+          let wo = q.st == 0 && el < STEPT ? 1 - max(0, el) / STEPT : 0
+          let px = WX[q.b] + (hash(q.id) - 0.5) * 0.5
+          let pz = WZ[q.b] + (hash(q.id, 1) - 0.5) * 0.5
+          let gx = wi < 1 ? px + (gx0 - px) * wi : gx0 + (q.ex ?? 0) * wo
+          let gz = wi < 1 ? pz + (gz0 - pz) * wi : gz0 + (q.ez ?? 0) * wo
+          let wlk = q.st == 0 && (q.a != q.b || wo > 0) || wi < 1
           // whoever's turn it is at a game plays it: a jump into the hammer's swing, a shot's kick, a throw, a hop
-          let an = sq != null && q.wt <= K[sq.k].sv ? K[sq.k].an : 0
+          let an = sq != null && wi >= 1 && q.wt <= K[sq.k].sv ? K[sq.k].an : 0
           let ph = an == 0 ? 0 : (gt * (an == 1 ? 0.8 : an == 2 ? 2 : 1.1) + q.id * 0.37) % 1
           let kick = an == 2 && ph < 0.12 ? 0.05 : 0
           // a walk is two strides a tile: sw swings from -1 to 1, the body highest as the legs pass
-          let sw = q.st == 0 && q.a != q.b && zoom <= FARZ ? sin((f * 2 + hash(q.id, 5)) * 2 * pi) : 0
-          let pose = q.st == 2 ? 3 : an == 1 && ph < 0.35 || an == 3 && ph < 0.2 ? 2 : an == 5 ? round(sin(gt * 6 + q.id)) + 1 : round(sw) + 1
-          let gy = q.st == 2 ? (zoom > FARZ ? 0.1 : 0.03) : q.st == 0 ? (zoom > FARZ ? abs(sin((q.t * 2 + q.id) * pi)) * 0.025 : (1 - abs(sw)) * 0.022)
+          let sw = wlk && view <= FARZ ? sin((q.st == 0 && wo == 0 ? f * 2 : el * q.sp * 2) * 2 * pi + hash(q.id, 5) * 2 * pi) : 0
+          let pose = q.st == 2 && wi >= 1 ? 3 : an == 1 && ph < 0.35 || an == 3 && ph < 0.2 ? 2 : an == 5 ? round(sin(gt * 6 + q.id)) + 1 : round(sw) + 1
+          let gy = q.st == 2 && wi >= 1 ? (view > FARZ ? 0.1 : 0.03) : wlk ? (view > FARZ ? abs(sin(((q.st == 0 && wo == 0 ? q.t : el * q.sp) * 2 + q.id) * pi)) * 0.025 : (1 - abs(sw)) * 0.022)
             : an == 1 ? (ph < 0.35 ? sin(ph / 0.35 * pi) * 0.16 : 0) : an == 3 ? (ph < 0.15 ? sin(ph / 0.15 * pi) * 0.06 : 0) : an == 4 ? abs(sin(gt * 3 + q.id)) * 0.02 : an == 5 ? abs(sin(gt * 6 + q.id)) * 0.07 : 0
-          let yw = sq != null ? FT[sq.f] + 180 + (an == 4 ? sin(gt * 3 + q.id) * 14 : 0) : q.st == 2 ? FT[sd >= 0 ? [1, 0, 3, 2][ld] : ld] : q.a == q.b ? q.id * 47 : deg(atan2(WX[q.b] - WX[q.a], WZ[q.b] - WZ[q.a]))
+          let yw = wi < 1 ? deg(atan2(gx0 - px, gz0 - pz)) : wo > 0 ? deg(atan2((WX[q.b] - WX[q.a]) * q.sp * STEPT - (q.ex ?? 0), (WZ[q.b] - WZ[q.a]) * q.sp * STEPT - (q.ez ?? 0))) : sq != null ? FT[sq.f] + 180 + (an == 4 ? sin(gt * 3 + q.id) * 14 : 0) : q.st == 2 ? FT[sd >= 0 ? [1, 0, 3, 2][ld] : ld] : q.a == q.b ? q.id * 47 : deg(atan2(WX[q.b] - WX[q.a], WZ[q.b] - WZ[q.a]))
           if abs(gx - tx) < VR && abs(gz - tz) < VR {
-          model(MS[zoom > FARZ ? MLOD + q.id % 4 : MGUY + q.id % 4 * 4 + pose], at: [gx + (sq != null ? DX[sq.f] * kick : 0), gy, gz + (sq != null ? DZ[sq.f] * kick : 0)], turn: [0, yw, 0], scale: 1.5, color: SHIRT[q.sh])
+          model(MS[view > FARZ ? MLOD + q.id % 4 : MGUY + q.id % 4 * 4 + pose], at: [gx + (sq != null ? DX[sq.f] * kick : 0), gy, gz + (sq != null ? DZ[sq.f] * kick : 0)], turn: [0, yw, 0], scale: 1.5, color: SHIRT[q.sh])
           if q.cr == 1 || q.cr == 2 {
             model(MS[MSC + 19], at: [gx, gy, gz], turn: [0, yw, 0], scale: 1.5, color: q.cr == 1 ? #e3a858 : #7fd8f0)
           }
@@ -1166,10 +1186,10 @@ app "funfair" {
           // entertainer never stops dancing
           let wk = s.st == 1
           let yw = wk ? s.id * 67 % 360 : s.a == s.b ? 0 : deg(atan2(WX[s.b] - WX[s.a], WZ[s.b] - WZ[s.a]))
-          let sw = zoom > FARZ ? 0 : s.k == 3 ? sin(gt * 7 + s.id) : !wk && s.a != s.b ? sin((f * 2 + hash(s.id, 5)) * 2 * pi) : 0
+          let sw = view > FARZ ? 0 : s.k == 3 ? sin(gt * 7 + s.id) : !wk && s.a != s.b ? sin((f * 2 + hash(s.id, 5)) * 2 * pi) : 0
           let sy = s.k == 3 ? abs(sin(gt * 7 + s.id)) * 0.06 : wk && s.k == 2 ? abs(sin(gt * 10)) * 0.03 : (1 - abs(sw)) * 0.022
           if abs(gx - tx) < VR && abs(gz - tz) < VR {
-            model(MS[zoom > FARZ ? MLOD + 4 + s.k : MSTAFF + s.k * 3 + round(sw) + 1], at: [gx, sy, gz], turn: [0, yw + (s.k == 3 ? sin(gt * 4 + s.id) * 35 : 0), 0], scale: 1.6, color: STAFFK[s.k].col)
+            model(MS[view > FARZ ? MLOD + 4 + s.k : MSTAFF + s.k * 3 + round(sw) + 1], at: [gx, sy, gz], turn: [0, yw + (s.k == 3 ? sin(gt * 4 + s.id) * 35 : 0), 0], scale: 1.6, color: STAFFK[s.k].col)
             if s.k == 0 {
               model(MS[MSC + 16], at: [gx, 0, gz], turn: [0, yw + (wk ? sin(gt * 9) * 38 : 0), 0], scale: 1.6)
             }
@@ -1383,7 +1403,7 @@ app "funfair" {
           if ok2 {
             let d1 = sqrt(pow(T[0].x - T[1].x, 2) + pow(T[0].y - T[1].y, 2))
             let d0 = sqrt(pow(o2[0].x - o2[1].x, 2) + pow(o2[0].y - o2[1].y, 2))
-            zoom = clamp(zoom * d0 / max(1, d1), 6, 60)
+            view = clamp(view * d0 / max(1, d1), 6, 60)
             yaw = yaw + ((deg(atan2(T[1].y - T[0].y, T[1].x - T[0].x) - atan2(o2[1].y - o2[0].y, o2[1].x - o2[0].x)) + 540) % 360 - 180)
             tx = clamp(tx + GP[3][0] - GP[4][0], -12, 12)
             tz = clamp(tz + GP[3][1] - GP[4][1], -12, 12)
@@ -1506,36 +1526,76 @@ app "funfair" {
           padding: [12, 10]
           background: INK
           onTap: sel = sel
+          // the name and what kind of stand it is, then what it does (or why nobody can buy here)
           Row {
             fill: width
             gap: 8
             align: center
-            Text { text: upper(K[SS.k].n) + (BRKL[sel] ? " · BROKEN" : ""); font: FONT; fontSize: 15; color: BRKL[sel] ? CORAL : SUN; weight: 1; maxLines: 1 }
+            Column {
+              weight: 1
+              gap: 1
+              Text { text: CATS[K[SS.k].cat + 1] + (BRKL[sel] ? " · BROKEN DOWN" : ""); font: FONT; fontSize: 9; color: BRKL[sel] ? CORAL : MUT; maxLines: 1 }
+              Text { text: upper(K[SS.k].n); font: FONT; fontSize: 17; color: SUN; maxLines: 1 }
+            }
             Text { text: "✕"; font: FONT; fontSize: 16; color: MUT; padding: [10, 2]; onTap: sel = -1 }
           }
           Text { text: SFRONT[sel] < 0 ? "No path in front of it: nobody can buy here. Lay one, or turn it." : K[SS.k].d; fontSize: 12; color: SFRONT[sel] < 0 ? CORAL : MUT }
+          // the price between its two buttons, on a strip of its own
           Row {
             fill: width
-            gap: 6
+            gap: 0
             align: center
-            Text { text: "−"; font: FONT; fontSize: 18; color: INK; background: CRM; width: 44; height: 38; align: center; padding: [0, 6]
+            background: INK3
+            Text { text: "−"; font: FONT; fontSize: 20; color: INK; background: CRM; width: 48; height: 46; align: center
               onTap: stands = set(stands, sel, merge(SS, {p: max(0, SS.p - (SS.p > 5 ? 0.5 : 0.25))})) }
             Column {
               weight: 1
               gap: 0
               align: center
-              Text { text: K[SS.k].sp == "atm" ? "FEE $${fixed(SS.p, 2)}" : SS.p == 0 ? "FREE" : "$${fixed(SS.p, 2)}"; font: FONT; fontSize: 18; color: CRM }
-              Text { text: "costs you $${fixed(K[SS.k].ic, 2)} a sale · $${K[SS.k].up} a day"; fontSize: 10; color: MUT }
+              Text { text: K[SS.k].sp == "atm" ? "FEE $${fixed(SS.p, 2)}" : SS.p == 0 ? "FREE" : "$${fixed(SS.p, 2)}"; font: FONT; fontSize: 20; color: CRM }
+              Text { text: "goods $${fixed(K[SS.k].ic, 2)} a sale · upkeep $${K[SS.k].up} a day"; fontSize: 10; color: MUT; maxLines: 1 }
             }
-            Text { text: "+"; font: FONT; fontSize: 18; color: INK; background: CRM; width: 44; height: 38; align: center; padding: [0, 6]
+            Text { text: "+"; font: FONT; fontSize: 20; color: INK; background: CRM; width: 48; height: 46; align: center
               onTap: stands = set(stands, sel, merge(SS, {p: SS.p + (SS.p >= 5 ? 0.5 : 0.25)})) }
           }
-          Text { text: "Today: ${sv[sel].sold} sold · $${fixed(sv[sel].inc, 2)} made · ${sv[sel].exp} walked off at the price · queue ${round(max(0, sv[sel].free - gt))}s"; fontSize: 12; color: CRM }
+          // its day so far, a number a cell: what walked off at the price and a long queue show in coral
+          Text { text: "TODAY SO FAR"; font: FONT; fontSize: 9; color: MUT; padding: [2, 0, 0, 0] }
+          Row {
+            fill: width
+            gap: 4
+            for c in [["SOLD", "${sv[sel].sold}", CRM], ["MADE", "$${fixed(sv[sel].inc, 2)}", sv[sel].inc < 0 ? CORAL : MINT],
+              ["TOO DEAR", "${sv[sel].exp}", sv[sel].exp > 0 ? CORAL : CRM], ["QUEUE", "${round(max(0, sv[sel].free - gt))}s", sv[sel].free - gt > 30 ? CORAL : sv[sel].free - gt > 15 ? SUN : CRM]] {
+              Column {
+                weight: 1
+                gap: 1
+                padding: [6, 7]
+                background: INK3
+                Text { text: c[1]; font: FONT; fontSize: 14; color: c[2]; maxLines: 1 }
+                Text { text: c[0]; font: FONT; fontSize: 8; color: MUT; maxLines: 1 }
+              }
+            }
+          }
+          // turn it (an arrow going round), mend it, sell it
           Row {
             fill: width
             gap: 6
-            Text { text: "TURN"; font: FONT; fontSize: 12; color: CRM; background: INK3; weight: 1; align: center; padding: [0, 9]
-              onTap: stands = set(stands, sel, merge(SS, {f: [3, 2, 0, 1][SS.f]})) }
+            Box {
+              width: 52
+              height: 38
+              background: INK3
+              onTap: stands = set(stands, sel, merge(SS, {f: [3, 2, 0, 1][SS.f]}))
+              Canvas {
+                fill: true
+                let cx = width / 2
+                let cy = height / 2
+                let r = 9
+                let a = rad(330)
+                let ex = cx + r * sin(a)
+                let ey = cy - r * cos(a)
+                arc(cx, cy, r, 60, 270, stroke: CRM, width: 2.5, cap: butt)
+                path([[ex + 5.5 * cos(a), ey + 5.5 * sin(a)], [ex - 5 * sin(a) - 1 * cos(a), ey + 5 * cos(a) - 1 * sin(a)], [ex + 5 * sin(a) - 1 * cos(a), ey - 5 * cos(a) - 1 * sin(a)]], closed: true, fill: CRM)
+              }
+            }
             if BRKL[sel] {
               Text { text: "MEND NOW $80"; font: FONT; fontSize: 12; color: INK; background: SUN; weight: 1; align: center; padding: [0, 9]
                 onTap: {
