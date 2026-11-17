@@ -1546,17 +1546,38 @@ app "funfair" {
             gap: 0
             align: center
             background: INK3
-            Text { text: "−"; font: FONT; fontSize: 20; color: INK; background: CRM; width: 48; height: 46; align: center
-              onTap: stands = set(stands, sel, merge(SS, {p: max(0, SS.p - (SS.p > 5 ? 0.5 : 0.25))})) }
+            Box {
+              width: 48
+              height: 46
+              align: center
+              background: CRM
+              onTap: stands = set(stands, sel, merge(SS, {p: max(0, SS.p - (SS.p > 5 ? 0.5 : 0.25))}))
+              Canvas {
+                width: 48
+                height: 46
+                rect(width / 2 - 9, height / 2 - 2, 18, 4, fill: INK)
+              }
+            }
             Column {
               weight: 1
               gap: 0
               align: center
-              Text { text: K[SS.k].sp == "atm" ? "FEE $${fixed(SS.p, 2)}" : SS.p == 0 ? "FREE" : "$${fixed(SS.p, 2)}"; font: FONT; fontSize: 20; color: CRM }
-              Text { text: "goods $${fixed(K[SS.k].ic, 2)} a sale · upkeep $${K[SS.k].up} a day"; fontSize: 10; color: MUT; maxLines: 1 }
+              Text { text: K[SS.k].sp == "atm" ? "FEE $${fixed(SS.p, 2)}" : SS.p == 0 ? "FREE" : "$${fixed(SS.p, 2)}"; font: FONT; fontSize: 20; color: CRM; fill: width; align: center }
+              Text { text: "goods $${fixed(K[SS.k].ic, 2)} a sale · upkeep $${K[SS.k].up} a day"; fontSize: 10; color: MUT; maxLines: 1; fill: width; align: center }
             }
-            Text { text: "+"; font: FONT; fontSize: 20; color: INK; background: CRM; width: 48; height: 46; align: center
-              onTap: stands = set(stands, sel, merge(SS, {p: SS.p + (SS.p >= 5 ? 0.5 : 0.25)})) }
+            Box {
+              width: 48
+              height: 46
+              align: center
+              background: CRM
+              onTap: stands = set(stands, sel, merge(SS, {p: SS.p + (SS.p >= 5 ? 0.5 : 0.25)}))
+              Canvas {
+                width: 48
+                height: 46
+                rect(width / 2 - 9, height / 2 - 2, 18, 4, fill: INK)
+                rect(width / 2 - 2, height / 2 - 9, 4, 18, fill: INK)
+              }
+            }
           }
           // its day so far, a number a cell: what walked off at the price and a long queue show in coral
           Text { text: "TODAY SO FAR"; font: FONT; fontSize: 9; color: MUT; padding: [2, 0, 0, 0] }
@@ -1597,7 +1618,12 @@ app "funfair" {
               }
             }
             if BRKL[sel] {
-              Text { text: "MEND NOW $80"; font: FONT; fontSize: 12; color: INK; background: SUN; weight: 1; align: center; padding: [0, 9]
+              Box {
+                weight: 1
+                height: 38
+                align: center
+                background: SUN
+                Text { text: "MEND NOW $80"; font: FONT; fontSize: 12; color: INK; fill: width; align: center }
                 onTap: {
                   if cash >= 80 {
                     cash = cash - 80
@@ -1607,7 +1633,14 @@ app "funfair" {
                 }
               }
             }
-            Text { text: "SELL $${fmtNum(round(K[SS.k].cost * 0.5))}"; font: FONT; fontSize: 12; color: CRM; background: #b83a31; weight: 1; align: center; padding: [0, 9]; onTap: sellI = sel }
+            Box {
+              weight: 1
+              height: 38
+              align: center
+              background: #b83a31
+              onTap: sellI = sel
+              Text { text: "SELL $${fmtNum(round(K[SS.k].cost * 0.5))}"; font: FONT; fontSize: 12; color: CRM; fill: width; align: center }
+            }
           }
         }
       }
