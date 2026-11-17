@@ -798,13 +798,19 @@ app "funfair" {
       // (never more than its seats: of those sitting down at the same moment, the later ones walk on)
       let S1 = S.map(q => q.st == 2 && count(N0, z => z.st == 2 && z.tg == q.tg) + count(S, z => z.st == 2 && z.tg == q.tg && z.id < q.id) >= BCAP[q.tg] ? merge(q, {st: 0, tg: -1}) : q)
       // and on: home if they've had enough, toward what they need most, or wherever the path leads
+      // (with nothing to find, a guest keeps on the way they're going, straight across most crossings: picking a way at
+      // random at each one, they'd zigzag a few tiles from where they started and never see the far end of the park)
       let V = S1.map(q => !(q.st == 0 && q.t >= 1) ? q
-        : [merge(q, {lv: q.lv || q.md < 12 || q.age > q.stay || q.w < 3 && (q.bank <= 0 || fld[3][q.c] >= 900) || q.en < 4, m: q.mp ? 14 : 0})].map(z => !P[z.c] || z.lv && (z.c == GATE || fld[7][z.c] >= 900) ? merge(z, {gone: 1})
-          : [{nb: PNB[z.c], G: z.lv ? 7 : z.bl > 65 - z.m ? 2 : z.th > 62 - z.m ? 1 : z.hu > 62 - z.m ? 0 : z.nau > 60 ? 11 : z.w < 8 && z.bank > 0 ? 3 : z.en < 28 || (z.cr == 1 || z.cr == 2) && fld[4][z.c] <= 6 ? 4 : z.fn > 58 - z.m ? 5 : z.md > 50 && hash(z.id, floor(z.age / 30)) < 0.3 ? 6 : -1}]
+        // (a guest who walked to what they needed and is still on their feet here wasn't served: too dear, the queue
+        // too long, the bench full, their hands full, or they have one already. They give that need up for a while
+        // and wander, or the field pulls them straight back and they pace to and fro beside it)
+        : [merge(merge(q, {lv: q.lv || q.md < 12 || q.age > q.stay || q.w < 3 && (q.bank <= 0 || fld[3][q.c] >= 900) || q.en < 4, m: q.mp ? 14 : 0}), q.gl >= 0 && q.gl != 7 && fld[q.gl][q.c] == 0 ? {nx: q.gl, nxT: q.age + 10 + floor(q.r2 * 10)} : {})].map(z => !P[z.c] || z.lv && (z.c == GATE || fld[7][z.c] >= 900) ? merge(z, {gone: 1})
+          : [{nb: PNB[z.c], k: z.age < z.nxT ? z.nx : -1, hf: z.cr == 0}].map(h => merge(h, {G: z.lv ? 7 : z.bl > 65 - z.m && h.k != 2 ? 2 : z.th > 62 - z.m && h.hf && h.k != 1 ? 1 : z.hu > 62 - z.m && h.hf && h.k != 0 ? 0 : z.nau > 60 && h.k != 11 ? 11 : z.w < 8 && z.bank > 0 && h.k != 3 ? 3
+              : (z.en < 28 || (z.cr == 1 || z.cr == 2) && fld[4][z.c] <= 6) && h.k != 4 ? 4 : z.fn > 58 - z.m && h.k != 5 ? 5 : z.md > 50 && hash(z.id, floor(z.age / 30)) < 0.3 && h.k != 6 ? 6 : -1}))
             .map(h => merge(h, {F0: h.G >= 0 ? fld[h.G][z.c] : 999}))
-            .map(h => len(h.nb) == 0 ? merge(z, {t: 0.5})
-              : merge(z, {a: z.c, t: 0,
-                b: h.G >= 0 && h.F0 > 0 && h.F0 < 900 ? first(h.nb.sortBy(n => fld[h.G][n] + hash(n, z.id) * 0.4)) : [h.nb.filter(n => n != z.a)].map(L => len(L) == 0 ? h.nb[0] : L[floor(z.r2 * len(L))])[0],
+            .map(h => len(h.nb) == 0 ? merge(z, {t: 0.5, gl: -1})
+              : merge(z, {a: z.c, t: 0, gl: h.G >= 0 && h.F0 > 0 && h.F0 < 900 ? h.G : -1,
+                b: h.G >= 0 && h.F0 > 0 && h.F0 < 900 ? first(h.nb.sortBy(n => fld[h.G][n] + hash(n, z.id) * 0.4)) : [h.nb.filter(n => n != z.a)].map(L => len(L) == 0 ? h.nb[0] : z.r < 0.7 && any(L, n => n == 2 * z.c - z.a) ? 2 * z.c - z.a : L[floor(z.r2 * len(L))])[0],
                 gr: z.lv && !q.lv ? (z.md < 12 ? "angry" : z.en < 4 ? "tired" : z.w < 3 ? "skint" : z.gr) : h.G >= 0 && h.G != 7 && h.G != 6 && h.F0 >= 900 && z.age % 6 == 0 ? GRN8[h.G] : z.gr,
                 md: h.G >= 0 && h.G != 7 && h.G != 6 && h.F0 >= 900 ? max(0, z.md - 0.5) : z.md,
                 say: z.lv && !q.lv ? (z.md < 12 ? "I've had enough of this place" : z.w < 3 ? "I'm out of money" : "Time to go home") : h.G >= 0 && h.G != 7 && h.G != 6 && h.F0 >= 900 ? ["I'm hungry and there's no food", "I'm thirsty and there's nothing to drink", "I can't find a toilet!", "I need a cash machine", "I need to sit down", "There's nothing to do here", "", "", "", "", "", "I feel ill"][h.G] : z.say}))[0])[0])
@@ -868,7 +874,7 @@ app "funfair" {
           dayG = dayG + 1
           guests = guests + [merge(RST, {id: nid, a: GATE, b: GATE, c: GATE, t: 1, sp: 0.75 + random() * 0.5, w: 20 + random(0, 80), bank: random() < 0.55 ? random(30, 140) : 0,
             hu: random(5, 40), th: random(10, 40), bl: random(0, 30), en: random(70, 100), fn: random(20, 50), nau: 0, md: 62 + random(0, 14),
-            st: 0, wt: 0, tg: -1, cr: 0, ct: 0, ctr: false, tc: 0, has: [], seen: [], umb: false, bal: -1, mp: false, hat: false, lv: false, ate: false, age: 0, stay: random(120, 260), sh: random(10), spent: fee, say: "", r: 0, r2: 0, dn: 0, m: 0})]
+            st: 0, wt: 0, tg: -1, cr: 0, ct: 0, ctr: false, tc: 0, has: [], seen: [], umb: false, bal: -1, mp: false, hat: false, lv: false, ate: false, age: 0, gl: -1, nx: -1, nxT: 0, stay: random(120, 260), sh: random(10), spent: fee, say: "", r: 0, r2: 0, dn: 0, m: 0})]
           nid = nid + 1
         }
       }
