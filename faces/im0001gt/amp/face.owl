@@ -1,0 +1,913 @@
+face "amp" {
+  // Full-screen Winamp-style player. Chrome is drawn from the Omarchy theme, not .wsz bitmaps.
+  // Cover stacks the windows; unfolded splits player+EQ above and playlist below.
+  page: 0
+  meta {
+    owl: 19
+    description: "A Winamp-style full-screen player: analyzer, 10-band EQ, and a playlist you can add, edit, save and load. Follows the Omarchy theme; plays cliamp or the phone."
+    version: "1.0"
+    license: "MIT"
+    category: "media"
+  }
+  fps: 8
+
+  requires { pacman: ["jq"] }
+
+  source now = clock every 1s
+  source media = android.media
+  source vol = android.volume
+  // Live FFT from cliamp. Restarts if the daemon is down. Phone apps have no spectrum.
+  source vis = stream("while :; do cliamp visstream --fps 16 2>/dev/null; sleep 1; done") json optional
+  source amp = cmd("""
+    snap=$(cliamp remote state 2>/dev/null) || true
+    if ! printf '%s' "$snap" | jq -e '.ok == true' >/dev/null 2>&1; then
+      printf '%s\n' '{"ok":false}'
+      exit 0
+    fi
+    q=$(cliamp remote call queue.list --params '{"offset":0,"limit":200}' --wait 2>/dev/null) || true
+    if ! printf '%s' "$q" | jq -e . >/dev/null 2>&1; then
+      q='{}'
+    fi
+    printf '%s' "$snap" | jq -c --argjson q "$q" '
+      (.snapshot) as $s
+      | ($s.track // $s.logical_track // {}) as $t
+      | ($q.job.result.tracks // $q.result.tracks // []) as $tracks
+      | {
+          ok: true,
+          state: ($s.state // "stopped"),
+          title: ($t.title // ""),
+          artist: ($t.artist // ""),
+          album: ($t.album // ""),
+          station: ($t.station // ""),
+          path: ($t.path // ""),
+          stream: ($t.stream // false),
+          seekable: ($s.seekable // false),
+          position: (($s.position // 0) | floor),
+          duration: (if $s.duration == null then null else ($s.duration | floor) end),
+          index: ($s.index // $t.index // 0),
+          total: ($s.total // 0),
+          playlist: (if $s.playlist == null then "" elif ($s.playlist | type) == "string" then $s.playlist else ($s.playlist.name // $s.playlist.id // "") end),
+          shuffle: ($s.shuffle // false),
+          repeat: ($s.repeat // "off"),
+          eq: ($s.eq_bands // $s.eq.bands // $s.eq // null),
+          tracks: [$tracks[] | {title: (.title // ""), artist: (.artist // ""), path: (.path // ""), index: (.index // 0), duration: (.duration // null)}]
+        }
+    ' || printf '%s\n' '{"ok":false}'
+  """) every 2s json timeout 8s optional
+  source saved = cmd("""
+    p=$(cliamp remote call provider.playlists --params '{"provider":"local"}' --wait 2>/dev/null) || true
+    if ! printf '%s' "$p" | jq -e . >/dev/null 2>&1; then
+      printf '%s\n' '{"ok":false,"playlists":[]}'
+      exit 0
+    fi
+    printf '%s' "$p" | jq -c '{ok:true, playlists: [(.job.result.playlists // .result.playlists // [])[] | {id:(.id // .name // ""), name:(.name // .id // ""), count:(.track_count // 0)}]}' || printf '%s\n' '{"ok":false,"playlists":[]}'
+  """) every 8s json timeout 6s optional
+
+  state skin = 0 persist
+  state visMode = 0 persist
+  state remain = false persist
+  state prefer = "auto" persist
+  state shadeMain = false persist
+  state showEq = true persist
+  state showPl = true persist
+  state eq = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  state eqDrag = false
+  state posAt = 0
+  state posT = 0
+  state plName = "" persist
+  state plMenu = ""
+  state plEdit = false
+  state sel = -1
+  state addText = ""
+
+  let fold = (tileWidth ?? 0) >= 600
+  let short = (tileHeight ?? 900) < 560
+  let glass = alpha(background, tileOpacity)
+  let line = alpha(border, 0.55)
+  let paneR = 10 * corners
+  let ampOn = amp != null && amp.ok == true
+  let ampPlaying = ampOn && amp.state == "playing"
+  let phoneOn = media != null && media.available != false && media.title != null
+  let phonePlaying = phoneOn && media.playing == true
+  let usingAmp = prefer == "phone" ? false : prefer == "amp" ? ampOn : (ampOn && (ampPlaying || !phonePlaying))
+  let playing = usingAmp ? ampPlaying : phonePlaying
+  let title = usingAmp ? ((amp.title ?? "") == "" ? "nothing queued" : amp.title) : (phoneOn ? media.title : "nothing playing")
+  let who = usingAmp ? (amp.artist ?? "") : (media.artist ?? "")
+  let disc = usingAmp ? ((amp.station ?? "") != "" ? amp.station : (amp.album ?? "")) : (media.album ?? "")
+  let byline = who == "" ? disc : disc == "" ? who : "${who} · ${disc}"
+  let appLine = usingAmp ? "cliamp" : lower(media.app ?? "phone")
+  let dur = usingAmp ? num(amp.duration, 0) : num(media.duration, 0)
+  let rawPos = usingAmp ? (playing ? posAt + max(0, (now ?? 0) - posT) : posAt) : num(media.position, 0)
+  let pos = dur > 0 ? clamp(rawPos, 0, dur) : rawPos
+  let showPos = remain && dur > 0 ? max(0, dur - pos) : pos
+  let posH = floor(showPos / 3600)
+  let posM = floor((showPos % 3600) / 60)
+  let posS = pad(floor(showPos % 60), 2, "0")
+  let clockText = (remain && dur > 0 ? "−" : "") + (posH > 0 ? "${posH}:${pad(posM, 2, "0")}:${posS}" : "${posM}:${posS}")
+  let durH = floor(dur / 3600)
+  let durM = floor((dur % 3600) / 60)
+  let durS = pad(floor(dur % 60), 2, "0")
+  let durText = dur > 0 ? (durH > 0 ? "${durH}:${pad(durM, 2, "0")}:${durS}" : "${durM}:${durS}") : (usingAmp && amp.stream == true ? "stream" : "")
+  let repeatMode = lower(amp.repeat ?? "off")
+  let tracks = ampOn ? (amp.tracks ?? []) : []
+  let catalog = ampOn && len(tracks) > 0 && count(tracks, t => contains(t.path ?? "", "/tracks/")) == 0 && count(tracks, t => contains(t.path ?? "", "radio.cliamp.stream")) == len(tracks)
+  let songs = catalog ? [] : tracks
+  let lists = saved != null && saved.ok == true ? (saved.playlists ?? []) : []
+  let station = match(amp.path ?? "", 'radio\\.cliamp\\.stream/([a-z0-9-]+)/')[0] ?? ""
+  let listName = (plName ?? "") != "" ? plName : (station != "" && !catalog ? station : (ampOn ? (amp.playlist ?? "") : ""))
+  let bars = playing && usingAmp && vis != null && vis.ok == true ? (vis.bands ?? []) : []
+  let visH = shadeMain ? 0 : short ? 52 : fold ? 120 : 96
+  let eqH = 138
+  let skins = [
+    {name: "theme", lo: green, mid: yellow, hi: accent, glow: accent},
+    {name: "gold", lo: yellow, mid: orange, hi: accent, glow: yellow},
+    {name: "ice", lo: cyan, mid: blue, hi: foreground, glow: cyan},
+    {name: "volt", lo: green, mid: cyan, hi: yellow, glow: green},
+    {name: "rose", lo: magenta, mid: accent, hi: orange, glow: magenta}
+  ]
+  let tone = skins[skin % 5]
+  let hz = ["70", "180", "320", "600", "1k", "3k", "6k", "12k", "14k", "16k"]
+  let presets = [
+    {name: "Flat", bands: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]},
+    {name: "Rock", bands: [5, 4, 2, -1, -2, 2, 4, 5, 5, 5]},
+    {name: "Pop", bands: [-1, 2, 4, 5, 4, 1, -1, -1, 1, 2]},
+    {name: "Jazz", bands: [3, 4, 2, 1, -1, -1, 1, 2, 3, 4]},
+    {name: "Vocal", bands: [-2, -1, 1, 4, 5, 4, 2, 0, -1, -2]},
+    {name: "Electronic", bands: [6, 4, 1, -1, -2, 1, 3, 4, 5, 6]},
+    {name: "Bass Boost", bands: [8, 6, 4, 2, 0, 0, 0, 0, 0, 0]},
+    {name: "Acoustic", bands: [3, 3, 2, 0, 1, 2, 3, 3, 2, 1]}
+  ]
+  let stations = [
+    {id: "lofi", name: "lofi"},
+    {id: "meditative", name: "meditative"},
+    {id: "synthwave", name: "synthwave"},
+    {id: "edm", name: "edm"},
+    {id: "omarchy", name: "omarchy"},
+    {id: "chiptune", name: "chiptune"},
+    {id: "amiga", name: "amiga"},
+    {id: "ncs", name: "ncs"},
+    {id: "ncs-house", name: "ncs house"},
+    {id: "ncs-chill", name: "ncs chill"}
+  ]
+
+  on amp first {
+    posAt = value.position ?? 0
+    posT = now ?? 0
+    if value.ok == true && value.eq != null && len(value.eq) >= 10 {
+      eq = value.eq
+    }
+  }
+  on amp {
+    posAt = value.position ?? 0
+    posT = now ?? 0
+    if value.ok == true && value.eq != null && len(value.eq) >= 10 && !eqDrag {
+      eq = value.eq
+    }
+  }
+
+  background: linear(0, 0, 0, 1, [alpha(background, 0.92), alpha(background, 0.72), alpha(background, 0.94)])
+  padding: 0
+
+  component Chip(label, on, action) {
+    Text {
+      text: label
+      style: label
+      color: on ? background : foreground
+      background: on ? tone.glow : alpha(muted, 0.16)
+      radius: 8 * corners
+      padding: [8, 5]
+      maxLines: 1
+      onTap: {
+        haptic()
+        if action == "skin" {
+          skin = (skin + 1) % 5
+        } else if action == "vis" {
+          visMode = (visMode + 1) % 3
+        } else if action == "shade" {
+          shadeMain = !shadeMain
+        } else if action == "eq" {
+          showEq = !showEq
+        } else if action == "pl" {
+          showPl = !showPl
+        } else if action == "amp" {
+          prefer = "amp"
+          if !ampOn {
+            run("if ! cliamp remote state >/dev/null 2>&1; then rm -f ~/.config/cliamp/cliamp.sock ~/.config/cliamp/cliamp.sock.pid; cliamp --daemon >/dev/null 2>&1 & sleep 0.6; fi")
+          }
+        } else if action == "phone" {
+          prefer = "phone"
+        } else if action == "remain" {
+          remain = !remain
+        } else if action == "shuffle" {
+          if ampOn { run("cliamp shuffle toggle") }
+        } else if action == "repeat" {
+          if ampOn { run("cliamp repeat cycle") }
+        }
+      }
+    }
+  }
+
+  component Key(kind) {
+    Box {
+      size: kind == "toggle" ? 46 : 40
+      background: mix(surface, foreground, 0.06)
+      border: 1
+      borderColor: alpha(foreground, 0.18)
+      radius: 6 * corners
+      onTap: {
+        haptic()
+        if kind == "toggle" {
+          if usingAmp { run("cliamp toggle") } else { media("toggle") }
+        } else if kind == "next" {
+          if usingAmp { run("cliamp next") } else { media("next") }
+        } else if kind == "previous" {
+          if usingAmp { run("cliamp prev") } else { media("previous") }
+        } else if kind == "stop" {
+          if usingAmp { run("cliamp stop") } else { media("pause") }
+        }
+      }
+      Canvas {
+        let cx = width / 2
+        let cy = height / 2
+        let d = min(width, height)
+        if kind == "toggle" {
+          if playing {
+            rect(cx - d * 0.12, cy - d * 0.16, d * 0.08, d * 0.32, radius: 1, fill: tone.glow)
+            rect(cx + d * 0.04, cy - d * 0.16, d * 0.08, d * 0.32, radius: 1, fill: tone.glow)
+          } else {
+            path([[cx - d * 0.12, cy - d * 0.18], [cx + d * 0.2, cy], [cx - d * 0.12, cy + d * 0.18]], closed: true, fill: tone.glow)
+          }
+        } else if kind == "stop" {
+          rect(cx - d * 0.12, cy - d * 0.12, d * 0.24, d * 0.24, radius: 1, fill: foreground)
+        } else {
+          let dir = kind == "next" ? 1 : -1
+          path([[cx - d * 0.16 * dir, cy - d * 0.16], [cx + d * 0.08 * dir, cy], [cx - d * 0.16 * dir, cy + d * 0.16]], closed: true, fill: foreground)
+          rect(dir > 0 ? cx + d * 0.1 : cx - d * 0.18, cy - d * 0.16, d * 0.07, d * 0.32, radius: 1, fill: foreground)
+        }
+      }
+    }
+  }
+
+  component Vis() {
+    Canvas {
+      fill: width
+      height: visH
+      onTap: visMode = (visMode + 1) % 3
+      rect(0, 0, width, height, fill: mix(background, color0, 0.35))
+      rect(0, 0, width, height, stroke: alpha(foreground, 0.12), width: 1)
+      if visMode == 2 {
+        text("vis off", width / 2, height / 2, size: 11, align: "center", color: muted)
+      } else if len(bars) == 0 {
+        text(usingAmp ? (playing ? "spectrum…" : "") : "cliamp spectrum", width / 2, height / 2, size: 11, align: "center", color: muted)
+      } else if visMode == 1 {
+        let pts = flatten([
+          [[0, height / 2]],
+          range(len(bars)).map(i => [i / (len(bars) - 1) * width, height / 2 - clamp(bars[i], 0, 1) * (height / 2 - 6)]),
+          [[width, height / 2]]
+        ])
+        path(pts, stroke: tone.glow, width: 1.6, cap: "round")
+        let fillPts = flatten([pts, [[width, height / 2], [0, height / 2]]])
+        path(fillPts, closed: true, fill: alpha(tone.glow, 0.18))
+      } else {
+        let n = len(bars)
+        let gap = 1.5
+        let bw = (width - 6 - gap * (n - 1)) / n
+        for i in range(n) {
+          let level = clamp(bars[i], 0, 1)
+          let h = max(level * (height - 8), level > 0 ? 2 : 0)
+          let x = 3 + i * (bw + gap)
+          if h > 0 {
+            rect(x, height - 4 - h, bw, h, fill: linear(0, height, 0, 0, [tone.lo, tone.mid, tone.hi]))
+            rect(x, height - 4 - h - 2, bw, 2, fill: alpha(foreground, 0.85))
+          }
+        }
+      }
+    }
+  }
+
+  component Main() {
+    Column {
+      gap: 0
+      radius: paneR
+      background: glass
+      border: borderWidth
+      borderColor: line
+      frost: tileFrost
+      clip: true
+
+      Row {
+        height: 30
+        align: center
+        gap: 6
+        padding: [8, 0]
+        background: mix(background, accent, 0.22)
+        Text { text: "AMP"; style: label; bold: true; letterSpacing: 1.2; color: foreground; maxLines: 1 }
+        Spacer { weight: 1 }
+        Chip { label: "amp"; on: usingAmp; action: "amp" }
+        Chip { label: "phone"; on: !usingAmp; action: "phone" }
+        Chip { label: tone.name; on: false; action: "skin" }
+        Chip { label: visMode == 0 ? "vis" : visMode == 1 ? "osc" : "off"; on: visMode != 2; action: "vis" }
+        Chip { label: shadeMain ? "open" : "shade"; on: shadeMain; action: "shade" }
+      }
+
+      Column {
+        gap: 8
+        padding: 10
+        if !shadeMain {
+          if visH > 0 {
+            Vis { }
+          }
+          Row {
+            gap: 10
+            align: center
+            if !usingAmp && media.art != null && !short {
+              Box {
+                size: fold ? 64 : 52
+                radius: 8 * corners
+                clip: true
+                Image { src: media.art; fit: cover; fill: true }
+              }
+            }
+            Column {
+              gap: 2
+              weight: 1
+              Row {
+                gap: 6
+                align: center
+                Box {
+                  size: 8
+                  radius: 4
+                  background: playing ? tone.glow : alpha(muted, 0.4)
+                }
+                Text { text: appLine; style: label; color: playing ? tone.glow : muted; maxLines: 1; weight: 1 }
+                if ampOn && (amp.total ?? 0) > 0 {
+                  Text { text: "${(amp.index ?? 0) + 1}/${amp.total}"; style: label; font: mono; color: muted; maxLines: 1 }
+                }
+              }
+              Text { text: title; bold: true; maxLines: 1 }
+              Text { text: byline == "" ? (ampOn ? "pick a station or open cliamp" : "start music in any app") : byline; style: small; color: muted; maxLines: 1 }
+            }
+          }
+          if usingAmp && amp.seekable == true && dur > 0 {
+            Slider {
+              value: pos
+              max: dur
+              color: tone.glow
+              track: alpha(muted, 0.25)
+              onChange: run("cliamp remote call seek.absolute --params $(jq -nc --argjson value ${int(value)} '{value:$value}') --wait")
+            }
+          } else if dur > 0 {
+            Progress { value: pos; max: dur; color: tone.glow; track: alpha(muted, 0.25); animate value: tween(900ms, "linear") }
+          }
+          Row {
+            align: center
+            gap: 8
+            Text { text: clockText; font: mono; style: label; color: tone.glow; maxLines: 1; onTap: remain = !remain }
+            if durText != "" {
+              Text { text: durText; font: mono; style: label; color: muted; maxLines: 1 }
+            }
+            Spacer { weight: 1 }
+            Chip { label: "eq"; on: showEq; action: "eq" }
+            Chip { label: "pl"; on: showPl; action: "pl" }
+          }
+        }
+
+        Row {
+          align: center
+          gap: 8
+          Key { kind: "previous" }
+          Key { kind: "toggle" }
+          Key { kind: "stop" }
+          Key { kind: "next" }
+          Spacer { weight: 1 }
+          if ampOn {
+            Chip { label: "shuffle"; on: amp.shuffle == true; action: "shuffle" }
+            Chip { label: repeatMode == "off" ? "repeat" : repeatMode == "one" ? "rep 1" : "rep all"; on: repeatMode != "off"; action: "repeat" }
+          } else {
+            Text {
+              text: "start amp"
+              style: label
+              color: accent
+              maxLines: 1
+              onTap: {
+                haptic()
+                prefer = "amp"
+                run("if ! cliamp remote state >/dev/null 2>&1; then rm -f ~/.config/cliamp/cliamp.sock ~/.config/cliamp/cliamp.sock.pid; cliamp --daemon >/dev/null 2>&1 & sleep 0.6; fi")
+              }
+            }
+          }
+        }
+
+        Row {
+          align: center
+          gap: 8
+          Text { text: "vol"; style: label; color: muted; width: 28 }
+          Slider {
+            value: vol.muted ? 0 : vol.level
+            step: vol.steps > 0 ? 100 / vol.steps : 5
+            live: true
+            color: tone.glow
+            track: alpha(muted, 0.25)
+            weight: 1
+            onChange: volume(value)
+          }
+          Text { text: vol.muted ? "mute" : "${int(vol.level)}%"; style: label; font: mono; color: muted; width: 40; align: end; onTap: volume("toggle") }
+        }
+      }
+    }
+  }
+
+  component EqChip(name, bands) {
+    Text {
+      text: lower(name)
+      style: label
+      color: muted
+      background: alpha(muted, 0.14)
+      radius: 8 * corners
+      padding: [8, 5]
+      maxLines: 1
+      onTap: {
+        haptic()
+        eq = bands
+        if ampOn { run("cliamp eq ${sh(name)}") }
+      }
+    }
+  }
+
+  component Eq() {
+    Column {
+      gap: 6
+      padding: [10, 10]
+      radius: paneR
+      background: glass
+      border: borderWidth
+      borderColor: line
+      frost: tileFrost
+      clip: true
+      Row {
+        align: center
+        Text { text: "EQUALIZER"; style: label; bold: true; letterSpacing: 1; maxLines: 1 }
+        Spacer { weight: 1 }
+        Text { text: ampOn ? "live" : "preview"; style: label; color: ampOn ? tone.glow : muted; maxLines: 1 }
+      }
+      Box {
+        height: eqH
+        fill: width
+        Canvas {
+          fill: true
+          line(0, height / 2, width, height / 2, stroke: alpha(muted, 0.28), width: 1)
+          let pts = range(10).map(i => [
+            (i + 0.5) / 10 * width,
+            height * (0.5 - (eq[i] ?? 0) / 24)
+          ])
+          path(pts, stroke: alpha(tone.glow, 0.85), width: 1.6, cap: "round")
+          for i in range(10) {
+            let cx = (i + 0.5) / 10 * width
+            let gy = height * (0.5 - (eq[i] ?? 0) / 24)
+            line(cx, 10, cx, height - 20, stroke: alpha(muted, 0.3), width: 3)
+            rect(cx - 7, gy - 5, 14, 10, radius: 2 * corners, fill: tone.glow)
+          }
+        }
+        Row {
+          fill: true
+          for i in range(10) key i {
+            Box {
+              weight: 1
+              fill: height
+              drag: vertical
+              onDrag: {
+                eqDrag = true
+                eq = set(eq, i, clamp(round((0.5 - y / eqH) * 24), -12, 12))
+              }
+              onDragEnd: {
+                eqDrag = false
+                if ampOn { run("cliamp eq --band ${int(i)} ${int(eq[i] ?? 0)}") }
+              }
+            }
+          }
+        }
+      }
+      Row {
+        for i in range(10) key i {
+          Text { text: hz[i]; style: label; color: muted; align: center; maxLines: 1; weight: 1; fontSize: 9 }
+        }
+      }
+      Flow {
+        gap: 6
+        for p in presets key p.name {
+          EqChip { name: p.name; bands: p.bands }
+        }
+      }
+    }
+  }
+
+  component Tool(label, kind) {
+    let on = kind == "edit" ? plEdit : kind == plMenu
+    Text {
+      text: label
+      style: label
+      color: on ? background : foreground
+      background: on ? tone.glow : alpha(muted, 0.16)
+      radius: 8 * corners
+      padding: [8, 5]
+      maxLines: 1
+      onTap: {
+        haptic()
+        if kind == "edit" {
+          plEdit = !plEdit
+          if !plEdit { sel = -1 }
+        } else if kind == "add" {
+          plMenu = plMenu == "add" ? "" : "add"
+        } else if kind == "save" {
+          plMenu = plMenu == "save" ? "" : "save"
+        } else if kind == "load" {
+          plMenu = plMenu == "load" ? "" : "load"
+          if plMenu == "load" { refresh() }
+        } else if kind == "new" {
+          plMenu = plMenu == "new" ? "" : "new"
+        } else if kind == "rem" {
+          if ampOn {
+            let idx = sel >= 0 ? int(sel) : int(amp.index ?? 0)
+            run("cliamp remote call queue.remove --params ${sh(toJson({index: idx}))} --wait")
+            if sel == idx { sel = -1 }
+          }
+        } else if kind == "up" {
+          if ampOn && sel > 0 {
+            run("cliamp remote call queue.move --params ${sh(toJson({index: int(sel), to: int(sel - 1)}))} --wait")
+            sel = sel - 1
+          }
+        } else if kind == "down" {
+          if ampOn && sel >= 0 && sel < len(songs) - 1 {
+            run("cliamp remote call queue.move --params ${sh(toJson({index: int(sel), to: int(sel + 1)}))} --wait")
+            sel = sel + 1
+          }
+        }
+      }
+    }
+  }
+
+  component Station(sid, label) {
+    Text {
+      text: label
+      style: label
+      color: station == sid ? background : foreground
+      background: station == sid ? tone.glow : alpha(muted, 0.14)
+      radius: 8 * corners
+      padding: [8, 5]
+      maxLines: 1
+      onTap: {
+        haptic()
+        prefer = "amp"
+        plName = ""
+        plEdit = false
+        sel = -1
+        plMenu = ""
+        run("if ! cliamp remote state >/dev/null 2>&1; then rm -f ~/.config/cliamp/cliamp.sock ~/.config/cliamp/cliamp.sock.pid; cliamp --daemon >/dev/null 2>&1 & sleep 0.6; fi; cliamp remote call provider.load --params ${sh(toJson({provider: 'cliamp', playlist: sid}))} --wait; cliamp play")
+      }
+    }
+  }
+
+  component Playlist() {
+    Column {
+      gap: 8
+      padding: [10, 10]
+      radius: paneR
+      background: glass
+      border: borderWidth
+      borderColor: line
+      frost: tileFrost
+      clip: true
+      fill: height
+      Row {
+        align: center
+        Text { text: "PLAYLIST"; style: label; bold: true; letterSpacing: 1; maxLines: 1 }
+        Spacer { weight: 1 }
+        if listName != "" {
+          Text { text: listName; style: label; color: tone.glow; maxLines: 1 }
+        }
+        if !catalog && (amp.total ?? 0) > 0 {
+          Text { text: "${amp.total}"; style: label; font: mono; color: muted; maxLines: 1 }
+        }
+        Text {
+          text: "tui"
+          style: label
+          color: accent
+          maxLines: 1
+          onTap: terminal("cliamp")
+        }
+      }
+      Flow {
+        gap: 6
+        Tool { label: "add"; kind: "add" }
+        Tool { label: "rem"; kind: "rem" }
+        Tool { label: "↑"; kind: "up" }
+        Tool { label: "↓"; kind: "down" }
+        Tool { label: "save"; kind: "save" }
+        Tool { label: "load"; kind: "load" }
+        Tool { label: "new"; kind: "new" }
+        Tool { label: plEdit ? "done" : "edit"; kind: "edit" }
+      }
+      if plMenu == "add" {
+        Column {
+          gap: 6
+          Row {
+            align: center
+            gap: 8
+            background: alpha(muted, 0.12)
+            radius: 8 * corners
+            padding: [8, 4]
+            Input {
+              weight: 1
+              text: addText
+              placeholder: "url or path"
+              color: foreground
+              fontSize: 13
+              underline: false
+              clear: true
+              onChange: addText = value
+              onSubmit: {
+                let path = trim(value)
+                if path != "" {
+                  prefer = "amp"
+                  addText = ""
+                  run("if ! cliamp remote state >/dev/null 2>&1; then rm -f ~/.config/cliamp/cliamp.sock ~/.config/cliamp/cliamp.sock.pid; cliamp --daemon >/dev/null 2>&1 & sleep 0.6; fi; cliamp remote call url.load --params ${sh(toJson({path: path, play: false}))} --wait")
+                }
+              }
+            }
+          }
+          Row {
+            gap: 8
+            align: center
+            Text {
+              text: "pick files"
+              style: label
+              color: background
+              background: tone.glow
+              radius: 8 * corners
+              padding: [8, 5]
+              maxLines: 1
+              onTap: {
+                haptic()
+                prefer = "amp"
+                run("""
+                  if ! cliamp remote state >/dev/null 2>&1; then
+                    rm -f ~/.config/cliamp/cliamp.sock ~/.config/cliamp/cliamp.sock.pid
+                    cliamp --daemon >/dev/null 2>&1 & sleep 0.6
+                  fi
+                  omalauncher pick ~/Downloads | while IFS= read -r p; do
+                    [ -n "$p" ] || continue
+                    cliamp remote call url.load --params "$(jq -nc --arg path "$p" '{path:$path,play:false}')" --wait
+                  done
+                """)
+              }
+            }
+            Text { text: "appends to the live queue"; style: small; color: muted; maxLines: 1 }
+          }
+        }
+      } else if plMenu == "save" {
+        Column {
+          gap: 6
+          Row {
+            align: center
+            gap: 8
+            background: alpha(muted, 0.12)
+            radius: 8 * corners
+            padding: [8, 4]
+            Input {
+              weight: 1
+              text: plName
+              placeholder: "name this playlist"
+              color: foreground
+              fontSize: 13
+              underline: false
+              onChange: plName = value
+              onSubmit: {
+                let name = trim(value)
+                if name != "" {
+                  plName = name
+                  plMenu = ""
+                  run("if ! cliamp remote state >/dev/null 2>&1; then rm -f ~/.config/cliamp/cliamp.sock ~/.config/cliamp/cliamp.sock.pid; cliamp --daemon >/dev/null 2>&1 & sleep 0.6; fi; cliamp remote call playlist.create --params ${sh(toJson({provider: 'local', playlist: name}))} --wait >/dev/null 2>&1 || true; qtracks=$(cliamp remote call queue.list --params '{\"offset\":0,\"limit\":500}' --wait | jq -c '.job.result.tracks // .result.tracks // []'); pr=$(jq -nc --arg n ${sh(name)} --argjson qtracks \"$qtracks\" '{provider:\"local\",playlist:$n,tracks:$qtracks}'); cliamp remote call playlist.replace --params \"$pr\" --wait")
+                }
+              }
+            }
+            Text {
+              text: "write"
+              style: label
+              color: background
+              background: tone.glow
+              radius: 8 * corners
+              padding: [8, 5]
+              maxLines: 1
+              onTap: {
+                let name = trim(plName)
+                if name != "" {
+                  haptic()
+                  plName = name
+                  plMenu = ""
+                  run("if ! cliamp remote state >/dev/null 2>&1; then rm -f ~/.config/cliamp/cliamp.sock ~/.config/cliamp/cliamp.sock.pid; cliamp --daemon >/dev/null 2>&1 & sleep 0.6; fi; cliamp remote call playlist.create --params ${sh(toJson({provider: 'local', playlist: name}))} --wait >/dev/null 2>&1 || true; qtracks=$(cliamp remote call queue.list --params '{\"offset\":0,\"limit\":500}' --wait | jq -c '.job.result.tracks // .result.tracks // []'); pr=$(jq -nc --arg n ${sh(name)} --argjson qtracks \"$qtracks\" '{provider:\"local\",playlist:$n,tracks:$qtracks}'); cliamp remote call playlist.replace --params \"$pr\" --wait")
+                }
+              }
+            }
+          }
+          Text { text: "writes the live queue over that name"; style: small; color: muted; maxLines: 1 }
+        }
+      } else if plMenu == "load" {
+        Column {
+          gap: 6
+          Text { text: "tap to load · hold to delete"; style: label; color: muted; maxLines: 1 }
+          if len(lists) == 0 {
+            Text { text: "no saved playlists yet · save this queue"; style: small; color: muted; maxLines: 2 }
+          } else {
+            Flow {
+              gap: 6
+              for p in lists key p.id {
+                Text {
+                  text: (p.count ?? 0) > 0 ? "${p.name} · ${p.count}" : p.name
+                  style: label
+                  color: plName == p.name ? background : foreground
+                  background: plName == p.name ? tone.glow : alpha(muted, 0.14)
+                  radius: 8 * corners
+                  padding: [8, 5]
+                  maxLines: 1
+                  onTap: {
+                    haptic()
+                    prefer = "amp"
+                    plName = p.name
+                    plMenu = ""
+                    plEdit = false
+                    sel = -1
+                    run("if ! cliamp remote state >/dev/null 2>&1; then rm -f ~/.config/cliamp/cliamp.sock ~/.config/cliamp/cliamp.sock.pid; cliamp --daemon >/dev/null 2>&1 & sleep 0.6; fi; cliamp remote call provider.load --params ${sh(toJson({provider: 'local', playlist: p.id}))} --wait; cliamp play")
+                  }
+                  onLongPress: {
+                    if p.id != "Favorites" && p.id != "Recently Played" {
+                      haptic()
+                      run("cliamp remote call playlist.delete --params ${sh(toJson({provider: 'local', playlist: p.id}))} --wait")
+                      if plName == p.name { plName = "" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      } else if plMenu == "new" {
+        Row {
+          align: center
+          gap: 8
+          Text { text: "clear the live queue?"; style: small; color: muted; weight: 1; maxLines: 2 }
+          Text {
+            text: "yes"
+            style: label
+            color: background
+            background: accent
+            radius: 8 * corners
+            padding: [8, 5]
+            maxLines: 1
+            onTap: {
+              haptic()
+              plMenu = ""
+              plEdit = false
+              sel = -1
+              plName = ""
+              run("cliamp remote call queue.clear --wait")
+            }
+          }
+          Text {
+            text: "no"
+            style: label
+            color: muted
+            background: alpha(muted, 0.16)
+            radius: 8 * corners
+            padding: [8, 5]
+            maxLines: 1
+            onTap: plMenu = ""
+          }
+        }
+      } else {
+        Flow {
+          gap: 6
+          for s in stations key s.id {
+            Station { sid: s.id; label: s.name }
+          }
+        }
+      }
+      if plEdit {
+        Text { text: "tap a row to select · × removes · ↑↓ moves"; style: small; color: muted; maxLines: 1 }
+      }
+      if !ampOn {
+        Text { text: "cliamp is off · add, load, or tap a channel"; style: small; color: muted; maxLines: 2 }
+      } else if catalog || len(songs) == 0 {
+        Text { text: catalog ? "tap a channel to load its songs · or load a saved playlist" : "queue is empty · add files, a url, or load a playlist"; style: small; color: muted; maxLines: 2 }
+      } else {
+        Column {
+          gap: 2
+          weight: 1
+          lazy: true
+          onPull: refresh()
+          for t in songs key t.path {
+            Row {
+              gap: 8
+              align: center
+              padding: [8, 6]
+              radius: 6 * corners
+              background: t.path == amp.path ? alpha(tone.glow, 0.16) : (plEdit && (t.index ?? 0) == sel ? alpha(muted, 0.22) : transparent)
+              border: plEdit && (t.index ?? 0) == sel ? 1 : 0
+              borderColor: tone.glow
+              onTap: {
+                if plEdit {
+                  sel = t.index ?? 0
+                } else {
+                  run("cliamp remote call queue.play --params ${sh(toJson({index: int(t.index ?? 0)}))} --wait")
+                }
+              }
+              onLongPress: {
+                haptic()
+                plEdit = true
+                sel = t.index ?? 0
+              }
+              Text { text: pad((t.index ?? 0) + 1, 3, "0"); font: mono; style: label; color: t.path == amp.path ? tone.glow : muted; width: 32; maxLines: 1 }
+              Column {
+                gap: 0
+                weight: 1
+                Text { text: t.title == "" ? "track" : t.title; maxLines: 1; color: t.path == amp.path ? tone.glow : foreground }
+                if (t.artist ?? "") != "" {
+                  Text { text: t.artist; style: small; color: muted; maxLines: 1 }
+                }
+              }
+              if plEdit {
+                Text {
+                  text: "×"
+                  style: label
+                  color: muted
+                  padding: [6, 4]
+                  onTap: {
+                    haptic()
+                    run("cliamp remote call queue.remove --params ${sh(toJson({index: int(t.index ?? 0)}))} --wait")
+                    if sel == (t.index ?? 0) { sel = -1 }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  Box {
+    fill: true
+    if fold && !short {
+      Column {
+        fill: true
+        gap: 10
+        padding: [14, 10, 14, 8]
+        Main { }
+        if showEq { Eq { } }
+        if showPl {
+          Box {
+            weight: 1
+            fill: width
+            Playlist { }
+          }
+        }
+        Spacer { height: screenInset }
+      }
+    } else if short {
+      Row {
+        fill: true
+        gap: 10
+        padding: [12, 8, 12, 6]
+        Column {
+          weight: 1.1
+          fill: height
+          gap: 8
+          Main { }
+          if showEq { Eq { } }
+        }
+        if showPl {
+          Box {
+            weight: 1
+            fill: height
+            Playlist { }
+          }
+        }
+      }
+    } else {
+      Column {
+        fill: true
+        gap: 10
+        padding: [12, 10, 12, 8]
+        Main { }
+        if showEq { Eq { } }
+        if showPl {
+          Box {
+            weight: 1
+            fill: width
+            Playlist { }
+          }
+        }
+        Spacer { height: screenInset }
+      }
+    }
+  }
+}
