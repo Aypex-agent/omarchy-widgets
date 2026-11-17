@@ -3,5 +3,6 @@
 # CI applies it when it builds index.json, and apps.json for apps.
 simonschubert/sunset-heist
 simonschubert/sky-raid
+simonschubert/funfair
 simonschubert/skyline-bay
 ...
