@@ -93,7 +93,7 @@ app "funfair" {
   // ---- what's going on now -----------------------------------------------------------------------------------
   state guests = []
   // the distance lists (see above), and the one worked out next
-  state fld = range(12).map(k => range(576).map(c => 999))
+  state fld = range(13).map(k => range(576).map(c => 999))
   state fk = 0
   // the open toolbar category, the tool (0 look, 1 path, 9 bulldoze, 3-8 what g says, 100 + k a stand), what's
   // looked at: a stand (its place in stands), a guest or a staff member (their id), a parcel for sale
@@ -607,9 +607,10 @@ app "funfair" {
   let SRCC = range(5).map(k => PC.filter(c => any(ATC[c], i => SK[i].cat == k && !BRKL[i])))
   let SRCS = ["wc", "atm", "aid"].map(s => PC.filter(c => any(ATC[c], i => SK[i].sp == s && !BRKL[i])))
   // 0 food, 1 drink, 2 toilets, 3 cash, 4 a seat, 5 games, 6 gifts, 7 the way out, (8 litter, 9 dry beds, 10 broken
-  // stands: these change by the minute and are looked up as their turn comes), 11 first aid
-  let SRC = [SRCC[0], SRCC[1], SRCS[0], SRCS[1], PC.filter(c => len(BENA[c]) > 0), SRCC[3], SRCC[2], [GATE], [], [], [], SRCS[2]]
-  let GRN8 = ["food", "drink", "toilet", "cash", "seat", "games", "", "", "", "", "", "aid"]
+  // stands: these change by the minute and are looked up as their turn comes), 11 first aid, (12 a bin with room, looked
+  // up the same way)
+  let SRC = [SRCC[0], SRCC[1], SRCS[0], SRCS[1], PC.filter(c => len(BENA[c]) > 0), SRCC[3], SRCC[2], [GATE], [], [], [], SRCS[2], []]
+  let GRN8 = ["food", "drink", "toilet", "cash", "seat", "games", "", "", "", "", "", "aid", ""]
   // what a guest's fields go back to once what they did has been counted
   let RST = {d: 0, bi: -1, ji: -1, xi: -1, drop: -1, bn: -1, bx: -1, gr: "", o: null, gone: 0}
   let TOD = (gt % DAY) / DAY
@@ -713,12 +714,13 @@ app "funfair" {
       let eve = (gt % DAY) / DAY > 0.78
 
       // the distances to one need: walked out from where it's met, a step further each turn
-      let S0 = fk == 8 ? PC.filter(c => lit[c] > 0 || any(BINA[c], b => binf[b] >= 6))
+      let S0 = fk == 12 ? PC.filter(c => any(BINA[c], b => binf[b] < BINCAP))
+        : fk == 8 ? PC.filter(c => lit[c] > 0 || any(BINA[c], b => binf[b] >= 6))
         : fk == 9 ? PC.filter(c => any(BEDA[c], b => dry[b] == 1 || gt - wat[b] > WILT * 0.45))
         : fk == 10 ? PC.filter(c => any(ATC[c], i => BRKL[i]))
         : SRC[fk]
       fld = set(fld, fk, reduce(range(400), (A, s) => len(A.f) == 0 ? A : [unique(flatten(A.f.map(c => NB4[c]))).filter(n => n >= 0 && P[n] && A.r[n] > 900)].map(nf => {r: reduce(nf, (R, n) => set(R, n, s + 1), A.r), f: nf})[0], {r: reduce(S0, (R, c) => set(R, c, 0), BIG), f: S0}).r)
-      fk = (fk + 1) % 12
+      fk = (fk + 1) % 13
 
       // ---- guests ----
       let entc = flatten(staff.filter(s => s.k == 3).map(s => [s.b] + PNB[s.b]))
@@ -777,11 +779,12 @@ app "funfair" {
           md: clamp(q.md + (60 - q.md) * 0.015 + AMB[c] * 0.4 - min(3, lit[c]) * 0.5 - (q.hu > 80 ? 1 : 0) - (q.th > 80 ? 1.3 : 0) - (q.bl > 85 ? 2.2 : 0) - (q.en < 12 ? 0.6 : 0) - (q.fn > 85 ? 0.7 : 0) - (rain && !q.umb ? 0.7 : 0) - (eve && LIT[c] == 0 ? 0.4 : 0) + (any(entc, e => e == c) ? 2.5 : 0), 0, 100),
           cr: (q.cr == 1 || q.cr == 2) && q.ct <= 0 ? (q.ctr ? 3 : 0) : q.cr,
           tc: q.cr == 3 ? q.tc + 1 : 0}))[0])
-      // litter: into a bin beside the path if there's one with room, onto the ground once they tire of carrying it
+      // litter: into a bin beside the path if there's one with room, onto the ground once they tire of carrying it (a
+      // long while if there's a bin with room they can walk to, which they head for; soon if there's none)
       let T = A.map(q => !(q.st == 0 && q.t >= 1 && P[q.c] && (q.cr == 3 || q.nau > 85)) ? q
         : q.nau > 85 ? merge(q, {nau: 25, md: max(0, q.md - 8), drop: q.c, dn: 3, gr: "sick", say: "I feel sick"})
         : [first(BINA[q.c].filter(b => binf[b] < BINCAP))].map(b => b != null ? merge(q, {cr: 0, bn: b})
-          : q.tc > 4 + hash(q.id) * 8 ? merge(q, {cr: 0, drop: q.c, dn: 1, md: max(0, q.md - 1), gr: len(BINA[q.c]) > 0 ? "binfull" : "bin", say: len(BINA[q.c]) > 0 ? "This bin is overflowing" : "Not a bin in sight"}) : q)[0])
+          : q.tc > (fld[12][q.c] < 900 ? 22 : 6) + hash(q.id) * 8 ? merge(q, {cr: 0, drop: q.c, dn: 1, md: max(0, q.md - 1), gr: len(BINA[q.c]) > 0 ? "binfull" : "bin", say: len(BINA[q.c]) > 0 ? "This bin is overflowing" : "Not a bin in sight"}) : q)[0])
       // what the stands here are worth to them: the one with the most to spare over its price
       let O = T.map(q => !(q.st == 0 && q.t >= 1) || q.lv || len(ATC[q.c]) == 0 ? q : merge(q, {o: first(ATC[q.c].filter(i => !BRKL[i]).map(i => [SK[i]].map(k => {i: i, p: stands[i].p, sv: k.sv, atm: k.sp == "atm", n: k.n, v: k.val * k.wx[wx] * (k.cat != 2 && any(q.seen, h => h == stands[i].k) ? 0.8 : 1), v0: k.val,
           f: (k.cat == 0 ? (q.cr == 0 && q.hu > 30 ? 0.4 + q.hu / 60 : 0)
@@ -815,7 +818,7 @@ app "funfair" {
         // too long, the bench full, their hands full, or they have one already. They give that need up for a while
         // and wander, or the field pulls them straight back and they pace to and fro beside it)
         : [merge(merge(q, {lv: q.lv || q.md < 12 || q.age > q.stay || q.w < 3 && (q.bank <= 0 || fld[3][q.c] >= 900) || q.en < 4, m: q.mp ? 14 : 0}), q.gl >= 0 && q.gl != 7 && fld[q.gl][q.c] == 0 ? {nx: q.gl, nxT: q.age + 10 + floor(q.r2 * 10)} : {})].map(z => !P[z.c] || z.lv && (z.c == GATE || fld[7][z.c] >= 900) ? merge(z, {gone: 1})
-          : [{nb: PNB[z.c], k: z.age < z.nxT ? z.nx : -1, hf: z.cr == 0}].map(h => merge(h, {G: z.lv ? 7 : z.bl > 65 - z.m && h.k != 2 ? 2 : z.th > 62 - z.m && h.hf && h.k != 1 ? 1 : z.hu > 62 - z.m && h.hf && h.k != 0 ? 0 : z.nau > 60 && h.k != 11 ? 11 : z.w < 8 && z.bank > 0 && h.k != 3 ? 3
+          : [{nb: PNB[z.c], k: z.age < z.nxT ? z.nx : -1, hf: z.cr == 0}].map(h => merge(h, {G: z.lv ? 7 : z.bl > 65 - z.m && h.k != 2 ? 2 : z.cr == 3 && fld[12][z.c] < 900 && h.k != 12 ? 12 : z.th > 62 - z.m && h.hf && h.k != 1 ? 1 : z.hu > 62 - z.m && h.hf && h.k != 0 ? 0 : z.nau > 60 && h.k != 11 ? 11 : z.w < 8 && z.bank > 0 && h.k != 3 ? 3
               : (z.en < 28 || (z.cr == 1 || z.cr == 2) && fld[4][z.c] <= 6) && h.k != 4 ? 4 : z.fn > 58 - z.m && h.k != 5 ? 5 : z.md > 50 && hash(z.id, floor(z.age / 30)) < 0.3 && h.k != 6 ? 6 : -1}))
             .map(h => merge(h, {F0: h.G >= 0 ? fld[h.G][z.c] : 999}))
             .map(h => len(h.nb) == 0 ? merge(z, {t: 0.5, gl: -1})
@@ -823,7 +826,7 @@ app "funfair" {
                 b: h.G >= 0 && h.F0 > 0 && h.F0 < 900 ? first(h.nb.sortBy(n => fld[h.G][n] + hash(n, z.id) * 0.4)) : [h.nb.filter(n => n != z.a)].map(L => len(L) == 0 ? h.nb[0] : z.r < 0.7 && any(L, n => n == 2 * z.c - z.a) ? 2 * z.c - z.a : L[floor(z.r2 * len(L))])[0],
                 gr: z.lv && !q.lv ? (z.md < 12 ? "angry" : z.en < 4 ? "tired" : z.w < 3 ? "skint" : z.gr) : h.G >= 0 && h.G != 7 && h.G != 6 && h.F0 >= 900 && z.age % 6 == 0 ? GRN8[h.G] : z.gr,
                 md: h.G >= 0 && h.G != 7 && h.G != 6 && h.F0 >= 900 ? max(0, z.md - 0.5) : z.md,
-                say: z.lv && !q.lv ? (z.md < 12 ? "I've had enough of this place" : z.w < 3 ? "I'm out of money" : "Time to go home") : h.G >= 0 && h.G != 7 && h.G != 6 && h.F0 >= 900 ? ["I'm hungry and there's no food", "I'm thirsty and there's nothing to drink", "I can't find a toilet!", "I need a cash machine", "I need to sit down", "There's nothing to do here", "", "", "", "", "", "I feel ill"][h.G] : z.say}))[0])[0])
+                say: z.lv && !q.lv ? (z.md < 12 ? "I've had enough of this place" : z.w < 3 ? "I'm out of money" : "Time to go home") : h.G >= 0 && h.G != 7 && h.G != 6 && h.F0 >= 900 ? ["I'm hungry and there's no food", "I'm thirsty and there's nothing to drink", "I can't find a toilet!", "I need a cash machine", "I need to sit down", "There's nothing to do here", "", "", "", "", "", "I feel ill", ""][h.G] : z.say}))[0])[0])
 
       // what they did, counted
       let E = V.filter(q => q.d == 1)
