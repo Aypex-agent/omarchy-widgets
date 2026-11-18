@@ -1,0 +1,635 @@
+face "hacker" {
+  // A hacker's console for home: live system telemetry, an animated terminal log, a grep prompt
+  // and a taskbar whose APPS key opens the app drawer.
+
+  meta { owl: 23; description: "A hacker console: live system telemetry, a terminal log, a grep prompt for your apps and a taskbar that opens the app drawer"; version: "1.0"; license: "MIT"; category: "fun" }
+
+  requires { pacman: ["bash", "coreutils", "gawk", "grep", "iproute2", "procps-ng"] }
+
+  statusBar: false
+  fps: 20
+
+  source now = clock every 1s
+  source bat = android.battery
+  source sys = android.system every 2s
+  source net = android.network every 2s
+  source sim = android.sim
+  source apps = android.apps
+  source recent = android.recent
+  source load = cmd("cut -d' ' -f1-3 /proc/loadavg") every 5s
+  source procs = cmd("ps -eo pcpu=,pmem=,comm= --sort=-pcpu | head -18") every 5s
+  source host = cmd("cat /etc/hostname") every 1h
+  source ip = cmd("ip -o -4 addr show scope global | head -1 | awk '{print $4}' | cut -d/ -f1") every 10m
+  // Per-core load: two samples of /proc/stat half a second apart.
+  source coreUse = cmd("a=$(grep '^cpu[0-9]' /proc/stat); sleep 0.5; { echo \"$a\"; grep '^cpu[0-9]' /proc/stat; } | awk '{ t = 0; for (i = 2; i <= NF; i++) t += $i; d = $5 + $6; if ($1 in T) { dt = t - T[$1]; printf \"%d \", (dt > 0 ? 100 * (dt - (d - I[$1])) / dt : 0) } else { T[$1] = t; I[$1] = d } } END { print \"\" }'") every 2s
+  // The terminal log: a line every two seconds, real telemetry mixed with a little theatre.
+  source feed = stream("while :; do t=$(date +%T); case $((RANDOM % 6)) in 0) set -- $(ps -eo pcpu=,comm= --sort=-pcpu | head -1); echo \"$t [PROC] $2 at $1% cpu\" ;; 1) m=$(awk '/MemTotal/ { t = $2 } /MemAvailable/ { a = $2 } END { printf \"%d\", (t - a) * 100 / t }' /proc/meminfo); if [ \"$m\" -ge 85 ]; then echo \"$t [WARN] memory at $m%\"; else echo \"$t [MEM ] $m% in use\"; fi ;; 2) echo \"$t [LOAD] $(cut -d' ' -f1-3 /proc/loadavg)\" ;; 3) echo \"$t [SCAN] 10.0.$((RANDOM % 256)).$((RANDOM % 256)):$((RANDOM % 65536)) $([ $((RANDOM % 4)) = 0 ] && echo open || echo filtered)\" ;; 4) echo \"$t [HASH] $(head -c 8 /dev/urandom | od -An -tx1 | tr -d ' \\n')\" ;; 5) echo \"$t [TASK] $(ls /proc | grep -c '^[0-9]') processes\" ;; esac; sleep 2; done")
+
+  state log = ["---- [BOOT] nightwire console up", "---- [BOOT] telemetry attached"]
+  state down = 0
+  state up = 0
+  state favKeys = null persist   // null = follow "most used" until the user edits the list
+  state picker = false
+  state pickQuery = ""
+
+  on feed first { log = flatten([[value], log]).take(60) }
+  on net {
+    if old != null && value.uptime > old.uptime {
+      if value.rx >= old.rx { down = (value.rx - old.rx) / (value.uptime - old.uptime) }
+      if value.tx >= old.tx { up = (value.tx - old.tx) / (value.uptime - old.uptime) }
+    }
+  }
+
+  let neon = mix(green, #39ff88, 0.55)
+  let ink = mix(foreground, green, 0.3)
+  let panel = alpha(mix(background, #000000, 0.86), 0.55)
+  let glass = alpha(mix(background, #000000, 0.92), 0.9)
+  let frame = alpha(neon, 0.22)
+  let pulse = 0.35 + 0.65 * abs(sin(time * 3.2))
+
+  let hn = host ?? "localhost"
+  let addr = ip ?? "127.0.0.1"
+
+  let cores = max(sys.cpu.cores ?? 8, 1)
+  let l1 = load == null ? 0 : num(words(load)[0], 0)
+  let cpuPct = clamp(l1 / cores * 100, 0, 100)
+  let mem = sys.memory
+  let memPct = mem == null ? 0 : clamp((mem.used ?? 0) / max(mem.total ?? 1, 1) * 100, 0, 100)
+  let disk = sys.storage
+  let diskPct = disk == null ? 0 : clamp((disk.used ?? 0) / max(disk.total ?? 1, 1) * 100, 0, 100)
+  let level = bat.level ?? 0
+  let downHist = history(down, 40)
+
+  let ps = lines(procs ?? "").map(l => words(l)).filter(w => len(w) >= 3).map(w => {cpu: round(num(w[0], 0)), name: w[2]}).take(13)
+  let corePct = words(trim(coreUse ?? "")).map(w => clamp(num(w, 0), 0, 100))
+
+  let allApps = (apps ?? []).filter(a => !a.system || a.score > 0).sortBy(a => -a.score)
+  let defaults = allApps.take(5).map(a => a.key)
+  let favOrder = favKeys ?? defaults
+  let favs = favKeys == null ? allApps.take(5) : favOrder.map(k => allApps.filter(a => a.key == k)[0]).filter(a => a != null)
+  let recentApps = (recent ?? []).take(7)
+  let pickList = pickQuery == "" ? allApps.take(12) : rank(allApps, pickQuery).take(12)
+
+  // The rain, worked out once: a column every 44 dp, its speed and tail from hash.
+  let W = tileWidth ?? 412
+  let H = tileHeight ?? 900
+  let rows = floor(H / 20) + 1
+  let rain = range(floor(W / 44) + 1).map(c => ({
+    x: c * 44 + 18,
+    speed: 7 + hash(c, 1) * 11,
+    tail: 4 + floor(hash(c, 2) * 5),
+    start: hash(c, 3) * 60
+  }))
+  let glyphs = "01ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄ<>{}[]/*+#$_=:;|"
+  let shortH = (tileHeight ?? 900) < 640
+  let typing = screenInset > 120
+
+  background: alpha(mix(background, #000000, 0.9), 0.98)
+  padding: 0
+
+  component Head(title, note = "") {
+    Row {
+      gap: 6
+      align: center
+      Canvas {
+        width: 3
+        height: 10
+        rect(0, 0, 3, 10, fill: neon)
+      }
+      Text { text: title; font: mono; fontSize: 9; fontWeight: 700; letterSpacing: 2; color: alpha(neon, 0.8); maxLines: 1 }
+      Spacer { weight: 1 }
+      Text { text: note; font: mono; fontSize: 9; letterSpacing: 1; color: alpha(ink, 0.45); maxLines: 1 }
+    }
+  }
+
+  component Stat(label, value, pct, tint = green) {
+    Column {
+      gap: 3
+      padding: [8, 6]
+      fill: width
+      background: alpha(#000000, 0.38)
+      border: 1
+      borderColor: alpha(tint, 0.22)
+      radius: 3 * corners
+      Text { text: label; font: mono; fontSize: 8; letterSpacing: 1.5; color: alpha(ink, 0.55); maxLines: 1 }
+      Text { text: value; font: mono; fontSize: 16; fontWeight: 700; color: tint; maxLines: 1 }
+      Progress { value: pct; max: 100; height: 3; color: tint; track: alpha(tint, 0.12) }
+    }
+  }
+
+  // The taskbar's square key: an icon and a word, as a dock's start button.
+  component Key(label, lit = false) {
+    Row {
+      gap: 6
+      align: center
+      padding: [9, 7]
+      background: lit ? alpha(neon, 0.16) : alpha(#000000, 0.15)
+      border: 1
+      borderColor: lit ? alpha(neon, 0.55) : alpha(neon, 0.2)
+      radius: 3 * corners
+      Text { text: label; font: mono; fontSize: 11; fontWeight: 700; letterSpacing: 1.5; color: lit ? neon : alpha(ink, 0.8); maxLines: 1 }
+    }
+  }
+
+  Box {
+    fill: true
+
+    // The rain and its scan band, under everything.
+    Canvas {
+      fill: true
+      for c in rain {
+        let head = floor(time * c.speed + c.start) % (rows + c.tail)
+        for k in range(c.tail) {
+          let r = head - k
+          if r >= 0 && r < rows {
+            let g = floor(hash(c.x, r) * 997 + time * 2.2) % len(glyphs)
+            text(sub(glyphs, g, g + 1), c.x, r * 20 + 10, size: 12, align: center, font: mono, color: k == 0 ? alpha(neon, 0.3) : alpha(neon, (1 - k / c.tail) * 0.22))
+          }
+        }
+      }
+      let sy = (time * 55) % max(height, 1)
+      rect(0, sy, width, 42, fill: linear(0, 0, 0, 42, [alpha(neon, 0), alpha(neon, 0.05), alpha(neon, 0)]))
+    }
+
+    // The vignette never changes, so keep it out of the animated Canvas.
+    Canvas {
+      fill: true
+      rect(0, 0, width, height, fill: radial(width / 2, height * 0.35, max(width, height) * 0.8, [alpha(#000000, 0), alpha(#000000, 0.05), alpha(#000000, 0.62)]))
+    }
+
+    Column {
+      fill: true
+      gap: 8
+      padding: [14, 10]
+
+      // Header: the machine's name and address, and whether the uplink is up.
+      Row {
+        gap: 10
+        align: center
+        Canvas {
+          width: 26
+          height: 26
+          rect(1, 1, 24, 24, stroke: alpha(neon, 0.7), width: 1.5, radius: 2)
+          rect(6, 9, 4, 3, fill: neon)
+          rect(12, 9, 8, 2, fill: alpha(neon, 0.45))
+          rect(6, 15, 14, 2, fill: alpha(neon, 0.25))
+        }
+        Column {
+          gap: 0
+          weight: 1
+          Text { text: "Arch Linux"; font: mono; fontSize: 15; fontWeight: 700; letterSpacing: 3; color: neon; maxLines: 1 }
+          Text { text: "root@${hn} · ${addr}"; font: mono; fontSize: 9; color: alpha(ink, 0.6); maxLines: 1 }
+        }
+        Column {
+          gap: 2
+          align: end
+          Row {
+            gap: 5
+            align: center
+            Canvas {
+              width: 6
+              height: 6
+              circle(3, 3, 3, fill: alpha(neon, pulse))
+            }
+            Text { text: "ONLINE"; font: mono; fontSize: 8; fontWeight: 700; letterSpacing: 1.5; color: alpha(neon, 0.85); maxLines: 1 }
+          }
+          Text { text: "knl ${sys.kernel ?? "…"}"; font: mono; fontSize: 8; color: alpha(ink, 0.45); maxLines: 1 }
+        }
+      }
+
+      // The clock, with the tricorder's readings beside it.
+      Row {
+        gap: 8
+        align: bottom
+        Column {
+          gap: 2
+          weight: 1
+          Row {
+            gap: 0
+            align: bottom
+            Text {
+              spans: [
+                {text: fmtTime(now, "HH"), color: neon},
+                {text: ":", color: alpha(neon, pulse)},
+                {text: fmtTime(now, "mm"), color: neon},
+                {text: ":", color: alpha(neon, 0.45)}
+              ]
+              font: mono
+              fontSize: 56
+              fontWeight: 400
+              letterSpacing: -4
+              maxLines: 1
+            }
+            Text {
+              text: fmtTime(now, "ss")
+              font: mono
+              fontSize: 24
+              fontWeight: 400
+              letterSpacing: 0
+              color: alpha(neon, 0.7)
+              maxLines: 1
+              padding: [0, 0, 0, 9]
+              offset: [0, 6]
+            }
+          }
+          Text { text: upper(fmtTime(now, "EEE dd MMM yyyy")); font: mono; fontSize: 9; letterSpacing: 2; color: alpha(ink, 0.6); maxLines: 1 }
+        }
+        Column {
+          gap: 2
+          align: end
+          Text { text: "UP  ${fmtDuration(sys.uptime ?? 0)}"; font: mono; fontSize: 9; color: alpha(ink, 0.7); maxLines: 1 }
+          Text { text: "LD  ${fixed(l1, 2)} / ${cores}"; font: mono; fontSize: 9; color: l1 > cores ? red : alpha(ink, 0.7); maxLines: 1 }
+          Text { text: "BAT ${level}%${bat.charging ? " +" : ""}"; font: mono; fontSize: 9; color: level < 20 && !bat.charging ? red : alpha(ink, 0.7); maxLines: 1 }
+        }
+      }
+
+      if !typing && !shortH {
+        // Four gauges, as a console's front panel.
+        Row {
+          gap: 6
+          align: top
+          Stat { label: "CPU"; value: "${round(cpuPct)}%"; pct: cpuPct; tint: cpuPct > 85 ? red : neon }
+          Stat { label: "MEM"; value: "${round(memPct)}%"; pct: memPct; tint: memPct > 88 ? red : neon }
+          Stat { label: "DISK"; value: "${round(diskPct)}%"; pct: diskPct; tint: diskPct > 92 ? red : neon }
+          Stat { label: "BAT"; value: "${level}%"; pct: level; tint: bat.charging ? green : level < 20 ? red : neon }
+        }
+
+        // The network and the power cell.
+        Row {
+          gap: 6
+          Column {
+            gap: 3
+            weight: 1
+            padding: [7, 7]
+            background: alpha(#000000, 0.38)
+            border: 1
+            borderColor: frame
+            radius: 3 * corners
+            Head { title: "NETWORK"; note: "wlan0" }
+            Text { text: "↓ ${fmtBytes(down)}/s"; font: mono; fontSize: 12; fontWeight: 700; color: neon; maxLines: 1 }
+            Row {
+              gap: 6
+              align: center
+              Sparkline { values: downHist; min: 0; color: neon; area: alpha(neon, 0.12); thickness: 1.2; weight: 1; height: 6 }
+              Text { text: "↑ ${fmtBytes(up)}/s"; font: mono; fontSize: 8; color: alpha(ink, 0.45); maxLines: 1 }
+            }
+            Text { text: "rx ${fmtBytes(net.rx ?? 0)} · tx ${fmtBytes(net.tx ?? 0)}"; font: mono; fontSize: 8; color: alpha(ink, 0.4); maxLines: 1 }
+          }
+          Column {
+            gap: 3
+            weight: 1
+            padding: [7, 7]
+            background: alpha(#000000, 0.38)
+            border: 1
+            borderColor: frame
+            radius: 3 * corners
+            Head { title: "POWER"; note: bat.charging ? "charging" : "battery" }
+            Text { text: "${level}%  ·  ${bat.temp ?? "…"}°C"; font: mono; fontSize: 12; fontWeight: 700; color: level < 20 && !bat.charging ? red : neon; maxLines: 1 }
+            Row {
+              gap: 6
+              align: center
+              Progress { value: level; max: 100; weight: 1; height: 6; color: bat.charging ? green : level < 20 ? red : neon; track: alpha(neon, 0.12) }
+              Text { text: "${round(100 - level)}%→"; font: mono; fontSize: 8; color: alpha(ink, 0.45); maxLines: 1 }
+            }
+            Text { text: "cell ok · ${bat.health ?? "unknown"}"; font: mono; fontSize: 8; color: alpha(ink, 0.4); maxLines: 1 }
+          }
+        }
+
+        // The live log and the busiest processes, side by side.
+        Row {
+          gap: 6
+          weight: 1
+          fill: height
+          Column {
+            gap: 4
+            weight: 2
+            fill: height
+            padding: [7, 7]
+            background: alpha(#000000, 0.38)
+            border: 1
+            borderColor: frame
+            radius: 3 * corners
+            Head { title: "System Logs"; note: "mem ${round(memPct)}% · cpu ${round(cpuPct)}%" }
+            // The log fills the panel from the bottom, like a real tail: newest just above the prompt,
+            // the oldest scrolled off the top.
+            Column {
+              gap: 2
+              weight: 1
+              fill: width
+              clip: true
+              justify: end
+              if len(log) == 0 {
+                Text { text: "> waiting for telemetry…"; font: mono; fontSize: 9; color: alpha(ink, 0.5); maxLines: 1 }
+              } else {
+                for l in log.reverse() {
+                  Text {
+                    text: l
+                    font: mono
+                    fontSize: 9
+                    color: contains(l, "WARN") ? red : alpha(ink, 0.72)
+                    maxLines: 1
+                  }
+                }
+              }
+            }
+            Row {
+              gap: 4
+              align: center
+              Text { text: "$"; font: mono; fontSize: 9; color: neon }
+              Text { text: "tail -f /dev/nightwire · ${len(log)}"; font: mono; fontSize: 9; color: alpha(ink, 0.4); maxLines: 1 }
+              if floor(time * 2) % 2 == 0 {
+                Canvas {
+                  width: 5
+                  height: 10
+                  rect(0, 0, 5, 10, fill: alpha(neon, 0.8))
+                }
+              }
+            }
+          }
+          Column {
+            gap: 4
+            weight: 1
+            fill: height
+            padding: [7, 7]
+            background: alpha(#000000, 0.38)
+            border: 1
+            borderColor: frame
+            radius: 3 * corners
+            Head { title: "Progress" }
+            for p in ps {
+              Column {
+                gap: 0
+                Text { text: p.name; font: mono; fontSize: 9; color: alpha(ink, 0.8); maxLines: 1 }
+                Text { text: "${p.cpu}% cpu"; font: mono; fontSize: 8; color: p.cpu > 80 ? red : alpha(neon, 0.65); maxLines: 1 }
+              }
+            }
+            Spacer { weight: 1 }
+            Row {
+              Text { text: "RX"; font: mono; fontSize: 8; color: alpha(ink, 0.4); maxLines: 1 }
+              Spacer { weight: 1 }
+              Text { text: fmtBytes(net.rx ?? 0); font: mono; fontSize: 8; color: alpha(neon, 0.6); maxLines: 1 }
+            }
+            Row {
+              Text { text: "TX"; font: mono; fontSize: 8; color: alpha(ink, 0.4); maxLines: 1 }
+              Spacer { weight: 1 }
+              Text { text: fmtBytes(net.tx ?? 0); font: mono; fontSize: 8; color: alpha(neon, 0.6); maxLines: 1 }
+            }
+            Row {
+              Text { text: "FREE"; font: mono; fontSize: 8; color: alpha(ink, 0.4); maxLines: 1 }
+              Spacer { weight: 1 }
+              Text { text: fmtBytes(mem.available ?? 0); font: mono; fontSize: 8; color: alpha(neon, 0.6); maxLines: 1 }
+            }
+            Row {
+              gap: 4
+              align: center
+              Text { text: "CPU"; font: mono; fontSize: 8; letterSpacing: 1.2; color: alpha(ink, 0.4); maxLines: 1 }
+              Spacer { weight: 1 }
+              Text { text: "${round(cpuPct)}%"; font: mono; fontSize: 8; color: alpha(neon, 0.7); maxLines: 1 }
+            }
+            // One bar a core, all eight of them: full width, standing on the green load line.
+            Column {
+              gap: 3
+              Row {
+                Text { text: "CORES"; font: mono; fontSize: 8; letterSpacing: 1.2; color: alpha(ink, 0.4); maxLines: 1 }
+                Spacer { weight: 1 }
+                Text { text: len(corePct) > 0 ? "avg ${round(avg(corePct))}%" : "…"; font: mono; fontSize: 8; color: alpha(neon, 0.6); maxLines: 1 }
+              }
+              Canvas {
+                fill: width
+                height: 40
+                let base = height - 2
+                let bw = (width - 4 * 7) / 8
+                for i in range(8) {
+                  let v = i < len(corePct) ? corePct[i] : 0
+                  let bh = max(2, v / 100 * (base - 3))
+                  rect(i * (bw + 4), base - bh, bw, bh, fill: v > 85 ? red : alpha(neon, 0.45 + v / 180))
+                }
+                // The green line the bars stand on, edge to edge.
+                line(0, base, width, base, stroke: alpha(neon, 0.85), width: 1.5)
+              }
+            }
+            Text { text: "${len(ps)} shown"; font: mono; fontSize: 8; color: alpha(ink, 0.35); maxLines: 1 }
+          }
+        }
+      }
+
+      // Favorites: a user-owned list. Tap + to edit: search and toggle apps, move them, or remove them.
+      Column {
+        gap: 4
+        padding: [6, 7]
+        background: glass
+        border: 1
+        borderColor: alpha(neon, 0.4)
+        radius: 3 * corners
+        offset: [0, 6]
+
+        Row {
+          gap: 6
+          align: center
+          Canvas { width: 3; height: 10; rect(0, 0, 3, 10, fill: neon) }
+          Text { text: "FAVORITES"; font: mono; fontSize: 9; fontWeight: 700; letterSpacing: 2; color: alpha(neon, 0.8); maxLines: 1 }
+          Spacer { weight: 1 }
+          Text { text: favKeys == null ? "most used" : "custom"; font: mono; fontSize: 8; color: alpha(ink, 0.4); maxLines: 1 }
+          Text { text: picker ? "done" : "+"; font: mono; fontSize: 13; fontWeight: 700; color: neon; padding: [2, 6]; onTap: picker = !picker }
+        }
+
+        if picker {
+          Column {
+            gap: 4
+            Row {
+              gap: 6
+              align: center
+              Text { text: ">"; font: mono; fontSize: 10; fontWeight: 700; color: neon }
+              Input {
+                weight: 1
+                placeholder: "cari aplikasi…"
+                color: neon
+                fontSize: 11
+                underline: false
+                clear: true
+                onChange: pickQuery = value
+              }
+            }
+            Column {
+              height: 150
+              scroll: true
+              if len(pickList) == 0 {
+                Text { text: "> no match"; font: mono; fontSize: 9; color: alpha(ink, 0.5); maxLines: 1 }
+              } else {
+                for a in pickList key a.key {
+                  Row {
+                    gap: 5
+                    align: center
+                    padding: [5, 5]
+                    Image { src: a.icon; size: 16 }
+                    Text { text: a.name; font: mono; fontSize: 9; color: alpha(ink, 0.85); weight: 1; maxLines: 1 }
+                    if favOrder.any(k => k == a.key) {
+                      Text { text: "◀"; font: mono; fontSize: 10; color: alpha(neon, 0.8); padding: [2, 3]; onTap: { let i = indexOf(favOrder, a.key); if i > 0 { favKeys = set(set(favOrder, i, favOrder[i - 1]), i - 1, favOrder[i]) } } }
+                      Text { text: "▶"; font: mono; fontSize: 10; color: alpha(neon, 0.8); padding: [2, 3]; onTap: { let i = indexOf(favOrder, a.key); if i >= 0 && i < len(favOrder) - 1 { favKeys = set(set(favOrder, i, favOrder[i + 1]), i + 1, favOrder[i]) } } }
+                      Text { text: "−"; font: mono; fontSize: 13; fontWeight: 700; color: red; padding: [2, 4]; onTap: { favKeys = remove(favOrder, indexOf(favOrder, a.key)); haptic("light") } }
+                    } else {
+                      Text { text: "+"; font: mono; fontSize: 13; fontWeight: 700; color: neon; padding: [2, 6]; onTap: { favKeys = flatten([favOrder, [a.key]]); haptic("light") } }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        } else {
+          Row {
+            gap: 6
+            align: center
+            if len(favs) == 0 {
+              Text { text: "> tap + to add an app"; font: mono; fontSize: 9; color: alpha(ink, 0.5); maxLines: 1 }
+            } else {
+              for a in favs key a.key {
+                Column {
+                  weight: 1
+                  gap: 2
+                  align: center
+                  padding: [4, 3]
+                  background: alpha(#000000, 0.3)
+                  border: 1
+                  borderColor: alpha(neon, 0.18)
+                  radius: 3 * corners
+                  Image { src: a.icon; size: 20 }
+                  Text { text: lower(a.name); font: mono; fontSize: 8; color: alpha(ink, 0.8); maxLines: 1; align: center }
+                  onTap: open(a.key)
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // The taskbar: APPS opens the drawer, RECENT holds the last opened apps, the tray keeps the time and battery.
+      Row {
+        gap: 6
+        align: center
+        padding: [6, 6]
+        background: glass
+        border: 1
+        borderColor: alpha(neon, 0.3)
+        radius: 3 * corners
+        Row {
+          gap: 6
+          align: center
+          padding: [9, 8]
+          background: alpha(neon, 0.16)
+          border: 1
+          borderColor: alpha(neon, 0.55)
+          radius: 3 * corners
+          Canvas {
+            width: 12
+            height: 12
+            rect(0, 0, 5, 5, fill: neon)
+            rect(7, 0, 5, 5, fill: alpha(neon, 0.6))
+            rect(0, 7, 5, 5, fill: alpha(neon, 0.6))
+            rect(7, 7, 5, 5, fill: neon)
+          }
+          Text { text: "APPS"; font: mono; fontSize: 11; fontWeight: 700; letterSpacing: 1.5; color: neon; maxLines: 1 }
+        }
+        onTap: launcher("drawer")
+
+        Canvas {
+          width: 1
+          height: 24
+          rect(0, 0, 1, 24, fill: alpha(neon, 0.28))
+        }
+
+        Column {
+          gap: 2
+          align: center
+          Text { text: "RECENT"; font: mono; fontSize: 7; letterSpacing: 1; color: alpha(ink, 0.45); maxLines: 1 }
+          Row {
+            gap: 4
+            if len(recentApps) == 0 {
+              Text { text: "> no recent"; font: mono; fontSize: 9; color: alpha(ink, 0.5); maxLines: 1 }
+            } else {
+              for r in recentApps key r.key {
+                Box {
+                  size: 24
+                  align: center
+                  background: alpha(#000000, 0.25)
+                  border: 1
+                  borderColor: alpha(neon, 0.18)
+                  radius: 3 * corners
+                  onTap: open(r.key)
+                  Image { src: r.icon; size: 18 }
+                }
+              }
+            }
+          }
+        }
+
+        Spacer { weight: 1 }
+
+        Text {
+          text: ">_"
+          font: mono
+          fontSize: 11
+          fontWeight: 700
+          color: alpha(ink, 0.8)
+          padding: [9, 7]
+          background: alpha(#000000, 0.15)
+          border: 1
+          borderColor: alpha(neon, 0.2)
+          radius: 3 * corners
+          onTap: terminal("bash")
+        }
+        Text {
+          text: "SYS"
+          font: mono
+          fontSize: 11
+          fontWeight: 700
+          color: alpha(ink, 0.8)
+          padding: [9, 7]
+          background: alpha(#000000, 0.15)
+          border: 1
+          borderColor: alpha(neon, 0.2)
+          radius: 3 * corners
+          onTap: launcher("style")
+        }
+
+        Canvas {
+          width: 1
+          height: 24
+          rect(0, 0, 1, 24, fill: alpha(neon, 0.28))
+        }
+
+        // Four signal bars and an internet-speed arrow, with the live download rate.
+        Column {
+          gap: 2
+          align: end
+          Row {
+            gap: 4
+            align: center
+            Canvas {
+              width: 16
+              height: 10
+              for i in range(4) {
+                let h = 3 + i * 2
+                rect(i * 4 + 0.5, 10 - h, 2.5, h, radius: 0.6,
+                  fill: sim.signal != null && sim.signal > i ? alpha(#ffffff, 0.6 + i * 0.1) : alpha(#ffffff, 0.2))
+              }
+            }
+            // Internet-speed icon: a bright down arrow and a dimmer up arrow.
+            Canvas {
+              width: 12
+              height: 10
+              line(2, 1, 2, 9, stroke: alpha(#ffffff, 0.95), width: 1.4, cap: round)
+              line(0.2, 7, 2, 9, stroke: alpha(#ffffff, 0.95), width: 1.4, cap: round)
+              line(3.8, 7, 2, 9, stroke: alpha(#ffffff, 0.95), width: 1.4, cap: round)
+              line(9, 9, 9, 1, stroke: alpha(#ffffff, 0.6), width: 1.4, cap: round)
+              line(7.2, 3, 9, 1, stroke: alpha(#ffffff, 0.6), width: 1.4, cap: round)
+              line(10.8, 3, 9, 1, stroke: alpha(#ffffff, 0.6), width: 1.4, cap: round)
+            }
+          }
+          Text { text: "↓ ${fmtBytes(down)}/s"; font: mono; fontSize: 8; color: alpha(#ffffff, 0.75); maxLines: 1 }
+        }
+      }
+
+      Spacer { height: screenInset }
+    }
+  }
+}
