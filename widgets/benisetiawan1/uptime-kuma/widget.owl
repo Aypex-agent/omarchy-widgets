@@ -1,0 +1,224 @@
+widget "uptime kuma" {
+  meta { owl: 17; description: "Uptime Kuma status page on a server you choose: ring gauge of monitors up, per-monitor ping, sparklines, 24h uptime, certificate days, and a settings card for the URL."; version: "1.0"; license: "MIT"; category: "system" }
+  size: 3x4
+  minSize: 3x2
+
+  state sel = null
+  state blink = true
+  state base = "" persist
+  state slug = "" persist
+  state editing = false
+
+  every 1s { if downs > 0 { blink = !blink } else { blink = true } }
+
+  let configured = trim(base) != "" && trim(slug) != ""
+  let host = trim(base)
+  let page = trim(slug)
+  let link = configured ? "https://${host}/status/${page}" : null
+  source hb = http(configured ? "https://${enc(host)}/api/status-page/${enc(page)}/heartbeat" : null) every 30s timeout 10s json status
+  source cfg = http(configured ? "https://${enc(host)}/api/status-page/${enc(page)}" : null) every 10m timeout 10s json status
+  source now = clock every 1m
+
+  let d = hb == null ? null : hb.ok ? hb.out : null
+  let c = cfg == null ? null : cfg.ok ? cfg.out : null
+  let stats = d == null ? {} : (d.heartbeatList ?? {})
+  let mons = c == null ? [] : flatten((c.publicGroupList ?? []).map(g => g.monitorList ?? []), 1)
+  let ups = count(mons.filter(m => last(get(stats, "${m.id}") ?? []) != null && last(get(stats, "${m.id}") ?? []).status == 1))
+  let downs = count(mons.filter(m => last(get(stats, "${m.id}") ?? []) != null && last(get(stats, "${m.id}") ?? []).status != 1))
+  let pct = len(mons) > 0 ? ups / len(mons) : 0
+
+  strings {
+    en {
+      title: "status"
+      allNormal: "all normal"
+      offline: "offline"
+      down: "down"
+      noData: "no data yet"
+      lastCheck: t => "checked ${fmtAgo(t, now)}"
+      open: "open status page ↗"
+      uptime24: "24h uptime"
+      cert: n => "cert ${int(n)}d"
+      nDown: n => n == 1 ? "1 monitor down" : "${n} monitors down"
+      setup: "tap to set up"
+      url: "status page host, e.g. uptime.example.com"
+      slugLabel: "status page slug, e.g. home"
+    }
+    id {
+      title: "status monitor"
+      allNormal: "semua normal"
+      offline: "offline"
+      down: "down"
+      noData: "belum ada data"
+      lastCheck: t => "cek ${fmtAgo(t, now)}"
+      open: "buka halaman status ↗"
+      uptime24: "uptime 24 jam"
+      cert: n => "sertifikat ${int(n)} hari"
+      nDown: n => "${n} down"
+      setup: "ketuk untuk atur"
+      url: "host halaman status, mis. uptime.contoh.com"
+      slugLabel: "slug halaman status, mis. rumah"
+    }
+  }
+
+  onTap: screen()
+
+  Column {
+    Row {
+      gap: 10
+      align: center
+      Box {
+        align: center
+        size: 52
+        Ring {
+          value: pct
+          max: 1
+          color: downs > 0 ? red : ups == len(mons) ? green : yellow
+          track: alpha(muted, 0.25)
+          thickness: 5
+          fill: true
+          animate value: spring()
+        }
+        Text { text: "${ups}/${len(mons)}"; fontSize: 11; color: muted; align: center }
+      }
+      Column {
+        Text { text: str.title; style: label; color: muted }
+        Text { text: !configured ? str.setup : hb == null ? "…" : hb.ok == false ? str.offline : downs > 0 ? str.nDown(downs) : ups == len(mons) && len(mons) > 0 ? str.allNormal : "…"; style: title; color: !configured || hb == null || hb.ok == false ? muted : downs > 0 ? red : green }
+      }
+    }
+    Spacer { height: 4 }
+    for m in mons key m.id {
+      Box {
+        let h = last(get(stats, "${m.id}") ?? [])
+        let list = get(stats, "${m.id}") ?? []
+        let u = get((d ?? {}).uptimeList, "${m.id}_24")
+        Row {
+          gap: 6
+          Text {
+            text: h == null ? "○" : "●"
+            fontSize: 12
+            color: h == null ? muted : h.status == 1 ? green : red
+            opacity: h != null && h.status != 1 ? (blink ? 1 : 0.3) : 1
+            onTap: { sel = m.id; haptic() }
+          }
+          Text { text: m.name; style: small; weight: 1; maxLines: 1; onTap: { sel = m.id; haptic() } }
+          Text {
+            text: h == null ? "…" : h.status == 1 ? "${h.ping} ms" : str.down
+            style: small
+            color: h == null ? muted : h.status == 1 ? (h.ping > 500 ? yellow : foreground) : red
+            onTap: { sel = m.id; haptic() }
+          }
+        }
+        Popup {
+          visible: sel == m.id
+          onDismiss: sel = null
+          Column {
+            gap: 8
+            padding: 12
+            Row {
+              gap: 8
+              Text { text: h == null ? "○" : "●"; fontSize: 14; color: h == null ? muted : h.status == 1 ? green : red }
+              Text { text: m.name; style: title; weight: 1; maxLines: 1 }
+              Text { text: h == null ? "…" : h.status == 1 ? "${h.ping} ms" : str.down; style: small; color: h == null ? muted : h.status == 1 ? (h.ping > 500 ? yellow : foreground) : red }
+            }
+            if len(list) > 0 {
+              Sparkline { values: reverse(list).map(x => x.ping ?? 0); height: 48; area: true; fill: width; color: accent; thickness: 2 }
+            }
+            if h != null && h.status != 1 && h.msg != null && h.msg != "" {
+              Text { text: h.msg; style: small; color: red }
+            }
+            Row {
+              gap: 12
+              Text { text: u == null ? "…" : "${round(u * 100)}%"; style: small; color: muted; weight: 1 }
+              if m.certExpiryDaysRemaining != null {
+                Text { text: str.cert(m.certExpiryDaysRemaining); style: small; color: muted }
+              }
+              Text { text: h != null ? str.lastCheck(parseTime(h.time)) : "…"; style: small; color: muted }
+            }
+            Text { text: str.open; style: small; color: accent; onTap: url("${link}") }
+          }
+        }
+      }
+    }
+  }
+
+  screen {
+    title: str.title
+    Column {
+      scroll: true
+      padding: 16
+      gap: 10
+      onPull: refresh()
+      Row {
+        gap: 8
+        align: center
+        Text { text: str.title; style: title; weight: 1 }
+        Text { text: "⚙"; fontSize: 16; color: editing || !configured ? accent : muted; onTap: { editing = !editing; haptic() } }
+      }
+      if !configured || editing {
+        Column {
+          gap: 8
+          padding: 12
+          border: borderWidth
+          borderColor: border
+          radius: 8 * corners
+          Text { text: str.title; style: title }
+          Input { text: base; placeholder: str.url; onChange: base = value; onSubmit: editing = false }
+          Input { text: slug; placeholder: str.slugLabel; onChange: slug = value }
+          if configured { Text { text: str.open; style: small; color: accent; onTap: url("${link}") } }
+        }
+      }
+      for m in mons key m.id {
+        Box {
+          onTap: url("${link}")
+          let list = get(stats, "${m.id}") ?? []
+          let h = last(list)
+          let u = get((d ?? {}).uptimeList, "${m.id}_24")
+          Column {
+            gap: 6
+            padding: 12
+            border: borderWidth
+            borderColor: border
+            radius: 8 * corners
+            Row {
+              gap: 8
+              Text { text: h == null ? "○" : "●"; fontSize: 14; color: h == null ? muted : h.status == 1 ? green : red; opacity: h != null && h.status != 1 ? (blink ? 1 : 0.3) : 1 }
+              Text { text: m.name; style: title; weight: 1; maxLines: 1 }
+              Text { text: h == null ? "…" : h.status == 1 ? "${h.ping} ms" : str.down; style: small; color: h == null ? muted : h.status == 1 ? (h.ping > 500 ? yellow : foreground) : red }
+            }
+            if len(list) > 0 {
+              Sparkline { values: reverse(list).map(x => x.ping ?? 0); height: 48; area: true; fill: width; color: accent; thickness: 2 }
+            }
+            if h != null && h.status != 1 && h.msg != null && h.msg != "" {
+              Text { text: h.msg; style: small; color: red }
+            }
+            Row {
+              gap: 12
+              Box {
+                align: center
+                size: 26
+                Ring {
+                  value: u ?? 0
+                  max: 1
+                  color: u == null ? muted : u >= 0.99 ? green : u >= 0.9 ? yellow : red
+                  track: alpha(muted, 0.25)
+                  thickness: 3
+                  fill: true
+                  animate value: spring()
+                }
+                Text { text: u == null ? "…" : "${round(u * 100)}"; fontSize: 7; color: muted; align: center }
+              }
+              Text { text: str.uptime24; style: small; color: muted; weight: 1 }
+              if m.certExpiryDaysRemaining != null {
+                Text { text: str.cert(m.certExpiryDaysRemaining); style: small; color: muted }
+              }
+              Text { text: h != null ? str.lastCheck(parseTime(h.time)) : "…"; style: small; color: muted }
+            }
+          }
+        }
+      }
+      if configured && len(mons) == 0 {
+        Text { text: str.noData; color: muted }
+      }
+    }
+  }
+}
