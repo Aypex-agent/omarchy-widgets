@@ -1,5 +1,5 @@
 face "Omagara" {
-  meta { owl: 21; description: "Niagara-inspired transparent home face with elastic alphabetical navigation, app search, notifications, calendar, timers and world clocks"; version: "1.9.1"; license: "MIT"; category: "home" }
+  meta { owl: 21; description: "Niagara-inspired transparent home face with elastic alphabetical navigation, app search, notifications, calendar, timers and world clocks"; version: "1.9.2"; license: "MIT"; category: "home" }
   // Omalauncher OWL time animations are capped at 60 FPS, regardless of display Hz.
   // Keep the highest supported rate; reduce work rather than reducing responsiveness.
   fps: 60
@@ -1015,6 +1015,19 @@ face "Omagara" {
     }
   }
 
+  // Match Alphabet's existing optional colored-icon theme overlay.
+  // When the launcher already supplies monochrome icons, do not tint twice.
+  component IconWithThemeOverlay(iconSrc, iconSize, iconLabel) {
+    Box {
+      size: iconSize
+      align: center
+      Image { src: iconSrc; size: iconSize; label: iconLabel }
+      if iconSrc != null && iconSrc != "" && cfg.iconStyle == "Theme overlay" && cfg.iconOverlayOpacity > 0 && drawer.monochrome != true {
+        Image { src: iconSrc; size: iconSize; tint: alpha(accent, cfg.iconOverlayOpacity / 100); opacity: 1; label: iconLabel }
+      }
+    }
+  }
+
   component NotificationRow(item, stack, summary) {
     let groupItems = get(noticeGroups, stack, [])
     let stacked = summary && len(groupItems) > 1
@@ -1123,7 +1136,7 @@ face "Omagara" {
         fill: width
         gap: 12
         align: center
-        Image { src: item.icon; size: 32; label: (item.app ?? "Notification") + (item.profile == null ? "" : " · " + item.profile) }
+        IconWithThemeOverlay { iconSrc: item.icon; iconSize: 32; iconLabel: (item.app ?? "Notification") + (item.profile == null ? "" : " · " + item.profile) }
         Text { text: (item.app ?? item.package) + (item.profile == null ? "" : " · " + item.profile) + (condensed ? " · " + str(len(groupItems)) + " alerts" : ""); weight: 1; font: chosenFont; fontSize: 12; color: condensed ? primaryText : secondaryText; maxLines: 1 }
         if cfg.notificationTimes && item.time != null {
           // Compact native notification timestamp; no added timers or polling.
@@ -1248,10 +1261,7 @@ face "Omagara" {
       // Keep the original icon; theme overlay is optional and requires
       // Colored icons in the launcher's Style settings.
       if a.icon != null && a.icon != "" {
-        Image { src: a.icon; size: 36 * rowScale; label: a.name + (a.profile == null ? "" : " · " + a.profile) }
-        if cfg.iconStyle == "Theme overlay" && cfg.iconOverlayOpacity > 0 && drawer.monochrome != true {
-          Image { src: a.icon; size: 36 * rowScale; tint: alpha(accent, cfg.iconOverlayOpacity / 100); opacity: 1; label: a.name }
-        }
+        IconWithThemeOverlay { iconSrc: a.icon; iconSize: 36 * rowScale; iconLabel: a.name + (a.profile == null ? "" : " · " + a.profile) }
       } else {
         // Missing icons still have a label so each app remains recognizable.
         Text { text: upper(sub(trim(a.name), 0, 2)); font: chosenFont; fontSize: 16 * rowScale; color: primaryText; align: center }
@@ -1834,7 +1844,7 @@ face "Omagara" {
       if a.folderId != null {
         FolderIcon { f: find(customFolders, f => f.id == a.folderId); side: iconSize }
       } else if a.icon != null && a.icon != "" {
-        Image { src: a.icon; size: iconSize; label: a.name + (a.profile == null ? "" : " · " + a.profile) }
+        IconWithThemeOverlay { iconSrc: a.icon; iconSize: iconSize; iconLabel: a.name + (a.profile == null ? "" : " · " + a.profile) }
       } else {
         Text { text: upper(sub(trim(a.name), 0, 1)); font: chosenFont; fontSize: 18; color: primaryText; align: center }
       }
@@ -1981,13 +1991,44 @@ face "Omagara" {
   }
 
   component HomePinNotifications(a) {
+    // The same package may exist in multiple Android profiles. Dismiss only
+    // notifications belonging to this exact pinned app/profile identity.
     let identity = toJson([a.package, a.profile])
     let notificationOwner = first(pinnedApps.filter(p => p.folderId == null && toJson([p.package, p.profile]) == identity))
     let ownedNotices = get(noticeGroups, identity, [])
+    let clearablePinnedNotices = ownedNotices.filter(n => n.clearable)
     Column {
       fill: width
       gap: 3
       if a.folderId == null && cfg.notifications && notices != null && notices.available != false && notificationOwner != null && notificationOwner.key == a.key && expandedPinnedKey == a.key && len(ownedNotices) > 0 {
+        // Never use native global notification("clear"). Only submit this
+        // app/profile's dismissible keys, including items below Show more.
+        if len(clearablePinnedNotices) > 0 {
+          Row {
+            fill: width
+            height: 34
+            align: center
+            gap: 8
+            Text {
+              text: a.name + " · " + str(len(ownedNotices)) + (len(ownedNotices) == 1 ? " notification" : " notifications")
+              font: chosenFont
+              fontSize: 12
+              color: secondaryText
+              weight: 1
+              maxLines: 1
+            }
+            Text {
+              text: "Clear all"
+              font: chosenFont
+              fontSize: 12
+              color: primaryText
+              padding: [6, 8]
+              background: cfg.shadeNoticeLabels ? noticeHeadingShade : transparent
+              radius: cfg.roundClearAll ? 7 : 0
+              onTap: pendingStackDismiss = clearablePinnedNotices.map(n => n.key)
+            }
+          }
+        }
         for n in take(ownedNotices, pinnedNoticeShown) key n.key {
           NotificationRow { item: n; stack: identity; summary: false }
         }
@@ -2512,7 +2553,7 @@ face "Omagara" {
           if a.folderId != null {
             FolderIcon { f: find(customFolders, f => f.id == a.folderId); side: min(iconSize, slotHeight - 8) }
           } else if a.icon != null && a.icon != "" {
-            Image { src: a.icon; size: min(iconSize, slotHeight - 8); label: a.name }
+            IconWithThemeOverlay { iconSrc: a.icon; iconSize: min(iconSize, slotHeight - 8); iconLabel: a.name }
           } else {
             Text { text: upper(sub(trim(a.name), 0, 1)); font: chosenFont; fontSize: 18; color: primaryText; width: iconSize; align: center }
           }
@@ -2701,7 +2742,9 @@ face "Omagara" {
       width: noticeWidth
       height: max(0, noticeBottom - screenTop - 12)
       clip: true
-      gap: 6
+      // Slightly tighten the default module gap without overriding the
+      // user's independently saved Alerts-gap adjustment.
+      gap: 4
       lazy: true
       if len(headerRows) > 0 {
         HomeHeader {}
@@ -2823,7 +2866,21 @@ face "Omagara" {
               fill: width
               gap: 6
               for a in selectedMusicApps key a.key {
-                Button { text: a.name; onTap: androidApp(a.key) }
+                Row {
+                  height: 36
+                  gap: 6
+                  padding: [8, 7]
+                  align: center
+                  // Music shortcuts inherit the media shade visibility and
+                  // opacity; All Shades OFF must leave no independent chip.
+                  background: cfg.shadeMediaCard ? noticeCardShade : transparent
+                  radius: cfg.roundAppLabels ? 8 : 0
+                  onTap: androidApp(a.key)
+                  if a.icon != null && a.icon != "" {
+                    IconWithThemeOverlay { iconSrc: a.icon; iconSize: 22; iconLabel: a.name }
+                  }
+                  Text { text: a.name; font: chosenFont; fontSize: 12; color: primaryText; maxLines: 1 }
+                }
               }
             }
           }
@@ -3395,9 +3452,6 @@ face "Omagara" {
                   offset: [-alphabetSide * (railCurvePull * curve + wiggleX), 0]
                   scale: 1 + 0.16 * curve
                   path([[1, 3], [4, 3], [6, 5], [11, 5], [11, 10], [1, 10]], closed: true, stroke: railFolderSelected == j && browsing ? accent : primaryText, width: 1.2)
-                }
-                if railFolderSelected == j && railHeld && visual {
-                  Text { text: folderStop.name; font: chosenFont; fontSize: 12; color: accent; maxLines: 1; offset: [side == 1 ? -115 : 48, 0] }
                 }
               }
             }

@@ -1,4 +1,4 @@
-# Omagara v1.9.1
+# Omagara v1.9.2
 
 Niagara-inspired OWL 21 home face for [Omalauncher](https://github.com/SimonSchubert/omalauncher). No additional packages required.
 
@@ -15,6 +15,15 @@ Niagara-inspired OWL 21 home face for [Omalauncher](https://github.com/SimonSchu
 Slide onto the cog below the last alphabet letter (with haptic feedback) to navigate to the bottom settings menu. Select Omagara settings or Omalauncher settings there. On **Home**, hold Search to enter edit mode; holding Search while browsing the alphabet still opens Omagara settings.
 
 Time format, **Abbreviate weekday and month**, and **Show battery percentage beside date** are independent controls under **Clock** in Omagara settings. Both toggles default OFF (`Monday, November 16`). Abbreviation only shows `Mon, Nov 16`; battery only shows `Monday, Nov 16 100%`; both ON show `Mon, Nov 16 100%`. Battery uses the native Android source. OWL does not expose Android's system time format. **Home** offers two buttons to set the persistent default: Omagara (`home.home-page = 0`) or the original tile home (`home.home-page = 1`). An optional background command changes `~/.config/omalauncher/style/style.toml` without opening a terminal. Omagara displays success or failure in Home settings and saves a backup. Omalauncher Linux is required for these two buttons, not for the face itself. Separate page-navigation buttons do not change the default. World clocks appear under Clock, corner rounding under Appearance, and export/import/reset under Backup.
+
+## v1.9.2 changes
+
+- **Pinned-app notification clearing:** Expanded pinned-app notification stacks show a per-app **Clear all** action. It dismisses only that application's clearable alerts for the same Android profile, including notifications hidden behind Show more; it leaves other apps and ongoing/non-dismissible alerts untouched.
+- **Consistent icon theme overlays:** Pinned app icons, notification app icons, and pin-movement previews use the existing **Theme overlay** and its opacity setting, matching the alphabetical app list and preserving launcher monochrome-icon behavior.
+- **Music shortcuts:** Expanded Music apps now show a small themed app icon beside each shortcut name. Shortcut shading follows the media-player shade setting, including **All Shades OFF**, rather than applying a permanent background.
+- **Tighter Home layout:** Reduce the default spacing between Home content modules from 6dp to 4dp, without changing saved Alerts-gap adjustments.
+
+No new permissions or packages required.
 
 ## v1.9.1 changes
 
