@@ -1,0 +1,288 @@
+widget "skirmish" {
+  meta { owl: 21; description: "Red vs green, an RTS that plays itself: bases, infantry and tanks fight over crystal fields on a random map, then a new map"; version: "1.0"; license: "MIT"; category: "fun" }
+  size: 3x3
+  minSize: 2x2
+  padding: 0
+  fps: modes.saver ? 8 : 15
+  source modes = android.modes
+
+  // The map is 48 x 48 units; everything lives in states and moves in `every frame`.
+  // Movement runs each frame; thinking (aiming, firing, building, capturing) every 0.3 s.
+  state phase = "new"
+  state seed = 0
+  state gt = 0
+  state acc = 0
+  state startAt = 0
+  state overAt = 0
+  state winner = -1
+  state nextId = 0
+  state units = []
+  state blds = []
+  state nodes = []
+  state cash = [0, 0]
+  state shots = []
+  state booms = []
+  state wins = [0, 0] persist
+
+
+  // Terrain: smooth noise on a 16 x 16 grid of 3-unit cells, from the map's seed.
+  // [x, y, kind]: 0 marsh, 1 sand, 2 scrub, 3 woods. Plain ground isn't drawn.
+  let terrain = range(256).map(k => [k % 16, floor(k / 16), (k % 16) / 4, floor(k / 16) / 4])
+    .map(c => [c[0], c[1], lerp(
+        lerp(hash(seed, floor(c[2]), floor(c[3])), hash(seed, floor(c[2]) + 1, floor(c[3])), c[2] - floor(c[2])),
+        lerp(hash(seed, floor(c[2]), floor(c[3]) + 1), hash(seed, floor(c[2]) + 1, floor(c[3]) + 1), c[2] - floor(c[2])),
+        c[3] - floor(c[3])) * 0.8 + hash(seed, c[0], c[1], 9) * 0.2])
+    .filter(c => c[2] < 0.38 || c[2] > 0.6)
+    .map(c => [c[0] * 3, c[1] * 3, c[2] < 0.28 ? 0 : c[2] < 0.38 ? 1 : c[2] > 0.7 ? 3 : 2])
+  // Team colors are fixed, so red stays red and green stays green in any theme.
+  let RD = #e5484d
+  let RB = #ff7b7f
+  let GN = #3fae5a
+  let GB = #7ce38f
+  let RT = mix(RD, background, 0.25)
+  let GT = mix(GN, background, 0.25)
+  let tcol = [mix(background, blue, 0.25), mix(background, yellow, 0.14), mix(background, foreground, 0.07), mix(background, foreground, 0.13)]
+  let power = [0, 1].map(s => (sum(units.filter(u => u.s == s).map(u => u.k == "t" ? 3 : 1)) ?? 0) + 3 * count(blds, b => b.s == s) + 1)
+
+  every frame {
+    gt = gt + dt
+
+    if phase == "over" && gt - overAt > 4 {
+      phase = "new"
+    }
+
+    if phase == "new" {
+      seed = random(1000000)
+      let flip = random() < 0.5
+      let ha = [random(4, 9), random(6, 42)]
+      let hb = [random(39, 44), random(6, 42)]
+      let h0 = flip ? hb : ha
+      let h1 = flip ? ha : hb
+      let home0 = [clamp(h0[0] + (h0[0] < 24 ? 4 : -4), 2, 46), clamp(h0[1] + (h0[1] < 24 ? 3 : -3), 2, 46)]
+      let home1 = [clamp(h1[0] + (h1[0] < 24 ? 4 : -4), 2, 46), clamp(h1[1] + (h1[1] < 24 ? 3 : -3), 2, 46)]
+      let cands = range(80).map(i => [random(3, 45), random(4, 45)])
+      let picked = reduce(cands, (got, c) => len(got) < 11 && all(got + [h0, h1, home0, home1], a => (a[0] - c[0]) * (a[0] - c[0]) + (a[1] - c[1]) * (a[1] - c[1]) > 42) ? got + [c] : got, [])
+      nodes = [{x: home0[0], y: home0[1], o: 0}, {x: home1[0], y: home1[1], o: 1}] + picked.map(c => {x: c[0], y: c[1], o: -1})
+      blds = [
+        {id: 0, s: 0, k: "hq", x: h0[0], y: h0[1], hp: 60, mx: 60, cd: 1, gcd: 0, n: -1, bt: 1},
+        {id: 1, s: 1, k: "hq", x: h1[0], y: h1[1], hp: 60, mx: 60, cd: 1, gcd: 0, n: -1, bt: 1},
+        {id: 2, s: 0, k: "op", x: home0[0], y: home0[1], hp: 20, mx: 20, cd: 3, gcd: 0, n: 0, bt: 1},
+        {id: 3, s: 1, k: "op", x: home1[0], y: home1[1], hp: 20, mx: 20, cd: 3, gcd: 0, n: 1, bt: 1}
+      ]
+      units = flatten([[0, h0], [1, h1]].map(q => range(3).map(i => {
+        id: 10 + q[0] * 3 + i, s: q[0], k: "i", x: q[1][0] + random() * 4 - 2, y: q[1][1] + random() * 4 - 2,
+        hp: 4, mx: 4, cd: 0, gx: q[1][0], gy: q[1][1], a: 0
+      })))
+      nextId = 20
+      cash = [6, 6]
+      shots = []
+      booms = []
+      winner = -1
+      acc = 0
+      startAt = gt
+      phase = "play"
+    }
+
+    if phase == "play" {
+      // Move towards each unit's goal: infantry 1.6 units a second, tanks 2.4.
+      units = units.map(u => abs(u.gx - u.x) + abs(u.gy - u.y) < 0.1 ? u : [sqrt((u.gx - u.x) * (u.gx - u.x) + (u.gy - u.y) * (u.gy - u.y))]
+        .map(d => merge(u, {x: u.x + (u.gx - u.x) / d * min(d, (u.k == "t" ? 2.4 : 1.6) * dt), y: u.y + (u.gy - u.y) / d * min(d, (u.k == "t" ? 2.4 : 1.6) * dt), a: atan2(u.gy - u.y, u.gx - u.x)}))[0])
+
+      acc = acc + dt
+      if acc >= 0.3 {
+        acc = 0
+        // Everything that can be shot, and everything that shoots.
+        let ents = units.map(u => {id: u.id, x: u.x, y: u.y, s: u.s, r: 0})
+          + blds.map(b => {id: b.id, x: b.x, y: b.y, s: b.s, r: b.k == "hq" ? 1.8 : b.k == "op" ? 1.1 : 0.7})
+        let guns = units.map(u => {id: u.id, x: u.x, y: u.y, s: u.s, rng: u.k == "t" ? 4.5 : 3, dmg: u.k == "t" ? 3 : 1, cd: u.cd, k: u.k})
+          + blds.filter(b => (b.k == "tw" || b.k == "hq") && b.bt >= 1).map(b => {id: b.id, x: b.x, y: b.y, s: b.s, rng: b.k == "tw" ? 5.5 : 4, dmg: 2, cd: b.gcd, k: b.k})
+        let foes = [ents.filter(e => e.s == 1), ents.filter(e => e.s == 0)]
+        let aims = guns.map(f => foes[f.s].filter(e => abs(e.x - f.x) < 9 && abs(e.y - f.y) < 9)
+          .map(e => merge(e, {d: sqrt((e.x - f.x) * (e.x - f.x) + (e.y - f.y) * (e.y - f.y)) - e.r}))
+          .sortBy(e => e.d)[0])
+        let fires = guns.map((f, i) => aims[i] != null && aims[i].d <= f.rng && f.cd <= 0 ?
+            {f: f.id, t: aims[i].id, d: f.dmg, x1: f.x, y1: f.y, x2: aims[i].x, y2: aims[i].y, s: f.s, k: f.k} : null)
+          .filter(h => h != null)
+        shots = shots.filter(sh => gt - sh.t < 0.3) + fires.map(h => {x1: h.x1, y1: h.y1, x2: h.x2, y2: h.y2, s: h.s, k: h.k, t: gt})
+
+        // Where each unit goes: hold while something's in range, close in on what it sees,
+        // else make for a crystal field it doesn't own (tanks mostly for enemy buildings).
+        let foeB = [0, 1].map(s => blds.filter(b => b.s != s))
+        let wantN = [0, 1].map(s => nodes.filter(n => n.o != s))
+        let hit = units.map((u, i) => [[aims[i], any(fires, h => h.f == u.id),
+            ((u.k == "t" && hash(u.id) < 0.65) || len(wantN[u.s]) == 0 ? foeB[u.s] : wantN[u.s])
+              .sortBy(o => sqrt((o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y)) + hash(u.id, o.x, o.y) * 8)[0]]]
+          .map(q => merge(u, {
+            hp: u.hp - (sum(fires.filter(h => h.t == u.id).map(h => h.d)) ?? 0),
+            cd: q[1] ? (u.k == "t" ? 1.8 : 0.9) : max(u.cd - 0.3, 0),
+            gx: q[0] != null && q[0].d <= (u.k == "t" ? 4.5 : 3) ? u.x : q[0] != null && q[0].d < 7 ? q[0].x : q[2] != null ? clamp(q[2].x + (hash(u.id, 1) - 0.5) * 3, 1, 47) : u.x,
+            gy: q[0] != null && q[0].d <= (u.k == "t" ? 4.5 : 3) ? u.y : q[0] != null && q[0].d < 7 ? q[0].y : q[2] != null ? clamp(q[2].y + (hash(u.id, 2) - 0.5) * 3, 1, 47) : u.y
+          }))[0])
+        let hitB = blds.map(b => merge(b, {
+          hp: min(b.hp - (sum(fires.filter(h => h.t == b.id).map(h => h.d)) ?? 0) + (b.bt < 1 ? b.mx * 0.08 : 0), b.mx),
+          bt: min(b.bt + 0.1, 1),
+          cd: b.cd - 0.3,
+          gcd: any(fires, h => h.f == b.id) ? (b.k == "tw" ? 1.0 : 1.5) : max(b.gcd - 0.3, 0)
+        }))
+        let deadU = hit.filter(u => u.hp <= 0)
+        let deadB = hitB.filter(b => b.hp <= 0)
+        booms = booms.filter(b => gt - b.t < 0.8) + deadU.map(u => {x: u.x, y: u.y, t: gt, r: u.k == "t" ? 2.2 : 1.2}) + deadB.map(b => {x: b.x, y: b.y, t: gt, r: b.k == "hq" ? 5 : 3})
+        units = hit.filter(u => u.hp > 0)
+        blds = hitB.filter(b => b.hp > 0)
+        nodes = nodes.map((n, j) => any(deadB, b => b.k == "op" && b.n == j) ? merge(n, {o: -1}) : n)
+
+        // Income: a trickle from the HQ and more from each finished extractor.
+        cash = [0, 1].map(s => cash[s] + 0.3 * (1 + 0.8 * count(blds, b => b.s == s && b.k == "op" && b.bt >= 1)))
+
+        // Capture: units of one side alone on a free crystal field build an extractor there.
+        let cap = nodes.map((n, j) => merge(n, {j: j, near: unique(units.filter(u => abs(u.x - n.x) < 1.8 && abs(u.y - n.y) < 1.8).map(u => u.s))}))
+          .filter(n => n.o == -1 && len(n.near) == 1 && cash[n.near[0]] >= 4)[0]
+        if cap != null {
+          let cs = cap.near[0]
+          nodes = set(nodes, cap.j, merge(nodes[cap.j], {o: cs}))
+          blds = blds + [{id: nextId, s: cs, k: "op", x: cap.x, y: cap.y, hp: 4, mx: 20, cd: 4, gcd: 0, n: cap.j, bt: 0}]
+          nextId = nextId + 1
+          cash = set(cash, cs, cash[cs] - 4)
+        }
+
+        // Turrets near its bases when a side has money to spare.
+        let towers = [0, 1].map(s => [blds.filter(b => b.s == s && b.k != "tw")].map(base =>
+            len(base) > 0 && cash[s] >= 14 && count(blds, b => b.s == s && b.k == "tw") < 1 + len(base) / 2 && random() < 0.2 ?
+            [[base[random(len(base))], random() * 6.283]].map(q => {s: s, x: clamp(q[0].x + cos(q[1]) * 3, 2, 46), y: clamp(q[0].y + sin(q[1]) * 3, 2, 46)})[0] : null)[0])
+          .filter(t => t != null)
+        if len(towers) > 0 {
+          blds = blds + towers.map((t, i) => {id: nextId + i, s: t.s, k: "tw", x: t.x, y: t.y, hp: 3, mx: 14, cd: 99, gcd: 0, n: -1, bt: 0})
+          cash = [0, 1].map(s => cash[s] - 12 * count(towers, t => t.s == s))
+          nextId = nextId + len(towers)
+        }
+
+        // Production: one unit a side per think, from a ready HQ (infantry or a tank) or extractor (infantry).
+        let spawns = [0, 1].map(s => [blds.filter(b => b.s == s && (b.k == "hq" || b.k == "op") && b.bt >= 1 && b.cd <= 0)]
+            .map(ready => len(ready) == 0 || count(units, u => u.s == s) >= 24 ? null :
+              [ready[random(len(ready))]].map(b => b.k == "hq" && cash[s] >= 12 && random() < 0.45 ? {b: b, k: "t", c: 9} : cash[s] >= 5 ? {b: b, k: "i", c: 3} : null)[0])[0])
+          .filter(sp => sp != null)
+        if len(spawns) > 0 {
+          units = units + spawns.map((sp, i) => [random() * 6.283].map(an => {
+            id: nextId + i, s: sp.b.s, k: sp.k,
+            x: clamp(sp.b.x + cos(an) * 2.2, 1, 47), y: clamp(sp.b.y + sin(an) * 2.2, 1, 47),
+            hp: sp.k == "t" ? 12 : 4, mx: sp.k == "t" ? 12 : 4, cd: 0,
+            gx: clamp(sp.b.x + cos(an) * 3, 1, 47), gy: clamp(sp.b.y + sin(an) * 3, 1, 47), a: an
+          })[0])
+          blds = blds.map(b => any(spawns, sp => sp.b.id == b.id) ? merge(b, {cd: b.k == "hq" ? 1.8 : 3.5}) : b)
+          cash = [0, 1].map(s => cash[s] - (sum(spawns.filter(sp => sp.b.s == s).map(sp => sp.c)) ?? 0))
+          nextId = nextId + len(spawns)
+        }
+
+        // A side with no HQ and no extractor left has lost; after five minutes the stronger side wins.
+        let alive = [0, 1].map(s => count(blds, b => b.s == s && b.k != "tw"))
+        if alive[0] == 0 || alive[1] == 0 || gt - startAt > 300 {
+          winner = alive[0] == 0 && alive[1] == 0 ? -1 : alive[0] == 0 ? 1 : alive[1] == 0 ? 0 : (power[0] >= power[1] ? 0 : 1)
+          if winner >= 0 {
+            wins = set(wins, winner, wins[winner] + 1)
+          }
+          phase = "over"
+          overAt = gt
+        }
+      }
+    }
+  }
+
+
+  Box {
+  fill: true
+  // The ground only changes with the map, so it's a Canvas of its own that doesn't redraw each frame.
+  Canvas {
+    fill: true
+    let cw = width / 48
+    let ch = height / 48
+
+    rect(0, 0, width, height, fill: mix(background, foreground, 0.02))
+    for t in terrain {
+      rect(t[0] * cw, t[1] * ch, 3 * cw + 0.5, 3 * ch + 0.5, fill: tcol[t[2]])
+      if t[2] == 3 {
+        rect((t[0] + 1) * cw, (t[1] + 1) * ch, cw, ch, fill: mix(background, foreground, 0.2))
+      }
+    }
+  }
+
+  Canvas {
+    fill: true
+    let cw = width / 48
+    let ch = height / 48
+
+    // Crystal fields and buildings change only when the AI thinks, about 3 times a second,
+    // so they're a layer of their own that doesn't redraw with each frame of movement.
+    for n in nodes {
+      rect((n.x - 1) * cw, (n.y - 1) * ch, 2 * cw, 2 * ch, fill: alpha(yellow, 0.85))
+      rect((n.x - 1) * cw, (n.y - 1) * ch, cw, ch, fill: bright_yellow)
+      if n.o >= 0 {
+        rect((n.x - 1.6) * cw, (n.y - 1.6) * ch, 3.2 * cw, 3.2 * ch, stroke: alpha(n.o == 0 ? RD : GN, 0.6), width: 1)
+      }
+    }
+
+    // Buildings
+    for b in blds {
+      let c = b.s == 0 ? RD : GN
+      let dk = mix(c, background, 0.55)
+      let hs = b.k == "hq" ? 2 : b.k == "op" ? 1.2 : 0.8
+      if b.bt < 1 {
+        rect((b.x - hs) * cw, (b.y - hs) * ch, 2 * hs * cw, 2 * hs * ch, stroke: c, width: 1)
+        rect((b.x - hs) * cw, (b.y + hs - 2 * hs * b.bt) * ch, 2 * hs * cw, 2 * hs * b.bt * ch, fill: alpha(c, 0.5))
+      } else {
+        rect((b.x - hs) * cw, (b.y - hs) * ch, 2 * hs * cw, 2 * hs * ch, fill: c)
+        rect((b.x - hs * 0.5) * cw, (b.y - hs * 0.5) * ch, hs * cw, hs * ch, fill: b.k == "op" ? yellow : dk)
+        if b.k == "hq" {
+          rect((b.x - hs) * cw, (b.y - hs - 1.4) * ch, 0.5 * cw, 1.4 * ch, fill: foreground)
+          rect((b.x - hs + 0.5) * cw, (b.y - hs - 1.4) * ch, 1.2 * cw, 0.7 * ch, fill: b.s == 0 ? RB : GB)
+        }
+      }
+      if b.hp < b.mx && b.bt >= 1 {
+        rect((b.x - hs) * cw, (b.y + hs + 0.4) * ch, 2 * hs * cw, 0.5 * ch, fill: alpha(background, 0.8))
+        rect((b.x - hs) * cw, (b.y + hs + 0.4) * ch, 2 * hs * cw * b.hp / b.mx, 0.5 * ch, fill: b.hp / b.mx < 0.35 ? orange : c)
+      }
+    }
+
+  }
+
+  Canvas {
+    fill: true
+    let cw = width / 48
+    let ch = height / 48
+
+    // Units: infantry are single pixels, tanks bigger blocks with a barrel.
+    for u in units {
+      if u.k == "t" {
+        rect((u.x - 0.9) * cw, (u.y - 0.9) * ch, 1.8 * cw, 1.8 * ch, fill: u.s == 0 ? RT : GT)
+        rect((u.x - 0.45) * cw, (u.y - 0.45) * ch, 0.9 * cw, 0.9 * ch, fill: u.s == 0 ? RB : GB)
+        line(u.x * cw, u.y * ch, (u.x + cos(u.a) * 1.6) * cw, (u.y + sin(u.a) * 1.6) * ch, stroke: u.s == 0 ? RB : GB, width: 1.5)
+      } else {
+        rect((u.x - 0.4) * cw, (u.y - 0.4) * ch, 0.8 * cw, 0.8 * ch, fill: u.s == 0 ? RB : GB)
+      }
+    }
+
+    // Tracers and explosions
+    for sh in shots {
+      if gt - sh.t < 0.15 {
+        line(sh.x1 * cw, sh.y1 * ch, sh.x2 * cw, sh.y2 * ch, stroke: sh.k == "t" || sh.k == "tw" ? yellow : (sh.s == 0 ? RB : GB), width: sh.k == "t" ? 1.5 : 0.8)
+      }
+    }
+    for bm in booms {
+      if gt - bm.t < 0.6 {
+        circle(bm.x * cw, bm.y * ch, bm.r * cw * (0.4 + (gt - bm.t) * 1.5), fill: alpha(orange, 0.9 * (1 - (gt - bm.t) / 0.6)))
+        circle(bm.x * cw, bm.y * ch, bm.r * cw * 0.5 * (1 - (gt - bm.t) / 0.6), fill: alpha(bright_yellow, 0.9))
+      }
+    }
+
+    // Balance of power along the top, and the score of games won.
+    rect(0, 0, width * power[0] / (power[0] + power[1]), 3, fill: RD)
+    rect(width * power[0] / (power[0] + power[1]), 0, width, 3, fill: GN)
+    text("${wins[0]}", 6, 12, size: 10, color: RB, bold: true)
+    text("${wins[1]}", width - 6, 12, size: 10, color: GB, bold: true, align: end)
+
+    if phase == "over" {
+      rect(0, height / 2 - 18, width, 36, fill: alpha(background, 0.8))
+      text(winner == 0 ? "RED WINS" : winner == 1 ? "GREEN WINS" : "DRAW", width / 2, height / 2, size: 18, bold: true, align: center, color: winner == 0 ? RB : winner == 1 ? GB : foreground)
+    }
+  }
+  }
+}
