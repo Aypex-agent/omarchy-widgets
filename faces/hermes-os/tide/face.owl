@@ -3,26 +3,54 @@ face "tide · plan" {
   // picked day's agenda. Only the calendar: tasks live on the Now page.
   meta {
     owl: 23
-    description: "Four pages of frosted glass in your theme: a month calendar, tasks and the time, notifications and switches, and a koi pond to feed with a music player"
-    version: "1.1"
+    description: "Four pages of frosted glass in your theme: a month calendar, tasks and the time, notifications and switches, a koi pond to feed with a music player, and a dock you arrange by holding an app"
+    version: "1.2"
     license: "MIT"
     category: "productivity"
   }
   edge: true
   padding: 0
+  // While the dock is arranged the page keeps every touch, so an app held before it's dragged doesn't open home's menu.
+  lock: dkEdit
+  // Only the dock's jiggle, while it's arranged, moves by the clock.
+  fps: 40
   asset i_chevron_left = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgLTk2MCA5NjAgOTYwIiB3aWR0aD0iMjQiPjxwYXRoIGQ9Im00MzItNDgwIDE1NiAxNTZxMTEgMTEgMTEgMjh0LTExIDI4cS0xMSAxMS0yOCAxMXQtMjgtMTFMMzQ4LTQ1MnEtNi02LTguNS0xM3QtMi41LTE1cTAtOCAyLjUtMTV0OC41LTEzbDE4NC0xODRxMTEtMTEgMjgtMTF0MjggMTFxMTEgMTEgMTEgMjh0LTExIDI4TDQzMi00ODBaIi8+PC9zdmc+"
   asset i_chevron_right = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgLTk2MCA5NjAgOTYwIiB3aWR0aD0iMjQiPjxwYXRoIGQ9Ik01MDQtNDgwIDM0OC02MzZxLTExLTExLTExLTI4dDExLTI4cTExLTExIDI4LTExdDI4IDExbDE4NCAxODRxNiA2IDguNSAxM3QyLjUgMTVxMCA4LTIuNSAxNXQtOC41IDEzTDQwNC0yNjhxLTExIDExLTI4IDExdC0yOC0xMXEtMTEtMTEtMTEtMjh0MTEtMjhsMTU2LTE1NloiLz48L3N2Zz4="
   asset i_calendar_month = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgLTk2MCA5NjAgOTYwIiB3aWR0aD0iMjQiPjxwYXRoIGQ9Ik0yMDAtODBxLTMzIDAtNTYuNS0yMy41VDEyMC0xNjB2LTU2MHEwLTMzIDIzLjUtNTYuNVQyMDAtODAwaDQwdi00MHEwLTE3IDExLjUtMjguNVQyODAtODgwcTE3IDAgMjguNSAxMS41VDMyMC04NDB2NDBoMzIwdi00MHEwLTE3IDExLjUtMjguNVQ2ODAtODgwcTE3IDAgMjguNSAxMS41VDcyMC04NDB2NDBoNDBxMzMgMCA1Ni41IDIzLjVUODQwLTcyMHY1NjBxMCAzMy0yMy41IDU2LjVUNzYwLTgwSDIwMFptMC04MGg1NjB2LTQwMEgyMDB2NDAwWm0yODAtMjQwcS0xNyAwLTI4LjUtMTEuNVQ0NDAtNDQwcTAtMTcgMTEuNS0yOC41VDQ4MC00ODBxMTcgMCAyOC41IDExLjVUNTIwLTQ0MHEwIDE3LTExLjUgMjguNVQ0ODAtNDAwWm0tMTYwIDBxLTE3IDAtMjguNS0xMS41VDI4MC00NDBxMC0xNyAxMS41LTI4LjVUMzIwLTQ4MHExNyAwIDI4LjUgMTEuNVQzNjAtNDQwcTAgMTctMTEuNSAyOC41VDMyMC00MDBabTMyMCAwcS0xNyAwLTI4LjUtMTEuNVQ2MDAtNDQwcTAtMTcgMTEuNS0yOC41VDY0MC00ODBxMTcgMCAyOC41IDExLjVUNjgwLTQ0MHEwIDE3LTExLjUgMjguNVQ2NDAtNDAwWk00ODAtMjQwcS0xNyAwLTI4LjUtMTEuNVQ0NDAtMjgwcTAtMTcgMTEuNS0yOC41VDQ4MC0zMjBxMTcgMCAyOC41IDExLjVUNTIwLTI4MHEwIDE3LTExLjUgMjguNVQ0ODAtMjQwWm0tMTYwIDBxLTE3IDAtMjguNS0xMS41VDI4MC0yODBxMC0xNyAxMS41LTI4LjVUMzIwLTMyMHExNyAwIDI4LjUgMTEuNVQzNjAtMjgwcTAgMTctMTEuNSAyOC41VDMyMC0yNDBabTMyMCAwcS0xNyAwLTI4LjUtMTEuNVQ2MDAtMjgwcTAtMTcgMTEuNS0yOC41VDY0MC0zMjBxMTcgMCAyOC41IDExLjVUNjgwLTI4MHEwIDE3LTExLjUgMjguNVQ2NDAtMjQwWiIvPjwvc3ZnPg=="
+  asset dk_add = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgLTk2MCA5NjAgOTYwIiB3aWR0aD0iMjQiPjxwYXRoIGQ9Ik00NDAtNDQwSDI0MHEtMTcgMC0yOC41LTExLjVUMjAwLTQ4MHEwLTE3IDExLjUtMjguNVQyNDAtNTIwaDIwMHYtMjAwcTAtMTcgMTEuNS0yOC41VDQ4MC03NjBxMTcgMCAyOC41IDExLjVUNTIwLTcyMHYyMDBoMjAwcTE3IDAgMjguNSAxMS41VDc2MC00ODBxMCAxNy0xMS41IDI4LjVUNzIwLTQ0MEg1MjB2MjAwcTAgMTctMTEuNSAyOC41VDQ4MC0yMDBxLTE3IDAtMjguNS0xMS41VDQ0MC0yNDB2LTIwMFoiLz48L3N2Zz4="
+  asset dk_close = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgLTk2MCA5NjAgOTYwIiB3aWR0aD0iMjQiPjxwYXRoIGQ9Ik00ODAtNDI0IDI4NC0yMjhxLTExIDExLTI4IDExdC0yOC0xMXEtMTEtMTEtMTEtMjh0MTEtMjhsMTk2LTE5Ni0xOTYtMTk2cS0xMS0xMS0xMS0yOHQxMS0yOHExMS0xMSAyOC0xMXQyOCAxMWwxOTYgMTk2IDE5Ni0xOTZxMTEtMTEgMjgtMTF0MjggMTFxMTEgMTEgMTEgMjh0LTExIDI4TDUzNi00ODBsMTk2IDE5NnExMSAxMSAxMSAyOHQtMTEgMjhxLTExIDExLTI4IDExdC0yOC0xMUw0ODAtNDI0WiIvPjwvc3ZnPg=="
+  asset dk_remove = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgLTk2MCA5NjAgOTYwIiB3aWR0aD0iMjQiPjxwYXRoIGQ9Ik0yNDAtNDIwcS0yNSAwLTQyLjUwMC0xNy41MDBUMTgwLTQ4MHEwLTI1IDE3LjUwMC00Mi41MDBUMjQwLTU0MGg0ODBxMjUgMCA0Mi41MDAgMTcuNTAwVDc4MC00ODBxMCAyNS0xNy41MDAgNDIuNTAwVDcyMC00MjBIMjQwWiIvPjwvc3ZnPg=="
+  asset dk_search = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgLTk2MCA5NjAgOTYwIiB3aWR0aD0iMjQiPjxwYXRoIGQ9Ik0zODAtMzIwcS0xMDkgMC0xODQuNTAwLTc1LjUwMFQxMjAtNTgwcTAtMTA5IDc1LjUwMC0xODQuNTAwVDM4MC04NDBxMTA5IDAgMTg0LjUwMCA3NS41MDBUNjQwLTU4MHEwIDQ0LTE0IDgzdC0zOCA2OWwyMjQgMjI0cTExIDExIDExIDI4dC0xMSAyOHEtMTEgMTEtMjggMTF0LTI4LTExTDUzMi0zNzJxLTMwIDI0LTY5IDM4dC04MyAxNFptMC04MHE3NSAwIDEyNy41MDAtNTIuNTAwVDU2MC01ODBxMC03NS01Mi41MDAtMTI3LjUwMFQzODAtNzYwcS03NSAwLTEyNy41MDAgNTIuNTAwVDIwMC01ODBxMCA3NSA1Mi41MDAgMTI3LjUwMFQzODAtNDAwWiIvPjwvc3ZnPg=="
 
   source now = clock every 1m
   source c = android.calendar
   // Six weeks ahead from Linux, for dots past the two weeks android.calendar gives; [] until the calendar is allowed.
   source ext = cmd("omalauncher calendar 45 2>/dev/null || echo '[]'") every 10m json timeout 20s optional
   source apps = android.apps
+  // The dock as you arranged it, in one small file in Linux that the four pages share. Each page keeps its own copy
+  // too, so it holds while Linux is off.
+  source dkFile = file("~/.local/share/tide/dock.json") optional
 
   state mo = 0
   state sel = ""
   state held = ""
+  // The dock: its apps in order (null: the fourteen as shipped) and whether it's being arranged; the app under the
+  // finger, where it came from and how far it's been carried; the app picker (-2 shut, -1 adding, else the place being
+  // changed) and what's typed in it; whether Reset was tapped once, and when arranging ends by itself. dkDirty says
+  // this page's order hasn't been seen in the shared file yet (kept, so an order arranged while Linux was off is
+  // written once it's there), and dkTries how often it was written again over another page's.
+  state dock = null persist
+  state dkEdit = false
+  state dkId = ""
+  state dkFrom = 0
+  state dkX = 0
+  state dkY = 0
+  state dkPick = -2
+  state dkQ = ""
+  state dkDirty = false persist
+  state dkTries = 0
+  state dkSure = false
+  state dkEnds = 0
 
   // ── look ──────────────────────────────────────────────────────────────────────────────────────────────────────
   let inter = "https://raw.githubusercontent.com/google/fonts/main/ofl/inter/Inter%5Bopsz,wght%5D.ttf"
@@ -59,8 +87,7 @@ face "tide · plan" {
   let kb = (screenInset ?? 0) > 120
 
   // The fourteen apps, found among the phone's by package, else by name; a link stands in for one that isn't there.
-  // The first six are the dock, the same on every page. The Calendar page has all fourteen, seven to a row: the dock's
-  // six and Claude below, the other seven above.
+  // They're what the dock starts with, and what Reset brings back; spotifyApp and clockApp are found among them too.
   let A = apps ?? []
   let slots = [
     {id: "phone", label: "Phone", tint: green, alt: "tel:", pk: ["com.google.android.dialer", "com.samsung.android.dialer", "com.android.dialer"], nm: ["phone"]},
@@ -78,31 +105,92 @@ face "tide · plan" {
     {id: "settings", label: "Settings", tint: blue, alt: "", pk: ["com.android.settings"], nm: ["settings"]},
     {id: "claude", label: "Claude", tint: orange, alt: "https://claude.ai", pk: ["com.anthropic.claude"], nm: ["claude"]}
   ].map(s => merge(s, {app: A.find(a => a.profile == null && contains(s.pk, a.package)) ?? A.find(a => a.profile == null && contains(s.nm, lower(a.name)))}))
-  let dockRow = slots.take(6)
-  let topRow = drop(slots, 6).take(7)
-  let lowRow = flatten([dockRow, drop(slots, 13)])
   let spotifyApp = slots[6].app
   let clockApp = slots[8].app
+
+  // The dock's apps in order. The first six are the dock, the same on every page; the Calendar page shows all of them
+  // (fourteen at most), seven to a row, the first seven below. Until it's arranged it's the fourteen above: the dock's
+  // six and Claude, then the other seven. An app picked from the phone is kept by its key, package and name, and gets
+  // a tint of its own from the theme.
+  let dkWide = true
+  let dkDef = ["phone", "msg", "gmail", "yahoo", "chrome", "camera", "claude", "spotify", "maps", "clock", "photos", "cal", "bc", "settings"].map(s => {id: s})
+  let dkTints = [green, blue, red, magenta, yellow, cyan, orange, accent]
+  let dkEnts = (dock ?? dkDef).filter(e => e.key != null || any(slots, s => s.id == e.id)).take(14)
+  let dkAll = dkEnts.map(e => e.key == null ? slots.find(s => s.id == e.id) : {id: e.id, label: e.name, tint: dkTints[floor(hash(e.pkg) * 8)], alt: "", app: A.find(a => a.key == e.key) ?? A.find(a => a.profile == null && a.package == e.pkg)})
+  let dkPer = dkWide ? 7 : 6
+  let dkShown = dkAll.take(dkWide ? 14 : 6).map((s, i) => merge(s, {i: i}))
+  let dkN = len(dkShown)
+  // While arranging, a free place shows as an Add key after the last app.
+  let dkAdd = dkEdit && dkN < (dkWide ? 14 : 6)
+  let dkCells = dkN + (dkAdd ? 1 : 0)
+  let dkRows = dkCells > dkPer ? 2 : 1
+  // While arranging, the keys are placed by hand, so they can slide: the dock's width inside its glass, a key's share
+  // of it, and how far one row is from the next (a key, its name and the gap). Each row is centred.
+  let dkW = (tileWidth ?? 420) - 44
+  let dkCw = dkW / dkPer
+  let dkPitch = 70
+  let dkAddR = floor(dkN / dkPer)
+  let dkAddX = (dkW - (dkAddR == 0 ? min(dkCells, dkPer) : dkCells - dkPer) * dkCw) / 2 + (dkN - dkAddR * dkPer) * dkCw
+  // The app being carried: its row and where its left edge is, and from them the place it would land in.
+  let dkR0 = floor(dkFrom / dkPer)
+  let dkLeft = (dkW - (dkR0 == 0 ? min(dkCells, dkPer) : dkCells - dkPer) * dkCw) / 2 + (dkFrom - dkR0 * dkPer) * dkCw + dkX
+  let dkTR = dkRows == 1 ? 0 : clamp(dkR0 - round(dkY / dkPitch), 0, 1)
+  let dkTo = dkId == "" ? dkFrom : clamp(dkTR * dkPer + clamp(round((dkLeft - (dkW - (dkTR == 0 ? min(dkCells, dkPer) : dkCells - dkPer) * dkCw) / 2) / dkCw), 0, dkPer - 1), 0, dkN - 1)
+  let dkDrag = dkId == "" ? null : dkShown.find(s => s.id == dkId)
+  // The picker's apps: every app on the phone that isn't in the dock yet, and the links among the fourteen that have
+  // no app, by name; what's typed narrows them, best match first.
+  let dkTaken = dkAll.filter(s => s.app != null).map(s => s.app.key)
+  let dkIds = dkEnts.map(e => e.id)
+  let dkFree = dkPick == -2 ? [] : flatten([A.filter(a => !contains(dkTaken, a.key)).map(a => {key: a.key, name: a.profile == null ? a.name : "${a.name} · ${a.profile}", icon: a.icon, package: a.package, slot: null}), slots.filter(s => s.app == null && s.alt != "" && !contains(dkIds, s.id)).map(s => {key: "slot:" + s.id, name: s.label, icon: null, package: "", slot: s.id})]).sortBy(a => lower(a.name))
+  let dkApps = trim(dkQ) == "" ? dkFree : rank(dkFree, dkQ)
+
+  // The shared file changed, or was read for the first time. With nothing of its own to save, this page takes the
+  // file's order. With an order the file hasn't got yet, it writes it (a few times at most, should another page keep
+  // writing its own), and once the file says the same, it's saved.
+  on dkFile first {
+    if !dkEdit && value != null {
+      let kJ = value == "" ? null : parseJson(value)
+      if !dkDirty {
+        if kJ != null && kJ.dock != null { dock = kJ.dock }
+      } else if kJ != null && toJson(kJ.dock) == toJson(dkEnts) {
+        dkDirty = false
+        dkTries = 0
+      } else if dkTries < 3 {
+        dkTries = dkTries + 1
+        run("mkdir -p ~/.local/share/tide && printf '%s' ${sh(toJson({dock: dkEnts}))} > ~/.local/share/tide/dock.json.tmp && mv ~/.local/share/tide/dock.json.tmp ~/.local/share/tide/dock.json")
+      } else if kJ != null && kJ.dock != null {
+        dock = kJ.dock
+        dkDirty = false
+        dkTries = 0
+      }
+    }
+  }
+  // Arranging ends by itself a few minutes after the last touch, and saves what changed for the other pages.
+  at dkEnds {
+    if dkEdit {
+      dkEdit = false
+      dkId = ""
+      dkPick = -2
+      dkSure = false
+      if dkDirty {
+        dkTries = 0
+        run("mkdir -p ~/.local/share/tide && printf '%s' ${sh(toJson({dock: dkEnts}))} > ~/.local/share/tide/dock.json.tmp && mv ~/.local/share/tide/dock.json.tmp ~/.local/share/tide/dock.json")
+      }
+    }
+    dkEnds = 0
+  }
 
   // ── parts ─────────────────────────────────────────────────────────────────────────────────────────────────────
   component T(s, sz = 14, w = 450, col = foreground, lines = 1, al = "start") {
     Text { text: s; font: inter; fontSize: sz; fontWeight: w; color: col; maxLines: lines; align: al }
   }
 
-  // An app: a pane of glass tinted in a theme colour, its icon, its name. It sinks under the finger.
-  // `small` for the Calendar page's dock of fourteen, seven to a row.
-  component AppKey(s, small = false) {
+  // An app's key: a pane of glass tinted in a theme colour, its icon, its name. `small` for the Calendar page's dock,
+  // seven to a row.
+  component KeyFace(s, small = false) {
     Column {
       align: center
       gap: 4
-      scale: held == s.id ? 0.88 : 1
-      animate scale: spring(0.55, 600)
-      onPress: held = s.id
-      onRelease: held = ""
-      onTap: {
-        haptic("light")
-        if s.app != null { androidApp(s.app.key) } else if s.alt == "calendar" { calendar("open") } else if s.alt != "" { url(s.alt) }
-      }
       Box {
         size: small ? 44 : 50
         radius: (small ? 14 : 16) * (corners ?? 1)
@@ -118,6 +206,113 @@ face "tide · plan" {
         }
       }
       T { s: s.label; sz: small ? 10 : 10.5; w: 500; col: soft; al: "center" }
+    }
+  }
+
+  // A key in the dock: it sinks under the finger and opens its app. Held, the dock starts to jiggle, to be arranged.
+  component AppKey(s, small = false) {
+    Column {
+      width: dkCw
+      align: center
+      scale: held == s.id ? 0.88 : 1
+      animate scale: spring(0.55, 600)
+      onPress: held = s.id
+      onRelease: held = ""
+      onTap: {
+        haptic("light")
+        if s.app != null { androidApp(s.app.key) } else if s.alt == "calendar" { calendar("open") } else if s.alt != "" { url(s.alt) }
+      }
+      onLongPress: { held = ""; dkSure = false; dkEdit = true; dkEnds = now + 180 }
+      KeyFace { s: s; small: small }
+    }
+  }
+
+  // A key while the dock is arranged: it jiggles, and dragged it follows the finger while the others make room (the
+  // key itself goes unseen then, and a copy drawn over the others is what shows). Its minus takes it out, and a tap
+  // picks another app for its place. It's placed by hand, at px and py, so it can slide to a new place.
+  component EditKey(s, px, py, small = false) {
+    Box {
+      width: dkCw
+      offset: [px, py]
+      animate offset: spring(0.8, 420)
+      opacity: dkId == s.id ? 0 : 1
+      ripple: false
+      onPress: held = s.id
+      onRelease: held = ""
+      onTap: { haptic("light"); dkSure = false; dkQ = ""; dkPick = s.i; dkEnds = now + 180 }
+      onDrag: {
+        if dkId == "" { dkId = s.id; dkFrom = s.i; dkX = 0; dkY = 0 }
+        if dkId == s.id { dkX = dkX + dx; dkY = dkY + dy }
+      }
+      onDragEnd: {
+        if dkId == s.id {
+          if dkTo != dkFrom {
+            let kIt = dkEnts[dkFrom]
+            let kRest = remove(dkEnts, dkFrom)
+            dock = flatten([kRest.take(dkTo), [kIt], drop(kRest, dkTo)])
+            dkDirty = true
+            haptic("light")
+          }
+          dkId = ""
+          dkX = 0
+          dkY = 0
+        }
+        dkSure = false
+        dkEnds = now + 180
+      }
+      Box {
+        fill: width
+        rotation: sin(time * 19 + hash(s.id) * 6.28) * 1.8
+        scale: held == s.id || dkId == s.id ? 1.12 : 1
+        animate scale: spring(0.6, 500)
+        Column { fill: width; align: center; KeyFace { s: s; small: small } }
+        Box {
+          size: 30
+          offset: [(dkCw - (small ? 44 : 50)) / 2 - 8, -6]
+          padding: [3, 2, 0, 0]
+          ripple: false
+          onTap: { haptic("light"); dkSure = false; dock = remove(dkEnts, s.i); dkDirty = true; dkEnds = now + 180 }
+          Box {
+            size: 18
+            radius: 9
+            align: center
+            background: alpha(foreground, 0.94)
+            border: 1
+            borderColor: alpha(background, 0.5)
+            Image { src: dk_remove; size: 14; tint: background }
+          }
+        }
+      }
+    }
+  }
+
+  // The free place while arranging: tapped, it opens the picker to add an app there.
+  component AddKey(px, py, small = false) {
+    Box {
+      width: dkCw
+      offset: [px, py]
+      animate offset: spring(0.8, 420)
+      ripple: false
+      onPress: held = "dk-add"
+      onRelease: held = ""
+      onTap: { haptic("light"); dkSure = false; dkQ = ""; dkPick = -1; dkEnds = now + 180 }
+      Column {
+        fill: width
+        align: center
+        gap: 4
+        scale: held == "dk-add" ? 0.88 : 1
+        animate scale: spring(0.55, 600)
+        Box {
+          size: small ? 44 : 50
+          radius: (small ? 14 : 16) * (corners ?? 1)
+          background: alpha(accent, 0.14)
+          border: 1.5
+          borderColor: alpha(accent, 0.6)
+          align: center
+          Image { src: dk_add; size: small ? 22 : 24; tint: accent }
+        }
+        T { s: "Add"; sz: small ? 10 : 10.5; w: 600; col: accent; al: "center" }
+      }
     }
   }
 
@@ -167,36 +362,137 @@ face "tide · plan" {
     }
   }
 
-  // The bottom of every page, in the same place on each: the dock's six apps (on the Calendar page all fourteen, in
-  // two rows of seven), then the four pages. Swiping between pages, the pages' bar stays put.
+  // The bottom of every page, in the same place on each: the dock (on the Calendar page all its apps, in two rows of
+  // seven), then the four pages. Swiping between pages, the pages' bar stays put.
+  // Hold an app, or the dock's glass, and the dock is arranged as on an iPhone: the apps jiggle, each can be dragged
+  // to a new place, taken out by its minus or swapped for another by a tap, and a free place adds one. The bar below
+  // then holds Reset and Done.
   component Bottom(cur) {
     Column {
       gap: 10
-      Column {
-        gap: 10
+      Box {
+        fill: width
         padding: [6, 10]
         background: glass
         frost: fz
         radius: R + 4
         border: 1
-        borderColor: hair
-        if cur == "plan" {
-          Row {
-            gap: 0
-            for s in topRow key s.id { AppKey { s: s; small: true; weight: 1 } }
+        borderColor: dkEdit ? alpha(accent, 0.55) : hair
+        ripple: false
+        onLongPress: { dkSure = false; dkEdit = true; dkEnds = now + 180 }
+        if dkEdit {
+          Box {
+            fill: width
+            align: bottomStart
+            // Unseen and as tall as the rows, it gives the dock its height: the keys are placed over it, from its
+            // bottom left corner.
+            Column {
+              fill: width
+              gap: 10
+              opacity: 0
+              for k in range(dkRows) {
+                Column { gap: 4; Spacer { height: dkWide ? 44 : 50 }; T { s: "Ag"; sz: dkWide ? 10 : 10.5; w: 500 } }
+              }
+            }
+            // Each app at its place, or one along while the carried app is over a place before or after it.
+            for s in dkShown key s.id {
+              let kMe = dkId == s.id
+              let kVi = dkId == "" || kMe ? s.i : dkFrom < dkTo && s.i > dkFrom && s.i <= dkTo ? s.i - 1 : dkTo < dkFrom && s.i >= dkTo && s.i < dkFrom ? s.i + 1 : s.i
+              let kR = floor(kVi / dkPer)
+              EditKey {
+                s: s
+                small: dkWide
+                px: (dkW - (kR == 0 ? min(dkCells, dkPer) : dkCells - dkPer) * dkCw) / 2 + (kVi - kR * dkPer) * dkCw + (kMe ? dkX : 0)
+                py: (kMe ? dkY : 0) - kR * dkPitch
+              }
+            }
+            if dkAdd {
+              AddKey { small: dkWide; px: dkAddX; py: 0 - dkAddR * dkPitch }
+            }
+            // The carried app, over the others and a little larger, right under the finger.
+            if dkDrag != null {
+              Box {
+                width: dkCw
+                offset: [dkLeft, dkY - dkR0 * dkPitch]
+                Column { fill: width; align: center; scale: 1.12; KeyFace { s: dkDrag; small: dkWide } }
+              }
+            }
           }
+        } else if dkN == 0 {
           Row {
-            gap: 0
-            for s in lowRow key s.id { AppKey { s: s; small: true; weight: 1 } }
+            fill: width
+            justify: center
+            padding: [0, 14]
+            T { s: "Touch and hold here to add apps"; sz: 13; w: 550; col: soft }
           }
         } else {
-          Row {
-            gap: 0
-            for s in dockRow key s.id { AppKey { s: s; weight: 1 } }
+          Column {
+            fill: width
+            gap: 10
+            if dkN > dkPer {
+              Row {
+                fill: width
+                gap: 0
+                justify: center
+                for s in drop(dkShown, dkPer) key s.id { AppKey { s: s; small: dkWide } }
+              }
+            }
+            Row {
+              fill: width
+              gap: 0
+              justify: center
+              for s in dkShown.take(dkPer) key s.id { AppKey { s: s; small: dkWide } }
+            }
           }
         }
       }
-      Tabs { cur: cur }
+      if dkEdit {
+        Row {
+          gap: 6
+          padding: 4
+          align: center
+          background: glass
+          frost: fz
+          radius: R
+          border: 1
+          borderColor: hair
+          Row {
+            height: 34
+            padding: [14, 0]
+            align: center
+            radius: R - 4
+            onTap: {
+              haptic("light")
+              if dkSure { dock = dkDef; dkDirty = true; dkSure = false } else { dkSure = true }
+              dkEnds = now + 180
+            }
+            T { s: dkSure ? "Reset all?" : "Reset"; sz: 13; w: 650; col: dkSure ? red : soft }
+          }
+          T { s: "Drag to move · tap to change"; sz: 11; w: 500; col: faint; al: "center"; weight: 1 }
+          Row {
+            height: 34
+            padding: [20, 0]
+            align: center
+            radius: R - 4
+            background: accent
+            onTap: {
+              haptic("light")
+              dkEdit = false
+              dkId = ""
+              dkPick = -2
+              dkSure = false
+              dkEnds = 0
+              if dkDirty {
+                dkTries = 0
+                run("mkdir -p ~/.local/share/tide && printf '%s' ${sh(toJson({dock: dkEnts}))} > ~/.local/share/tide/dock.json.tmp && mv ~/.local/share/tide/dock.json.tmp ~/.local/share/tide/dock.json")
+              }
+            }
+            T { s: "Done"; sz: 13; w: 700; col: background }
+          }
+        }
+      } else {
+        Tabs { cur: cur }
+      }
     }
   }
 
@@ -218,6 +514,9 @@ face "tide · plan" {
   // The page's tint over the wallpaper, even all the way down, so the list's fades match it wherever they fall.
   background: alpha(background, 0.3)
 
+  // The page, and over it the dock's app picker.
+  Box {
+    fill: true
   Column {
     fill: true
     gap: 12
@@ -382,5 +681,104 @@ face "tide · plan" {
       Bottom { cur: "plan" }
     }
     Spacer { height: max(screenInset ?? 0, 10) }
+  }
+
+    // ── the app picker, over the page while the dock is arranged: every app on the phone that isn't in the dock, to
+    // search and to tap. A tap beside it, or its cross, shuts it ──
+    if dkPick > -2 {
+      Box {
+        fill: true
+        align: bottom
+        padding: [10, (screenTop ?? 24) + 8, 10, max(screenInset ?? 0, 10)]
+        background: alpha(background, 0.55)
+        ripple: false
+        onTap: { dkPick = -2; dkQ = "" }
+        Column {
+          fill: width
+          height: min(500, (tileHeight ?? 900) - (screenTop ?? 24) - 18 - max(screenInset ?? 0, 10))
+          gap: 10
+          padding: [14, 14, 14, 10]
+          background: alpha(background, 0.97)
+          frost: fz
+          radius: R + 4
+          border: 1
+          borderColor: hair
+          ripple: false
+          onTap: dkEnds = now + 180
+          Row {
+            align: center
+            gap: 10
+            Column {
+              gap: 0
+              weight: 1
+              T { s: dkPick >= 0 ? "Change ${dkShown[dkPick].label}" : "Add to the dock"; sz: 18; w: 650 }
+              T { s: trim(dkQ) == "" ? "${len(dkApps)} apps to choose from" : len(dkApps) == 1 ? "1 match" : "${len(dkApps)} matches"; sz: 12; w: 500; col: soft }
+            }
+            Box {
+              size: 38
+              radius: 19
+              align: center
+              background: alpha(foreground, 0.1)
+              onTap: { haptic("light"); dkPick = -2; dkQ = "" }
+              Image { src: dk_close; size: 20; tint: foreground }
+            }
+          }
+          Row {
+            gap: 8
+            align: center
+            padding: [12, 2, 8, 2]
+            radius: r2
+            background: alpha(foreground, 0.06)
+            border: 1
+            borderColor: hair
+            Image { src: dk_search; size: 18; tint: faint }
+            Input { placeholder: "Search apps"; underline: false; fontSize: 15; weight: 1; onChange: dkQ = value }
+          }
+          if len(dkApps) == 0 {
+            T { s: trim(dkQ) == "" ? "Every app is in the dock already." : "No app by that name."; sz: 14; w: 500; col: faint }
+            Spacer { weight: 1 }
+          } else {
+            Grid {
+              lazy: true
+              weight: 1
+              columns: 4
+              gap: 4
+              for a in dkApps key a.key {
+                Column {
+                  align: center
+                  gap: 5
+                  padding: [4, 8]
+                  radius: r2
+                  onTap: {
+                    haptic("light")
+                    let kB = a.slot == null ? slots.find(s => s.app != null && s.app.key == a.key) : null
+                    let kE = a.slot != null ? {id: a.slot} : kB != null ? {id: kB.id} : {id: "k:" + a.key, key: a.key, pkg: a.package, name: a.name}
+                    dock = dkPick >= 0 ? set(dkEnts, dkPick, kE) : flatten([dkEnts, [kE]])
+                    dkDirty = true
+                    dkPick = -2
+                    dkQ = ""
+                    dkEnds = now + 180
+                  }
+                  if a.icon != null {
+                    Image { src: a.icon; size: 46; label: a.name }
+                  } else {
+                    Box {
+                      size: 46
+                      radius: 14 * (corners ?? 1)
+                      align: center
+                      background: alpha(accent, 0.18)
+                      border: 1
+                      borderColor: alpha(accent, 0.4)
+                      T { s: sub(a.name, 0, 1); sz: 18; w: 600; al: "center" }
+                    }
+                  }
+                  Text { text: a.name; font: inter; fontSize: 10.5; fontWeight: 500; color: soft; align: center; maxLines: 2; minLines: 2 }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
   }
 }
