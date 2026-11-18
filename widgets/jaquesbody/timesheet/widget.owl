@@ -2,7 +2,7 @@ widget "timesheet" {
   meta {
     owl: 10
     description: "A weekly timesheet: clock-in prompts, a running balance that turns into holidays, and sick or holiday days booked whole or half right on the tile."
-    version: "2.10"
+    version: "2.13"
     license: "MIT"
     category: "productivity"
   }
@@ -38,6 +38,8 @@ widget "timesheet" {
   state savedId = ""
   state savedAt = 0
   state settingsSavedAt = 0
+  state autoSave = true persist
+  state autoLastSig = ""
   state pendingSection = ""
   state pendingTag = ""
   state confirmRemove = ""
@@ -291,6 +293,26 @@ widget "timesheet" {
   every 2s {
     if halfKey != "" && halfAt > 0 && (now ?? 0) - halfAt > 30 {
       halfKey = ""
+    }
+  }
+
+  // auto save, Obsidian style: the export files are rewritten whenever their content changes
+  every 2s {
+    if (autoSave && now != null) {
+      let sig = hash(fullTimesheetText + fullTimesheetCsv)
+      if (sig != autoLastSig) {
+        autoLastSig = sig
+        if (saveMd) {
+          run("tmp=$(mktemp); printf %s ${sh(fullTimesheetText)} > \"$tmp\"; mkdir -p \"$HOME/Downloads\"; cp \"$tmp\" \"$HOME/Downloads/timesheet.md\"; rm -f \"$tmp\"")
+        }
+        if (saveTxt) {
+          run("tmp=$(mktemp); printf %s ${sh(fullTimesheetText)} > \"$tmp\"; mkdir -p \"$HOME/Downloads\"; cp \"$tmp\" \"$HOME/Downloads/timesheet.txt\"; rm -f \"$tmp\"")
+        }
+        if (saveCsv) {
+          run("tmp=$(mktemp); printf %s ${sh(fullTimesheetCsv)} > \"$tmp\"; mkdir -p \"$HOME/Downloads\"; cp \"$tmp\" \"$HOME/Downloads/timesheet.csv\"; rm -f \"$tmp\"")
+        }
+        settingsSavedAt = now
+      }
     }
   }
 
@@ -1427,6 +1449,7 @@ widget "timesheet" {
                           }
                         }
                       }
+                      if !autoSave {
                       Row {
                         width: 86
                         gap: 0
@@ -1449,6 +1472,7 @@ widget "timesheet" {
                             }
                             Text { text: fwSaved ? "saved ✓" : "save"; style: body; color: fwSaved ? green : accent; align: center; maxLines: 1 }
                           }
+                      }
                       }
                     }
                   }
@@ -2051,6 +2075,24 @@ widget "timesheet" {
                       onTap: saveCsv = !saveCsv
                       Text { text: saveCsv ? "󰄬" : ""; font: icon; fontSize: 10; color: green; align: center }
                     }
+                  }
+                }
+                Row {
+                  fill: width
+                  align: center
+                  gap: 8
+                  padding: [2, 0, 0, 0]
+                  Text { text: "Auto save: Automatically save after any change"; style: body; color: foreground; weight: 1; maxLines: 2 }
+                  Box {
+                    width: 24
+                    height: 24
+                    align: center
+                    radius: 6 * corners
+                    background: autoSave ? alpha(green, 0.18) : alpha(background, 0.2)
+                    border: 1
+                    borderColor: autoSave ? alpha(green, 0.7) : alpha(accent, 0.3)
+                    onTap: autoSave = !autoSave
+                    Text { text: autoSave ? "󰄬" : ""; font: icon; fontSize: 12; color: green; align: center }
                   }
                 }
               }
