@@ -1,8 +1,8 @@
 widget "timesheet" {
   meta {
     owl: 10
-    description: "A weekly timesheet: clock-in prompts at each scheduled start and end, an optional default lunch break, a graph of the running balance, a holiday track with whole and half days logged from a calendar, and exports to Markdown, text or CSV."
-    version: "1.4"
+    description: "A weekly timesheet: clock-in prompts, a running balance that turns into holidays, and sick or holiday days booked whole or half right on the tile."
+    version: "2.10"
     license: "MIT"
     category: "productivity"
   }
@@ -34,7 +34,7 @@ widget "timesheet" {
   state clockEditText = "" persist
   state clockEditMin = -1 persist
   state openWeek = "" persist
-  state pane = "weeks"
+  state pane = "weeks" persist
   state savedId = ""
   state savedAt = 0
   state settingsSavedAt = 0
@@ -42,10 +42,17 @@ widget "timesheet" {
   state pendingTag = ""
   state confirmRemove = ""
   state holDone = [] persist
+  state autoTicks = [] persist
   state holPick = [] persist
   state calOff = 0
-  state calOpen = false
-  state holHalf = false
+  state halfKey = ""
+  state halfKind = ""
+  state halfAt = 0
+  state sickDone = [] persist
+  state calSick = false
+  state addWeekSkip = "" persist
+  state repairHours = 0 persist
+  state untickWeekends = 0 persist
 
   source now = clock every 1s
 
@@ -70,32 +77,61 @@ widget "timesheet" {
 
   let dayCount = includeWeekend ? 7 : 5
   let calcDayCount = 7
-  let editBoxW = max(48, ((screenWidth ?? 348) - 181.5) / 2)
+  let editBoxW = max(48, ((screenWidth ?? 348) - 187.6) / 2)
   let avgDayMin = avgWeekHrs * 12
   let avgDayMinR = round(avgDayMin)
   let avgDayText = pad(floor(avgDayMinR / 60), 2, "0") + ":" + pad(avgDayMinR % 60, 2, "0")
 
-  let amMins = weeks.map(w => w.days.map(d => (d.done ?? false) && d.amInM != null && d.amOutM != null && d.amOutM > d.amInM ? d.amOutM - d.amInM : null))
-  let pmMins = weeks.map(w => w.days.map(d => (d.done ?? false) && d.pmInM != null && d.pmOutM != null && d.pmOutM > d.pmInM ? d.pmOutM - d.pmInM : null))
-  let dayMins = weeks.map((w, wi) => range(calcDayCount).map(di => (amMins[wi][di] == null && pmMins[wi][di] == null) ? null : (amMins[wi][di] ?? 0) + (pmMins[wi][di] ?? 0)))
-  let dayDiffs = dayMins.map((ds, wi) => ds.map((a, di) => a == null ? null : (di >= 5 ? a : a - avgDayMin)))
-  let dayMinsAll = weeks.map((w, wi) => range(dayCount).map(di => dayMins[wi][di] ?? null))
-  let dayDiffsAll = dayMinsAll.map((ds, wi) => ds.map((a, di) => a == null ? null : (di >= 5 ? a : a - avgDayMin)))
+  // a day booked as a holiday or a sick day is a day off: the half (or day) that's booked takes
+  // no hours and no target, so logging one never makes the running balance jump either way
+  let dayIso7 = weeks.map(w => range(calcDayCount).map(di => fmtTime((w.monday ?? 0) + di * 86400, "yyyy-MM-dd")))
+  let dayHolSum = dayIso7.map(ks => ks.map(k => sum(holDone.filter(x => (x.key ?? x) == k).map(x => x.days ?? 1))))
+  let daySickSum = dayIso7.map(ks => ks.map(k => sum(sickDone.filter(x => (x.key ?? x) == k).map(x => x.days ?? 1))))
+  let dayHolPart = dayIso7.map(ks => ks.map(k => (holDone.find(x => (x.key ?? x) == k && (x.days ?? 1) == 0.5) ?? {part: ""}).part))
+  let daySickPart = dayIso7.map(ks => ks.map(k => (sickDone.find(x => (x.key ?? x) == k && (x.days ?? 1) == 0.5) ?? {part: ""}).part))
+  // the line runs over the same flattened days, oldest to newest: each day's confirmed booking tints the area under its segment
+  let dayHolFlat = flatten(reverse(dayHolSum.map(ks => ks.take(dayCount))))
+  let daySickFlat = flatten(reverse(daySickSum.map(ks => ks.take(dayCount))))
+  let dayHolPartFlat = flatten(reverse(dayHolPart.map(ks => ks.take(dayCount))))
+  let daySickPartFlat = flatten(reverse(daySickPart.map(ks => ks.take(dayCount))))
+  let dayOffFrac = weeks.map((w, wi) => range(calcDayCount).map(di => min(1, (dayHolSum[wi][di] ?? 0) + (daySickSum[wi][di] ?? 0))))
+  // blanked halves: a half booking takes the hours of its own half, a full one takes both
+  let dayOffAm = weeks.map((w, wi) => range(calcDayCount).map(di =>
+    (dayHolSum[wi][di] ?? 0) >= 1 || (daySickSum[wi][di] ?? 0) >= 1 ||
+    ((dayHolSum[wi][di] ?? 0) > 0 && (dayHolPart[wi][di] ?? "") != "pm") ||
+    ((daySickSum[wi][di] ?? 0) > 0 && (daySickPart[wi][di] ?? "") != "pm")))
+  let dayOffPm = weeks.map((w, wi) => range(calcDayCount).map(di =>
+    (dayHolSum[wi][di] ?? 0) >= 1 || (daySickSum[wi][di] ?? 0) >= 1 ||
+    ((dayHolSum[wi][di] ?? 0) > 0 && (dayHolPart[wi][di] ?? "") != "am") ||
+    ((daySickSum[wi][di] ?? 0) > 0 && (daySickPart[wi][di] ?? "") != "am")))
+  let amMins = weeks.map((w, wi) => w.days.map((d, di) => !(dayOffAm[wi][di] ?? false) && (d.done ?? false) && d.amInM != null && d.amOutM != null && d.amOutM > d.amInM ? d.amOutM - d.amInM : null))
+  let pmMins = weeks.map((w, wi) => w.days.map((d, di) => !(dayOffPm[wi][di] ?? false) && (d.done ?? false) && d.pmInM != null && d.pmOutM != null && d.pmOutM > d.pmInM ? d.pmOutM - d.pmInM : null))
+  let dayMins = weeks.map((w, wi) => range(calcDayCount).map(di => (dayOffFrac[wi][di] ?? 0) >= 1 ? null : (amMins[wi][di] == null && pmMins[wi][di] == null) ? null : (amMins[wi][di] ?? 0) + (pmMins[wi][di] ?? 0)))
+  let dayDiffs = dayMins.map((ds, wi) => ds.map((a, di) => a == null ? null : (di >= 5 ? a : a - avgDayMin * (1 - (dayOffFrac[wi][di] ?? 0)))))
+  // hours entered for the chart even before a day is confirmed, so the unconfirmed (dashed) part follows the AM/PM fields
+  let anyAmMins = weeks.map((w, wi) => w.days.map((d, di) => !(dayOffAm[wi][di] ?? false) && d.amInM != null && d.amOutM != null && d.amOutM > d.amInM ? d.amOutM - d.amInM : null))
+  let anyPmMins = weeks.map((w, wi) => w.days.map((d, di) => !(dayOffPm[wi][di] ?? false) && d.pmInM != null && d.pmOutM != null && d.pmOutM > d.pmInM ? d.pmOutM - d.pmInM : null))
+  let anyDayMins = weeks.map((w, wi) => range(calcDayCount).map(di => (anyAmMins[wi][di] == null && anyPmMins[wi][di] == null) ? null : (anyAmMins[wi][di] ?? 0) + (anyPmMins[wi][di] ?? 0)))
+  let dayMinsAll = weeks.map((w, wi) => range(dayCount).map(di => (dayOffFrac[wi][di] ?? 0) >= 1 ? null : anyDayMins[wi][di] ?? null))
+  let dayDiffsAll = dayMinsAll.map((ds, wi) => ds.map((a, di) => a == null ? null : (di >= 5 ? a : a - avgDayMin * (1 - (dayOffFrac[wi][di] ?? 0)))))
   let weekWorked = dayMins.map(ds => sum(ds.filter(a => a != null)))
-  let weekTargetCount = dayMins.map(ds => len(ds.take(5).filter(a => a != null)))
+  let weekTargetCount = dayMins.map((ds, wi) => sum(range(calcDayCount).map(di => ds[di] == null ? 0 : (di >= 5 ? 0 : 1 - (dayOffFrac[wi][di] ?? 0)))))
   let weekDiff = dayDiffs.map(ds => sum(ds.filter(a => a != null)))
   let cumDiff = sum(weekDiff)
   let holidayBalance = holidayDays + (avgDayMin > 0 ? cumDiff / avgDayMin : 0)
   let holDoneDays = sum(holDone.map(x => x.days ?? 1))
   let holPickDays = sum(holPick.map(x => x.days ?? 1))
   let holAllocated = holDoneDays + holPickDays
+  let sickTotal = sum(sickDone.map(x => x.days ?? 1))
   let holidayLeft = holidayBalance - holAllocated
-  let holDotFrac = holidayDays > 0 ? clamp(1 - holAllocated / holidayDays, 0, 1) : 0
-  let holDoneFrac = holidayDays > 0 ? clamp(holDoneDays / holidayDays, 0, 1) : 0
-  let holPickFrac = holidayDays > 0 ? clamp(holPickDays / holidayDays, 0, 1) : 0
+  // the bar spans the full balance: the days set plus what overtime has earned
+  let holBarTotal = holidayBalance
+  let holDotFrac = holBarTotal > 0 ? clamp(1 - holAllocated / holBarTotal, 0, 1) : 0
+  let holDoneFrac = holBarTotal > 0 ? clamp(holDoneDays / holBarTotal, 0, 1) : 0
+  let holPickFrac = holBarTotal > 0 ? clamp(holPickDays / holBarTotal, 0, 1) : 0
 
   let negTone = "#ff5f6d"
-  let cumTone = cumDiff > 0.5 ? green : cumDiff < -0.5 ? negTone : muted
+  let cumTone = cumDiff > 0.5 ? green : cumDiff < -0.5 ? negTone : #ffffff
   let cumAbs = abs(round(cumDiff))
   let cumText = pad(floor(cumAbs / 60), 2, "0") + "h:" + pad(cumAbs % 60, 2, "0") + "m"
   let holidayTone = holidayLeft < 0 ? negTone : holidayLeft > holidayDays + 0.004 ? green : accent
@@ -114,7 +150,7 @@ widget "timesheet" {
   let fwTarget = avgDayMin * fwCnt
   let fwDiff = footerWi >= 0 ? (weekDiff[footerWi] ?? 0) : 0
   let fwRun = footerWi >= 0 ? sum(weekDiff.drop(footerWi)) : 0
-  let fwTone = fwDiff > 0.5 ? green : fwDiff < -0.5 ? negTone : muted
+  let fwTone = fwDiff > 0.5 ? green : fwDiff < -0.5 ? negTone : #ffffff
   let fwAbs = abs(round(fwDiff))
   let fwText = floor(fwAbs / 60) + ":" + pad(fwAbs % 60, 2, "0")
   let fwSignedText = (fwDiff > 0.5 ? "+" : fwDiff < -0.5 ? "-" : "") + fwText
@@ -126,8 +162,8 @@ widget "timesheet" {
   let fwTargetMin = round(fwTarget)
   let fwTargetText = floor(fwTargetMin / 60) + ":" + pad(fwTargetMin % 60, 2, "0")
   let fwSaved = footerWeek != null && savedId == footerWeek.id && now != null && now - savedAt < 3
-  let fwAmTexts = footerWeek == null ? [] : range(fwDayCount).map(di => (footerWeek.days[di].amInM != null && footerWeek.days[di].amOutM != null && footerWeek.days[di].amOutM > footerWeek.days[di].amInM) ? fmtTime(footerWeek.days[di].amInM * 60, "HH:mm", "UTC") + "-" + fmtTime(footerWeek.days[di].amOutM * 60, "HH:mm", "UTC") : "—")
-  let fwPmTexts = footerWeek == null ? [] : range(fwDayCount).map(di => (footerWeek.days[di].pmInM != null && footerWeek.days[di].pmOutM != null && footerWeek.days[di].pmOutM > footerWeek.days[di].pmInM) ? fmtTime(footerWeek.days[di].pmInM * 60, "HH:mm", "UTC") + "-" + fmtTime(footerWeek.days[di].pmOutM * 60, "HH:mm", "UTC") : "—")
+  let fwAmTexts = footerWeek == null ? [] : range(fwDayCount).map(di => (!(dayOffAm[footerWi][di] ?? false) && footerWeek.days[di].amInM != null && footerWeek.days[di].amOutM != null && footerWeek.days[di].amOutM > footerWeek.days[di].amInM) ? fmtTime(footerWeek.days[di].amInM * 60, "HH:mm", "UTC") + "-" + fmtTime(footerWeek.days[di].amOutM * 60, "HH:mm", "UTC") : "—")
+  let fwPmTexts = footerWeek == null ? [] : range(fwDayCount).map(di => (!(dayOffPm[footerWi][di] ?? false) && footerWeek.days[di].pmInM != null && footerWeek.days[di].pmOutM != null && footerWeek.days[di].pmOutM > footerWeek.days[di].pmInM) ? fmtTime(footerWeek.days[di].pmInM * 60, "HH:mm", "UTC") + "-" + fmtTime(footerWeek.days[di].pmOutM * 60, "HH:mm", "UTC") : "—")
   let fwRowLines = footerWeek == null ? [] : range(fwDayCount).map(di => "| " + dayNames[di] + " | " + fwAmTexts[di] + " | " + fwPmTexts[di] + " | " + ((footerWeek.days[di].done ?? false) ? "✓" : "—") + " | " + (fwDfs[di] == null ? "—" : floor(round(fwDfs[di] + avgDayMin) / 60) + ":" + pad(round(fwDfs[di] + avgDayMin) % 60, 2, "0")) + " | " + (fwDfs[di] == null ? "—" : (fwDfs[di] > 0.5 ? "+" : fwDfs[di] < -0.5 ? "-" : "") + floor(abs(round(fwDfs[di])) / 60) + ":" + pad(abs(round(fwDfs[di])) % 60, 2, "0")) + " |")
   let fwSectionText = footerWeek == null ? "" : join(["<!-- owl-week:" + footerWeek.id + " -->", "## Week " + footerWeek.week + " — " + footerWeek.date, "", "| Day | AM | PM | ✓ | Worked | ± vs avg |", "|:--|:--|:--|:-:|--:|--:|"] + fwRowLines + ["", "**Worked** " + fwWorkedText + " · **Target** " + fwTargetText + " · **Week** " + fwSignedText + " · **Running** " + fwRunSignedText + " · **Holidays** " + fixed(holidayLeft, 2) + " d", "<!-- /owl-week:" + footerWeek.id + " -->"], "\n") + "\n"
   let saveExts = (saveMd ? [".md"] : []) + (saveTxt ? [".txt"] : []) + (saveCsv ? [".csv"] : [])
@@ -174,10 +210,16 @@ widget "timesheet" {
   let fullTimesheetText = "# Timesheet\n\n" + settingsSectionText + "\n" + join(exportSections, "\n\n") + "\n"
   let orderedWeeks = reverse(weeks)
   let labelStep = max(1, floor((len(weeks) + 7) / 8))
-  let dailyDeltas = flatten(reverse(dayDiffsAll)).map(d => d ?? 0)
-  let dayDone = flatten(reverse(weeks.map(w => range(calcDayCount).map(di => (w.days[di] ?? {}).done ?? false))))
-  let dayIso = flatten(reverse(weeks.map(w => range(calcDayCount).map(di => fmtTime((w.monday ?? 0) + di * 86400, "yyyy-MM-dd")))))
-  let daySettled = dayDone.map((d, i) => d || ((i % calcDayCount) >= 5 && (dayIso[i] ?? "") != "" && (dayIso[i] ?? "") < todayIso))
+  // ticked days are settled for the line: an off day's delta is null either way, so the tick only firms the styling, never the shape
+  let dayDone = flatten(reverse(weeks.map(w => range(dayCount).map(di => (w.days[di] ?? {}).done ?? false))))
+  let dayIso = flatten(reverse(weeks.map(w => range(dayCount).map(di => fmtTime((w.monday ?? 0) + di * 86400, "yyyy-MM-dd")))))
+  let daySettled = dayDone.map((d, i) => d || ((i % dayCount) >= 5 && (dayIso[i] ?? "") != "" && (dayIso[i] ?? "") < todayIso))
+  // the chart's one line: confirmed hours on ticked days, the entered hours on days not ticked yet (drawn dashed)
+  let chartDiffs = flatten(reverse(dayDiffsAll))
+  let confirmedDiffs = flatten(reverse(weeks.map((w, wi) => range(dayCount).map(di => dayDiffs[wi][di] ?? null))))
+  let dailyDeltas = range(len(chartDiffs)).map(i => ((dayDone[i] ?? false) ? (confirmedDiffs[i] ?? 0) : (chartDiffs[i] ?? 0)) ?? 0)
+  let tickedIdx = range(len(dayDone)).filter(i => dayDone[i] ?? false)
+  let lastTicked = len(tickedIdx) > 0 ? tickedIdx.last() : -1
   let accum = [0] + scan(dailyDeltas, (s, d) => s + d, 0)
   let accumMin = (accum.sortBy(v => v).first() ?? 0)
   let accumMax = (accum.sortBy(v => v).last() ?? 0)
@@ -196,11 +238,22 @@ widget "timesheet" {
   let todayWeek = now == null || todayMonIso == "" ? null : weeks.find(w => (w.monday ?? 0) > 0 && fmtTime(w.monday, "yyyy-MM-dd") == todayMonIso)
   let todayWi = todayWeek == null ? -1 : weeks.indexOf(todayWeek)
   let todayDay = todayWeek != null && todayDow >= 0 && todayDow < len(todayWeek.days) ? todayWeek.days[todayDow] : null
+  // a day taken off takes no clock prompts
+  let todayHol = todayIso == "" ? null : holDone.find(x => (x.key ?? x) == todayIso)
+  let todayHolAmt = todayHol == null ? 0 : (todayHol.days ?? 1)
+  let todayHolPart = todayHol == null ? "" : (todayHol.part ?? "")
+  let todaySick = todayIso == "" ? [] : sickDone.filter(x => (x.key ?? x) == todayIso)
+  let todaySickAmt = sum(todaySick.map(x => x.days ?? 1))
+  let todaySickPart = (todaySick.find(x => (x.part ?? "") != "") ?? {part: ""}).part
+  let todayHolAm = todayHol != null && (todayHolAmt >= 1 || todayHolPart == "am")
+  let todayHolPm = todayHol != null && (todayHolAmt >= 1 || todayHolPart == "pm")
+  let todayOffAm = todayHolAm || todaySickAmt >= 1 || (todaySickAmt == 0.5 && todaySickPart == "am")
+  let todayOffPm = todayHolPm || todaySickAmt >= 1 || (todaySickAmt == 0.5 && todaySickPart == "pm")
   let clockSlots = todayDay == null ? [] : [
-    {slot: 0, label: "Clocking IN / AM", min: todayDay.amInM, textKey: "amIn", minKey: "amInM"},
-    {slot: 1, label: "Clocking OUT / AM", min: todayDay.amOutM, textKey: "amOut", minKey: "amOutM"},
-    {slot: 2, label: "Clocking IN / PM", min: todayDay.pmInM, textKey: "pmIn", minKey: "pmInM"},
-    {slot: 3, label: "Clocking OUT / PM", min: todayDay.pmOutM, textKey: "pmOut", minKey: "pmOutM"}
+    {slot: 0, label: "Clocking IN / AM", min: todayOffAm ? null : todayDay.amInM, textKey: "amIn", minKey: "amInM"},
+    {slot: 1, label: "Clocking OUT / AM", min: todayOffAm ? null : todayDay.amOutM, textKey: "amOut", minKey: "amOutM"},
+    {slot: 2, label: "Clocking IN / PM", min: todayOffPm ? null : todayDay.pmInM, textKey: "pmIn", minKey: "pmInM"},
+    {slot: 3, label: "Clocking OUT / PM", min: todayOffPm ? null : todayDay.pmOutM, textKey: "pmOut", minKey: "pmOutM"}
   ]
   let clockDueSlots = clockSlots.filter(s => s.min != null && s.min <= clockNowMin)
   let clockLastDue = len(clockDueSlots) > 0 ? clockDueSlots.last() : null
@@ -211,6 +264,52 @@ widget "timesheet" {
   let clockFallback = clockActive && (clockNeedsInit || (clockEditMin < 0 && trim(clockEditText) == ""))
   let clockShownMin = clockFallback ? (clockSlot.min ?? -1) : clockEditMin
   let clockShownText = clockFallback ? (clockShownMin >= 0 ? fmtTime(clockShownMin * 60, "HH:mm", "UTC") : "") : clockEditText
+
+  // one-off repair: put the standard hours back into this week's blank weekdays, for days that lost them
+  on repairHours {
+    if repairHours > 0 && todayWi >= 0 {
+      weeks = weeks.map((w, wi) => wi != todayWi ? w : set(w, "days", w.days.map((d, di) =>
+        di >= 5 || (d.amIn ?? "") != "" || (d.amOut ?? "") != "" || (d.pmIn ?? "") != "" || (d.pmOut ?? "") != ""
+          ? d
+          : merge(lunchDays[di], {done: d.done ?? false}))))
+      repairHours = 0
+    }
+  }
+
+  // one-off repair: a weekend day that came in ticked but holds no hours is a blank day, not a logged one
+  on untickWeekends {
+    if untickWeekends > 0 {
+      weeks = weeks.map(w => set(w, "days", w.days.map((d, di) =>
+        di < 5 || !(d.done ?? false) || (d.amIn ?? "") != "" || (d.amOut ?? "") != "" || (d.pmIn ?? "") != "" || (d.pmOut ?? "") != "" || (d.amInM ?? null) != null || (d.pmInM ?? null) != null
+          ? d
+          : set(d, "done", false))))
+      untickWeekends = 0
+    }
+  }
+
+  // a chooser left open doesn't wait: it closes itself, so it isn't still up when you come back
+  every 2s {
+    if halfKey != "" && halfAt > 0 && (now ?? 0) - halfAt > 30 {
+      halfKey = ""
+    }
+  }
+
+  state daySummary = ""     // today's dd/mm/yy while the end-of-day summary shows on the tile
+  // PM Finish normally ends a clockable day; when the afternoon is off, AM Finish ends it instead
+  let clockPmSet = clockSkip.any(a => a.date == todayKey && a.slot == 3) || (todayOffPm && clockSkip.any(a => a.date == todayKey && a.slot == 1))
+  let summaryShown = todayDay != null && daySummary != "" && daySummary == todayKey && !clockActive && clockPmSet
+  let sumSlots = todayDay == null ? [] : [
+    {k: "AM Start", m: todayDay.amInM},
+    {k: "AM Finish", m: todayDay.amOutM},
+    {k: "PM Start", m: todayDay.pmInM},
+    {k: "PM Finish", m: todayDay.pmOutM}
+  ]
+
+  // today's week isn't on the timesheet yet: offer to add it on the tile, so clock-in prompts can start
+  let weekMissing = now != null && todayWeek == null && len(weeks) > 0 && todayMon > (topWeek.monday ?? 0)
+  let todayWkNum = now == null ? 0 : int(fmtTime(todayMon, "ww"))
+  let todayWkDate = now == null ? "" : fmtTime(todayMon, "dd/MM/yy")
+  let addPrompt = weekMissing && addWeekSkip != todayMonIso && !clockActive && !summaryShown && todayDow >= 0 && (todayDow < 5 || includeWeekend)
 
   let calMonthIdx = now == null ? 0 : int(fmtTime(now, "M")) - 1 + calOff
   let calYear = now == null ? 0 : int(fmtTime(now, "yyyy")) + floor(calMonthIdx / 12)
@@ -226,6 +325,38 @@ widget "timesheet" {
   let calKeys = calFirst == null ? [] : range(calDays).map(d => fmtTime(calFirst + d * 86400, "yyyy-MM-dd"))
   let calDoneAmt = calKeys.map(k => sum(holDone.filter(x => (x.key ?? x) == k).map(x => x.days ?? 1)))
   let calPickAmt = calKeys.map(k => sum(holPick.filter(x => (x.key ?? x) == k).map(x => x.days ?? 1)))
+  let calSickAmt = calKeys.map(k => sum(sickDone.filter(x => (x.key ?? x) == k).map(x => x.days ?? 1)))
+  let calHolPart = calKeys.map(k => (holDone.find(x => (x.key ?? x) == k && (x.days ?? 1) == 0.5) ?? {part: ""}).part)
+  let calSickPart = calKeys.map(k => (sickDone.find(x => (x.key ?? x) == k && (x.days ?? 1) == 0.5) ?? {part: ""}).part)
+  let calPickPart = calKeys.map(k => (holPick.find(x => (x.key ?? x) == k && (x.days ?? 1) == 0.5) ?? {part: ""}).part)
+  // a holiday (booked or only planned) and a sick day on the same day, or the same half, can't both stand.
+  // worked out from the booked dates, so it warns even for weeks that aren't loaded yet
+  let clashKeys = (holDone.map(x => x.key ?? x) + holPick.map(x => x.key ?? x) + sickDone.map(x => x.key ?? x)).unique()
+  let clashHolAmt = clashKeys.map(k => sum(holDone.filter(x => (x.key ?? x) == k).map(x => x.days ?? 1)) + sum(holPick.filter(x => (x.key ?? x) == k).map(x => x.days ?? 1)))
+  let clashSickAmt = clashKeys.map(k => sum(sickDone.filter(x => (x.key ?? x) == k).map(x => x.days ?? 1)))
+  let clashHolPart = clashKeys.map(k => (holDone.find(x => (x.key ?? x) == k && (x.days ?? 1) == 0.5) ?? holPick.find(x => (x.key ?? x) == k && (x.days ?? 1) == 0.5) ?? {part: ""}).part)
+  let clashHolConf = clashKeys.map(k => holDone.any(x => (x.key ?? x) == k))
+  let clashSickPart = clashKeys.map(k => (sickDone.find(x => (x.key ?? x) == k && (x.days ?? 1) == 0.5) ?? {part: ""}).part)
+  let clashDays = range(len(clashKeys)).map(i => ({
+      key: clashKeys[i],
+      hol: clashHolAmt[i] ?? 0,
+      holPart: clashHolPart[i] ?? "",
+      holConf: clashHolConf[i] ?? false,
+      sick: clashSickAmt[i] ?? 0,
+      sickPart: clashSickPart[i] ?? ""
+    }))
+    .filter(c => c.hol > 0 && c.sick > 0 && (c.hol >= 1 || c.sick >= 1 || c.holPart == c.sickPart))
+  let clashDayKeys = clashDays.map(x => x.key)
+  // the day the chooser is open on: what it already holds, and how many holidays are still free for it
+  let pickKey = halfKey
+  let pickHolAmt = sum(holDone.filter(x => (x.key ?? x) == pickKey).map(x => x.days ?? 1)) + sum(holPick.filter(x => (x.key ?? x) == pickKey).map(x => x.days ?? 1))
+  let pickSickAmt = sum(sickDone.filter(x => (x.key ?? x) == pickKey).map(x => x.days ?? 1))
+  let pickCanRemove = (halfKind == "sick" ? pickSickAmt : pickHolAmt) > 0
+  let pickPlanned = sum(holPick.filter(x => (x.key ?? x) == pickKey).map(x => x.days ?? 1)) > 0
+  let pickPlannedAmt = sum(holPick.filter(x => (x.key ?? x) == pickKey).map(x => x.days ?? 1))
+  let pickPlannedPart = (holPick.find(x => (x.key ?? x) == pickKey) ?? {part: ""}).part ?? ""
+  let pickConfirmed = sum(holDone.filter(x => (x.key ?? x) == pickKey).map(x => x.days ?? 1)) > 0
+  let pickHolRoom = holidayDays + 0.001 - (holAllocated - pickHolAmt)
   let calCells = range(calLead + calDays).map(i => ({
     blank: i < calLead,
     label: i < calLead ? "" : "${i - calLead + 1}",
@@ -233,7 +364,19 @@ widget "timesheet" {
     amt: i < calLead ? 0 : ((calDoneAmt[i - calLead] ?? 0) + (calPickAmt[i - calLead] ?? 0)),
     known: i >= calLead && (calDoneAmt[i - calLead] ?? 0) > 0,
     pending: i >= calLead && (calPickAmt[i - calLead] ?? 0) > 0,
-    half: i >= calLead && ((calDoneAmt[i - calLead] ?? 0) + (calPickAmt[i - calLead] ?? 0)) % 1 != 0
+    half: i >= calLead && ((calDoneAmt[i - calLead] ?? 0) + (calPickAmt[i - calLead] ?? 0)) % 1 != 0,
+    sick: i >= calLead && (calSickAmt[i - calLead] ?? 0) > 0,
+    sickHalf: i >= calLead && (calSickAmt[i - calLead] ?? 0) == 0.5,
+    sickFull: i >= calLead && (calSickAmt[i - calLead] ?? 0) >= 1,
+    // AM takes the bottom half of the tile, PM the top half
+    holAm: i >= calLead && (calDoneAmt[i - calLead] ?? 0) == 0.5 && (calHolPart[i - calLead] ?? "") == "am",
+    holPm: i >= calLead && (calDoneAmt[i - calLead] ?? 0) == 0.5 && (calHolPart[i - calLead] ?? "") == "pm",
+    pickAm: i >= calLead && (calPickAmt[i - calLead] ?? 0) == 0.5 && (calPickPart[i - calLead] ?? "") == "am",
+    pickPm: i >= calLead && (calPickAmt[i - calLead] ?? 0) == 0.5 && (calPickPart[i - calLead] ?? "") == "pm",
+    pickHalf: i >= calLead && (calPickAmt[i - calLead] ?? 0) == 0.5,
+    sickAm: i >= calLead && (calSickAmt[i - calLead] ?? 0) == 0.5 && (calSickPart[i - calLead] ?? "") == "am",
+    sickPm: i >= calLead && (calSickAmt[i - calLead] ?? 0) == 0.5 && (calSickPart[i - calLead] ?? "") == "pm",
+    clash: i >= calLead && clashDayKeys.indexOf(calKeys[i - calLead] ?? "") >= 0
   }))
   let calAll = ["M", "T", "W", "T", "F", "S", "S"].map(t => ({h: true, t: t})) + calCells
 
@@ -249,28 +392,30 @@ widget "timesheet" {
     let sod = int(fmtTime(now, "H") ?? 0) * 3600 + int(fmtTime(now, "m") ?? 0) * 60 + int(fmtTime(now, "s") ?? 0)
     let mon = now - sod - (dow - 1) * 86400 + 43200
     let wid = "${fmtTime(mon, 'ww')}-${mon}"
-    weeks = [{
+    let nw = {
       id: wid,
       week: int(fmtTime(mon, "ww")),
       monday: mon,
       date: fmtTime(mon, "dd/MM/yy"),
-      days: lunchDays
-    }]
+      days: lunchDays.map((d, di) => set(d, "done", holDone.any(x => (x.key ?? x) == fmtTime(mon + di * 86400, "yyyy-MM-dd")) || sickDone.any(x => (x.key ?? x) == fmtTime(mon + di * 86400, "yyyy-MM-dd"))))
+    }
+    autoTicks = (autoTicks + range(len(nw.days)).filter(di => (nw.days[di].done ?? false)).map(di => fmtTime(mon + di * 86400, "yyyy-MM-dd"))).unique()
+    weeks = [nw]
     openWeek = wid
   }
 
   when includeWeekend && now != null && len(weeks.filter(w => len(w.days) < 7)) > 0 {
-    weeks = weeks.map(w => len(w.days) < 7 ? set(w, "days", w.days + weekendDays) : w)
+    weeks = weeks.map(w => len(w.days) < 7 ? set(w, "days", (w.days + weekendDays.drop(max(0, len(w.days) - 5))).take(7)) : w)
   }
 
-  onTap: { if !clockActive { pane = "weeks"; screen() } }
+  onTap: { if !clockActive { screen() } }
 
   Column {
     fill: true
     gap: 5
     justify: spaceBetween
 
-    if clockActive {
+    if clockActive && !summaryShown {
       Box {
         fill: true
         align: center
@@ -375,14 +520,17 @@ widget "timesheet" {
               align: center
               background: alpha(background, 0.5)
               border: 1
-              borderColor: alpha(border, 0.55)
+              borderColor: alpha(accent, 0.55)
               radius: 8 * corners
               onTap: {
                 if clockActive {
-                  clockSkip = clockSkip.filter(a => a.date == todayKey) + [{date: todayKey, slot: clockSlot.slot}]
+                  let slotNum = clockSlot.slot
+                  clockSkip = clockSkip.filter(a => a.date == todayKey) + [{date: todayKey, slot: slotNum}]
+                  // dismissing the PM Finish prompt (slot 3) ends the day: offer the day summary
+                  if slotNum == 3 { daySummary = todayKey }
                 }
               }
-              Text { text: "Ignore"; fontSize: 13; color: muted; align: center }
+              Text { text: "Ignore"; fontSize: 13; color: #ffffff; align: center }
             }
             Box {
               weight: 1
@@ -390,30 +538,189 @@ widget "timesheet" {
               align: center
               background: clockShownMin >= 0 ? alpha(green, 0.16) : alpha(background, 0.3)
               border: 1
-              borderColor: clockShownMin >= 0 ? alpha(green, 0.55) : alpha(border, 0.4)
+              borderColor: clockShownMin >= 0 ? alpha(green, 0.55) : alpha(accent, 0.4)
               radius: 8 * corners
               onTap: {
                 if clockActive && clockShownMin >= 0 && todayWi >= 0 && todayDow >= 0 {
                   let mins = clamp(clockShownMin, 0, 1439)
                   let text = pad(floor(mins / 60), 2, "0") + ":" + pad(mins % 60, 2, "0")
-                  weeks = weeks.map((w, wi) => wi == todayWi ? set(w, "days", set(w.days, todayDow, set(set(w.days[todayDow], clockSlot.textKey, text), clockSlot.minKey, mins))) : w)
-                  clockSkip = clockSkip.filter(a => a.date == todayKey) + [{date: todayKey, slot: clockSlot.slot}]
+                  let slotTextKey = clockSlot.textKey
+                  let slotMinKey = clockSlot.minKey
+                  let slotNum = clockSlot.slot
+                  weeks = weeks.map((w, wi) => wi == todayWi ? set(w, "days", set(w.days, todayDow, set(set(w.days[todayDow], slotTextKey, text), slotMinKey, mins))) : w)
+                  clockSkip = clockSkip.filter(a => a.date == todayKey) + [{date: todayKey, slot: slotNum}]
                   clockEditText = text
                   clockEditMin = mins
+                  // dismissing the PM Finish prompt (slot 3) ends the day: offer the day summary
+                  if slotNum == 3 { daySummary = todayKey }
+                  haptic()
                 }
               }
-              Text { text: "Set"; fontSize: 13; color: clockShownMin >= 0 ? green : muted; fontWeight: 500; align: center }
+              Text { text: "Set"; fontSize: 13; color: clockShownMin >= 0 ? green : #ffffff; fontWeight: 500; align: center }
             }
           }
         }
       }
     } else {
+    if addPrompt {
+    Box {
+      fill: true
+      align: center
+      background: alpha(accent, 0.07)
+      border: 1
+      borderColor: alpha(accent, 0.45)
+      radius: 10 * corners
+      Column {
+        fill: true
+        align: center
+        justify: center
+        gap: 9
+        padding: [8, 10]
+        Text {
+          text: "W${todayWkNum} · ${todayWkDate}"
+          fontSize: 22
+          fontWeight: 500
+          color: green
+          align: center
+          maxLines: 1
+        }
+        Text {
+          text: "this week isn't on your timesheet yet"
+          fontSize: 16
+          color: #ffffff
+          align: center
+          maxLines: 2
+        }
+        Row {
+          fill: width
+          align: center
+          gap: 8
+          padding: [4, 0, 0, 0]
+          Box {
+            weight: 1
+            height: 32
+            align: center
+            background: alpha(background, 0.5)
+            border: 1
+            borderColor: alpha(accent, 0.55)
+            radius: 8 * corners
+            onTap: {
+              addWeekSkip = todayMonIso
+              haptic()
+            }
+            Text { text: "Ignore"; fontSize: 13; color: #ffffff; align: center }
+          }
+          Box {
+            weight: 1
+            height: 32
+            align: center
+            background: alpha(accent, 0.16)
+            border: 1
+            borderColor: alpha(accent, 0.55)
+            radius: 8 * corners
+            onTap: {
+              if weekMissing {
+                let mon = todayMon
+                let wid = "${fmtTime(mon, 'ww')}-${mon}"
+                let nw = {
+                  id: wid,
+                  week: int(fmtTime(mon, "ww")),
+                  monday: mon,
+                  date: fmtTime(mon, "dd/MM/yy"),
+                  days: lunchDays.map((d, di) => set(d, "done", holDone.any(x => (x.key ?? x) == fmtTime(mon + di * 86400, "yyyy-MM-dd")) || sickDone.any(x => (x.key ?? x) == fmtTime(mon + di * 86400, "yyyy-MM-dd"))))
+                }
+                autoTicks = (autoTicks + range(len(nw.days)).filter(di => (nw.days[di].done ?? false)).map(di => fmtTime(mon + di * 86400, "yyyy-MM-dd"))).unique()
+                weeks = [nw] + weeks
+                openWeek = wid
+                addWeekSkip = ""
+              }
+              haptic()
+            }
+            Text { text: "Add W${todayWkNum}"; fontSize: 13; color: accent; fontWeight: 500; align: center; maxLines: 1 }
+          }
+        }
+      }
+    }
+    } else {
+    if summaryShown {
+    Box {
+      fill: true
+      align: center
+      background: alpha(green, 0.07)
+      border: 1
+      borderColor: alpha(green, 0.45)
+      radius: 10 * corners
+      Column {
+        fill: true
+        align: center
+        justify: center
+        gap: 6
+        padding: [8, 10]
+        Text { text: "confirm today's hours"; fontSize: 13; fontWeight: 500; color: green; align: center; maxLines: 1 }
+        Row {
+          fill: width
+          align: center
+          justify: center
+          gap: 6
+          Text { text: "AM Start"; style: small; color: #ffffff; align: center }
+          Text { text: sumSlots[0].m == null ? "—" : fmtTime(sumSlots[0].m * 60, "HH:mm", "UTC"); style: small; color: accent; align: center }
+          Text { text: "AM Finish"; style: small; color: #ffffff; align: center }
+          Text { text: sumSlots[1].m == null ? "—" : fmtTime(sumSlots[1].m * 60, "HH:mm", "UTC"); style: small; color: accent; align: center }
+        }
+        Row {
+          fill: width
+          align: center
+          justify: center
+          gap: 6
+          Text { text: "PM Start"; style: small; color: #ffffff; align: center }
+          Text { text: sumSlots[2].m == null ? "—" : fmtTime(sumSlots[2].m * 60, "HH:mm", "UTC"); style: small; color: accent; align: center }
+          Text { text: "PM Finish"; style: small; color: #ffffff; align: center }
+          Text { text: sumSlots[3].m == null ? "—" : fmtTime(sumSlots[3].m * 60, "HH:mm", "UTC"); style: small; color: accent; align: center }
+        }
+        Row {
+          fill: width
+          align: center
+          gap: 8
+          padding: [4, 0, 0, 0]
+          Box {
+            weight: 1
+            height: 30
+            align: center
+            background: alpha(background, 0.5)
+            border: 1
+            borderColor: alpha(accent, 0.55)
+            radius: 8 * corners
+            onTap: { daySummary = "" }
+            Text { text: "Ignore"; fontSize: 13; color: #ffffff; align: center }
+          }
+          Box {
+            weight: 1
+            height: 30
+            align: center
+            background: alpha(green, 0.16)
+            border: 1
+            borderColor: alpha(green, 0.55)
+            radius: 8 * corners
+            onTap: {
+              if todayWi >= 0 && todayDow >= 0 {
+                weeks = weeks.map((w, wi) => wi != todayWi ? w : set(w, "days", set(w.days, todayDow, set(w.days[todayDow], "done", true))))
+                autoTicks = autoTicks.filter(x => x != todayIso)
+              }
+              haptic()
+              daySummary = ""
+            }
+            Text { text: "Confirm"; fontSize: 13; color: green; fontWeight: 500; align: center }
+          }
+        }
+      }
+    }
+    } else {
     Row {
-      Text { text: "TIMESHEET"; style: label; color: muted; letterSpacing: 1.2 }
+      Text { text: "TIMESHEET"; style: label; color: #ffffff; letterSpacing: 1.2 }
       Text {
         text: topWeek == null ? "" : "W${topWeek.week} · ${topWeek.date}"
         style: label
-        color: muted
+        color: #ffffff
         weight: 1
         align: end
         maxLines: 1
@@ -423,34 +730,39 @@ widget "timesheet" {
     Canvas {
       height: 56
       fill: width
-      let hL = 8
-      let hR = width - 8
+      let hL = 0
+      let hR = width
       let holY = 28
       let holX = hL + (hR - hL) * holDotFrac
       let doneEnd = hL + (hR - hL) * holDoneFrac
       let pickEnd = hL + (hR - hL) * min(1, holDoneFrac + holPickFrac)
       let totX = hL + len(fixed(holidayLeft, 2)) * ctrSize * 0.56 + 4
-      line(hL, holY, hR, holY, stroke: alpha(border, 0.75), width: 2, cap: round)
       if (holDoneFrac > 0) {
-        line(hL + 1, holY, doneEnd, holY, stroke: alpha(accent, 0.5), width: 3, cap: round)
+        line(hL + 1, holY, doneEnd, holY, stroke: alpha(accent, 0.9), width: 3, cap: round)
       }
-      if (holPickFrac > 0) {
-        for d in range(8) {
-          let t0 = d / 8
-          let t1 = t0 + 0.55 / 8
-          line(doneEnd + (pickEnd - doneEnd) * t0, holY, doneEnd + (pickEnd - doneEnd) * t1, holY, stroke: alpha(accent, 0.4), width: 3, cap: butt)
+      if (holPickFrac > 0 && pickEnd - doneEnd >= 2) {
+        let dshW = 4
+        let dshGap = 3
+        let dshN = max(1, int(floor((pickEnd - doneEnd) / (dshW + dshGap))))
+        for d in range(dshN) {
+          let x0 = doneEnd + d * (dshW + dshGap)
+          let x1 = min(x0 + dshW, pickEnd)
+          line(x0, holY, x1, holY, stroke: alpha(accent, 0.45), width: 3, cap: butt)
         }
+      }
+      if (pickEnd < hR - 0.5) {
+        line(pickEnd, holY, hR, holY, stroke: alpha(#ffffff, 0.18), width: 2, cap: round)
       }
       circle(holX, holY, 6, fill: alpha(accent, 0.16))
       circle(holX, holY, 3.5, fill: accent)
       text(fixed(holidayLeft, 2), hL, 11, size: ctrSize, color: holidayTone, align: start)
-      text("TOTAL", totX, 7.5, size: 7, align: start, color: muted, letterSpacing: 0.3)
-      text("HOLIDAYS", totX, 14.5, size: 7, align: start, color: muted, letterSpacing: 0.3)
-      text("0", hL, 41, size: 9, align: start, color: muted)
-      text("days", hL, 49, size: 7, align: start, color: muted)
-      text(fixed(holidayDays, 2), hR, 41, size: 9, align: end, color: muted)
-      text("days", hR, 49, size: 7, align: end, color: muted)
-      text([fixed(holidayDays - holAllocated, 2) + " left", {text: " · ", color: muted}, {text: fixed(holAllocated, 2) + " used", color: holAllocated > holidayDays ? negTone : accent}], width / 2, 45, size: 8, align: center, color: accent)
+      text("TOTAL", totX, 7.5, size: 7, align: start, color: #ffffff, letterSpacing: 0.3)
+      text("HOLIDAYS", totX, 14.5, size: 7, align: start, color: #ffffff, letterSpacing: 0.3)
+      text("0", hL, 41, size: 9, align: start, color: #ffffff)
+      text("days", hL, 49, size: 7, align: start, color: #ffffff)
+      text(fixed(holBarTotal, 2), hR, 41, size: 9, align: end, color: #ffffff)
+      text("days", hR, 49, size: 7, align: end, color: #ffffff)
+      text([fixed(holidayDays - holAllocated, 2) + " left", {text: " · ", color: #ffffff}, {text: fixed(holAllocated, 2) + " used", color: holAllocated > holidayDays ? negTone : accent}], width / 2, 45, size: 8, align: center, color: accent)
     }
 
     Canvas {
@@ -471,35 +783,74 @@ widget "timesheet" {
       ])
       let lx = pts[n - 1][0]
       let ly = pts[n - 1][1]
+      let hasProj = lastTicked >= 0 && lastTicked < n - 2
+      let cx = lastTicked <= 0 || n <= 1 ? pts[0][0] : pts[lastTicked + 1][0]
+      let cy = lastTicked <= 0 || n <= 1 ? pts[0][1] : pts[lastTicked + 1][1]
+      let cMin = lastTicked < 0 ? 0 : (accum[lastTicked + 1] ?? 0)
       if (n > 1) {
         for i in range(n - 1) {
           let x0 = pts[i][0]
           let y0 = pts[i][1]
           let x1 = pts[i + 1][0]
           let y1 = pts[i + 1][1]
+          let segHol = (dayHolFlat[i] ?? 0)
+          let segSick = (daySickFlat[i] ?? 0)
+          let segHolPart = (dayHolPartFlat[i] ?? "")
+          let segSickPart = (daySickPartFlat[i] ?? "")
+          path([[x0, y0], [x1, y1], [x1, zeroY], [x0, zeroY]], closed: true, fill: (daySettled[i] ?? false) ? alpha(chartTone, 0.12) : alpha(chartTone, 0.055))
+          // a half day shades exactly its half: AM the left half, PM the right; holiday first, sick over it
+          let midX = x0 + (x1 - x0) * 0.5
+          let midY = y0 + (y1 - y0) * 0.5
+          let holAm = segHol >= 1 || (segHol > 0 && segHolPart != "pm")
+          let holPm = segHol >= 1 || (segHol > 0 && segHolPart != "am")
+          let sickAm = segSick >= 1 || (segSick > 0 && segSickPart != "pm")
+          let sickPm = segSick >= 1 || (segSick > 0 && segSickPart != "am")
+          if (holAm) {
+            path([[x0, y0], [midX, midY], [midX, zeroY], [x0, zeroY]], closed: true, fill: alpha(bright_green, 0.3))
+          }
+          if (holPm) {
+            path([[midX, midY], [x1, y1], [x1, zeroY], [midX, zeroY]], closed: true, fill: alpha(bright_green, 0.3))
+          }
+          if (sickAm) {
+            path([[x0, y0], [midX, midY], [midX, zeroY], [x0, zeroY]], closed: true, fill: alpha(negTone, 0.3))
+          }
+          if (sickPm) {
+            path([[midX, midY], [x1, y1], [x1, zeroY], [midX, zeroY]], closed: true, fill: alpha(negTone, 0.3))
+          }
           if (daySettled[i] ?? false) {
-            path([[x0, y0], [x1, y1], [x1, zeroY], [x0, zeroY]], closed: true, fill: alpha(chartTone, 0.12))
             line(x0, y0, x1, y1, stroke: chartTone, width: 2, cap: butt)
           } else {
-            path([[x0, y0], [x1, y1], [x1, zeroY], [x0, zeroY]], closed: true, fill: alpha(chartTone, 0.055))
-            for d in range(5) {
-              let t0 = d / 5
-              let t1 = t0 + 0.55 / 5
-              line(x0 + (x1 - x0) * t0, y0 + (y1 - y0) * t0,
-                   x0 + (x1 - x0) * t1, y0 + (y1 - y0) * t1,
-                   stroke: chartTone, width: 2, cap: butt)
+            // dashes measured along the line, so every one of them looks the same
+            let ddx = x1 - x0
+            let ddy = y1 - y0
+            let dlen = max(0.001, sqrt(ddx * ddx + ddy * ddy))
+            for d in range(int(ceil(dlen / 7))) {
+              let a0 = d * 7
+              let a1 = min(dlen, a0 + 4)
+              if (a1 > a0) {
+                line(x0 + ddx * a0 / dlen, y0 + ddy * a0 / dlen,
+                     x0 + ddx * a1 / dlen, y0 + ddy * a1 / dlen,
+                     stroke: chartTone, width: 2, cap: butt)
+              }
             }
           }
         }
       }
-      line(padL, zeroY, width - padR, zeroY, stroke: alpha(foreground, 0.2), width: 1)
-      circle(lx, ly, 7, fill: alpha(chartTone, 0.18))
-      circle(lx, ly, 3, fill: chartTone)
+      line(padL, zeroY, width - padR, zeroY, stroke: alpha(accent, 0.3), width: 1)
+      if hasProj {
+        circle(cx, cy, 6, fill: alpha(accent, 0.2))
+        circle(cx, cy, 3, fill: accent)
+        circle(lx, ly, 6, stroke: alpha(chartTone, 0.9), width: 1.5)
+        circle(lx, ly, 2, fill: alpha(chartTone, 0.55))
+      } else {
+        circle(lx, ly, 7, fill: alpha(chartTone, 0.18))
+        circle(lx, ly, 3, fill: chartTone)
+      }
       let nw = len(weeks)
       for wi in range(nw) {
         if ((wi + 1) % labelStep == 0 || wi == nw - 1) {
           let x = nw <= 1 ? padL + plotW / 2 : padL + plotW * ((wi * 5 + 2.5) / (nw * 5))
-          text("W${orderedWeeks[wi].week}", x, clamp(zeroY + 9, 8, height - 2), size: 7, align: "center", color: muted)
+          text("W${orderedWeeks[wi].week}", x, clamp(zeroY + 9, 8, height - 2), size: 7, align: "center", color: #ffffff)
         }
       }
       let daySpan = max(1, avgDayMin)
@@ -512,13 +863,34 @@ widget "timesheet" {
         let k = (i - dnN) * dayStep
         let yy = topY + (accumHi - k * daySpan) / spanY * (botY - topY)
         if (yy >= topY - 1 && yy <= botY + 1) {
-          text(k == 0 ? "0 days" : (k == 1 ? "1 day" : (k == -1 ? "-1 day" : "${k} days")), width - 24, yy, size: 7, align: end, color: k == 0 ? muted : alpha(muted, 0.75))
+          if (k == 0) {
+            text("0 days", 0, yy, size: 7, align: start, color: #ffffff)
+          }
+          if (k != 0) {
+            text(k == 1 ? "1 day" : (k == -1 ? "-1 day" : "${k} days"), width, yy, size: 7, align: end, color: alpha(#ffffff, 0.75))
+          }
         }
       }
-      text(fixed(accum[n - 1] / daySpan, 2) + " days", clamp(lx, 34, width - 34), max(topY + 5, ly - 9), size: 8, align: center, color: chartTone)
-      text(cumText, 6, 14, size: ctrSize, fontWeight: 500, color: cumTone, align: start)
+      // value labels: above a rising line, below a falling one, so the line doesn't run through them
+      let curUp = n > 1 && ly < pts[n - 2][1]
+      let curX = clamp(lx, 18, width - 18)
+      let curY = clamp(curUp ? (ly - 20 >= topY + 4 ? ly - 20 : ly + 16) : (ly + 16 <= botY - 14 ? ly + 16 : ly - 20), topY + 4, botY - 14)
+      let prjUp = cy < (pts[max(0, lastTicked)][1] ?? cy)
+      let prjX0 = clamp(cx, 18, width - 18)
+      // keep the two labels apart sideways when the points sit close together
+      let prjX = max(18, prjX0 - max(0, 30 - abs(prjX0 - curX)))
+      let prjY = clamp(prjUp ? (cy - 20 >= topY + 4 ? cy - 20 : cy + 16) : (cy + 16 <= botY - 14 ? cy + 16 : cy - 20), topY + 4, botY - 14)
+      if hasProj {
+        text(fixed(cMin / daySpan, 2), prjX, prjY, size: 7, align: "center", color: alpha(accent, 0.95))
+        text("days", prjX, prjY + 8, size: 6, align: "center", color: alpha(accent, 0.7))
+      }
+      text(fixed(accum[n - 1] / daySpan, 2), curX, curY, size: 8, align: "center", color: chartTone)
+      text("days", curX, curY + 9, size: 6, align: "center", color: alpha(chartTone, 0.85))
+      text(cumText, 0, 14, size: ctrSize, fontWeight: 500, color: cumTone, align: start)
     }
     }
+    }
+  }
   }
 
   screen {
@@ -528,47 +900,52 @@ widget "timesheet" {
       fill: true
       Column {
         fill: true
-        gap: 8
+        gap: 10
         padding: [0, 0, 0, 0]
 
       Column {
         gap: 4
         padding: 8
         fill: width
-        background: alpha(surface, 0.45)
+        background: alpha(accent, 0.1)
         radius: 16 * corners
 
         Canvas {
           height: 64
           fill: width
-          let hL = 10
-          let hR = width - 10
+          let hL = 0
+          let hR = width
           let holY = 38
           let holX = hL + (hR - hL) * holDotFrac
           let doneEnd = hL + (hR - hL) * holDoneFrac
           let pickEnd = hL + (hR - hL) * min(1, holDoneFrac + holPickFrac)
           let totX = hL + len(fixed(holidayLeft, 2)) * 24 * 0.56 + 6
-          line(hL, holY, hR, holY, stroke: alpha(border, 0.75), width: 2, cap: round)
           if (holDoneFrac > 0) {
-            line(hL + 1, holY, doneEnd, holY, stroke: alpha(accent, 0.5), width: 3, cap: round)
+            line(hL + 1, holY, doneEnd, holY, stroke: alpha(accent, 0.9), width: 3, cap: round)
           }
-          if (holPickFrac > 0) {
-            for d in range(8) {
-              let t0 = d / 8
-              let t1 = t0 + 0.55 / 8
-              line(doneEnd + (pickEnd - doneEnd) * t0, holY, doneEnd + (pickEnd - doneEnd) * t1, holY, stroke: alpha(accent, 0.4), width: 3, cap: butt)
+          if (holPickFrac > 0 && pickEnd - doneEnd >= 2) {
+            let dshW = 4
+            let dshGap = 3
+            let dshN = max(1, int(floor((pickEnd - doneEnd) / (dshW + dshGap))))
+            for d in range(dshN) {
+              let x0 = doneEnd + d * (dshW + dshGap)
+              let x1 = min(x0 + dshW, pickEnd)
+              line(x0, holY, x1, holY, stroke: alpha(accent, 0.45), width: 3, cap: butt)
             }
+          }
+          if (pickEnd < hR - 0.5) {
+            line(pickEnd, holY, hR, holY, stroke: alpha(#ffffff, 0.18), width: 2, cap: round)
           }
           circle(holX, holY, 6, fill: alpha(accent, 0.16))
           circle(holX, holY, 3.5, fill: accent)
           text(fixed(holidayLeft, 2), hL, 15, size: 24, color: holidayTone, align: start)
-          text("TOTAL", totX, 11.5, size: 8, align: start, color: muted, letterSpacing: 0.4)
-          text("HOLIDAYS", totX, 19, size: 8, align: start, color: muted, letterSpacing: 0.4)
-          text("0", hL, 50, size: 10, align: start, color: muted)
-          text("days", hL, 58, size: 7, align: start, color: muted)
-          text(fixed(holidayDays, 2), hR, 50, size: 10, align: end, color: muted)
-          text("days", hR, 58, size: 7, align: end, color: muted)
-          text([fixed(holidayDays - holAllocated, 2) + " left", {text: " · ", color: muted}, {text: fixed(holAllocated, 2) + " used", color: holAllocated > holidayDays ? negTone : accent}], width / 2, 54, size: 9, align: center, color: accent)
+          text("TOTAL", totX, 11.5, size: 8, align: start, color: #ffffff, letterSpacing: 0.4)
+          text("HOLIDAYS", totX, 19, size: 8, align: start, color: #ffffff, letterSpacing: 0.4)
+          text("0", hL, 50, size: 10, align: start, color: #ffffff)
+          text("days", hL, 58, size: 7, align: start, color: #ffffff)
+          text(fixed(holBarTotal, 2), hR, 50, size: 10, align: end, color: #ffffff)
+          text("days", hR, 58, size: 7, align: end, color: #ffffff)
+          text([fixed(holidayDays - holAllocated, 2) + " left", {text: " · ", color: #ffffff}, {text: fixed(holAllocated, 2) + " used", color: holAllocated > holidayDays ? negTone : accent}], width / 2, 54, size: 9, align: center, color: accent)
         }
 
         Canvas {
@@ -588,35 +965,74 @@ widget "timesheet" {
           ])
           let lx = pts[n - 1][0]
           let ly = pts[n - 1][1]
+          let hasProj = lastTicked >= 0 && lastTicked < n - 2
+          let cx = lastTicked <= 0 || n <= 1 ? pts[0][0] : pts[lastTicked + 1][0]
+          let cy = lastTicked <= 0 || n <= 1 ? pts[0][1] : pts[lastTicked + 1][1]
+          let cMin = lastTicked < 0 ? 0 : (accum[lastTicked + 1] ?? 0)
           if (n > 1) {
             for i in range(n - 1) {
               let x0 = pts[i][0]
               let y0 = pts[i][1]
               let x1 = pts[i + 1][0]
               let y1 = pts[i + 1][1]
+              let segHol = (dayHolFlat[i] ?? 0)
+              let segSick = (daySickFlat[i] ?? 0)
+              let segHolPart = (dayHolPartFlat[i] ?? "")
+              let segSickPart = (daySickPartFlat[i] ?? "")
+              path([[x0, y0], [x1, y1], [x1, zeroY], [x0, zeroY]], closed: true, fill: (daySettled[i] ?? false) ? alpha(chartTone, 0.12) : alpha(chartTone, 0.055))
+              // a half day shades exactly its half: AM the left half, PM the right; holiday first, sick over it
+              let midX = x0 + (x1 - x0) * 0.5
+              let midY = y0 + (y1 - y0) * 0.5
+              let holAm = segHol >= 1 || (segHol > 0 && segHolPart != "pm")
+              let holPm = segHol >= 1 || (segHol > 0 && segHolPart != "am")
+              let sickAm = segSick >= 1 || (segSick > 0 && segSickPart != "pm")
+              let sickPm = segSick >= 1 || (segSick > 0 && segSickPart != "am")
+              if (holAm) {
+                path([[x0, y0], [midX, midY], [midX, zeroY], [x0, zeroY]], closed: true, fill: alpha(bright_green, 0.3))
+              }
+              if (holPm) {
+                path([[midX, midY], [x1, y1], [x1, zeroY], [midX, zeroY]], closed: true, fill: alpha(bright_green, 0.3))
+              }
+              if (sickAm) {
+                path([[x0, y0], [midX, midY], [midX, zeroY], [x0, zeroY]], closed: true, fill: alpha(negTone, 0.3))
+              }
+              if (sickPm) {
+                path([[midX, midY], [x1, y1], [x1, zeroY], [midX, zeroY]], closed: true, fill: alpha(negTone, 0.3))
+              }
               if (daySettled[i] ?? false) {
-                path([[x0, y0], [x1, y1], [x1, zeroY], [x0, zeroY]], closed: true, fill: alpha(chartTone, 0.12))
                 line(x0, y0, x1, y1, stroke: chartTone, width: 2.5, cap: butt)
               } else {
-                path([[x0, y0], [x1, y1], [x1, zeroY], [x0, zeroY]], closed: true, fill: alpha(chartTone, 0.055))
-                for d in range(5) {
-                  let t0 = d / 5
-                  let t1 = t0 + 0.55 / 5
-                  line(x0 + (x1 - x0) * t0, y0 + (y1 - y0) * t0,
-                       x0 + (x1 - x0) * t1, y0 + (y1 - y0) * t1,
-                       stroke: chartTone, width: 2.5, cap: butt)
+                // dashes measured along the line, so every one of them looks the same
+                let ddx = x1 - x0
+                let ddy = y1 - y0
+                let dlen = max(0.001, sqrt(ddx * ddx + ddy * ddy))
+                for d in range(int(ceil(dlen / 8))) {
+                  let a0 = d * 8
+                  let a1 = min(dlen, a0 + 5)
+                  if (a1 > a0) {
+                    line(x0 + ddx * a0 / dlen, y0 + ddy * a0 / dlen,
+                         x0 + ddx * a1 / dlen, y0 + ddy * a1 / dlen,
+                         stroke: chartTone, width: 2.5, cap: butt)
+                  }
                 }
               }
             }
           }
-          line(padL, zeroY, width - padR, zeroY, stroke: alpha(foreground, 0.2), width: 1)
-          circle(lx, ly, 8, fill: alpha(chartTone, 0.18))
-          circle(lx, ly, 3.5, fill: chartTone)
+          line(padL, zeroY, width - padR, zeroY, stroke: alpha(accent, 0.3), width: 1)
+          if hasProj {
+            circle(cx, cy, 8, fill: alpha(accent, 0.2))
+            circle(cx, cy, 4, fill: accent)
+            circle(lx, ly, 8, stroke: alpha(chartTone, 0.9), width: 2)
+            circle(lx, ly, 2.8, fill: alpha(chartTone, 0.55))
+          } else {
+            circle(lx, ly, 8, fill: alpha(chartTone, 0.18))
+            circle(lx, ly, 3.5, fill: chartTone)
+          }
           let nw = len(weeks)
           for wi in range(nw) {
             if ((wi + 1) % labelStep == 0 || wi == nw - 1) {
               let x = nw <= 1 ? padL + plotW / 2 : padL + plotW * ((wi * 5 + 2.5) / (nw * 5))
-              text("W${orderedWeeks[wi].week}", x, clamp(zeroY + 9, 8, height - 2), size: 8, align: "center", color: muted)
+              text("W${orderedWeeks[wi].week}", x, clamp(zeroY + 9, 8, height - 2), size: 8, align: "center", color: #ffffff)
             }
           }
           let daySpan = max(1, avgDayMin)
@@ -629,11 +1045,30 @@ widget "timesheet" {
             let k = (i - dnN) * dayStep
             let yy = topY + (accumHi - k * daySpan) / spanY * (botY - topY)
             if (yy >= topY - 1 && yy <= botY + 1) {
-              text(k == 0 ? "0 days" : (k == 1 ? "1 day" : (k == -1 ? "-1 day" : "${k} days")), width - 26, yy, size: 8, align: end, color: k == 0 ? muted : alpha(muted, 0.75))
+              if (k == 0) {
+                text("0 days", 0, yy, size: 8, align: start, color: #ffffff)
+              }
+              if (k != 0) {
+                text(k == 1 ? "1 day" : (k == -1 ? "-1 day" : "${k} days"), width, yy, size: 8, align: end, color: alpha(#ffffff, 0.75))
+              }
             }
           }
-          text(fixed(accum[n - 1] / daySpan, 2) + " days", clamp(lx, 40, width - 40), max(topY + 6, ly - 11), size: 9, align: center, color: chartTone)
-          text(cumText, 10, 20, size: 24, fontWeight: 500, color: cumTone, align: start)
+          // value labels: above a rising line, below a falling one, so the line doesn't run through them
+          let curUp = n > 1 && ly < pts[n - 2][1]
+          let curX = clamp(lx, 26, width - 26)
+          let curY = clamp(curUp ? (ly - 24 >= topY + 5 ? ly - 24 : ly + 20) : (ly + 20 <= botY - 16 ? ly + 20 : ly - 24), topY + 5, botY - 16)
+          let prjUp = cy < (pts[max(0, lastTicked)][1] ?? cy)
+          let prjX0 = clamp(cx, 26, width - 26)
+          // keep the two labels apart sideways when the points sit close together
+          let prjX = max(26, prjX0 - max(0, 44 - abs(prjX0 - curX)))
+          let prjY = clamp(prjUp ? (cy - 24 >= topY + 5 ? cy - 24 : cy + 20) : (cy + 20 <= botY - 16 ? cy + 20 : cy - 24), topY + 5, botY - 16)
+          if hasProj {
+            text(fixed(cMin / daySpan, 2), prjX, prjY, size: 9, align: "center", color: alpha(accent, 0.95))
+            text("days", prjX, prjY + 10, size: 7, align: "center", color: alpha(accent, 0.7))
+          }
+          text(fixed(accum[n - 1] / daySpan, 2), curX, curY, size: 10, align: "center", color: chartTone)
+          text("days", curX, curY + 11, size: 7.5, align: "center", color: alpha(chartTone, 0.85))
+          text(cumText, 0, 20, size: 24, fontWeight: 500, color: cumTone, align: start)
         }
       }
 
@@ -642,7 +1077,7 @@ widget "timesheet" {
         clip: true
         Column {
           scroll: true
-          gap: 8
+          gap: 10
           fill: true
           padding: [0, 0, 0, 0]
 
@@ -655,7 +1090,7 @@ widget "timesheet" {
               let target = avgDayMin * cnt
               let wdiff = weekDiff[wi] ?? 0
               let running = sum(weekDiff.drop(wi))
-              let tone = wdiff > 0.5 ? green : wdiff < -0.5 ? negTone : muted
+              let tone = wdiff > 0.5 ? green : wdiff < -0.5 ? negTone : #ffffff
               let wAbs = abs(round(wdiff))
               let wText = floor(wAbs / 60) + ":" + pad(wAbs % 60, 2, "0")
               let rAbs = abs(round(running))
@@ -668,14 +1103,17 @@ widget "timesheet" {
               let targetText = floor(targetMin / 60) + ":" + pad(targetMin % 60, 2, "0")
               let saved = savedId == w.id && now != null && now - savedAt < 3
               let isOpen = openWeek == w.id || (openWeek == "" && wi == 0)
-              let amTexts = range(dayCount).map(di => (w.days[di].amInM != null && w.days[di].amOutM != null && w.days[di].amOutM > w.days[di].amInM) ? fmtTime(w.days[di].amInM * 60, "HH:mm", "UTC") + "-" + fmtTime(w.days[di].amOutM * 60, "HH:mm", "UTC") : "—")
-              let pmTexts = range(dayCount).map(di => (w.days[di].pmInM != null && w.days[di].pmOutM != null && w.days[di].pmOutM > w.days[di].pmInM) ? fmtTime(w.days[di].pmInM * 60, "HH:mm", "UTC") + "-" + fmtTime(w.days[di].pmOutM * 60, "HH:mm", "UTC") : "—")
+              let amTexts = range(dayCount).map(di => (!(dayOffAm[wi][di] ?? false) && w.days[di].amInM != null && w.days[di].amOutM != null && w.days[di].amOutM > w.days[di].amInM) ? fmtTime(w.days[di].amInM * 60, "HH:mm", "UTC") + "-" + fmtTime(w.days[di].amOutM * 60, "HH:mm", "UTC") : "—")
+              let pmTexts = range(dayCount).map(di => (!(dayOffPm[wi][di] ?? false) && w.days[di].pmInM != null && w.days[di].pmOutM != null && w.days[di].pmOutM > w.days[di].pmInM) ? fmtTime(w.days[di].pmInM * 60, "HH:mm", "UTC") + "-" + fmtTime(w.days[di].pmOutM * 60, "HH:mm", "UTC") : "—")
               let rowLines = range(dayCount).map(di => "| " + dayNames[di] + " | " + amTexts[di] + " | " + pmTexts[di] + " | " + ((w.days[di].done ?? false) ? "✓" : "—") + " | " + (act[di] == null ? "—" : floor(round(act[di]) / 60) + ":" + pad(round(act[di]) % 60, 2, "0")) + " | " + (dfs[di] == null ? "—" : (dfs[di] > 0.5 ? "+" : dfs[di] < -0.5 ? "-" : "") + floor(abs(round(dfs[di])) / 60) + ":" + pad(abs(round(dfs[di])) % 60, 2, "0")) + " |")
               let sectionText = join(["<!-- owl-week:" + w.id + " -->", "## Week " + w.week + " — " + w.date, "", "| Day | AM | PM | ✓ | Worked | ± vs avg |", "|:--|:--|:--|:-:|--:|--:|"] + rowLines + ["", "**Worked** " + workedText + " · **Target** " + targetText + " · **Week** " + wSignedText + " · **Running** " + runSignedText + " · **Holidays** " + fixed(holidayLeft, 2) + " d", "<!-- /owl-week:" + w.id + " -->"], "\n") + "\n"
 
               Column {
                 gap: 0
                 fill: width
+                padding: [4, 4]
+                background: alpha(accent, 0.1)
+                radius: 12 * corners
 
                 Row {
                   fill: width
@@ -689,7 +1127,7 @@ widget "timesheet" {
                     Text {
                       spans: [
                         {text: "W${w.week}", bold: true, color: foreground},
-                        {text: "  ${w.date}", color: muted}
+                        {text: "  ${w.date}", color: #ffffff}
                       ]
                       style: body
                       fontSize: 13
@@ -710,8 +1148,6 @@ widget "timesheet" {
                   }
                 }
 
-                Box { height: 1; fill: width; background: alpha(border, 0.35) }
-
                 if isOpen {
                   Column {
                     fill: width
@@ -722,9 +1158,27 @@ widget "timesheet" {
                       let dd = dfs[di]
                       let ddAbs = abs(round(dd))
                       let ddText = dd == null ? "—" : (dd > 0.5 ? "+" : dd < -0.5 ? "-" : "") + floor(ddAbs / 60) + ":" + pad(ddAbs % 60, 2, "0")
-                      let ddTone = dd == null ? muted : dd > 0.5 ? green : dd < -0.5 ? negTone : muted
+                      let ddTone = dd == null ? #ffffff : dd > 0.5 ? green : dd < -0.5 ? negTone : #ffffff
                       let done = d.done ?? false
+                      // a confirmed holiday hides that half's inputs, so no hours can be entered;
+                      // its stored hours stay as they are, so the graph doesn't move
+                      let dayKey = fmtTime((w.monday ?? 0) + di * 86400, "yyyy-MM-dd")
+                      let hol = holDone.find(x => (x.key ?? x) == dayKey)
+                      let holAmt = hol == null ? 0 : (hol.days ?? 1)
+                      let holPart = hol == null ? "" : (hol.part ?? "")
+                      // a logged day is blanked whether it was logged before halves carried a part or not
+                      let holFull = hol != null && (holAmt >= 1 || holPart == "")
+                      let holAm = holFull || (hol != null && holAmt == 0.5 && holPart == "am")
+                      let holPm = holFull || (hol != null && holAmt == 0.5 && holPart == "pm")
+                      // sick days blank the day too, in red: sick pay or a holiday settles a full day
+                      let sickEntries = sickDone.filter(x => (x.key ?? x) == dayKey)
+                      let daySick = sum(sickEntries.map(x => x.days ?? 1))
+                      let sickPart = (sickEntries.find(x => (x.part ?? "") != "") ?? {part: ""}).part
+                      let sickFull = daySick >= 1
+                      let sickAm = sickFull || (daySick == 0.5 && sickPart == "am")
+                      let sickPm = sickFull || (daySick == 0.5 && sickPart == "pm")
                       Row {
+                        background: todayWi == footerWi && di == todayDow ? alpha(green, 0.09) : daySick > 0 ? alpha(negTone, 0.10) : alpha(background, 0)
                         fill: width
                         align: center
                         padding: [3, 0]
@@ -732,7 +1186,7 @@ widget "timesheet" {
                           text: dayNames[di]
                           style: small
                           bold: true
-                          color: dd == null ? muted : foreground
+                          color: dd == null ? #ffffff : foreground
                           width: 30
                         }
                         Column {
@@ -742,19 +1196,20 @@ widget "timesheet" {
                             fill: width
                             align: center
                             gap: 0
-                            Text { text: "AM"; style: label; color: muted; width: 20; fontSize: 10 }
+                            Text { text: "AM"; style: label; color: #ffffff; width: 20; fontSize: 10 }
                                                         Box {
                               weight: 1
                               height: 26
                               align: center
-                              background: alpha(background, 0.45)
+                              background: sickAm ? alpha(negTone, 0.16) : holAm ? alpha(green, 0.10) : alpha(background, 0.45)
                               border: 1
-                              borderColor: d.amIn != "" && d.amInM == null ? alpha(negTone, 0.7) : alpha(border, 0.55)
+                              borderColor: sickAm ? alpha(negTone, 0.55) : holAm ? alpha(green, 0.45) : (d.amIn != "" && d.amInM == null ? alpha(negTone, 0.7) : alpha(accent, 0.55))
                               radius: 6 * corners
                               Input {
+                                visible: !holAm && !sickAm
                                 text: d.amIn
                                 placeholder: "00:00"
-                                color: done ? foreground : muted
+                                color: done ? foreground : #ffffff
                                 width: 42
                                 fontSize: 12
                                 underline: false
@@ -775,19 +1230,20 @@ widget "timesheet" {
                                 }
                               }
                             }
-                            Text { text: "-"; width: 10; align: center; style: small; color: muted }
+                            Text { text: "-"; width: 10; align: center; style: small; color: #ffffff }
                                                         Box {
                               weight: 1
                               height: 26
                               align: center
-                              background: alpha(background, 0.45)
+                              background: sickAm ? alpha(negTone, 0.16) : holAm ? alpha(green, 0.10) : alpha(background, 0.45)
                               border: 1
-                              borderColor: d.amOut != "" && (d.amOutM == null || (d.amInM != null && d.amOutM != null && d.amOutM <= d.amInM)) ? alpha(negTone, 0.7) : alpha(border, 0.55)
+                              borderColor: sickAm ? alpha(negTone, 0.55) : holAm ? alpha(green, 0.45) : (d.amOut != "" && (d.amOutM == null || (d.amInM != null && d.amOutM != null && d.amOutM <= d.amInM)) ? alpha(negTone, 0.7) : alpha(accent, 0.55))
                               radius: 6 * corners
                               Input {
+                                visible: !holAm && !sickAm
                                 text: d.amOut
                                 placeholder: "00:00"
-                                color: done ? foreground : muted
+                                color: done ? foreground : #ffffff
                                 width: 42
                                 fontSize: 12
                                 underline: false
@@ -813,19 +1269,20 @@ widget "timesheet" {
                             fill: width
                             align: center
                             gap: 0
-                            Text { text: "PM"; style: label; color: muted; width: 20; fontSize: 10 }
+                            Text { text: "PM"; style: label; color: #ffffff; width: 20; fontSize: 10 }
                                                         Box {
                               weight: 1
                               height: 26
                               align: center
-                              background: alpha(background, 0.45)
+                              background: sickPm ? alpha(negTone, 0.16) : holPm ? alpha(green, 0.10) : alpha(background, 0.45)
                               border: 1
-                              borderColor: d.pmIn != "" && d.pmInM == null ? alpha(negTone, 0.7) : alpha(border, 0.55)
+                              borderColor: sickPm ? alpha(negTone, 0.55) : holPm ? alpha(green, 0.45) : (d.pmIn != "" && d.pmInM == null ? alpha(negTone, 0.7) : alpha(accent, 0.55))
                               radius: 6 * corners
                               Input {
+                                visible: !holPm && !sickPm
                                 text: d.pmIn
                                 placeholder: "00:00"
-                                color: done ? foreground : muted
+                                color: done ? foreground : #ffffff
                                 width: 42
                                 fontSize: 12
                                 underline: false
@@ -846,19 +1303,20 @@ widget "timesheet" {
                                 }
                               }
                             }
-                            Text { text: "-"; width: 10; align: center; style: small; color: muted }
+                            Text { text: "-"; width: 10; align: center; style: small; color: #ffffff }
                                                         Box {
                               weight: 1
                               height: 26
                               align: center
-                              background: alpha(background, 0.45)
+                              background: sickPm ? alpha(negTone, 0.16) : holPm ? alpha(green, 0.10) : alpha(background, 0.45)
                               border: 1
-                              borderColor: d.pmOut != "" && (d.pmOutM == null || (d.pmInM != null && d.pmOutM != null && d.pmOutM <= d.pmInM)) ? alpha(negTone, 0.7) : alpha(border, 0.55)
+                              borderColor: sickPm ? alpha(negTone, 0.55) : holPm ? alpha(green, 0.45) : (d.pmOut != "" && (d.pmOutM == null || (d.pmInM != null && d.pmOutM != null && d.pmOutM <= d.pmInM)) ? alpha(negTone, 0.7) : alpha(accent, 0.55))
                               radius: 6 * corners
                               Input {
+                                visible: !holPm && !sickPm
                                 text: d.pmOut
                                 placeholder: "00:00"
-                                color: done ? foreground : muted
+                                color: done ? foreground : #ffffff
                                 width: 42
                                 fontSize: 12
                                 underline: false
@@ -887,12 +1345,14 @@ widget "timesheet" {
                           height: 24
                           align: center
                           radius: 6 * corners
+                          // tick an off day to confirm it: the line turns solid through it, the hours still don't count
                           background: done ? alpha(green, 0.18) : alpha(background, 0.2)
                           border: 1
-                          borderColor: done ? alpha(green, 0.7) : alpha(border, 0.55)
+                          borderColor: done ? alpha(green, 0.7) : alpha(accent, 0.55)
                           onTap: {
                             weeks = set(weeks, wi, set(w, "days", set(w.days, di,
                               set(d, "done", !done))))
+                            autoTicks = autoTicks.filter(x => x != dayKey)
                           }
                           Text {
                             text: done ? "󰄬" : ""
@@ -903,95 +1363,113 @@ widget "timesheet" {
                           }
                         }
                       }
-                      if di < dayCount - 1 {
-                        Box { height: 1; fill: width; background: alpha(border, 0.28); padding: [0, 38, 0, 0] }
-                      }
                     }
 
                     Row {
                       fill: width
                       align: center
-                      gap: 10.3
-                      padding: [61, 6, 0, 2]
-                      Box {
-                      width: editBoxW
-                      height: 26
-                      align: center
-                      background: alpha(accent, 0.09)
-                      radius: 8 * corners
-                      border: 1
-                      borderColor: alpha(accent, 0.3)
-                      onTap: {
-                        if len(weeks) > 0 {
-                          let mon = (parseTime(weeks[0].date + " 12:00", "dd/MM/yy HH:mm") ?? weeks[0].monday) + 604800
-                          let wid = "${fmtTime(mon, 'ww')}-${mon}"
-                          weeks = [{
-                            id: wid,
-                            week: int(fmtTime(mon, "ww")),
-                            monday: mon,
-                            date: fmtTime(mon, "dd/MM/yy"),
-                            days: lunchDays
-                          }] + weeks
-                          openWeek = wid
+                      padding: [3, 4]
+                      Text { text: " "; style: small; width: 30; maxLines: 1 }
+                      Column {
+                        weight: 1
+                        gap: 3
+                        Row {
+                          fill: width
+                          align: center
+                          gap: 0
+                          Text { text: " "; style: small; width: 20; color: #ffffff }
+                          Box {
+                            weight: 1
+                            height: 26
+                            align: center
+                            background: alpha(accent, 0.09)
+                            radius: 8 * corners
+                            border: 1
+                            borderColor: alpha(accent, 0.3)
+                            onTap: {
+                              if len(weeks) > 0 {
+                                let mon = (parseTime(weeks[0].date + " 12:00", "dd/MM/yy HH:mm") ?? weeks[0].monday) + 604800
+                                let wid = "${fmtTime(mon, 'ww')}-${mon}"
+                                let nw = {
+                                  id: wid,
+                                  week: int(fmtTime(mon, "ww")),
+                                  monday: mon,
+                                  date: fmtTime(mon, "dd/MM/yy"),
+                                  days: lunchDays.map((d, di) => set(d, "done", holDone.any(x => (x.key ?? x) == fmtTime(mon + di * 86400, "yyyy-MM-dd")) || sickDone.any(x => (x.key ?? x) == fmtTime(mon + di * 86400, "yyyy-MM-dd"))))
+                                }
+                                autoTicks = (autoTicks + range(len(nw.days)).filter(di => (nw.days[di].done ?? false)).map(di => fmtTime(mon + di * 86400, "yyyy-MM-dd"))).unique()
+                                weeks = [nw] + weeks
+                                openWeek = wid
+                              }
+                            }
+                            Text { text: "add W${nextWk}"; fontSize: 12; color: accent; align: center; maxLines: 1 }
+                          }
+                          Spacer { width: 10 }
+                          Box {
+                            weight: 1
+                            height: 26
+                            align: center
+                            background: confirmRemove == footerWeek.id ? alpha(negTone, 0.16) : alpha(background, 0.35)
+                            radius: 8 * corners
+                            border: 1
+                            borderColor: confirmRemove == footerWeek.id ? alpha(negTone, 0.55) : alpha(accent, 0.55)
+                            onTap: {
+                              if (confirmRemove == footerWeek.id) {
+                                weeks = weeks.filter(x => x.id != footerWeek.id)
+                                if (openId == footerWeek.id) { openWeek = "none" }
+                                if (savedId == footerWeek.id) { savedId = "" }
+                                confirmRemove = ""
+                              } else {
+                                confirmRemove = footerWeek.id
+                              }
+                            }
+                            Text { text: confirmRemove == footerWeek.id ? "sure?" : "delete"; fontSize: 12; color: negTone; align: center; maxLines: 1 }
+                          }
                         }
-                      }
-                      Text { text: "add W${nextWk}"; fontSize: 12; color: accent; align: center; maxLines: 1 }
-                    }
-                    Box {
-                      width: editBoxW
-                      height: 26
-                      align: center
-                      background: confirmRemove == footerWeek.id ? alpha(negTone, 0.16) : alpha(background, 0.35)
-                      radius: 8 * corners
-                      border: 1
-                      borderColor: confirmRemove == footerWeek.id ? alpha(negTone, 0.55) : alpha(border, 0.55)
-                      onTap: {
-                        if (confirmRemove == footerWeek.id) {
-                          weeks = weeks.filter(x => x.id != footerWeek.id)
-                          if (openId == footerWeek.id) { openWeek = "none" }
-                          if (savedId == footerWeek.id) { savedId = "" }
-                          confirmRemove = ""
-                        } else {
-                          confirmRemove = footerWeek.id
-                        }
-                      }
-                      Text { text: confirmRemove == footerWeek.id ? "sure?" : "delete"; fontSize: 12; color: negTone; align: center; maxLines: 1 }
-                    }
-                    Box {
-                      width: editBoxW
-                      height: 26
-                      align: center
-                      background: fwSaved ? alpha(green, 0.16) : alpha(accent, 0.14)
-                      radius: 8 * corners
-                      border: 1
-                      borderColor: fwSaved ? alpha(green, 0.45) : alpha(accent, 0.3)
-                      onTap: {
-                        pendingSection = fwSectionText
-                        pendingTag = footerWeek.id
-                        run("f=\"$HOME/Downloads/timesheet.md\"; mkdir -p \"$(dirname \"$f\")\"; [ -s \"$f\" ] || { echo '# Timesheet'; echo; } > \"$f\"; tmp=$(mktemp); printf %s ${sh(pendingSection)} > \"$tmp\"; awk -v tag=${sh(pendingTag)} -v sec=\"$tmp\" 'BEGIN { while ((getline l < sec) > 0) s = s l ORS } $0 == \"<!-- owl-week:\" tag \" -->\" { printf \"%s\", s; skip=1; found=1; next } skip && $0 == \"<!-- /owl-week:\" tag \" -->\" { skip=0; next } skip { next } { print } END { if (!found) { print \"\"; printf \"%s\", s } }' \"$f\" > \"$f.new\"; mv \"$f.new\" \"$f\"; rm -f \"$tmp\"")
-                        savedId = footerWeek.id
-                        savedAt = now
                       }
                       Row {
+                        width: 86
+                        gap: 0
                         align: center
-                        justify: center
-                        Text { text: fwSaved ? "saved ✓" : "save"; style: body; color: fwSaved ? green : accent; maxLines: 1 }
+                        justify: end
+                        Box {
+                          width: editBoxW
+                            height: 26
+                            align: center
+                            background: fwSaved ? alpha(green, 0.16) : alpha(accent, 0.14)
+                            radius: 8 * corners
+                            border: 1
+                            borderColor: fwSaved ? alpha(green, 0.45) : alpha(accent, 0.3)
+                            onTap: {
+                              pendingSection = fwSectionText
+                              pendingTag = footerWeek.id
+                              run("f=\"$HOME/Downloads/timesheet.md\"; mkdir -p \"$(dirname \"$f\")\"; [ -s \"$f\" ] || { echo '# Timesheet'; echo; } > \"$f\"; tmp=$(mktemp); printf %s ${sh(pendingSection)} > \"$tmp\"; awk -v tag=${sh(pendingTag)} -v sec=\"$tmp\" 'BEGIN { while ((getline l < sec) > 0) s = s l ORS } $0 == \"<!-- owl-week:\" tag \" -->\" { printf \"%s\", s; skip=1; found=1; next } skip && $0 == \"<!-- /owl-week:\" tag \" -->\" { skip=0; next } skip { next } { print } END { if (!found) { print \"\"; printf \"%s\", s } }' \"$f\" > \"$f.new\"; mv \"$f.new\" \"$f\"; rm -f \"$tmp\"")
+                              savedId = footerWeek.id
+                              savedAt = now
+                            }
+                            Text { text: fwSaved ? "saved ✓" : "save"; style: body; color: fwSaved ? green : accent; align: center; maxLines: 1 }
+                          }
                       }
                     }
                   }
-                  }
                 }
-              }
-              if wi < len(weeks) - 1 {
-                Box { height: 1; fill: width; background: alpha(border, 0.28) }
               }
             }
           } else {
             Column {
-              gap: 14
+              gap: 10
+              fill: width
+            Column {
+              gap: 10
               fill: width
 
-              Text { text: "SET AVERAGE WEEK (MON-FRI)"; style: label; color: muted; letterSpacing: 1.2 }
+              Column {
+                gap: 8
+                fill: width
+                padding: [10, 10]
+                background: alpha(accent, 0.1)
+                radius: 12 * corners
+              Text { text: "SET AVERAGE WEEK (MON-FRI)"; style: label; color: #ffffff; letterSpacing: 1.2 }
               Row {
                 align: center
                 gap: 6
@@ -1002,9 +1480,9 @@ widget "timesheet" {
                     align: end
                     gap: 4
                     Text { text: fixed(avgWeekHrs, 2); fontSize: 32; fontWeight: 500; color: accent; maxLines: 1 }
-                    Text { text: "hours"; style: small; color: muted; padding: [0, 0, 0, 5] }
+                    Text { text: "hours"; style: small; color: #ffffff; padding: [0, 0, 0, 5] }
                   }
-                  Text { text: "avg day ${avgDayText}"; style: small; color: muted }
+                  Text { text: "avg day ${avgDayText}"; style: small; color: #ffffff }
                 }
                 Box {
                   width: 34
@@ -1037,16 +1515,16 @@ widget "timesheet" {
                   Text { text: "+"; style: title; color: accent; align: center; width: 34 }
                 }
                 Box {
-                  width: 84
+                  width: 74
                   height: 30
                   align: center
                   background: alpha(background, 0.45)
                   border: 1
-                  borderColor: alpha(border, 0.55)
+                  borderColor: alpha(accent, 0.55)
                   radius: 6 * corners
                   Input {
                     text: avgWeekText
-                    width: 44
+                    width: 56
                     fontSize: 13
                     underline: false
                     background: alpha(background, 0)
@@ -1083,7 +1561,7 @@ widget "timesheet" {
                     let next = !includeWeekend
                     includeWeekend = next
                     if (next) {
-                      weeks = weeks.map(w => len(w.days) < 7 ? set(w, "days", w.days + weekendDays) : w)
+                      weeks = weeks.map(w => len(w.days) < 7 ? set(w, "days", (w.days + weekendDays.drop(max(0, len(w.days) - 5))).take(7)) : w)
                     }
                   }
                   Text { text: includeWeekend ? "󰄬" : ""; font: icon; fontSize: 12; color: green; align: center }
@@ -1098,7 +1576,6 @@ widget "timesheet" {
                   gap: 0
                   weight: 1
                   Text { text: "Add default lunch break"; style: body; color: foreground; maxLines: 1 }
-                  Text { text: "today on, unconfirmed days only"; style: small; color: muted; maxLines: 1 }
                 }
                 Box {
                   width: 24
@@ -1123,14 +1600,14 @@ widget "timesheet" {
                 align: center
                 justify: end
                 gap: 6
-                Text { text: "Start time:"; style: small; color: muted; maxLines: 1 }
+                Text { text: "Start time:"; style: small; color: #ffffff; maxLines: 1 }
                 Box {
                   width: 74
                   height: 30
                   align: center
                   background: alpha(background, 0.45)
                   border: 1
-                  borderColor: alpha(border, 0.55)
+                  borderColor: alpha(accent, 0.55)
                   radius: 6 * corners
                   Input {
                     text: lunchStartText
@@ -1163,14 +1640,14 @@ widget "timesheet" {
                     }
                   }
                 }
-                Text { text: "Duration:"; style: small; color: muted; maxLines: 1 }
+                Text { text: "Duration:"; style: small; color: #ffffff; maxLines: 1 }
                 Box {
                   width: 74
                   height: 30
                   align: center
                   background: alpha(background, 0.45)
                   border: 1
-                  borderColor: alpha(border, 0.55)
+                  borderColor: alpha(accent, 0.55)
                   radius: 6 * corners
                   Input {
                     text: lunchDurText
@@ -1204,14 +1681,18 @@ widget "timesheet" {
                 }
               }
             }
-
-            Box { height: 1; fill: width; background: alpha(border, 0.35) }
+            }
+          }
 
             Column {
               gap: 8
               fill: width
+              padding: [10, 10]
+              background: alpha(accent, 0.1)
+              radius: 12 * corners
 
-              Text { text: "SET HOLIDAYS"; style: label; color: muted; letterSpacing: 1.2 }
+              Text { text: "LOG YOUR DAYS OFF"; style: label; color: #ffffff; letterSpacing: 1.2 }
+              Text { text: "How many holidays do you get?"; style: body; color: foreground; maxLines: 1 }
               Row {
                 align: center
                 gap: 6
@@ -1219,7 +1700,7 @@ widget "timesheet" {
                   align: end
                   gap: 4
                   Text { text: fixed(holidayDays, 2); fontSize: 32; fontWeight: 500; color: accent; maxLines: 1 }
-                  Text { text: "days"; style: small; color: muted; padding: [0, 0, 0, 5] }
+                  Text { text: "days"; style: small; color: #ffffff; padding: [0, 0, 0, 5] }
                 }
                 Box { weight: 1; height: 1 }
                 Box {
@@ -1245,16 +1726,16 @@ widget "timesheet" {
                   Text { text: "+"; style: title; color: accent; align: center; width: 34 }
                 }
                 Box {
-                  width: 84
+                  width: 74
                   height: 30
                   align: center
                   background: alpha(background, 0.45)
                   border: 1
-                  borderColor: alpha(border, 0.55)
+                  borderColor: alpha(accent, 0.55)
                   radius: 6 * corners
                   Input {
                     text: holidayText
-                    width: 44
+                    width: 56
                     fontSize: 13
                     underline: false
                     background: alpha(background, 0)
@@ -1269,31 +1750,28 @@ widget "timesheet" {
                 }
               }
 
-              Row {
+              Column {
                 fill: width
-                align: center
-                gap: 6
+                gap: 1
                 padding: [4, 0, 0, 0]
-                onTap: calOpen = !calOpen
-                Column {
-                  gap: 1
-                  weight: 1
-                  Text { text: "Log your holidays"; style: body; color: foreground; maxLines: 1 }
-                  Text {
-                    text: "${fixed(holAllocated, 2)} of ${fixed(holidayDays, 2)} days logged / ${fixed(holPickDays, 2)} unconfirmed"
-                    style: small
-                    color: muted
-                    maxLines: 1
-                  }
+                Text {
+                  text: "${fixed(holAllocated, 2)} of ${fixed(holidayDays, 2)} days logged"
+                  style: small
+                  color: #ffffff
+                  maxLines: 1
                 }
-                Text { text: calOpen ? "▾" : "▸"; style: body; fontSize: 18; color: accent; maxLines: 1 }
+                Text {
+                  text: "${fixed(holPickDays, 2)} unconfirmed / ${fixed(sickTotal, 2)} sick"
+                  style: small
+                  color: #ffffff
+                  maxLines: 1
+                }
               }
 
-              if calOpen {
-                Column {
-                  fill: width
-                  gap: 6
-                  padding: [2, 0, 0, 0]
+              Column {
+                fill: width
+                gap: 6
+                padding: [2, 0, 0, 0]
 
                   Row {
                     fill: width
@@ -1326,6 +1804,36 @@ widget "timesheet" {
                     }
                   }
 
+                  Row {
+                    fill: width
+                    align: center
+                    gap: 6
+                    padding: [0, 0, 2, 0]
+                    // holidays and sick days are logged the same way, so pick which one taps record
+                    Box {
+                      weight: 1
+                      height: 30
+                      align: center
+                      radius: 7 * corners
+                      background: calSick ? alpha(background, 0.35) : alpha(accent, 0.9)
+                      border: 1
+                      borderColor: calSick ? alpha(accent, 0.4) : accent
+                      onTap: calSick = false
+                      Text { text: "Holidays"; style: small; color: calSick ? foreground : background; align: center; maxLines: 1 }
+                    }
+                    Box {
+                      weight: 1
+                      height: 30
+                      align: center
+                      radius: 7 * corners
+                      background: calSick ? alpha(negTone, 0.55) : alpha(background, 0.35)
+                      border: 1
+                      borderColor: calSick ? alpha(negTone, 0.8) : alpha(accent, 0.4)
+                      onTap: calSick = true
+                      Text { text: "Sick days"; style: small; color: calSick ? foreground : #ffffff; align: center; maxLines: 1 }
+                    }
+                  }
+
                   Grid {
                     columns: 7
                     gap: 3
@@ -1336,33 +1844,43 @@ widget "timesheet" {
                         align: center
                         radius: 6 * corners
                         clip: true
-                        background: c.h || c.blank ? alpha(background, 0) : c.known && !c.half ? alpha(accent, 0.9) : c.pending && !c.half ? alpha(green, 0.16) : alpha(background, 0.35)
+                        background: c.h || c.blank ? alpha(background, 0) : c.known && !c.half ? alpha(accent, 0.9) : c.sickFull ? alpha(negTone, 0.7) : c.pending && !c.pickHalf ? alpha(green, 0.16) : alpha(background, 0.35)
                         border: c.h || c.blank ? 0 : 1
-                        borderColor: c.known ? accent : c.half ? alpha(green, 0.8) : c.pending ? alpha(green, 0.7) : (c.key == todayIso ? alpha(accent, 0.6) : alpha(border, 0.5))
+                        borderColor: c.clash ? #ffb020 : c.sickFull ? alpha(negTone, 0.7) : c.known ? accent : c.pending ? alpha(green, 0.7) : (c.key == todayIso ? alpha(accent, 0.6) : alpha(accent, 0.5))
                         onTap: {
-                          if (c.known) {
-                            holDone = holDone.filter(x => (x.key ?? x) != c.key)
-                          } else if (c.pending) {
-                            let amt = holPick.filter(x => (x.key ?? x) == c.key).map(x => x.days ?? 1)
-                            holPick = holPick.filter(x => (x.key ?? x) != c.key)
-                            holDone = holDone + [{key: c.key, days: amt[0] ?? 1}]
-                          } else if (!c.h && !c.blank && holAllocated + (holHalf ? 0.5 : 1) <= holidayDays + 0.001) {
-                            if (holHalf) {
-                              holDone = holDone + [{key: c.key, days: 0.5}]
-                            } else {
-                              holPick = holPick + [{key: c.key, days: 1}]
-                            }
+                          if (c.h || c.blank) {
+                            // header and leading blanks take no tap
+                          } else {
+                            // everything is decided in the chooser: full day, half day AM or PM, or remove
+                            halfKey = c.key
+                            halfKind = calSick ? "sick" : "holiday"
+                            halfAt = now ?? 0
                           }
                         }
-                        if (c.half) {
-                          Canvas {
-                            path([[0, 0], [width, height], [0, height]], closed: true, fill: alpha(green, c.known ? 0.6 : 0.28))
-                          }
+                        // a half day keeps its triangle: AM the bottom half, PM the top half.
+                        // a confirmed half is as solid as a confirmed full day; a planned one is faint
+                        if (c.holAm) {
+                          Canvas { path([[0, 0], [width, height], [0, height]], closed: true, fill: alpha(accent, 0.9)) }
+                        }
+                        if (c.holPm) {
+                          Canvas { path([[width, 0], [width, height], [0, 0]], closed: true, fill: alpha(accent, 0.9)) }
+                        }
+                        if (c.pickAm) {
+                          Canvas { path([[0, 0], [width, height], [0, height]], closed: true, fill: alpha(green, 0.3)) }
+                        }
+                        if (c.pickPm) {
+                          Canvas { path([[width, 0], [width, height], [0, 0]], closed: true, fill: alpha(green, 0.3)) }
+                        }
+                        if (c.sickAm) {
+                          Canvas { path([[0, 0], [width, height], [0, height]], closed: true, fill: alpha(negTone, 0.7)) }
+                        }
+                        if (c.sickPm) {
+                          Canvas { path([[width, 0], [width, height], [0, 0]], closed: true, fill: alpha(negTone, 0.7)) }
                         }
                         Text {
                           text: c.h ? c.t : (c.blank ? "" : c.label)
                           style: small
-                          color: c.h ? muted : c.half ? foreground : c.known ? background : c.pending ? green : (c.key == todayIso ? accent : foreground)
+                          color: c.h ? #ffffff : c.sick ? #ffffff : c.known ? (c.half ? foreground : background) : c.pending ? green : (c.key == todayIso ? accent : foreground)
                           align: center
                           maxLines: 1
                         }
@@ -1375,34 +1893,56 @@ widget "timesheet" {
                     align: center
                     gap: 8
                     padding: [2, 0, 2, 0]
-                    Text { text: "tap once to log, tap twice to confirm"; style: small; color: muted; weight: 1; maxLines: 2 }
-                    Box {
-                      width: 62
-                      height: 28
-                      align: center
-                      radius: 6 * corners
-                      clip: true
-                      background: alpha(background, 0.3)
-                      border: 1
-                      borderColor: holHalf ? alpha(accent, 0.95) : alpha(foreground, 0.45)
-                      onTap: holHalf = !holHalf
-                      if (holHalf) {
-                        Canvas {
-                          path([[0, 0], [width, height], [0, height]], closed: true, fill: alpha(green, 0.6))
-                        }
-                      }
-                      Text { text: "½ day"; style: small; color: holHalf ? accent : foreground; align: center; maxLines: 1 }
+                    Text {
+                      text: calSick ? "tap a day to log a full or half sick day" : "tap a day to plan it off, tap it again to confirm"
+                      style: small
+                      color: #ffffff
+                      weight: 1
+                      maxLines: 1
+                    }
+                  }
+                }
+
+              if len(clashDays) > 0 {
+                Column {
+                  fill: width
+                  gap: 3
+                  padding: [7, 8]
+                  background: alpha(negTone, 0.22)
+                  radius: 8 * corners
+                  border: 1
+                  borderColor: alpha(negTone, 0.8)
+                  // one line per day, naming the other booking: in sick mode it warns about the holiday, and the other way round.
+                  // an unconfirmed holiday is only planned, so it says so
+                  for c in clashDays.take(4) {
+                    let bt = parseTime(c.key + " 12:00", "yyyy-MM-dd HH:mm")
+                    let bd = bt == null ? 0 : int(fmtTime(bt, "d"))
+                    let bord = bd == 11 || bd == 12 || bd == 13 ? "th" : bd % 10 == 1 ? "st" : bd % 10 == 2 ? "nd" : bd % 10 == 3 ? "rd" : "th"
+                    let bwhen = bt == null ? c.key : fmtTime(bt, "EEEE", null, "en") + " " + bd + bord + " " + fmtTime(bt, "MMMM", null, "en")
+                    let bamt = calSick ? c.hol : c.sick
+                    let bpart = calSick ? c.holPart : c.sickPart
+                    let bkind = calSick ? "holiday" : "sick day"
+                    let bpartText = bpart == "" ? "" : " (" + (bpart == "am" ? "AM" : "PM") + ")"
+                    let bverb = calSick && !(c.holConf ?? false) ? " planned in for " : " booked in for "
+                    Text {
+                      text: "WARNING: you already have a " + (bamt >= 1 ? "full" : "half") + " " + bkind + bverb + bwhen + bpartText
+                      style: small
+                      color: #ffffff
+                      maxLines: 2
                     }
                   }
                 }
               }
 
-              Box { height: 1; fill: width; background: alpha(border, 0.35) }
 
-              Column {
+            }
+            Column {
                 gap: 8
                 fill: width
-                Text { text: "Select folder to save to"; style: body; color: foreground; maxLines: 1 }
+                padding: [10, 10]
+                background: alpha(accent, 0.1)
+                radius: 12 * corners
+                Text { text: "SELECT FOLDER TO SAVE TO"; style: label; color: #ffffff; letterSpacing: 1.2 }
                 Row {
                   fill: width
                   align: center
@@ -1426,7 +1966,7 @@ widget "timesheet" {
                     gap: 1
                     weight: 1
                     Text { text: "Launcher Files/Home/Downloads"; style: small; color: foreground; maxLines: 2 }
-                    Text { text: saveFileName; style: small; color: muted; maxLines: 1 }
+                    Text { text: saveFileName; style: small; color: #ffffff; maxLines: 1 }
                   }
                   Box {
                     width: 68
@@ -1463,7 +2003,7 @@ widget "timesheet" {
                   align: center
                   gap: 8
                   padding: [0, 0, 0, 0]
-                  Text { text: "save as:"; style: small; color: muted; maxLines: 1 }
+                  Text { text: "save as:"; style: small; color: #ffffff; maxLines: 1 }
                   Row {
                     align: center
                     gap: 5
@@ -1518,17 +2058,299 @@ widget "timesheet" {
               Text {
                 text: "built by jaquesbody"
                 style: small
-                color: muted
+                color: #ffffff
                 align: center
                 maxLines: 1
                 onTap: url("https://jaquesbody.github.io/")
               }
             }
-          }
 
         }
       }
     }
+      Popup {
+        visible: halfKey != ""
+        position: below
+        align: center
+        onDismiss: halfKey = ""
+        width: 246
+        background: mix(background, foreground, 0.09)
+        border: 1
+        borderColor: halfKind == "sick" ? alpha(negTone, 0.85) : alpha(accent, 0.8)
+        Column {
+          gap: 8
+          padding: [6, 4]
+          Text {
+            text: (halfKind == "sick" ? "Sick day" : "Day off") + (halfKey == "" ? "" : " · " + fmtTime(parseTime(halfKey + " 12:00", "yyyy-MM-dd HH:mm") ?? 0, "EEE d MMM", null, "en"))
+            style: small
+            color: foreground
+            align: center
+            fill: width
+            maxLines: 1
+          }
+          Row {
+            fill: width
+            justify: center
+            align: center
+            gap: 6
+            Box {
+              width: 68
+              height: 28
+              align: center
+              background: alpha(halfKind == "sick" ? negTone : accent, 0.14)
+              border: 1
+              borderColor: alpha(halfKind == "sick" ? negTone : accent, 0.55)
+              radius: 8 * corners
+              onTap: {
+                let k = halfKey
+                if k != "" && (halfKind == "sick" || pickHolRoom >= 1) {
+                  if (halfKind == "sick") {
+                    sickDone = sickDone.filter(x => (x.key ?? x) != k) + [{key: k, days: 1}]
+                    // a booked day is a confirmed day: tick it in its week, if the week is on the timesheet
+                    let bt = parseTime(k + " 12:00", "yyyy-MM-dd HH:mm") ?? 0
+                    let dow = bt <= 0 ? -1 : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(fmtTime(bt, "EEE", null, "en"))
+                    let bwk = dow < 0 ? null : weeks.find(w => (w.monday ?? 0) > 0 && fmtTime(w.monday, "yyyy-MM-dd") == fmtTime(bt - dow * 86400, "yyyy-MM-dd"))
+                    if (bwk != null) {
+                      let bwi = weeks.indexOf(bwk)
+                      if (bwi >= 0 && dow < len(bwk.days)) {
+                        let curDone = (bwk.days[dow].done ?? false)
+                        weeks = weeks.map((w, wi) => wi != bwi ? w : set(w, "days", set(w.days, dow, set(w.days[dow], "done", true))))
+                        // remember it: if the booking is removed later, the auto-tick goes with it
+                        if (!curDone) {
+                          autoTicks = autoTicks.filter(x => x != k) + [k]
+                        }
+                      }
+                    }
+                  } else if (pickPlanned || pickConfirmed) {
+                    // the day is already planned or booked, so this picks its half and confirms it
+                    holPick = holPick.filter(x => (x.key ?? x) != k)
+                    holDone = holDone.filter(x => (x.key ?? x) != k) + [{key: k, days: 1, cleared: true}]
+                    // a booked day is a confirmed day: tick it in its week, if the week is on the timesheet
+                    let bt = parseTime(k + " 12:00", "yyyy-MM-dd HH:mm") ?? 0
+                    let dow = bt <= 0 ? -1 : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(fmtTime(bt, "EEE", null, "en"))
+                    let bwk = dow < 0 ? null : weeks.find(w => (w.monday ?? 0) > 0 && fmtTime(w.monday, "yyyy-MM-dd") == fmtTime(bt - dow * 86400, "yyyy-MM-dd"))
+                    if (bwk != null) {
+                      let bwi = weeks.indexOf(bwk)
+                      if (bwi >= 0 && dow < len(bwk.days)) {
+                        let curDone = (bwk.days[dow].done ?? false)
+                        weeks = weeks.map((w, wi) => wi != bwi ? w : set(w, "days", set(w.days, dow, set(w.days[dow], "done", true))))
+                        // remember it: if the booking is removed later, the auto-tick goes with it
+                        if (!curDone) {
+                          autoTicks = autoTicks.filter(x => x != k) + [k]
+                        }
+                      }
+                    }
+                  } else {
+                    // first the plan: a second tap on the day confirms it
+                    holPick = holPick.filter(x => (x.key ?? x) != k) + [{key: k, days: 1}]
+                  }
+                  halfKey = ""
+                  haptic()
+                }
+              }
+              Text { text: "full day"; style: small; color: halfKind == "sick" ? negTone : accent; align: center; maxLines: 1 }
+            }
+            Box {
+              width: 68
+              height: 28
+              align: center
+              background: alpha(halfKind == "sick" ? negTone : accent, 0.14)
+              border: 1
+              borderColor: alpha(halfKind == "sick" ? negTone : accent, 0.55)
+              radius: 8 * corners
+              onTap: {
+                let k = halfKey
+                if k != "" && (halfKind == "sick" || pickHolRoom >= 0.5) {
+                  if (halfKind == "sick") {
+                    sickDone = sickDone.filter(x => (x.key ?? x) != k) + [{key: k, days: 0.5, part: "am"}]
+                    // a booked day is a confirmed day: tick it in its week, if the week is on the timesheet
+                    let bt = parseTime(k + " 12:00", "yyyy-MM-dd HH:mm") ?? 0
+                    let dow = bt <= 0 ? -1 : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(fmtTime(bt, "EEE", null, "en"))
+                    let bwk = dow < 0 ? null : weeks.find(w => (w.monday ?? 0) > 0 && fmtTime(w.monday, "yyyy-MM-dd") == fmtTime(bt - dow * 86400, "yyyy-MM-dd"))
+                    if (bwk != null) {
+                      let bwi = weeks.indexOf(bwk)
+                      if (bwi >= 0 && dow < len(bwk.days)) {
+                        let curDone = (bwk.days[dow].done ?? false)
+                        weeks = weeks.map((w, wi) => wi != bwi ? w : set(w, "days", set(w.days, dow, set(w.days[dow], "done", true))))
+                        // remember it: if the booking is removed later, the auto-tick goes with it
+                        if (!curDone) {
+                          autoTicks = autoTicks.filter(x => x != k) + [k]
+                        }
+                      }
+                    }
+                  } else if (pickPlanned || pickConfirmed) {
+                    // the day is already planned or booked, so this picks its half and confirms it
+                    holPick = holPick.filter(x => (x.key ?? x) != k)
+                    holDone = holDone.filter(x => (x.key ?? x) != k) + [{key: k, days: 0.5, part: "am", cleared: true}]
+                    // a booked day is a confirmed day: tick it in its week, if the week is on the timesheet
+                    let bt = parseTime(k + " 12:00", "yyyy-MM-dd HH:mm") ?? 0
+                    let dow = bt <= 0 ? -1 : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(fmtTime(bt, "EEE", null, "en"))
+                    let bwk = dow < 0 ? null : weeks.find(w => (w.monday ?? 0) > 0 && fmtTime(w.monday, "yyyy-MM-dd") == fmtTime(bt - dow * 86400, "yyyy-MM-dd"))
+                    if (bwk != null) {
+                      let bwi = weeks.indexOf(bwk)
+                      if (bwi >= 0 && dow < len(bwk.days)) {
+                        let curDone = (bwk.days[dow].done ?? false)
+                        weeks = weeks.map((w, wi) => wi != bwi ? w : set(w, "days", set(w.days, dow, set(w.days[dow], "done", true))))
+                        // remember it: if the booking is removed later, the auto-tick goes with it
+                        if (!curDone) {
+                          autoTicks = autoTicks.filter(x => x != k) + [k]
+                        }
+                      }
+                    }
+                  } else {
+                    // first the plan: a second tap on the day confirms it
+                    holPick = holPick.filter(x => (x.key ?? x) != k) + [{key: k, days: 0.5, part: "am"}]
+                  }
+                  halfKey = ""
+                  haptic()
+                }
+              }
+              Text { text: "½ day AM"; style: small; color: halfKind == "sick" ? negTone : accent; align: center; maxLines: 1 }
+            }
+            Box {
+              width: 68
+              height: 28
+              align: center
+              background: alpha(halfKind == "sick" ? negTone : accent, 0.14)
+              border: 1
+              borderColor: alpha(halfKind == "sick" ? negTone : accent, 0.55)
+              radius: 8 * corners
+              onTap: {
+                let k = halfKey
+                if k != "" && (halfKind == "sick" || pickHolRoom >= 0.5) {
+                  if (halfKind == "sick") {
+                    sickDone = sickDone.filter(x => (x.key ?? x) != k) + [{key: k, days: 0.5, part: "pm"}]
+                    // a booked day is a confirmed day: tick it in its week, if the week is on the timesheet
+                    let bt = parseTime(k + " 12:00", "yyyy-MM-dd HH:mm") ?? 0
+                    let dow = bt <= 0 ? -1 : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(fmtTime(bt, "EEE", null, "en"))
+                    let bwk = dow < 0 ? null : weeks.find(w => (w.monday ?? 0) > 0 && fmtTime(w.monday, "yyyy-MM-dd") == fmtTime(bt - dow * 86400, "yyyy-MM-dd"))
+                    if (bwk != null) {
+                      let bwi = weeks.indexOf(bwk)
+                      if (bwi >= 0 && dow < len(bwk.days)) {
+                        let curDone = (bwk.days[dow].done ?? false)
+                        weeks = weeks.map((w, wi) => wi != bwi ? w : set(w, "days", set(w.days, dow, set(w.days[dow], "done", true))))
+                        // remember it: if the booking is removed later, the auto-tick goes with it
+                        if (!curDone) {
+                          autoTicks = autoTicks.filter(x => x != k) + [k]
+                        }
+                      }
+                    }
+                  } else if (pickPlanned || pickConfirmed) {
+                    // the day is already planned or booked, so this picks its half and confirms it
+                    holPick = holPick.filter(x => (x.key ?? x) != k)
+                    holDone = holDone.filter(x => (x.key ?? x) != k) + [{key: k, days: 0.5, part: "pm", cleared: true}]
+                    // a booked day is a confirmed day: tick it in its week, if the week is on the timesheet
+                    let bt = parseTime(k + " 12:00", "yyyy-MM-dd HH:mm") ?? 0
+                    let dow = bt <= 0 ? -1 : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(fmtTime(bt, "EEE", null, "en"))
+                    let bwk = dow < 0 ? null : weeks.find(w => (w.monday ?? 0) > 0 && fmtTime(w.monday, "yyyy-MM-dd") == fmtTime(bt - dow * 86400, "yyyy-MM-dd"))
+                    if (bwk != null) {
+                      let bwi = weeks.indexOf(bwk)
+                      if (bwi >= 0 && dow < len(bwk.days)) {
+                        let curDone = (bwk.days[dow].done ?? false)
+                        weeks = weeks.map((w, wi) => wi != bwi ? w : set(w, "days", set(w.days, dow, set(w.days[dow], "done", true))))
+                        // remember it: if the booking is removed later, the auto-tick goes with it
+                        if (!curDone) {
+                          autoTicks = autoTicks.filter(x => x != k) + [k]
+                        }
+                      }
+                    }
+                  } else {
+                    // first the plan: a second tap on the day confirms it
+                    holPick = holPick.filter(x => (x.key ?? x) != k) + [{key: k, days: 0.5, part: "pm"}]
+                  }
+                  halfKey = ""
+                  haptic()
+                }
+              }
+              Text { text: "½ day PM"; style: small; color: halfKind == "sick" ? negTone : accent; align: center; maxLines: 1 }
+            }
+          }
+          Row {
+            fill: width
+            justify: center
+            align: center
+            gap: 6
+            Box {
+              width: 68
+              height: 28
+              align: center
+              background: alpha(background, 0.35)
+              border: 1
+              borderColor: alpha(halfKind == "sick" ? negTone : accent, 0.4)
+              radius: 8 * corners
+              onTap: {
+                let k = halfKey
+                if k != "" {
+                  if (halfKind == "sick") {
+                    sickDone = sickDone.filter(x => (x.key ?? x) != k)
+                  } else {
+                    // takes off whatever this day holds, planned or confirmed
+                    holPick = holPick.filter(x => (x.key ?? x) != k)
+                    holDone = holDone.filter(x => (x.key ?? x) != k)
+                  }
+                  // if the booking was what auto-ticked this day, dropping the booking unticks it
+                  if (autoTicks.indexOf(k) >= 0) {
+                    autoTicks = autoTicks.filter(x => x != k)
+                    let rt = parseTime(k + " 12:00", "yyyy-MM-dd HH:mm") ?? 0
+                    let dow = rt <= 0 ? -1 : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(fmtTime(rt, "EEE", null, "en"))
+                    let rwk = dow < 0 ? null : weeks.find(w => (w.monday ?? 0) > 0 && fmtTime(w.monday, "yyyy-MM-dd") == fmtTime(rt - dow * 86400, "yyyy-MM-dd"))
+                    if (rwk != null) {
+                      let rwi = weeks.indexOf(rwk)
+                      if (rwi >= 0 && dow < len(rwk.days)) {
+                        weeks = weeks.map((w, wi) => wi != rwi ? w : set(w, "days", set(w.days, dow, set(w.days[dow], "done", false))))
+                      }
+                    }
+                  }
+                  haptic()
+                }
+                halfKey = ""
+              }
+              Text { text: pickCanRemove ? "Remove" : "Cancel"; style: small; color: #ffffff; align: center; maxLines: 1 }
+            }
+            // a planned day is confirmed here, in the one colour that stands out
+            if pickPlanned && halfKind != "sick" {
+              Box {
+                width: 68
+                height: 28
+                align: center
+                background: bright_green
+                border: 1
+                borderColor: bright_green
+                radius: 8 * corners
+                onTap: {
+                  let k = halfKey
+                  // read the plan before touching it: a let recomputes the moment its state changes,
+                  // so it would read nothing once the plan is gone
+                  let amt = pickPlannedAmt
+                  let part = pickPlannedPart
+                  if k != "" && amt > 0 {
+                    holPick = holPick.filter(x => (x.key ?? x) != k)
+                    holDone = holDone.filter(x => (x.key ?? x) != k) + [{key: k, days: amt, part: part, cleared: true}]
+                    // a booked day is a confirmed day: tick it in its week, if the week is on the timesheet
+                    let bt = parseTime(k + " 12:00", "yyyy-MM-dd HH:mm") ?? 0
+                    let dow = bt <= 0 ? -1 : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(fmtTime(bt, "EEE", null, "en"))
+                    let bwk = dow < 0 ? null : weeks.find(w => (w.monday ?? 0) > 0 && fmtTime(w.monday, "yyyy-MM-dd") == fmtTime(bt - dow * 86400, "yyyy-MM-dd"))
+                    if (bwk != null) {
+                      let bwi = weeks.indexOf(bwk)
+                      if (bwi >= 0 && dow < len(bwk.days)) {
+                        let curDone = (bwk.days[dow].done ?? false)
+                        weeks = weeks.map((w, wi) => wi != bwi ? w : set(w, "days", set(w.days, dow, set(w.days[dow], "done", true))))
+                        // remember it: if the booking is removed later, the auto-tick goes with it
+                        if (!curDone) {
+                          autoTicks = autoTicks.filter(x => x != k) + [k]
+                        }
+                      }
+                    }
+                    halfKey = ""
+                    haptic()
+                  }
+                }
+                Text { text: "confirm"; style: small; color: background; bold: true; align: center; maxLines: 1 }
+              }
+            }
+          }
+        }
+      }
       Row {
         fill: width
         height: 30
@@ -1546,6 +2368,8 @@ widget "timesheet" {
           onTap: {
             if pane == "settings" {
               pane = "weeks"
+              // going back to the weeks closes a chooser left open on the calendar
+              halfKey = ""
             } else {
               pane = "settings"
               avgWeekText = fixed(avgWeekHrs, 2)
