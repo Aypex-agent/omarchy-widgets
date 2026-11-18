@@ -1,4 +1,4 @@
-# Omagara v1.9
+# Omagara v1.9.1
 
 Niagara-inspired OWL 21 home face for [Omalauncher](https://github.com/SimonSchubert/omalauncher). No additional packages required.
 
@@ -15,6 +15,15 @@ Niagara-inspired OWL 21 home face for [Omalauncher](https://github.com/SimonSchu
 Slide onto the cog below the last alphabet letter (with haptic feedback) to navigate to the bottom settings menu. Select Omagara settings or Omalauncher settings there. On **Home**, hold Search to enter edit mode; holding Search while browsing the alphabet still opens Omagara settings.
 
 Time format, **Abbreviate weekday and month**, and **Show battery percentage beside date** are independent controls under **Clock** in Omagara settings. Both toggles default OFF (`Monday, November 16`). Abbreviation only shows `Mon, Nov 16`; battery only shows `Monday, Nov 16 100%`; both ON show `Mon, Nov 16 100%`. Battery uses the native Android source. OWL does not expose Android's system time format. **Home** offers two buttons to set the persistent default: Omagara (`home.home-page = 0`) or the original tile home (`home.home-page = 1`). An optional background command changes `~/.config/omalauncher/style/style.toml` without opening a terminal. Omagara displays success or failure in Home settings and saves a backup. Omalauncher Linux is required for these two buttons, not for the face itself. Separate page-navigation buttons do not change the default. World clocks appear under Clock, corner rounding under Appearance, and export/import/reset under Backup.
+
+## v1.9.1 changes
+
+- **Inline shade visibility:** Home editing now offers individual eye/slashed-eye controls beside the clock, alphabet Worm, media player, notification headings and cards, pinned app labels (when present), and Search/buttons. Shades toggle immediately; Home ✓ saves changes, while × restores their previous values. The existing Appearance settings retain fine-grained opacity controls.
+- **All Shades shortcut:** The Home editing button appears opposite the alphabet worm, hides every shade at once, and can restore previous per-element choices. Its ON/OFF/MIXED indicator tracks the shades for currently visible elements, including when their eye controls are toggled individually.
+- **Cleaner Home editor:** Relocate the Worm position handle and its shade eye beneath pinned apps, above pin-row alignment controls. Remove it from the clock area. Place the notification-card eye beside Alerts gap instead of over notification content.
+- **Clock and date:** Expand the clock shade to the full Home content width, keep the clock inside the shade at its smallest size, allow the compact date/battery row to align right, and increase spacing before the battery percentage.
+- **Media artwork:** Tapping the album art opens the current media app, like tapping the song details.
+- **Compatibility:** Keep previous preferences, older settings imports, and existing Home editing behavior. No new packages or permissions.
 
 ## v1.9 changes
 
