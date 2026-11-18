@@ -1,0 +1,61 @@
+widget "kipas angin" {
+  size: 1x1
+  minSize: 1x1
+  padding: 4
+  fps: speed > 3 ? 30 : 12
+
+  meta {
+    owl: 21
+    description: "Kipas angin 1x1 yang berputar: makin panas perangkat, makin kencang putarannya."
+    version: "1.0"
+    license: "MIT"
+    category: "system"
+  }
+
+  source bat = android.battery every 30s
+  let t = bat.temp
+  let frac = t == null ? 0.15 : clamp((t - 25) / 20, 0, 1)
+  let speed = lerp(0.4, 6, frac)
+  let tint = t == null ? accent : t >= 41 ? red : t >= 37 ? yellow : t >= 31 ? green : cyan
+  let status = t == null ? "…" : t >= 41 ? "PANAS" : t >= 37 ? "HANGAT" : t >= 31 ? "NORMAL" : "DINGIN"
+
+  state angle = 0
+  every frame {
+    angle = (angle + speed * 360 * dt) % 360
+  }
+
+  Canvas {
+    fill: true
+    let cx = width / 2
+    let cy = height / 2 - 4
+    let r = min(width, height) / 2 - 10
+
+    // sangkar kipas
+    circle(cx, cy, r, stroke: alpha(muted, 0.35), width: 1.5)
+    circle(cx, cy, r * 0.72, stroke: alpha(muted, 0.18), width: 1)
+    for i in range(4) {
+      rotate(i * 45, cx, cy) {
+        line(cx, cy - r, cx, cy + r, stroke: alpha(muted, 0.12), width: 1)
+      }
+    }
+
+    // bilah berputar
+    rotate(angle, cx, cy) {
+      for i in range(3) {
+        rotate(i * 120, cx, cy) {
+          path([
+            [cx, cy - r * 0.1],
+            [cx + r * 0.22, cy - r * 0.55],
+            [cx + r * 0.06, cy - r * 0.88],
+            [cx - r * 0.12, cy - r * 0.5]
+          ], fill: alpha(tint, 0.85), stroke: alpha(tint, 1), width: 0.8, closed: true)
+        }
+      }
+      circle(cx, cy, r * 0.16, fill: tint)
+      circle(cx, cy, r * 0.07, fill: background)
+    }
+
+    text(t == null ? "…" : "${round(t)}°", cx, height - 14, size: 10, align: center, color: tint, bold: true)
+    text(status, cx, height - 4, size: 7, align: center, color: muted)
+  }
+}
