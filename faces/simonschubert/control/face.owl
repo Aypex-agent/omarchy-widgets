@@ -6,9 +6,327 @@ face "control" {
   meta {
     owl: 23
     description: "Mission control: live CPU, memory, storage and latency, processes you can kill, a shell, a terminal, your inbox, phone switches and an agent prompt"
-    version: "1.2"
+    version: "1.3"
     license: "MIT"
     category: "system"
+  }
+
+  // What it says, in the phone's language where it has a set. Day and month names come from the phone; wttr names
+  // the sky in English, so other languages name it from wttr's codes. Commands, processes, interfaces, apps and
+  // notifications come as they are.
+  strings {
+    en {
+      day: "EEEE d MMMM"; sky: (code, desc) => lower(trim(desc))
+      up: d => "up ${d}"; updates: n => n == 1 ? "↑ 1 update" : "↑ ${n} updates"; dnd: "dnd"; saver: "saver"; ringer: r => r
+      mem: "MEM"; disk: "DISK"; bat: "BAT"; cores: n => "${n} cores"; free: b => "${b} free"; word: w => w
+      cpu3m: "CPU 3M"; offline: "offline"
+      procs: "procs"; net: "net"; term: "term"; inbox: "inbox"; inboxN: n => "inbox ${n}"
+      process: "PROCESS"; running: n => "${n} running"; off: "off"; endHint: "tap a process to end it"
+      latency: "LATENCY MS"; stats: (lo, mean, hi) => "min ${lo} · avg ${mean} · max ${hi}"; measuring: "measuring…"
+      public: "PUBLIC"; interfaces: "INTERFACES"
+      command: "run a command…"; busy: "running…"; outputHint: "output shows here. long-press a saved command to forget it."
+      termHint: "tap to type · tap outside or Back to let go"
+      allowHint: "allow notification access to see them here"; allow: "allow"; inboxZero: "inbox zero"
+      openHint: "tap to open · hold to dismiss"
+      now: "now"; minutes: n => "${n}m"; hours: n => "${n}h"; days: n => "${n}d"; weeks: n => "${n}w"; years: n => "${n}y"
+      runOnly: "!command to run"; ask: a => "ask ${a} · !command to run"
+    }
+    id {
+      day: "EEEE, d MMMM"
+      sky: (code, desc) => get({
+        "113": "cerah", "116": "cerah berawan", "119": "berawan", "122": "mendung", "143": "kabut tipis",
+        "176": "hujan lokal", "179": "salju lokal", "182": "hujan salju lokal", "185": "gerimis beku lokal",
+        "200": "badai petir", "227": "salju tertiup angin", "230": "badai salju", "248": "kabut", "260": "kabut beku",
+        "263": "gerimis ringan lokal", "266": "gerimis ringan", "281": "gerimis beku", "284": "gerimis beku lebat",
+        "293": "hujan ringan lokal", "296": "hujan ringan", "299": "kadang hujan sedang", "302": "hujan sedang",
+        "305": "kadang hujan lebat", "308": "hujan lebat", "311": "hujan beku ringan", "314": "hujan beku lebat",
+        "317": "hujan salju ringan", "320": "hujan salju lebat", "323": "salju ringan lokal", "326": "salju ringan",
+        "329": "salju sedang lokal", "332": "salju sedang", "335": "salju lebat lokal", "338": "salju lebat",
+        "350": "butiran es", "353": "hujan ringan sesaat", "356": "hujan lebat sesaat", "359": "hujan deras",
+        "362": "hujan salju ringan sesaat", "365": "hujan salju lebat sesaat", "368": "salju ringan sesaat",
+        "371": "salju lebat sesaat", "374": "butiran es ringan", "377": "butiran es lebat",
+        "386": "hujan ringan berpetir", "389": "hujan lebat berpetir", "392": "salju ringan berpetir",
+        "395": "salju lebat berpetir"
+      }, code, lower(trim(desc)))
+      up: d => "aktif ${d}"; updates: n => "↑ ${n} pembaruan"; dnd: "jangan ganggu"; saver: "hemat daya"
+      ringer: r => get({"vibrate": "getar", "silent": "senyap"}, r, r)
+      mem: "RAM"; disk: "DISK"; bat: "BAT"; cores: n => "${n} inti"; free: b => "sisa ${b}"
+      word: w => get({
+        "charging": "mengisi", "plugged in": "tercolok", "on battery": "tanpa cas", "good": "baik",
+        "overheating": "kepanasan", "dead": "tidak berfungsi", "over voltage": "tegangan berlebih", "cold": "dingin",
+        "failing": "bermasalah", "wireless": "nirkabel", "dock": "dok"
+      }, w, w)
+      cpu3m: "CPU 3 MNT"; offline: "offline"
+      procs: "proses"; net: "jaringan"; term: "terminal"; inbox: "notif"; inboxN: n => "notif ${n}"
+      process: "PROSES"; running: n => "${n} berjalan"; off: "mati"; endHint: "ketuk proses untuk mengakhirinya"
+      latency: "LATENSI MS"; stats: (lo, mean, hi) => "min ${lo} · rerata ${mean} · maks ${hi}"; measuring: "mengukur…"
+      public: "IP PUBLIK"; interfaces: "ANTARMUKA"
+      command: "jalankan perintah…"; busy: "berjalan…"; outputHint: "keluaran muncul di sini. tekan lama perintah tersimpan untuk melupakannya."
+      termHint: "ketuk untuk mengetik · ketuk di luar atau Kembali untuk melepas"
+      allowHint: "izinkan akses notifikasi untuk melihatnya di sini"; allow: "izinkan"; inboxZero: "semua sudah dibaca"
+      openHint: "ketuk untuk membuka · tahan untuk menutup"
+      now: "kini"; minutes: n => "${n}m"; hours: n => "${n}j"; days: n => "${n}h"; weeks: n => "${n}mg"; years: n => "${n}th"
+      runOnly: "!perintah untuk dijalankan"; ask: a => "tanya ${a} · !perintah"
+    }
+    es {
+      day: "EEEE d 'de' MMMM"
+      sky: (code, desc) => get({
+        "113": "despejado", "116": "parcialmente nublado", "119": "nublado", "122": "cubierto", "143": "neblina",
+        "176": "lluvia dispersa", "179": "nieve dispersa", "182": "aguanieve dispersa", "185": "llovizna helada dispersa",
+        "200": "tormenta eléctrica", "227": "nieve con viento", "230": "ventisca", "248": "niebla", "260": "niebla helada",
+        "263": "llovizna ligera dispersa", "266": "llovizna ligera", "281": "llovizna helada", "284": "llovizna helada intensa",
+        "293": "lluvia ligera dispersa", "296": "lluvia ligera", "299": "a ratos lluvia moderada", "302": "lluvia moderada",
+        "305": "a ratos lluvia fuerte", "308": "lluvia fuerte", "311": "lluvia helada ligera", "314": "lluvia helada fuerte",
+        "317": "aguanieve ligera", "320": "aguanieve fuerte", "323": "nevada ligera dispersa", "326": "nevada ligera",
+        "329": "nevada moderada dispersa", "332": "nevada moderada", "335": "nevada fuerte dispersa", "338": "nevada fuerte",
+        "350": "granizo fino", "353": "chubascos ligeros", "356": "chubascos fuertes", "359": "aguacero",
+        "362": "chubascos de aguanieve ligeros", "365": "chubascos de aguanieve fuertes", "368": "chubascos de nieve ligeros",
+        "371": "chubascos de nieve fuertes", "374": "chubascos de granizo fino ligeros", "377": "chubascos de granizo fino fuertes",
+        "386": "lluvia ligera con truenos", "389": "lluvia fuerte con truenos", "392": "nieve ligera con truenos",
+        "395": "nieve fuerte con truenos"
+      }, code, lower(trim(desc)))
+      up: d => "uptime ${d}"; updates: n => n == 1 ? "↑ 1 actualización" : "↑ ${n} actualizaciones"; dnd: "no molestar"; saver: "ahorro"
+      ringer: r => get({"vibrate": "vibración", "silent": "silencio"}, r, r)
+      mem: "RAM"; disk: "DISCO"; bat: "BAT"; cores: n => "${n} núcleos"; free: b => "${b} libres"
+      word: w => get({
+        "charging": "cargando", "plugged in": "conectado", "on battery": "desconectado", "good": "buena",
+        "overheating": "sobrecalentada", "dead": "inservible", "over voltage": "sobrevoltaje", "cold": "fría",
+        "failing": "fallando", "wireless": "inalámbrica", "dock": "base"
+      }, w, w)
+      cpu3m: "CPU 3 MIN"; offline: "sin red"
+      procs: "procesos"; net: "red"; term: "terminal"; inbox: "avisos"; inboxN: n => "avisos ${n}"
+      process: "PROCESO"; running: n => "${n} activos"; off: "desactivada"; endHint: "toca un proceso para cerrarlo"
+      latency: "LATENCIA MS"; stats: (lo, mean, hi) => "mín ${lo} · media ${mean} · máx ${hi}"; measuring: "midiendo…"
+      public: "IP PÚBLICA"; interfaces: "INTERFACES"
+      command: "ejecuta un comando…"; busy: "ejecutando…"; outputHint: "la salida aparece aquí. mantén pulsado un comando guardado para olvidarlo."
+      termHint: "toca para escribir · toca fuera o Atrás para salir"
+      allowHint: "permite el acceso a las notificaciones para verlas aquí"; allow: "permitir"; inboxZero: "todo al día"
+      openHint: "toca para abrir · mantén para descartar"
+      now: "ahora"; minutes: n => "${n}m"; hours: n => "${n}h"; days: n => "${n}d"; weeks: n => "${n}sem"; years: n => "${n}a"
+      runOnly: "!comando para ejecutar"; ask: a => "pregunta a ${a} · !comando"
+    }
+    pt {
+      day: "EEEE, d 'de' MMMM"
+      sky: (code, desc) => get({
+        "113": "céu limpo", "116": "parcialmente nublado", "119": "nublado", "122": "encoberto", "143": "névoa",
+        "176": "chuva isolada", "179": "neve isolada", "182": "chuva com neve isolada", "185": "garoa congelante isolada",
+        "200": "trovoada", "227": "neve com vento", "230": "nevasca", "248": "neblina", "260": "neblina congelante",
+        "263": "garoa fraca isolada", "266": "garoa fraca", "281": "garoa congelante", "284": "garoa congelante forte",
+        "293": "chuva fraca isolada", "296": "chuva fraca", "299": "às vezes chuva moderada", "302": "chuva moderada",
+        "305": "às vezes chuva forte", "308": "chuva forte", "311": "chuva congelante fraca", "314": "chuva congelante forte",
+        "317": "chuva com neve fraca", "320": "chuva com neve forte", "323": "neve fraca isolada", "326": "neve fraca",
+        "329": "neve moderada isolada", "332": "neve moderada", "335": "neve forte isolada", "338": "neve forte",
+        "350": "granizo miúdo", "353": "pancadas de chuva fracas", "356": "pancadas de chuva fortes", "359": "aguaceiro",
+        "362": "pancadas de chuva com neve fracas", "365": "pancadas de chuva com neve fortes", "368": "pancadas de neve fracas",
+        "371": "pancadas de neve fortes", "374": "pancadas de granizo miúdo fracas", "377": "pancadas de granizo miúdo fortes",
+        "386": "chuva fraca com trovões", "389": "chuva forte com trovões", "392": "neve fraca com trovões",
+        "395": "neve forte com trovões"
+      }, code, lower(trim(desc)))
+      up: d => "uptime ${d}"; updates: n => n == 1 ? "↑ 1 atualização" : "↑ ${n} atualizações"; dnd: "não perturbe"; saver: "economia"
+      ringer: r => get({"vibrate": "vibrar", "silent": "silencioso"}, r, r)
+      mem: "RAM"; disk: "DISCO"; bat: "BAT"; cores: n => "${n} núcleos"; free: b => "${b} livres"
+      word: w => get({
+        "charging": "carregando", "plugged in": "na tomada", "on battery": "na bateria", "good": "boa",
+        "overheating": "superaquecida", "dead": "inutilizável", "over voltage": "sobretensão", "cold": "fria",
+        "failing": "falhando", "wireless": "sem fio", "dock": "dock"
+      }, w, w)
+      cpu3m: "CPU 3 MIN"; offline: "offline"
+      procs: "processos"; net: "rede"; term: "terminal"; inbox: "avisos"; inboxN: n => "avisos ${n}"
+      process: "PROCESSO"; running: n => "${n} ativos"; off: "desativada"; endHint: "toque num processo para encerrá-lo"
+      latency: "LATÊNCIA MS"; stats: (lo, mean, hi) => "mín ${lo} · média ${mean} · máx ${hi}"; measuring: "medindo…"
+      public: "IP PÚBLICO"; interfaces: "INTERFACES"
+      command: "execute um comando…"; busy: "executando…"; outputHint: "a saída aparece aqui. toque e segure um comando salvo para esquecê-lo."
+      termHint: "toque para digitar · toque fora ou Voltar para sair"
+      allowHint: "permita o acesso às notificações para vê-las aqui"; allow: "permitir"; inboxZero: "tudo em dia"
+      openHint: "toque para abrir · segure para dispensar"
+      now: "agora"; minutes: n => "${n}m"; hours: n => "${n}h"; days: n => "${n}d"; weeks: n => "${n}sem"; years: n => "${n}a"
+      runOnly: "!comando para executar"; ask: a => "pergunte a ${a} · !comando"
+    }
+    de {
+      day: "EEEE, d. MMMM"
+      sky: (code, desc) => get({
+        "113": "klar", "116": "teils bewölkt", "119": "bewölkt", "122": "bedeckt", "143": "dunst",
+        "176": "örtlich regen", "179": "örtlich schnee", "182": "örtlich schneeregen", "185": "örtlich gefrierender niesel",
+        "200": "gewitter", "227": "schneetreiben", "230": "schneesturm", "248": "nebel", "260": "gefrierender nebel",
+        "263": "örtlich leichter niesel", "266": "leichter niesel", "281": "gefrierender niesel", "284": "starker gefrierender niesel",
+        "293": "örtlich leichter regen", "296": "leichter regen", "299": "zeitweise mäßiger regen", "302": "mäßiger regen",
+        "305": "zeitweise starker regen", "308": "starker regen", "311": "leichter gefrierender regen", "314": "starker gefrierender regen",
+        "317": "leichter schneeregen", "320": "starker schneeregen", "323": "örtlich leichter schnee", "326": "leichter schnee",
+        "329": "örtlich mäßiger schnee", "332": "mäßiger schnee", "335": "örtlich starker schnee", "338": "starker schnee",
+        "350": "eiskörner", "353": "leichte regenschauer", "356": "starke regenschauer", "359": "wolkenbruch",
+        "362": "leichte schneeregenschauer", "365": "starke schneeregenschauer", "368": "leichte schneeschauer",
+        "371": "starke schneeschauer", "374": "leichte eiskörnerschauer", "377": "starke eiskörnerschauer",
+        "386": "leichter regen mit gewitter", "389": "starker regen mit gewitter", "392": "leichter schnee mit gewitter",
+        "395": "starker schnee mit gewitter"
+      }, code, lower(trim(desc)))
+      up: d => "uptime ${d}"; updates: n => n == 1 ? "↑ 1 update" : "↑ ${n} updates"; dnd: "nicht stören"; saver: "stromsparen"
+      ringer: r => get({"vibrate": "vibration", "silent": "lautlos"}, r, r)
+      mem: "RAM"; disk: "SPEICHER"; bat: "AKKU"; cores: n => "${n} kerne"; free: b => "${b} frei"
+      word: w => get({
+        "charging": "lädt", "plugged in": "angeschlossen", "on battery": "akkubetrieb", "good": "gut",
+        "overheating": "überhitzt", "dead": "defekt", "over voltage": "überspannung", "cold": "kalt",
+        "failing": "schwächelt", "wireless": "kabellos", "dock": "dock"
+      }, w, w)
+      cpu3m: "CPU 3 MIN"; offline: "offline"
+      procs: "prozesse"; net: "netz"; term: "terminal"; inbox: "eingang"; inboxN: n => "eingang ${n}"
+      process: "PROZESS"; running: n => "${n} aktiv"; off: "aus"; endHint: "prozess antippen zum beenden"
+      latency: "LATENZ MS"; stats: (lo, mean, hi) => "min ${lo} · ø ${mean} · max ${hi}"; measuring: "misst…"
+      public: "ÖFFENTLICHE IP"; interfaces: "SCHNITTSTELLEN"
+      command: "befehl ausführen…"; busy: "läuft…"; outputHint: "die ausgabe erscheint hier. gespeicherten befehl gedrückt halten, um ihn zu vergessen."
+      termHint: "tippen zum schreiben · außerhalb tippen oder Zurück zum loslassen"
+      allowHint: "erlaube den zugriff auf benachrichtigungen, um sie hier zu sehen"; allow: "erlauben"; inboxZero: "alles gelesen"
+      openHint: "tippen zum öffnen · halten zum entfernen"
+      now: "jetzt"; minutes: n => "${n} min"; hours: n => "${n} std"; days: n => "${n} tg"; weeks: n => "${n} wo"; years: n => "${n} j"
+      runOnly: "!befehl zum ausführen"; ask: a => "${a} fragen · !befehl"
+    }
+    zh {
+      day: "M月d日 EEEE"
+      sky: (code, desc) => get({
+        "113": "晴", "116": "局部多云", "119": "多云", "122": "阴", "143": "薄雾",
+        "176": "局部有雨", "179": "局部有雪", "182": "局部雨夹雪", "185": "局部冻毛毛雨",
+        "200": "雷暴", "227": "风吹雪", "230": "暴风雪", "248": "雾", "260": "冻雾",
+        "263": "局部小毛毛雨", "266": "小毛毛雨", "281": "冻毛毛雨", "284": "强冻毛毛雨",
+        "293": "局部小雨", "296": "小雨", "299": "间歇中雨", "302": "中雨",
+        "305": "间歇大雨", "308": "大雨", "311": "小冻雨", "314": "大冻雨",
+        "317": "小雨夹雪", "320": "大雨夹雪", "323": "局部小雪", "326": "小雪",
+        "329": "局部中雪", "332": "中雪", "335": "局部大雪", "338": "大雪",
+        "350": "冰粒", "353": "小阵雨", "356": "大阵雨", "359": "暴雨",
+        "362": "小阵雨夹雪", "365": "大阵雨夹雪", "368": "小阵雪",
+        "371": "大阵雪", "374": "小阵冰粒", "377": "大阵冰粒",
+        "386": "雷阵雨", "389": "强雷阵雨", "392": "小雷阵雪",
+        "395": "大雷阵雪"
+      }, code, lower(trim(desc)))
+      up: d => "已运行 ${d}"; updates: n => "↑ ${n} 个更新"; dnd: "勿扰"; saver: "省电"
+      ringer: r => get({"vibrate": "振动", "silent": "静音"}, r, r)
+      mem: "内存"; disk: "存储"; bat: "电池"; cores: n => "${n} 核"; free: b => "可用 ${b}"
+      word: w => get({
+        "charging": "充电中", "plugged in": "已接电源", "on battery": "电池供电", "good": "良好",
+        "overheating": "过热", "dead": "损坏", "over voltage": "过压", "cold": "过冷",
+        "failing": "故障", "wireless": "无线", "dock": "底座"
+      }, w, w)
+      cpu3m: "CPU 3分钟"; offline: "离线"
+      procs: "进程"; net: "网络"; term: "终端"; inbox: "通知"; inboxN: n => "通知 ${n}"
+      process: "进程"; running: n => "运行中 ${n}"; off: "关闭"; endHint: "点按进程即可结束"
+      latency: "延迟 ms"; stats: (lo, mean, hi) => "最低 ${lo} · 平均 ${mean} · 最高 ${hi}"; measuring: "测量中…"
+      public: "公网 IP"; interfaces: "网络接口"
+      command: "运行命令…"; busy: "运行中…"; outputHint: "输出会显示在这里。长按已保存的命令即可删除。"
+      termHint: "点按即可输入 · 点按外部或返回键即可退出"
+      allowHint: "允许访问通知后就能在这里看到它们"; allow: "允许"; inboxZero: "全部看完了"
+      openHint: "点按打开 · 长按清除"
+      now: "刚刚"; minutes: n => "${n}分钟"; hours: n => "${n}小时"; days: n => "${n}天"; weeks: n => "${n}周"; years: n => "${n}年"
+      runOnly: "!命令 即可运行"; ask: a => "问问 ${a} · !命令"
+    }
+    ru {
+      day: "EEEE, d MMMM"
+      sky: (code, desc) => get({
+        "113": "ясно", "116": "переменная облачность", "119": "облачно", "122": "пасмурно", "143": "дымка",
+        "176": "местами дождь", "179": "местами снег", "182": "местами мокрый снег", "185": "местами ледяная морось",
+        "200": "гроза", "227": "позёмка", "230": "метель", "248": "туман", "260": "ледяной туман",
+        "263": "местами слабая морось", "266": "слабая морось", "281": "ледяная морось", "284": "сильная ледяная морось",
+        "293": "местами небольшой дождь", "296": "небольшой дождь", "299": "временами умеренный дождь", "302": "умеренный дождь",
+        "305": "временами сильный дождь", "308": "сильный дождь", "311": "слабый ледяной дождь", "314": "сильный ледяной дождь",
+        "317": "небольшой мокрый снег", "320": "сильный мокрый снег", "323": "местами небольшой снег", "326": "небольшой снег",
+        "329": "местами умеренный снег", "332": "умеренный снег", "335": "местами сильный снег", "338": "сильный снег",
+        "350": "ледяная крупа", "353": "небольшой ливень", "356": "сильный ливень", "359": "проливной дождь",
+        "362": "небольшой ливень с мокрым снегом", "365": "сильный ливень с мокрым снегом", "368": "небольшой снегопад",
+        "371": "сильный снегопад", "374": "небольшая ледяная крупа", "377": "сильная ледяная крупа",
+        "386": "небольшой дождь с грозой", "389": "сильный дождь с грозой", "392": "небольшой снег с грозой",
+        "395": "сильный снег с грозой"
+      }, code, lower(trim(desc)))
+      up: d => "аптайм ${d}"; updates: n => "↑ обновлений: ${n}"; dnd: "не беспокоить"; saver: "экономия"
+      ringer: r => get({"vibrate": "вибрация", "silent": "без звука"}, r, r)
+      mem: "ОЗУ"; disk: "ДИСК"; bat: "АКБ"; cores: n => "ядер: ${n}"; free: b => "свободно ${b}"
+      word: w => get({
+        "charging": "заряжается", "plugged in": "подключено", "on battery": "разряжается", "good": "хорошее",
+        "overheating": "перегрев", "dead": "неисправность", "over voltage": "перенапряжение", "cold": "переохлаждение",
+        "failing": "износ", "wireless": "беспроводная", "dock": "док-станция"
+      }, w, w)
+      cpu3m: "ЦП 3 МИН"; offline: "офлайн"
+      procs: "процессы"; net: "сеть"; term: "терминал"; inbox: "входящие"; inboxN: n => "входящие ${n}"
+      process: "ПРОЦЕСС"; running: n => "запущено: ${n}"; off: "выкл"; endHint: "нажмите на процесс, чтобы завершить"
+      latency: "ЗАДЕРЖКА МС"; stats: (lo, mean, hi) => "мин ${lo} · сред ${mean} · макс ${hi}"; measuring: "измерение…"
+      public: "ВНЕШНИЙ IP"; interfaces: "ИНТЕРФЕЙСЫ"
+      command: "выполнить команду…"; busy: "выполняется…"; outputHint: "здесь появится вывод. удерживайте сохранённую команду, чтобы забыть её."
+      termHint: "нажмите для ввода · нажмите снаружи или «Назад», чтобы выйти"
+      allowHint: "разрешите доступ к уведомлениям, чтобы видеть их здесь"; allow: "разрешить"; inboxZero: "всё прочитано"
+      openHint: "нажмите — открыть · удерживайте — убрать"
+      now: "сейчас"; minutes: n => "${n} мин"; hours: n => "${n} ч"; days: n => "${n} д"; weeks: n => "${n} нед"; years: n => "${n} г"
+      runOnly: "!команда для запуска"; ask: a => "спросить ${a} · !команда"
+    }
+    ja {
+      day: "M月d日 EEEE"
+      sky: (code, desc) => get({
+        "113": "晴れ", "116": "晴れ時々曇り", "119": "曇り", "122": "本曇り", "143": "もや",
+        "176": "ところにより雨", "179": "ところにより雪", "182": "ところによりみぞれ", "185": "ところにより着氷性の霧雨",
+        "200": "ところにより雷", "227": "地吹雪", "230": "猛吹雪", "248": "霧", "260": "着氷性の霧",
+        "263": "ところにより弱い霧雨", "266": "弱い霧雨", "281": "着氷性の霧雨", "284": "強い着氷性の霧雨",
+        "293": "ところにより小雨", "296": "小雨", "299": "時々雨", "302": "雨",
+        "305": "時々強い雨", "308": "強い雨", "311": "弱い着氷性の雨", "314": "強い着氷性の雨",
+        "317": "弱いみぞれ", "320": "強いみぞれ", "323": "ところにより小雪", "326": "小雪",
+        "329": "ところにより雪", "332": "雪", "335": "ところにより大雪", "338": "大雪",
+        "350": "凍雨", "353": "弱いにわか雨", "356": "強いにわか雨", "359": "激しいにわか雨",
+        "362": "弱いみぞれ", "365": "強いみぞれ", "368": "弱いにわか雪",
+        "371": "強いにわか雪", "374": "弱い凍雨", "377": "強い凍雨",
+        "386": "雷を伴う弱い雨", "389": "雷を伴う強い雨", "392": "雷を伴う弱い雪",
+        "395": "雷を伴う強い雪"
+      }, code, lower(trim(desc)))
+      up: d => "稼働 ${d}"; updates: n => "↑ 更新 ${n} 件"; dnd: "サイレント"; saver: "省電力"
+      ringer: r => get({"vibrate": "バイブ", "silent": "ミュート"}, r, r)
+      mem: "メモリ"; disk: "ストレージ"; bat: "電池"; cores: n => "${n} コア"; free: b => "空き ${b}"
+      word: w => get({
+        "charging": "充電中", "plugged in": "電源に接続", "on battery": "バッテリー駆動", "good": "良好",
+        "overheating": "過熱", "dead": "寿命", "over voltage": "過電圧", "cold": "低温",
+        "failing": "異常", "wireless": "ワイヤレス", "dock": "ドック"
+      }, w, w)
+      cpu3m: "CPU 3分"; offline: "オフライン"
+      procs: "プロセス"; net: "ネット"; term: "ターミナル"; inbox: "通知"; inboxN: n => "通知 ${n}"
+      process: "プロセス"; running: n => "実行中 ${n}"; off: "オフ"; endHint: "プロセスをタップして終了"
+      latency: "遅延 ms"; stats: (lo, mean, hi) => "最小 ${lo} · 平均 ${mean} · 最大 ${hi}"; measuring: "測定中…"
+      public: "グローバル IP"; interfaces: "インターフェース"
+      command: "コマンドを実行…"; busy: "実行中…"; outputHint: "出力はここに表示されます。保存したコマンドを長押しすると消去します。"
+      termHint: "タップして入力 · 外側をタップするか戻るで終了"
+      allowHint: "ここに表示するには、通知へのアクセスを許可してください"; allow: "許可"; inboxZero: "新しい通知はありません"
+      openHint: "タップで開く · 長押しで消去"
+      now: "今"; minutes: n => "${n} 分"; hours: n => "${n} 時間"; days: n => "${n} 日"; weeks: n => "${n} 週間"; years: n => "${n} 年"
+      runOnly: "!コマンドで実行"; ask: a => "${a} に質問 · !コマンドで実行"
+    }
+    uk {
+      day: "EEEE, d MMMM"
+      sky: (code, desc) => get({
+        "113": "ясно", "116": "мінлива хмарність", "119": "хмарно", "122": "похмуро", "143": "серпанок",
+        "176": "місцями дощ", "179": "місцями сніг", "182": "місцями мокрий сніг", "185": "місцями крижана мряка",
+        "200": "гроза", "227": "поземок", "230": "хуртовина", "248": "туман", "260": "крижаний туман",
+        "263": "місцями слабка мряка", "266": "слабка мряка", "281": "крижана мряка", "284": "сильна крижана мряка",
+        "293": "місцями невеликий дощ", "296": "невеликий дощ", "299": "часом помірний дощ", "302": "помірний дощ",
+        "305": "часом сильний дощ", "308": "сильний дощ", "311": "слабкий крижаний дощ", "314": "сильний крижаний дощ",
+        "317": "невеликий мокрий сніг", "320": "сильний мокрий сніг", "323": "місцями невеликий сніг", "326": "невеликий сніг",
+        "329": "місцями помірний сніг", "332": "помірний сніг", "335": "місцями сильний сніг", "338": "сильний сніг",
+        "350": "крижана крупа", "353": "невелика злива", "356": "сильна злива", "359": "проливний дощ",
+        "362": "невелика злива з мокрим снігом", "365": "сильна злива з мокрим снігом", "368": "невеликий снігопад",
+        "371": "сильний снігопад", "374": "невелика крижана крупа", "377": "сильна крижана крупа",
+        "386": "невеликий дощ із грозою", "389": "сильний дощ із грозою", "392": "невеликий сніг із грозою",
+        "395": "сильний сніг із грозою"
+      }, code, lower(trim(desc)))
+      up: d => "аптайм ${d}"; updates: n => "↑ оновлень: ${n}"; dnd: "не турбувати"; saver: "економія"
+      ringer: r => get({"vibrate": "вібрація", "silent": "без звуку"}, r, r)
+      mem: "ОЗП"; disk: "ДИСК"; bat: "АКБ"; cores: n => "ядер: ${n}"; free: b => "вільно ${b}"
+      word: w => get({
+        "charging": "заряджається", "plugged in": "підключено", "on battery": "розряджається", "good": "добрий",
+        "overheating": "перегрів", "dead": "несправність", "over voltage": "перенапруга", "cold": "переохолодження",
+        "failing": "знос", "wireless": "бездротова", "dock": "док-станція"
+      }, w, w)
+      cpu3m: "ЦП 3 ХВ"; offline: "офлайн"
+      procs: "процеси"; net: "мережа"; term: "термінал"; inbox: "вхідні"; inboxN: n => "вхідні ${n}"
+      process: "ПРОЦЕС"; running: n => "запущено: ${n}"; off: "вимк"; endHint: "торкніться процесу, щоб завершити"
+      latency: "ЗАТРИМКА МС"; stats: (lo, mean, hi) => "мін ${lo} · сер ${mean} · макс ${hi}"; measuring: "вимірювання…"
+      public: "ЗОВНІШНЯ IP"; interfaces: "ІНТЕРФЕЙСИ"
+      command: "виконати команду…"; busy: "виконується…"; outputHint: "тут з'явиться вивід. утримуйте збережену команду, щоб забути її."
+      termHint: "торкніться для введення · торкніться поза ним або «Назад», щоб вийти"
+      allowHint: "надайте доступ до сповіщень, щоб бачити їх тут"; allow: "дозволити"; inboxZero: "усе прочитано"
+      openHint: "торкніться — відкрити · утримуйте — прибрати"
+      now: "зараз"; minutes: n => "${n} хв"; hours: n => "${n} год"; days: n => "${n} дн"; weeks: n => "${n} тиж"; years: n => "${n} р"
+      runOnly: "!команда для запуску"; ask: a => "запитати ${a} · !команда"
+    }
   }
 
   requires { pacman: ["procps-ng", "iputils", "iproute2", "btop"] }
@@ -140,7 +458,7 @@ face "control" {
       Column {
         gap: 0
         weight: 1
-        Label { t: "${lower(fmtTime(now, "EEEE d MMMM"))}" }
+        Label { t: "${lower(fmtTime(now, str.day))}" }
         Text { spans: [fmtTime(now, "HH"), {text: ":", color: accent}, fmtTime(now, "mm"), {text: " ${fmtTime(now, "ss")}", fontSize: 20, color: muted}]; font: jb; fontSize: wide ? 48 : 60; fontWeight: 200; letterSpacing: -2; maxLines: 1 }
       }
       if cur {
@@ -155,7 +473,7 @@ face "control" {
             Text { text: weatherIcon(cur.weatherCode, hour < 7 || hour >= 19); font: icon; fontSize: 26; color: yellow }
             Text { text: "${cur.temp_C}°"; font: jb; fontSize: 26; fontWeight: 300 }
           }
-          Text { text: lower(trim(cur.weatherDesc[0].value)); font: jb; fontSize: 10; color: muted; align: end; maxLines: 1 }
+          Text { text: str.sky(cur.weatherCode, cur.weatherDesc[0].value); font: jb; fontSize: 10; color: muted; align: end; maxLines: 1 }
         }
       }
     }
@@ -165,9 +483,9 @@ face "control" {
     Flow {
       gap: 6
       Chip { t: bat.charging ? "⚡${bat.level}%" : "${bat.level}%"; tint: bat.level < 20 && !bat.charging ? red : bat.charging ? green : foreground }
-      Chip { t: "up ${fmtDuration(sys.uptime)}"; tint: muted }
+      Chip { t: str.up(fmtDuration(sys.uptime)); tint: muted }
       if updates > 0 {
-        Text { text: "↑ ${updates} updates"; font: jb; fontSize: 11; color: yellow; padding: [9, 5]; background: alpha(yellow, 0.12); border: 1; borderColor: alpha(yellow, 0.3); radius: 10 * corners; onTap: terminal("pacman -Syu", "update") }
+        Text { text: str.updates(updates); font: jb; fontSize: 11; color: yellow; padding: [9, 5]; background: alpha(yellow, 0.12); border: 1; borderColor: alpha(yellow, 0.3); radius: 10 * corners; onTap: terminal("pacman -Syu", "update") }
       }
       if vpn {
         Chip { t: "vpn"; tint: green }
@@ -176,13 +494,13 @@ face "control" {
         Text { text: "⏰ ${fmtTime(alarm.time, "EEE HH:mm")}"; font: jb; fontSize: 11; color: accent; padding: [9, 5]; background: alpha(accent, 0.12); border: 1; borderColor: alpha(accent, 0.3); radius: 10 * corners; onTap: androidApp(alarm.app) }
       }
       if modes.dnd {
-        Chip { t: "dnd"; tint: magenta }
+        Chip { t: str.dnd; tint: magenta }
       }
       if modes.saver {
-        Chip { t: "saver"; tint: yellow }
+        Chip { t: str.saver; tint: yellow }
       }
       if modes.ringer != null && modes.ringer != "normal" {
-        Chip { t: modes.ringer; tint: muted }
+        Chip { t: str.ringer(modes.ringer); tint: muted }
       }
     }
   }
@@ -198,10 +516,10 @@ face "control" {
       radius: 16 * corners
       Row {
         gap: 4
-        Gauge { label: "CPU"; pct: cpu; sub: cores ? "${cores} cores" : "…" }
-        Gauge { label: "MEM"; pct: memPct; sub: memT ? "${fmtBytes(memT - memA)}/${fmtBytes(memT)}" : "…" }
-        Gauge { label: "DISK"; pct: diskPct; sub: disk ? "${fmtBytes(disk.free)} free" : "…" }
-        Gauge { label: "BAT"; pct: bat.level; sub: bat.temp ? "${round(bat.temp)}°C" : (bat.status ?? "") }
+        Gauge { label: "CPU"; pct: cpu; sub: cores ? str.cores(cores) : "…" }
+        Gauge { label: str.mem; pct: memPct; sub: memT ? "${fmtBytes(memT - memA)}/${fmtBytes(memT)}" : "…" }
+        Gauge { label: str.disk; pct: diskPct; sub: disk ? str.free(fmtBytes(disk.free)) : "…" }
+        Gauge { label: str.bat; pct: bat.level; sub: bat.temp ? "${round(bat.temp)}°C" : (bat.status == null ? "" : str.word(bat.status)) }
       }
       Row {
         gap: 12
@@ -211,7 +529,7 @@ face "control" {
           weight: 1
           fill: height
           Row {
-            Label { t: "CPU 3M"; tint: muted }
+            Label { t: str.cpu3m; tint: muted }
             Spacer { weight: 1 }
             Text { text: cpu == null ? "…" : "${round(cpu)}%"; font: jb; fontSize: 10; color: (cpu == null ? muted : cpu > 85 ? red : cpu > 60 ? yellow : green) }
           }
@@ -225,7 +543,7 @@ face "control" {
           Row {
             Label { t: "PING 1.1.1.1"; tint: muted }
             Spacer { weight: 1 }
-            Text { text: ms == null ? "…" : ms < 0 ? "offline" : "${ms} ms"; font: jb; fontSize: 10; color: msColor }
+            Text { text: ms == null ? "…" : ms < 0 ? str.offline : "${ms} ms"; font: jb; fontSize: 10; color: msColor }
           }
           Sparkline { values: msHist; min: 0; color: cyan; area: true; fill: width; weight: 1 }
         }
@@ -251,9 +569,9 @@ face "control" {
       Row {
         gap: 8
         padding: [0, 4]
-        Label { t: "PROCESS"; tint: muted }
+        Label { t: str.process; tint: muted }
         Spacer { weight: 1 }
-        Label { t: "${nprocs ?? "…"} running"; tint: muted }
+        Label { t: str.running(nprocs ?? "…"); tint: muted }
       }
       Column {
         gap: 2
@@ -288,9 +606,9 @@ face "control" {
       Row {
         gap: 6
         Text { text: "btop"; font: jb; fontSize: 11; color: accent; maxLines: 1; padding: [9, 5]; background: alpha(accent, 0.12); border: 1; borderColor: alpha(accent, 0.3); radius: 10 * corners; onTap: terminal("btop", "btop") }
-        Chip { t: "swap ${swapT ? fmtBytes(swapU) : "off"}"; tint: muted }
+        Chip { t: "swap ${swapT ? fmtBytes(swapU) : str.off}"; tint: muted }
         Spacer { weight: 1 }
-        Text { text: "tap a process to end it"; font: jb; fontSize: 10; color: muted; maxLines: 1 }
+        Text { text: str.endHint; font: jb; fontSize: 10; color: muted; maxLines: 1 }
       }
     }
   }
@@ -303,16 +621,16 @@ face "control" {
       Row {
         gap: 12
         align: center
-        Text { text: ms == null ? "…" : ms < 0 ? "offline" : "${ms}"; font: jb; fontSize: 40; fontWeight: 200; color: msColor }
+        Text { text: ms == null ? "…" : ms < 0 ? str.offline : "${ms}"; font: jb; fontSize: 40; fontWeight: 200; color: msColor }
         Column {
           gap: 0
           weight: 1
-          Label { t: "LATENCY MS"; tint: muted }
-          Text { text: len(msHist.filter(x => x != null)) > 1 ? "min ${min(msHist.filter(x => x != null))} · avg ${round(avg(msHist.filter(x => x != null)))} · max ${max(msHist.filter(x => x != null))}" : "measuring…"; font: jb; fontSize: 11; color: alpha(foreground, 0.75); maxLines: 1 }
+          Label { t: str.latency; tint: muted }
+          Text { text: len(msHist.filter(x => x != null)) > 1 ? str.stats(min(msHist.filter(x => x != null)), round(avg(msHist.filter(x => x != null))), max(msHist.filter(x => x != null))) : str.measuring; font: jb; fontSize: 11; color: alpha(foreground, 0.75); maxLines: 1 }
         }
       }
       Sparkline { values: msHist; min: 0; color: cyan; area: true; fill: width; height: 48 }
-      Label { t: "PUBLIC"; tint: muted }
+      Label { t: str.public; tint: muted }
       Row {
         gap: 8
         align: center
@@ -321,7 +639,7 @@ face "control" {
         Text { text: lower("${pub.city ?? ""} ${pub.country ?? ""}"); font: jb; fontSize: 11; color: muted; maxLines: 1 }
       }
       Text { text: pub.org ?? ""; font: jb; fontSize: 11; color: muted; maxLines: 1 }
-      Label { t: "INTERFACES"; tint: muted }
+      Label { t: str.interfaces; tint: muted }
       for i in ifs key i.name {
         Row {
           gap: 8
@@ -347,7 +665,7 @@ face "control" {
         align: center
         Text { text: "$"; font: jb; fontSize: 14; color: accent }
         Input {
-          placeholder: "run a command…"
+          placeholder: str.command
           clear: true
           fontSize: 13
           weight: 1
@@ -384,7 +702,7 @@ face "control" {
         if last != "" {
           Text { spans: [{text: "$ ", color: accent}, last]; font: jb; fontSize: 11; color: muted }
         }
-        Text { text: busy ? "running…" : out ?? "output shows here. long-press a saved command to forget it."; font: jb; fontSize: 11; color: busy || out == null ? muted : foreground }
+        Text { text: busy ? str.busy : out ?? str.outputHint; font: jb; fontSize: 11; color: busy || out == null ? muted : foreground }
       }
     }
   }
@@ -400,7 +718,7 @@ face "control" {
         clip: true
         Terminal { fontSize: 7 }
       }
-      Text { text: "tap to type · tap outside or Back to let go"; font: jb; fontSize: 10; color: muted; align: center }
+      Text { text: str.termHint; font: jb; fontSize: 10; color: muted; align: center }
     }
   }
 
@@ -409,12 +727,12 @@ face "control" {
       gap: 6
       weight: 1
       if !n.available {
-        Text { text: "allow notification access to see them here"; font: jb; fontSize: 12; color: muted }
-        Text { text: "allow"; font: jb; fontSize: 11; color: accent; maxLines: 1; padding: [9, 5]; background: alpha(accent, 0.12); border: 1; borderColor: alpha(accent, 0.3); radius: 10 * corners; onTap: notification("open", "") }
+        Text { text: str.allowHint; font: jb; fontSize: 12; color: muted }
+        Text { text: str.allow; font: jb; fontSize: 11; color: accent; maxLines: 1; padding: [9, 5]; background: alpha(accent, 0.12); border: 1; borderColor: alpha(accent, 0.3); radius: 10 * corners; onTap: notification("open", "") }
       } else if n.count == 0 {
         Spacer { weight: 1 }
         Text { text: "󰄬"; font: icon; fontSize: 32; color: green; align: center }
-        Text { text: "inbox zero"; font: jb; fontSize: 12; color: muted; align: center }
+        Text { text: str.inboxZero; font: jb; fontSize: 12; color: muted; align: center }
         Spacer { weight: 1 }
       } else {
         Column {
@@ -439,11 +757,13 @@ face "control" {
                   Text { text: item.text; fontSize: 12; color: muted; maxLines: 2 }
                 }
               }
-              Text { text: fmtAgo(item.time, now); font: jb; fontSize: 10; color: muted }
+              // fmtAgo's steps, in the phone's language.
+              let age = abs(now - item.time)
+              Text { text: age < 60 ? str.now : age < 3600 ? str.minutes(floor(age / 60)) : age < 86400 ? str.hours(floor(age / 3600)) : age < 604800 ? str.days(floor(age / 86400)) : age < 31536000 ? str.weeks(floor(age / 604800)) : str.years(floor(age / 31536000)); font: jb; fontSize: 10; color: muted }
             }
           }
         }
-        Text { text: "tap to open · hold to dismiss"; font: jb; fontSize: 10; color: muted; align: center }
+        Text { text: str.openHint; font: jb; fontSize: 10; color: muted; align: center }
       }
     }
   }
@@ -460,11 +780,11 @@ face "control" {
       radius: 16 * corners
       Row {
         gap: 0
-        Tab { id: "procs"; label: "procs" }
-        Tab { id: "net"; label: "net" }
+        Tab { id: "procs"; label: str.procs }
+        Tab { id: "net"; label: str.net }
         Tab { id: "shell"; label: "shell" }
-        Tab { id: "term"; label: "term" }
-        Tab { id: "inbox"; label: n.available && n.count > 0 ? "inbox ${n.count}" : "inbox" }
+        Tab { id: "term"; label: str.term }
+        Tab { id: "inbox"; label: n.available && n.count > 0 ? str.inboxN(n.count) : str.inbox }
       }
       if tab == "net" {
         Net { }
@@ -533,7 +853,7 @@ face "control" {
           Image { src: agent.icon; size: 22; onTap: open(agent.key) }
         }
         Input {
-          placeholder: agent == null ? "!command to run" : "ask ${lower(agent.name ?? agent.bin)} · !command to run"
+          placeholder: agent == null ? str.runOnly : str.ask(lower(agent.name ?? agent.bin))
           clear: true
           underline: false
           fontSize: 14

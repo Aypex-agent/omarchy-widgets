@@ -1,7 +1,20 @@
 face "pixel" {
   // An 8-bit landscape that follows the day, with your phone as a game's HUD below it.
 
-  meta { owl: 19; description: "An 8-bit landscape that follows the day and the weather, with the battery as hearts, notifications as coins and your apps as an inventory"; version: "1.3"; license: "MIT"; category: "fun" }
+  meta { owl: 19; description: "An 8-bit landscape that follows the day and the weather, with the battery as hearts, notifications as coins and your apps as an inventory"; version: "1.4"; license: "MIT"; category: "fun" }
+
+  // What it says, in the phone's language where it has a set. Day and month names come from the phone.
+  strings {
+    en { day: "EEE d MMM"; level: d => "LV${d}"; search: "SEARCH" }
+    id { day: "EEE d MMM"; level: d => "LV${d}"; search: "CARI" }
+    es { day: "EEE d MMM"; level: d => "NV${d}"; search: "BUSCAR" }
+    pt { day: "EEE d MMM"; level: d => "NV${d}"; search: "PESQUISAR" }
+    de { day: "EEE d. MMM"; level: d => "LV${d}"; search: "SUCHEN" }
+    zh { day: "M月d日 EEE"; level: d => "LV${d}"; search: "搜索" }
+    ru { day: "EEE d MMM"; level: d => "УР${d}"; search: "ПОИСК" }
+    ja { day: "M月d日 EEE"; level: d => "LV${d}"; search: "検索" }
+    uk { day: "EEE d MMM"; level: d => "РІВ${d}"; search: "ПОШУК" }
+  }
   // Pixel art moves in whole art pixels; 20 frames a second keep the snow and birds smooth for less battery.
   fps: modes.saver ? 10 : 20
   source modes = android.modes
@@ -194,8 +207,8 @@ face "pixel" {
         Box {
           fill: width
           align: center
-          Text { text: upper(fmtTime(now, "EEE d MMM")); font: press; fontSize: 10; color: alpha(color0, 0.7); offset: [2, 2]; align: center }
-          Text { text: upper(fmtTime(now, "EEE d MMM")); font: press; fontSize: 10; color: foreground; align: center }
+          Text { text: upper(fmtTime(now, str.day)); font: press; fontSize: 10; color: alpha(color0, 0.7); offset: [2, 2]; align: center }
+          Text { text: upper(fmtTime(now, str.day)); font: press; fontSize: 10; color: foreground; align: center }
         }
       }
         if wide {
@@ -251,7 +264,7 @@ face "pixel" {
       Row {
         gap: 12
         align: center
-        Label { label: "LV${fmtTime(now, "D")}"; size: 9; tint: cyan }
+        Label { label: str.level(fmtTime(now, "D")); size: 9; tint: cyan }
         Canvas {
           weight: 1
           height: 12
@@ -333,7 +346,7 @@ face "pixel" {
             opacity: now % 2 == 0 ? 1 : 0.2
             sprite(["x...", "xx..", "xxx.", "xxxx", "xxx.", "xx..", "x..."], 0, 0, 2, palette: {x: yellow})
           }
-          Label { label: "SEARCH"; size: 11 }
+          Label { label: str.search; size: 11 }
         }
         Box {
           size: 60

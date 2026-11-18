@@ -7,11 +7,416 @@ face "ukiyo-e" {
   // The print is the theme's paper and ink, with its blue, red and green for the inks between.
 
   meta {
-    owl: 14
+    owl: 16
     description: "A woodblock print that follows the hour, the weather and the moon, the 72 seasons of the old Japanese calendar, your letters and apps"
-    version: "1.0"
+    version: "1.1"
     license: "MIT"
     category: "fun"
+  }
+
+  // What the page says, in the phone's language where it has a set. Day and month names come from the phone. The
+  // kanji, their readings and the seal are the print's own and stay in every language; ko and sekki give the meaning
+  // of the season by its first day, ja and zh name the sekki as they are written there.
+  strings {
+    en {
+      date: "EEEE d MMMM"; weather: "weather"; sun: "sun"; moon: "moon"; letters: "letters"; quiet: "the sky is quiet"; sets: t => "sets at ${t}"; risesSets: "rises and sets"
+      allow: "Let the page read your notifications, and they arrive here as letters."
+      empty: "No letters today. Only the wind in the pines."
+      now: "now"; mins: n => "${n}m"; hours: n => "${n}h"; days: n => "${n}d"; weeks: n => "${n}w"; years: n => "${n}y"
+      moonName: k => k
+      next: (d, m, what) => "next on ${d} ${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m - 1]}: ${lower(what)}"
+      ko: (md, en) => en
+      sky: (code, desc) => desc
+      sekki: (md, kanji, en) => en
+    }
+    id {
+      date: "EEEE, d MMMM"; weather: "cuaca"; sun: "matahari"; moon: "bulan"; letters: "surat"; quiet: "langit sedang tenang"; sets: t => "terbenam ${t}"; risesSets: "terbit, terbenam"
+      allow: "Izinkan halaman ini membaca notifikasimu, dan semuanya tiba di sini sebagai surat."
+      empty: "Tak ada surat hari ini. Hanya angin di pepohonan pinus."
+      now: "kini"; mins: n => "${n}m"; hours: n => "${n}j"; days: n => "${n}h"; weeks: n => "${n}mg"; years: n => "${n}th"
+      moonName: k => get({"new moon": "bulan baru", "waxing crescent": "sabit awal", "first quarter": "kuartir pertama", "waxing gibbous": "cembung awal", "full moon": "purnama", "waning gibbous": "cembung akhir", "last quarter": "kuartir akhir", "waning crescent": "sabit akhir"}, k, k)
+      next: (d, m, what) => "mulai ${d} ${["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"][m - 1]}: ${lower(what)}"
+      ko: (md, en) => get({
+        "204": "Angin timur mencairkan es", "209": "Burung warbler mulai berkicau di gunung", "214": "Ikan muncul dari balik es", "219": "Hujan membasahi tanah",
+        "224": "Kabut mulai menggantung", "301": "Rumput bertunas, pohon berkuncup", "306": "Serangga bangun dari tidur panjang", "311": "Bunga persik pertama mekar",
+        "316": "Ulat menjadi kupu-kupu", "321": "Burung gereja mulai bersarang", "326": "Bunga sakura pertama mekar", "331": "Guruh di kejauhan",
+        "405": "Burung layang-layang kembali", "410": "Angsa liar terbang ke utara", "415": "Pelangi pertama", "420": "Gelagah mulai bertunas",
+        "425": "Embun beku terakhir, bibit padi tumbuh", "430": "Peoni mekar", "505": "Katak mulai bersahutan", "510": "Cacing muncul ke permukaan",
+        "515": "Rebung mulai tumbuh", "521": "Ulat sutra melahap daun murbei", "526": "Kesumba mekar", "531": "Gandum matang dan dipanen",
+        "606": "Belalang sembah menetas", "611": "Rumput busuk menjadi kunang-kunang", "616": "Buah plum menguning", "621": "Prunela layu",
+        "627": "Iris mekar", "702": "Pinellia bertunas", "707": "Angin hangat berembus", "712": "Teratai pertama mekar",
+        "717": "Elang muda belajar terbang", "723": "Pohon paulownia berbiji", "729": "Tanah lembap, udara gerah", "803": "Hujan lebat sesekali turun",
+        "808": "Angin sejuk berembus", "813": "Tonggeret senja berbunyi", "818": "Kabut tebal turun", "823": "Bunga kapas merekah",
+        "828": "Panas mulai mereda", "902": "Padi menguning", "908": "Embun putih berkilau di rumput", "913": "Burung kicuit berkicau",
+        "918": "Burung layang-layang pergi", "923": "Guruh berhenti", "928": "Serangga bersembunyi di dalam tanah", "1003": "Petani mengeringkan sawah",
+        "1008": "Angsa liar kembali", "1013": "Krisan mekar", "1018": "Jangkrik mengerik di dekat pintu", "1023": "Embun beku pertama",
+        "1028": "Hujan ringan sesekali turun", "1102": "Daun maple dan tanaman rambat menguning", "1107": "Kamelia mekar", "1112": "Tanah mulai membeku",
+        "1117": "Bunga narsis mekar", "1122": "Pelangi bersembunyi", "1127": "Angin utara merontokkan daun", "1202": "Jeruk tachibana menguning",
+        "1207": "Dingin tiba, musim dingin dimulai", "1212": "Beruang mulai tidur di sarangnya", "1216": "Salmon berkumpul dan berenang ke hulu", "1222": "Prunela bertunas",
+        "1227": "Rusa menanggalkan tanduknya", "101": "Gandum bertunas di bawah salju", "105": "Peterseli tumbuh subur", "110": "Mata air mencair",
+        "115": "Burung pegar mulai bersuara", "120": "Fuki mulai berkuncup", "125": "Es menebal di sungai", "130": "Ayam betina mulai bertelur"
+      }, "${md}", en)
+      sky: (code, desc) => get({
+        "113": "cerah", "116": "cerah berawan", "119": "berawan", "122": "mendung", "143": "kabut tipis",
+        "176": "hujan lokal", "179": "salju lokal", "182": "hujan salju lokal", "185": "gerimis beku lokal",
+        "200": "badai petir", "227": "salju tertiup angin", "230": "badai salju", "248": "kabut", "260": "kabut beku",
+        "263": "gerimis ringan lokal", "266": "gerimis ringan", "281": "gerimis beku", "284": "gerimis beku lebat",
+        "293": "hujan ringan lokal", "296": "hujan ringan", "299": "kadang hujan sedang", "302": "hujan sedang",
+        "305": "kadang hujan lebat", "308": "hujan lebat", "311": "hujan beku ringan", "314": "hujan beku lebat",
+        "317": "hujan salju ringan", "320": "hujan salju lebat", "323": "salju ringan lokal", "326": "salju ringan",
+        "329": "salju sedang lokal", "332": "salju sedang", "335": "salju lebat lokal", "338": "salju lebat",
+        "350": "butiran es", "353": "hujan ringan sesaat", "356": "hujan lebat sesaat", "359": "hujan deras",
+        "362": "hujan salju ringan sesaat", "365": "hujan salju lebat sesaat", "368": "salju ringan sesaat",
+        "371": "salju lebat sesaat", "374": "butiran es ringan", "377": "butiran es lebat",
+        "386": "hujan ringan berpetir", "389": "hujan lebat berpetir", "392": "salju ringan berpetir",
+        "395": "salju lebat berpetir"
+      }, code, lower(trim(desc)))
+      sekki: (md, kanji, en) => get({
+        "101": "titik balik musim dingin", "105": "dingin kecil", "120": "dingin besar", "204": "awal musim semi", "219": "air hujan",
+        "306": "serangga bangun", "321": "ekuinoks musim semi", "405": "cerah dan bening", "420": "hujan biji-bijian", "505": "awal musim panas",
+        "521": "biji mulai berisi", "606": "bulir gandum", "621": "titik balik musim panas", "707": "panas kecil", "723": "panas besar",
+        "808": "awal musim gugur", "823": "akhir panas", "908": "embun putih", "923": "ekuinoks musim gugur", "1008": "embun dingin",
+        "1023": "embun beku turun", "1107": "awal musim dingin", "1122": "salju kecil", "1207": "salju besar", "1222": "titik balik musim dingin"
+      }, "${md}", en)
+    }
+    es {
+      date: "EEEE, d 'de' MMMM"; weather: "clima"; sun: "sol"; moon: "luna"; letters: "cartas"; quiet: "el cielo está en calma"; sets: t => "ocaso ${t}"; risesSets: "sale y se pone"
+      allow: "Deja que la página lea tus notificaciones y llegarán aquí como cartas."
+      empty: "Hoy no hay cartas. Solo el viento entre los pinos."
+      now: "ahora"; mins: n => "${n}m"; hours: n => "${n}h"; days: n => "${n}d"; weeks: n => "${n} sem"; years: n => "${n} a"
+      moonName: k => get({"new moon": "luna nueva", "waxing crescent": "creciente", "first quarter": "cuarto creciente", "waxing gibbous": "gibosa creciente", "full moon": "luna llena", "waning gibbous": "gibosa menguante", "last quarter": "cuarto menguante", "waning crescent": "menguante"}, k, k)
+      next: (d, m, what) => "desde el ${d} de ${["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sept", "oct", "nov", "dic"][m - 1]}: ${lower(what)}"
+      ko: (md, en) => get({
+        "204": "El viento del este derrite el hielo", "209": "Los ruiseñores cantan en los montes", "214": "Los peces asoman entre el hielo", "219": "La lluvia humedece la tierra",
+        "224": "La neblina empieza a quedarse", "301": "Brota la hierba, los árboles echan yemas", "306": "Los insectos despiertan", "311": "Primeras flores del melocotonero",
+        "316": "Las orugas se vuelven mariposas", "321": "Los gorriones empiezan a anidar", "326": "Primeras flores del cerezo", "331": "Truenos lejanos",
+        "405": "Vuelven las golondrinas", "410": "Los gansos salvajes vuelan al norte", "415": "Primeros arcoíris", "420": "Brotan los primeros juncos",
+        "425": "Última helada, crecen los plantones de arroz", "430": "Florecen las peonías", "505": "Las ranas empiezan a cantar", "510": "Salen las lombrices",
+        "515": "Asoman los brotes de bambú", "521": "Los gusanos de seda devoran la morera", "526": "Florece el cártamo", "531": "El trigo madura y se cosecha",
+        "606": "Nacen las mantis", "611": "La hierba podrida se vuelve luciérnagas", "616": "Amarillean las ciruelas", "621": "Se marchita la prunela",
+        "627": "Florecen los lirios", "702": "Brota la pinelia", "707": "Soplan vientos cálidos", "712": "Primeras flores de loto",
+        "717": "Los halcones aprenden a volar", "723": "La paulonia da semillas", "729": "Tierra húmeda, aire bochornoso", "803": "A veces caen grandes lluvias",
+        "808": "Soplan vientos frescos", "813": "Cantan las cigarras al atardecer", "818": "Baja una niebla espesa", "823": "Se abren las flores del algodón",
+        "828": "El calor empieza a remitir", "902": "Madura el arroz", "908": "El rocío brilla blanco en la hierba", "913": "Cantan las lavanderas",
+        "918": "Se van las golondrinas", "923": "Cesan los truenos", "928": "Los insectos se refugian bajo tierra", "1003": "Los campesinos drenan los campos",
+        "1008": "Vuelven los gansos salvajes", "1013": "Florecen los crisantemos", "1018": "Los grillos cantan junto a la puerta", "1023": "Primera helada",
+        "1028": "A veces cae una lluvia fina", "1102": "Amarillean los arces y la hiedra", "1107": "Florecen las camelias", "1112": "La tierra empieza a helarse",
+        "1117": "Florecen los narcisos", "1122": "Se esconden los arcoíris", "1127": "El viento del norte arranca las hojas", "1202": "Amarillean los cítricos tachibana",
+        "1207": "Llega el frío, empieza el invierno", "1212": "Los osos se retiran a hibernar", "1216": "Los salmones remontan el río", "1222": "Brota la prunela",
+        "1227": "Los ciervos mudan la cornamenta", "101": "El trigo brota bajo la nieve", "105": "Crece el perejil", "110": "Se deshielan los manantiales",
+        "115": "Los faisanes empiezan a cantar", "120": "Brotan los petasites", "125": "El hielo se espesa en los arroyos", "130": "Las gallinas empiezan a poner"
+      }, "${md}", en)
+      sky: (code, desc) => get({
+        "113": "despejado", "116": "parcialmente nublado", "119": "nublado", "122": "cubierto", "143": "neblina",
+        "176": "lluvia dispersa", "179": "nieve dispersa", "182": "aguanieve dispersa", "185": "llovizna helada dispersa",
+        "200": "tormenta eléctrica", "227": "nieve con viento", "230": "ventisca", "248": "niebla", "260": "niebla helada",
+        "263": "llovizna ligera dispersa", "266": "llovizna ligera", "281": "llovizna helada", "284": "llovizna helada intensa",
+        "293": "lluvia ligera dispersa", "296": "lluvia ligera", "299": "a ratos lluvia moderada", "302": "lluvia moderada",
+        "305": "a ratos lluvia fuerte", "308": "lluvia fuerte", "311": "lluvia helada ligera", "314": "lluvia helada fuerte",
+        "317": "aguanieve ligera", "320": "aguanieve fuerte", "323": "nevada ligera dispersa", "326": "nevada ligera",
+        "329": "nevada moderada dispersa", "332": "nevada moderada", "335": "nevada fuerte dispersa", "338": "nevada fuerte",
+        "350": "granizo fino", "353": "chubascos ligeros", "356": "chubascos fuertes", "359": "aguacero",
+        "362": "chubascos de aguanieve ligeros", "365": "chubascos de aguanieve fuertes", "368": "chubascos de nieve ligeros",
+        "371": "chubascos de nieve fuertes", "374": "chubascos de granizo fino ligeros", "377": "chubascos de granizo fino fuertes",
+        "386": "lluvia ligera con truenos", "389": "lluvia fuerte con truenos", "392": "nieve ligera con truenos",
+        "395": "nieve fuerte con truenos"
+      }, code, lower(trim(desc)))
+      sekki: (md, kanji, en) => get({
+        "101": "solsticio de invierno", "105": "frío menor", "120": "gran frío", "204": "comienzo de la primavera", "219": "agua de lluvia",
+        "306": "despertar de los insectos", "321": "equinoccio de primavera", "405": "pura claridad", "420": "lluvia de grano", "505": "comienzo del verano",
+        "521": "grano lleno", "606": "grano en espiga", "621": "solsticio de verano", "707": "calor menor", "723": "gran calor",
+        "808": "comienzo del otoño", "823": "fin del calor", "908": "rocío blanco", "923": "equinoccio de otoño", "1008": "rocío frío",
+        "1023": "cae la escarcha", "1107": "comienzo del invierno", "1122": "nieve menor", "1207": "gran nieve", "1222": "solsticio de invierno"
+      }, "${md}", en)
+    }
+    pt {
+      date: "EEEE, d 'de' MMMM"; weather: "clima"; sun: "sol"; moon: "lua"; letters: "cartas"; quiet: "o céu está calmo"; sets: t => "ocaso ${t}"; risesSets: "nasce e se põe"
+      allow: "Deixe a página ler suas notificações e elas chegam aqui como cartas."
+      empty: "Nenhuma carta hoje. Só o vento nos pinheiros."
+      now: "agora"; mins: n => "${n}m"; hours: n => "${n}h"; days: n => "${n}d"; weeks: n => "${n} sem"; years: n => "${n} a"
+      moonName: k => get({"new moon": "lua nova", "waxing crescent": "crescente", "first quarter": "quarto crescente", "waxing gibbous": "crescente gibosa", "full moon": "lua cheia", "waning gibbous": "minguante gibosa", "last quarter": "quarto minguante", "waning crescent": "minguante"}, k, k)
+      next: (d, m, what) => "a partir de ${d} de ${["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"][m - 1]}: ${lower(what)}"
+      ko: (md, en) => get({
+        "204": "O vento leste derrete o gelo", "209": "Os rouxinóis cantam nas montanhas", "214": "Os peixes despontam entre o gelo", "219": "A chuva umedece a terra",
+        "224": "A névoa começa a pairar", "301": "A grama brota, as árvores ganham botões", "306": "Os insetos despertam", "311": "Primeiras flores do pessegueiro",
+        "316": "As lagartas viram borboletas", "321": "Os pardais começam a fazer ninho", "326": "Primeiras flores da cerejeira", "331": "Trovões ao longe",
+        "405": "As andorinhas voltam", "410": "Os gansos selvagens voam para o norte", "415": "Primeiros arco-íris", "420": "Brotam os primeiros juncos",
+        "425": "Última geada, as mudas de arroz crescem", "430": "As peônias florescem", "505": "As rãs começam a cantar", "510": "As minhocas saem da terra",
+        "515": "Despontam os brotos de bambu", "521": "Os bichos-da-seda devoram a amoreira", "526": "O cártamo floresce", "531": "O trigo amadurece e é colhido",
+        "606": "Nascem os louva-a-deus", "611": "A grama podre vira vaga-lumes", "616": "As ameixas amarelam", "621": "A prunela murcha",
+        "627": "As íris florescem", "702": "Brota a pinélia", "707": "Sopram ventos quentes", "712": "Primeiras flores de lótus",
+        "717": "Os falcões aprendem a voar", "723": "A paulównia dá sementes", "729": "Terra úmida, ar abafado", "803": "Às vezes caem grandes chuvas",
+        "808": "Sopram ventos frescos", "813": "As cigarras cantam ao entardecer", "818": "Desce uma névoa espessa", "823": "As flores do algodão se abrem",
+        "828": "O calor começa a diminuir", "902": "O arroz amadurece", "908": "O orvalho brilha branco na grama", "913": "As alvéolas cantam",
+        "918": "As andorinhas partem", "923": "Cessam os trovões", "928": "Os insetos se recolhem sob a terra", "1003": "Os agricultores drenam os campos",
+        "1008": "Os gansos selvagens voltam", "1013": "Os crisântemos florescem", "1018": "Os grilos cantam junto à porta", "1023": "Primeira geada",
+        "1028": "Às vezes cai uma chuva fina", "1102": "Bordos e heras amarelam", "1107": "As camélias florescem", "1112": "A terra começa a congelar",
+        "1117": "Os narcisos florescem", "1122": "Os arco-íris se escondem", "1127": "O vento norte arranca as folhas", "1202": "Os citros tachibana amarelam",
+        "1207": "Chega o frio, começa o inverno", "1212": "Os ursos se recolhem para hibernar", "1216": "Os salmões se reúnem e sobem o rio", "1222": "Brota a prunela",
+        "1227": "Os cervos perdem os chifres", "101": "O trigo brota sob a neve", "105": "A salsa viceja", "110": "As nascentes degelam",
+        "115": "Os faisões começam a cantar", "120": "Brotam os petasites", "125": "O gelo engrossa nos riachos", "130": "As galinhas começam a pôr ovos"
+      }, "${md}", en)
+      sky: (code, desc) => get({
+        "113": "céu limpo", "116": "parcialmente nublado", "119": "nublado", "122": "encoberto", "143": "névoa",
+        "176": "chuva isolada", "179": "neve isolada", "182": "chuva com neve isolada", "185": "garoa congelante isolada",
+        "200": "trovoada", "227": "neve com vento", "230": "nevasca", "248": "neblina", "260": "neblina congelante",
+        "263": "garoa fraca isolada", "266": "garoa fraca", "281": "garoa congelante", "284": "garoa congelante forte",
+        "293": "chuva fraca isolada", "296": "chuva fraca", "299": "às vezes chuva moderada", "302": "chuva moderada",
+        "305": "às vezes chuva forte", "308": "chuva forte", "311": "chuva congelante fraca", "314": "chuva congelante forte",
+        "317": "chuva com neve fraca", "320": "chuva com neve forte", "323": "neve fraca isolada", "326": "neve fraca",
+        "329": "neve moderada isolada", "332": "neve moderada", "335": "neve forte isolada", "338": "neve forte",
+        "350": "granizo miúdo", "353": "pancadas de chuva fracas", "356": "pancadas de chuva fortes", "359": "aguaceiro",
+        "362": "pancadas de chuva com neve fracas", "365": "pancadas de chuva com neve fortes", "368": "pancadas de neve fracas",
+        "371": "pancadas de neve fortes", "374": "pancadas de granizo miúdo fracas", "377": "pancadas de granizo miúdo fortes",
+        "386": "chuva fraca com trovões", "389": "chuva forte com trovões", "392": "neve fraca com trovões",
+        "395": "neve forte com trovões"
+      }, code, lower(trim(desc)))
+      sekki: (md, kanji, en) => get({
+        "101": "solstício de inverno", "105": "frio menor", "120": "grande frio", "204": "início da primavera", "219": "água da chuva",
+        "306": "despertar dos insetos", "321": "equinócio da primavera", "405": "puro e claro", "420": "chuva dos grãos", "505": "início do verão",
+        "521": "grão cheio", "606": "grão na espiga", "621": "solstício de verão", "707": "calor menor", "723": "grande calor",
+        "808": "início do outono", "823": "fim do calor", "908": "orvalho branco", "923": "equinócio do outono", "1008": "orvalho frio",
+        "1023": "desce a geada", "1107": "início do inverno", "1122": "neve menor", "1207": "grande neve", "1222": "solstício de inverno"
+      }, "${md}", en)
+    }
+    de {
+      date: "EEEE, d. MMMM"; weather: "wetter"; sun: "sonne"; moon: "mond"; letters: "briefe"; quiet: "der himmel ist still"; sets: t => "untergang ${t}"; risesSets: "kommt und geht"
+      allow: "Erlaube der Seite, deine Benachrichtigungen zu lesen, dann kommen sie hier als Briefe an."
+      empty: "Heute keine Briefe. Nur der Wind in den Kiefern."
+      now: "jetzt"; mins: n => "${n} min"; hours: n => "${n} std"; days: n => "${n} tg"; weeks: n => "${n} wo"; years: n => "${n} j"
+      moonName: k => get({"new moon": "neumond", "waxing crescent": "zunehmende sichel", "first quarter": "erstes viertel", "waxing gibbous": "zunehmender mond", "full moon": "vollmond", "waning gibbous": "abnehmender mond", "last quarter": "letztes viertel", "waning crescent": "abnehmende sichel"}, k, k)
+      next: (d, m, what) => "ab ${d}. ${["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"][m - 1]}: ${what}"
+      ko: (md, en) => get({
+        "204": "Ostwind taut das Eis", "209": "Buschsänger singen in den Bergen", "214": "Fische steigen aus dem Eis", "219": "Regen tränkt die Erde",
+        "224": "Dunst bleibt in der Luft liegen", "301": "Gras sprießt, Bäume treiben Knospen", "306": "Insekten erwachen aus der Winterruhe", "311": "Erste Pfirsichblüten",
+        "316": "Raupen werden zu Schmetterlingen", "321": "Spatzen beginnen zu nisten", "326": "Erste Kirschblüten", "331": "Fernes Donnergrollen",
+        "405": "Schwalben kehren zurück", "410": "Wildgänse ziehen nach Norden", "415": "Erste Regenbogen", "420": "Erstes Schilf sprießt",
+        "425": "Letzter Frost, Reissetzlinge wachsen", "430": "Pfingstrosen blühen", "505": "Frösche beginnen zu quaken", "510": "Regenwürmer kommen hervor",
+        "515": "Bambussprossen sprießen", "521": "Seidenraupen fressen Maulbeerblätter", "526": "Färberdisteln blühen", "531": "Weizen reift und wird geerntet",
+        "606": "Gottesanbeterinnen schlüpfen", "611": "Aus faulem Gras werden Glühwürmchen", "616": "Pflaumen werden gelb", "621": "Die Braunelle welkt",
+        "627": "Schwertlilien blühen", "702": "Pinellia sprießt", "707": "Warme Winde wehen", "712": "Erste Lotusblüten",
+        "717": "Junge Falken lernen fliegen", "723": "Paulownien tragen Samen", "729": "Feuchte Erde, schwüle Luft", "803": "Manchmal fällt starker Regen",
+        "808": "Kühle Winde wehen", "813": "Abendzikaden zirpen", "818": "Dichter Nebel senkt sich", "823": "Die Baumwolle blüht",
+        "828": "Die Hitze lässt nach", "902": "Der Reis reift", "908": "Weißer Tau glänzt im Gras", "913": "Bachstelzen singen",
+        "918": "Schwalben ziehen fort", "923": "Der Donner verstummt", "928": "Insekten verkriechen sich in der Erde", "1003": "Bauern legen die Felder trocken",
+        "1008": "Wildgänse kehren zurück", "1013": "Chrysanthemen blühen", "1018": "Grillen zirpen an der Tür", "1023": "Erster Frost",
+        "1028": "Manchmal fällt leichter Regen", "1102": "Ahorn und Efeu färben sich gelb", "1107": "Kamelien blühen", "1112": "Der Boden beginnt zu frieren",
+        "1117": "Narzissen blühen", "1122": "Regenbogen verbergen sich", "1127": "Nordwind fegt das Laub von den Bäumen", "1202": "Tachibana-Zitrusfrüchte werden gelb",
+        "1207": "Kälte zieht ein, der Winter beginnt", "1212": "Bären ziehen sich zum Winterschlaf zurück", "1216": "Lachse sammeln sich und ziehen flussaufwärts", "1222": "Die Braunelle sprießt",
+        "1227": "Hirsche werfen ihr Geweih ab", "101": "Weizen keimt unter dem Schnee", "105": "Petersilie gedeiht", "110": "Quellen tauen auf",
+        "115": "Fasane beginnen zu rufen", "120": "Pestwurz treibt Knospen", "125": "Eis wird dick auf den Bächen", "130": "Hennen beginnen zu legen"
+      }, "${md}", en)
+      sky: (code, desc) => get({
+        "113": "klar", "116": "teils bewölkt", "119": "bewölkt", "122": "bedeckt", "143": "dunst",
+        "176": "örtlich regen", "179": "örtlich schnee", "182": "örtlich schneeregen", "185": "örtlich gefrierender niesel",
+        "200": "gewitter", "227": "schneetreiben", "230": "schneesturm", "248": "nebel", "260": "gefrierender nebel",
+        "263": "örtlich leichter niesel", "266": "leichter niesel", "281": "gefrierender niesel", "284": "starker gefrierender niesel",
+        "293": "örtlich leichter regen", "296": "leichter regen", "299": "zeitweise mäßiger regen", "302": "mäßiger regen",
+        "305": "zeitweise starker regen", "308": "starker regen", "311": "leichter gefrierender regen", "314": "starker gefrierender regen",
+        "317": "leichter schneeregen", "320": "starker schneeregen", "323": "örtlich leichter schnee", "326": "leichter schnee",
+        "329": "örtlich mäßiger schnee", "332": "mäßiger schnee", "335": "örtlich starker schnee", "338": "starker schnee",
+        "350": "eiskörner", "353": "leichte regenschauer", "356": "starke regenschauer", "359": "wolkenbruch",
+        "362": "leichte schneeregenschauer", "365": "starke schneeregenschauer", "368": "leichte schneeschauer",
+        "371": "starke schneeschauer", "374": "leichte eiskörnerschauer", "377": "starke eiskörnerschauer",
+        "386": "leichter regen mit gewitter", "389": "starker regen mit gewitter", "392": "leichter schnee mit gewitter",
+        "395": "starker schnee mit gewitter"
+      }, code, lower(trim(desc)))
+      sekki: (md, kanji, en) => get({
+        "101": "wintersonnenwende", "105": "kleine kälte", "120": "große kälte", "204": "frühlingsanfang", "219": "regenwasser",
+        "306": "erwachen der insekten", "321": "frühlingsäquinoktium", "405": "rein und klar", "420": "kornregen", "505": "sommeranfang",
+        "521": "kleine reife", "606": "ähren reifen", "621": "sommersonnenwende", "707": "kleine hitze", "723": "große hitze",
+        "808": "herbstanfang", "823": "ende der hitze", "908": "weißer tau", "923": "herbstäquinoktium", "1008": "kalter tau",
+        "1023": "reif fällt", "1107": "winteranfang", "1122": "kleiner schnee", "1207": "großer schnee", "1222": "wintersonnenwende"
+      }, "${md}", en)
+    }
+    zh {
+      date: "M月d日 EEEE"; weather: "天气"; sun: "太阳"; moon: "月亮"; letters: "书信"; quiet: "天色宁静"; sets: t => "${t} 日落"; risesSets: "日出日落"
+      allow: "允许此页面读取通知，它们便会化作书信来到这里。"
+      empty: "今日无信，唯有松风。"
+      now: "刚刚"; mins: n => "${n}分钟"; hours: n => "${n}小时"; days: n => "${n}天"; weeks: n => "${n}周"; years: n => "${n}年"
+      moonName: k => get({"new moon": "新月", "waxing crescent": "蛾眉月", "first quarter": "上弦月", "waxing gibbous": "盈凸月", "full moon": "满月", "waning gibbous": "亏凸月", "last quarter": "下弦月", "waning crescent": "残月"}, k, k)
+      next: (d, m, what) => "${m}月${d}日起：${what}"
+      ko: (md, en) => get({
+        "204": "东风吹来，冰雪消融", "209": "树莺在山间初鸣", "214": "鱼儿破冰而出", "219": "春雨润泽土地",
+        "224": "薄雾开始缭绕", "301": "草木萌芽", "306": "冬眠的虫儿苏醒", "311": "桃花初开",
+        "316": "青虫化蝶", "321": "麻雀开始筑巢", "326": "樱花初开", "331": "远处传来雷声",
+        "405": "燕子归来", "410": "大雁北飞", "415": "彩虹初现", "420": "芦苇萌发",
+        "425": "霜止，稻苗生长", "430": "牡丹盛开", "505": "青蛙开始鸣叫", "510": "蚯蚓钻出地面",
+        "515": "竹笋破土", "521": "蚕儿大食桑叶", "526": "红花盛开", "531": "麦子成熟收割",
+        "606": "螳螂孵化", "611": "腐草化为萤火虫", "616": "梅子变黄", "621": "夏枯草枯萎",
+        "627": "鸢尾花开", "702": "半夏萌生", "707": "暖风吹拂", "712": "莲花初开",
+        "717": "雏鹰学飞", "723": "桐树结籽", "729": "土地湿润，空气闷热", "803": "时有大雨",
+        "808": "凉风吹来", "813": "暮蝉鸣叫", "818": "浓雾弥漫", "823": "棉桃绽开",
+        "828": "暑气渐消", "902": "稻谷成熟", "908": "草上白露闪亮", "913": "鹡鸰鸣叫",
+        "918": "燕子南飞", "923": "雷声渐收", "928": "虫儿入土蛰伏", "1003": "农人排干田水",
+        "1008": "大雁归来", "1013": "菊花盛开", "1018": "蟋蟀在门边鸣叫", "1023": "初霜降临",
+        "1028": "时有小雨", "1102": "枫叶与常春藤变黄", "1107": "山茶花开", "1112": "大地开始冻结",
+        "1117": "水仙花开", "1122": "彩虹隐去", "1127": "北风扫落树叶", "1202": "橘子开始变黄",
+        "1207": "天寒地冻，冬天来临", "1212": "熊入洞冬眠", "1216": "鲑鱼成群洄游", "1222": "夏枯草萌生",
+        "1227": "麋鹿脱角", "101": "麦苗在雪下萌发", "105": "芹菜繁茂", "110": "泉水解冻",
+        "115": "野鸡开始啼叫", "120": "款冬含苞", "125": "溪水结冰渐厚", "130": "母鸡开始下蛋"
+      }, "${md}", en)
+      sky: (code, desc) => get({
+        "113": "晴", "116": "局部多云", "119": "多云", "122": "阴", "143": "薄雾",
+        "176": "局部有雨", "179": "局部有雪", "182": "局部雨夹雪", "185": "局部冻毛毛雨",
+        "200": "雷暴", "227": "风吹雪", "230": "暴风雪", "248": "雾", "260": "冻雾",
+        "263": "局部小毛毛雨", "266": "小毛毛雨", "281": "冻毛毛雨", "284": "强冻毛毛雨",
+        "293": "局部小雨", "296": "小雨", "299": "间歇中雨", "302": "中雨",
+        "305": "间歇大雨", "308": "大雨", "311": "小冻雨", "314": "大冻雨",
+        "317": "小雨夹雪", "320": "大雨夹雪", "323": "局部小雪", "326": "小雪",
+        "329": "局部中雪", "332": "中雪", "335": "局部大雪", "338": "大雪",
+        "350": "冰粒", "353": "小阵雨", "356": "大阵雨", "359": "暴雨",
+        "362": "小阵雨夹雪", "365": "大阵雨夹雪", "368": "小阵雪",
+        "371": "大阵雪", "374": "小阵冰粒", "377": "大阵冰粒",
+        "386": "雷阵雨", "389": "强雷阵雨", "392": "小雷阵雪",
+        "395": "大雷阵雪"
+      }, code, lower(trim(desc)))
+      sekki: (md, kanji, en) => get({"啓蟄": "惊蛰", "穀雨": "谷雨", "小満": "小满", "芒種": "芒种", "処暑": "处暑"}, kanji, kanji)
+    }
+    ru {
+      date: "EEEE, d MMMM"; weather: "погода"; sun: "солнце"; moon: "луна"; letters: "письма"; quiet: "небо спокойно"; sets: t => "закат ${t}"; risesSets: "восход и закат"
+      allow: "Разрешите странице читать уведомления, и они будут приходить сюда письмами."
+      empty: "Сегодня писем нет. Только ветер в соснах."
+      now: "сейчас"; mins: n => "${n} мин"; hours: n => "${n} ч"; days: n => "${n} д"; weeks: n => "${n} нед"; years: n => "${n} г"
+      moonName: k => get({"new moon": "новолуние", "waxing crescent": "растущий серп", "first quarter": "первая четверть", "waxing gibbous": "растущая луна", "full moon": "полнолуние", "waning gibbous": "убывающая луна", "last quarter": "последняя четверть", "waning crescent": "убывающий серп"}, k, k)
+      next: (d, m, what) => "с ${d} ${["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"][m - 1]}: ${lower(what)}"
+      ko: (md, en) => get({
+        "204": "Восточный ветер растапливает лёд", "209": "В горах поют камышовки", "214": "Рыба поднимается из-подо льда", "219": "Дождь увлажняет землю",
+        "224": "Ложится дымка", "301": "Прорастает трава, набухают почки", "306": "Просыпаются насекомые", "311": "Зацветают персики",
+        "316": "Гусеницы становятся бабочками", "321": "Воробьи вьют гнёзда", "326": "Зацветает сакура", "331": "Далёкий гром",
+        "405": "Возвращаются ласточки", "410": "Дикие гуси летят на север", "415": "Первые радуги", "420": "Пробивается тростник",
+        "425": "Последние заморозки, растёт рассада риса", "430": "Цветут пионы", "505": "Квакают лягушки", "510": "Выползают дождевые черви",
+        "515": "Прорастает бамбук", "521": "Шелкопряды поедают листья шелковицы", "526": "Цветёт сафлор", "531": "Созревает пшеница, идёт жатва",
+        "606": "Вылупляются богомолы", "611": "Из прелой травы рождаются светлячки", "616": "Желтеют сливы", "621": "Увядает черноголовка",
+        "627": "Цветут ирисы", "702": "Прорастает пинеллия", "707": "Дуют тёплые ветры", "712": "Зацветает лотос",
+        "717": "Ястребы учатся летать", "723": "Павловния даёт семена", "729": "Земля влажная, воздух душный", "803": "Порой льют сильные дожди",
+        "808": "Дуют прохладные ветры", "813": "Вечером поют цикады", "818": "Опускается густой туман", "823": "Раскрывается хлопок",
+        "828": "Жара начинает спадать", "902": "Созревает рис", "908": "Белая роса блестит на траве", "913": "Поют трясогузки",
+        "918": "Улетают ласточки", "923": "Смолкает гром", "928": "Насекомые прячутся под землю", "1003": "Крестьяне осушают поля",
+        "1008": "Возвращаются дикие гуси", "1013": "Цветут хризантемы", "1018": "У двери стрекочут сверчки", "1023": "Первый иней",
+        "1028": "Порой моросит дождь", "1102": "Желтеют клёны и плющ", "1107": "Цветут камелии", "1112": "Земля начинает замерзать",
+        "1117": "Цветут нарциссы", "1122": "Радуги прячутся", "1127": "Северный ветер срывает листья", "1202": "Желтеют цитрусы татибана",
+        "1207": "Приходит холод, начинается зима", "1212": "Медведи залегают в берлоги", "1216": "Лосось идёт вверх по реке", "1222": "Прорастает черноголовка",
+        "1227": "Олени сбрасывают рога", "101": "Под снегом прорастает пшеница", "105": "Разрастается петрушка", "110": "Оттаивают родники",
+        "115": "Начинают кричать фазаны", "120": "Набухают почки белокопытника", "125": "Крепнет лёд на ручьях", "130": "Куры начинают нестись"
+      }, "${md}", en)
+      sky: (code, desc) => get({
+        "113": "ясно", "116": "переменная облачность", "119": "облачно", "122": "пасмурно", "143": "дымка",
+        "176": "местами дождь", "179": "местами снег", "182": "местами мокрый снег", "185": "местами ледяная морось",
+        "200": "гроза", "227": "позёмка", "230": "метель", "248": "туман", "260": "ледяной туман",
+        "263": "местами слабая морось", "266": "слабая морось", "281": "ледяная морось", "284": "сильная ледяная морось",
+        "293": "местами небольшой дождь", "296": "небольшой дождь", "299": "временами умеренный дождь", "302": "умеренный дождь",
+        "305": "временами сильный дождь", "308": "сильный дождь", "311": "слабый ледяной дождь", "314": "сильный ледяной дождь",
+        "317": "небольшой мокрый снег", "320": "сильный мокрый снег", "323": "местами небольшой снег", "326": "небольшой снег",
+        "329": "местами умеренный снег", "332": "умеренный снег", "335": "местами сильный снег", "338": "сильный снег",
+        "350": "ледяная крупа", "353": "небольшой ливень", "356": "сильный ливень", "359": "проливной дождь",
+        "362": "небольшой ливень с мокрым снегом", "365": "сильный ливень с мокрым снегом", "368": "небольшой снегопад",
+        "371": "сильный снегопад", "374": "небольшая ледяная крупа", "377": "сильная ледяная крупа",
+        "386": "небольшой дождь с грозой", "389": "сильный дождь с грозой", "392": "небольшой снег с грозой",
+        "395": "сильный снег с грозой"
+      }, code, lower(trim(desc)))
+      sekki: (md, kanji, en) => get({
+        "101": "зимнее солнцестояние", "105": "малые холода", "120": "большие холода", "204": "начало весны", "219": "дождевая вода",
+        "306": "пробуждение насекомых", "321": "весеннее равноденствие", "405": "чистый свет", "420": "хлебные дожди", "505": "начало лета",
+        "521": "малое изобилие", "606": "колошение", "621": "летнее солнцестояние", "707": "малая жара", "723": "большая жара",
+        "808": "начало осени", "823": "конец жары", "908": "белые росы", "923": "осеннее равноденствие", "1008": "холодные росы",
+        "1023": "выпадение инея", "1107": "начало зимы", "1122": "малые снега", "1207": "большие снега", "1222": "зимнее солнцестояние"
+      }, "${md}", en)
+    }
+    ja {
+      date: "M月d日 EEEE"; weather: "天気"; sun: "太陽"; moon: "月"; letters: "便り"; quiet: "空は静か"; sets: t => "日の入り ${t}"; risesSets: "日の出と日の入り"
+      allow: "通知へのアクセスを許可すると、ここに手紙として届きます。"
+      empty: "今日は便りなし。松風の音だけ。"
+      now: "今"; mins: n => "${n} 分"; hours: n => "${n} 時間"; days: n => "${n} 日"; weeks: n => "${n} 週"; years: n => "${n} 年"
+      moonName: k => get({"new moon": "新月", "waxing crescent": "三日月", "first quarter": "上弦の月", "waxing gibbous": "満ちていく月", "full moon": "満月", "waning gibbous": "欠けていく月", "last quarter": "下弦の月", "waning crescent": "有明の月"}, k, k)
+      next: (d, m, what) => "${m}月${d}日から：${what}"
+      ko: (md, en) => get({
+        "204": "春風が氷を解かす", "209": "鶯が山里で鳴き始める", "214": "魚が氷の間から姿を見せる", "219": "雨が降って土が潤う",
+        "224": "霞がたなびき始める", "301": "草木が芽吹き始める", "306": "冬ごもりの虫が出てくる", "311": "桃の花が咲き始める",
+        "316": "青虫が蝶になる", "321": "雀が巣を作り始める", "326": "桜の花が咲き始める", "331": "遠くで雷が鳴り始める",
+        "405": "燕が南から渡ってくる", "410": "雁が北へ帰っていく", "415": "雨上がりに虹が出始める", "420": "葦が芽吹き始める",
+        "425": "霜が終わり、稲の苗が育つ", "430": "牡丹の花が咲く", "505": "蛙が鳴き始める", "510": "みみずが地上に出てくる",
+        "515": "筍が生えてくる", "521": "蚕が桑の葉を盛んに食べる", "526": "紅花が盛んに咲く", "531": "麦が熟し、刈り入れの時",
+        "606": "かまきりが生まれる", "611": "腐った草が蛍になる", "616": "梅の実が黄ばんで熟す", "621": "夏枯草が枯れる",
+        "627": "あやめの花が咲く", "702": "烏柄杓が生える", "707": "温かい風が吹いてくる", "712": "蓮の花が開き始める",
+        "717": "鷹の幼鳥が飛び方を覚える", "723": "桐の実がなり始める", "729": "土が湿って蒸し暑くなる", "803": "時として大雨が降る",
+        "808": "涼しい風が立ち始める", "813": "ひぐらしが鳴き始める", "818": "深い霧が立ち込める", "823": "綿の花のがくが開く",
+        "828": "ようやく暑さが鎮まる", "902": "稲が実る", "908": "草に降りた露が白く光る", "913": "鶺鴒が鳴き始める",
+        "918": "燕が南へ帰っていく", "923": "雷が鳴り響かなくなる", "928": "虫が土にこもり戸をふさぐ", "1003": "田畑の水を干し始める",
+        "1008": "雁が渡ってくる", "1013": "菊の花が咲く", "1018": "きりぎりすが戸口で鳴く", "1023": "霜が降り始める",
+        "1028": "小雨がしとしと降る", "1102": "もみじや蔦が色づく", "1107": "山茶花が咲き始める", "1112": "大地が凍り始める",
+        "1117": "水仙の花が咲く", "1122": "虹を見かけなくなる", "1127": "北風が木の葉を払う", "1202": "橘の実が黄色く色づく",
+        "1207": "寒さが増し、本格的な冬になる", "1212": "熊が冬ごもりで穴に入る", "1216": "鮭が群がり川を上る", "1222": "夏枯草が芽を出す",
+        "1227": "大鹿が角を落とす", "101": "雪の下で麦が芽を出す", "105": "芹がよく育つ", "110": "地中で凍った泉が動き始める",
+        "115": "雉が鳴き始める", "120": "蕗の薹が蕾を出す", "125": "沢に厚い氷が張りつめる", "130": "鶏が卵を産み始める"
+      }, "${md}", en)
+      sky: (code, desc) => get({
+        "113": "晴れ", "116": "晴れ時々曇り", "119": "曇り", "122": "本曇り", "143": "もや",
+        "176": "ところにより雨", "179": "ところにより雪", "182": "ところによりみぞれ", "185": "ところにより着氷性の霧雨",
+        "200": "ところにより雷", "227": "地吹雪", "230": "猛吹雪", "248": "霧", "260": "着氷性の霧",
+        "263": "ところにより弱い霧雨", "266": "弱い霧雨", "281": "着氷性の霧雨", "284": "強い着氷性の霧雨",
+        "293": "ところにより小雨", "296": "小雨", "299": "時々雨", "302": "雨",
+        "305": "時々強い雨", "308": "強い雨", "311": "弱い着氷性の雨", "314": "強い着氷性の雨",
+        "317": "弱いみぞれ", "320": "強いみぞれ", "323": "ところにより小雪", "326": "小雪",
+        "329": "ところにより雪", "332": "雪", "335": "ところにより大雪", "338": "大雪",
+        "350": "凍雨", "353": "弱いにわか雨", "356": "強いにわか雨", "359": "激しいにわか雨",
+        "362": "弱いみぞれ", "365": "強いみぞれ", "368": "弱いにわか雪",
+        "371": "強いにわか雪", "374": "弱い凍雨", "377": "強い凍雨",
+        "386": "雷を伴う弱い雨", "389": "雷を伴う強い雨", "392": "雷を伴う弱い雪",
+        "395": "雷を伴う強い雪"
+      }, code, lower(trim(desc)))
+      sekki: (md, kanji, en) => kanji
+    }
+    uk {
+      date: "EEEE, d MMMM"; weather: "погода"; sun: "сонце"; moon: "місяць"; letters: "листи"; quiet: "небо спокійне"; sets: t => "захід ${t}"; risesSets: "схід і захід"
+      allow: "Дозвольте сторінці читати сповіщення, і вони надходитимуть сюди листами."
+      empty: "Сьогодні листів немає. Лише вітер у соснах."
+      now: "зараз"; mins: n => "${n} хв"; hours: n => "${n} год"; days: n => "${n} дн"; weeks: n => "${n} тиж"; years: n => "${n} р"
+      moonName: k => get({"new moon": "новий місяць", "waxing crescent": "молодий місяць", "first quarter": "перша чверть", "waxing gibbous": "місяць росте", "full moon": "повня", "waning gibbous": "місяць спадає", "last quarter": "остання чверть", "waning crescent": "старий місяць"}, k, k)
+      next: (d, m, what) => "з ${d} ${["січня", "лютого", "березня", "квітня", "травня", "червня", "липня", "серпня", "вересня", "жовтня", "листопада", "грудня"][m - 1]}: ${lower(what)}"
+      ko: (md, en) => get({
+        "204": "Східний вітер топить кригу", "209": "У горах співають очеретянки", "214": "Риба виринає з-під криги", "219": "Дощ зволожує землю",
+        "224": "Лягає серпанок", "301": "Проростає трава, набухають бруньки", "306": "Прокидаються комахи", "311": "Зацвітають персики",
+        "316": "Гусениці стають метеликами", "321": "Горобці в'ють гнізда", "326": "Зацвітає сакура", "331": "Далекий грім",
+        "405": "Повертаються ластівки", "410": "Дикі гуси летять на північ", "415": "Перші веселки", "420": "Проростає очерет",
+        "425": "Останні заморозки, росте розсада рису", "430": "Цвітуть півонії", "505": "Кумкають жаби", "510": "Виповзають дощові черв'яки",
+        "515": "Проростає бамбук", "521": "Шовкопряди поїдають листя шовковиці", "526": "Цвіте сафлор", "531": "Достигає пшениця, настають жнива",
+        "606": "Вилуплюються богомоли", "611": "З прілої трави народжуються світлячки", "616": "Жовтіють сливи", "621": "В'януть суховершки",
+        "627": "Цвітуть іриси", "702": "Проростає пінелія", "707": "Дмуть теплі вітри", "712": "Зацвітає лотос",
+        "717": "Яструби вчаться літати", "723": "Павловнія дає насіння", "729": "Земля волога, повітря задушливе", "803": "Часом ллють сильні дощі",
+        "808": "Дмуть прохолодні вітри", "813": "Увечері співають цикади", "818": "Опускається густий туман", "823": "Розкривається бавовна",
+        "828": "Спека починає спадати", "902": "Достигає рис", "908": "Біла роса блищить на траві", "913": "Співають плиски",
+        "918": "Відлітають ластівки", "923": "Стихає грім", "928": "Комахи ховаються під землю", "1003": "Селяни осушують поля",
+        "1008": "Повертаються дикі гуси", "1013": "Цвітуть хризантеми", "1018": "Біля дверей сюрчать цвіркуни", "1023": "Перший іній",
+        "1028": "Часом мрячить дощ", "1102": "Жовтіють клени та плющ", "1107": "Цвітуть камелії", "1112": "Земля починає замерзати",
+        "1117": "Цвітуть нарциси", "1122": "Веселки ховаються", "1127": "Північний вітер зриває листя", "1202": "Жовтіють цитрусові татібана",
+        "1207": "Приходить холод, починається зима", "1212": "Ведмеді лягають у барлоги", "1216": "Лосось іде вгору річкою", "1222": "Проростають суховершки",
+        "1227": "Олені скидають роги", "101": "Під снігом проростає пшениця", "105": "Буяє петрушка", "110": "Відтають джерела",
+        "115": "Починають кричати фазани", "120": "Набухають бруньки кремени", "125": "Міцніє лід на струмках", "130": "Кури починають нестися"
+      }, "${md}", en)
+      sky: (code, desc) => get({
+        "113": "ясно", "116": "мінлива хмарність", "119": "хмарно", "122": "похмуро", "143": "серпанок",
+        "176": "місцями дощ", "179": "місцями сніг", "182": "місцями мокрий сніг", "185": "місцями крижана мряка",
+        "200": "гроза", "227": "поземок", "230": "хуртовина", "248": "туман", "260": "крижаний туман",
+        "263": "місцями слабка мряка", "266": "слабка мряка", "281": "крижана мряка", "284": "сильна крижана мряка",
+        "293": "місцями невеликий дощ", "296": "невеликий дощ", "299": "часом помірний дощ", "302": "помірний дощ",
+        "305": "часом сильний дощ", "308": "сильний дощ", "311": "слабкий крижаний дощ", "314": "сильний крижаний дощ",
+        "317": "невеликий мокрий сніг", "320": "сильний мокрий сніг", "323": "місцями невеликий сніг", "326": "невеликий сніг",
+        "329": "місцями помірний сніг", "332": "помірний сніг", "335": "місцями сильний сніг", "338": "сильний сніг",
+        "350": "крижана крупа", "353": "невелика злива", "356": "сильна злива", "359": "проливний дощ",
+        "362": "невелика злива з мокрим снігом", "365": "сильна злива з мокрим снігом", "368": "невеликий снігопад",
+        "371": "сильний снігопад", "374": "невелика крижана крупа", "377": "сильна крижана крупа",
+        "386": "невеликий дощ із грозою", "389": "сильний дощ із грозою", "392": "невеликий сніг із грозою",
+        "395": "сильний сніг із грозою"
+      }, code, lower(trim(desc)))
+      sekki: (md, kanji, en) => get({
+        "101": "зимове сонцестояння", "105": "малі холоди", "120": "великі холоди", "204": "початок весни", "219": "дощова вода",
+        "306": "пробудження комах", "321": "весняне рівнодення", "405": "чисто і ясно", "420": "хлібні дощі", "505": "початок літа",
+        "521": "мале наповнення", "606": "колосіння", "621": "літнє сонцестояння", "707": "мала спека", "723": "велика спека",
+        "808": "початок осені", "823": "кінець спеки", "908": "білі роси", "923": "осіннє рівнодення", "1008": "холодні роси",
+        "1023": "випадає іній", "1107": "початок зими", "1122": "малі сніги", "1207": "великі сніги", "1222": "зимове сонцестояння"
+      }, "${md}", en)
+    }
   }
 
   background: background
@@ -114,7 +519,6 @@ face "ukiyo-e" {
     [1107, "立冬", "rittō", "beginning of winter"], [1122, "小雪", "shōsetsu", "lesser snow"], [1207, "大雪", "taisetsu", "greater snow"],
     [1222, "冬至", "tōji", "winter solstice"]
   ]
-  let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
   let md = num(fmtTime(now, "M")) * 100 + num(fmtTime(now, "d"))
   let kos = ko.sortBy(k => k[0])
   let kNow = kos.filter(k => k[0] <= md).last() ?? kos[0]
@@ -136,6 +540,7 @@ face "ukiyo-e" {
   // The moon's age from a new moon on 6 January 2000, 18:14 UTC, as a share of its month of 29.53 days.
   let phase = ((now - 947182440) / 86400 % 29.530588853) / 29.530588853
   let lit = round((1 - cos(phase * 6.2831853)) / 2 * 100)
+  // An English key for the phase, shown through str.moonName.
   let moonName = phase < 0.03 || phase > 0.97 ? "new moon" : phase < 0.22 ? "waxing crescent" : phase < 0.28 ? "first quarter" : phase < 0.47 ? "waxing gibbous" : phase < 0.53 ? "full moon" : phase < 0.72 ? "waning gibbous" : phase < 0.78 ? "last quarter" : "waning crescent"
   // Snow on the mountain: most in the coldest weeks, a cap in high summer.
   let doy = num(fmtTime(now, "D"))
@@ -459,7 +864,7 @@ face "ukiyo-e" {
             border: 0.75
             borderColor: foreground
             Text { text: fmtTime(now, "HH:mm"); font: mincho; fontSize: 36; color: foreground }
-            Text { text: fmtTime(now, "EEEE d MMMM"); font: garamondI; fontSize: 14; color: foreground; maxLines: 1 }
+            Text { text: fmtTime(now, str.date); font: garamondI; fontSize: 14; color: foreground; maxLines: 1 }
           }
         }
         Spacer { weight: 1 }
@@ -489,12 +894,12 @@ face "ukiyo-e" {
   component Season() {
     Column {
       gap: 3
-      Label { text: "${sNow[2]} · ${sNow[3]}" }
-      Text { text: kNow[3]; font: mincho; fontSize: 23; color: foreground; maxLines: 2 }
+      Label { text: "${sNow[2]} · ${str.sekki(sNow[0], sNow[1], sNow[3])}" }
+      Text { text: str.ko(kNow[0], kNow[3]); font: mincho; fontSize: 23; color: foreground; maxLines: 2 }
       Text {
         spans: [
           {text: kNow[2], font: garamondI, fontSize: 15, color: muted},
-          {text: "  ·  next on ${num(kNext[0]) % 100} ${months[floor(num(kNext[0]) / 100) - 1]}: ${lower(kNext[3])}", font: garamond, fontSize: 14, color: muted}
+          {text: "  ·  " + str.next(num(kNext[0]) % 100, floor(num(kNext[0]) / 100), str.ko(kNext[0], kNext[3])), font: garamond, fontSize: 14, color: muted}
         ]
         maxLines: 2
       }
@@ -509,27 +914,27 @@ face "ukiyo-e" {
       Column {
         weight: 1
         gap: 1
-        Label { text: "weather" }
+        Label { text: str.weather }
         Text { text: cur == null ? "…" : "${cur.temp_C}°"; font: mincho; fontSize: 24; color: foreground; maxLines: 1 }
-        Text { text: lower(cur.weatherDesc[0].value ?? "the sky is quiet"); font: garamond; fontSize: 14; color: muted; maxLines: 2 }
+        Text { text: cur.weatherDesc[0].value == null ? str.quiet : lower(str.sky(cur.weatherCode, cur.weatherDesc[0].value)); font: garamond; fontSize: 14; color: muted; maxLines: 2 }
       }
       Box { width: 1; height: 64; background: alpha(foreground, 0.35) }
       Column {
         weight: 1
         gap: 1
         padding: [14, 0, 0, 0]
-        Label { text: "sun" }
+        Label { text: str.sun }
         Text { text: sun[0][1] ?? "…"; font: mincho; fontSize: 24; color: foreground; maxLines: 1 }
-        Text { text: sun[1] == null ? "rises and sets" : "sets at ${sun[1][1]}"; font: garamond; fontSize: 14; color: muted; maxLines: 1 }
+        Text { text: sun[1] == null ? str.risesSets : str.sets(sun[1][1]); font: garamond; fontSize: 14; color: muted; maxLines: 1 }
       }
       Box { width: 1; height: 64; background: alpha(foreground, 0.35) }
       Column {
         weight: 1
         gap: 1
         padding: [14, 0, 0, 0]
-        Label { text: "moon" }
+        Label { text: str.moon }
         Text { text: "${lit}%"; font: mincho; fontSize: 24; color: foreground; maxLines: 1 }
-        Text { text: moonName; font: garamond; fontSize: 14; color: muted; maxLines: 2 }
+        Text { text: str.moonName(moonName); font: garamond; fontSize: 14; color: muted; maxLines: 2 }
       }
     }
   }
@@ -553,13 +958,13 @@ face "ukiyo-e" {
       gap: 8
       Row {
         align: center
-        Label { text: "letters"; weight: 1 }
+        Label { text: str.letters; weight: 1 }
         if n.available && n.count > 0 { Text { text: "${n.count}"; font: mincho; fontSize: 14; color: red } }
       }
       if !n.available {
-        Text { text: "Let the page read your notifications, and they arrive here as letters."; font: garamond; fontSize: 16; color: muted; onTap: notification("open", "") }
+        Text { text: str.allow; font: garamond; fontSize: 16; color: muted; onTap: notification("open", "") }
       } else if len(letters) == 0 {
-        Text { text: "No letters today. Only the wind in the pines."; font: garamondI; fontSize: 17; color: muted }
+        Text { text: str.empty; font: garamondI; fontSize: 17; color: muted }
       } else {
         Column {
           scroll: true
@@ -578,7 +983,13 @@ face "ukiyo-e" {
                 Text { text: it.title ?? it.app; font: mincho; fontSize: 15; color: foreground; maxLines: 1 }
                 if it.text != null && it.text != "" { Text { text: it.text; font: garamond; fontSize: 14; color: muted; maxLines: 1 } }
               }
-              Text { text: fmtAgo(it.time, now); font: garamondI; fontSize: 13; color: muted }
+              // How long ago, in the units fmtAgo uses, in the phone's language.
+              Text {
+                text: now - it.time < 60 ? str.now : now - it.time < 3600 ? str.mins(floor((now - it.time) / 60)) : now - it.time < 86400 ? str.hours(floor((now - it.time) / 3600)) : now - it.time < 604800 ? str.days(floor((now - it.time) / 86400)) : now - it.time < 31536000 ? str.weeks(floor((now - it.time) / 604800)) : str.years(floor((now - it.time) / 31536000))
+                font: garamondI
+                fontSize: 13
+                color: muted
+              }
             }
           }
         }

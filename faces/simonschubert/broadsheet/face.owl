@@ -6,11 +6,246 @@ face "broadsheet" {
   // the phone's fastfetch is the stock exchange. The paper is the theme's background, printed in its foreground.
 
   meta {
-    owl: 14
+    owl: 16
     description: "A broadsheet of the 1890s: Hacker News, BBC World and Arch news in columns, an engraving of the town, the weather as a woodcut, notices as classified ads and fastfetch as the stock tables"
-    version: "1.0"
+    version: "1.1"
     license: "MIT"
     category: "news"
+  }
+
+  // What the paper says, in the phone's language where it has a set. Day and month names come from the phone. The
+  // paper's name, its editions, the weather and the stock names are worked out in English and looked up here.
+  strings {
+    en {
+      // The masthead in blackletter where its letters are; Old Standard, cut after Russian type of the 1800s, elsewhere.
+      blackletter: true
+      title: t => t; edition: e => e; motto: "“All the News that Fits the Screen.”"; est: "ESTABLISHED 1890"
+      date: "EEEE, MMMM d, yyyy"; vol: r => "VOL. ${r}"; no: d => "No. ${d}"; price: "One Penny"
+      sky: s => s; wind: (d, s) => "wind ${d}, ${s}"
+      view: w => "VIEW OF THE TOWN ${w}.—From a Drawing by Our Artist."
+      presses: "THE PRESSES ARE RUNNING."; firstEdition: "Our first edition is on its way from the wire."
+      heads: host => "A Matter from ${host} Heads the Front Page"; special: "SPECIAL TO THE HERALD."
+      quiet: "—The wires are quiet, and our correspondents await the morning's despatches."
+      account: (by, pts, com, host) => "—The matter, laid before the readers of the Hacker News by Mr. ${by}, had by this hour drawn ${pts} votes and ${com} remarks, and stands at the head of the front page. The full account may be had at ${host}; the remarks of readers, by a long press upon this column."
+      meta: (host, pts, com) => "${host} · ${pts} votes · ${com} remarks"
+      dateline: t => t == null ? "LONDON.—" : "LONDON, ${t}.—"
+      fromHN: "From the Hacker News"; continued: "Continued"; telegraph: "By Telegraph"; notices: "Official Notices"
+      hnLate: "The wire from Mountain View is late this hour."; cableSilent: "The cable is silent; despatches are expected hourly."
+      ads: "Advertisements"; wanted: "WANTED."
+      wantedText: "A Reader of Notices, of good character, to bring the Public's letters to this column. Apply by a tap."
+      noAds: "No advertisements have been received at this office today."; notice: "notice"
+      ago: (t, nw) => fmtAgo(t, nw); more: n => "${n} more within."
+      exchange: "The Exchange"; stock: "STOCK"; close: "CLOSE"; chg: "CHG."; unch: "unch."; stockName: s => s
+      pkgs: n => "${n} pkgs"
+    }
+    id {
+      title: t => t == "The Morning Herald" ? "Pewarta Pagi" : "Pewarta Petang"
+      blackletter: true
+      edition: e => get({"Night Edition": "Edisi Malam", "Morning Edition": "Edisi Pagi", "Afternoon Edition": "Edisi Siang", "Evening Edition": "Edisi Petang", "Late Edition": "Edisi Akhir"}, e, e)
+      motto: "“Semua Berita yang Muat di Layar.”"; est: "BERDIRI SEJAK 1890"
+      date: "EEEE, d MMMM yyyy"; vol: r => "JIL. ${r}"; no: d => "No. ${d}"; price: "Satu Sen"
+      sky: s => get({"thunder": "badai petir", "snow": "salju", "showers": "hujan sesaat", "rain": "hujan", "fog": "kabut", "cloudy": "berawan", "overcast": "mendung", "fair to cloudy": "cerah berawan", "clouding over": "mulai berawan", "fair": "cerah", "clear": "langit cerah"}, s, s)
+      wind: (d, s) => "angin ${replace(replace(replace(d, "N", "U"), "E", "T"), "W", "B")}, ${get({"calm": "tenang", "light": "pelan", "fresh": "sedang", "a gale": "kencang"}, s, s)}"
+      view: w => "PEMANDANGAN KOTA ${get({"BY NIGHT": "DI MALAM HARI", "AT DAWN": "KALA FAJAR", "THIS MORNING": "PAGI INI", "AT NOON": "TENGAH HARI", "THIS AFTERNOON": "SORE INI", "AT DUSK": "KALA SENJA"}, w, w)}.—Dari Sketsa Juru Gambar Kami."
+      presses: "MESIN CETAK SEDANG BERPUTAR."; firstEdition: "Edisi pertama kami masih dalam perjalanan lewat kawat."
+      heads: host => "Kabar dari ${host} Menjadi Berita Utama"; special: "LAPORAN KHUSUS PEWARTA."
+      quiet: "—Kawat sedang sepi, dan para koresponden kami menanti kiriman berita pagi."
+      account: (by, pts, com, host) => "—Perkara ini, yang diajukan kepada pembaca Hacker News oleh Tuan ${by}, hingga jam ini telah meraih ${pts} suara dan ${com} tanggapan, dan kini memuncaki halaman depan. Kisah lengkapnya dapat dibaca di ${host}; tanggapan pembaca, dengan menekan lama kolom ini."
+      meta: (host, pts, com) => "${host} · ${pts} suara · ${com} tanggapan"
+      dateline: t => t == null ? "LONDON.—" : "LONDON, ${t}.—"
+      fromHN: "Dari Hacker News"; continued: "Sambungan"; telegraph: "Lewat Telegraf"; notices: "Pengumuman Resmi"
+      hnLate: "Kawat dari Mountain View terlambat jam ini."; cableSilent: "Kabel membisu; kiriman berita ditunggu tiap jam."
+      ads: "Iklan"; wanted: "DICARI."
+      wantedText: "Seorang Pembaca Pemberitahuan, berbudi baik, untuk membawa surat-surat Khalayak ke kolom ini. Lamar dengan sekali ketuk."
+      noAds: "Hari ini belum ada iklan yang diterima kantor kami."; notice: "pengumuman"
+      ago: (t, nw) => t == null ? "" : nw - t < 60 ? "kini" : nw - t < 3600 ? "${floor((nw - t) / 60)}m" : nw - t < 86400 ? "${floor((nw - t) / 3600)}j" : "${floor((nw - t) / 86400)}h"
+      more: n => "${n} lagi di halaman dalam."
+      exchange: "Bursa"; stock: "SAHAM"; close: "TUTUP"; chg: "+/-"; unch: "tetap"
+      stockName: s => get({"Memory": "Memori", "Storage": "Penyimpanan", "Battery": "Baterai", "Uptime": "Aktif", "Apps": "Aplikasi", "Chip": "Cip", "Theme": "Tema"}, s, s)
+      pkgs: n => "${n} paket"
+    }
+    es {
+      title: t => t == "The Morning Herald" ? "Heraldo Matutino" : "Heraldo Vespertino"
+      blackletter: true
+      edition: e => get({"Night Edition": "Edición Nocturna", "Morning Edition": "Edición Matinal", "Afternoon Edition": "Edición de Tarde", "Evening Edition": "Edición de Noche", "Late Edition": "Última Edición"}, e, e)
+      motto: "“Todas las noticias que caben en la pantalla.”"; est: "FUNDADO EN 1890"
+      date: "EEEE, d 'de' MMMM 'de' yyyy"; vol: r => "AÑO ${r}"; no: d => "Núm. ${d}"; price: "Cinco Céntimos"
+      sky: s => get({"thunder": "tormenta", "snow": "nieve", "showers": "chubascos", "rain": "lluvia", "fog": "niebla", "cloudy": "nuboso", "overcast": "cubierto", "fair to cloudy": "intervalos nubosos", "clouding over": "nublándose", "fair": "buen tiempo", "clear": "despejado"}, s, s)
+      wind: (d, s) => "viento ${replace(d, "W", "O")}, ${get({"calm": "en calma", "light": "flojo", "fresh": "fresco", "a gale": "temporal"}, s, s)}"
+      view: w => "VISTA DE LA CIUDAD ${get({"BY NIGHT": "DE NOCHE", "AT DAWN": "AL AMANECER", "THIS MORNING": "ESTA MAÑANA", "AT NOON": "A MEDIODÍA", "THIS AFTERNOON": "ESTA TARDE", "AT DUSK": "AL ANOCHECER"}, w, w)}.—De un dibujo de nuestro artista."
+      presses: "LAS PRENSAS ESTÁN EN MARCHA."; firstEdition: "Nuestra primera edición viene en camino por el cable."
+      heads: host => "Un asunto de ${host} encabeza la portada"; special: "ESPECIAL PARA EL HERALDO."
+      quiet: "—Los cables guardan silencio, y nuestros corresponsales aguardan los despachos de la mañana."
+      account: (by, pts, com, host) => "—El asunto, presentado a los lectores de Hacker News por el Sr. ${by}, había reunido a esta hora ${pts} votos y ${com} comentarios, y encabeza la portada. La crónica completa puede leerse en ${host}; los comentarios de los lectores, con una pulsación larga sobre esta columna."
+      meta: (host, pts, com) => "${host} · ${pts} votos · ${com} comentarios"
+      dateline: t => t == null ? "LONDRES.—" : "LONDRES, ${t}.—"
+      fromHN: "De Hacker News"; continued: "Continuación"; telegraph: "Por Telégrafo"; notices: "Avisos Oficiales"
+      hnLate: "El cable de Mountain View se retrasa a esta hora."; cableSilent: "El cable calla; se esperan despachos cada hora."
+      ads: "Anuncios"; wanted: "SE BUSCA."
+      wantedText: "Lector de Notificaciones, de buena conducta, que traiga a esta columna las cartas del Público. Preséntese con un toque."
+      noAds: "Hoy no se ha recibido ningún anuncio en esta redacción."; notice: "aviso"
+      ago: (t, nw) => t == null ? "" : nw - t < 60 ? "ahora" : fmtAgo(t, nw)
+      more: n => "${n} más en páginas interiores."
+      exchange: "La Bolsa"; stock: "VALOR"; close: "CIERRE"; chg: "VAR."; unch: "igual"
+      stockName: s => get({"Memory": "Memoria", "Storage": "Almacenamiento", "Battery": "Batería", "Uptime": "Uptime", "Apps": "Apps", "Kernel": "Kernel", "Chip": "Chip", "Theme": "Tema"}, s, s)
+      pkgs: n => "${n} paq."
+    }
+    pt {
+      title: t => t == "The Morning Herald" ? "Arauto Matutino" : "Arauto Vespertino"
+      blackletter: true
+      edition: e => get({"Night Edition": "Edição Noturna", "Morning Edition": "Edição Matutina", "Afternoon Edition": "Edição da Tarde", "Evening Edition": "Edição da Noite", "Late Edition": "Última Edição"}, e, e)
+      motto: "“Todas as notícias que cabem na tela.”"; est: "FUNDADO EM 1890"
+      date: "EEEE, d 'de' MMMM 'de' yyyy"; vol: r => "ANO ${r}"; no: d => "N.º ${d}"; price: "Cem Réis"
+      sky: s => get({"thunder": "trovoada", "snow": "neve", "showers": "pancadas de chuva", "rain": "chuva", "fog": "nevoeiro", "cloudy": "nublado", "overcast": "encoberto", "fair to cloudy": "parcialmente nublado", "clouding over": "fechando o tempo", "fair": "bom tempo", "clear": "céu limpo"}, s, s)
+      wind: (d, s) => "vento ${replace(d, "W", "O")}, ${get({"calm": "calmo", "light": "fraco", "fresh": "fresco", "a gale": "vendaval"}, s, s)}"
+      view: w => "VISTA DA CIDADE ${get({"BY NIGHT": "À NOITE", "AT DAWN": "AO AMANHECER", "THIS MORNING": "ESTA MANHÃ", "AT NOON": "AO MEIO-DIA", "THIS AFTERNOON": "ESTA TARDE", "AT DUSK": "AO ANOITECER"}, w, w)}.—De um desenho do nosso artista."
+      presses: "AS PRENSAS ESTÃO RODANDO."; firstEdition: "Nossa primeira edição está a caminho pelo telégrafo."
+      heads: host => "Um assunto de ${host} abre a primeira página"; special: "EXCLUSIVO PARA O ARAUTO."
+      quiet: "—Os fios estão calados, e nossos correspondentes aguardam os despachos da manhã."
+      account: (by, pts, com, host) => "—O assunto, apresentado aos leitores do Hacker News pelo Sr. ${by}, havia reunido até esta hora ${pts} votos e ${com} comentários, e encabeça a primeira página. O relato completo pode ser lido em ${host}; os comentários dos leitores, com um toque longo nesta coluna."
+      meta: (host, pts, com) => "${host} · ${pts} votos · ${com} comentários"
+      dateline: t => t == null ? "LONDRES.—" : "LONDRES, ${t}.—"
+      fromHN: "Do Hacker News"; continued: "Continuação"; telegraph: "Pelo Telégrafo"; notices: "Avisos Oficiais"
+      hnLate: "O telegrama de Mountain View está atrasado nesta hora."; cableSilent: "O cabo está mudo; aguardam-se despachos a cada hora."
+      ads: "Anúncios"; wanted: "PROCURA-SE."
+      wantedText: "Leitor de Notificações, de boa índole, para trazer as cartas do Público a esta coluna. Candidate-se com um toque."
+      noAds: "Nenhum anúncio foi recebido nesta redação hoje."; notice: "aviso"
+      ago: (t, nw) => t == null ? "" : nw - t < 60 ? "agora" : fmtAgo(t, nw)
+      more: n => "Mais ${n} nas páginas internas."
+      exchange: "A Bolsa"; stock: "AÇÃO"; close: "FECH."; chg: "VAR."; unch: "igual"
+      stockName: s => get({"Memory": "Memória", "Storage": "Armazenamento", "Battery": "Bateria", "Uptime": "Uptime", "Apps": "Apps", "Kernel": "Kernel", "Chip": "Chip", "Theme": "Tema"}, s, s)
+      pkgs: n => "${n} pac."
+    }
+    de {
+      title: t => t == "The Morning Herald" ? "Der Morgenbote" : "Der Abendbote"
+      blackletter: true
+      edition: e => get({"Night Edition": "Nachtausgabe", "Morning Edition": "Morgenausgabe", "Afternoon Edition": "Mittagsausgabe", "Evening Edition": "Abendausgabe", "Late Edition": "Spätausgabe"}, e, e)
+      motto: "„Alle Nachrichten, die auf den Schirm passen.“"; est: "GEGRÜNDET 1890"
+      date: "EEEE, d. MMMM yyyy"; vol: r => "JAHRG. ${r}"; no: d => "Nr. ${d}"; price: "Zehn Pfennig"
+      sky: s => get({"thunder": "Gewitter", "snow": "Schnee", "showers": "Schauer", "rain": "Regen", "fog": "Nebel", "cloudy": "wolkig", "overcast": "bedeckt", "fair to cloudy": "heiter bis wolkig", "clouding over": "zieht zu", "fair": "heiter", "clear": "klar"}, s, s)
+      wind: (d, s) => "Wind ${replace(d, "E", "O")}, ${get({"calm": "still", "light": "schwach", "fresh": "frisch", "a gale": "stürmisch"}, s, s)}"
+      view: w => "ANSICHT DER STADT ${get({"BY NIGHT": "BEI NACHT", "AT DAWN": "IN DER FRÜHE", "THIS MORNING": "AM MORGEN", "AT NOON": "ZU MITTAG", "THIS AFTERNOON": "AM NACHMITTAG", "AT DUSK": "AM ABEND"}, w, w)}.—Nach einer Zeichnung unseres Künstlers."
+      presses: "DIE PRESSEN LAUFEN."; firstEdition: "Unsere erste Ausgabe ist über den Draht unterwegs."
+      heads: host => "Eine Meldung aus ${host} führt das Blatt an"; special: "EIGENBERICHT."
+      quiet: "—Die Drähte schweigen, und unsere Korrespondenten erwarten die Depeschen des Morgens."
+      account: (by, pts, com, host) => "—Die Sache, den Lesern der Hacker News von Herrn ${by} vorgelegt, hatte zu dieser Stunde ${pts} Stimmen und ${com} Bemerkungen auf sich gezogen und steht an der Spitze der Titelseite. Der vollständige Bericht ist bei ${host} zu haben; die Bemerkungen der Leser durch langes Drücken auf diese Spalte."
+      meta: (host, pts, com) => "${host} · ${pts} Stimmen · ${com} Kommentare"
+      dateline: t => t == null ? "LONDON.—" : "LONDON, ${t}.—"
+      fromHN: "Aus Hacker News"; continued: "Fortsetzung"; telegraph: "Per Telegraph"; notices: "Amtliches"
+      hnLate: "Die Depesche aus Mountain View hat Verspätung."; cableSilent: "Das Kabel schweigt; Depeschen werden stündlich erwartet."
+      ads: "Anzeigen"; wanted: "GESUCHT."
+      wantedText: "Ein Leser von Benachrichtigungen, von gutem Leumund, der die Briefe des Publikums in diese Spalte bringt. Bewerbung durch Antippen."
+      noAds: "Heute sind bei uns keine Anzeigen eingegangen."; notice: "Anzeige"
+      ago: (t, nw) => t == null ? "" : nw - t < 60 ? "jetzt" : nw - t < 3600 ? "${floor((nw - t) / 60)} min" : nw - t < 86400 ? "${floor((nw - t) / 3600)} std" : "${floor((nw - t) / 86400)} tg"
+      more: n => "Weitere ${n} im Innenteil."
+      exchange: "Die Börse"; stock: "WERT"; close: "SCHLUSS"; chg: "+/-"; unch: "unv."
+      stockName: s => get({"Memory": "Arbeitsspeicher", "Storage": "Speicher", "Battery": "Akku", "Uptime": "Laufzeit", "Apps": "Apps", "Kernel": "Kernel", "Chip": "Chip", "Theme": "Thema"}, s, s)
+      pkgs: n => "${n} Pakete"
+    }
+    zh {
+      title: t => t == "The Morning Herald" ? "先驱晨报" : "先驱晚报"
+      blackletter: false
+      edition: e => get({"Night Edition": "夜间版", "Morning Edition": "早间版", "Afternoon Edition": "午后版", "Evening Edition": "晚间版", "Late Edition": "深夜版"}, e, e)
+      motto: "“屏幕装得下的新闻，尽在于此。”"; est: "创刊于 1890 年"
+      date: "yyyy年M月d日 EEEE"; vol: r => "第 ${r} 卷"; no: d => "第 ${d} 号"; price: "每份一分"
+      sky: s => get({"thunder": "雷暴", "snow": "雪", "showers": "阵雨", "rain": "雨", "fog": "雾", "cloudy": "多云", "overcast": "阴", "fair to cloudy": "晴间多云", "clouding over": "转阴", "fair": "晴", "clear": "晴朗"}, s, s)
+      wind: (d, s) => s == "calm" ? "静风" : "${get({"N": "北", "NNE": "北", "NE": "东北", "ENE": "东", "E": "东", "ESE": "东", "SE": "东南", "SSE": "南", "S": "南", "SSW": "南", "SW": "西南", "WSW": "西", "W": "西", "WNW": "西", "NW": "西北", "NNW": "北"}, d, d)}风 ${get({"light": "轻微", "fresh": "较强", "a gale": "强劲"}, s, s)}"
+      view: w => "${get({"BY NIGHT": "夜色中的城镇", "AT DAWN": "黎明时分的城镇", "THIS MORNING": "今晨的城镇", "AT NOON": "正午的城镇", "THIS AFTERNOON": "今日午后的城镇", "AT DUSK": "黄昏时分的城镇"}, w, w)}。——据本报画师素描。"
+      presses: "印刷机正在运转。"; firstEdition: "本报首版正经电报传来。"
+      heads: host => "来自 ${host} 的消息登上头版头条"; special: "本报特稿。"
+      quiet: "——电讯沉寂，本报记者正静候晨间电文。"
+      account: (by, pts, com, host) => "——此事由 ${by} 先生呈于 Hacker News 读者面前，截至此时已获 ${pts} 票、${com} 条评论，高居头版之首。全文见于 ${host}；读者评论，长按本栏即可查阅。"
+      meta: (host, pts, com) => "${host} · ${pts} 票 · ${com} 条评论"
+      dateline: t => t == null ? "伦敦电——" : "伦敦 ${t} 电——"
+      fromHN: "Hacker News 消息"; continued: "续前栏"; telegraph: "电讯"; notices: "官方公告"
+      hnLate: "山景城的电讯此刻尚未到达。"; cableSilent: "电缆沉寂，电文预计每小时到达。"
+      ads: "广告"; wanted: "招聘。"
+      wantedText: "诚聘通知阅读员一名，品行端正，负责将公众来信送至本栏。轻点即可应聘。"
+      noAds: "本报今日尚未收到任何广告。"; notice: "启事"
+      ago: (t, nw) => t == null ? "" : nw - t < 60 ? "刚刚" : nw - t < 3600 ? "${floor((nw - t) / 60)}分钟" : nw - t < 86400 ? "${floor((nw - t) / 3600)}小时" : "${floor((nw - t) / 86400)}天"
+      more: n => "另有 ${n} 条，见内页。"
+      exchange: "股市行情"; stock: "股票"; close: "收盘"; chg: "涨跌"; unch: "持平"
+      stockName: s => get({"Memory": "内存", "Storage": "存储", "Battery": "电池", "Uptime": "运行时间", "Apps": "应用", "Kernel": "内核", "Chip": "芯片", "Theme": "主题"}, s, s)
+      pkgs: n => "${n} 个包"
+    }
+    ru {
+      title: t => t == "The Morning Herald" ? "Утренний вестник" : "Вечерний вестник"
+      blackletter: false
+      edition: e => get({"Night Edition": "Ночной выпуск", "Morning Edition": "Утренний выпуск", "Afternoon Edition": "Дневной выпуск", "Evening Edition": "Вечерний выпуск", "Late Edition": "Поздний выпуск"}, e, e)
+      motto: "«Все новости, что уместились на экране»"; est: "ОСНОВАНА В 1890 г."
+      date: "EEEE, d MMMM yyyy"; vol: r => "ГОД ${r}"; no: d => "№ ${d}"; price: "Цена 5 коп."
+      sky: s => get({"thunder": "гроза", "snow": "снег", "showers": "ливень", "rain": "дождь", "fog": "туман", "cloudy": "облачно", "overcast": "пасмурно", "fair to cloudy": "переменная облачность", "clouding over": "затягивает", "fair": "ясно", "clear": "безоблачно"}, s, s)
+      wind: (d, s) => "ветер ${replace(replace(replace(replace(d, "N", "С"), "E", "В"), "S", "Ю"), "W", "З")}, ${get({"calm": "штиль", "light": "слабый", "fresh": "свежий", "a gale": "шторм"}, s, s)}"
+      view: w => "ВИД ГОРОДА ${get({"BY NIGHT": "НОЧЬЮ", "AT DAWN": "НА РАССВЕТЕ", "THIS MORNING": "СЕГОДНЯ УТРОМ", "AT NOON": "В ПОЛДЕНЬ", "THIS AFTERNOON": "СЕГОДНЯ ДНЁМ", "AT DUSK": "В СУМЕРКАХ"}, w, w)}.—С рисунка нашего художника."
+      presses: "ПЕЧАТНЫЕ МАШИНЫ ЗАПУЩЕНЫ."; firstEdition: "Наш первый выпуск уже идёт по проводам."
+      heads: host => "Сообщение с ${host} — на первой полосе"; special: "СПЕЦИАЛЬНО ДЛЯ «ВЕСТНИКА»."
+      quiet: "—Провода молчат, наши корреспонденты ждут утренних депеш."
+      account: (by, pts, com, host) => "—Дело, вынесенное г-ном ${by} на суд читателей Hacker News, к этому часу собрало голосов — ${pts}, отзывов — ${com} и возглавляет первую полосу. Полный отчёт — на ${host}; отзывы читателей — долгим нажатием на эту колонку."
+      meta: (host, pts, com) => "${host} · голосов: ${pts} · отзывов: ${com}"
+      dateline: t => t == null ? "ЛОНДОН.—" : "ЛОНДОН, ${t}.—"
+      fromHN: "Из Hacker News"; continued: "Продолжение"; telegraph: "По телеграфу"; notices: "Официально"
+      hnLate: "Депеша из Маунтин-Вью в этот час запаздывает."; cableSilent: "Кабель молчит; депеши ожидаются ежечасно."
+      ads: "Объявления"; wanted: "ТРЕБУЕТСЯ."
+      wantedText: "Чтец уведомлений, благонадёжный, — доставлять письма публики в эту колонку. Обращаться касанием."
+      noAds: "Сегодня в редакцию не поступило ни одного объявления."; notice: "объявление"
+      ago: (t, nw) => t == null ? "" : nw - t < 60 ? "сейчас" : nw - t < 3600 ? "${floor((nw - t) / 60)} мин" : nw - t < 86400 ? "${floor((nw - t) / 3600)} ч" : "${floor((nw - t) / 86400)} д"
+      more: n => "Ещё ${n} — внутри номера."
+      exchange: "Биржа"; stock: "БУМАГА"; close: "ЗАКР."; chg: "ИЗМ."; unch: "б/и"
+      stockName: s => get({"Memory": "Память", "Storage": "Хранилище", "Battery": "Батарея", "Uptime": "Аптайм", "Apps": "Приложения", "Kernel": "Ядро", "Chip": "Чип", "Theme": "Тема"}, s, s)
+      pkgs: n => "${n} пак."
+    }
+    ja {
+      title: t => t == "The Morning Herald" ? "ヘラルド朝刊" : "ヘラルド夕刊"
+      blackletter: false
+      edition: e => get({"Night Edition": "深夜版", "Morning Edition": "朝刊", "Afternoon Edition": "午後版", "Evening Edition": "夕刊", "Late Edition": "最終版"}, e, e)
+      motto: "「画面に収まるニュースは、すべてここに」"; est: "1890 年創刊"
+      date: "yyyy年M月d日 EEEE"; vol: r => "第 ${r} 巻"; no: d => "第 ${d} 号"; price: "定価一銭"
+      sky: s => get({"thunder": "雷雨", "snow": "雪", "showers": "にわか雨", "rain": "雨", "fog": "霧", "cloudy": "曇り", "overcast": "本曇り", "fair to cloudy": "晴れ時々曇り", "clouding over": "次第に曇り", "fair": "晴れ", "clear": "快晴"}, s, s)
+      wind: (d, s) => s == "calm" ? "無風" : "${get({"N": "北", "NNE": "北", "NE": "北東", "ENE": "東", "E": "東", "ESE": "東", "SE": "南東", "SSE": "南", "S": "南", "SSW": "南", "SW": "南西", "WSW": "西", "W": "西", "WNW": "西", "NW": "北西", "NNW": "北"}, d, d)}の風${get({"light": "", "fresh": " やや強く", "a gale": " 強く"}, s, "")}"
+      view: w => "${get({"BY NIGHT": "夜", "AT DAWN": "夜明け", "THIS MORNING": "今朝", "AT NOON": "正午", "THIS AFTERNOON": "今日の午後", "AT DUSK": "夕暮れ"}, w, w)}の町の眺め。——本紙画家のスケッチより。"
+      presses: "輪転機、稼働中。"; firstEdition: "本紙第一版は電信にて到着予定。"
+      heads: host => "${host} 発の話題が一面トップに"; special: "本紙特報。"
+      quiet: "——電信は静まり返り、本紙特派員は朝の電報を待っている。"
+      account: (by, pts, com, host) => "——${by} 氏により Hacker News の読者に示されたこの件は、この時刻までに ${pts} 票と ${com} 件の意見を集め、一面の筆頭を占めている。詳報は ${host} にて。読者の意見は、本欄の長押しにてご覧いただける。"
+      meta: (host, pts, com) => "${host} · ${pts} 票 · 意見 ${com} 件"
+      dateline: t => t == null ? "ロンドン発——" : "ロンドン ${t} 発——"
+      fromHN: "Hacker News より"; continued: "前欄より続く"; telegraph: "電信"; notices: "告示"
+      hnLate: "マウンテンビューからの電信が遅れております。"; cableSilent: "海底電線は沈黙。電報は毎時到着の見込み。"
+      ads: "広告"; wanted: "求む。"
+      wantedText: "通知を読む者、品行方正なる方。読者諸賢の便りを本欄へ届けられたし。応募はタップにて。"
+      noAds: "本日、当社への広告の申し込みはありません。"; notice: "お知らせ"
+      ago: (t, nw) => t == null ? "" : nw - t < 60 ? "今" : nw - t < 3600 ? "${floor((nw - t) / 60)} 分" : nw - t < 86400 ? "${floor((nw - t) / 3600)} 時間" : "${floor((nw - t) / 86400)} 日"
+      more: n => "ほか ${n} 件は中面に。"
+      exchange: "株式市況"; stock: "銘柄"; close: "終値"; chg: "前比"; unch: "横ばい"
+      stockName: s => get({"Memory": "メモリ", "Storage": "ストレージ", "Battery": "バッテリー", "Uptime": "稼働時間", "Apps": "アプリ", "Kernel": "カーネル", "Chip": "チップ", "Theme": "テーマ"}, s, s)
+      pkgs: n => "${n} 個"
+    }
+    uk {
+      title: t => t == "The Morning Herald" ? "Ранковий вісник" : "Вечірній вісник"
+      blackletter: false
+      edition: e => get({"Night Edition": "Нічний випуск", "Morning Edition": "Ранковий випуск", "Afternoon Edition": "Денний випуск", "Evening Edition": "Вечірній випуск", "Late Edition": "Пізній випуск"}, e, e)
+      motto: "«Усі новини, що вмістилися на екрані»"; est: "ЗАСНОВАНА 1890 р."
+      date: "EEEE, d MMMM yyyy"; vol: r => "РІК ${r}"; no: d => "№ ${d}"; price: "Ціна 5 коп."
+      sky: s => get({"thunder": "гроза", "snow": "сніг", "showers": "злива", "rain": "дощ", "fog": "туман", "cloudy": "хмарно", "overcast": "похмуро", "fair to cloudy": "мінлива хмарність", "clouding over": "хмарніє", "fair": "ясно", "clear": "безхмарно"}, s, s)
+      wind: (d, s) => "вітер ${get({"N": "Пн", "NNE": "Пн", "NE": "ПнСх", "ENE": "Сх", "E": "Сх", "ESE": "Сх", "SE": "ПдСх", "SSE": "Пд", "S": "Пд", "SSW": "Пд", "SW": "ПдЗх", "WSW": "Зх", "W": "Зх", "WNW": "Зх", "NW": "ПнЗх", "NNW": "Пн"}, d, d)}, ${get({"calm": "штиль", "light": "слабкий", "fresh": "свіжий", "a gale": "шторм"}, s, s)}"
+      view: w => "ВИГЛЯД МІСТА ${get({"BY NIGHT": "ВНОЧІ", "AT DAWN": "НА СВІТАНКУ", "THIS MORNING": "СЬОГОДНІ ВРАНЦІ", "AT NOON": "ОПІВДНІ", "THIS AFTERNOON": "СЬОГОДНІ ВДЕНЬ", "AT DUSK": "У СУТІНКАХ"}, w, w)}.—З малюнка нашого художника."
+      presses: "ДРУКАРСЬКІ МАШИНИ ЗАПУЩЕНО."; firstEdition: "Наш перший випуск уже йде дротами."
+      heads: host => "Повідомлення з ${host} — на першій шпальті"; special: "СПЕЦІАЛЬНО ДЛЯ «ВІСНИКА»."
+      quiet: "—Дроти мовчать, наші кореспонденти чекають ранкових депеш."
+      account: (by, pts, com, host) => "—Справа, яку пан ${by} виніс на суд читачів Hacker News, на цю годину зібрала голосів — ${pts}, відгуків — ${com} і очолює першу шпальту. Повний звіт — на ${host}; відгуки читачів — довгим натисканням на цю колонку."
+      meta: (host, pts, com) => "${host} · голосів: ${pts} · відгуків: ${com}"
+      dateline: t => t == null ? "ЛОНДОН.—" : "ЛОНДОН, ${t}.—"
+      fromHN: "З Hacker News"; continued: "Продовження"; telegraph: "Телеграфом"; notices: "Офіційно"
+      hnLate: "Депеша з Маунтін-В'ю цієї години запізнюється."; cableSilent: "Кабель мовчить; депеші очікуються щогодини."
+      ads: "Оголошення"; wanted: "ПОТРІБЕН."
+      wantedText: "Читач сповіщень, доброї вдачі, — доставляти листи публіки до цієї колонки. Звертатися дотиком."
+      noAds: "Сьогодні до редакції не надійшло жодного оголошення."; notice: "оголошення"
+      ago: (t, nw) => t == null ? "" : nw - t < 60 ? "зараз" : nw - t < 3600 ? "${floor((nw - t) / 60)} хв" : nw - t < 86400 ? "${floor((nw - t) / 3600)} год" : "${floor((nw - t) / 86400)} дн"
+      more: n => "Ще ${n} — усередині номера."
+      exchange: "Біржа"; stock: "ПАПІР"; close: "ЗАКР."; chg: "ЗМІН."; unch: "б/з"
+      stockName: s => get({"Memory": "Пам'ять", "Storage": "Сховище", "Battery": "Батарея", "Uptime": "Аптайм", "Apps": "Додатки", "Kernel": "Ядро", "Chip": "Чип", "Theme": "Тема"}, s, s)
+      pkgs: n => "${n} пак."
+    }
   }
 
   background: background
@@ -61,8 +296,9 @@ face "broadsheet" {
   let day = h > rise && h < set
   let phase = ((now - 947182440) / 86400 % 29.530588853) / 29.530588853
   let sky = storm ? "thunder" : snow ? "snow" : rain ? (code == "176" || code == "353" || code == "263" || code == "266" ? "showers" : "rain") : fog ? "fog" : cloud > 0.9 ? (code == "119" ? "cloudy" : "overcast") : cloud > 0.4 ? (day ? "fair to cloudy" : "clouding over") : (day ? "fair" : "clear")
+  let skyText = str.sky(sky)
   let glyph = storm || rain ? "rain" : snow ? "snow" : fog ? "fog" : cloud > 0.9 ? "cloud" : cloud > 0.4 ? "part" : day ? "sun" : "moon"
-  let wind = cur == null ? null : "wind ${cur.winddir16Point}, ${num(cur.windspeedKmph) < 6 ? "calm" : num(cur.windspeedKmph) < 20 ? "light" : num(cur.windspeedKmph) < 40 ? "fresh" : "a gale"}"
+  let wind = cur == null ? null : str.wind(cur.winddir16Point, num(cur.windspeedKmph) < 6 ? "calm" : num(cur.windspeedKmph) < 20 ? "light" : num(cur.windspeedKmph) < 40 ? "fresh" : "a gale")
 
   // The news. Hacker News' front page, then the wires: an RSS item's title and description, CDATA or escaped.
   let stories = (hn.hits ?? []).filter(x => x.title != null).map(x => {
@@ -93,7 +329,7 @@ face "broadsheet" {
     ["Storage", diskPct == null ? null : "${round(diskPct)}%", diskPct == null || diskWas == null ? 0 : diskPct - diskWas],
     ["Battery", bat.level == null ? null : "${bat.level}%", bat.level == null || batWas == null ? 0 : bat.level - batWas],
     ["Uptime", sys.uptime == null ? null : fmtDuration(sys.uptime), null],
-    linux && lxs != null ? ["Pacman", "${fmtNum(num(lxs[1]))} pkgs", null] : ["Apps", sys.apps == null ? null : "${sys.apps}", null],
+    linux && lxs != null ? ["Pacman", str.pkgs(fmtNum(num(lxs[1]))), null] : ["Apps", sys.apps == null ? null : "${sys.apps}", null],
     ["Kernel", sys.kernel == null ? null : first(split(sys.kernel, "-")), null],
     ["Android", dev == null ? null : "${dev.android}", null],
     ["Chip", sys.cpu == null ? null : (sys.cpu.soc == "" || sys.cpu.soc == null ? sys.cpu.hardware : sys.cpu.soc), null],
@@ -381,7 +617,7 @@ face "broadsheet" {
             }
           }
         }
-        Text { text: cur == null ? "…" : "${upper(sub(sky, 0, 1))}${sub(sky, 1, len(sky))}, ${cur.temp_C}°"; font: bold; fontSize: 11; color: ink; align: center; maxLines: 2 }
+        Text { text: cur == null ? "…" : "${upper(sub(skyText, 0, 1))}${sub(skyText, 1, len(skyText))}, ${cur.temp_C}°"; font: bold; fontSize: 11; color: ink; align: center; maxLines: 2 }
         Text { text: wind ?? ""; font: italic; fontSize: 9; color: ink; align: center; maxLines: 1 }
       }
     }
@@ -396,9 +632,9 @@ face "broadsheet" {
       borderColor: ink
       align: center
       onTap: refresh()
-      Text { text: upper(edition); font: bold; fontSize: 7.5; letterSpacing: 0.5; color: ink; align: center; maxLines: 1 }
+      Text { text: upper(str.edition(edition)); font: bold; fontSize: 7.5; letterSpacing: 0.5; color: ink; align: center; maxLines: 1 }
       Text { text: fmtTime(now, "HH:mm"); font: bold; fontSize: 24; color: ink; align: center }
-      Text { text: "One Penny"; font: italic; fontSize: 10; color: ink; align: center; maxLines: 1 }
+      Text { text: str.price; font: italic; fontSize: 10; color: ink; align: center; maxLines: 1 }
     }
   }
 
@@ -415,20 +651,20 @@ face "broadsheet" {
           weight: 1
           gap: 2
           align: center
-          Text { text: "“All the News that Fits the Screen.”"; font: italic; fontSize: 10.5; color: ink; align: center; maxLines: 2 }
-          if wide { Text { text: title; font: fraktur; fontSize: 40; color: ink; align: center; maxLines: 1 } }
-          Text { text: "ESTABLISHED 1890"; font: roman; fontSize: 8; letterSpacing: 2; color: ink; align: center; maxLines: 1 }
+          Text { text: str.motto; font: italic; fontSize: 10.5; color: ink; align: center; maxLines: 2 }
+          if wide { Text { text: str.title(title); font: str.blackletter ? fraktur : bold; fontSize: str.blackletter ? 40 : 34; color: ink; align: center; maxLines: 1 } }
+          Text { text: str.est; font: roman; fontSize: 8; letterSpacing: 2; color: ink; align: center; maxLines: 1 }
         }
         Ear { width: 92 }
       }
-      if !wide { Text { text: title; font: fraktur; fontSize: min(46, CW / 8.2); color: ink; align: center; maxLines: 1; fill: width } }
+      if !wide { Text { text: str.title(title); font: str.blackletter ? fraktur : bold; fontSize: str.blackletter ? min(46, CW / 8.2) : min(40, CW / 9.6); color: ink; align: center; maxLines: 1; fill: width } }
       DoubleRule {}
       Row {
         fill: width
         align: center
-        Text { text: "VOL. ${join(rom, "")}"; font: bold; fontSize: 9; letterSpacing: 0.6; color: ink; maxLines: 1 }
-        Text { text: upper(fmtTime(now, "EEEE, MMMM d, yyyy")); font: bold; fontSize: 9; letterSpacing: 0.6; color: ink; align: center; weight: 1; maxLines: 1 }
-        Text { text: "No. ${fmtTime(now, "D")}"; font: bold; fontSize: 9; letterSpacing: 0.6; color: ink; maxLines: 1 }
+        Text { text: str.vol(join(rom, "")); font: bold; fontSize: 9; letterSpacing: 0.6; color: ink; maxLines: 1 }
+        Text { text: upper(fmtTime(now, str.date)); font: bold; fontSize: 9; letterSpacing: 0.6; color: ink; align: center; weight: 1; maxLines: 1 }
+        Text { text: str.no(fmtTime(now, "D")); font: bold; fontSize: 9; letterSpacing: 0.6; color: ink; maxLines: 1 }
       }
       Rule {}
     }
@@ -452,7 +688,7 @@ face "broadsheet" {
         }
       }
       Text {
-        text: "VIEW OF THE TOWN ${h < 5 ? "BY NIGHT" : h < rise + 1 ? "AT DAWN" : h < 11 ? "THIS MORNING" : h < 14 ? "AT NOON" : h < set - 1 ? "THIS AFTERNOON" : h < set + 1 ? "AT DUSK" : "BY NIGHT"}.—From a Drawing by Our Artist."
+        text: str.view(h < 5 ? "BY NIGHT" : h < rise + 1 ? "AT DAWN" : h < 11 ? "THIS MORNING" : h < 14 ? "AT NOON" : h < set - 1 ? "THIS AFTERNOON" : h < set + 1 ? "AT DUSK" : "BY NIGHT")
         font: roman
         fontSize: 8.5
         color: ink
@@ -470,8 +706,8 @@ face "broadsheet" {
       fill: width
       onTap: url(lead.link)
       onLongPress: url("https://news.ycombinator.com/item?id=${lead.id}")
-      Text { text: lead == null ? "THE PRESSES ARE RUNNING." : upper(lead.title); font: bold; fontSize: wide ? 17 : 19; color: ink; align: center; maxLines: 3 }
-      Text { text: lead == null ? "Our first edition is on its way from the wire." : "A Matter from ${lead.host} Heads the Front Page"; font: italic; fontSize: wide ? 10.5 : 12; color: ink; align: center; maxLines: wide ? 2 : 1 }
+      Text { text: lead == null ? str.presses : upper(lead.title); font: bold; fontSize: wide ? 17 : 19; color: ink; align: center; maxLines: 3 }
+      Text { text: lead == null ? str.firstEdition : str.heads(lead.host); font: italic; fontSize: wide ? 10.5 : 12; color: ink; align: center; maxLines: wide ? 2 : 1 }
       Box { width: 60; height: 0.75; background: ink }
       // Wide, the column is the plate's width, and the account gives way to it.
       if wide { Plate {} } else {
@@ -483,8 +719,8 @@ face "broadsheet" {
         Text {
           weight: 1
           spans: [
-            {text: "SPECIAL TO THE HERALD.", font: bold, letterSpacing: 0.4},
-            lead == null ? "—The wires are quiet, and our correspondents await the morning's despatches." : "—The matter, laid before the readers of the Hacker News by Mr. ${lead.by}, had by this hour drawn ${fmtNum(lead.pts)} votes and ${fmtNum(lead.com)} remarks, and stands at the head of the front page. The full account may be had at ${lead.host}; the remarks of readers, by a long press upon this column."
+            {text: str.special, font: bold, letterSpacing: 0.4},
+            lead == null ? str.quiet : str.account(lead.by, fmtNum(lead.pts), fmtNum(lead.com), lead.host)
           ]
           font: roman
           fontSize: 11
@@ -503,7 +739,7 @@ face "broadsheet" {
       onTap: url(s.link)
       onLongPress: url("https://news.ycombinator.com/item?id=${s.id}")
       Text { text: upper(s.title); font: bold; fontSize: 11; color: ink; align: center; maxLines: 3 }
-      Text { text: "${s.host} · ${fmtNum(s.pts)} votes · ${fmtNum(s.com)} remarks"; font: italic; fontSize: 9; color: ink; align: center; maxLines: 1 }
+      Text { text: str.meta(s.host, fmtNum(s.pts), fmtNum(s.com)); font: italic; fontSize: 9; color: ink; align: center; maxLines: 1 }
       Box { width: 26; height: 0.75; background: ink; offset: [0, 3] }
     }
   }
@@ -515,7 +751,7 @@ face "broadsheet" {
       onTap: url(w.link ?? "https://www.bbc.co.uk/news/world")
       Text { text: upper(w.title); font: bold; fontSize: 10.5; color: ink; align: center; maxLines: 3 }
       Text {
-        spans: [{text: w.time == null ? "LONDON.—" : "LONDON, ${w.time}.—", font: bold, fontSize: 8.5, letterSpacing: 0.4}, w.text ?? ""]
+        spans: [{text: str.dateline(w.time), font: bold, fontSize: 8.5, letterSpacing: 0.4}, w.text ?? ""]
         font: roman
         fontSize: 10
         color: ink
@@ -529,7 +765,7 @@ face "broadsheet" {
       gap: 9
       clip: true
       Head { text: head }
-      if len(list) == 0 { Text { text: "The wire from Mountain View is late this hour."; font: italic; fontSize: 10.5; color: ink; align: center } }
+      if len(list) == 0 { Text { text: str.hnLate; font: italic; fontSize: 10.5; color: ink; align: center } }
       for s in list key s.id { Story { s: s } }
     }
   }
@@ -538,11 +774,11 @@ face "broadsheet" {
     Column {
       gap: 9
       clip: true
-      Head { text: "By Telegraph" }
-      if len(wires) == 0 { Text { text: "The cable is silent; despatches are expected hourly."; font: italic; fontSize: 10.5; color: ink; align: center } }
+      Head { text: str.telegraph }
+      if len(wires) == 0 { Text { text: str.cableSilent; font: italic; fontSize: 10.5; color: ink; align: center } }
       for w in wires.take(wide ? 6 : max(2, nStories - 2)) { Wire { w: w } }
       if len(notices) > 0 {
-        Head { text: "Official Notices" }
+        Head { text: str.notices }
         for o in notices {
           Text {
             onTap: url(o.link ?? "https://archlinux.org/news/")
@@ -562,7 +798,7 @@ face "broadsheet" {
     Column {
       gap: 6
       clip: true
-      Head { text: "Advertisements" }
+      Head { text: str.ads }
       if !n.available {
         Column {
           gap: 1
@@ -571,11 +807,11 @@ face "broadsheet" {
           borderColor: ink
           fill: width
           onTap: notification("open", "")
-          Text { text: "WANTED."; font: bold; fontSize: 10; letterSpacing: 1; color: ink; align: center }
-          Text { text: "A Reader of Notices, of good character, to bring the Public's letters to this column. Apply by a tap."; font: roman; fontSize: 10; color: ink; align: center }
+          Text { text: str.wanted; font: bold; fontSize: 10; letterSpacing: 1; color: ink; align: center }
+          Text { text: str.wantedText; font: roman; fontSize: 10; color: ink; align: center }
         }
       } else if len(ads) == 0 {
-        Text { text: "No advertisements have been received at this office today."; font: italic; fontSize: 10.5; color: ink; align: center }
+        Text { text: str.noAds; font: italic; fontSize: 10.5; color: ink; align: center }
       } else {
         for a in ads key a.key {
           Column {
@@ -586,9 +822,9 @@ face "broadsheet" {
             fill: width
             onTap: notification("open", a.key)
             onLongPress: { haptic(); notification("dismiss", a.key) }
-            Text { text: upper(a.app ?? "notice"); font: bold; fontSize: 9; letterSpacing: 1.2; color: ink; align: center; maxLines: 1 }
+            Text { text: upper(a.app ?? str.notice); font: bold; fontSize: 9; letterSpacing: 1.2; color: ink; align: center; maxLines: 1 }
             Text {
-              spans: [{text: a.title ?? "", font: bold}, a.text == null || a.text == "" ? "" : "—${a.text}", {text: "  ${fmtAgo(a.time, now)}", font: italic}]
+              spans: [{text: a.title ?? "", font: bold}, a.text == null || a.text == "" ? "" : "—${a.text}", {text: "  ${str.ago(a.time, now)}", font: italic}]
               font: roman
               fontSize: 10
               color: ink
@@ -596,7 +832,7 @@ face "broadsheet" {
             }
           }
         }
-        if n.count > len(ads) { Text { text: "${n.count - len(ads)} more within."; font: italic; fontSize: 9; color: ink; align: end; fill: width } }
+        if n.count > len(ads) { Text { text: str.more(n.count - len(ads)); font: italic; fontSize: 9; color: ink; align: end; fill: width } }
       }
     }
   }
@@ -606,12 +842,12 @@ face "broadsheet" {
     Column {
       gap: 2
       clip: true
-      Head { text: "The Exchange" }
+      Head { text: str.exchange }
       Row {
         fill: width
-        Text { text: "STOCK"; font: bold; fontSize: 8; letterSpacing: 0.8; color: ink; weight: 1 }
-        Text { text: "CLOSE"; font: bold; fontSize: 8; letterSpacing: 0.8; color: ink }
-        Text { text: "CHG."; font: bold; fontSize: 8; letterSpacing: 0.8; color: ink; width: 34; align: end }
+        Text { text: str.stock; font: bold; fontSize: 8; letterSpacing: 0.8; color: ink; weight: 1 }
+        Text { text: str.close; font: bold; fontSize: 8; letterSpacing: 0.8; color: ink }
+        Text { text: str.chg; font: bold; fontSize: 8; letterSpacing: 0.8; color: ink; width: 34; align: end }
       }
       Rule { weight: 0.5 }
       for s in stocks.filter(x => x[1] != null).take(rows) {
@@ -619,12 +855,12 @@ face "broadsheet" {
           fill: width
           align: bottom
           gap: 3
-          Text { text: s[0]; font: roman; fontSize: 10; color: ink }
+          Text { text: str.stockName(s[0]); font: roman; fontSize: 10; color: ink }
           // Leaders between the name and its price.
           Text { text: "....................................................."; font: roman; fontSize: 10; color: ink; weight: 1; maxLines: 1 }
           Text { text: s[1]; font: bold; fontSize: 10; color: ink; maxLines: 1 }
           Text {
-            text: s[2] == null ? "" : abs(s[2]) < 0.5 ? "unch." : "${s[2] > 0 ? "▲" : "▼"}${round(abs(s[2]))}"
+            text: s[2] == null ? "" : abs(s[2]) < 0.5 ? str.unch : "${s[2] > 0 ? "▲" : "▼"}${round(abs(s[2]))}"
             font: roman
             fontSize: 9.5
             color: ink
@@ -656,7 +892,7 @@ face "broadsheet" {
         VRule {}
         HNColumn { list: stories.drop(1).take(nStories); head: "Hacker News"; weight: 1; fill: height }
         VRule {}
-        HNColumn { list: stories.drop(1 + nStories).take(nStories); head: "Continued"; weight: 1; fill: height }
+        HNColumn { list: stories.drop(1 + nStories).take(nStories); head: str.continued; weight: 1; fill: height }
         VRule {}
         WireColumn { weight: 1; fill: height }
         VRule {}
@@ -676,7 +912,7 @@ face "broadsheet" {
         fill: width
         gap: 8
         align: top
-        HNColumn { list: stories.drop(1).take(nStories); head: "From the Hacker News"; weight: 1; fill: height }
+        HNColumn { list: stories.drop(1).take(nStories); head: str.fromHN; weight: 1; fill: height }
         VRule {}
         WireColumn { weight: 1; fill: height }
       }

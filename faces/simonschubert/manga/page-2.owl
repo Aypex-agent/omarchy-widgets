@@ -11,6 +11,55 @@ face "boulevard" {
     category: "fun"
   }
 
+  // What it says, in the phone's language where it has a set. The drive-in's sign is part of the picture and stays as painted.
+  strings {
+    en {
+      nowPlaying: "now playing"; nothingOn: "nothing on"; noAccess: "no access"; watchlist: "watchlist"; oneDay: "1d"
+      playSomething: "Play something, or tap the record to open your player."
+      allowMedia: "Tap a key to let the launcher see what's playing."
+    }
+    id {
+      nowPlaying: "sedang diputar"; nothingOn: "tak ada lagu"; noAccess: "tanpa akses"; watchlist: "pantauan"; oneDay: "1h"
+      playSomething: "Putar sesuatu, atau ketuk piringan untuk membuka pemutar."
+      allowMedia: "Ketuk tombol agar launcher bisa melihat yang diputar."
+    }
+    es {
+      nowPlaying: "sonando"; nothingOn: "nada sonando"; noAccess: "sin acceso"; watchlist: "favoritos"; oneDay: "1d"
+      playSomething: "Pon algo, o toca el disco para abrir tu reproductor."
+      allowMedia: "Toca una tecla para que el launcher vea qué suena."
+    }
+    pt {
+      nowPlaying: "tocando agora"; nothingOn: "nada tocando"; noAccess: "sem acesso"; watchlist: "favoritos"; oneDay: "1d"
+      playSomething: "Põe uma música ou toque no disco para abrir o player."
+      allowMedia: "Toque numa tecla para o launcher ver o que está tocando."
+    }
+    de {
+      nowPlaying: "läuft gerade"; nothingOn: "nichts läuft"; noAccess: "kein zugriff"; watchlist: "watchlist"; oneDay: "1T"
+      playSomething: "Spiel was ab oder tippe auf die Platte für deinen Player."
+      allowMedia: "Tippe auf eine Taste, damit der Launcher sieht, was läuft."
+    }
+    zh {
+      nowPlaying: "正在播放"; nothingOn: "没在播放"; noAccess: "无权访问"; watchlist: "自选"; oneDay: "1日"
+      playSomething: "放点什么吧，或点按唱片打开播放器。"
+      allowMedia: "点按任一按键，让启动器看到正在播放的内容。"
+    }
+    ru {
+      nowPlaying: "сейчас играет"; nothingOn: "ничего не играет"; noAccess: "нет доступа"; watchlist: "избранное"; oneDay: "1д"
+      playSomething: "Включите музыку или нажмите на пластинку — откроется плеер."
+      allowMedia: "Нажмите кнопку, чтобы лаунчер видел, что играет."
+    }
+    ja {
+      nowPlaying: "再生中"; nothingOn: "何も流れてない"; noAccess: "権限なし"; watchlist: "注目銘柄"; oneDay: "1日"
+      playSomething: "何か再生するか、レコードをタップしてプレーヤーを開こう。"
+      allowMedia: "キーをタップすると、ランチャーが再生中の曲を表示できます。"
+    }
+    uk {
+      nowPlaying: "зараз грає"; nothingOn: "нічого не грає"; noAccess: "немає доступу"; watchlist: "обране"; oneDay: "1д"
+      playSomething: "Увімкніть музику або торкніться платівки — відкриється плеєр."
+      allowMedia: "Торкніться кнопки, щоб лаунчер бачив, що грає."
+    }
+  }
+
   background: background
   padding: 0
 
@@ -512,15 +561,15 @@ face "boulevard" {
             weight: 1
             fill: height
             gap: 4
-            Text { text: upper(has ? mp.app ?? "now playing" : "now playing"); font: mono; fontSize: 10; letterSpacing: 2; color: muted; maxLines: 1; onTap: media("open") }
+            Text { text: upper(has ? mp.app ?? str.nowPlaying : str.nowPlaying); font: mono; fontSize: 10; letterSpacing: 2; color: muted; maxLines: 1; onTap: media("open") }
             Text {
-              text: has ? mp.title : (allowed ? "nothing on" : "no access")
+              text: has ? mp.title : (allowed ? str.nothingOn : str.noAccess)
               font: heavy
               fontSize: 20
               maxLines: 3
             }
             Text {
-              text: has ? (mp.artist ?? mp.album ?? "") : (allowed ? "Play something, or tap the record to open your player." : "Tap a key to let the launcher see what's playing.")
+              text: has ? (mp.artist ?? mp.album ?? "") : (allowed ? str.playSomething : str.allowMedia)
               font: mono
               fontSize: 12
               color: muted
@@ -577,9 +626,9 @@ face "boulevard" {
             fontSize: 24
             maxLines: 1
           }
-          Text { text: big.change == null ? "…" : "${fmtNum(big.change, {digits: 1, sign: true})}% · 1d"; font: mono; fontSize: 12; color: up ? green : red; maxLines: 1 }
+          Text { text: big.change == null ? "…" : "${fmtNum(big.change, {digits: 1, sign: true})}% · ${str.oneDay}"; font: mono; fontSize: 12; color: up ? green : red; maxLines: 1 }
           Sparkline { values: spark; min: min(spark); color: up ? green : red; area: true; thickness: 1.5; weight: 1; fill: width }
-          Text { text: "WATCHLIST"; font: mono; fontSize: 10; letterSpacing: 2; color: muted; maxLines: 1 }
+          Text { text: upper(str.watchlist); font: mono; fontSize: 10; letterSpacing: 2; color: muted; maxLines: 1 }
         }
         Column {
           width: 104

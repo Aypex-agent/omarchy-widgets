@@ -2,7 +2,81 @@ face "bauhaus today" {
   // The bauhaus face's second page: what's playing on a record, the newest notifications in coloured strips and your
   // most used apps as lettered squares. Tap a notification to open it, hold it to dismiss it.
 
-  meta { owl: 14 }
+  meta { owl: 16 }
+
+  // What it says, in the phone's language where it has a set. Song titles, apps and notifications stay as they come.
+  strings {
+    en {
+      today: "today"; notifications: n => n == 1 ? "1 notification" : "${n} notifications"; music: "music"
+      nothingPlaying: "nothing playing"; nowPlaying: "now playing"; paused: "paused"
+      allowMusic: "allow notification access to see music here"; playHint: "play something and it shows here"
+      allowNotes: "allow notification access to see them here"; allClear: "all clear"
+      noNotifications: "no notifications"
+      ago: s => s < 60 ? "now" : s < 3600 ? "${floor(s / 60)}m" : s < 86400 ? "${floor(s / 3600)}h" : s < 604800 ? "${floor(s / 86400)}d" : s < 31536000 ? "${floor(s / 604800)}w" : "${floor(s / 31536000)}y"
+    }
+    id {
+      today: "hari ini"; notifications: n => "${n} notifikasi"; music: "musik"
+      nothingPlaying: "tidak ada yang diputar"; nowPlaying: "sedang diputar"; paused: "dijeda"
+      allowMusic: "izinkan akses notifikasi untuk melihat musik di sini"
+      playHint: "putar sesuatu, nanti muncul di sini"
+      allowNotes: "izinkan akses notifikasi untuk melihatnya di sini"; allClear: "bersih"
+      noNotifications: "tidak ada notifikasi"
+      ago: s => s < 60 ? "kini" : s < 3600 ? "${floor(s / 60)}m" : s < 86400 ? "${floor(s / 3600)}j" : s < 604800 ? "${floor(s / 86400)}h" : s < 31536000 ? "${floor(s / 604800)}mg" : "${floor(s / 31536000)}th"
+    }
+    es {
+      today: "hoy"; notifications: n => n == 1 ? "1 notificación" : "${n} notificaciones"; music: "música"
+      nothingPlaying: "no suena nada"; nowPlaying: "sonando"; paused: "en pausa"
+      allowMusic: "permite el acceso a las notificaciones para ver la música"; playHint: "pon algo y aparecerá aquí"
+      allowNotes: "permite el acceso a las notificaciones para verlas aquí"; allClear: "todo listo"
+      noNotifications: "sin notificaciones"
+      ago: s => s < 60 ? "ahora" : s < 3600 ? "${floor(s / 60)}m" : s < 86400 ? "${floor(s / 3600)}h" : s < 604800 ? "${floor(s / 86400)}d" : s < 31536000 ? "${floor(s / 604800)} sem" : "${floor(s / 31536000)} a"
+    }
+    pt {
+      today: "hoje"; notifications: n => n == 1 ? "1 notificação" : "${n} notificações"; music: "música"
+      nothingPlaying: "nada tocando"; nowPlaying: "tocando agora"; paused: "pausado"
+      allowMusic: "permita o acesso às notificações para ver a música aqui"; playHint: "toque algo e aparece aqui"
+      allowNotes: "permita o acesso às notificações para vê-las aqui"; allClear: "tudo em dia"
+      noNotifications: "nenhuma notificação"
+      ago: s => s < 60 ? "agora" : s < 3600 ? "${floor(s / 60)}m" : s < 86400 ? "${floor(s / 3600)}h" : s < 604800 ? "${floor(s / 86400)}d" : s < 31536000 ? "${floor(s / 604800)} sem" : "${floor(s / 31536000)} a"
+    }
+    de {
+      today: "heute"; notifications: n => n == 1 ? "1 benachrichtigung" : "${n} benachrichtigungen"; music: "musik"
+      nothingPlaying: "nichts läuft"; nowPlaying: "läuft gerade"; paused: "pausiert"
+      allowMusic: "erlaube benachrichtigungen, um hier musik zu sehen"
+      playHint: "spiel etwas ab, dann steht es hier"
+      allowNotes: "erlaube den zugriff auf benachrichtigungen, um sie hier zu sehen"; allClear: "alles erledigt"
+      noNotifications: "keine benachrichtigungen"
+      ago: s => s < 60 ? "jetzt" : s < 3600 ? "${floor(s / 60)} min" : s < 86400 ? "${floor(s / 3600)} std" : s < 604800 ? "${floor(s / 86400)} tg" : s < 31536000 ? "${floor(s / 604800)} wo" : "${floor(s / 31536000)} j"
+    }
+    zh {
+      today: "今天"; notifications: n => "${n} 条通知"; music: "音乐"; nothingPlaying: "未在播放"; nowPlaying: "正在播放"
+      paused: "已暂停"; allowMusic: "允许访问通知后，就能在这里看到音乐"; playHint: "播放点什么，就会显示在这里"; allowNotes: "允许访问通知后，就能在这里看到它们"
+      allClear: "全部清空"; noNotifications: "没有通知"
+      ago: s => s < 60 ? "刚刚" : s < 3600 ? "${floor(s / 60)}分钟" : s < 86400 ? "${floor(s / 3600)}小时" : s < 604800 ? "${floor(s / 86400)}天" : s < 31536000 ? "${floor(s / 604800)}周" : "${floor(s / 31536000)}年"
+    }
+    ru {
+      today: "сегодня"; notifications: n => "уведомлений: ${n}"; music: "музыка"; nothingPlaying: "ничего не играет"
+      nowPlaying: "сейчас играет"; paused: "пауза"
+      allowMusic: "разрешите доступ к уведомлениям, чтобы видеть музыку"
+      playHint: "включите что-нибудь, и оно появится здесь"
+      allowNotes: "разрешите доступ к уведомлениям, чтобы видеть их здесь"; allClear: "всё чисто"
+      noNotifications: "уведомлений нет"
+      ago: s => s < 60 ? "сейчас" : s < 3600 ? "${floor(s / 60)} мин" : s < 86400 ? "${floor(s / 3600)} ч" : s < 604800 ? "${floor(s / 86400)} д" : s < 31536000 ? "${floor(s / 604800)} нед" : "${floor(s / 31536000)} г"
+    }
+    ja {
+      today: "今日"; notifications: n => "通知 ${n} 件"; music: "音楽"; nothingPlaying: "再生していません"; nowPlaying: "再生中"
+      paused: "一時停止中"; allowMusic: "通知へのアクセスを許可すると音楽が表示されます"; playHint: "何か再生するとここに表示されます"
+      allowNotes: "ここに表示するには、通知へのアクセスを許可してください"; allClear: "すっきり"; noNotifications: "通知はありません"
+      ago: s => s < 60 ? "今" : s < 3600 ? "${floor(s / 60)} 分" : s < 86400 ? "${floor(s / 3600)} 時間" : s < 604800 ? "${floor(s / 86400)} 日" : s < 31536000 ? "${floor(s / 604800)} 週間" : "${floor(s / 31536000)} 年"
+    }
+    uk {
+      today: "сьогодні"; notifications: n => "сповіщень: ${n}"; music: "музика"; nothingPlaying: "нічого не грає"
+      nowPlaying: "зараз грає"; paused: "пауза"; allowMusic: "надайте доступ до сповіщень, щоб бачити музику"
+      playHint: "увімкніть щось, і воно з'явиться тут"; allowNotes: "надайте доступ до сповіщень, щоб бачити їх тут"
+      allClear: "усе чисто"; noNotifications: "сповіщень немає"
+      ago: s => s < 60 ? "зараз" : s < 3600 ? "${floor(s / 60)} хв" : s < 86400 ? "${floor(s / 3600)} год" : s < 604800 ? "${floor(s / 86400)} дн" : s < 31536000 ? "${floor(s / 604800)} тиж" : "${floor(s / 31536000)} р"
+    }
+  }
 
   source now = clock every 1m
   source mp = android.media
@@ -14,7 +88,7 @@ face "bauhaus today" {
   let rowsB = 2
   let pageNo = "nº 2"
   let salt = 2
-  let pageWhat = !n.available || n.count == 0 ? "today" : n.count == 1 ? "1 notification" : "${n.count} notifications"
+  let pageWhat = !n.available || n.count == 0 ? str.today : str.notifications(n.count)
 
   // The poster is printed in its own colours whatever the theme, so the status bar steps aside.
   statusBar: false
@@ -183,8 +257,8 @@ face "bauhaus today" {
           gap: 2
           padding: 12
           fill: true
-          Label { t: !has ? (mp.available == false ? "music" : "nothing playing") : playing ? "now playing" : "paused"; tint: bRed }
-          Text { text: has ? mp.title : mp.available == false ? "allow notification access to see music here" : "play something and it shows here"; font: jost; fontSize: has ? 20 : 15; fontWeight: has ? 600 : 400; color: ink; maxLines: 3 }
+          Label { t: !has ? (mp.available == false ? str.music : str.nothingPlaying) : playing ? str.nowPlaying : str.paused; tint: bRed }
+          Text { text: has ? mp.title : mp.available == false ? str.allowMusic : str.playHint; font: jost; fontSize: has ? 20 : 15; fontWeight: has ? 600 : 400; color: ink; maxLines: 3 }
           if has {
             Text { text: mp.artist ?? lower(mp.app ?? ""); font: jost; fontSize: 13; color: alpha(ink, 0.7); maxLines: 1 }
           }
@@ -244,7 +318,7 @@ face "bauhaus today" {
           height: 2 * c
           onTap: notification("open", "")
           Tile { k: "stripes"; bg: paper; fg: bBlue; ac: bBlue }
-          Text { text: "allow notification access to see them here"; font: jost; fontSize: 16; fontWeight: 500; color: ink; background: paper; padding: [12, 8]; align: center; width: 3 * c }
+          Text { text: str.allowNotes; font: jost; fontSize: 16; fontWeight: 500; color: ink; background: paper; padding: [12, 8]; align: center; width: 3 * c }
         }
       } else if n.count == 0 {
         Box {
@@ -259,8 +333,8 @@ face "bauhaus today" {
             gap: 0
             padding: 12
             Spacer { weight: 1 }
-            Text { text: "all clear"; font: jost; fontSize: c * 0.32; fontWeight: 600; color: ink }
-            Label { t: "no notifications" }
+            Text { text: str.allClear; font: jost; fontSize: c * 0.32; fontWeight: 600; color: ink }
+            Label { t: str.noNotifications }
           }
         }
       } else {
@@ -289,7 +363,7 @@ face "bauhaus today" {
                 Text { text: item.text; font: jost; fontSize: 12; color: alpha(ink, 0.7); maxLines: 1 }
               }
             }
-            Text { text: fmtAgo(item.time, now); font: jost; fontSize: 11; fontWeight: 500; color: alpha(ink, 0.6); padding: [0, 0, 10, 0] }
+            Text { text: str.ago(now - item.time); font: jost; fontSize: 11; fontWeight: 500; color: alpha(ink, 0.6); padding: [0, 0, 10, 0] }
           }
         }
         // The strips left over are small squares of the poster's own.

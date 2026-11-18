@@ -6,9 +6,98 @@ face "omarchy" {
   meta {
     owl: 23
     description: "An Omarchy session: a bar, tiled windows, fastfetch, quattro commits, and your apps"
-    version: "1.1"
+    version: "1.2"
     license: "MIT"
     category: "system"
+  }
+
+  // What it says, in the phone's language where it has a set. Day names come from the phone. The fetch keeps
+  // fastfetch's own keys where they're Linux words (os, host, kernel, shell, wm, cpu); apps, commits,
+  // notifications and agents come as they are.
+  strings {
+    en {
+      bar: "EEE d  HH:mm"; dnd: "dnd"
+      uptime: "uptime"; packages: "pkgs"; theme: "theme"; memory: "memory"; battery: "battery"; byDefault: "default"
+      apps: "apps"; appCount: n => "${n} apps"; charging: "charging"
+      rateLimited: "rate limited"; offline: "offline"
+      recent: "recent"; all: "all"; notifications: "notifications"; allow: "allow notification access"; allClear: "all clear"
+      agents: "agents"; manage: "manage"; noAgent: "no agent installed"
+      now: "now"; minutes: n => "${n}m"; hours: n => "${n}h"; days: n => "${n}d"; weeks: n => "${n}w"; years: n => "${n}y"
+    }
+    id {
+      bar: "EEE d  HH:mm"; dnd: "jangan ganggu"
+      uptime: "aktif"; packages: "paket"; theme: "tema"; memory: "memori"; battery: "baterai"; byDefault: "default"
+      apps: "aplikasi"; appCount: n => "${n} aplikasi"; charging: "mengisi"
+      rateLimited: "kena batas"; offline: "offline"
+      recent: "terbaru"; all: "semua"; notifications: "notifikasi"; allow: "izinkan akses notifikasi"; allClear: "semua sudah dibaca"
+      agents: "agen"; manage: "kelola"; noAgent: "belum ada agen terpasang"
+      now: "kini"; minutes: n => "${n}m"; hours: n => "${n}j"; days: n => "${n}h"; weeks: n => "${n}mg"; years: n => "${n}th"
+    }
+    es {
+      bar: "EEE d  HH:mm"; dnd: "no molestar"
+      uptime: "uptime"; packages: "paquetes"; theme: "tema"; memory: "memoria"; battery: "batería"; byDefault: "predeterminado"
+      apps: "apps"; appCount: n => "${n} apps"; charging: "cargando"
+      rateLimited: "límite alcanzado"; offline: "sin conexión"
+      recent: "recientes"; all: "todas"; notifications: "notificaciones"; allow: "permitir acceso a las notificaciones"; allClear: "todo al día"
+      agents: "agentes"; manage: "gestionar"; noAgent: "ningún agente instalado"
+      now: "ahora"; minutes: n => "${n}m"; hours: n => "${n}h"; days: n => "${n}d"; weeks: n => "${n}sem"; years: n => "${n}a"
+    }
+    pt {
+      bar: "EEE d  HH:mm"; dnd: "não perturbe"
+      uptime: "uptime"; packages: "pacotes"; theme: "tema"; memory: "memória"; battery: "bateria"; byDefault: "padrão"
+      apps: "apps"; appCount: n => "${n} apps"; charging: "carregando"
+      rateLimited: "limite atingido"; offline: "offline"
+      recent: "recentes"; all: "todos"; notifications: "notificações"; allow: "permitir acesso às notificações"; allClear: "tudo em dia"
+      agents: "agentes"; manage: "gerenciar"; noAgent: "nenhum agente instalado"
+      now: "agora"; minutes: n => "${n}m"; hours: n => "${n}h"; days: n => "${n}d"; weeks: n => "${n}sem"; years: n => "${n}a"
+    }
+    de {
+      bar: "EEE d.  HH:mm"; dnd: "nicht stören"
+      uptime: "uptime"; packages: "pakete"; theme: "theme"; memory: "ram"; battery: "akku"; byDefault: "standard"
+      apps: "apps"; appCount: n => "${n} apps"; charging: "lädt"
+      rateLimited: "zu viele anfragen"; offline: "offline"
+      recent: "zuletzt"; all: "alle"; notifications: "benachrichtigungen"; allow: "zugriff auf benachrichtigungen erlauben"; allClear: "alles gelesen"
+      agents: "agenten"; manage: "verwalten"; noAgent: "kein agent installiert"
+      now: "jetzt"; minutes: n => "${n} min"; hours: n => "${n} std"; days: n => "${n} tg"; weeks: n => "${n} wo"; years: n => "${n} j"
+    }
+    zh {
+      bar: "d日 EEE  HH:mm"; dnd: "勿扰"
+      uptime: "运行时间"; packages: "软件包"; theme: "主题"; memory: "内存"; battery: "电池"; byDefault: "默认"
+      apps: "应用"; appCount: n => "${n} 个应用"; charging: "充电中"
+      rateLimited: "请求过多"; offline: "离线"
+      recent: "最近"; all: "全部"; notifications: "通知"; allow: "允许访问通知"; allClear: "全部看完了"
+      agents: "智能体"; manage: "管理"; noAgent: "未安装智能体"
+      now: "刚刚"; minutes: n => "${n}分钟"; hours: n => "${n}小时"; days: n => "${n}天"; weeks: n => "${n}周"; years: n => "${n}年"
+    }
+    ru {
+      bar: "EEE d  HH:mm"; dnd: "не беспокоить"
+      uptime: "аптайм"; packages: "пакеты"; theme: "тема"; memory: "память"; battery: "батарея"; byDefault: "по умолчанию"
+      apps: "приложения"; charging: "заряжается"
+      appCount: n => "${n} " + (n % 10 == 1 && n % 100 != 11 ? "приложение" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "приложения" : "приложений")
+      rateLimited: "лимит запросов"; offline: "офлайн"
+      recent: "недавние"; all: "все"; notifications: "уведомления"; allow: "разрешить доступ к уведомлениям"; allClear: "всё прочитано"
+      agents: "агенты"; manage: "настроить"; noAgent: "агенты не установлены"
+      now: "сейчас"; minutes: n => "${n} мин"; hours: n => "${n} ч"; days: n => "${n} д"; weeks: n => "${n} нед"; years: n => "${n} г"
+    }
+    ja {
+      bar: "d日(EEE)  HH:mm"; dnd: "サイレント"
+      uptime: "稼働時間"; packages: "パッケージ"; theme: "テーマ"; memory: "メモリ"; battery: "バッテリー"; byDefault: "デフォルト"
+      apps: "アプリ"; appCount: n => "アプリ ${n} 個"; charging: "充電中"
+      rateLimited: "リクエスト制限中"; offline: "オフライン"
+      recent: "最近"; all: "すべて"; notifications: "通知"; allow: "通知へのアクセスを許可"; allClear: "新しい通知はありません"
+      agents: "エージェント"; manage: "管理"; noAgent: "エージェントがインストールされていません"
+      now: "今"; minutes: n => "${n} 分"; hours: n => "${n} 時間"; days: n => "${n} 日"; weeks: n => "${n} 週間"; years: n => "${n} 年"
+    }
+    uk {
+      bar: "EEE d  HH:mm"; dnd: "не турбувати"
+      uptime: "аптайм"; packages: "пакети"; theme: "тема"; memory: "пам'ять"; battery: "батарея"; byDefault: "типово"
+      apps: "додатки"; charging: "заряджається"
+      appCount: n => "${n} " + (n % 10 == 1 && n % 100 != 11 ? "додаток" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "додатки" : "додатків")
+      rateLimited: "ліміт запитів"; offline: "офлайн"
+      recent: "нещодавні"; all: "усі"; notifications: "сповіщення"; allow: "дозволити доступ до сповіщень"; allClear: "усе прочитано"
+      agents: "агенти"; manage: "керувати"; noAgent: "агентів не встановлено"
+      now: "зараз"; minutes: n => "${n} хв"; hours: n => "${n} год"; days: n => "${n} дн"; weeks: n => "${n} тиж"; years: n => "${n} р"
+    }
   }
 
   statusBar: false
@@ -41,13 +130,13 @@ face "omarchy" {
   let wide = (tileWidth ?? 0) > (tileHeight ?? 1)
   let playing = m != null && m.title != null && m.title != ""
   let osName = !linux ? (dev == null ? null : "Android ${dev.android}") : (lx == null || lx == "" ? null : trim(split(lx, "\t")[0]))
-  let pkgLine = !linux ? (sys.apps == null ? null : "${sys.apps} (apps)") : (lx == null || lx == "" ? null : "${trim(split(lx, "\t")[1])} (pacman) · ${sys.apps} apps")
+  let pkgLine = !linux ? (sys.apps == null ? null : "${sys.apps} (${str.apps})") : (lx == null || lx == "" ? null : "${trim(split(lx, "\t")[1])} (pacman) · ${str.appCount(sys.apps)}")
   let shellName = !linux || lx == null || lx == "" ? null : trim(split(lx, "\t")[2])
   let cpuLine = sys.cpu == null ? null : trim("${sys.cpu.soc == "" || sys.cpu.soc == null ? sys.cpu.hardware : sys.cpu.soc} (${sys.cpu.cores})")
   let memLine = mem == null || !mem.total ? null : "${fmtBytes(mem.used)} / ${fmtBytes(mem.total)}"
-  let batLine = bat == null ? null : "${bat.level}%${bat.charging ? " · charging" : ""}"
-  let themeName = lower(sys.theme ?? "default")
-  let problem = raw == null || raw.ok ? null : raw.code == 403 ? "rate limited" : "offline"
+  let batLine = bat == null ? null : "${bat.level}%${bat.charging ? " · ${str.charging}" : ""}"
+  let themeName = lower(sys.theme ?? str.byDefault)
+  let problem = raw == null || raw.ok ? null : raw.code == 403 ? str.rateLimited : str.offline
   let commits = (raw != null && raw.ok ? raw.out ?? [] : []).map(c => {
     sha: c.sha,
     url: c.html_url,
@@ -117,19 +206,19 @@ face "omarchy" {
         Line { key: "os"; value: osName }
         Line { key: "host"; value: dev == null ? null : "${dev.maker} ${dev.model}" }
         Line { key: "kernel"; value: sys.kernel }
-        Line { key: "uptime"; value: sys.uptime == null ? null : fmtDuration(sys.uptime) }
-        Line { key: "pkgs"; value: pkgLine }
+        Line { key: str.uptime; value: sys.uptime == null ? null : fmtDuration(sys.uptime) }
+        Line { key: str.packages; value: pkgLine }
         if linux { Line { key: "shell"; value: shellName } }
         Line { key: "wm"; value: sys.launcher == null ? null : "omalauncher ${sys.launcher}" }
         Row {
           gap: 12
           onTap: launcher("themes")
-          Text { text: "theme"; font: mono; fontSize: 14; color: accent; width: 76; maxLines: 1 }
+          Text { text: str.theme; font: mono; fontSize: 14; color: accent; width: 76; maxLines: 1 }
           Text { text: themeName; font: mono; fontSize: 14; maxLines: 1; weight: 1 }
         }
         Line { key: "cpu"; value: cpuLine }
-        Line { key: "memory"; value: memLine }
-        Line { key: "battery"; value: batLine }
+        Line { key: str.memory; value: memLine }
+        Line { key: str.battery; value: batLine }
       }
     }
   }
@@ -148,7 +237,8 @@ face "omarchy" {
           Text { text: c.author; font: mono; fontSize: 11; color: muted; maxLines: 1 }
         }
       }
-      Text { text: fmtAgo(c.at, now); font: mono; fontSize: 11; color: muted; maxLines: 1 }
+      let age = abs(now - c.at)
+      Text { text: age < 60 ? str.now : age < 3600 ? str.minutes(floor(age / 60)) : age < 86400 ? str.hours(floor(age / 3600)) : age < 604800 ? str.days(floor(age / 86400)) : age < 31536000 ? str.weeks(floor(age / 604800)) : str.years(floor(age / 31536000)); font: mono; fontSize: 11; color: muted; maxLines: 1 }
     }
   }
 
@@ -212,8 +302,8 @@ face "omarchy" {
       onTap: focused = "apps"
       Row {
         align: center
-        Text { text: full ? "apps" : "recent"; font: mono; fontSize: 12; color: muted; weight: 1 }
-        Text { text: "all"; font: mono; fontSize: 12; color: accent; onTap: launcher("drawer") }
+        Text { text: full ? str.apps : str.recent; font: mono; fontSize: 12; color: muted; weight: 1 }
+        Text { text: str.all; font: mono; fontSize: 12; color: accent; onTap: launcher("drawer") }
       }
       Column {
         scroll: true
@@ -235,15 +325,15 @@ face "omarchy" {
       clip: true
       Row {
         align: center
-        Text { text: "notifications"; font: mono; fontSize: 12; color: muted; weight: 1 }
+        Text { text: str.notifications; font: mono; fontSize: 12; color: muted; weight: 1 }
         if n.available && n.count > 0 {
           Text { text: "${n.count}"; font: mono; fontSize: 12; color: accent }
         }
       }
       if !n.available {
-        Text { text: "allow notification access"; font: mono; fontSize: 14; color: accent; onTap: notification("open", "") }
+        Text { text: str.allow; font: mono; fontSize: 14; color: accent; onTap: notification("open", "") }
       } else if n.count == 0 {
-        Text { text: "all clear"; font: mono; fontSize: 14; color: muted }
+        Text { text: str.allClear; font: mono; fontSize: 14; color: muted }
       } else {
         Column {
           scroll: true
@@ -261,7 +351,8 @@ face "omarchy" {
                 gap: 0
                 weight: 1
                 Text { text: item.title; font: mono; fontSize: 13; maxLines: 1 }
-                Text { text: "${lower(item.app)} · ${fmtAgo(item.time, now)}"; font: mono; fontSize: 11; color: muted; maxLines: 1 }
+                let age = abs(now - item.time)
+                Text { text: "${lower(item.app)} · ${age < 60 ? str.now : age < 3600 ? str.minutes(floor(age / 60)) : age < 86400 ? str.hours(floor(age / 3600)) : age < 604800 ? str.days(floor(age / 86400)) : age < 31536000 ? str.weeks(floor(age / 604800)) : str.years(floor(age / 31536000))}"; font: mono; fontSize: 11; color: muted; maxLines: 1 }
               }
             }
           }
@@ -282,11 +373,11 @@ face "omarchy" {
       clip: true
       Row {
         align: center
-        Text { text: "agents"; font: mono; fontSize: 12; color: muted; weight: 1 }
-        Text { text: "manage"; font: mono; fontSize: 12; color: accent; onTap: launcher("agents") }
+        Text { text: str.agents; font: mono; fontSize: 12; color: muted; weight: 1 }
+        Text { text: str.manage; font: mono; fontSize: 12; color: accent; onTap: launcher("agents") }
       }
       if len(ag.installed ?? []) == 0 {
-        Text { text: "no agent installed"; font: mono; fontSize: 14; color: muted; onTap: launcher("agents") }
+        Text { text: str.noAgent; font: mono; fontSize: 14; color: muted; onTap: launcher("agents") }
       } else {
         Column {
           scroll: true
@@ -350,14 +441,14 @@ face "omarchy" {
         Ws { n: 5 }
       }
       Spacer { weight: 1 }
-      Text { text: fmtTime(now, "EEE d  HH:mm"); font: mono; fontSize: 13; maxLines: 1 }
+      Text { text: fmtTime(now, str.bar); font: mono; fontSize: 13; maxLines: 1 }
       Spacer { weight: 1 }
       Row {
         width: 132
         gap: 8
         align: center
         justify: end
-        if modes.dnd { Text { text: "dnd"; font: mono; fontSize: 12; color: yellow } }
+        if modes.dnd { Text { text: str.dnd; font: mono; fontSize: 12; color: yellow } }
         Text {
           text: bat == null ? null : "${bat.level}%"
           font: mono

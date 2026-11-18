@@ -4,11 +4,209 @@ face "manga" {
   // The page is the theme's paper and ink: its background and foreground, with the accent for red.
 
   meta {
-    owl: 14
+    owl: 16
     description: "A manga page: a halftone city that follows the hour and the weather, your newest notification, a close-up, fastfetch and Hacker News"
-    version: "1.3"
+    version: "1.4"
     license: "MIT"
     category: "fun"
+  }
+
+  // What it says, in the phone's language where it has a set. Day and month names come from the phone; words fastfetch
+  // uses as names (os, host, kernel, cpu, shell, android, wm) stay as they are, and wttr.in's sky is named by its code.
+  strings {
+    en {
+      date: "EEE d MMM"; inbox: "inbox"; notifications: "notifications"; quiet: "all quiet"; allow: "allow access"
+      nothing: "Nothing new. The city sleeps, or pretends to."
+      tapAllow: "Tap to let the page read your notifications."
+      none: "none"; uptime: "uptime"; pkgs: "pkgs"; theme: "theme"; apps: n => "${n} apps"
+      mem: "mem"; disk: "disk"; bat: "bat"; free: b => "${b} free"; comments: n => "${n} cmts"
+      ago: s => fmtAgo(0, s)
+      sky: (code, desc) => desc
+    }
+    id {
+      date: "EEE d MMM"; inbox: "kotak masuk"; notifications: "notifikasi"; quiet: "sepi"; allow: "izinkan akses"
+      nothing: "Tak ada yang baru. Kota sedang tidur, atau pura-pura tidur."
+      tapAllow: "Ketuk agar halaman ini bisa membaca notifikasimu."
+      none: "tidak ada"; uptime: "aktif"; pkgs: "paket"; theme: "tema"; apps: n => "${n} aplikasi"
+      mem: "ram"; disk: "disk"; bat: "baterai"; free: b => "${b} kosong"; comments: n => "${n} komentar"
+      ago: s => s < 60 ? "kini" : s < 3600 ? "${floor(s / 60)}m" : s < 86400 ? "${floor(s / 3600)}j" : "${floor(s / 86400)}h"
+      sky: (code, desc) => get({
+        "113": "cerah", "116": "cerah berawan", "119": "berawan", "122": "mendung", "143": "kabut tipis",
+        "176": "hujan lokal", "179": "salju lokal", "182": "hujan salju lokal", "185": "gerimis beku lokal",
+        "200": "badai petir", "227": "salju tertiup angin", "230": "badai salju", "248": "kabut", "260": "kabut beku",
+        "263": "gerimis ringan lokal", "266": "gerimis ringan", "281": "gerimis beku", "284": "gerimis beku lebat",
+        "293": "hujan ringan lokal", "296": "hujan ringan", "299": "kadang hujan sedang", "302": "hujan sedang",
+        "305": "kadang hujan lebat", "308": "hujan lebat", "311": "hujan beku ringan", "314": "hujan beku lebat",
+        "317": "hujan salju ringan", "320": "hujan salju lebat", "323": "salju ringan lokal", "326": "salju ringan",
+        "329": "salju sedang lokal", "332": "salju sedang", "335": "salju lebat lokal", "338": "salju lebat",
+        "350": "butiran es", "353": "hujan ringan sesaat", "356": "hujan lebat sesaat", "359": "hujan deras",
+        "362": "hujan salju ringan sesaat", "365": "hujan salju lebat sesaat", "368": "salju ringan sesaat",
+        "371": "salju lebat sesaat", "374": "butiran es ringan", "377": "butiran es lebat",
+        "386": "hujan ringan berpetir", "389": "hujan lebat berpetir", "392": "salju ringan berpetir",
+        "395": "salju lebat berpetir"
+      }, code, lower(trim(desc)))
+    }
+    es {
+      date: "EEE d MMM"; inbox: "buzón"; notifications: "notificaciones"; quiet: "silencio"; allow: "dar acceso"
+      nothing: "Nada nuevo. La ciudad duerme, o finge dormir."
+      tapAllow: "Toca para que la página lea tus notificaciones."
+      none: "ninguna"; uptime: "uptime"; pkgs: "paq."; theme: "tema"; apps: n => "${n} apps"
+      mem: "ram"; disk: "disco"; bat: "batería"; free: b => "${b} libres"; comments: n => "${n} coment."
+      ago: s => s < 60 ? "ahora" : s < 3600 ? "${floor(s / 60)}m" : s < 86400 ? "${floor(s / 3600)}h" : "${floor(s / 86400)}d"
+      sky: (code, desc) => get({
+        "113": "despejado", "116": "parcialmente nublado", "119": "nublado", "122": "cubierto", "143": "neblina",
+        "176": "lluvia dispersa", "179": "nieve dispersa", "182": "aguanieve dispersa", "185": "llovizna helada dispersa",
+        "200": "tormenta eléctrica", "227": "nieve con viento", "230": "ventisca", "248": "niebla", "260": "niebla helada",
+        "263": "llovizna ligera dispersa", "266": "llovizna ligera", "281": "llovizna helada", "284": "llovizna helada intensa",
+        "293": "lluvia ligera dispersa", "296": "lluvia ligera", "299": "a ratos lluvia moderada", "302": "lluvia moderada",
+        "305": "a ratos lluvia fuerte", "308": "lluvia fuerte", "311": "lluvia helada ligera", "314": "lluvia helada fuerte",
+        "317": "aguanieve ligera", "320": "aguanieve fuerte", "323": "nevada ligera dispersa", "326": "nevada ligera",
+        "329": "nevada moderada dispersa", "332": "nevada moderada", "335": "nevada fuerte dispersa", "338": "nevada fuerte",
+        "350": "granizo fino", "353": "chubascos ligeros", "356": "chubascos fuertes", "359": "aguacero",
+        "362": "chubascos de aguanieve ligeros", "365": "chubascos de aguanieve fuertes", "368": "chubascos de nieve ligeros",
+        "371": "chubascos de nieve fuertes", "374": "chubascos de granizo fino ligeros", "377": "chubascos de granizo fino fuertes",
+        "386": "lluvia ligera con truenos", "389": "lluvia fuerte con truenos", "392": "nieve ligera con truenos",
+        "395": "nieve fuerte con truenos"
+      }, code, lower(trim(desc)))
+    }
+    pt {
+      date: "EEE d MMM"; inbox: "caixa de entrada"; notifications: "notificações"; quiet: "silêncio"; allow: "dar acesso"
+      nothing: "Nada de novo. A cidade dorme, ou finge que dorme."
+      tapAllow: "Toque para a página ler suas notificações."
+      none: "nenhum"; uptime: "uptime"; pkgs: "pacotes"; theme: "tema"; apps: n => "${n} apps"
+      mem: "ram"; disk: "disco"; bat: "bateria"; free: b => "${b} livres"; comments: n => "${n} coment."
+      ago: s => s < 60 ? "agora" : s < 3600 ? "${floor(s / 60)}m" : s < 86400 ? "${floor(s / 3600)}h" : "${floor(s / 86400)}d"
+      sky: (code, desc) => get({
+        "113": "céu limpo", "116": "parcialmente nublado", "119": "nublado", "122": "encoberto", "143": "névoa",
+        "176": "chuva isolada", "179": "neve isolada", "182": "chuva com neve isolada", "185": "garoa congelante isolada",
+        "200": "trovoada", "227": "neve com vento", "230": "nevasca", "248": "neblina", "260": "neblina congelante",
+        "263": "garoa fraca isolada", "266": "garoa fraca", "281": "garoa congelante", "284": "garoa congelante forte",
+        "293": "chuva fraca isolada", "296": "chuva fraca", "299": "às vezes chuva moderada", "302": "chuva moderada",
+        "305": "às vezes chuva forte", "308": "chuva forte", "311": "chuva congelante fraca", "314": "chuva congelante forte",
+        "317": "chuva com neve fraca", "320": "chuva com neve forte", "323": "neve fraca isolada", "326": "neve fraca",
+        "329": "neve moderada isolada", "332": "neve moderada", "335": "neve forte isolada", "338": "neve forte",
+        "350": "granizo miúdo", "353": "pancadas de chuva fracas", "356": "pancadas de chuva fortes", "359": "aguaceiro",
+        "362": "pancadas de chuva com neve fracas", "365": "pancadas de chuva com neve fortes", "368": "pancadas de neve fracas",
+        "371": "pancadas de neve fortes", "374": "pancadas de granizo miúdo fracas", "377": "pancadas de granizo miúdo fortes",
+        "386": "chuva fraca com trovões", "389": "chuva forte com trovões", "392": "neve fraca com trovões",
+        "395": "neve forte com trovões"
+      }, code, lower(trim(desc)))
+    }
+    de {
+      date: "EEE, d. MMM"; inbox: "posteingang"; notifications: "mitteilungen"; quiet: "alles ruhig"; allow: "freigeben"
+      nothing: "Nichts Neues. Die Stadt schläft, oder tut nur so."
+      tapAllow: "Tippe, damit die Seite deine Benachrichtigungen lesen darf."
+      none: "keine"; uptime: "uptime"; pkgs: "pakete"; theme: "theme"; apps: n => "${n} apps"
+      mem: "ram"; disk: "speicher"; bat: "akku"; free: b => "${b} frei"; comments: n => "${n} komm."
+      ago: s => s < 60 ? "jetzt" : s < 3600 ? "${floor(s / 60)} min" : s < 86400 ? "${floor(s / 3600)} std" : "${floor(s / 86400)} tg"
+      sky: (code, desc) => get({
+        "113": "klar", "116": "teils bewölkt", "119": "bewölkt", "122": "bedeckt", "143": "dunst",
+        "176": "örtlich regen", "179": "örtlich schnee", "182": "örtlich schneeregen", "185": "örtlich gefrierender niesel",
+        "200": "gewitter", "227": "schneetreiben", "230": "schneesturm", "248": "nebel", "260": "gefrierender nebel",
+        "263": "örtlich leichter niesel", "266": "leichter niesel", "281": "gefrierender niesel", "284": "starker gefrierender niesel",
+        "293": "örtlich leichter regen", "296": "leichter regen", "299": "zeitweise mäßiger regen", "302": "mäßiger regen",
+        "305": "zeitweise starker regen", "308": "starker regen", "311": "leichter gefrierender regen", "314": "starker gefrierender regen",
+        "317": "leichter schneeregen", "320": "starker schneeregen", "323": "örtlich leichter schnee", "326": "leichter schnee",
+        "329": "örtlich mäßiger schnee", "332": "mäßiger schnee", "335": "örtlich starker schnee", "338": "starker schnee",
+        "350": "eiskörner", "353": "leichte regenschauer", "356": "starke regenschauer", "359": "wolkenbruch",
+        "362": "leichte schneeregenschauer", "365": "starke schneeregenschauer", "368": "leichte schneeschauer",
+        "371": "starke schneeschauer", "374": "leichte eiskörnerschauer", "377": "starke eiskörnerschauer",
+        "386": "leichter regen mit gewitter", "389": "starker regen mit gewitter", "392": "leichter schnee mit gewitter",
+        "395": "starker schnee mit gewitter"
+      }, code, lower(trim(desc)))
+    }
+    zh {
+      date: "M月d日 EEE"; inbox: "收件箱"; notifications: "通知"; quiet: "静悄悄"; allow: "允许访问"
+      nothing: "没有新消息。城市睡着了，或者在装睡。"
+      tapAllow: "点按一下，让这一页读取你的通知。"
+      none: "无"; uptime: "运行时间"; pkgs: "软件包"; theme: "主题"; apps: n => "${n} 个应用"
+      mem: "内存"; disk: "存储"; bat: "电池"; free: b => "可用 ${b}"; comments: n => "${n} 评论"
+      ago: s => s < 60 ? "刚刚" : s < 3600 ? "${floor(s / 60)}分钟" : s < 86400 ? "${floor(s / 3600)}小时" : "${floor(s / 86400)}天"
+      sky: (code, desc) => get({
+        "113": "晴", "116": "局部多云", "119": "多云", "122": "阴", "143": "薄雾",
+        "176": "局部有雨", "179": "局部有雪", "182": "局部雨夹雪", "185": "局部冻毛毛雨",
+        "200": "雷暴", "227": "风吹雪", "230": "暴风雪", "248": "雾", "260": "冻雾",
+        "263": "局部小毛毛雨", "266": "小毛毛雨", "281": "冻毛毛雨", "284": "强冻毛毛雨",
+        "293": "局部小雨", "296": "小雨", "299": "间歇中雨", "302": "中雨",
+        "305": "间歇大雨", "308": "大雨", "311": "小冻雨", "314": "大冻雨",
+        "317": "小雨夹雪", "320": "大雨夹雪", "323": "局部小雪", "326": "小雪",
+        "329": "局部中雪", "332": "中雪", "335": "局部大雪", "338": "大雪",
+        "350": "冰粒", "353": "小阵雨", "356": "大阵雨", "359": "暴雨",
+        "362": "小阵雨夹雪", "365": "大阵雨夹雪", "368": "小阵雪",
+        "371": "大阵雪", "374": "小阵冰粒", "377": "大阵冰粒",
+        "386": "雷阵雨", "389": "强雷阵雨", "392": "小雷阵雪",
+        "395": "大雷阵雪"
+      }, code, lower(trim(desc)))
+    }
+    ru {
+      date: "EEE d MMM"; inbox: "входящие"; notifications: "уведомления"; quiet: "тишина"; allow: "дать доступ"
+      nothing: "Ничего нового. Город спит — или делает вид."
+      tapAllow: "Нажмите, чтобы страница могла читать уведомления."
+      none: "нет"; uptime: "аптайм"; pkgs: "пакеты"; theme: "тема"; apps: n => "${n} прил."
+      mem: "озу"; disk: "диск"; bat: "батарея"; free: b => "свободно ${b}"; comments: n => "${n} комм."
+      ago: s => s < 60 ? "сейчас" : s < 3600 ? "${floor(s / 60)} мин" : s < 86400 ? "${floor(s / 3600)} ч" : "${floor(s / 86400)} д"
+      sky: (code, desc) => get({
+        "113": "ясно", "116": "переменная облачность", "119": "облачно", "122": "пасмурно", "143": "дымка",
+        "176": "местами дождь", "179": "местами снег", "182": "местами мокрый снег", "185": "местами ледяная морось",
+        "200": "гроза", "227": "позёмка", "230": "метель", "248": "туман", "260": "ледяной туман",
+        "263": "местами слабая морось", "266": "слабая морось", "281": "ледяная морось", "284": "сильная ледяная морось",
+        "293": "местами небольшой дождь", "296": "небольшой дождь", "299": "временами умеренный дождь", "302": "умеренный дождь",
+        "305": "временами сильный дождь", "308": "сильный дождь", "311": "слабый ледяной дождь", "314": "сильный ледяной дождь",
+        "317": "небольшой мокрый снег", "320": "сильный мокрый снег", "323": "местами небольшой снег", "326": "небольшой снег",
+        "329": "местами умеренный снег", "332": "умеренный снег", "335": "местами сильный снег", "338": "сильный снег",
+        "350": "ледяная крупа", "353": "небольшой ливень", "356": "сильный ливень", "359": "проливной дождь",
+        "362": "небольшой ливень с мокрым снегом", "365": "сильный ливень с мокрым снегом", "368": "небольшой снегопад",
+        "371": "сильный снегопад", "374": "небольшая ледяная крупа", "377": "сильная ледяная крупа",
+        "386": "небольшой дождь с грозой", "389": "сильный дождь с грозой", "392": "небольшой снег с грозой",
+        "395": "сильный снег с грозой"
+      }, code, lower(trim(desc)))
+    }
+    ja {
+      date: "M月d日 EEE"; inbox: "受信箱"; notifications: "通知"; quiet: "しーん…"; allow: "許可が必要"
+      nothing: "何もない。街は眠っている——いや、眠ったふりか。"
+      tapAllow: "タップして、このページに通知を読ませよう。"
+      none: "なし"; uptime: "稼働時間"; pkgs: "pkgs"; theme: "テーマ"; apps: n => "アプリ ${n} 個"
+      mem: "メモリ"; disk: "ストレージ"; bat: "電池"; free: b => "空き ${b}"; comments: n => "コメント ${n}"
+      ago: s => s < 60 ? "今" : s < 3600 ? "${floor(s / 60)} 分" : s < 86400 ? "${floor(s / 3600)} 時間" : "${floor(s / 86400)} 日"
+      sky: (code, desc) => get({
+        "113": "晴れ", "116": "晴れ時々曇り", "119": "曇り", "122": "本曇り", "143": "もや",
+        "176": "ところにより雨", "179": "ところにより雪", "182": "ところによりみぞれ", "185": "ところにより着氷性の霧雨",
+        "200": "ところにより雷", "227": "地吹雪", "230": "猛吹雪", "248": "霧", "260": "着氷性の霧",
+        "263": "ところにより弱い霧雨", "266": "弱い霧雨", "281": "着氷性の霧雨", "284": "強い着氷性の霧雨",
+        "293": "ところにより小雨", "296": "小雨", "299": "時々雨", "302": "雨",
+        "305": "時々強い雨", "308": "強い雨", "311": "弱い着氷性の雨", "314": "強い着氷性の雨",
+        "317": "弱いみぞれ", "320": "強いみぞれ", "323": "ところにより小雪", "326": "小雪",
+        "329": "ところにより雪", "332": "雪", "335": "ところにより大雪", "338": "大雪",
+        "350": "凍雨", "353": "弱いにわか雨", "356": "強いにわか雨", "359": "激しいにわか雨",
+        "362": "弱いみぞれ", "365": "強いみぞれ", "368": "弱いにわか雪",
+        "371": "強いにわか雪", "374": "弱い凍雨", "377": "強い凍雨",
+        "386": "雷を伴う弱い雨", "389": "雷を伴う強い雨", "392": "雷を伴う弱い雪",
+        "395": "雷を伴う強い雪"
+      }, code, lower(trim(desc)))
+    }
+    uk {
+      date: "EEE d MMM"; inbox: "вхідні"; notifications: "сповіщення"; quiet: "тиша"; allow: "надати доступ"
+      nothing: "Нічого нового. Місто спить — або вдає."
+      tapAllow: "Торкніться, щоб сторінка могла читати сповіщення."
+      none: "немає"; uptime: "аптайм"; pkgs: "пакети"; theme: "тема"; apps: n => "${n} дод."
+      mem: "озп"; disk: "диск"; bat: "батарея"; free: b => "вільно ${b}"; comments: n => "${n} комент."
+      ago: s => s < 60 ? "зараз" : s < 3600 ? "${floor(s / 60)} хв" : s < 86400 ? "${floor(s / 3600)} год" : "${floor(s / 86400)} дн"
+      sky: (code, desc) => get({
+        "113": "ясно", "116": "мінлива хмарність", "119": "хмарно", "122": "похмуро", "143": "серпанок",
+        "176": "місцями дощ", "179": "місцями сніг", "182": "місцями мокрий сніг", "185": "місцями крижана мряка",
+        "200": "гроза", "227": "поземок", "230": "хуртовина", "248": "туман", "260": "крижаний туман",
+        "263": "місцями слабка мряка", "266": "слабка мряка", "281": "крижана мряка", "284": "сильна крижана мряка",
+        "293": "місцями невеликий дощ", "296": "невеликий дощ", "299": "часом помірний дощ", "302": "помірний дощ",
+        "305": "часом сильний дощ", "308": "сильний дощ", "311": "слабкий крижаний дощ", "314": "сильний крижаний дощ",
+        "317": "невеликий мокрий сніг", "320": "сильний мокрий сніг", "323": "місцями невеликий сніг", "326": "невеликий сніг",
+        "329": "місцями помірний сніг", "332": "помірний сніг", "335": "місцями сильний сніг", "338": "сильний сніг",
+        "350": "крижана крупа", "353": "невелика злива", "356": "сильна злива", "359": "проливний дощ",
+        "362": "невелика злива з мокрим снігом", "365": "сильна злива з мокрим снігом", "368": "невеликий снігопад",
+        "371": "сильний снігопад", "374": "невелика крижана крупа", "377": "сильна крижана крупа",
+        "386": "невеликий дощ із грозою", "389": "сильний дощ із грозою", "392": "невеликий сніг із грозою",
+        "395": "сильний сніг із грозою"
+      }, code, lower(trim(desc)))
+    }
   }
 
   background: background
@@ -51,10 +249,10 @@ face "manga" {
     ["os", !linux ? (dev == null ? null : "Android ${dev.android}") : trim(lxs[0] ?? "")],
     ["host", dev == null ? null : "${dev.maker} ${dev.model}"],
     ["kernel", sys.kernel == null ? null : first(split(sys.kernel, "-"))],
-    ["uptime", sys.uptime == null ? null : fmtDuration(sys.uptime)],
-    ["pkgs", !linux ? (sys.apps == null ? null : "${sys.apps} apps") : "${trim(lxs[1] ?? "")} (pacman)"],
-    ["shell", !linux ? "none" : trim(lxs[2] ?? "")],
-    ["theme", sys.theme == null ? null : lower(sys.theme)],
+    [str.uptime, sys.uptime == null ? null : fmtDuration(sys.uptime)],
+    [str.pkgs, !linux ? (sys.apps == null ? null : str.apps(sys.apps)) : "${trim(lxs[1] ?? "")} (pacman)"],
+    ["shell", !linux ? str.none : trim(lxs[2] ?? "")],
+    [str.theme, sys.theme == null ? null : lower(sys.theme)],
     ["cpu", sys.cpu == null ? null : (sys.cpu.soc == "" || sys.cpu.soc == null ? sys.cpu.hardware : sys.cpu.soc)],
     ["android", dev == null ? null : "${dev.android} (sdk ${dev.sdk})"],
     ["wm", sys.launcher == null ? null : "omalauncher ${sys.launcher}"]
@@ -62,9 +260,9 @@ face "manga" {
   let memPct = sys.memory == null || !sys.memory.total ? 0 : sys.memory.used / sys.memory.total * 100
   let diskPct = sys.storage == null || !sys.storage.total ? 0 : sys.storage.used / sys.storage.total * 100
   let gauges = [
-    ["mem", memPct, "${round(memPct)}%"],
-    ["disk", diskPct, sys.storage == null ? "…" : "${fmtBytes(sys.storage.free)} free"],
-    ["bat", bat.level ?? 0, "${bat.level ?? "…"}%"]
+    [str.mem, memPct, "${round(memPct)}%"],
+    [str.disk, diskPct, sys.storage == null ? "…" : str.free(fmtBytes(sys.storage.free))],
+    [str.bat, bat.level ?? 0, "${bat.level ?? "…"}%"]
   ]
   let note = n.available && n.count > 0 ? n.items[0] : null
 
@@ -399,7 +597,7 @@ face "manga" {
           Caption {
             lines: [
               [{text: fmtTime(now, "HH:mm"), font: heavy, fontSize: 34, color: foreground}],
-              [{text: upper(fmtTime(now, "EEE d MMM")), font: "mono", fontSize: 11, letterSpacing: 2, color: foreground}]
+              [{text: upper(fmtTime(now, str.date)), font: "mono", fontSize: 11, letterSpacing: 2, color: foreground}]
             ]
           }
         }
@@ -408,7 +606,7 @@ face "manga" {
           Row {
             Spacer { weight: 1 }
             Caption {
-              lines: [[{text: "${cur.temp_C}° ", font: heavy, fontSize: 15, color: accent}, {text: upper(cur.weatherDesc[0].value ?? ""), font: "mono", fontSize: 11, letterSpacing: 1, color: foreground}]]
+              lines: [[{text: "${cur.temp_C}° ", font: heavy, fontSize: 15, color: accent}, {text: upper(str.sky(code, cur.weatherDesc[0].value ?? "")), font: "mono", fontSize: 11, letterSpacing: 1, color: foreground}]]
             }
           }
         }
@@ -427,10 +625,10 @@ face "manga" {
         gap: 4
         padding: [16, 14, 14, 14 + S * speechW / CW]
         clip: true
-        Text { text: upper(note.app ?? (n.available ? "inbox" : "notifications")); font: mono; fontSize: 12; letterSpacing: 3; color: muted; maxLines: 1 }
-        Text { text: note.title ?? (n.available ? "all quiet" : "allow access"); font: heavy; fontSize: 24; maxLines: 1 }
+        Text { text: upper(note.app ?? (n.available ? str.inbox : str.notifications)); font: mono; fontSize: 12; letterSpacing: 3; color: muted; maxLines: 1 }
+        Text { text: note.title ?? (n.available ? str.quiet : str.allow); font: heavy; fontSize: 24; maxLines: 1 }
         Text {
-          text: note.text ?? (n.available ? "Nothing new. The city sleeps, or pretends to." : "Tap to let the page read your notifications.")
+          text: note.text ?? (n.available ? str.nothing : str.tapAllow)
           fontSize: 14
           color: muted
           maxLines: 4
@@ -557,7 +755,7 @@ face "manga" {
                   Text { text: st.title; fontSize: 13; fontWeight: 600; maxLines: 3; weight: 1 }
                 }
                 Text {
-                  text: "▲${st.points} · ${st.num_comments} cmts · ${fmtAgo(st.created_at_i, now)}"
+                  text: "▲${st.points} · ${str.comments(st.num_comments)} · ${str.ago(now - st.created_at_i)}"
                   font: mono
                   fontSize: 10
                   color: muted

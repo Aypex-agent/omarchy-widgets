@@ -6,12 +6,127 @@ face "bauhaus" {
   // so it runs on any Linux install, and logins are read from the agents' own files and only sent to their own servers.
 
   meta {
-    owl: 14
+    owl: 16
     description: "A Bauhaus poster in three pages: Linux, Claude Code and Grok sessions and limits; notifications, music and apps; the phone's battery, storage, network and switches"
-    version: "1.0"
+    version: "1.1"
     license: "MIT"
     category: "dev"
   }
+
+  // What it says, in the phone's language where it has a set. Brands, agent names and their data stay as they are.
+  strings {
+    en {
+      what: "linux · agents"; notInstalled: "not installed"; packages: "packages"; explicit: n => "${n} explicit"
+      installHint: "install linux to see arch, claude code and grok here"; install: "install"; kernel: "kernel"
+      shell: "shell"; upgraded: "upgraded"; agents: "agents"; never: "never"; none: "none"
+      updates: n => n == 1 ? "1 update · upgrade" : "${n} updates · upgrade"; upToDate: "up to date"
+      busy: n => "${n} busy"; noneBusy: "none busy"; idle: "idle"; status: s => s; active: "active"
+      hours5: "5 hours"; week: "week"; resetsIn: d => "in ${d}"; new: "new"; plan: "grok plan"; pool: "grok pool"
+      noLinux: "no linux"; noLogin: "no login"; offline: "offline"; notOnPlan: "not on plan"; err: e => e
+      context: n => "${n}% context"; quiet: "quiet"; noSessions: "no agent sessions yet"; noLinuxYet: "no linux yet"
+      since: x => "${x} ago"
+      ago: s => s < 60 ? "now" : s < 3600 ? "${floor(s / 60)}m" : s < 86400 ? "${floor(s / 3600)}h" : s < 604800 ? "${floor(s / 86400)}d" : s < 31536000 ? "${floor(s / 604800)}w" : "${floor(s / 31536000)}y"
+    }
+    id {
+      what: "linux · agen"; notInstalled: "belum terpasang"; packages: "paket"; explicit: n => "${n} eksplisit"
+      installHint: "pasang linux untuk melihat arch, claude code, dan grok di sini"; install: "pasang"
+      kernel: "kernel"; shell: "shell"; upgraded: "diperbarui"; agents: "agen"; never: "belum pernah"
+      none: "tidak ada"; updates: n => "perbarui (${n})"; upToDate: "sudah terbaru"; busy: n => "${n} sibuk"
+      noneBusy: "semua siaga"; idle: "siaga"; status: s => s == "busy" ? "sibuk" : s == "waiting" ? "menunggu" : s
+      active: "aktif"; hours5: "5 jam"; week: "minggu"; resetsIn: d => "${d} lagi"; new: "baru"; plan: "paket grok"
+      pool: "jatah grok"; noLinux: "tanpa linux"; noLogin: "belum login"; offline: "offline"
+      notOnPlan: "tak di paket"; err: e => e == "no login" ? "belum login" : e; context: n => "konteks ${n}%"
+      quiet: "sepi"; noSessions: "belum ada sesi agen"; noLinuxYet: "belum ada linux"; since: x => "${x} lalu"
+      ago: s => s < 60 ? "kini" : s < 3600 ? "${floor(s / 60)}m" : s < 86400 ? "${floor(s / 3600)}j" : s < 604800 ? "${floor(s / 86400)}h" : s < 31536000 ? "${floor(s / 604800)}mg" : "${floor(s / 31536000)}th"
+    }
+    es {
+      what: "linux · agentes"; notInstalled: "no instalado"; packages: "paquetes"; explicit: n => "${n} explícitos"
+      installHint: "instala linux para ver aquí arch, claude code y grok"; install: "instalar"; kernel: "kernel"
+      shell: "shell"; upgraded: "actualizó"; agents: "agentes"; never: "nunca"; none: "ninguno"
+      updates: n => "actualizar (${n})"; upToDate: "al día"; busy: n => "${n} activas"; noneBusy: "ninguna activa"
+      idle: "inactiva"; status: s => s == "busy" ? "activa" : s == "waiting" ? "esperando" : s; active: "activa"
+      hours5: "5 horas"; week: "semana"; resetsIn: d => "en ${d}"; new: "nueva"; plan: "plan grok"
+      pool: "cupo grok"; noLinux: "sin linux"; noLogin: "sin sesión"; offline: "sin red"; notOnPlan: "no incluido"
+      err: e => e == "no login" ? "sin sesión" : e == "offline" ? "sin red" : e; context: n => "${n}% contexto"
+      quiet: "calma"; noSessions: "aún no hay sesiones de agentes"; noLinuxYet: "aún sin linux"
+      since: x => "hace ${x}"
+      ago: s => s < 60 ? "ahora" : s < 3600 ? "${floor(s / 60)}m" : s < 86400 ? "${floor(s / 3600)}h" : s < 604800 ? "${floor(s / 86400)}d" : s < 31536000 ? "${floor(s / 604800)} sem" : "${floor(s / 31536000)} a"
+    }
+    pt {
+      what: "linux · agentes"; notInstalled: "não instalado"; packages: "pacotes"; explicit: n => "${n} explícitos"
+      installHint: "instale o linux para ver aqui arch, claude code e grok"; install: "instalar"; kernel: "kernel"
+      shell: "shell"; upgraded: "atualizado"; agents: "agentes"; never: "nunca"; none: "nenhum"
+      updates: n => "atualizar (${n})"; upToDate: "em dia"; busy: n => "${n} ativas"; noneBusy: "nenhuma ativa"
+      idle: "ociosa"; status: s => s == "busy" ? "ativa" : s == "waiting" ? "aguardando" : s; active: "ativa"
+      hours5: "5 horas"; week: "semana"; resetsIn: d => "em ${d}"; new: "nova"; plan: "plano grok"
+      pool: "cota grok"; noLinux: "sem linux"; noLogin: "sem login"; offline: "offline"; notOnPlan: "não incluso"
+      err: e => e == "no login" ? "sem login" : e; context: n => "${n}% contexto"; quiet: "sossego"
+      noSessions: "nenhuma sessão de agente ainda"; noLinuxYet: "ainda sem linux"; since: x => "há ${x}"
+      ago: s => s < 60 ? "agora" : s < 3600 ? "${floor(s / 60)}m" : s < 86400 ? "${floor(s / 3600)}h" : s < 604800 ? "${floor(s / 86400)}d" : s < 31536000 ? "${floor(s / 604800)} sem" : "${floor(s / 31536000)} a"
+    }
+    de {
+      what: "linux · agenten"; notInstalled: "nicht installiert"; packages: "pakete"; explicit: n => "${n} explizit"
+      installHint: "installiere linux, um hier arch, claude code und grok zu sehen"; install: "installieren"
+      kernel: "kernel"; shell: "shell"; upgraded: "upgrade"; agents: "agenten"; never: "nie"; none: "keine"
+      updates: n => "aktualisieren (${n})"; upToDate: "aktuell"; busy: n => "${n} aktiv"; noneBusy: "keine aktiv"
+      idle: "inaktiv"; status: s => s == "busy" ? "aktiv" : s == "waiting" ? "wartet" : s; active: "aktiv"
+      hours5: "5 stunden"; week: "woche"; resetsIn: d => "in ${d}"; new: "neu"; plan: "grok-abo"; pool: "grok-limit"
+      noLinux: "kein linux"; noLogin: "kein login"; offline: "offline"; notOnPlan: "nicht im abo"
+      err: e => e == "no login" ? "kein login" : e; context: n => "${n}% kontext"; quiet: "ruhe"
+      noSessions: "noch keine agenten-sitzungen"; noLinuxYet: "noch kein linux"; since: x => "vor ${x}"
+      ago: s => s < 60 ? "jetzt" : s < 3600 ? "${floor(s / 60)} min" : s < 86400 ? "${floor(s / 3600)} std" : s < 604800 ? "${floor(s / 86400)} tg" : s < 31536000 ? "${floor(s / 604800)} wo" : "${floor(s / 31536000)} j"
+    }
+    zh {
+      what: "linux · 智能体"; notInstalled: "未安装"; packages: "软件包"; explicit: n => "手动安装 ${n}"
+      installHint: "安装 linux 后，可在这里看到 arch、claude code 和 grok"; install: "安装"; kernel: "内核"; shell: "shell"
+      upgraded: "上次更新"; agents: "智能体"; never: "从未"; none: "无"; updates: n => "${n} 个更新 · 升级"; upToDate: "已是最新"
+      busy: n => "忙碌 ${n}"; noneBusy: "全部空闲"; idle: "空闲"
+      status: s => s == "busy" ? "忙碌" : s == "waiting" ? "等待中" : s; active: "活跃"; hours5: "5 小时"; week: "每周"
+      resetsIn: d => "${d}后"; new: "新建"; plan: "grok 套餐"; pool: "grok 额度"; noLinux: "无 linux"; noLogin: "未登录"
+      offline: "离线"; notOnPlan: "套餐不含"; err: e => e == "no login" ? "未登录" : e == "offline" ? "离线" : e
+      context: n => "上下文 ${n}%"; quiet: "安静"; noSessions: "还没有智能体会话"; noLinuxYet: "还没有 linux"; since: x => "${x}前"
+      ago: s => s < 60 ? "刚刚" : s < 3600 ? "${floor(s / 60)}分钟" : s < 86400 ? "${floor(s / 3600)}小时" : s < 604800 ? "${floor(s / 86400)}天" : s < 31536000 ? "${floor(s / 604800)}周" : "${floor(s / 31536000)}年"
+    }
+    ru {
+      what: "linux · агенты"; notInstalled: "не установлен"; packages: "пакеты"; explicit: n => "вручную: ${n}"
+      installHint: "установите linux, чтобы видеть здесь arch, claude code и grok"; install: "установить"
+      kernel: "ядро"; shell: "оболочка"; upgraded: "обновлён"; agents: "агенты"; never: "никогда"; none: "нет"
+      updates: n => "обновить (${n})"; upToDate: "всё обновлено"; busy: n => "занято: ${n}"
+      noneBusy: "все свободны"; idle: "свободна"; status: s => s == "busy" ? "занята" : s == "waiting" ? "ждёт" : s
+      active: "активна"; hours5: "5 часов"; week: "неделя"; resetsIn: d => "ещё ${d}"; new: "новая"
+      plan: "тариф grok"; pool: "пул grok"; noLinux: "без linux"; noLogin: "без входа"; offline: "офлайн"
+      notOnPlan: "не в тарифе"; err: e => e == "no login" ? "без входа" : e == "offline" ? "офлайн" : e
+      context: n => "контекст ${n}%"; quiet: "тишина"; noSessions: "сессий агентов пока нет"
+      noLinuxYet: "linux ещё не установлен"; since: x => "${x} назад"
+      ago: s => s < 60 ? "сейчас" : s < 3600 ? "${floor(s / 60)} мин" : s < 86400 ? "${floor(s / 3600)} ч" : s < 604800 ? "${floor(s / 86400)} д" : s < 31536000 ? "${floor(s / 604800)} нед" : "${floor(s / 31536000)} г"
+    }
+    ja {
+      what: "linux · エージェント"; notInstalled: "未インストール"; packages: "パッケージ"; explicit: n => "手動インストール ${n}"
+      installHint: "linux をインストールすると、ここに arch、claude code、grok が表示されます"; install: "インストール"; kernel: "カーネル"
+      shell: "シェル"; upgraded: "最終更新"; agents: "AI"; never: "なし"; none: "なし"; updates: n => "${n} 件を更新"
+      upToDate: "最新です"; busy: n => "実行中 ${n}"; noneBusy: "実行中なし"; idle: "アイドル"
+      status: s => s == "busy" ? "実行中" : s == "waiting" ? "確認待ち" : s; active: "アクティブ"; hours5: "5 時間"; week: "週間"
+      resetsIn: d => "あと ${d}"; new: "新規"; plan: "grok プラン"; pool: "grok 枠"; noLinux: "linux なし"; noLogin: "未ログイン"
+      offline: "オフライン"; notOnPlan: "対象外"; err: e => e == "no login" ? "未ログイン" : e == "offline" ? "オフライン" : e
+      context: n => "コンテキスト ${n}%"; quiet: "静か"; noSessions: "エージェントのセッションはまだありません"; noLinuxYet: "linux はまだありません"
+      since: x => "${x}前"
+      ago: s => s < 60 ? "今" : s < 3600 ? "${floor(s / 60)} 分" : s < 86400 ? "${floor(s / 3600)} 時間" : s < 604800 ? "${floor(s / 86400)} 日" : s < 31536000 ? "${floor(s / 604800)} 週間" : "${floor(s / 31536000)} 年"
+    }
+    uk {
+      what: "linux · агенти"; notInstalled: "не встановлено"; packages: "пакети"; explicit: n => "вручну: ${n}"
+      installHint: "встановіть linux, щоб бачити тут arch, claude code і grok"; install: "встановити"
+      kernel: "ядро"; shell: "оболонка"; upgraded: "оновлено"; agents: "агенти"; never: "ніколи"; none: "немає"
+      updates: n => "оновити (${n})"; upToDate: "усе оновлено"; busy: n => "зайнято: ${n}"; noneBusy: "усі вільні"
+      idle: "вільна"; status: s => s == "busy" ? "зайнята" : s == "waiting" ? "чекає" : s; active: "активна"
+      hours5: "5 годин"; week: "тиждень"; resetsIn: d => "ще ${d}"; new: "нова"; plan: "тариф grok"
+      pool: "пул grok"; noLinux: "без linux"; noLogin: "без входу"; offline: "офлайн"; notOnPlan: "не в тарифі"
+      err: e => e == "no login" ? "без входу" : e == "offline" ? "офлайн" : e; context: n => "контекст ${n}%"
+      quiet: "тиша"; noSessions: "сесій агентів поки немає"; noLinuxYet: "linux ще не встановлено"
+      since: x => "${x} тому"
+      ago: s => s < 60 ? "зараз" : s < 3600 ? "${floor(s / 60)} хв" : s < 86400 ? "${floor(s / 3600)} год" : s < 604800 ? "${floor(s / 86400)} дн" : s < 31536000 ? "${floor(s / 604800)} тиж" : "${floor(s / 31536000)} р"
+    }
+  }
+
 
   source now = clock every 1m
   source drawer = android.drawer
@@ -90,7 +205,7 @@ face "bauhaus" {
   let rowsA = 3
   let rowsB = 3
   let pageNo = "nº 1"
-  let pageWhat = "linux · agents"
+  let pageWhat = str.what
   let salt = 1
 
   // The poster is printed in its own colours whatever the theme, so the status bar steps aside.
@@ -245,9 +360,9 @@ face "bauhaus" {
   })
   let bill = ga.billing.config
   // Why a number is missing: not signed in on the Linux side, or the server said no.
-  let gErr = !linux ? "no linux" : ga == null ? null : ga.error ?? (bill == null ? "no login" : null)
-  let botErr = !linux ? "no linux" : gb == null ? null : gb.error ?? (gb.code == "unauthenticated" ? "no login" : gb.usagePercent == null ? "not on plan" : null)
-  let clErr = !linux ? "no linux" : cl == null ? null : cl.error ?? (cl.limits == null ? "offline" : null)
+  let gErr = !linux ? str.noLinux : ga == null ? null : ga.error != null ? str.err(ga.error) : bill == null ? str.noLogin : null
+  let botErr = !linux ? str.noLinux : gb == null ? null : gb.error != null ? str.err(gb.error) : gb.code == "unauthenticated" ? str.noLogin : gb.usagePercent == null ? str.notOnPlan : null
+  let clErr = !linux ? str.noLinux : cl == null ? null : cl.error != null ? str.err(cl.error) : cl.limits == null ? str.offline : null
   let gPct = bill == null ? null : bill.creditUsagePercent ?? 0
   let gReset = parseTime(str(bill.currentPeriod.end ?? bill.billingPeriodEnd ?? ""))
   let tier = ga.subscriptionTier
@@ -260,14 +375,14 @@ face "bauhaus" {
     kind: "claude",
     title: s.name ?? "claude",
     cwd: s.cwd ?? "",
-    note: s.status == "idle" ? "idle" : "${s.status} ${fmtDuration(max(0, now - num(s.statusUpdatedAt, 0) / 1000))}",
+    note: s.status == "idle" ? str.idle : "${str.status(s.status)} ${fmtDuration(max(0, now - num(s.statusUpdatedAt, 0) / 1000))}",
     hot: s.status != "idle",
     id: s.sessionId
   }) + grok.map(g => {
     kind: "grok",
     title: g.title,
     cwd: g.cwd ?? "",
-    note: g.last == null ? "" : now - g.last < 180 ? "active" : fmtAgo(g.last, now),
+    note: g.last == null ? "" : now - g.last < 180 ? str.active : str.ago(now - g.last),
     hot: g.last != null && now - g.last < 180,
     id: g.id,
     model: g.model,
@@ -307,7 +422,7 @@ face "bauhaus" {
       Column {
         gap: 0
         padding: 8
-        Text { text: "new"; font: jost; fontSize: c * 0.22; fontWeight: 600; color: fg }
+        Text { text: str.new; font: jost; fontSize: c * 0.22; fontWeight: 600; color: fg }
         Label { t: name; tint: fg }
       }
     }
@@ -330,8 +445,8 @@ face "bauhaus" {
           padding: 10
           Label { t: linux ? lower(lx.os ?? "arch linux") : "arch linux"; tint: paper }
           Text { text: !linux ? "—" : lx == null ? "…" : str(lx.pkgs); font: jost; fontSize: c * 0.5; fontWeight: 600; color: paper; maxLines: 1 }
-          Label { t: !linux ? "not installed" : "packages"; tint: paper }
-          Label { t: !linux || lx == null ? "" : "${lx.explicit} explicit"; tint: alpha(paper, 0.7) }
+          Label { t: !linux ? str.notInstalled : str.packages; tint: paper }
+          Label { t: !linux || lx == null ? "" : str.explicit(lx.explicit); tint: alpha(paper, 0.7) }
         }
       }
       Box {
@@ -342,16 +457,16 @@ face "bauhaus" {
             gap: 8
             padding: 12
             onTap: launcher("linux")
-            Text { text: "install linux to see arch, claude code and grok here"; font: jost; fontSize: 15; color: ink; maxLines: 4 }
+            Text { text: str.installHint; font: jost; fontSize: 15; color: ink; maxLines: 4 }
             Spacer { weight: 1 }
-            Text { text: "install"; font: jost; fontSize: 14; fontWeight: 600; color: paper; background: bRed; padding: [12, 8] }
+            Text { text: str.install; font: jost; fontSize: 14; fontWeight: 600; color: paper; background: bRed; padding: [12, 8] }
           }
         } else {
           Column {
             gap: 3
             padding: 10
             fill: true
-            for r in [["kernel", first(split(lx.kernel ?? "…", "-"))], ["shell", lx.shell ?? "…"], ["upgraded", upgraded == null ? "never" : fmtAgo(upgraded, now) + " ago"], ["agents", len(agents) == 0 ? "none" : agents.map(a => a.bin).join(" ")]] {
+            for r in [[str.kernel, first(split(lx.kernel ?? "…", "-"))], [str.shell, lx.shell ?? "…"], [str.upgraded, upgraded == null ? str.never : str.since(str.ago(now - upgraded))], [str.agents, len(agents) == 0 ? str.none : agents.map(a => a.bin).join(" ")]] {
               Row {
                 gap: 6
                 Text { text: r[0]; font: jost; fontSize: 12; fontWeight: 600; color: bRed; width: 58; maxLines: 1 }
@@ -364,7 +479,7 @@ face "bauhaus" {
               padding: [10, 8]
               background: updates > 0 ? bYellow : alpha(ink, 0.08)
               onTap: if updates > 0 { terminal("pacman -Syu", "update") }
-              Text { text: updates > 0 ? "${updates} ${updates == 1 ? "update" : "updates"} · upgrade" : "up to date"; font: jost; fontSize: 13; fontWeight: 600; color: ink; maxLines: 1 }
+              Text { text: updates > 0 ? str.updates(updates) : str.upToDate; font: jost; fontSize: 13; fontWeight: 600; color: ink; maxLines: 1 }
             }
           }
         }
@@ -389,18 +504,18 @@ face "bauhaus" {
           Text { text: linux ? str(len(sess)) : "—"; font: jost; fontSize: c * 0.22; fontWeight: 600; color: ink }
           Label { t: "claude code" }
           Spacer { weight: 1 }
-          Text { text: busy > 0 ? "${busy} busy" : "none busy"; font: jost; fontSize: 11; fontWeight: 500; color: alpha(ink, 0.7) }
+          Text { text: busy > 0 ? str.busy(busy) : str.noneBusy; font: jost; fontSize: 11; fontWeight: 500; color: alpha(ink, 0.7) }
         }
       }
       Meter {
-        label: "5 hours"
+        label: str.hours5
         value: five == null ? "—" : "${round(five.percent)}%"
-        sub: five == null ? (clErr ?? "") : five.resets_at == null ? "" : "in ${fmtDuration(max(0, parseTime(five.resets_at) - now))}"
+        sub: five == null ? (clErr ?? "") : five.resets_at == null ? "" : str.resetsIn(fmtDuration(max(0, parseTime(five.resets_at) - now)))
         frac: five == null ? 0 : five.percent / 100
         bg: paper; tint: bOrange; txt: ink
       }
       Meter {
-        label: "week"
+        label: str.week
         value: week == null ? "—" : "${round(week.percent)}%"
         sub: week == null ? (clErr ?? "") : week.resets_at == null ? "" : lower(fmtTime(parseTime(week.resets_at), "EEE HH:mm"))
         frac: week == null ? 0 : week.percent / 100
@@ -429,11 +544,11 @@ face "bauhaus" {
           padding: 8
           width: c * 0.9
           Text { text: gErr != null ? "—" : tierName; font: jost; fontSize: c * 0.15; fontWeight: 600; color: paper; maxLines: 1 }
-          Label { t: "grok plan"; tint: alpha(paper, 0.7) }
+          Label { t: str.plan; tint: alpha(paper, 0.7) }
         }
       }
       Meter {
-        label: "grok pool"
+        label: str.pool
         value: gPct == null ? "—" : "${round(gPct)}%"
         sub: gErr != null ? gErr : gReset == null ? "" : lower(fmtTime(gReset, "EEE HH:mm"))
         frac: gPct == null ? 0 : gPct / 100
@@ -476,8 +591,8 @@ face "bauhaus" {
             gap: 0
             padding: 12
             Spacer { weight: 1 }
-            Text { text: "quiet"; font: jost; fontSize: c * 0.32; fontWeight: 600; color: ink }
-            Label { t: linux ? "no agent sessions yet" : "no linux yet" }
+            Text { text: str.quiet; font: jost; fontSize: c * 0.32; fontWeight: 600; color: ink }
+            Label { t: linux ? str.noSessions : str.noLinuxYet }
           }
         }
       } else {
@@ -500,7 +615,7 @@ face "bauhaus" {
               weight: 1
               padding: [10, 0]
               Text { text: lower(s.title); font: jost; fontSize: 14; fontWeight: 600; color: ink; maxLines: 1 }
-              Text { text: [last(split(s.cwd, "/")), s.model, s.ctx == null ? null : "${round(s.ctx)}% context"].filter(x => x != null && x != "").join(" · "); font: jost; fontSize: 12; color: alpha(ink, 0.7); maxLines: 1 }
+              Text { text: [last(split(s.cwd, "/")), s.model, s.ctx == null ? null : str.context(round(s.ctx))].filter(x => x != null && x != "").join(" · "); font: jost; fontSize: 12; color: alpha(ink, 0.7); maxLines: 1 }
             }
             Text { text: s.note; font: jost; fontSize: 11; fontWeight: 600; color: s.hot ? bRed : alpha(ink, 0.6); padding: [0, 0, 10, 0]; maxLines: 1 }
           }

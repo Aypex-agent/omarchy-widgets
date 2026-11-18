@@ -1,7 +1,57 @@
 face "terminal" {
   // A shell session over digital rain: each command's output is the phone's state, live.
 
-  meta { owl: 19; description: "A hacker's terminal over digital rain: the date, uptime, battery, weather and notifications as command output, your apps as an ls, and a prompt that finds an app as you type"; version: "1.2"; license: "MIT"; category: "fun" }
+  meta { owl: 19; description: "A hacker's terminal over digital rain: the date, uptime, battery, weather and notifications as command output, your apps as an ls, and a prompt that finds an app as you type"; version: "1.3"; license: "MIT"; category: "fun" }
+
+  // The output in the phone's language where it has a set; the commands stay as typed in any shell. The date
+  // keeps its pattern: the phone names the day and month. "up" is what uptime itself prints, kept where the script is Latin.
+  strings {
+    en {
+      uptime: (up, used, total, free) => "up ${up} · mem ${used}/${total} · disk ${free} free"
+      bat: "bat"; charging: "charging"; connecting: "connecting…"; denied: "tail: permission denied (tap to grant)"
+      empty: "(empty)"; noMatch: "no app matches; enter asks the agent"; placeholder: "type an app name"; wake: "wake up, neo…"
+    }
+    id {
+      uptime: (up, used, total, free) => "up ${up} · ram ${used}/${total} · disk ${free} sisa"
+      bat: "bat"; charging: "mengisi"; connecting: "menghubungkan…"; denied: "tail: akses ditolak (ketuk untuk izinkan)"
+      empty: "(kosong)"; noMatch: "tak ada yang cocok; enter tanya agen"; placeholder: "nama aplikasi"; wake: "bangun, neo…"
+    }
+    es {
+      uptime: (up, used, total, free) => "up ${up} · mem ${used}/${total} · disco ${free} libre"
+      bat: "bat"; charging: "cargando"; connecting: "conectando…"; denied: "tail: sin permiso (toca para conceder)"
+      empty: "(vacío)"; noMatch: "nada coincide; enter pregunta al agente"; placeholder: "nombre de la app"; wake: "despierta, neo…"
+    }
+    pt {
+      uptime: (up, used, total, free) => "up ${up} · mem ${used}/${total} · disco ${free} livre"
+      bat: "bat"; charging: "carregando"; connecting: "conectando…"; denied: "tail: sem permissão (toque para permitir)"
+      empty: "(vazio)"; noMatch: "nada encontrado; enter pergunta ao agente"; placeholder: "nome do app"; wake: "acorde, neo…"
+    }
+    de {
+      uptime: (up, used, total, free) => "up ${up} · ram ${used}/${total} · speicher ${free} frei"
+      bat: "akku"; charging: "lädt"; connecting: "verbinde…"; denied: "tail: kein zugriff (tippen zum erlauben)"
+      empty: "(leer)"; noMatch: "keine app passt; enter fragt den agenten"; placeholder: "app-name tippen"; wake: "wach auf, neo…"
+    }
+    zh {
+      uptime: (up, used, total, free) => "运行 ${up} · 内存 ${used}/${total} · 磁盘剩余 ${free}"
+      bat: "电量"; charging: "充电中"; connecting: "连接中…"; denied: "tail: 无权限（轻触授权）"
+      empty: "(空)"; noMatch: "没有匹配的应用；回车询问智能体"; placeholder: "输入应用名称"; wake: "醒醒，尼奥…"
+    }
+    ru {
+      uptime: (up, used, total, free) => "up ${up} · озу ${used}/${total} · диск ${free} своб."
+      bat: "бат"; charging: "зарядка"; connecting: "подключение…"; denied: "tail: нет доступа (нажмите, чтобы дать)"
+      empty: "(пусто)"; noMatch: "совпадений нет; enter спросит агента"; placeholder: "имя приложения"; wake: "проснись, нео…"
+    }
+    ja {
+      uptime: (up, used, total, free) => "稼働 ${up} · メモリ ${used}/${total} · 空き容量 ${free}"
+      bat: "電池"; charging: "充電中"; connecting: "接続中…"; denied: "tail: 権限がありません（タップで許可）"
+      empty: "(空)"; noMatch: "一致するアプリなし。enter でエージェントに質問"; placeholder: "アプリ名を入力"; wake: "起きろ、ネオ…"
+    }
+    uk {
+      uptime: (up, used, total, free) => "up ${up} · озп ${used}/${total} · диск ${free} вільно"
+      bat: "бат"; charging: "заряджання"; connecting: "підключення…"; denied: "tail: немає доступу (торкніться, щоб дати)"
+      empty: "(порожньо)"; noMatch: "збігів немає; enter запитає агента"; placeholder: "назва застосунку"; wake: "прокинься, нео…"
+    }
+  }
   // The rain steps a whole row at a time, at most 14 rows a second: 20 frames a second show every step.
   fps: modes.saver ? 10 : 20
   source modes = android.modes
@@ -99,14 +149,14 @@ face "terminal" {
         Spacer { height: 8 }
 
         Prompt { cmd: "uptime" }
-        Out { line: "up ${fmtDuration(sys.uptime ?? 0)} · mem ${fmtBytes(sys.memory.used ?? 0)}/${fmtBytes(sys.memory.total ?? 0)} · disk ${fmtBytes(sys.storage.free ?? 0)} free"; tint: ink }
+        Out { line: str.uptime(fmtDuration(sys.uptime ?? 0), fmtBytes(sys.memory.used ?? 0), fmtBytes(sys.memory.total ?? 0), fmtBytes(sys.storage.free ?? 0)); tint: ink }
         Text {
           spans: [
-            "bat [",
+            "${str.bat} [",
             {text: sub("##########", 0, bars), color: level < 20 ? red : green},
             {text: sub("··········", 0, 10 - bars), color: alpha(muted, 0.6)},
             "] ${level}%",
-            {text: bat.charging ? "  charging" : "", color: yellow}
+            {text: bat.charging ? "  ${str.charging}" : "", color: yellow}
           ]
           font: mono
           fontSize: 13
@@ -119,15 +169,15 @@ face "terminal" {
         if cur {
           Text { spans: [{text: "${cur.temp_C}°C ", color: yellow, bold: true}, lower(trim(cur.weatherDesc[0].value)), {text: place == "" ? "" : "  @ ${place}", color: muted}]; font: mono; fontSize: 13; color: ink; maxLines: 1 }
         } else {
-          Out { line: "connecting…" }
+          Out { line: str.connecting }
         }
         Spacer { height: 8 }
 
         Prompt { cmd: "tail -3 notify.log" }
         if !n.available {
-          Text { text: "tail: permission denied (tap to grant)"; font: mono; fontSize: 13; color: red; maxLines: 1; onTap: notification("open", "") }
+          Text { text: str.denied; font: mono; fontSize: 13; color: red; maxLines: 1; onTap: notification("open", "") }
         } else if n.count == 0 {
-          Out { line: "(empty)" }
+          Out { line: str.empty }
         } else {
           for item in n.items.take(3) key item.key {
             Text {
@@ -161,7 +211,7 @@ face "terminal" {
           }
         }
         if needle != "" && len(found) == 0 {
-          Out { line: "no app matches; enter asks the agent" }
+          Out { line: str.noMatch }
         }
         Spacer { height: 8 }
 
@@ -173,7 +223,7 @@ face "terminal" {
           Input {
             weight: 1
             text: q
-            placeholder: "type an app name"
+            placeholder: str.placeholder
             color: foreground
             fontSize: 13
             underline: false
@@ -192,7 +242,7 @@ face "terminal" {
       }
 
       Spacer { weight: 1 }
-      Text { text: "wake up, neo…"; font: mono; fontSize: 11; color: alpha(green, 0.55); align: center; fill: width; padding: [0, 10] }
+      Text { text: str.wake; font: mono; fontSize: 11; color: alpha(green, 0.55); align: center; fill: width; padding: [0, 10] }
       Spacer { height: screenInset }
     }
   }

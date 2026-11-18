@@ -2,7 +2,63 @@ face "bauhaus phone" {
   // The bauhaus face's third page: the battery as a half sun, memory and storage, the network's speed and signal,
   // switches for Wi-Fi, Bluetooth, Do Not Disturb and the torch, the volume as a staircase and the phone itself.
 
-  meta { owl: 14 }
+  meta { owl: 16 }
+
+  // What it says, in the phone's language where it has a set. Wi-Fi, Bluetooth and the phone's own names stay as they are.
+  strings {
+    en {
+      phone: "phone"; battery: "battery"; charging: "charging"; onBattery: "on battery"; memory: "memory"
+      storage: "storage"; free: x => "${x} free"; down: "down /s"; up: "up /s"; noSim: "no sim"
+      mobileData: "mobile data"; signal: "signal"; uptime: "uptime"; quiet: "quiet"; torch: "torch"; on: "on"
+      off: "off"; muted: "muted"; volume: n => "volume ${n}%"
+    }
+    id {
+      phone: "ponsel"; battery: "baterai"; charging: "mengisi"; onBattery: "dari baterai"; memory: "memori"
+      storage: "penyimpanan"; free: x => "sisa ${x}"; down: "unduh /s"; up: "unggah /s"; noSim: "tanpa sim"
+      mobileData: "data seluler"; signal: "sinyal"; uptime: "waktu aktif"; quiet: "senyap"; torch: "senter"
+      on: "aktif"; off: "mati"; muted: "senyap"; volume: n => "volume ${n}%"
+    }
+    es {
+      phone: "teléfono"; battery: "batería"; charging: "cargando"; onBattery: "con batería"; memory: "memoria"
+      storage: "almacenamiento"; free: x => "${x} libre"; down: "bajada /s"; up: "subida /s"; noSim: "sin sim"
+      mobileData: "datos"; signal: "señal"; uptime: "en marcha"; quiet: "silencio"; torch: "linterna"
+      on: "activado"; off: "apagado"; muted: "silenciado"; volume: n => "volumen ${n}%"
+    }
+    pt {
+      phone: "telefone"; battery: "bateria"; charging: "carregando"; onBattery: "na bateria"; memory: "memória"
+      storage: "armazenamento"; free: x => "${x} livre"; down: "download /s"; up: "upload /s"; noSim: "sem chip"
+      mobileData: "dados"; signal: "sinal"; uptime: "ligado"; quiet: "silêncio"; torch: "lanterna"; on: "ligado"
+      off: "desligado"; muted: "sem som"; volume: n => "volume ${n}%"
+    }
+    de {
+      phone: "telefon"; battery: "akku"; charging: "lädt"; onBattery: "akkubetrieb"; memory: "ram"
+      storage: "speicher"; free: x => "${x} frei"; down: "empfang /s"; up: "senden /s"; noSim: "keine sim"
+      mobileData: "mobilfunk"; signal: "signal"; uptime: "laufzeit"; quiet: "ruhe"; torch: "lampe"; on: "an"
+      off: "aus"; muted: "stumm"; volume: n => "lautstärke ${n}%"
+    }
+    zh {
+      phone: "手机"; battery: "电池"; charging: "充电中"; onBattery: "电池供电"; memory: "内存"; storage: "存储"
+      free: x => "可用 ${x}"; down: "下载 /s"; up: "上传 /s"; noSim: "无 sim 卡"; mobileData: "移动数据"; signal: "信号"
+      uptime: "运行时间"; quiet: "勿扰"; torch: "手电筒"; on: "开启"; off: "关闭"; muted: "已静音"; volume: n => "音量 ${n}%"
+    }
+    ru {
+      phone: "телефон"; battery: "батарея"; charging: "на зарядке"; onBattery: "от батареи"; memory: "память"
+      storage: "хранилище"; free: x => "своб. ${x}"; down: "приём /s"; up: "отдача /s"; noSim: "без sim"
+      mobileData: "моб. сеть"; signal: "сигнал"; uptime: "в работе"; quiet: "тишина"; torch: "фонарик"; on: "вкл"
+      off: "выкл"; muted: "без звука"; volume: n => "громкость ${n}%"
+    }
+    ja {
+      phone: "端末"; battery: "バッテリー"; charging: "充電中"; onBattery: "電池駆動"; memory: "メモリ"; storage: "ストレージ"
+      free: x => "空き ${x}"; down: "下り /s"; up: "上り /s"; noSim: "sim なし"; mobileData: "データ通信"; signal: "電波"
+      uptime: "稼働時間"; quiet: "サイレント"; torch: "ライト"; on: "オン"; off: "オフ"; muted: "ミュート"; volume: n => "音量 ${n}%"
+    }
+    uk {
+      phone: "телефон"; battery: "батарея"; charging: "на зарядці"; onBattery: "на батареї"; memory: "пам'ять"
+      storage: "сховище"; free: x => "${x} вільно"; down: "прийом /s"; up: "віддача /s"; noSim: "без sim"
+      mobileData: "моб. дані"; signal: "сигнал"; uptime: "у роботі"; quiet: "тиша"; torch: "ліхтарик"; on: "увімк"
+      off: "вимк"; muted: "без звуку"; volume: n => "гучність ${n}%"
+    }
+  }
 
   source now = clock every 1m
   source bat = android.battery
@@ -17,7 +73,7 @@ face "bauhaus phone" {
   let rowsB = 3
   let pageNo = "nº 3"
   let salt = 3
-  let pageWhat = "phone"
+  let pageWhat = str.phone
 
   // The poster is printed in its own colours whatever the theme, so the status bar steps aside.
   statusBar: false
@@ -177,10 +233,10 @@ face "bauhaus phone" {
         Column {
           gap: 0
           padding: 10
-          Label { t: "battery" }
+          Label { t: str.battery }
           Spacer { weight: 1 }
           Text { text: "${bat.level ?? "…"}%"; font: jost; fontSize: c * 0.36; fontWeight: 600; color: ink; maxLines: 1 }
-          Label { t: [bat.charging ? "charging" : "on battery", bat.temp == null ? null : "${round(bat.temp)}°c", bat.voltage == null ? null : "${fixed(bat.voltage, 2)} v"].filter(x => x != null).join(" · "); tint: alpha(ink, 0.7) }
+          Label { t: [bat.charging ? str.charging : str.onBattery, bat.temp == null ? null : "${round(bat.temp)}°c", bat.voltage == null ? null : "${fixed(bat.voltage, 2)} v"].filter(x => x != null).join(" · "); tint: alpha(ink, 0.7) }
         }
       }
       Column {
@@ -198,10 +254,10 @@ face "bauhaus phone" {
           Column {
             gap: 0
             padding: 10
-            Label { t: "memory"; tint: paper }
+            Label { t: str.memory; tint: paper }
             Spacer { weight: 1 }
             Text { text: "${round(memF * 100)}%"; font: jost; fontSize: c * 0.24; fontWeight: 600; color: paper }
-            Label { t: sys.memory == null ? "…" : "${fmtBytes(sys.memory.available)} free"; tint: alpha(paper, 0.75) }
+            Label { t: sys.memory == null ? "…" : str.free(fmtBytes(sys.memory.available)); tint: alpha(paper, 0.75) }
           }
         }
         Box {
@@ -216,10 +272,10 @@ face "bauhaus phone" {
           Column {
             gap: 0
             padding: 10
-            Label { t: "storage"; tint: paper }
+            Label { t: str.storage; tint: paper }
             Spacer { weight: 1 }
             Text { text: "${round(diskF * 100)}%"; font: jost; fontSize: c * 0.24; fontWeight: 600; color: paper }
-            Label { t: sys.storage == null ? "…" : "${fmtBytes(sys.storage.free)} free"; tint: alpha(paper, 0.75) }
+            Label { t: sys.storage == null ? "…" : str.free(fmtBytes(sys.storage.free)); tint: alpha(paper, 0.75) }
           }
         }
       }
@@ -240,7 +296,7 @@ face "bauhaus phone" {
           gap: 0
           padding: 8
           Text { text: down == null ? "…" : fmtBytes(down); font: jost; fontSize: c * 0.2; fontWeight: 600; color: paper; maxLines: 1 }
-          Label { t: "down /s"; tint: alpha(paper, 0.7) }
+          Label { t: str.down; tint: alpha(paper, 0.7) }
         }
       }
       Box {
@@ -253,7 +309,7 @@ face "bauhaus phone" {
           gap: 0
           padding: 8
           Text { text: up == null ? "…" : fmtBytes(up); font: jost; fontSize: c * 0.2; fontWeight: 600; color: ink; maxLines: 1 }
-          Label { t: "up /s" }
+          Label { t: str.up }
         }
       }
       Box {
@@ -269,8 +325,8 @@ face "bauhaus phone" {
         Column {
           gap: 0
           padding: 8
-          Text { text: !sim.available ? "wi-fi" : !sim.present ? "no sim" : lower(sim.carrier ?? "…"); font: jost; fontSize: 14; fontWeight: 600; color: ink; maxLines: 1 }
-          Label { t: sim.data ? "mobile data" : "signal" }
+          Text { text: !sim.available ? "wi-fi" : !sim.present ? str.noSim : lower(sim.carrier ?? "…"); font: jost; fontSize: 14; fontWeight: 600; color: ink; maxLines: 1 }
+          Label { t: sim.data ? str.mobileData : str.signal }
         }
       }
       Box {
@@ -285,7 +341,7 @@ face "bauhaus phone" {
           gap: 0
           padding: 8
           Text { text: sys.uptime == null ? "…" : fmtDuration(sys.uptime); font: jost; fontSize: c * 0.18; fontWeight: 600; color: paper; maxLines: 1 }
-          Label { t: "uptime"; tint: alpha(paper, 0.7) }
+          Label { t: str.uptime; tint: alpha(paper, 0.7) }
         }
       }
     }
@@ -319,7 +375,7 @@ face "bauhaus phone" {
         gap: 0
         padding: 8
         Text { text: name; font: jost; fontSize: 15; fontWeight: 600; color: on && tint != bYellow ? paper : ink; maxLines: 1 }
-        Label { t: on ? "on" : "off"; tint: on && tint != bYellow ? alpha(paper, 0.7) : alpha(ink, 0.6) }
+        Label { t: on ? str.on : str.off; tint: on && tint != bYellow ? alpha(paper, 0.7) : alpha(ink, 0.6) }
       }
     }
   }
@@ -329,8 +385,8 @@ face "bauhaus phone" {
       gap: 0
       Box { onTap: settings("wifi"); Switch { name: "wi-fi"; on: modes.wifi == true; tint: bBlue; shape: "wifi" } }
       Box { onTap: settings("bluetooth"); Switch { name: "bluetooth"; on: modes.bluetooth == true; tint: ink; shape: "bt" } }
-      Box { onTap: dnd("toggle"); Switch { name: "quiet"; on: modes.dnd == true; tint: bRed; shape: "dnd" } }
-      Box { onTap: if modes.torch != null { torch("toggle") }; Switch { name: "torch"; on: modes.torch == true; tint: bYellow; shape: "torch" } }
+      Box { onTap: dnd("toggle"); Switch { name: str.quiet; on: modes.dnd == true; tint: bRed; shape: "dnd" } }
+      Box { onTap: if modes.torch != null { torch("toggle") }; Switch { name: str.torch; on: modes.torch == true; tint: bYellow; shape: "torch" } }
     }
   }
 
@@ -351,7 +407,7 @@ face "bauhaus phone" {
       Column {
         gap: 0
         padding: 10
-        Label { t: vol.muted ? "muted" : "volume ${volLv}%" }
+        Label { t: vol.muted ? str.muted : str.volume(volLv) }
         Label { t: lower(vol.output.name ?? vol.output.type ?? ""); tint: alpha(ink, 0.6) }
       }
     }

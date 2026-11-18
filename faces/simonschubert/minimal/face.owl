@@ -1,7 +1,20 @@
 face "minimal" {
   // A quiet page: a thin clock, the day as a hairline, one line about the phone and your apps as words.
 
-  meta { owl: 10; description: "A quiet page: a thin clock, the day as a hairline, one line about the phone and your most used apps as plain words"; version: "1.0"; license: "MIT"; category: "productivity" }
+  meta { owl: 16; description: "A quiet page: a thin clock, the day as a hairline, one line about the phone and your most used apps as plain words"; version: "1.1"; license: "MIT"; category: "productivity" }
+
+  // What it says, in the phone's language where it has a set. Day and month names come from the phone.
+  strings {
+    en { day: "EEEE, d MMMM"; charging: n => "charging ${n}%"; alarm: t => "alarm ${t}"; notifications: n => n == 1 ? "1 notification" : "${n} notifications"; phone: "phone"; messages: "messages"; search: "search" }
+    id { day: "EEEE, d MMMM"; charging: n => "mengisi ${n}%"; alarm: t => "alarm ${t}"; notifications: n => "${n} notifikasi"; phone: "telepon"; messages: "pesan"; search: "cari" }
+    es { day: "EEEE, d 'de' MMMM"; charging: n => "cargando ${n}%"; alarm: t => "alarma ${t}"; notifications: n => n == 1 ? "1 notificación" : "${n} notificaciones"; phone: "teléfono"; messages: "mensajes"; search: "buscar" }
+    pt { day: "EEEE, d 'de' MMMM"; charging: n => "carregando ${n}%"; alarm: t => "alarme ${t}"; notifications: n => n == 1 ? "1 notificação" : "${n} notificações"; phone: "telefone"; messages: "mensagens"; search: "pesquisar" }
+    de { day: "EEEE, d. MMMM"; charging: n => "lädt ${n}%"; alarm: t => "wecker ${t}"; notifications: n => n == 1 ? "1 benachrichtigung" : "${n} benachrichtigungen"; phone: "telefon"; messages: "nachrichten"; search: "suchen" }
+    zh { day: "M月d日 EEEE"; charging: n => "充电中 ${n}%"; alarm: t => "闹钟 ${t}"; notifications: n => "${n} 条通知"; phone: "电话"; messages: "信息"; search: "搜索" }
+    ru { day: "EEEE, d MMMM"; charging: n => "зарядка ${n}%"; alarm: t => "будильник ${t}"; notifications: n => "уведомлений: ${n}"; phone: "телефон"; messages: "сообщения"; search: "поиск" }
+    ja { day: "M月d日 EEEE"; charging: n => "充電中 ${n}%"; alarm: t => "アラーム ${t}"; notifications: n => "通知 ${n} 件"; phone: "電話"; messages: "メッセージ"; search: "検索" }
+    uk { day: "EEEE, d MMMM"; charging: n => "заряджання ${n}%"; alarm: t => "будильник ${t}"; notifications: n => "сповіщень: ${n}"; phone: "телефон"; messages: "повідомлення"; search: "пошук" }
+  }
 
   statusBar: false
 
@@ -25,9 +38,9 @@ face "minimal" {
   let top = values(groupBy((apps ?? []).filter(a => (!a.system || a.score > 0) && a.package != phone.package && a.package != msgs.package).sortBy(a => -a.score), a => a.name)).map(g => g[0]).take(wide ? 3 : 6)
   // Only what there is to say: no alarm, no notifications, no words for them.
   let status = [
-    bat == null ? null : bat.charging ? "charging ${bat.level}%" : "${bat.level}%",
-    alarm.set ? "alarm ${fmtTime(alarm.time, "HH:mm")}" : null,
-    n.available && n.count > 0 ? (n.count == 1 ? "1 notification" : "${n.count} notifications") : null
+    bat == null ? null : bat.charging ? str.charging(bat.level) : "${bat.level}%",
+    alarm.set ? str.alarm(fmtTime(alarm.time, "HH:mm")) : null,
+    n.available && n.count > 0 ? str.notifications(n.count) : null
   ].filter(s => s != null)
 
   background: linear(0, 0, 0, 1, [alpha(background, 0.8), alpha(background, 0.35), alpha(background, 0.45), alpha(background, 0.85)])
@@ -39,7 +52,7 @@ face "minimal" {
       gap: 0
       fill: width
       Text { spans: [fmtTime(now, "HH"), {text: ":", color: muted}, fmtTime(now, "mm")]; font: inter; fontSize: 108; fontWeight: 100; letterSpacing: -5; maxLines: 1 }
-      Text { text: lower(fmtTime(now, "EEEE, d MMMM")); font: inter; fontSize: 13; fontWeight: 400; letterSpacing: 3; color: muted; maxLines: 1; padding: [4, 0] }
+      Text { text: lower(fmtTime(now, str.day)); font: inter; fontSize: 13; fontWeight: 400; letterSpacing: 3; color: muted; maxLines: 1; padding: [4, 0] }
 
       Spacer { height: 32 }
       // The day so far, midnight to midnight.
@@ -62,7 +75,7 @@ face "minimal" {
       gap: 0
       fill: width
       Text {
-        spans: ["phone", missed > 0 ? {text: "  ${missed}", color: accent, fontSize: 15, fontWeight: 400} : ""]
+        spans: [str.phone, missed > 0 ? {text: "  ${missed}", color: accent, fontSize: 15, fontWeight: 400} : ""]
         font: inter
         fontSize: 26
         fontWeight: 300
@@ -73,7 +86,7 @@ face "minimal" {
         onTap: { if phone != null { androidApp(phone.key) } else { url("tel:") } }
       }
       Text {
-        spans: ["messages", unread > 0 ? {text: "  ${unread}", color: accent, fontSize: 15, fontWeight: 400} : ""]
+        spans: [str.messages, unread > 0 ? {text: "  ${unread}", color: accent, fontSize: 15, fontWeight: 400} : ""]
         font: inter
         fontSize: 26
         fontWeight: 300
@@ -87,7 +100,7 @@ face "minimal" {
         Text { text: lower(a.name); font: inter; fontSize: 26; fontWeight: 300; letterSpacing: -0.5; maxLines: 1; fill: width; padding: [4, 9]; onTap: androidApp(a.key) }
       }
       Spacer { height: 18 }
-      Text { text: "search"; font: inter; fontSize: 13; fontWeight: 400; letterSpacing: 3; color: muted; fill: width; padding: [4, 10]; onTap: launcher("drawer") }
+      Text { text: str.search; font: inter; fontSize: 13; fontWeight: 400; letterSpacing: 3; color: muted; fill: width; padding: [4, 10]; onTap: launcher("drawer") }
     }
   }
 
