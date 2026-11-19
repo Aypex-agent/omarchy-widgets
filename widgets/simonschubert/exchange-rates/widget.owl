@@ -1,5 +1,18 @@
 widget "exchange rates" {
-  meta { description: "Daily exchange rates from the European Central Bank with a 30-day trend; tap to pick the currencies"; version: "1.3"; license: "MIT"; category: "finance"; owl: 16 }
+  meta { description: "Daily exchange rates from the European Central Bank with a 30-day trend; tap to pick the currencies"; version: "1.4"; license: "MIT"; category: "finance"; owl: 16 }
+  // What it says, in the phone's language where it has a set. Currency codes and rates stay as they are.
+  strings {
+    en { title: "exchange rates"; hint: "currency codes, the base first"; quoted: (b, l) => "${b} in ${l}"; close: "close" }
+    id { title: "kurs mata uang"; hint: "kode mata uang, mata uang dasar dulu"; quoted: (b, l) => "${b} dalam ${l}"; close: "tutup" }
+    es { title: "tipos de cambio"; hint: "códigos de moneda, la base primero"; quoted: (b, l) => "${b} en ${l}"; close: "cerrar" }
+    pt { title: "câmbio"; hint: "códigos de moeda, a base primeiro"; quoted: (b, l) => "${b} em ${l}"; close: "fechar" }
+    de { title: "wechselkurse"; hint: "währungscodes, die basis zuerst"; quoted: (b, l) => "${b} in ${l}"; close: "schließen" }
+    zh { title: "汇率"; hint: "货币代码，基准货币在前"; quoted: (b, l) => "${b} 兑 ${l}"; close: "关闭" }
+    ru { title: "курсы валют"; hint: "коды валют, базовая первой"; quoted: (b, l) => "${b} в ${l}"; close: "закрыть" }
+    ja { title: "為替レート"; hint: "通貨コード（基準通貨を先頭に）"; quoted: (b, l) => "${b} → ${l}"; close: "閉じる" }
+    uk { title: "курси валют"; hint: "коди валют, базова першою"; quoted: (b, l) => "${b} у ${l}"; close: "закрити" }
+    fr { title: "taux de change"; hint: "codes de devise, la base d’abord"; quoted: (b, l) => "${b} en ${l}"; close: "fermer" }
+  }
   size: 6x2
   minSize: 3x2
 
@@ -64,10 +77,10 @@ widget "exchange rates" {
   }
 
   screen {
-    title: "exchange rates"
+    title: str.title
     Column {
       gap: 8
-      Text { text: "currency codes, the base first"; style: label; color: muted }
+      Text { text: str.hint; style: label; color: muted }
       Input {
         text: join(codes, " ")
         placeholder: "USD EUR GBP JPY"
@@ -76,8 +89,8 @@ widget "exchange rates" {
           if count(next) >= 2 { codes = next }
         }
       }
-      Text { text: "${base} in ${join(to, ", ")}"; style: small; color: muted }
-      Button { text: "close"; onTap: close() }
+      Text { text: str.quoted(base, join(to, ", ")); style: small; color: muted }
+      Button { text: str.close; onTap: close() }
     }
   }
 }

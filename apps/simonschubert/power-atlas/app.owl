@@ -1,7 +1,7 @@
 app "power atlas" {
-  meta { owl: 23; description: "How much electricity each country generates and uses, from coal to solar, how clean it is, what it imports and exports, and how that compares to its size and population"; version: "1.2"; license: "MIT"; category: "world" }
+  meta { owl: 23; description: "How much electricity each country generates and uses, from coal to solar, how clean it is, what it imports and exports, and how that compares to its size and population"; version: "1.3"; license: "MIT"; category: "world" }
   // A country's page and the country picker are a level of their own; Back returns to the tab.
-  title: openId != "" ? cn.n : picking != "" ? "pick a country" : view == "world" ? "world electricity" : view
+  title: openId != "" ? cn.n : picking != "" ? str.pick : view == "world" ? str.title : view == "countries" ? str.tabCountries : view == "compare" ? str.tabCompare : str.tabAbout
   back: openId != "" || picking != ""
   onBack: {
     if openId != "" { openId = "" } else { picking = "" }
@@ -13,6 +13,470 @@ app "power atlas" {
     <path d="M50 128h156M60 88h136M60 168h136" fill="none" stroke="#7AA2F7" stroke-width="9" stroke-opacity="0.5"/>
     <path d="M146 40l-64 100h44l-18 76 66-106h-44z" fill="#E0AF68" stroke="#1A1B26" stroke-width="10" stroke-linejoin="round"/>
   </svg>"""
+
+  // Country names for the other languages come in `names` (by id, English where missing); regions by `region`.
+  strings {
+    en {
+      title: "world electricity"; pick: "pick a country"; tabWorld: "world"; tabCountries: "countries"; tabCompare: "compare"; tabAbout: "about"
+      names: x => ({}); region: r => r; everywhere: "everywhere"
+      coal: "coal"; gas: "gas"; oil: "oil"; nuclear: "nuclear"; solar: "solar"; wind: "wind"; hydro: "hydro"; biomass: "biomass"; geoTide: "geothermal and tide"
+      fossil: "fossil fuels"; renewables: "renewables"
+      sGenerates: "generates"; sUses: "uses"; sPerPerson: "per person"; sPerKm: "per km²"; sClean: "clean"; sSunWind: "sun & wind"; sImports: "imports"; sExports: "exports"
+      search: "search countries"; noMatch: "no country matches"; people: p => "${p} people"
+      genXa: "generates "; genXb: " the electricity it uses, and sells the rest abroad"; sellsA: "sells "; sellsB: " of the electricity it generates abroad"
+      allA: "generates "; allBold: "all the electricity"; allB: " it uses"; buysA: "buys "; buysB: " of the electricity it uses from abroad"
+      rowGen: "generates"; rowUse: "uses"
+      worldShare: (p, r, n) => "That's ${p}% of the world's electricity, #${r} of ${n} countries."
+      howClean: "how clean"; cleanSub: (p, r, n) => "${p}% from nuclear and renewables, #${r} of ${n}"
+      whereFrom: "where its electricity comes from"; generatedIn: t => "${t} TWh generated in 2024"
+      trade: "imports and exports"; tradeSub: "electricity across its borders, TWh a year"
+      noTrade: "no power lines to its neighbours carry electricity in the data"
+      importedArrow: "◀ imported"; exportedArrow: "exported ▶"; balanced: "as much in as out"
+      netImport: "net import "; netExport: "net export "; ofUsesTail: p => ", ${p}% of what it uses"; ofGenTail: p => ", ${p}% of what it generates"
+      sizeHead: "compared to its size"; sizeSub: "its share of the world"
+      lPeople: "people"; land: "land"; generated: "generated"; used: "used"
+      eachA: "Each person uses "; avgMore: " the world's average."; avgLess: " of the world's average."
+      perPerson: "per person"; kwhDay: "kWh a day"; worldRef: (r, x) => "#${r} · world ${x}"
+      perKm: "generated per km²"; clean: "clean"; sunWind: "sun and wind"
+      compareWith: "compare with…"; dataLine: y => "${y} · data: U.S. EIA, World Bank"; kwhPerDay: "kWh/day"
+      rowElec: p => "${p}% of the world's electricity"; rowUse2: p => "${p}% of the world's use"
+      rowPd: x => "per person, ${x}× the world's average"; rowPk: x => "generated on each km², ${x}× the world's average"
+      fromClean: "from nuclear and renewables"; fromSunWind: "from solar and wind"
+      rowNetImp: p => "net import, ${p}% of what it uses"; rowExpMore: t => "but exports more: ${t} TWh"
+      rowNetExp: p => "net export, ${p}% of what it generates"; rowImpMore: t => "but imports more: ${t} TWh"
+      worldGen: "in 2024 the world generated"; worldPer: (k, p) => "of electricity: ${k} kWh a day for each of its ${p} people"
+      worldClean: (a, b) => "${a}% from nuclear and renewables, ${b}% from sun and wind alone"
+      biggest: "biggest generators"; tapHint: "tap one to see its page"; topSub: (p, pop) => "${p}% of the world · ${pop} people"
+      cleanest: "cleanest grids"; cleanestSub: "share from nuclear and renewables, countries of a million people or more"; twhYear: t => "${t} TWh a year"
+      windiest: "most sun and wind"; windiestSub: "share from solar and wind, countries of a million people or more"; solarWind: (s, w) => "${s}% solar · ${w}% wind"
+      exporters: "biggest exporters"; exportersSub: "electricity sold beyond what it buys"; ofGen: p => "${p}% of what it generates"
+      importers: "biggest importers"; importersSub: "electricity bought beyond what it sells"; ofUse: p => "${p}% of what it uses"
+      mostPerPerson: "most per person"; millionSub: "countries of a million people or more"; timesAvg: x => "${x}× the world's average"
+      change: "change"; howMuch: "how much"; imported: "imported"; exported: "exported"; forSize: "for its size"; nucRen: "nuclear and renewables"; whereThe: "where the electricity comes from"
+      reading: "reading the numbers"
+      twhBody: "A terawatt-hour is a billion kilowatt-hours. A home uses about 10 kWh of electricity a day, so 1 TWh is a year of electricity for some 270,000 homes."
+      kwhDayBody: "All the electricity a country uses, homes, shops, factories and trains together, shared out over its people and the days of the year. Boiling a full kettle takes about 0.1 kWh."
+      genUse: "Generates and uses"; genUseBody: "Generated is what the country's power stations, solar panels and wind turbines make. Used is that plus what it imports, minus what it exports."
+      cleanCap: "Clean"; cleanBody: "Electricity from nuclear power and renewables: solar, wind, hydro, biomass, geothermal and tide. Fossil fuels are coal, gas and oil burnt in power stations."
+      tradeCap: "Imports and exports"; tradeBody: "Electricity sent through power lines to and from neighbouring countries. Many countries do both, buying at some hours and selling at others."
+      theData: "the data"; dataBody: n => "Electricity generation by source, imports and exports for ${n} countries in 2024 come from the U.S. Energy Information Administration's international energy statistics. Population and area come from the World Bank. Everything is in the app, so it works offline."
+      eiaData: "EIA data"; worldBank: "World Bank"
+    }
+    id {
+      title: "listrik dunia"; pick: "pilih negara"; tabWorld: "dunia"; tabCountries: "negara"; tabCompare: "bandingkan"; tabAbout: "tentang"
+      names: x => {CHN: "Tiongkok", USA: "Amerika Serikat", IND: "India", RUS: "Rusia", JPN: "Jepang", BRA: "Brasil", CAN: "Kanada", KOR: "Korea Selatan", FRA: "Prancis", DEU: "Jerman", SAU: "Arab Saudi", IDN: "Indonesia", IRN: "Iran", MEX: "Meksiko", TUR: "Turki", VNM: "Vietnam", TWN: "Taiwan", AUS: "Australia", ESP: "Spanyol", GBR: "Britania Raya", ITA: "Italia", ZAF: "Afrika Selatan", EGY: "Mesir", THA: "Thailand", MYS: "Malaysia", SWE: "Swedia", ARE: "UEA", POL: "Polandia", NOR: "Norwegia", PAK: "Pakistan", IRQ: "Irak", ARG: "Argentina", PHL: "Filipina", KAZ: "Kazakhstan", NLD: "Belanda", COL: "Kolombia", BGD: "Bangladesh", UKR: "Ukraina", DZA: "Aljazair", KWT: "Kuwait", CHL: "Chili", VEN: "Venezuela", FIN: "Finlandia", ISR: "Israel", CHE: "Swiss", UZB: "Uzbekistan", CZE: "Ceko", AUT: "Austria", BEL: "Belgia", PER: "Peru", SGP: "Singapura", QAT: "Qatar", GRC: "Yunani", PRY: "Paraguay", LAO: "Laos", ROU: "Rumania", PRT: "Portugal", OMN: "Oman", BLR: "Belarus", NZL: "Selandia Baru", MAR: "Maroko", BGR: "Bulgaria", BHR: "Bahrain", NGA: "Nigeria", HKG: "Hong Kong", SRB: "Serbia", HUN: "Hungaria", LBY: "Libya", DNK: "Denmark", TKM: "Turkmenistan", ECU: "Ekuador", IRL: "Irlandia", SVK: "Slowakia", AZE: "Azerbaijan", PRK: "Korea Utara", SYR: "Suriah", GHA: "Ghana", DOM: "Rep. Dominika", JOR: "Yordania", TJK: "Tajikistan", MMR: "Myanmar", TUN: "Tunisia", PRI: "Puerto Riko", MOZ: "Mozambik", ZMB: "Zambia", CUB: "Kuba", ISL: "Islandia", KHM: "Kamboja", SVN: "Slovenia", ETH: "Etiopia", LKA: "Sri Lanka", COD: "RD Kongo", GTM: "Guatemala", KGZ: "Kirgistan", BIH: "Bosnia", AGO: "Angola", SDN: "Sudan", HRV: "Kroasia", GEO: "Georgia", BOL: "Bolivia", PAN: "Panama", URY: "Uruguay", KEN: "Kenya", HND: "Honduras", NPL: "Nepal", BTN: "Bhutan", CRI: "Kosta Rika", CIV: "Pantai Gading", ZWE: "Zimbabwe", TTO: "Trinidad & Tobago", ARM: "Armenia", TZA: "Tanzania", MNG: "Mongolia", ALB: "Albania", SEN: "Senegal", CMR: "Kamerun", SLV: "El Salvador", MKD: "Makedonia Utara", MDA: "Moldova", LTU: "Lituania", MLI: "Mali", LVA: "Latvia", UGA: "Uganda", BRN: "Brunei", CYP: "Siprus", COG: "Kongo", LBN: "Lebanon", EST: "Estonia", YEM: "Yaman", JAM: "Jamaika", PNG: "Papua Nugini", NIC: "Nikaragua", GIN: "Guinea", MNE: "Montenegro", BWA: "Botswana", MUS: "Mauritius", NCL: "Kaledonia Baru", GAB: "Gabon", MDG: "Madagaskar", BHS: "Bahama", MLT: "Malta", MRT: "Mauritania", MWI: "Malawi", SUR: "Suriname", BFA: "Burkina Faso", NAM: "Namibia", GNQ: "Guinea Khatulistiwa", LUX: "Luksemburg", GUY: "Guyana", FJI: "Fiji", RWA: "Rwanda", BRB: "Barbados", BEN: "Benin", AFG: "Afganistan", PSE: "Palestina", NER: "Niger", HTI: "Haiti", MDV: "Maladewa", MAC: "Makau", PYF: "Polinesia Prancis", TGO: "Togo", SWZ: "Eswatini", LBR: "Liberia", SSD: "Sudan Selatan", CPV: "Tanjung Verde", GMB: "Gambia", TLS: "Timor Leste", BDI: "Burundi", BLZ: "Belize", ERI: "Eritrea", SOM: "Somalia", TCD: "Chad", SLE: "Sierra Leone", DJI: "Djibouti", CAF: "Rep. Afrika Tengah", COM: "Komoro", SLB: "Kepulauan Solomon", GNB: "Guinea-Bissau", VUT: "Vanuatu"}; region: r => r == "Europe" ? "Eropa" : r == "Americas" ? "Amerika" : r == "Africa" ? "Afrika" : r == "Middle East" ? "Timur Tengah" : r == "Oceania" ? "Oseania" : r; everywhere: "semua"
+      coal: "batu bara"; gas: "gas"; oil: "minyak"; nuclear: "nuklir"; solar: "surya"; wind: "angin"; hydro: "air"; biomass: "biomassa"; geoTide: "panas bumi dan pasang surut"
+      fossil: "bahan bakar fosil"; renewables: "terbarukan"
+      sGenerates: "produksi"; sUses: "pemakaian"; sPerPerson: "per orang"; sPerKm: "per km²"; sClean: "bersih"; sSunWind: "surya & angin"; sImports: "impor"; sExports: "ekspor"
+      search: "cari negara"; noMatch: "tidak ada negara yang cocok"; people: p => "${p} jiwa"
+      genXa: "menghasilkan "; genXb: " listrik yang dipakainya, dan menjual sisanya ke luar negeri"; sellsA: "menjual "; sellsB: " listrik yang dihasilkannya ke luar negeri"
+      allA: "menghasilkan "; allBold: "semua listrik"; allB: " yang dipakainya"; buysA: "membeli "; buysB: " listrik yang dipakainya dari luar negeri"
+      rowGen: "produksi"; rowUse: "pemakaian"
+      worldShare: (p, r, n) => "Itu ${p}% listrik dunia, #${r} dari ${n} negara."
+      howClean: "seberapa bersih"; cleanSub: (p, r, n) => "${p}% dari nuklir dan terbarukan, #${r} dari ${n}"
+      whereFrom: "dari mana listriknya"; generatedIn: t => "${t} TWh dihasilkan pada 2024"
+      trade: "impor dan ekspor"; tradeSub: "listrik lintas perbatasan, TWh per tahun"
+      noTrade: "menurut data, tidak ada jaringan listrik yang mengalirkan listrik ke negara tetangganya"
+      importedArrow: "◀ diimpor"; exportedArrow: "diekspor ▶"; balanced: "masuk dan keluar sama banyak"
+      netImport: "impor bersih "; netExport: "ekspor bersih "; ofUsesTail: p => ", ${p}% dari yang dipakainya"; ofGenTail: p => ", ${p}% dari yang dihasilkannya"
+      sizeHead: "dibanding ukurannya"; sizeSub: "bagiannya dari dunia"
+      lPeople: "penduduk"; land: "daratan"; generated: "dihasilkan"; used: "dipakai"
+      eachA: "Tiap orang memakai "; avgMore: " rata-rata dunia."; avgLess: " dari rata-rata dunia."
+      perPerson: "per orang"; kwhDay: "kWh sehari"; worldRef: (r, x) => "#${r} · dunia ${x}"
+      perKm: "dihasilkan per km²"; clean: "bersih"; sunWind: "surya dan angin"
+      compareWith: "bandingkan dengan…"; dataLine: y => "${y} · data: U.S. EIA, Bank Dunia"; kwhPerDay: "kWh/hari"
+      rowElec: p => "${p}% listrik dunia"; rowUse2: p => "${p}% pemakaian dunia"
+      rowPd: x => "per orang, ${x}× rata-rata dunia"; rowPk: x => "dihasilkan tiap km², ${x}× rata-rata dunia"
+      fromClean: "dari nuklir dan terbarukan"; fromSunWind: "dari surya dan angin"
+      rowNetImp: p => "impor bersih, ${p}% dari yang dipakainya"; rowExpMore: t => "tapi lebih banyak ekspor: ${t} TWh"
+      rowNetExp: p => "ekspor bersih, ${p}% dari yang dihasilkannya"; rowImpMore: t => "tapi lebih banyak impor: ${t} TWh"
+      worldGen: "pada 2024 dunia menghasilkan"; worldPer: (k, p) => "listrik: ${k} kWh sehari untuk tiap orang dari ${p} penduduknya"
+      worldClean: (a, b) => "${a}% dari nuklir dan terbarukan, ${b}% dari surya dan angin saja"
+      biggest: "produsen terbesar"; tapHint: "ketuk untuk melihat halamannya"; topSub: (p, pop) => "${p}% dunia · ${pop} jiwa"
+      cleanest: "jaringan terbersih"; cleanestSub: "bagian dari nuklir dan terbarukan, negara berpenduduk sejuta atau lebih"; twhYear: t => "${t} TWh per tahun"
+      windiest: "surya dan angin terbanyak"; windiestSub: "bagian dari surya dan angin, negara berpenduduk sejuta atau lebih"; solarWind: (s, w) => "${s}% surya · ${w}% angin"
+      exporters: "eksportir terbesar"; exportersSub: "listrik yang dijual melebihi yang dibeli"; ofGen: p => "${p}% dari yang dihasilkannya"
+      importers: "importir terbesar"; importersSub: "listrik yang dibeli melebihi yang dijual"; ofUse: p => "${p}% dari yang dipakainya"
+      mostPerPerson: "terbanyak per orang"; millionSub: "negara berpenduduk sejuta atau lebih"; timesAvg: x => "${x}× rata-rata dunia"
+      change: "ganti"; howMuch: "seberapa banyak"; imported: "diimpor"; exported: "diekspor"; forSize: "untuk ukurannya"; nucRen: "nuklir dan terbarukan"; whereThe: "dari mana listriknya"
+      reading: "membaca angkanya"
+      twhBody: "Satu terawatt-jam adalah satu miliar kilowatt-jam. Sebuah rumah memakai sekitar 10 kWh listrik sehari, jadi 1 TWh adalah listrik setahun untuk sekitar 270.000 rumah."
+      kwhDayBody: "Semua listrik yang dipakai sebuah negara, rumah, toko, pabrik dan kereta sekaligus, dibagi rata ke penduduknya dan hari-hari dalam setahun. Merebus satu ketel penuh butuh sekitar 0,1 kWh."
+      genUse: "Produksi dan pemakaian"; genUseBody: "Produksi adalah listrik yang dibuat pembangkit, panel surya dan turbin angin negara itu. Pemakaian adalah produksi ditambah impor, dikurangi ekspor."
+      cleanCap: "Bersih"; cleanBody: "Listrik dari tenaga nuklir dan terbarukan: surya, angin, air, biomassa, panas bumi dan pasang surut. Bahan bakar fosil adalah batu bara, gas dan minyak yang dibakar di pembangkit listrik."
+      tradeCap: "Impor dan ekspor"; tradeBody: "Listrik yang dikirim lewat jaringan transmisi ke dan dari negara tetangga. Banyak negara melakukan keduanya, membeli di jam tertentu dan menjual di jam lain."
+      theData: "datanya"; dataBody: n => "Produksi listrik per sumber, impor dan ekspor untuk ${n} negara pada 2024 berasal dari statistik energi internasional U.S. Energy Information Administration. Penduduk dan luas wilayah dari Bank Dunia. Semuanya ada di dalam aplikasi, jadi tetap jalan saat offline."
+      eiaData: "data EIA"; worldBank: "Bank Dunia"
+    }
+    es {
+      title: "electricidad mundial"; pick: "elige un país"; tabWorld: "mundo"; tabCountries: "países"; tabCompare: "comparar"; tabAbout: "acerca de"
+      names: x => {CHN: "China", USA: "Estados Unidos", IND: "India", RUS: "Rusia", JPN: "Japón", BRA: "Brasil", CAN: "Canadá", KOR: "Corea del Sur", FRA: "Francia", DEU: "Alemania", SAU: "Arabia Saudita", IDN: "Indonesia", IRN: "Irán", MEX: "México", TUR: "Turquía", VNM: "Vietnam", TWN: "Taiwán", AUS: "Australia", ESP: "España", GBR: "Reino Unido", ITA: "Italia", ZAF: "Sudáfrica", EGY: "Egipto", THA: "Tailandia", MYS: "Malasia", SWE: "Suecia", ARE: "EAU", POL: "Polonia", NOR: "Noruega", PAK: "Pakistán", IRQ: "Irak", ARG: "Argentina", PHL: "Filipinas", KAZ: "Kazajistán", NLD: "Países Bajos", COL: "Colombia", BGD: "Bangladés", UKR: "Ucrania", DZA: "Argelia", KWT: "Kuwait", CHL: "Chile", VEN: "Venezuela", FIN: "Finlandia", ISR: "Israel", CHE: "Suiza", UZB: "Uzbekistán", CZE: "Chequia", AUT: "Austria", BEL: "Bélgica", PER: "Perú", SGP: "Singapur", QAT: "Catar", GRC: "Grecia", PRY: "Paraguay", LAO: "Laos", ROU: "Rumania", PRT: "Portugal", OMN: "Omán", BLR: "Bielorrusia", NZL: "Nueva Zelanda", MAR: "Marruecos", BGR: "Bulgaria", BHR: "Baréin", NGA: "Nigeria", HKG: "Hong Kong", SRB: "Serbia", HUN: "Hungría", LBY: "Libia", DNK: "Dinamarca", TKM: "Turkmenistán", ECU: "Ecuador", IRL: "Irlanda", SVK: "Eslovaquia", AZE: "Azerbaiyán", PRK: "Corea del Norte", SYR: "Siria", GHA: "Ghana", DOM: "Rep. Dominicana", JOR: "Jordania", TJK: "Tayikistán", MMR: "Myanmar", TUN: "Túnez", PRI: "Puerto Rico", MOZ: "Mozambique", ZMB: "Zambia", CUB: "Cuba", ISL: "Islandia", KHM: "Camboya", SVN: "Eslovenia", ETH: "Etiopía", LKA: "Sri Lanka", COD: "RD del Congo", GTM: "Guatemala", KGZ: "Kirguistán", BIH: "Bosnia", AGO: "Angola", SDN: "Sudán", HRV: "Croacia", GEO: "Georgia", BOL: "Bolivia", PAN: "Panamá", URY: "Uruguay", KEN: "Kenia", HND: "Honduras", NPL: "Nepal", BTN: "Bután", CRI: "Costa Rica", CIV: "Costa de Marfil", ZWE: "Zimbabue", TTO: "Trinidad y Tobago", ARM: "Armenia", TZA: "Tanzania", MNG: "Mongolia", ALB: "Albania", SEN: "Senegal", CMR: "Camerún", SLV: "El Salvador", MKD: "Macedonia del Norte", MDA: "Moldavia", LTU: "Lituania", MLI: "Malí", LVA: "Letonia", UGA: "Uganda", BRN: "Brunéi", CYP: "Chipre", COG: "Congo", LBN: "Líbano", EST: "Estonia", YEM: "Yemen", JAM: "Jamaica", PNG: "Papúa Nueva Guinea", NIC: "Nicaragua", GIN: "Guinea", MNE: "Montenegro", BWA: "Botsuana", MUS: "Mauricio", NCL: "Nueva Caledonia", GAB: "Gabón", MDG: "Madagascar", BHS: "Bahamas", MLT: "Malta", MRT: "Mauritania", MWI: "Malaui", SUR: "Surinam", BFA: "Burkina Faso", NAM: "Namibia", GNQ: "Guinea Ecuatorial", LUX: "Luxemburgo", GUY: "Guyana", FJI: "Fiyi", RWA: "Ruanda", BRB: "Barbados", BEN: "Benín", AFG: "Afganistán", PSE: "Palestina", NER: "Níger", HTI: "Haití", MDV: "Maldivas", MAC: "Macao", PYF: "Polinesia Francesa", TGO: "Togo", SWZ: "Esuatini", LBR: "Liberia", SSD: "Sudán del Sur", CPV: "Cabo Verde", GMB: "Gambia", TLS: "Timor Oriental", BDI: "Burundi", BLZ: "Belice", ERI: "Eritrea", SOM: "Somalia", TCD: "Chad", SLE: "Sierra Leona", DJI: "Yibuti", CAF: "Rep. Centroafricana", COM: "Comoras", SLB: "Islas Salomón", GNB: "Guinea-Bisáu", VUT: "Vanuatu"}; region: r => r == "Americas" ? "América" : r == "Africa" ? "África" : r == "Middle East" ? "Oriente Medio" : r == "Oceania" ? "Oceanía" : r == "Europe" ? "Europa" : r; everywhere: "todas"
+      coal: "carbón"; gas: "gas"; oil: "petróleo"; nuclear: "nuclear"; solar: "solar"; wind: "eólica"; hydro: "hidráulica"; biomass: "biomasa"; geoTide: "geotermia y mareas"
+      fossil: "combustibles fósiles"; renewables: "renovables"
+      sGenerates: "genera"; sUses: "consume"; sPerPerson: "por persona"; sPerKm: "por km²"; sClean: "limpia"; sSunWind: "sol y viento"; sImports: "importa"; sExports: "exporta"
+      search: "buscar países"; noMatch: "ningún país coincide"; people: p => "${p} personas"
+      genXa: "genera "; genXb: " la electricidad que usa y vende el resto al exterior"; sellsA: "vende "; sellsB: " de la electricidad que genera al exterior"
+      allA: "genera "; allBold: "toda la electricidad"; allB: " que usa"; buysA: "compra "; buysB: " de la electricidad que usa al exterior"
+      rowGen: "genera"; rowUse: "consume"
+      worldShare: (p, r, n) => "Es el ${p}% de la electricidad del mundo, #${r} de ${n} países."
+      howClean: "qué tan limpia"; cleanSub: (p, r, n) => "${p}% de nuclear y renovables, #${r} de ${n}"
+      whereFrom: "de dónde viene su electricidad"; generatedIn: t => "${t} TWh generados en 2024"
+      trade: "importaciones y exportaciones"; tradeSub: "electricidad a través de sus fronteras, TWh al año"
+      noTrade: "según los datos, ninguna línea eléctrica lleva electricidad a sus vecinos"
+      importedArrow: "◀ importada"; exportedArrow: "exportada ▶"; balanced: "entra tanto como sale"
+      netImport: "importación neta "; netExport: "exportación neta "; ofUsesTail: p => ", ${p}% de lo que usa"; ofGenTail: p => ", ${p}% de lo que genera"
+      sizeHead: "comparado con su tamaño"; sizeSub: "su parte del mundo"
+      lPeople: "personas"; land: "superficie"; generated: "generada"; used: "usada"
+      eachA: "Cada persona usa "; avgMore: " el promedio mundial."; avgLess: " del promedio mundial."
+      perPerson: "por persona"; kwhDay: "kWh al día"; worldRef: (r, x) => "#${r} · mundo ${x}"
+      perKm: "generada por km²"; clean: "limpia"; sunWind: "sol y viento"
+      compareWith: "comparar con…"; dataLine: y => "${y} · datos: U.S. EIA, Banco Mundial"; kwhPerDay: "kWh/día"
+      rowElec: p => "${p}% de la electricidad mundial"; rowUse2: p => "${p}% del consumo mundial"
+      rowPd: x => "por persona, ${x}× el promedio mundial"; rowPk: x => "generada en cada km², ${x}× el promedio mundial"
+      fromClean: "de nuclear y renovables"; fromSunWind: "de solar y eólica"
+      rowNetImp: p => "importación neta, ${p}% de lo que usa"; rowExpMore: t => "pero exporta más: ${t} TWh"
+      rowNetExp: p => "exportación neta, ${p}% de lo que genera"; rowImpMore: t => "pero importa más: ${t} TWh"
+      worldGen: "en 2024 el mundo generó"; worldPer: (k, p) => "de electricidad: ${k} kWh al día para cada una de sus ${p} personas"
+      worldClean: (a, b) => "${a}% de nuclear y renovables, ${b}% solo de sol y viento"
+      biggest: "mayores generadores"; tapHint: "toca uno para ver su página"; topSub: (p, pop) => "${p}% del mundo · ${pop} personas"
+      cleanest: "redes más limpias"; cleanestSub: "parte de nuclear y renovables, países de un millón de personas o más"; twhYear: t => "${t} TWh al año"
+      windiest: "más sol y viento"; windiestSub: "parte de solar y eólica, países de un millón de personas o más"; solarWind: (s, w) => "${s}% solar · ${w}% eólica"
+      exporters: "mayores exportadores"; exportersSub: "electricidad vendida más allá de lo que compra"; ofGen: p => "${p}% de lo que genera"
+      importers: "mayores importadores"; importersSub: "electricidad comprada más allá de lo que vende"; ofUse: p => "${p}% de lo que usa"
+      mostPerPerson: "más por persona"; millionSub: "países de un millón de personas o más"; timesAvg: x => "${x}× el promedio mundial"
+      change: "cambiar"; howMuch: "cuánta"; imported: "importada"; exported: "exportada"; forSize: "según su tamaño"; nucRen: "nuclear y renovables"; whereThe: "de dónde viene la electricidad"
+      reading: "cómo leer los números"
+      twhBody: "Un teravatio-hora son mil millones de kilovatios-hora. Una casa usa unos 10 kWh de electricidad al día, así que 1 TWh es un año de electricidad para unas 270 000 casas."
+      kwhDayBody: "Toda la electricidad que usa un país, hogares, tiendas, fábricas y trenes juntos, repartida entre sus habitantes y los días del año. Hervir una tetera llena requiere unos 0,1 kWh."
+      genUse: "Genera y usa"; genUseBody: "Lo generado es lo que producen las centrales, los paneles solares y los aerogeneradores del país. Lo usado es eso más lo que importa, menos lo que exporta."
+      cleanCap: "Limpia"; cleanBody: "Electricidad de energía nuclear y renovables: solar, eólica, hidráulica, biomasa, geotermia y mareas. Los combustibles fósiles son el carbón, el gas y el petróleo quemados en centrales."
+      tradeCap: "Importaciones y exportaciones"; tradeBody: "Electricidad enviada por líneas eléctricas hacia y desde países vecinos. Muchos países hacen ambas cosas: compran a unas horas y venden a otras."
+      theData: "los datos"; dataBody: n => "La generación de electricidad por fuente, las importaciones y las exportaciones de ${n} países en 2024 vienen de las estadísticas energéticas internacionales de la U.S. Energy Information Administration. La población y la superficie vienen del Banco Mundial. Todo está en la app, así que funciona sin conexión."
+      eiaData: "datos de la EIA"; worldBank: "Banco Mundial"
+    }
+    pt {
+      title: "eletricidade no mundo"; pick: "escolha um país"; tabWorld: "mundo"; tabCountries: "países"; tabCompare: "comparar"; tabAbout: "sobre"
+      names: x => {CHN: "China", USA: "Estados Unidos", IND: "Índia", RUS: "Rússia", JPN: "Japão", BRA: "Brasil", CAN: "Canadá", KOR: "Coreia do Sul", FRA: "França", DEU: "Alemanha", SAU: "Arábia Saudita", IDN: "Indonésia", IRN: "Irã", MEX: "México", TUR: "Turquia", VNM: "Vietnã", TWN: "Taiwan", AUS: "Austrália", ESP: "Espanha", GBR: "Reino Unido", ITA: "Itália", ZAF: "África do Sul", EGY: "Egito", THA: "Tailândia", MYS: "Malásia", SWE: "Suécia", ARE: "EAU", POL: "Polônia", NOR: "Noruega", PAK: "Paquistão", IRQ: "Iraque", ARG: "Argentina", PHL: "Filipinas", KAZ: "Cazaquistão", NLD: "Países Baixos", COL: "Colômbia", BGD: "Bangladesh", UKR: "Ucrânia", DZA: "Argélia", KWT: "Kuwait", CHL: "Chile", VEN: "Venezuela", FIN: "Finlândia", ISR: "Israel", CHE: "Suíça", UZB: "Uzbequistão", CZE: "Tchéquia", AUT: "Áustria", BEL: "Bélgica", PER: "Peru", SGP: "Singapura", QAT: "Catar", GRC: "Grécia", PRY: "Paraguai", LAO: "Laos", ROU: "Romênia", PRT: "Portugal", OMN: "Omã", BLR: "Bielorrússia", NZL: "Nova Zelândia", MAR: "Marrocos", BGR: "Bulgária", BHR: "Bahrein", NGA: "Nigéria", HKG: "Hong Kong", SRB: "Sérvia", HUN: "Hungria", LBY: "Líbia", DNK: "Dinamarca", TKM: "Turcomenistão", ECU: "Equador", IRL: "Irlanda", SVK: "Eslováquia", AZE: "Azerbaijão", PRK: "Coreia do Norte", SYR: "Síria", GHA: "Gana", DOM: "Rep. Dominicana", JOR: "Jordânia", TJK: "Tajiquistão", MMR: "Mianmar", TUN: "Tunísia", PRI: "Porto Rico", MOZ: "Moçambique", ZMB: "Zâmbia", CUB: "Cuba", ISL: "Islândia", KHM: "Camboja", SVN: "Eslovênia", ETH: "Etiópia", LKA: "Sri Lanka", COD: "RD do Congo", GTM: "Guatemala", KGZ: "Quirguistão", BIH: "Bósnia", AGO: "Angola", SDN: "Sudão", HRV: "Croácia", GEO: "Geórgia", BOL: "Bolívia", PAN: "Panamá", URY: "Uruguai", KEN: "Quênia", HND: "Honduras", NPL: "Nepal", BTN: "Butão", CRI: "Costa Rica", CIV: "Costa do Marfim", ZWE: "Zimbábue", TTO: "Trinidad e Tobago", ARM: "Armênia", TZA: "Tanzânia", MNG: "Mongólia", ALB: "Albânia", SEN: "Senegal", CMR: "Camarões", SLV: "El Salvador", MKD: "Macedônia do Norte", MDA: "Moldávia", LTU: "Lituânia", MLI: "Mali", LVA: "Letônia", UGA: "Uganda", BRN: "Brunei", CYP: "Chipre", COG: "Congo", LBN: "Líbano", EST: "Estônia", YEM: "Iêmen", JAM: "Jamaica", PNG: "Papua-Nova Guiné", NIC: "Nicarágua", GIN: "Guiné", MNE: "Montenegro", BWA: "Botsuana", MUS: "Maurício", NCL: "Nova Caledônia", GAB: "Gabão", MDG: "Madagascar", BHS: "Bahamas", MLT: "Malta", MRT: "Mauritânia", MWI: "Malawi", SUR: "Suriname", BFA: "Burkina Faso", NAM: "Namíbia", GNQ: "Guiné Equatorial", LUX: "Luxemburgo", GUY: "Guiana", FJI: "Fiji", RWA: "Ruanda", BRB: "Barbados", BEN: "Benin", AFG: "Afeganistão", PSE: "Palestina", NER: "Níger", HTI: "Haiti", MDV: "Maldivas", MAC: "Macau", PYF: "Polinésia Francesa", TGO: "Togo", SWZ: "Essuatíni", LBR: "Libéria", SSD: "Sudão do Sul", CPV: "Cabo Verde", GMB: "Gâmbia", TLS: "Timor-Leste", BDI: "Burundi", BLZ: "Belize", ERI: "Eritreia", SOM: "Somália", TCD: "Chade", SLE: "Serra Leoa", DJI: "Djibouti", CAF: "Rep. Centro-Africana", COM: "Comores", SLB: "Ilhas Salomão", GNB: "Guiné-Bissau", VUT: "Vanuatu"}; region: r => r == "Europe" ? "Europa" : r == "Asia" ? "Ásia" : r == "Americas" ? "Américas" : r == "Africa" ? "África" : r == "Middle East" ? "Oriente Médio" : r; everywhere: "todas"
+      coal: "carvão"; gas: "gás"; oil: "petróleo"; nuclear: "nuclear"; solar: "solar"; wind: "eólica"; hydro: "hídrica"; biomass: "biomassa"; geoTide: "geotérmica e marés"
+      fossil: "combustíveis fósseis"; renewables: "renováveis"
+      sGenerates: "gera"; sUses: "consome"; sPerPerson: "por pessoa"; sPerKm: "por km²"; sClean: "limpa"; sSunWind: "sol e vento"; sImports: "importa"; sExports: "exporta"
+      search: "buscar países"; noMatch: "nenhum país encontrado"; people: p => "${p} pessoas"
+      genXa: "gera "; genXb: " a eletricidade que usa e vende o resto ao exterior"; sellsA: "vende "; sellsB: " da eletricidade que gera ao exterior"
+      allA: "gera "; allBold: "toda a eletricidade"; allB: " que usa"; buysA: "compra "; buysB: " da eletricidade que usa do exterior"
+      rowGen: "gera"; rowUse: "consome"
+      worldShare: (p, r, n) => "É ${p}% da eletricidade do mundo, #${r} de ${n} países."
+      howClean: "quão limpa"; cleanSub: (p, r, n) => "${p}% de nuclear e renováveis, #${r} de ${n}"
+      whereFrom: "de onde vem a eletricidade dele"; generatedIn: t => "${t} TWh gerados em 2024"
+      trade: "importação e exportação"; tradeSub: "eletricidade pelas fronteiras, TWh por ano"
+      noTrade: "pelos dados, nenhuma linha de transmissão leva eletricidade aos vizinhos"
+      importedArrow: "◀ importada"; exportedArrow: "exportada ▶"; balanced: "entra tanto quanto sai"
+      netImport: "importação líquida "; netExport: "exportação líquida "; ofUsesTail: p => ", ${p}% do que usa"; ofGenTail: p => ", ${p}% do que gera"
+      sizeHead: "comparado ao tamanho"; sizeSub: "a parte dele no mundo"
+      lPeople: "pessoas"; land: "território"; generated: "gerada"; used: "usada"
+      eachA: "Cada pessoa usa "; avgMore: " a média mundial."; avgLess: " da média mundial."
+      perPerson: "por pessoa"; kwhDay: "kWh por dia"; worldRef: (r, x) => "#${r} · mundo ${x}"
+      perKm: "gerada por km²"; clean: "limpa"; sunWind: "sol e vento"
+      compareWith: "comparar com…"; dataLine: y => "${y} · dados: U.S. EIA, Banco Mundial"; kwhPerDay: "kWh/dia"
+      rowElec: p => "${p}% da eletricidade mundial"; rowUse2: p => "${p}% do consumo mundial"
+      rowPd: x => "por pessoa, ${x}× a média mundial"; rowPk: x => "gerada em cada km², ${x}× a média mundial"
+      fromClean: "de nuclear e renováveis"; fromSunWind: "de solar e eólica"
+      rowNetImp: p => "importação líquida, ${p}% do que usa"; rowExpMore: t => "mas exporta mais: ${t} TWh"
+      rowNetExp: p => "exportação líquida, ${p}% do que gera"; rowImpMore: t => "mas importa mais: ${t} TWh"
+      worldGen: "em 2024 o mundo gerou"; worldPer: (k, p) => "de eletricidade: ${k} kWh por dia para cada uma das ${p} pessoas"
+      worldClean: (a, b) => "${a}% de nuclear e renováveis, ${b}% só de sol e vento"
+      biggest: "maiores geradores"; tapHint: "toque em um para ver a página"; topSub: (p, pop) => "${p}% do mundo · ${pop} pessoas"
+      cleanest: "redes mais limpas"; cleanestSub: "parcela de nuclear e renováveis, países com um milhão de pessoas ou mais"; twhYear: t => "${t} TWh por ano"
+      windiest: "mais sol e vento"; windiestSub: "parcela de solar e eólica, países com um milhão de pessoas ou mais"; solarWind: (s, w) => "${s}% solar · ${w}% eólica"
+      exporters: "maiores exportadores"; exportersSub: "eletricidade vendida além do que compra"; ofGen: p => "${p}% do que gera"
+      importers: "maiores importadores"; importersSub: "eletricidade comprada além do que vende"; ofUse: p => "${p}% do que usa"
+      mostPerPerson: "mais por pessoa"; millionSub: "países com um milhão de pessoas ou mais"; timesAvg: x => "${x}× a média mundial"
+      change: "trocar"; howMuch: "quanto"; imported: "importada"; exported: "exportada"; forSize: "para o tamanho"; nucRen: "nuclear e renováveis"; whereThe: "de onde vem a eletricidade"
+      reading: "como ler os números"
+      twhBody: "Um terawatt-hora é um bilhão de quilowatts-hora. Uma casa usa cerca de 10 kWh de eletricidade por dia, então 1 TWh é um ano de eletricidade para umas 270 mil casas."
+      kwhDayBody: "Toda a eletricidade que um país usa, casas, lojas, fábricas e trens juntos, dividida pela população e pelos dias do ano. Ferver uma chaleira cheia leva cerca de 0,1 kWh."
+      genUse: "Gera e usa"; genUseBody: "Gerada é o que as usinas, os painéis solares e as turbinas eólicas do país produzem. Usada é isso mais o que importa, menos o que exporta."
+      cleanCap: "Limpa"; cleanBody: "Eletricidade de energia nuclear e renováveis: solar, eólica, hídrica, biomassa, geotérmica e marés. Combustíveis fósseis são carvão, gás e petróleo queimados em usinas."
+      tradeCap: "Importação e exportação"; tradeBody: "Eletricidade enviada por linhas de transmissão de e para países vizinhos. Muitos países fazem as duas coisas, comprando em algumas horas e vendendo em outras."
+      theData: "os dados"; dataBody: n => "A geração de eletricidade por fonte, importações e exportações de ${n} países em 2024 vêm das estatísticas internacionais de energia da U.S. Energy Information Administration. População e área vêm do Banco Mundial. Tudo está no app, então funciona offline."
+      eiaData: "dados da EIA"; worldBank: "Banco Mundial"
+    }
+    de {
+      title: "strom der welt"; pick: "land wählen"; tabWorld: "welt"; tabCountries: "länder"; tabCompare: "vergleich"; tabAbout: "info"
+      names: x => {CHN: "China", USA: "USA", IND: "Indien", RUS: "Russland", JPN: "Japan", BRA: "Brasilien", CAN: "Kanada", KOR: "Südkorea", FRA: "Frankreich", DEU: "Deutschland", SAU: "Saudi-Arabien", IDN: "Indonesien", IRN: "Iran", MEX: "Mexiko", TUR: "Türkei", VNM: "Vietnam", TWN: "Taiwan", AUS: "Australien", ESP: "Spanien", GBR: "Großbritannien", ITA: "Italien", ZAF: "Südafrika", EGY: "Ägypten", THA: "Thailand", MYS: "Malaysia", SWE: "Schweden", ARE: "VAE", POL: "Polen", NOR: "Norwegen", PAK: "Pakistan", IRQ: "Irak", ARG: "Argentinien", PHL: "Philippinen", KAZ: "Kasachstan", NLD: "Niederlande", COL: "Kolumbien", BGD: "Bangladesch", UKR: "Ukraine", DZA: "Algerien", KWT: "Kuwait", CHL: "Chile", VEN: "Venezuela", FIN: "Finnland", ISR: "Israel", CHE: "Schweiz", UZB: "Usbekistan", CZE: "Tschechien", AUT: "Österreich", BEL: "Belgien", PER: "Peru", SGP: "Singapur", QAT: "Katar", GRC: "Griechenland", PRY: "Paraguay", LAO: "Laos", ROU: "Rumänien", PRT: "Portugal", OMN: "Oman", BLR: "Belarus", NZL: "Neuseeland", MAR: "Marokko", BGR: "Bulgarien", BHR: "Bahrain", NGA: "Nigeria", HKG: "Hongkong", SRB: "Serbien", HUN: "Ungarn", LBY: "Libyen", DNK: "Dänemark", TKM: "Turkmenistan", ECU: "Ecuador", IRL: "Irland", SVK: "Slowakei", AZE: "Aserbaidschan", PRK: "Nordkorea", SYR: "Syrien", GHA: "Ghana", DOM: "Dominik. Rep.", JOR: "Jordanien", TJK: "Tadschikistan", MMR: "Myanmar", TUN: "Tunesien", PRI: "Puerto Rico", MOZ: "Mosambik", ZMB: "Sambia", CUB: "Kuba", ISL: "Island", KHM: "Kambodscha", SVN: "Slowenien", ETH: "Äthiopien", LKA: "Sri Lanka", COD: "DR Kongo", GTM: "Guatemala", KGZ: "Kirgisistan", BIH: "Bosnien", AGO: "Angola", SDN: "Sudan", HRV: "Kroatien", GEO: "Georgien", BOL: "Bolivien", PAN: "Panama", URY: "Uruguay", KEN: "Kenia", HND: "Honduras", NPL: "Nepal", BTN: "Bhutan", CRI: "Costa Rica", CIV: "Elfenbeinküste", ZWE: "Simbabwe", TTO: "Trinidad und Tobago", ARM: "Armenien", TZA: "Tansania", MNG: "Mongolei", ALB: "Albanien", SEN: "Senegal", CMR: "Kamerun", SLV: "El Salvador", MKD: "Nordmazedonien", MDA: "Moldau", LTU: "Litauen", MLI: "Mali", LVA: "Lettland", UGA: "Uganda", BRN: "Brunei", CYP: "Zypern", COG: "Kongo", LBN: "Libanon", EST: "Estland", YEM: "Jemen", JAM: "Jamaika", PNG: "Papua-Neuguinea", NIC: "Nicaragua", GIN: "Guinea", MNE: "Montenegro", BWA: "Botswana", MUS: "Mauritius", NCL: "Neukaledonien", GAB: "Gabun", MDG: "Madagaskar", BHS: "Bahamas", MLT: "Malta", MRT: "Mauretanien", MWI: "Malawi", SUR: "Suriname", BFA: "Burkina Faso", NAM: "Namibia", GNQ: "Äquatorialguinea", LUX: "Luxemburg", GUY: "Guyana", FJI: "Fidschi", RWA: "Ruanda", BRB: "Barbados", BEN: "Benin", AFG: "Afghanistan", PSE: "Palästina", NER: "Niger", HTI: "Haiti", MDV: "Malediven", MAC: "Macau", PYF: "Französisch-Polynesien", TGO: "Togo", SWZ: "Eswatini", LBR: "Liberia", SSD: "Südsudan", CPV: "Kap Verde", GMB: "Gambia", TLS: "Osttimor", BDI: "Burundi", BLZ: "Belize", ERI: "Eritrea", SOM: "Somalia", TCD: "Tschad", SLE: "Sierra Leone", DJI: "Dschibuti", CAF: "Zentralafrik. Rep.", COM: "Komoren", SLB: "Salomonen", GNB: "Guinea-Bissau", VUT: "Vanuatu"}; region: r => r == "Europe" ? "Europa" : r == "Asia" ? "Asien" : r == "Americas" ? "Amerika" : r == "Africa" ? "Afrika" : r == "Middle East" ? "Nahost" : r == "Oceania" ? "Ozeanien" : r; everywhere: "überall"
+      coal: "kohle"; gas: "gas"; oil: "öl"; nuclear: "kernkraft"; solar: "solar"; wind: "wind"; hydro: "wasser"; biomass: "biomasse"; geoTide: "geothermie und gezeiten"
+      fossil: "fossile brennstoffe"; renewables: "erneuerbare"
+      sGenerates: "erzeugt"; sUses: "verbraucht"; sPerPerson: "pro kopf"; sPerKm: "pro km²"; sClean: "sauber"; sSunWind: "sonne & wind"; sImports: "importe"; sExports: "exporte"
+      search: "länder suchen"; noMatch: "kein land passt"; people: p => "${p} menschen"
+      genXa: "erzeugt "; genXb: " so viel strom, wie es verbraucht, und verkauft den rest ins ausland"; sellsA: "verkauft "; sellsB: " seines erzeugten stroms ins ausland"
+      allA: "erzeugt "; allBold: "den ganzen strom"; allB: ", den es verbraucht"; buysA: "kauft "; buysB: " seines stroms im ausland ein"
+      rowGen: "erzeugt"; rowUse: "verbraucht"
+      worldShare: (p, r, n) => "Das sind ${p}% des Stroms der Welt, #${r} von ${n} Ländern."
+      howClean: "wie sauber"; cleanSub: (p, r, n) => "${p}% aus kernkraft und erneuerbaren, #${r} von ${n}"
+      whereFrom: "woher sein strom kommt"; generatedIn: t => "${t} TWh erzeugt 2024"
+      trade: "importe und exporte"; tradeSub: "strom über seine grenzen, TWh im jahr"
+      noTrade: "laut den daten fließt über keine leitung strom zu seinen nachbarn"
+      importedArrow: "◀ importiert"; exportedArrow: "exportiert ▶"; balanced: "so viel rein wie raus"
+      netImport: "nettoimport "; netExport: "nettoexport "; ofUsesTail: p => ", ${p}% seines verbrauchs"; ofGenTail: p => ", ${p}% seiner erzeugung"
+      sizeHead: "im vergleich zur größe"; sizeSub: "sein anteil an der welt"
+      lPeople: "menschen"; land: "fläche"; generated: "erzeugt"; used: "verbraucht"
+      eachA: "Jeder Mensch verbraucht "; avgMore: " den Weltdurchschnitt."; avgLess: " des Weltdurchschnitts."
+      perPerson: "pro kopf"; kwhDay: "kWh am tag"; worldRef: (r, x) => "#${r} · welt ${x}"
+      perKm: "erzeugt pro km²"; clean: "sauber"; sunWind: "sonne und wind"
+      compareWith: "vergleichen mit…"; dataLine: y => "${y} · daten: U.S. EIA, Weltbank"; kwhPerDay: "kWh/tag"
+      rowElec: p => "${p}% des weltweiten stroms"; rowUse2: p => "${p}% des weltverbrauchs"
+      rowPd: x => "pro kopf, ${x}× der weltdurchschnitt"; rowPk: x => "erzeugt je km², ${x}× der weltdurchschnitt"
+      fromClean: "aus kernkraft und erneuerbaren"; fromSunWind: "aus sonne und wind"
+      rowNetImp: p => "nettoimport, ${p}% seines verbrauchs"; rowExpMore: t => "exportiert aber mehr: ${t} TWh"
+      rowNetExp: p => "nettoexport, ${p}% seiner erzeugung"; rowImpMore: t => "importiert aber mehr: ${t} TWh"
+      worldGen: "2024 erzeugte die welt"; worldPer: (k, p) => "strom: ${k} kWh am tag für jeden ihrer ${p} menschen"
+      worldClean: (a, b) => "${a}% aus kernkraft und erneuerbaren, ${b}% allein aus sonne und wind"
+      biggest: "größte erzeuger"; tapHint: "tipp auf ein land für seine seite"; topSub: (p, pop) => "${p}% der welt · ${pop} menschen"
+      cleanest: "sauberste netze"; cleanestSub: "anteil aus kernkraft und erneuerbaren, länder ab einer million menschen"; twhYear: t => "${t} TWh im jahr"
+      windiest: "am meisten sonne und wind"; windiestSub: "anteil aus sonne und wind, länder ab einer million menschen"; solarWind: (s, w) => "${s}% solar · ${w}% wind"
+      exporters: "größte exporteure"; exportersSub: "mehr strom verkauft als gekauft"; ofGen: p => "${p}% seiner erzeugung"
+      importers: "größte importeure"; importersSub: "mehr strom gekauft als verkauft"; ofUse: p => "${p}% seines verbrauchs"
+      mostPerPerson: "am meisten pro kopf"; millionSub: "länder ab einer million menschen"; timesAvg: x => "${x}× der weltdurchschnitt"
+      change: "ändern"; howMuch: "wie viel"; imported: "importiert"; exported: "exportiert"; forSize: "für seine größe"; nucRen: "kernkraft und erneuerbare"; whereThe: "woher der strom kommt"
+      reading: "die zahlen lesen"
+      twhBody: "Eine Terawattstunde sind eine Milliarde Kilowattstunden. Ein Haushalt verbraucht etwa 10 kWh Strom am Tag, also ist 1 TWh ein Jahr Strom für rund 270.000 Haushalte."
+      kwhDayBody: "Der ganze Strom, den ein Land verbraucht, Haushalte, Läden, Fabriken und Züge zusammen, verteilt auf seine Menschen und die Tage des Jahres. Ein voller Wasserkocher braucht etwa 0,1 kWh."
+      genUse: "Erzeugt und verbraucht"; genUseBody: "Erzeugt ist, was die Kraftwerke, Solaranlagen und Windräder des Landes machen. Verbraucht ist das plus Importe, minus Exporte."
+      cleanCap: "Sauber"; cleanBody: "Strom aus Kernkraft und Erneuerbaren: Sonne, Wind, Wasser, Biomasse, Geothermie und Gezeiten. Fossile Brennstoffe sind Kohle, Gas und Öl, die in Kraftwerken verbrannt werden."
+      tradeCap: "Importe und Exporte"; tradeBody: "Strom, der über Leitungen zu und von Nachbarländern fließt. Viele Länder machen beides, kaufen zu manchen Stunden und verkaufen zu anderen."
+      theData: "die daten"; dataBody: n => "Stromerzeugung nach Quelle, Importe und Exporte für ${n} Länder 2024 stammen aus der internationalen Energiestatistik der U.S. Energy Information Administration. Bevölkerung und Fläche kommen von der Weltbank. Alles steckt in der App, sie läuft also auch offline."
+      eiaData: "EIA-daten"; worldBank: "Weltbank"
+    }
+    zh {
+      title: "世界电力"; pick: "选择国家"; tabWorld: "世界"; tabCountries: "国家"; tabCompare: "对比"; tabAbout: "关于"
+      names: x => {CHN: "中国", USA: "美国", IND: "印度", RUS: "俄罗斯", JPN: "日本", BRA: "巴西", CAN: "加拿大", KOR: "韩国", FRA: "法国", DEU: "德国", SAU: "沙特阿拉伯", IDN: "印度尼西亚", IRN: "伊朗", MEX: "墨西哥", TUR: "土耳其", VNM: "越南", TWN: "台湾", AUS: "澳大利亚", ESP: "西班牙", GBR: "英国", ITA: "意大利", ZAF: "南非", EGY: "埃及", THA: "泰国", MYS: "马来西亚", SWE: "瑞典", ARE: "阿联酋", POL: "波兰", NOR: "挪威", PAK: "巴基斯坦", IRQ: "伊拉克", ARG: "阿根廷", PHL: "菲律宾", KAZ: "哈萨克斯坦", NLD: "荷兰", COL: "哥伦比亚", BGD: "孟加拉国", UKR: "乌克兰", DZA: "阿尔及利亚", KWT: "科威特", CHL: "智利", VEN: "委内瑞拉", FIN: "芬兰", ISR: "以色列", CHE: "瑞士", UZB: "乌兹别克斯坦", CZE: "捷克", AUT: "奥地利", BEL: "比利时", PER: "秘鲁", SGP: "新加坡", QAT: "卡塔尔", GRC: "希腊", PRY: "巴拉圭", LAO: "老挝", ROU: "罗马尼亚", PRT: "葡萄牙", OMN: "阿曼", BLR: "白俄罗斯", NZL: "新西兰", MAR: "摩洛哥", BGR: "保加利亚", BHR: "巴林", NGA: "尼日利亚", HKG: "香港", SRB: "塞尔维亚", HUN: "匈牙利", LBY: "利比亚", DNK: "丹麦", TKM: "土库曼斯坦", ECU: "厄瓜多尔", IRL: "爱尔兰", SVK: "斯洛伐克", AZE: "阿塞拜疆", PRK: "朝鲜", SYR: "叙利亚", GHA: "加纳", DOM: "多米尼加", JOR: "约旦", TJK: "塔吉克斯坦", MMR: "缅甸", TUN: "突尼斯", PRI: "波多黎各", MOZ: "莫桑比克", ZMB: "赞比亚", CUB: "古巴", ISL: "冰岛", KHM: "柬埔寨", SVN: "斯洛文尼亚", ETH: "埃塞俄比亚", LKA: "斯里兰卡", COD: "刚果（金）", GTM: "危地马拉", KGZ: "吉尔吉斯斯坦", BIH: "波黑", AGO: "安哥拉", SDN: "苏丹", HRV: "克罗地亚", GEO: "格鲁吉亚", BOL: "玻利维亚", PAN: "巴拿马", URY: "乌拉圭", KEN: "肯尼亚", HND: "洪都拉斯", NPL: "尼泊尔", BTN: "不丹", CRI: "哥斯达黎加", CIV: "科特迪瓦", ZWE: "津巴布韦", TTO: "特立尼达和多巴哥", ARM: "亚美尼亚", TZA: "坦桑尼亚", MNG: "蒙古", ALB: "阿尔巴尼亚", SEN: "塞内加尔", CMR: "喀麦隆", SLV: "萨尔瓦多", MKD: "北马其顿", MDA: "摩尔多瓦", LTU: "立陶宛", MLI: "马里", LVA: "拉脱维亚", UGA: "乌干达", BRN: "文莱", CYP: "塞浦路斯", COG: "刚果（布）", LBN: "黎巴嫩", EST: "爱沙尼亚", YEM: "也门", JAM: "牙买加", PNG: "巴布亚新几内亚", NIC: "尼加拉瓜", GIN: "几内亚", MNE: "黑山", BWA: "博茨瓦纳", MUS: "毛里求斯", NCL: "新喀里多尼亚", GAB: "加蓬", MDG: "马达加斯加", BHS: "巴哈马", MLT: "马耳他", MRT: "毛里塔尼亚", MWI: "马拉维", SUR: "苏里南", BFA: "布基纳法索", NAM: "纳米比亚", GNQ: "赤道几内亚", LUX: "卢森堡", GUY: "圭亚那", FJI: "斐济", RWA: "卢旺达", BRB: "巴巴多斯", BEN: "贝宁", AFG: "阿富汗", PSE: "巴勒斯坦", NER: "尼日尔", HTI: "海地", MDV: "马尔代夫", MAC: "澳门", PYF: "法属波利尼西亚", TGO: "多哥", SWZ: "斯威士兰", LBR: "利比里亚", SSD: "南苏丹", CPV: "佛得角", GMB: "冈比亚", TLS: "东帝汶", BDI: "布隆迪", BLZ: "伯利兹", ERI: "厄立特里亚", SOM: "索马里", TCD: "乍得", SLE: "塞拉利昂", DJI: "吉布提", CAF: "中非", COM: "科摩罗", SLB: "所罗门群岛", GNB: "几内亚比绍", VUT: "瓦努阿图"}; region: r => r == "Europe" ? "欧洲" : r == "Asia" ? "亚洲" : r == "Americas" ? "美洲" : r == "Africa" ? "非洲" : r == "Middle East" ? "中东" : r == "Oceania" ? "大洋洲" : r; everywhere: "全部"
+      coal: "煤炭"; gas: "天然气"; oil: "石油"; nuclear: "核能"; solar: "太阳能"; wind: "风能"; hydro: "水电"; biomass: "生物质"; geoTide: "地热和潮汐"
+      fossil: "化石燃料"; renewables: "可再生能源"
+      sGenerates: "发电"; sUses: "用电"; sPerPerson: "人均"; sPerKm: "每 km²"; sClean: "清洁"; sSunWind: "光伏和风电"; sImports: "进口"; sExports: "出口"
+      search: "搜索国家"; noMatch: "没有匹配的国家"; people: p => "${p} 人"
+      genXa: "发电量是用电量的 "; genXb: "，余电出口国外"; sellsA: "把发电量的 "; sellsB: " 出口国外"
+      allA: "自己发出"; allBold: "全部"; allB: "所用的电"; buysA: "用电的 "; buysB: " 从国外购买"
+      rowGen: "发电"; rowUse: "用电"
+      worldShare: (p, r, n) => "占世界电力的 ${p}%，在 ${n} 个国家中排第 ${r}。"
+      howClean: "清洁程度"; cleanSub: (p, r, n) => "${p}% 来自核能和可再生能源，${n} 国中第 ${r}"
+      whereFrom: "电力从哪里来"; generatedIn: t => "2024 年发电 ${t} TWh"
+      trade: "进口和出口"; tradeSub: "跨境电力，每年 TWh"
+      noTrade: "数据中没有通往邻国的输电线路输送电力"
+      importedArrow: "◀ 进口"; exportedArrow: "出口 ▶"; balanced: "进出持平"
+      netImport: "净进口 "; netExport: "净出口 "; ofUsesTail: p => "，占用电的 ${p}%"; ofGenTail: p => "，占发电的 ${p}%"
+      sizeHead: "与其规模相比"; sizeSub: "占世界的份额"
+      lPeople: "人口"; land: "国土"; generated: "发电"; used: "用电"
+      eachA: "人均用电为世界平均的 "; avgMore: "。"; avgLess: "。"
+      perPerson: "人均"; kwhDay: "kWh/天"; worldRef: (r, x) => "第 ${r} · 世界 ${x}"
+      perKm: "每 km² 发电"; clean: "清洁"; sunWind: "光伏和风电"
+      compareWith: "与…对比"; dataLine: y => "${y} · 数据：U.S. EIA、世界银行"; kwhPerDay: "kWh/天"
+      rowElec: p => "占世界电力的 ${p}%"; rowUse2: p => "占世界用电的 ${p}%"
+      rowPd: x => "人均，世界平均的 ${x}×"; rowPk: x => "每 km² 发电，世界平均的 ${x}×"
+      fromClean: "来自核能和可再生能源"; fromSunWind: "来自光伏和风电"
+      rowNetImp: p => "净进口，占用电的 ${p}%"; rowExpMore: t => "但出口更多：${t} TWh"
+      rowNetExp: p => "净出口，占发电的 ${p}%"; rowImpMore: t => "但进口更多：${t} TWh"
+      worldGen: "2024 年世界发电"; worldPer: (k, p) => "电量：${p} 人口每人每天 ${k} kWh"
+      worldClean: (a, b) => "${a}% 来自核能和可再生能源，仅光伏和风电就占 ${b}%"
+      biggest: "发电大国"; tapHint: "点按查看详情"; topSub: (p, pop) => "占世界 ${p}% · ${pop} 人"
+      cleanest: "最清洁的电网"; cleanestSub: "核能和可再生能源占比，人口百万以上的国家"; twhYear: t => "每年 ${t} TWh"
+      windiest: "光伏和风电最多"; windiestSub: "光伏和风电占比，人口百万以上的国家"; solarWind: (s, w) => "太阳能 ${s}% · 风能 ${w}%"
+      exporters: "最大出口国"; exportersSub: "售出多于购入的电量"; ofGen: p => "占发电的 ${p}%"
+      importers: "最大进口国"; importersSub: "购入多于售出的电量"; ofUse: p => "占用电的 ${p}%"
+      mostPerPerson: "人均最多"; millionSub: "人口百万以上的国家"; timesAvg: x => "世界平均的 ${x}×"
+      change: "更换"; howMuch: "多少"; imported: "进口"; exported: "出口"; forSize: "按规模"; nucRen: "核能和可再生能源"; whereThe: "电力从哪里来"
+      reading: "读懂数字"
+      twhBody: "1 太瓦时等于 10 亿千瓦时。一户家庭每天用电约 10 kWh，所以 1 TWh 约等于 27 万户家庭一年的用电。"
+      kwhDayBody: "一个国家用掉的全部电力，包括家庭、商店、工厂和火车，平均分到每个人和一年中的每一天。烧开满满一壶水约需 0.1 kWh。"
+      genUse: "发电与用电"; genUseBody: "发电是指该国发电厂、太阳能板和风力发电机产生的电。用电是发电加上进口、减去出口。"
+      cleanCap: "清洁"; cleanBody: "来自核能和可再生能源的电力：太阳能、风能、水电、生物质、地热和潮汐。化石燃料指在发电厂燃烧的煤炭、天然气和石油。"
+      tradeCap: "进口与出口"; tradeBody: "通过输电线路与邻国往来的电力。很多国家两者都有，某些时段买入，另一些时段卖出。"
+      theData: "数据"; dataBody: n => "${n} 个国家 2024 年按来源划分的发电量以及进出口数据来自美国能源信息署（U.S. Energy Information Administration）的国际能源统计。人口和面积来自世界银行。所有数据都在应用内，离线也能用。"
+      eiaData: "EIA 数据"; worldBank: "世界银行"
+    }
+    ru {
+      title: "электричество мира"; pick: "выберите страну"; tabWorld: "мир"; tabCountries: "страны"; tabCompare: "сравнение"; tabAbout: "о данных"
+      names: x => {CHN: "Китай", USA: "США", IND: "Индия", RUS: "Россия", JPN: "Япония", BRA: "Бразилия", CAN: "Канада", KOR: "Южная Корея", FRA: "Франция", DEU: "Германия", SAU: "Саудовская Аравия", IDN: "Индонезия", IRN: "Иран", MEX: "Мексика", TUR: "Турция", VNM: "Вьетнам", TWN: "Тайвань", AUS: "Австралия", ESP: "Испания", GBR: "Великобритания", ITA: "Италия", ZAF: "ЮАР", EGY: "Египет", THA: "Таиланд", MYS: "Малайзия", SWE: "Швеция", ARE: "ОАЭ", POL: "Польша", NOR: "Норвегия", PAK: "Пакистан", IRQ: "Ирак", ARG: "Аргентина", PHL: "Филиппины", KAZ: "Казахстан", NLD: "Нидерланды", COL: "Колумбия", BGD: "Бангладеш", UKR: "Украина", DZA: "Алжир", KWT: "Кувейт", CHL: "Чили", VEN: "Венесуэла", FIN: "Финляндия", ISR: "Израиль", CHE: "Швейцария", UZB: "Узбекистан", CZE: "Чехия", AUT: "Австрия", BEL: "Бельгия", PER: "Перу", SGP: "Сингапур", QAT: "Катар", GRC: "Греция", PRY: "Парагвай", LAO: "Лаос", ROU: "Румыния", PRT: "Португалия", OMN: "Оман", BLR: "Беларусь", NZL: "Новая Зеландия", MAR: "Марокко", BGR: "Болгария", BHR: "Бахрейн", NGA: "Нигерия", HKG: "Гонконг", SRB: "Сербия", HUN: "Венгрия", LBY: "Ливия", DNK: "Дания", TKM: "Туркменистан", ECU: "Эквадор", IRL: "Ирландия", SVK: "Словакия", AZE: "Азербайджан", PRK: "КНДР", SYR: "Сирия", GHA: "Гана", DOM: "Доминикана", JOR: "Иордания", TJK: "Таджикистан", MMR: "Мьянма", TUN: "Тунис", PRI: "Пуэрто-Рико", MOZ: "Мозамбик", ZMB: "Замбия", CUB: "Куба", ISL: "Исландия", KHM: "Камбоджа", SVN: "Словения", ETH: "Эфиопия", LKA: "Шри-Ланка", COD: "ДР Конго", GTM: "Гватемала", KGZ: "Киргизия", BIH: "Босния", AGO: "Ангола", SDN: "Судан", HRV: "Хорватия", GEO: "Грузия", BOL: "Боливия", PAN: "Панама", URY: "Уругвай", KEN: "Кения", HND: "Гондурас", NPL: "Непал", BTN: "Бутан", CRI: "Коста-Рика", CIV: "Кот-д’Ивуар", ZWE: "Зимбабве", TTO: "Тринидад и Тобаго", ARM: "Армения", TZA: "Танзания", MNG: "Монголия", ALB: "Албания", SEN: "Сенегал", CMR: "Камерун", SLV: "Сальвадор", MKD: "Северная Македония", MDA: "Молдавия", LTU: "Литва", MLI: "Мали", LVA: "Латвия", UGA: "Уганда", BRN: "Бруней", CYP: "Кипр", COG: "Конго", LBN: "Ливан", EST: "Эстония", YEM: "Йемен", JAM: "Ямайка", PNG: "Папуа — Новая Гвинея", NIC: "Никарагуа", GIN: "Гвинея", MNE: "Черногория", BWA: "Ботсвана", MUS: "Маврикий", NCL: "Новая Каледония", GAB: "Габон", MDG: "Мадагаскар", BHS: "Багамы", MLT: "Мальта", MRT: "Мавритания", MWI: "Малави", SUR: "Суринам", BFA: "Буркина-Фасо", NAM: "Намибия", GNQ: "Экваториальная Гвинея", LUX: "Люксембург", GUY: "Гайана", FJI: "Фиджи", RWA: "Руанда", BRB: "Барбадос", BEN: "Бенин", AFG: "Афганистан", PSE: "Палестина", NER: "Нигер", HTI: "Гаити", MDV: "Мальдивы", MAC: "Макао", PYF: "Французская Полинезия", TGO: "Того", SWZ: "Эсватини", LBR: "Либерия", SSD: "Южный Судан", CPV: "Кабо-Верде", GMB: "Гамбия", TLS: "Восточный Тимор", BDI: "Бурунди", BLZ: "Белиз", ERI: "Эритрея", SOM: "Сомали", TCD: "Чад", SLE: "Сьерра-Леоне", DJI: "Джибути", CAF: "ЦАР", COM: "Коморы", SLB: "Соломоновы Острова", GNB: "Гвинея-Бисау", VUT: "Вануату"}; region: r => r == "Europe" ? "Европа" : r == "Asia" ? "Азия" : r == "Americas" ? "Америка" : r == "Africa" ? "Африка" : r == "Middle East" ? "Ближний Восток" : r == "Oceania" ? "Океания" : r; everywhere: "везде"
+      coal: "уголь"; gas: "газ"; oil: "нефть"; nuclear: "атом"; solar: "солнце"; wind: "ветер"; hydro: "гидро"; biomass: "биомасса"; geoTide: "геотермия и приливы"
+      fossil: "ископаемое топливо"; renewables: "возобновляемые"
+      sGenerates: "выработка"; sUses: "потребление"; sPerPerson: "на человека"; sPerKm: "на км²"; sClean: "чистая"; sSunWind: "солнце и ветер"; sImports: "импорт"; sExports: "экспорт"
+      search: "поиск стран"; noMatch: "нет подходящих стран"; people: p => "${p} чел."
+      genXa: "вырабатывает "; genXb: " от того, что потребляет, и продаёт излишек за рубеж"; sellsA: "продаёт за рубеж "; sellsB: " выработанного электричества"
+      allA: "вырабатывает "; allBold: "всё электричество"; allB: ", которое потребляет"; buysA: "покупает за рубежом "; buysB: " потребляемого электричества"
+      rowGen: "выработка"; rowUse: "расход"
+      worldShare: (p, r, n) => "Это ${p}% электричества мира, №${r} из ${n} стран."
+      howClean: "насколько чисто"; cleanSub: (p, r, n) => "${p}% от атома и возобновляемых, №${r} из ${n}"
+      whereFrom: "откуда электричество"; generatedIn: t => "${t} TWh выработано в 2024"
+      trade: "импорт и экспорт"; tradeSub: "электричество через границы, TWh в год"
+      noTrade: "по данным, линии электропередачи к соседям электричество не передают"
+      importedArrow: "◀ импорт"; exportedArrow: "экспорт ▶"; balanced: "ввоз равен вывозу"
+      netImport: "чистый импорт "; netExport: "чистый экспорт "; ofUsesTail: p => ", ${p}% потребления"; ofGenTail: p => ", ${p}% выработки"
+      sizeHead: "в сравнении с размером"; sizeSub: "доля в мире"
+      lPeople: "население"; land: "площадь"; generated: "выработка"; used: "потребление"
+      eachA: "Каждый человек потребляет "; avgMore: " от среднего по миру."; avgLess: " от среднего по миру."
+      perPerson: "на человека"; kwhDay: "kWh в день"; worldRef: (r, x) => "№${r} · мир ${x}"
+      perKm: "выработка на км²"; clean: "чистая"; sunWind: "солнце и ветер"
+      compareWith: "сравнить с…"; dataLine: y => "${y} · данные: U.S. EIA, Всемирный банк"; kwhPerDay: "kWh/день"
+      rowElec: p => "${p}% электричества мира"; rowUse2: p => "${p}% мирового потребления"
+      rowPd: x => "на человека, ${x}× от среднего по миру"; rowPk: x => "выработка на км², ${x}× от среднего по миру"
+      fromClean: "от атома и возобновляемых"; fromSunWind: "от солнца и ветра"
+      rowNetImp: p => "чистый импорт, ${p}% потребления"; rowExpMore: t => "но экспорт больше: ${t} TWh"
+      rowNetExp: p => "чистый экспорт, ${p}% выработки"; rowImpMore: t => "но импорт больше: ${t} TWh"
+      worldGen: "в 2024 году мир выработал"; worldPer: (k, p) => "электричества: ${k} kWh в день на каждого из ${p} человек"
+      worldClean: (a, b) => "${a}% от атома и возобновляемых, ${b}% только от солнца и ветра"
+      biggest: "крупнейшие производители"; tapHint: "нажмите на страну, чтобы открыть её"; topSub: (p, pop) => "${p}% мира · ${pop} чел."
+      cleanest: "самые чистые сети"; cleanestSub: "доля атома и возобновляемых, страны от миллиона жителей"; twhYear: t => "${t} TWh в год"
+      windiest: "больше всего солнца и ветра"; windiestSub: "доля солнца и ветра, страны от миллиона жителей"; solarWind: (s, w) => "${s}% солнце · ${w}% ветер"
+      exporters: "крупнейшие экспортёры"; exportersSub: "продано больше, чем куплено"; ofGen: p => "${p}% выработки"
+      importers: "крупнейшие импортёры"; importersSub: "куплено больше, чем продано"; ofUse: p => "${p}% потребления"
+      mostPerPerson: "больше всего на человека"; millionSub: "страны от миллиона жителей"; timesAvg: x => "${x}× от среднего по миру"
+      change: "сменить"; howMuch: "сколько"; imported: "импорт"; exported: "экспорт"; forSize: "с учётом размера"; nucRen: "атом и возобновляемые"; whereThe: "откуда электричество"
+      reading: "как читать цифры"
+      twhBody: "Тераватт-час — это миллиард киловатт-часов. Дом потребляет около 10 kWh электричества в день, так что 1 TWh — это год электричества примерно для 270 000 домов."
+      kwhDayBody: "Всё электричество, которое потребляет страна (дома, магазины, заводы и поезда вместе), разделённое на её жителей и дни года. Чтобы вскипятить полный чайник, нужно около 0,1 kWh."
+      genUse: "Выработка и потребление"; genUseBody: "Выработка — это то, что дают электростанции, солнечные панели и ветряки страны. Потребление — это выработка плюс импорт минус экспорт."
+      cleanCap: "Чистая"; cleanBody: "Электричество от атомных станций и возобновляемых источников: солнца, ветра, воды, биомассы, геотермии и приливов. Ископаемое топливо — это уголь, газ и нефть, сжигаемые на электростанциях."
+      tradeCap: "Импорт и экспорт"; tradeBody: "Электричество, которое идёт по линиям электропередачи в соседние страны и из них. Многие страны делают и то и другое: в одни часы покупают, в другие продают."
+      theData: "данные"; dataBody: n => "Выработка электричества по источникам, импорт и экспорт для ${n} стран за 2024 год взяты из международной энергетической статистики U.S. Energy Information Administration. Население и площадь — от Всемирного банка. Всё хранится в приложении, поэтому оно работает офлайн."
+      eiaData: "данные EIA"; worldBank: "Всемирный банк"
+    }
+    ja {
+      title: "世界の電力"; pick: "国を選択"; tabWorld: "世界"; tabCountries: "国"; tabCompare: "比較"; tabAbout: "情報"
+      names: x => {CHN: "中国", USA: "アメリカ", IND: "インド", RUS: "ロシア", JPN: "日本", BRA: "ブラジル", CAN: "カナダ", KOR: "韓国", FRA: "フランス", DEU: "ドイツ", SAU: "サウジアラビア", IDN: "インドネシア", IRN: "イラン", MEX: "メキシコ", TUR: "トルコ", VNM: "ベトナム", TWN: "台湾", AUS: "オーストラリア", ESP: "スペイン", GBR: "イギリス", ITA: "イタリア", ZAF: "南アフリカ", EGY: "エジプト", THA: "タイ", MYS: "マレーシア", SWE: "スウェーデン", ARE: "UAE", POL: "ポーランド", NOR: "ノルウェー", PAK: "パキスタン", IRQ: "イラク", ARG: "アルゼンチン", PHL: "フィリピン", KAZ: "カザフスタン", NLD: "オランダ", COL: "コロンビア", BGD: "バングラデシュ", UKR: "ウクライナ", DZA: "アルジェリア", KWT: "クウェート", CHL: "チリ", VEN: "ベネズエラ", FIN: "フィンランド", ISR: "イスラエル", CHE: "スイス", UZB: "ウズベキスタン", CZE: "チェコ", AUT: "オーストリア", BEL: "ベルギー", PER: "ペルー", SGP: "シンガポール", QAT: "カタール", GRC: "ギリシャ", PRY: "パラグアイ", LAO: "ラオス", ROU: "ルーマニア", PRT: "ポルトガル", OMN: "オマーン", BLR: "ベラルーシ", NZL: "ニュージーランド", MAR: "モロッコ", BGR: "ブルガリア", BHR: "バーレーン", NGA: "ナイジェリア", HKG: "香港", SRB: "セルビア", HUN: "ハンガリー", LBY: "リビア", DNK: "デンマーク", TKM: "トルクメニスタン", ECU: "エクアドル", IRL: "アイルランド", SVK: "スロバキア", AZE: "アゼルバイジャン", PRK: "北朝鮮", SYR: "シリア", GHA: "ガーナ", DOM: "ドミニカ共和国", JOR: "ヨルダン", TJK: "タジキスタン", MMR: "ミャンマー", TUN: "チュニジア", PRI: "プエルトリコ", MOZ: "モザンビーク", ZMB: "ザンビア", CUB: "キューバ", ISL: "アイスランド", KHM: "カンボジア", SVN: "スロベニア", ETH: "エチオピア", LKA: "スリランカ", COD: "コンゴ民主共和国", GTM: "グアテマラ", KGZ: "キルギス", BIH: "ボスニア", AGO: "アンゴラ", SDN: "スーダン", HRV: "クロアチア", GEO: "ジョージア", BOL: "ボリビア", PAN: "パナマ", URY: "ウルグアイ", KEN: "ケニア", HND: "ホンジュラス", NPL: "ネパール", BTN: "ブータン", CRI: "コスタリカ", CIV: "コートジボワール", ZWE: "ジンバブエ", TTO: "トリニダード・トバゴ", ARM: "アルメニア", TZA: "タンザニア", MNG: "モンゴル", ALB: "アルバニア", SEN: "セネガル", CMR: "カメルーン", SLV: "エルサルバドル", MKD: "北マケドニア", MDA: "モルドバ", LTU: "リトアニア", MLI: "マリ", LVA: "ラトビア", UGA: "ウガンダ", BRN: "ブルネイ", CYP: "キプロス", COG: "コンゴ共和国", LBN: "レバノン", EST: "エストニア", YEM: "イエメン", JAM: "ジャマイカ", PNG: "パプアニューギニア", NIC: "ニカラグア", GIN: "ギニア", MNE: "モンテネグロ", BWA: "ボツワナ", MUS: "モーリシャス", NCL: "ニューカレドニア", GAB: "ガボン", MDG: "マダガスカル", BHS: "バハマ", MLT: "マルタ", MRT: "モーリタニア", MWI: "マラウイ", SUR: "スリナム", BFA: "ブルキナファソ", NAM: "ナミビア", GNQ: "赤道ギニア", LUX: "ルクセンブルク", GUY: "ガイアナ", FJI: "フィジー", RWA: "ルワンダ", BRB: "バルバドス", BEN: "ベナン", AFG: "アフガニスタン", PSE: "パレスチナ", NER: "ニジェール", HTI: "ハイチ", MDV: "モルディブ", MAC: "マカオ", PYF: "フランス領ポリネシア", TGO: "トーゴ", SWZ: "エスワティニ", LBR: "リベリア", SSD: "南スーダン", CPV: "カーボベルデ", GMB: "ガンビア", TLS: "東ティモール", BDI: "ブルンジ", BLZ: "ベリーズ", ERI: "エリトリア", SOM: "ソマリア", TCD: "チャド", SLE: "シエラレオネ", DJI: "ジブチ", CAF: "中央アフリカ", COM: "コモロ", SLB: "ソロモン諸島", GNB: "ギニアビサウ", VUT: "バヌアツ"}; region: r => r == "Europe" ? "ヨーロッパ" : r == "Asia" ? "アジア" : r == "Americas" ? "アメリカ大陸" : r == "Africa" ? "アフリカ" : r == "Middle East" ? "中東" : r == "Oceania" ? "オセアニア" : r; everywhere: "すべて"
+      coal: "石炭"; gas: "ガス"; oil: "石油"; nuclear: "原子力"; solar: "太陽光"; wind: "風力"; hydro: "水力"; biomass: "バイオマス"; geoTide: "地熱・潮力"
+      fossil: "化石燃料"; renewables: "再生可能"
+      sGenerates: "発電"; sUses: "消費"; sPerPerson: "1 人あたり"; sPerKm: "km² あたり"; sClean: "クリーン"; sSunWind: "太陽光・風力"; sImports: "輸入"; sExports: "輸出"
+      search: "国を検索"; noMatch: "該当する国はありません"; people: p => "${p} 人"
+      genXa: "消費する電力の "; genXb: " を発電し、余りを国外に売っています"; sellsA: "発電した電力の "; sellsB: " を国外に売っています"
+      allA: "消費する"; allBold: "電力をすべて"; allB: "自国で発電しています"; buysA: "消費する電力の "; buysB: " を国外から買っています"
+      rowGen: "発電"; rowUse: "消費"
+      worldShare: (p, r, n) => "世界の電力の ${p}%、${n} か国中 ${r} 位です。"
+      howClean: "クリーン度"; cleanSub: (p, r, n) => "${p}% が原子力と再生可能エネルギー、${n} か国中 ${r} 位"
+      whereFrom: "電力の内訳"; generatedIn: t => "2024 年の発電量 ${t} TWh"
+      trade: "輸入と輸出"; tradeSub: "国境を越える電力、年間 TWh"
+      noTrade: "データ上、近隣国と送電線で電力をやり取りしていません"
+      importedArrow: "◀ 輸入"; exportedArrow: "輸出 ▶"; balanced: "輸入と輸出が同じ"
+      netImport: "純輸入 "; netExport: "純輸出 "; ofUsesTail: p => "、消費の ${p}%"; ofGenTail: p => "、発電の ${p}%"
+      sizeHead: "規模との比較"; sizeSub: "世界に占める割合"
+      lPeople: "人口"; land: "面積"; generated: "発電"; used: "消費"
+      eachA: "1 人あたりの消費は世界平均の "; avgMore: " です。"; avgLess: " です。"
+      perPerson: "1 人あたり"; kwhDay: "kWh/日"; worldRef: (r, x) => "${r} 位 · 世界 ${x}"
+      perKm: "km² あたり発電"; clean: "クリーン"; sunWind: "太陽光と風力"
+      compareWith: "比較する…"; dataLine: y => "${y} · データ：U.S. EIA、世界銀行"; kwhPerDay: "kWh/日"
+      rowElec: p => "世界の電力の ${p}%"; rowUse2: p => "世界の消費の ${p}%"
+      rowPd: x => "1 人あたり、世界平均の ${x}×"; rowPk: x => "km² あたり発電、世界平均の ${x}×"
+      fromClean: "原子力と再生可能エネルギーから"; fromSunWind: "太陽光と風力から"
+      rowNetImp: p => "純輸入、消費の ${p}%"; rowExpMore: t => "ただし輸出が多い：${t} TWh"
+      rowNetExp: p => "純輸出、発電の ${p}%"; rowImpMore: t => "ただし輸入が多い：${t} TWh"
+      worldGen: "2024 年に世界が発電した電力"; worldPer: (k, p) => "人口 ${p} 人の 1 人あたり 1 日 ${k} kWh"
+      worldClean: (a, b) => "${a}% が原子力と再生可能エネルギー、太陽光と風力だけで ${b}%"
+      biggest: "発電量の多い国"; tapHint: "タップして詳細を表示"; topSub: (p, pop) => "世界の ${p}% · ${pop} 人"
+      cleanest: "最もクリーンな電力網"; cleanestSub: "原子力と再生可能エネルギーの割合、人口 100 万人以上の国"; twhYear: t => "年間 ${t} TWh"
+      windiest: "太陽光と風力が多い国"; windiestSub: "太陽光と風力の割合、人口 100 万人以上の国"; solarWind: (s, w) => "太陽光 ${s}% · 風力 ${w}%"
+      exporters: "輸出の多い国"; exportersSub: "買うより多く売った電力"; ofGen: p => "発電の ${p}%"
+      importers: "輸入の多い国"; importersSub: "売るより多く買った電力"; ofUse: p => "消費の ${p}%"
+      mostPerPerson: "1 人あたりが多い国"; millionSub: "人口 100 万人以上の国"; timesAvg: x => "世界平均の ${x}×"
+      change: "変更"; howMuch: "量"; imported: "輸入"; exported: "輸出"; forSize: "規模あたり"; nucRen: "原子力と再生可能"; whereThe: "電力の内訳"
+      reading: "数字の読み方"
+      twhBody: "1 テラワット時は 10 億キロワット時です。家庭 1 軒の電力消費は 1 日約 10 kWh なので、1 TWh は約 27 万軒の 1 年分の電力です。"
+      kwhDayBody: "国が使う電力すべて（家庭、店舗、工場、鉄道の合計）を、人口と 1 年の日数で割ったものです。やかん 1 杯のお湯を沸かすのに約 0.1 kWh かかります。"
+      genUse: "発電と消費"; genUseBody: "発電はその国の発電所、太陽光パネル、風力タービンが作る電力です。消費はそれに輸入を足し、輸出を引いたものです。"
+      cleanCap: "クリーン"; cleanBody: "原子力と再生可能エネルギー（太陽光、風力、水力、バイオマス、地熱、潮力）による電力です。化石燃料は発電所で燃やす石炭、ガス、石油です。"
+      tradeCap: "輸入と輸出"; tradeBody: "送電線を通じて近隣国とやり取りする電力です。多くの国は両方を行い、ある時間帯には買い、別の時間帯には売っています。"
+      theData: "データ"; dataBody: n => "${n} か国の 2024 年の電源別発電量、輸入、輸出は米国エネルギー情報局（U.S. Energy Information Administration）の国際エネルギー統計によるものです。人口と面積は世界銀行のデータです。すべてアプリに入っているので、オフラインでも使えます。"
+      eiaData: "EIA データ"; worldBank: "世界銀行"
+    }
+    uk {
+      title: "електрика світу"; pick: "виберіть країну"; tabWorld: "світ"; tabCountries: "країни"; tabCompare: "порівняння"; tabAbout: "про дані"
+      names: x => {CHN: "Китай", USA: "США", IND: "Індія", RUS: "Росія", JPN: "Японія", BRA: "Бразилія", CAN: "Канада", KOR: "Південна Корея", FRA: "Франція", DEU: "Німеччина", SAU: "Саудівська Аравія", IDN: "Індонезія", IRN: "Іран", MEX: "Мексика", TUR: "Туреччина", VNM: "В’єтнам", TWN: "Тайвань", AUS: "Австралія", ESP: "Іспанія", GBR: "Велика Британія", ITA: "Італія", ZAF: "ПАР", EGY: "Єгипет", THA: "Таїланд", MYS: "Малайзія", SWE: "Швеція", ARE: "ОАЕ", POL: "Польща", NOR: "Норвегія", PAK: "Пакистан", IRQ: "Ірак", ARG: "Аргентина", PHL: "Філіппіни", KAZ: "Казахстан", NLD: "Нідерланди", COL: "Колумбія", BGD: "Бангладеш", UKR: "Україна", DZA: "Алжир", KWT: "Кувейт", CHL: "Чилі", VEN: "Венесуела", FIN: "Фінляндія", ISR: "Ізраїль", CHE: "Швейцарія", UZB: "Узбекистан", CZE: "Чехія", AUT: "Австрія", BEL: "Бельгія", PER: "Перу", SGP: "Сінгапур", QAT: "Катар", GRC: "Греція", PRY: "Парагвай", LAO: "Лаос", ROU: "Румунія", PRT: "Португалія", OMN: "Оман", BLR: "Білорусь", NZL: "Нова Зеландія", MAR: "Марокко", BGR: "Болгарія", BHR: "Бахрейн", NGA: "Нігерія", HKG: "Гонконг", SRB: "Сербія", HUN: "Угорщина", LBY: "Лівія", DNK: "Данія", TKM: "Туркменістан", ECU: "Еквадор", IRL: "Ірландія", SVK: "Словаччина", AZE: "Азербайджан", PRK: "КНДР", SYR: "Сирія", GHA: "Гана", DOM: "Домініканська Респ.", JOR: "Йорданія", TJK: "Таджикистан", MMR: "М’янма", TUN: "Туніс", PRI: "Пуерто-Рико", MOZ: "Мозамбік", ZMB: "Замбія", CUB: "Куба", ISL: "Ісландія", KHM: "Камбоджа", SVN: "Словенія", ETH: "Ефіопія", LKA: "Шрі-Ланка", COD: "ДР Конго", GTM: "Гватемала", KGZ: "Киргизстан", BIH: "Боснія", AGO: "Ангола", SDN: "Судан", HRV: "Хорватія", GEO: "Грузія", BOL: "Болівія", PAN: "Панама", URY: "Уругвай", KEN: "Кенія", HND: "Гондурас", NPL: "Непал", BTN: "Бутан", CRI: "Коста-Рика", CIV: "Кот-д’Івуар", ZWE: "Зімбабве", TTO: "Тринідад і Тобаго", ARM: "Вірменія", TZA: "Танзанія", MNG: "Монголія", ALB: "Албанія", SEN: "Сенегал", CMR: "Камерун", SLV: "Сальвадор", MKD: "Північна Македонія", MDA: "Молдова", LTU: "Литва", MLI: "Малі", LVA: "Латвія", UGA: "Уганда", BRN: "Бруней", CYP: "Кіпр", COG: "Конго", LBN: "Ліван", EST: "Естонія", YEM: "Ємен", JAM: "Ямайка", PNG: "Папуа Нова Гвінея", NIC: "Нікарагуа", GIN: "Гвінея", MNE: "Чорногорія", BWA: "Ботсвана", MUS: "Маврикій", NCL: "Нова Каледонія", GAB: "Габон", MDG: "Мадагаскар", BHS: "Багами", MLT: "Мальта", MRT: "Мавританія", MWI: "Малаві", SUR: "Суринам", BFA: "Буркіна-Фасо", NAM: "Намібія", GNQ: "Екваторіальна Гвінея", LUX: "Люксембург", GUY: "Гаяна", FJI: "Фіджі", RWA: "Руанда", BRB: "Барбадос", BEN: "Бенін", AFG: "Афганістан", PSE: "Палестина", NER: "Нігер", HTI: "Гаїті", MDV: "Мальдіви", MAC: "Макао", PYF: "Французька Полінезія", TGO: "Того", SWZ: "Есватіні", LBR: "Ліберія", SSD: "Південний Судан", CPV: "Кабо-Верде", GMB: "Гамбія", TLS: "Східний Тимор", BDI: "Бурунді", BLZ: "Беліз", ERI: "Еритрея", SOM: "Сомалі", TCD: "Чад", SLE: "Сьєрра-Леоне", DJI: "Джибуті", CAF: "ЦАР", COM: "Комори", SLB: "Соломонові Острови", GNB: "Гвінея-Бісау", VUT: "Вануату"}; region: r => r == "Europe" ? "Європа" : r == "Asia" ? "Азія" : r == "Americas" ? "Америка" : r == "Africa" ? "Африка" : r == "Middle East" ? "Близький Схід" : r == "Oceania" ? "Океанія" : r; everywhere: "усюди"
+      coal: "вугілля"; gas: "газ"; oil: "нафта"; nuclear: "атом"; solar: "сонце"; wind: "вітер"; hydro: "гідро"; biomass: "біомаса"; geoTide: "геотермія і припливи"
+      fossil: "викопне паливо"; renewables: "відновлювані"
+      sGenerates: "виробляє"; sUses: "споживає"; sPerPerson: "на людину"; sPerKm: "на км²"; sClean: "чиста"; sSunWind: "сонце і вітер"; sImports: "імпорт"; sExports: "експорт"
+      search: "пошук країн"; noMatch: "немає відповідних країн"; people: p => "${p} осіб"
+      genXa: "виробляє "; genXb: " від того, що споживає, і продає надлишок за кордон"; sellsA: "продає за кордон "; sellsB: " виробленої електрики"
+      allA: "виробляє "; allBold: "всю електрику"; allB: ", яку споживає"; buysA: "купує за кордоном "; buysB: " спожитої електрики"
+      rowGen: "виробляє"; rowUse: "споживає"
+      worldShare: (p, r, n) => "Це ${p}% електрики світу, №${r} з ${n} країн."
+      howClean: "наскільки чисто"; cleanSub: (p, r, n) => "${p}% від атома і відновлюваних, №${r} з ${n}"
+      whereFrom: "звідки електрика"; generatedIn: t => "${t} TWh вироблено у 2024"
+      trade: "імпорт і експорт"; tradeSub: "електрика через кордони, TWh на рік"
+      noTrade: "за даними, лінії електропередачі до сусідів електрику не передають"
+      importedArrow: "◀ імпорт"; exportedArrow: "експорт ▶"; balanced: "увезення дорівнює вивезенню"
+      netImport: "чистий імпорт "; netExport: "чистий експорт "; ofUsesTail: p => ", ${p}% споживання"; ofGenTail: p => ", ${p}% виробництва"
+      sizeHead: "порівняно з розміром"; sizeSub: "частка у світі"
+      lPeople: "населення"; land: "площа"; generated: "вироблено"; used: "спожито"
+      eachA: "Кожна людина споживає "; avgMore: " від середнього у світі."; avgLess: " від середнього у світі."
+      perPerson: "на людину"; kwhDay: "kWh на день"; worldRef: (r, x) => "№${r} · світ ${x}"
+      perKm: "вироблено на км²"; clean: "чиста"; sunWind: "сонце і вітер"
+      compareWith: "порівняти з…"; dataLine: y => "${y} · дані: U.S. EIA, Світовий банк"; kwhPerDay: "kWh/день"
+      rowElec: p => "${p}% електрики світу"; rowUse2: p => "${p}% світового споживання"
+      rowPd: x => "на людину, ${x}× від середнього у світі"; rowPk: x => "вироблено на км², ${x}× від середнього у світі"
+      fromClean: "від атома і відновлюваних"; fromSunWind: "від сонця і вітру"
+      rowNetImp: p => "чистий імпорт, ${p}% споживання"; rowExpMore: t => "але експорт більший: ${t} TWh"
+      rowNetExp: p => "чистий експорт, ${p}% виробництва"; rowImpMore: t => "але імпорт більший: ${t} TWh"
+      worldGen: "у 2024 році світ виробив"; worldPer: (k, p) => "електрики: ${k} kWh на день для кожного з ${p} мешканців"
+      worldClean: (a, b) => "${a}% від атома і відновлюваних, ${b}% лише від сонця і вітру"
+      biggest: "найбільші виробники"; tapHint: "торкніться країни, щоб відкрити її"; topSub: (p, pop) => "${p}% світу · ${pop} осіб"
+      cleanest: "найчистіші мережі"; cleanestSub: "частка атома і відновлюваних, країни від мільйона жителів"; twhYear: t => "${t} TWh на рік"
+      windiest: "найбільше сонця і вітру"; windiestSub: "частка сонця і вітру, країни від мільйона жителів"; solarWind: (s, w) => "${s}% сонце · ${w}% вітер"
+      exporters: "найбільші експортери"; exportersSub: "продано більше, ніж куплено"; ofGen: p => "${p}% виробництва"
+      importers: "найбільші імпортери"; importersSub: "куплено більше, ніж продано"; ofUse: p => "${p}% споживання"
+      mostPerPerson: "найбільше на людину"; millionSub: "країни від мільйона жителів"; timesAvg: x => "${x}× від середнього у світі"
+      change: "змінити"; howMuch: "скільки"; imported: "імпорт"; exported: "експорт"; forSize: "з огляду на розмір"; nucRen: "атом і відновлювані"; whereThe: "звідки електрика"
+      reading: "як читати цифри"
+      twhBody: "Терават-година — це мільярд кіловат-годин. Дім споживає близько 10 kWh електрики на день, тож 1 TWh — це рік електрики приблизно для 270 000 домів."
+      kwhDayBody: "Уся електрика, яку споживає країна (оселі, магазини, заводи й потяги разом), поділена на її мешканців і дні року. Щоб закип’ятити повний чайник, потрібно близько 0,1 kWh."
+      genUse: "Виробляє і споживає"; genUseBody: "Вироблено — це те, що дають електростанції, сонячні панелі й вітряки країни. Спожито — це вироблене плюс імпорт мінус експорт."
+      cleanCap: "Чиста"; cleanBody: "Електрика від атомних станцій і відновлюваних джерел: сонця, вітру, води, біомаси, геотермії та припливів. Викопне паливо — це вугілля, газ і нафта, які спалюють на електростанціях."
+      tradeCap: "Імпорт і експорт"; tradeBody: "Електрика, що йде лініями електропередачі до сусідніх країн і з них. Багато країн роблять і те, і те: в одні години купують, в інші продають."
+      theData: "дані"; dataBody: n => "Виробництво електрики за джерелами, імпорт і експорт для ${n} країн за 2024 рік узято з міжнародної енергетичної статистики U.S. Energy Information Administration. Населення і площа — від Світового банку. Усе зберігається в застосунку, тож він працює офлайн."
+      eiaData: "дані EIA"; worldBank: "Світовий банк"
+    }
+    fr {
+      title: "électricité mondiale"; pick: "choisis un pays"; tabWorld: "monde"; tabCountries: "pays"; tabCompare: "comparer"; tabAbout: "à propos"
+      names: x => {CHN: "Chine", USA: "États-Unis", IND: "Inde", RUS: "Russie", JPN: "Japon", BRA: "Brésil", CAN: "Canada", KOR: "Corée du Sud", FRA: "France", DEU: "Allemagne", SAU: "Arabie saoudite", IDN: "Indonésie", IRN: "Iran", MEX: "Mexique", TUR: "Turquie", VNM: "Viêt Nam", TWN: "Taïwan", AUS: "Australie", ESP: "Espagne", GBR: "Royaume-Uni", ITA: "Italie", ZAF: "Afrique du Sud", EGY: "Égypte", THA: "Thaïlande", MYS: "Malaisie", SWE: "Suède", ARE: "EAU", POL: "Pologne", NOR: "Norvège", PAK: "Pakistan", IRQ: "Irak", ARG: "Argentine", PHL: "Philippines", KAZ: "Kazakhstan", NLD: "Pays-Bas", COL: "Colombie", BGD: "Bangladesh", UKR: "Ukraine", DZA: "Algérie", KWT: "Koweït", CHL: "Chili", VEN: "Venezuela", FIN: "Finlande", ISR: "Israël", CHE: "Suisse", UZB: "Ouzbékistan", CZE: "Tchéquie", AUT: "Autriche", BEL: "Belgique", PER: "Pérou", SGP: "Singapour", QAT: "Qatar", GRC: "Grèce", PRY: "Paraguay", LAO: "Laos", ROU: "Roumanie", PRT: "Portugal", OMN: "Oman", BLR: "Biélorussie", NZL: "Nouvelle-Zélande", MAR: "Maroc", BGR: "Bulgarie", BHR: "Bahreïn", NGA: "Nigeria", HKG: "Hong Kong", SRB: "Serbie", HUN: "Hongrie", LBY: "Libye", DNK: "Danemark", TKM: "Turkménistan", ECU: "Équateur", IRL: "Irlande", SVK: "Slovaquie", AZE: "Azerbaïdjan", PRK: "Corée du Nord", SYR: "Syrie", GHA: "Ghana", DOM: "Rép. dominicaine", JOR: "Jordanie", TJK: "Tadjikistan", MMR: "Birmanie", TUN: "Tunisie", PRI: "Porto Rico", MOZ: "Mozambique", ZMB: "Zambie", CUB: "Cuba", ISL: "Islande", KHM: "Cambodge", SVN: "Slovénie", ETH: "Éthiopie", LKA: "Sri Lanka", COD: "RD Congo", GTM: "Guatemala", KGZ: "Kirghizistan", BIH: "Bosnie", AGO: "Angola", SDN: "Soudan", HRV: "Croatie", GEO: "Géorgie", BOL: "Bolivie", PAN: "Panama", URY: "Uruguay", KEN: "Kenya", HND: "Honduras", NPL: "Népal", BTN: "Bhoutan", CRI: "Costa Rica", CIV: "Côte d’Ivoire", ZWE: "Zimbabwe", TTO: "Trinité-et-Tobago", ARM: "Arménie", TZA: "Tanzanie", MNG: "Mongolie", ALB: "Albanie", SEN: "Sénégal", CMR: "Cameroun", SLV: "Salvador", MKD: "Macédoine du Nord", MDA: "Moldavie", LTU: "Lituanie", MLI: "Mali", LVA: "Lettonie", UGA: "Ouganda", BRN: "Brunei", CYP: "Chypre", COG: "Congo", LBN: "Liban", EST: "Estonie", YEM: "Yémen", JAM: "Jamaïque", PNG: "Papouasie-Nouvelle-Guinée", NIC: "Nicaragua", GIN: "Guinée", MNE: "Monténégro", BWA: "Botswana", MUS: "Maurice", NCL: "Nouvelle-Calédonie", GAB: "Gabon", MDG: "Madagascar", BHS: "Bahamas", MLT: "Malte", MRT: "Mauritanie", MWI: "Malawi", SUR: "Suriname", BFA: "Burkina Faso", NAM: "Namibie", GNQ: "Guinée équatoriale", LUX: "Luxembourg", GUY: "Guyana", FJI: "Fidji", RWA: "Rwanda", BRB: "Barbade", BEN: "Bénin", AFG: "Afghanistan", PSE: "Palestine", NER: "Niger", HTI: "Haïti", MDV: "Maldives", MAC: "Macao", PYF: "Polynésie française", TGO: "Togo", SWZ: "Eswatini", LBR: "Liberia", SSD: "Soudan du Sud", CPV: "Cap-Vert", GMB: "Gambie", TLS: "Timor oriental", BDI: "Burundi", BLZ: "Belize", ERI: "Érythrée", SOM: "Somalie", TCD: "Tchad", SLE: "Sierra Leone", DJI: "Djibouti", CAF: "Centrafrique", COM: "Comores", SLB: "Îles Salomon", GNB: "Guinée-Bissau", VUT: "Vanuatu"}; region: r => r == "Asia" ? "Asie" : r == "Americas" ? "Amériques" : r == "Africa" ? "Afrique" : r == "Middle East" ? "Moyen-Orient" : r == "Oceania" ? "Océanie" : r; everywhere: "partout"
+      coal: "charbon"; gas: "gaz"; oil: "pétrole"; nuclear: "nucléaire"; solar: "solaire"; wind: "éolien"; hydro: "hydraulique"; biomass: "biomasse"; geoTide: "géothermie et marées"
+      fossil: "énergies fossiles"; renewables: "renouvelables"
+      sGenerates: "produit"; sUses: "consomme"; sPerPerson: "par personne"; sPerKm: "par km²"; sClean: "propre"; sSunWind: "soleil et vent"; sImports: "importe"; sExports: "exporte"
+      search: "chercher un pays"; noMatch: "aucun pays ne correspond"; people: p => "${p} habitants"
+      genXa: "produit "; genXb: " l’électricité qu’il consomme et vend le reste à l’étranger"; sellsA: "vend "; sellsB: " de l’électricité qu’il produit à l’étranger"
+      allA: "produit "; allBold: "toute l’électricité"; allB: " qu’il consomme"; buysA: "achète "; buysB: " de l’électricité qu’il consomme à l’étranger"
+      rowGen: "produit"; rowUse: "consomme"
+      worldShare: (p, r, n) => "Ça fait ${p} % de l’électricité mondiale, nº ${r} sur ${n} pays."
+      howClean: "propreté"; cleanSub: (p, r, n) => "${p} % du nucléaire et des renouvelables, nº ${r} sur ${n}"
+      whereFrom: "d’où vient son électricité"; generatedIn: t => "${t} TWh produits en 2024"
+      trade: "importations et exportations"; tradeSub: "électricité à travers ses frontières, TWh par an"
+      noTrade: "d’après les données, aucune ligne vers ses voisins ne transporte d’électricité"
+      importedArrow: "◀ importée"; exportedArrow: "exportée ▶"; balanced: "autant d’entrées que de sorties"
+      netImport: "import net "; netExport: "export net "; ofUsesTail: p => ", ${p} % de ce qu’il consomme"; ofGenTail: p => ", ${p} % de ce qu’il produit"
+      sizeHead: "par rapport à sa taille"; sizeSub: "sa part du monde"
+      lPeople: "habitants"; land: "superficie"; generated: "produite"; used: "consommée"
+      eachA: "Chaque habitant consomme "; avgMore: " la moyenne mondiale."; avgLess: " de la moyenne mondiale."
+      perPerson: "par personne"; kwhDay: "kWh par jour"; worldRef: (r, x) => "nº ${r} · monde ${x}"
+      perKm: "produite par km²"; clean: "propre"; sunWind: "soleil et vent"
+      compareWith: "comparer avec…"; dataLine: y => "${y} · données : U.S. EIA, Banque mondiale"; kwhPerDay: "kWh/jour"
+      rowElec: p => "${p} % de l’électricité mondiale"; rowUse2: p => "${p} % de la consommation mondiale"
+      rowPd: x => "par personne, ${x}× la moyenne mondiale"; rowPk: x => "produite par km², ${x}× la moyenne mondiale"
+      fromClean: "du nucléaire et des renouvelables"; fromSunWind: "du solaire et de l’éolien"
+      rowNetImp: p => "import net, ${p} % de ce qu’il consomme"; rowExpMore: t => "mais exporte plus : ${t} TWh"
+      rowNetExp: p => "export net, ${p} % de ce qu’il produit"; rowImpMore: t => "mais importe plus : ${t} TWh"
+      worldGen: "en 2024, le monde a produit"; worldPer: (k, p) => "d’électricité : ${k} kWh par jour pour chacun de ses ${p} habitants"
+      worldClean: (a, b) => "${a} % du nucléaire et des renouvelables, ${b} % du soleil et du vent seuls"
+      biggest: "plus gros producteurs"; tapHint: "touche un pays pour voir sa page"; topSub: (p, pop) => "${p} % du monde · ${pop} habitants"
+      cleanest: "réseaux les plus propres"; cleanestSub: "part du nucléaire et des renouvelables, pays d’un million d’habitants ou plus"; twhYear: t => "${t} TWh par an"
+      windiest: "le plus de soleil et de vent"; windiestSub: "part du solaire et de l’éolien, pays d’un million d’habitants ou plus"; solarWind: (s, w) => "${s} % solaire · ${w} % éolien"
+      exporters: "plus gros exportateurs"; exportersSub: "électricité vendue au-delà de ce qu’il achète"; ofGen: p => "${p} % de ce qu’il produit"
+      importers: "plus gros importateurs"; importersSub: "électricité achetée au-delà de ce qu’il vend"; ofUse: p => "${p} % de ce qu’il consomme"
+      mostPerPerson: "le plus par personne"; millionSub: "pays d’un million d’habitants ou plus"; timesAvg: x => "${x}× la moyenne mondiale"
+      change: "changer"; howMuch: "combien"; imported: "importée"; exported: "exportée"; forSize: "selon la taille"; nucRen: "nucléaire et renouvelables"; whereThe: "d’où vient l’électricité"
+      reading: "lire les chiffres"
+      twhBody: "Un térawattheure, c’est un milliard de kilowattheures. Un foyer consomme environ 10 kWh d’électricité par jour, donc 1 TWh, c’est un an d’électricité pour quelque 270 000 foyers."
+      kwhDayBody: "Toute l’électricité qu’un pays consomme, foyers, commerces, usines et trains ensemble, répartie entre ses habitants et les jours de l’année. Faire bouillir une bouilloire pleine demande environ 0,1 kWh."
+      genUse: "Produit et consomme"; genUseBody: "Produite, c’est ce que font les centrales, panneaux solaires et éoliennes du pays. Consommée, c’est ça plus ce qu’il importe, moins ce qu’il exporte."
+      cleanCap: "Propre"; cleanBody: "Électricité nucléaire et renouvelable : solaire, éolien, hydraulique, biomasse, géothermie et marées. Les énergies fossiles, ce sont le charbon, le gaz et le pétrole brûlés dans les centrales."
+      tradeCap: "Importations et exportations"; tradeBody: "Électricité envoyée par les lignes électriques vers et depuis les pays voisins. Beaucoup de pays font les deux, achetant à certaines heures et vendant à d’autres."
+      theData: "les données"; dataBody: n => "La production d’électricité par source, les importations et les exportations de ${n} pays en 2024 viennent des statistiques énergétiques internationales de l’U.S. Energy Information Administration. La population et la superficie viennent de la Banque mondiale. Tout est dans l’app, donc elle marche hors ligne."
+      eiaData: "données EIA"; worldBank: "Banque mondiale"
+    }
+  }
 
   // The bottom bar's and the search field's icons, Material's public, leaderboard, compare arrows,
   // info and search (Apache 2.0).
@@ -27,7 +491,7 @@ app "power atlas" {
   // net im - ex; pd kWh a day a person used; pk GWh generated a km²; ss E / U; cl share from nuclear and
   // renewables, sw from solar and wind; r* ranks.
   let W = {n: "World", id: "WORL", r: "", pop: 8215424893, km2: 140539257, el: [10387, 6901, 736, 2735, 2090, 2512, 4512, 752, 91.4], E: 30716, U: 30705, im: 831, ex: 842, net: -11, cl: 0.413, sw: 0.15, pd: 10.24, pk: 0.219, ss: 1}
-  let C = [
+  let CD = [
     {n: "China", id: "CHN", f: "🇨🇳", r: "Asia", pop: 1406585000, km2: 9562910, el: [5775, 464, 9.64, 451, 839, 997, 1424, 220, 0.18], E: 10180, U: 10163, im: 5, ex: 22, net: -17, cl: 0.386, sw: 0.18, pd: 19.79, pk: 1.065, ss: 1.002, rE: 1, rU: 1, rD: 25, rK: 23, rC: 91, rS: 37},
     {n: "United States", id: "USA", f: "🇺🇸", r: "Americas", pop: 341784857, km2: 9831510, el: [652, 1881, 15.1, 782, 304, 452, 243, 54.6, 15.4], E: 4399, U: 4413, im: 33.3, ex: 19.4, net: 13.9, cl: 0.421, sw: 0.172, pd: 35.37, pk: 0.447, ss: 0.997, rE: 2, rU: 2, rD: 10, rK: 43, rC: 89, rS: 40},
     {n: "India", id: "IND", f: "🇮🇳", r: "Asia", pop: 1463865525, km2: 3287263, el: [1517, 63.8, 4.27, 54.7, 135, 90.7, 155, 31.3, 0], E: 2052, U: 2049, im: 7.7, ex: 10, net: -2.3, cl: 0.227, sw: 0.11, pd: 3.84, pk: 0.624, ss: 1.001, rE: 3, rU: 3, rD: 112, rK: 33, rC: 119, rS: 62},
@@ -208,6 +672,8 @@ app "power atlas" {
     {n: "Guinea-Bissau", id: "GNB", f: "🇬🇼", r: "Africa", pop: 2249515, km2: 36125, el: [0, 0, 0.08, 0, 0, 0, 0, 0, 0], E: 0.08, U: 0.08, im: 0, ex: 0, net: 0, cl: 0, sw: 0, pd: 0.1, pk: 0.002, ss: 1, rE: 178, rU: 178, rD: 175, rK: 174, rC: 179, rS: 179},
     {n: "Vanuatu", id: "VUT", f: "🇻🇺", r: "Oceania", pop: 335169, km2: 12189, el: [0, 0, 0.06, 0, 0.01, 0, 0.01, 0, 0], E: 0.08, U: 0.08, im: 0, ex: 0, net: 0, cl: 0.25, sw: 0.125, pd: 0.65, pk: 0.007, ss: 1, rE: 179, rU: 179, rD: 152, rK: 160, rC: 114, rS: 52}
   ]
+  let NM = str.names(0)
+  let C = CD.map(c => set(c, "n", get(NM, c.id, c.n)))
 
   state view = "world"
   state openId = ""
@@ -225,9 +691,9 @@ app "power atlas" {
   let coalC = "#7E8187"
   let nucC = "#9B6BD6"
   let renC = "#5E9A3A"
-  let ES = [{l: "coal", c: coalC}, {l: "gas", c: "#CF7A22"}, {l: "oil", c: "#B8364E"}, {l: "nuclear", c: nucC}, {l: "solar", c: "#AD8612"}, {l: "wind", c: "#16A0A0"}, {l: "hydro", c: "#3F66D6"}, {l: "biomass", c: renC}, {l: "geothermal and tide", c: muted}]
+  let ES = [{l: str.coal, c: coalC}, {l: str.gas, c: "#CF7A22"}, {l: str.oil, c: "#B8364E"}, {l: str.nuclear, c: nucC}, {l: str.solar, c: "#AD8612"}, {l: str.wind, c: "#16A0A0"}, {l: str.hydro, c: "#3F66D6"}, {l: str.biomass, c: renC}, {l: str.geoTide, c: muted}]
   // The same, in three: burning fossil fuels, nuclear, and renewables.
-  let GS = [{l: "fossil fuels", c: coalC}, {l: "nuclear", c: nucC}, {l: "renewables", c: renC}]
+  let GS = [{l: str.fossil, c: coalC}, {l: str.nuclear, c: nucC}, {l: str.renewables, c: renC}]
   let impC = "#D45D79"
   let expC = "#2E9E6E"
   let bC = alpha(foreground, 0.55)
@@ -238,8 +704,8 @@ app "power atlas" {
 
   // The countries tab: what the list is sorted by, and what each row says about it.
   let sorts = [
-    {k: "E", l: "generates"}, {k: "U", l: "uses"}, {k: "pd", l: "per person"}, {k: "pk", l: "per km²"},
-    {k: "cl", l: "clean"}, {k: "sw", l: "sun & wind"}, {k: "im", l: "imports"}, {k: "ex", l: "exports"}
+    {k: "E", l: str.sGenerates}, {k: "U", l: str.sUses}, {k: "pd", l: str.sPerPerson}, {k: "pk", l: str.sPerKm},
+    {k: "cl", l: str.sClean}, {k: "sw", l: str.sSunWind}, {k: "im", l: str.sImports}, {k: "ex", l: str.sExports}
   ]
   let regions = ["all", "Europe", "Asia", "Americas", "Africa", "Middle East", "Oceania"]
   let found = C.filter(c => (reg == "all" || c.r == reg) && (len(typed) == 0 || contains(lower(c.n), lower(typed))))
@@ -433,7 +899,7 @@ app "power atlas" {
         align: center
         padding: [16, 4, 16, 8]
         Image { src: searchIcon; size: 20; tint: muted }
-        Input { text: pickTyped; placeholder: "search countries"; weight: 1; onChange: pickTyped = value }
+        Input { text: pickTyped; placeholder: str.search; weight: 1; onChange: pickTyped = value }
       }
       Column {
         lazy: true
@@ -452,7 +918,7 @@ app "power atlas" {
             }
             Text { text: c.f; fontSize: 24 }
             Text { text: c.n; weight: 1; maxLines: 1; bold: c.id == (picking == "a" ? cmpA : cmpB) }
-            Text { text: c.r; style: small; color: muted }
+            Text { text: str.region(c.r); style: small; color: muted }
           }
         }
       }
@@ -479,7 +945,7 @@ app "power atlas" {
             weight: 1
             gap: 2
             Text { text: cn.n; style: title; maxLines: 2 }
-            Text { text: "${cn.r} · ${fmtNum(cn.pop, {compact: true})} people · ${fmtNum(cn.km2, {compact: true})} km²"; style: small; color: muted; maxLines: 2 }
+            Text { text: "${str.region(cn.r)} · ${str.people(fmtNum(cn.pop, {compact: true}))} · ${fmtNum(cn.km2, {compact: true})} km²"; style: small; color: muted; maxLines: 2 }
           }
         }
 
@@ -489,10 +955,10 @@ app "power atlas" {
           background: alpha(foreground, 0.05)
           radius: 10 * corners
           Text {
-            spans: ss >= 1.95 ? ["generates ", {text: "${fixed(ss, ss >= 10 ? 0 : 1)}×", bold: true, color: expC}, " the electricity it uses, and sells the rest abroad"]
-              : ss > 1.02 ? ["sells ", {text: "${round((1 - 1 / ss) * 100)}%", bold: true, color: expC}, " of the electricity it generates abroad"]
-              : ss >= 0.98 ? ["generates ", {text: "all the electricity", bold: true}, " it uses"]
-              : ["buys ", {text: "${round((1 - ss) * 100)}%", bold: true, color: impC}, " of the electricity it uses from abroad"]
+            spans: ss >= 1.95 ? [str.genXa, {text: "${fixed(ss, ss >= 10 ? 0 : 1)}×", bold: true, color: expC}, str.genXb]
+              : ss > 1.02 ? [str.sellsA, {text: "${round((1 - 1 / ss) * 100)}%", bold: true, color: expC}, str.sellsB]
+              : ss >= 0.98 ? [str.allA, {text: str.allBold, bold: true}, str.allB]
+              : [str.buysA, {text: "${round((1 - ss) * 100)}%", bold: true, color: impC}, str.buysB]
             fontSize: 20
           }
           Column {
@@ -500,7 +966,7 @@ app "power atlas" {
             Row {
               gap: 10
               align: center
-              Text { text: "generates"; style: small; color: muted; width: 72 }
+              Text { text: str.rowGen; style: small; color: muted; width: 72 }
               Row {
                 weight: 1
                 gap: 0
@@ -513,15 +979,15 @@ app "power atlas" {
             Row {
               gap: 10
               align: center
-              Text { text: "uses"; style: small; color: muted; width: 72 }
+              Text { text: str.rowUse; style: small; color: muted; width: 72 }
               Column { weight: 1; Bar { f: cn.U / bmax; tint: bC; h: 16 } }
               Text { text: "${fmtNum(cn.U, cn.U >= 100 ? 0 : 1)} TWh"; style: small; bold: true; width: 86; align: end }
             }
           }
-          Text { text: "That's ${fixed(cn.E / W.E * 100, cn.E / W.E < 0.1 ? 1 : 0)}% of the world's electricity, #${cn.rE} of ${len(C)} countries."; style: small; color: muted }
+          Text { text: str.worldShare(fixed(cn.E / W.E * 100, cn.E / W.E < 0.1 ? 1 : 0), cn.rE, len(C)); style: small; color: muted }
         }
 
-        Head { t: "how clean"; sub: "${round(cn.cl * 100)}% from nuclear and renewables, #${cn.rC} of ${len(C)}" }
+        Head { t: str.howClean; sub: str.cleanSub(round(cn.cl * 100), cn.rC, len(C)) }
         Column {
           gap: 10
           padding: [14, 12]
@@ -531,7 +997,7 @@ app "power atlas" {
           Legend { vals: groups; srcs: GS }
         }
 
-        Head { t: "where its electricity comes from"; sub: "${fmtNum(cn.E, cn.E >= 100 ? 0 : 1)} TWh generated in 2024" }
+        Head { t: str.whereFrom; sub: str.generatedIn(fmtNum(cn.E, cn.E >= 100 ? 0 : 1)) }
         Column {
           gap: 10
           padding: [14, 12]
@@ -541,18 +1007,18 @@ app "power atlas" {
           Legend { vals: cn.el; srcs: ES }
         }
 
-        Head { t: "imports and exports"; sub: "electricity across its borders, TWh a year" }
+        Head { t: str.trade; sub: str.tradeSub }
         Column {
           gap: 8
           padding: [14, 12]
           background: alpha(foreground, 0.05)
           radius: 10 * corners
           if tmax < 0.05 {
-            Text { text: "no power lines to its neighbours carry electricity in the data"; style: small; color: muted }
+            Text { text: str.noTrade; style: small; color: muted }
           } else {
             Row {
-              Text { text: "◀ imported"; style: small; color: impC; weight: 1 }
-              Text { text: "exported ▶"; style: small; color: expC; weight: 1; align: end }
+              Text { text: str.importedArrow; style: small; color: impC; weight: 1 }
+              Text { text: str.exportedArrow; style: small; color: expC; weight: 1; align: end }
             }
             Row {
               gap: 0
@@ -581,42 +1047,42 @@ app "power atlas" {
               Text { text: "${fmtNum(cn.ex, cn.ex >= 100 ? 0 : 1)} TWh"; bold: true; weight: 1; align: end }
             }
             Text {
-              spans: abs(cn.net) < 0.05 ? ["as much in as out"]
-                : cn.net > 0 ? ["net import ", {text: "${fmtNum(cn.net, cn.net >= 100 ? 0 : 1)} TWh", bold: true, color: impC}, ", ${round(cn.net / cn.U * 100)}% of what it uses"]
-                : ["net export ", {text: "${fmtNum(-cn.net, -cn.net >= 100 ? 0 : 1)} TWh", bold: true, color: expC}, ", ${round(-cn.net / cn.E * 100)}% of what it generates"]
+              spans: abs(cn.net) < 0.05 ? [str.balanced]
+                : cn.net > 0 ? [str.netImport, {text: "${fmtNum(cn.net, cn.net >= 100 ? 0 : 1)} TWh", bold: true, color: impC}, str.ofUsesTail(round(cn.net / cn.U * 100))]
+                : [str.netExport, {text: "${fmtNum(-cn.net, -cn.net >= 100 ? 0 : 1)} TWh", bold: true, color: expC}, str.ofGenTail(round(-cn.net / cn.E * 100))]
               style: small
             }
           }
         }
 
-        Head { t: "compared to its size"; sub: "its share of the world" }
+        Head { t: str.sizeHead; sub: str.sizeSub }
         Column {
           gap: 10
           padding: [14, 12]
           background: alpha(foreground, 0.05)
           radius: 10 * corners
-          Share { label: "people"; s: shares[0]; smax: smax; tint: bC }
-          Share { label: "land"; s: shares[1]; smax: smax; tint: bC }
-          Share { label: "generated"; s: shares[2]; smax: smax }
-          Share { label: "used"; s: shares[3]; smax: smax }
+          Share { label: str.lPeople; s: shares[0]; smax: smax; tint: bC }
+          Share { label: str.land; s: shares[1]; smax: smax; tint: bC }
+          Share { label: str.generated; s: shares[2]; smax: smax }
+          Share { label: str.used; s: shares[3]; smax: smax }
           Text {
-            spans: ["Each person uses ", {text: cn.pd >= W.pd ? "${fixed(cn.pd / W.pd, 1)}×" : "${round(cn.pd / W.pd * 100)}%", bold: true}, cn.pd >= W.pd ? " the world's average." : " of the world's average."]
+            spans: [str.eachA, {text: cn.pd >= W.pd ? "${fixed(cn.pd / W.pd, 1)}×" : "${round(cn.pd / W.pd * 100)}%", bold: true}, cn.pd >= W.pd ? str.avgMore : str.avgLess]
             style: small
           }
         }
         Grid {
           columns: 2
           gap: 8
-          Tile { label: "per person"; value: fmtNum(cn.pd, cn.pd >= 100 ? 0 : 1); unit: "kWh a day"; sub: "#${cn.rD} · world ${fmtNum(W.pd, 1)}" }
-          Tile { label: "generated per km²"; value: fmtNum(cn.pk * 1000); unit: "MWh"; sub: "#${cn.rK} · world ${fmtNum(W.pk * 1000)}" }
-          Tile { label: "clean"; value: "${round(cn.cl * 100)}"; unit: "%"; sub: "#${cn.rC} · world ${round(W.cl * 100)}%" }
-          Tile { label: "sun and wind"; value: "${round(cn.sw * 100)}"; unit: "%"; sub: "#${cn.rS} · world ${round(W.sw * 100)}%" }
+          Tile { label: str.perPerson; value: fmtNum(cn.pd, cn.pd >= 100 ? 0 : 1); unit: str.kwhDay; sub: str.worldRef(cn.rD, fmtNum(W.pd, 1)) }
+          Tile { label: str.perKm; value: fmtNum(cn.pk * 1000); unit: "MWh"; sub: str.worldRef(cn.rK, fmtNum(W.pk * 1000)) }
+          Tile { label: str.clean; value: "${round(cn.cl * 100)}"; unit: "%"; sub: str.worldRef(cn.rC, "${round(W.cl * 100)}%") }
+          Tile { label: str.sunWind; value: "${round(cn.sw * 100)}"; unit: "%"; sub: str.worldRef(cn.rS, "${round(W.sw * 100)}%") }
         }
         Row {
           gap: 8
-          Button { text: "compare with…"; color: accent; onTap: { cmpA = openId; openId = ""; view = "compare"; picking = "b" } }
+          Button { text: str.compareWith; color: accent; onTap: { cmpA = openId; openId = ""; view = "compare"; picking = "b" } }
         }
-        Text { text: "${cn.y ?? 2024} · data: U.S. EIA, World Bank"; style: small; color: muted; align: center }
+        Text { text: str.dataLine(cn.y ?? 2024); style: small; color: muted; align: center }
       }
 
     } else {
@@ -629,13 +1095,13 @@ app "power atlas" {
             gap: 10
             align: center
             Image { src: searchIcon; size: 20; tint: muted }
-            Input { text: typed; placeholder: "search countries"; weight: 1; onChange: typed = value }
+            Input { text: typed; placeholder: str.search; weight: 1; onChange: typed = value }
             if len(typed) > 0 {
               Text { text: "✕"; color: muted; width: 28; align: center; onTap: typed = "" }
             }
             Box {
               width: 150
-              Text { text: reg == "all" ? "everywhere ▾" : "${reg} ▾"; style: small; maxLines: 1; padding: [12, 6]; color: (reg != "all") ? foreground : muted; background: (reg != "all") ? alpha(foreground, 0.12) : null; border: 1; borderColor: (reg != "all") ? alpha(foreground, 0.7) : alpha(muted, 0.4); radius: 14 * corners; onTap: regOpen = true }
+              Text { text: reg == "all" ? "${str.everywhere} ▾" : "${str.region(reg)} ▾"; style: small; maxLines: 1; padding: [12, 6]; color: (reg != "all") ? foreground : muted; background: (reg != "all") ? alpha(foreground, 0.12) : null; border: 1; borderColor: (reg != "all") ? alpha(foreground, 0.7) : alpha(muted, 0.4); radius: 14 * corners; onTap: regOpen = true }
               Popup {
                 visible: regOpen
                 onDismiss: regOpen = false
@@ -643,7 +1109,7 @@ app "power atlas" {
                 Column {
                   gap: 0
                   for r in regions {
-                    Text { text: r == "all" ? "everywhere" : r; padding: [16, 10]; bold: r == reg; color: r == reg ? accent : foreground; width: 160; onTap: { reg = r; regOpen = false } }
+                    Text { text: r == "all" ? str.everywhere : str.region(r); padding: [16, 10]; bold: r == reg; color: r == reg ? accent : foreground; width: 160; onTap: { reg = r; regOpen = false } }
                   }
                 }
               }
@@ -657,7 +1123,7 @@ app "power atlas" {
           }
         }
         if len(rows) == 0 {
-          Text { text: "no country matches"; color: muted; align: center; padding: [16, 24] }
+          Text { text: str.noMatch; color: muted; align: center; padding: [16, 24] }
           Spacer { weight: 1 }
         } else {
           Column {
@@ -674,18 +1140,18 @@ app "power atlas" {
                 f: v / vmax
                 mixBar: sortKey == "E"
                 tint: sortKey == "im" ? impC : sortKey == "ex" ? expC : sortKey == "cl" ? renC : accent
-                value: sortKey == "pd" ? "${fmtNum(v, v >= 100 ? 0 : 1)} kWh/day"
+                value: sortKey == "pd" ? "${fmtNum(v, v >= 100 ? 0 : 1)} ${str.kwhPerDay}"
                   : sortKey == "pk" ? "${fmtNum(v * 1000)} MWh/km²"
                   : sortKey == "cl" || sortKey == "sw" ? "${round(v * 100)}%"
                   : "${fmtNum(v, v >= 100 ? 0 : 1)} TWh"
-                sub: sortKey == "E" ? "${fixed(c.E / W.E * 100, c.E / W.E < 0.1 ? 1 : 0)}% of the world's electricity"
-                  : sortKey == "U" ? "${fixed(c.U / W.U * 100, c.U / W.U < 0.1 ? 1 : 0)}% of the world's use"
-                  : sortKey == "pd" ? "per person, ${fixed(c.pd / W.pd, 1)}× the world's average"
-                  : sortKey == "pk" ? "generated on each km², ${fixed(c.pk / W.pk, 1)}× the world's average"
-                  : sortKey == "cl" ? "from nuclear and renewables"
-                  : sortKey == "sw" ? "from solar and wind"
-                  : sortKey == "im" ? (c.net > 0 ? "net import, ${round(c.net / c.U * 100)}% of what it uses" : "but exports more: ${fmtNum(c.ex, c.ex >= 100 ? 0 : 1)} TWh")
-                  : (c.net < 0 ? "net export, ${round(-c.net / c.E * 100)}% of what it generates" : "but imports more: ${fmtNum(c.im, c.im >= 100 ? 0 : 1)} TWh")
+                sub: sortKey == "E" ? str.rowElec(fixed(c.E / W.E * 100, c.E / W.E < 0.1 ? 1 : 0))
+                  : sortKey == "U" ? str.rowUse2(fixed(c.U / W.U * 100, c.U / W.U < 0.1 ? 1 : 0))
+                  : sortKey == "pd" ? str.rowPd(fixed(c.pd / W.pd, 1))
+                  : sortKey == "pk" ? str.rowPk(fixed(c.pk / W.pk, 1))
+                  : sortKey == "cl" ? str.fromClean
+                  : sortKey == "sw" ? str.fromSunWind
+                  : sortKey == "im" ? (c.net > 0 ? str.rowNetImp(round(c.net / c.U * 100)) : str.rowExpMore(fmtNum(c.ex, c.ex >= 100 ? 0 : 1)))
+                  : (c.net < 0 ? str.rowNetExp(round(-c.net / c.E * 100)) : str.rowImpMore(fmtNum(c.im, c.im >= 100 ? 0 : 1)))
               }
             }
           }
@@ -706,14 +1172,14 @@ app "power atlas" {
               padding: [14, 12]
               background: alpha(foreground, 0.05)
               radius: 10 * corners
-              Text { text: "in 2024 the world generated"; style: small; color: muted }
+              Text { text: str.worldGen; style: small; color: muted }
               Text { spans: [{text: fmtNum(W.E), fontSize: 40, bold: true}, {text: " TWh", fontSize: 18, color: muted}] }
-              Text { text: "of electricity: ${fmtNum(W.pd, 1)} kWh a day for each of its ${fmtNum(W.pop, {compact: true})} people"; style: small }
+              Text { text: str.worldPer(fmtNum(W.pd, 1), fmtNum(W.pop, {compact: true})); style: small }
               Stack { vals: W.el; cols: ES; h: 18 }
               Legend { vals: W.el; srcs: ES }
             }
 
-            Head { t: "how clean"; sub: "${round(W.cl * 100)}% from nuclear and renewables, ${round(W.sw * 100)}% from sun and wind alone" }
+            Head { t: str.howClean; sub: str.worldClean(round(W.cl * 100), round(W.sw * 100)) }
             Column {
               gap: 10
               padding: [14, 12]
@@ -723,51 +1189,51 @@ app "power atlas" {
               Legend { vals: wg; srcs: GS }
             }
 
-            Head { t: "biggest generators"; sub: "tap one to see its page" }
+            Head { t: str.biggest; sub: str.tapHint }
             Column {
               gap: 0
               for c, i in top key c.id {
-                Ranked { c: c; i: i; f: c.E / top[0].E; mixBar: true; value: "${fmtNum(c.E)} TWh"; sub: "${fixed(c.E / W.E * 100, 0)}% of the world · ${fmtNum(c.pop, {compact: true})} people" }
+                Ranked { c: c; i: i; f: c.E / top[0].E; mixBar: true; value: "${fmtNum(c.E)} TWh"; sub: str.topSub(fixed(c.E / W.E * 100, 0), fmtNum(c.pop, {compact: true})) }
               }
             }
 
-            Head { t: "cleanest grids"; sub: "share from nuclear and renewables, countries of a million people or more" }
+            Head { t: str.cleanest; sub: str.cleanestSub }
             Column {
               gap: 0
               for c, i in cleanest key c.id {
-                Ranked { c: c; i: i; f: c.cl; tint: renC; value: "${round(c.cl * 100)}%"; sub: "${fmtNum(c.E, c.E >= 100 ? 0 : 1)} TWh a year" }
+                Ranked { c: c; i: i; f: c.cl; tint: renC; value: "${round(c.cl * 100)}%"; sub: str.twhYear(fmtNum(c.E, c.E >= 100 ? 0 : 1)) }
               }
             }
 
-            Head { t: "most sun and wind"; sub: "share from solar and wind, countries of a million people or more" }
+            Head { t: str.windiest; sub: str.windiestSub }
             Column {
               gap: 0
               for c, i in windy key c.id {
-                Ranked { c: c; i: i; f: c.sw / windy[0].sw; tint: "#16A0A0"; value: "${round(c.sw * 100)}%"; sub: "${round(c.el[4] / c.E * 100)}% solar · ${round(c.el[5] / c.E * 100)}% wind" }
+                Ranked { c: c; i: i; f: c.sw / windy[0].sw; tint: "#16A0A0"; value: "${round(c.sw * 100)}%"; sub: str.solarWind(round(c.el[4] / c.E * 100), round(c.el[5] / c.E * 100)) }
               }
             }
 
-            Head { t: "biggest exporters"; sub: "electricity sold beyond what it buys" }
+            Head { t: str.exporters; sub: str.exportersSub }
             Column {
               gap: 0
               for c, i in exporters key c.id {
-                Ranked { c: c; i: i; f: c.net / exporters[0].net; tint: expC; value: "${fmtNum(-c.net, -c.net >= 100 ? 0 : 1)} TWh"; sub: "${round(-c.net / c.E * 100)}% of what it generates" }
+                Ranked { c: c; i: i; f: c.net / exporters[0].net; tint: expC; value: "${fmtNum(-c.net, -c.net >= 100 ? 0 : 1)} TWh"; sub: str.ofGen(round(-c.net / c.E * 100)) }
               }
             }
 
-            Head { t: "biggest importers"; sub: "electricity bought beyond what it sells" }
+            Head { t: str.importers; sub: str.importersSub }
             Column {
               gap: 0
               for c, i in importers key c.id {
-                Ranked { c: c; i: i; f: c.net / importers[0].net; tint: impC; value: "${fmtNum(c.net, c.net >= 100 ? 0 : 1)} TWh"; sub: "${round(c.net / c.U * 100)}% of what it uses" }
+                Ranked { c: c; i: i; f: c.net / importers[0].net; tint: impC; value: "${fmtNum(c.net, c.net >= 100 ? 0 : 1)} TWh"; sub: str.ofUse(round(c.net / c.U * 100)) }
               }
             }
 
-            Head { t: "most per person"; sub: "countries of a million people or more" }
+            Head { t: str.mostPerPerson; sub: str.millionSub }
             Column {
               gap: 0
               for c, i in hungry key c.id {
-                Ranked { c: c; i: i; f: c.pd / hungry[0].pd; value: "${fmtNum(c.pd)} kWh/day"; sub: "${fixed(c.pd / W.pd, 1)}× the world's average" }
+                Ranked { c: c; i: i; f: c.pd / hungry[0].pd; value: "${fmtNum(c.pd)} ${str.kwhPerDay}"; sub: str.timesAvg(fixed(c.pd / W.pd, 1)) }
               }
             }
 
@@ -787,7 +1253,7 @@ app "power atlas" {
                 onTap: picking = "a"
                 Text { text: cA.f; fontSize: 32 }
                 Text { text: cA.n; bold: true; maxLines: 1 }
-                Text { text: "change"; style: small; color: accent }
+                Text { text: str.change; style: small; color: accent }
               }
               Text { text: "⇄"; fontSize: 22; color: muted; width: 32; align: center; onTap: { cmpA = cB.id; cmpB = cA.id } }
               Column {
@@ -801,45 +1267,45 @@ app "power atlas" {
                 onTap: picking = "b"
                 Text { text: cB.f; fontSize: 32 }
                 Text { text: cB.n; bold: true; maxLines: 1 }
-                Text { text: "change"; style: small; color: muted }
+                Text { text: str.change; style: small; color: muted }
               }
             }
 
-            Head { t: "how much" }
+            Head { t: str.howMuch }
             Column {
               gap: 10
               padding: [14, 12]
               background: alpha(foreground, 0.05)
               radius: 10 * corners
-              Versus { label: "generated"; a: cA.E; b: cB.E; ta: "${fmtNum(cA.E, cA.E >= 100 ? 0 : 1)} TWh"; tb: "${fmtNum(cB.E, cB.E >= 100 ? 0 : 1)} TWh" }
-              Versus { label: "used"; a: cA.U; b: cB.U; ta: "${fmtNum(cA.U, cA.U >= 100 ? 0 : 1)} TWh"; tb: "${fmtNum(cB.U, cB.U >= 100 ? 0 : 1)} TWh" }
-              Versus { label: "imported"; a: cA.im; b: cB.im; ta: "${fmtNum(cA.im, cA.im >= 100 ? 0 : 1)} TWh"; tb: "${fmtNum(cB.im, cB.im >= 100 ? 0 : 1)} TWh" }
-              Versus { label: "exported"; a: cA.ex; b: cB.ex; ta: "${fmtNum(cA.ex, cA.ex >= 100 ? 0 : 1)} TWh"; tb: "${fmtNum(cB.ex, cB.ex >= 100 ? 0 : 1)} TWh" }
+              Versus { label: str.generated; a: cA.E; b: cB.E; ta: "${fmtNum(cA.E, cA.E >= 100 ? 0 : 1)} TWh"; tb: "${fmtNum(cB.E, cB.E >= 100 ? 0 : 1)} TWh" }
+              Versus { label: str.used; a: cA.U; b: cB.U; ta: "${fmtNum(cA.U, cA.U >= 100 ? 0 : 1)} TWh"; tb: "${fmtNum(cB.U, cB.U >= 100 ? 0 : 1)} TWh" }
+              Versus { label: str.imported; a: cA.im; b: cB.im; ta: "${fmtNum(cA.im, cA.im >= 100 ? 0 : 1)} TWh"; tb: "${fmtNum(cB.im, cB.im >= 100 ? 0 : 1)} TWh" }
+              Versus { label: str.exported; a: cA.ex; b: cB.ex; ta: "${fmtNum(cA.ex, cA.ex >= 100 ? 0 : 1)} TWh"; tb: "${fmtNum(cB.ex, cB.ex >= 100 ? 0 : 1)} TWh" }
             }
 
-            Head { t: "for its size" }
+            Head { t: str.forSize }
             Column {
               gap: 10
               padding: [14, 12]
               background: alpha(foreground, 0.05)
               radius: 10 * corners
-              Versus { label: "people"; a: cA.pop; b: cB.pop; ta: fmtNum(cA.pop, {compact: true}); tb: fmtNum(cB.pop, {compact: true}) }
-              Versus { label: "land"; a: cA.km2; b: cB.km2; ta: "${fmtNum(cA.km2, {compact: true})} km²"; tb: "${fmtNum(cB.km2, {compact: true})} km²" }
-              Versus { label: "per person"; a: cA.pd; b: cB.pd; ta: "${fmtNum(cA.pd, 1)} kWh/day"; tb: "${fmtNum(cB.pd, 1)} kWh/day" }
-              Versus { label: "generated per km²"; a: cA.pk; b: cB.pk; ta: "${fmtNum(cA.pk * 1000)} MWh"; tb: "${fmtNum(cB.pk * 1000)} MWh" }
+              Versus { label: str.lPeople; a: cA.pop; b: cB.pop; ta: fmtNum(cA.pop, {compact: true}); tb: fmtNum(cB.pop, {compact: true}) }
+              Versus { label: str.land; a: cA.km2; b: cB.km2; ta: "${fmtNum(cA.km2, {compact: true})} km²"; tb: "${fmtNum(cB.km2, {compact: true})} km²" }
+              Versus { label: str.perPerson; a: cA.pd; b: cB.pd; ta: "${fmtNum(cA.pd, 1)} ${str.kwhPerDay}"; tb: "${fmtNum(cB.pd, 1)} ${str.kwhPerDay}" }
+              Versus { label: str.perKm; a: cA.pk; b: cB.pk; ta: "${fmtNum(cA.pk * 1000)} MWh"; tb: "${fmtNum(cB.pk * 1000)} MWh" }
             }
 
-            Head { t: "how clean" }
+            Head { t: str.howClean }
             Column {
               gap: 10
               padding: [14, 12]
               background: alpha(foreground, 0.05)
               radius: 10 * corners
-              Versus { label: "nuclear and renewables"; a: cA.cl; b: cB.cl; ta: "${round(cA.cl * 100)}%"; tb: "${round(cB.cl * 100)}%" }
-              Versus { label: "sun and wind"; a: cA.sw; b: cB.sw; ta: "${round(cA.sw * 100)}%"; tb: "${round(cB.sw * 100)}%" }
+              Versus { label: str.nucRen; a: cA.cl; b: cB.cl; ta: "${round(cA.cl * 100)}%"; tb: "${round(cB.cl * 100)}%" }
+              Versus { label: str.sunWind; a: cA.sw; b: cB.sw; ta: "${round(cA.sw * 100)}%"; tb: "${round(cB.sw * 100)}%" }
             }
 
-            Head { t: "where the electricity comes from" }
+            Head { t: str.whereThe }
             Column {
               gap: 10
               padding: [14, 12]
@@ -862,7 +1328,7 @@ app "power atlas" {
 
           } else {
             // ---------------------------------------------------------------- about
-            Head { t: "reading the numbers" }
+            Head { t: str.reading }
             Column {
               gap: 10
               padding: [14, 12]
@@ -871,40 +1337,40 @@ app "power atlas" {
               Column {
                 gap: 2
                 Text { text: "TWh"; bold: true; color: accent }
-                Text { text: "A terawatt-hour is a billion kilowatt-hours. A home uses about 10 kWh of electricity a day, so 1 TWh is a year of electricity for some 270,000 homes."; style: small }
+                Text { text: str.twhBody; style: small }
               }
               Column {
                 gap: 2
-                Text { text: "kWh a day"; bold: true; color: accent }
-                Text { text: "All the electricity a country uses, homes, shops, factories and trains together, shared out over its people and the days of the year. Boiling a full kettle takes about 0.1 kWh."; style: small }
+                Text { text: str.kwhDay; bold: true; color: accent }
+                Text { text: str.kwhDayBody; style: small }
               }
               Column {
                 gap: 2
-                Text { text: "Generates and uses"; bold: true; color: accent }
-                Text { text: "Generated is what the country's power stations, solar panels and wind turbines make. Used is that plus what it imports, minus what it exports."; style: small }
+                Text { text: str.genUse; bold: true; color: accent }
+                Text { text: str.genUseBody; style: small }
               }
               Column {
                 gap: 2
-                Text { text: "Clean"; bold: true; color: accent }
-                Text { text: "Electricity from nuclear power and renewables: solar, wind, hydro, biomass, geothermal and tide. Fossil fuels are coal, gas and oil burnt in power stations."; style: small }
+                Text { text: str.cleanCap; bold: true; color: accent }
+                Text { text: str.cleanBody; style: small }
               }
               Column {
                 gap: 2
-                Text { text: "Imports and exports"; bold: true; color: accent }
-                Text { text: "Electricity sent through power lines to and from neighbouring countries. Many countries do both, buying at some hours and selling at others."; style: small }
+                Text { text: str.tradeCap; bold: true; color: accent }
+                Text { text: str.tradeBody; style: small }
               }
             }
-            Head { t: "the data" }
+            Head { t: str.theData }
             Column {
               gap: 10
               padding: [14, 12]
               background: alpha(foreground, 0.05)
               radius: 10 * corners
-              Text { text: "Electricity generation by source, imports and exports for ${len(C)} countries in 2024 come from the U.S. Energy Information Administration's international energy statistics. Population and area come from the World Bank. Everything is in the app, so it works offline."; style: small }
+              Text { text: str.dataBody(len(C)); style: small }
               Row {
                 gap: 8
-                Button { text: "EIA data"; color: accent; onTap: url("https://www.eia.gov/international/data/world") }
-                Button { text: "World Bank"; color: muted; onTap: url("https://data.worldbank.org") }
+                Button { text: str.eiaData; color: accent; onTap: url("https://www.eia.gov/international/data/world") }
+                Button { text: str.worldBank; color: muted; onTap: url("https://data.worldbank.org") }
               }
             }
           }
@@ -914,10 +1380,10 @@ app "power atlas" {
       Box { height: 1; fill: width; background: alpha(muted, 0.25) }
       Row {
         gap: 0
-        Tab { name: "world"; label: "world"; img: worldIcon }
-        Tab { name: "countries"; label: "countries"; img: rankIcon }
-        Tab { name: "compare"; label: "compare"; img: compareIcon }
-        Tab { name: "about"; label: "about"; img: aboutIcon }
+        Tab { name: "world"; label: str.tabWorld; img: worldIcon }
+        Tab { name: "countries"; label: str.tabCountries; img: rankIcon }
+        Tab { name: "compare"; label: str.tabCompare; img: compareIcon }
+        Tab { name: "about"; label: str.tabAbout; img: aboutIcon }
       }
     }
   }

@@ -1,6 +1,20 @@
 widget "calendar" {
-  meta { description: "This month's calendar with today highlighted"; version: "1.1"; license: "MIT"; category: "productivity" }
+  meta { description: "This month's calendar with today highlighted"; version: "1.2"; license: "MIT"; category: "productivity"; owl: 16 }
   size: 3x3
+
+  // The month's title as each language writes it (the phone names the month), and the weekdays' letters from Monday.
+  strings {
+    en { month: "MMMM yyyy"; days: ["M", "T", "W", "T", "F", "S", "S"] }
+    id { month: "MMMM yyyy"; days: ["S", "S", "R", "K", "J", "S", "M"] }
+    es { month: "MMMM 'de' yyyy"; days: ["L", "M", "X", "J", "V", "S", "D"] }
+    pt { month: "MMMM 'de' yyyy"; days: ["S", "T", "Q", "Q", "S", "S", "D"] }
+    de { month: "MMMM yyyy"; days: ["M", "D", "M", "D", "F", "S", "S"] }
+    zh { month: "yyyy年M月"; days: ["一", "二", "三", "四", "五", "六", "日"] }
+    ru { month: "LLLL yyyy"; days: ["П", "В", "С", "Ч", "П", "С", "В"] }
+    ja { month: "yyyy年M月"; days: ["月", "火", "水", "木", "金", "土", "日"] }
+    uk { month: "LLLL yyyy"; days: ["П", "В", "С", "Ч", "П", "С", "Н"] }
+    fr { month: "MMMM yyyy"; days: ["L", "M", "M", "J", "V", "S", "D"] }
+  }
   source now = clock every 60s
   // Date math with only fmtTime: first weekday of the month, days in the month.
   let day = num(fmtTime(now, "d"))
@@ -9,11 +23,11 @@ widget "calendar" {
   let days = 32 - num(fmtTime(first + 31 * 86400, "d"))
   Column {
     gap: 4
-    Text { text: fmtTime(now, "MMMM yyyy"); style: small; color: accent }
+    Text { text: fmtTime(now, str.month); style: small; color: accent }
     Grid {
       columns: 7
       gap: 2
-      for d in ["M", "T", "W", "T", "F", "S", "S"] { Text { text: d; fontSize: 9; color: muted; align: center } }
+      for d in str.days { Text { text: d; fontSize: 9; color: muted; align: center } }
       for i in range(offset + days) {
         Text {
           text: i < offset ? "" : str(i - offset + 1)

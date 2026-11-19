@@ -2,9 +2,74 @@ widget "ifsc" {
   meta {
     owl: 17
     description: "IFSC Climbing World Cup: the next event with a countdown, the latest podiums, live results and the cup standings for boulder, lead and speed. Tap for everything"
-    version: "1.2"
+    version: "1.3"
     license: "MIT"
     category: "sport"
+  }
+  // What it says, in the phone's language where it has a set. Events, climbers, disciplines (boulder, lead,
+  // speed), categories and round names come as ifsc.results.info writes them. dotLive sits in 60dp, the
+  // countdown in 64dp.
+  strings {
+    en {
+      live: "live"; dotLive: "● live"; next: n => "next · ${n}"; nowAt: n => "now · ${n}"; lastAt: n => "last · ${n}"; seasonOver: "season over"
+      cupLeaders: "cup leaders"; loading: "loading…"; noResults: "no results yet"; noStandings: "no standings yet"; results: "results"
+      standings: "standings"; calendar: "calendar"; final: "final"; fullResults: "full results on ifsc.results.info"; close: "close"
+      pts: p => "${p} pts"; now: "now"; inDays: n => "in ${n}d"; inTime: d => "in ${d}"
+    }
+    id {
+      live: "live"; dotLive: "● live"; next: n => "berikutnya · ${n}"; nowAt: n => "kini · ${n}"; lastAt: n => "terakhir · ${n}"; seasonOver: "musim sudah selesai"
+      cupLeaders: "pemimpin piala"; loading: "memuat…"; noResults: "belum ada hasil"; noStandings: "belum ada klasemen"; results: "hasil"
+      standings: "klasemen"; calendar: "kalender"; final: "selesai"; fullResults: "hasil lengkap di ifsc.results.info"; close: "tutup"
+      pts: p => "${p} poin"; now: "kini"; inDays: n => "${n}h lagi"; inTime: d => "${d} lagi"
+    }
+    es {
+      live: "en vivo"; dotLive: "● en vivo"; next: n => "próximo · ${n}"; nowAt: n => "ahora · ${n}"; lastAt: n => "último · ${n}"; seasonOver: "temporada terminada"
+      cupLeaders: "líderes de la copa"; loading: "cargando…"; noResults: "aún no hay resultados"; noStandings: "aún no hay clasificación"; results: "resultados"
+      standings: "clasificación"; calendar: "calendario"; final: "finalizado"; fullResults: "resultados completos en ifsc.results.info"; close: "cerrar"
+      pts: p => "${p} pts"; now: "ahora"; inDays: n => "en ${n} d"; inTime: d => "en ${d}"
+    }
+    pt {
+      live: "ao vivo"; dotLive: "● ao vivo"; next: n => "próxima · ${n}"; nowAt: n => "agora · ${n}"; lastAt: n => "última · ${n}"; seasonOver: "temporada encerrada"
+      cupLeaders: "líderes da copa"; loading: "carregando…"; noResults: "ainda sem resultados"; noStandings: "ainda sem classificação"; results: "resultados"
+      standings: "classificação"; calendar: "calendário"; final: "encerrado"; fullResults: "resultados completos em ifsc.results.info"; close: "fechar"
+      pts: p => "${p} pts"; now: "agora"; inDays: n => "em ${n} d"; inTime: d => "em ${d}"
+    }
+    de {
+      live: "live"; dotLive: "● live"; next: n => "nächstes · ${n}"; nowAt: n => "jetzt · ${n}"; lastAt: n => "zuletzt · ${n}"; seasonOver: "saison vorbei"
+      cupLeaders: "weltcup-spitze"; loading: "lädt…"; noResults: "noch keine ergebnisse"; noStandings: "noch keine wertung"; results: "ergebnisse"
+      standings: "wertung"; calendar: "kalender"; final: "beendet"; fullResults: "alle ergebnisse auf ifsc.results.info"; close: "schließen"
+      pts: p => "${p} pkt"; now: "jetzt"; inDays: n => "in ${n} tg"; inTime: d => "in ${d}"
+    }
+    zh {
+      live: "直播中"; dotLive: "● 直播中"; next: n => "下一站 · ${n}"; nowAt: n => "进行中 · ${n}"; lastAt: n => "上一站 · ${n}"; seasonOver: "赛季已结束"
+      cupLeaders: "积分领先"; loading: "正在加载…"; noResults: "暂无成绩"; noStandings: "暂无排名"; results: "成绩"
+      standings: "排名"; calendar: "赛历"; final: "已结束"; fullResults: "在 ifsc.results.info 查看完整成绩"; close: "关闭"
+      pts: p => "${p} 分"; now: "现在"; inDays: n => "${n} 天后"; inTime: d => "${d} 后"
+    }
+    ru {
+      live: "в эфире"; dotLive: "● идёт"; next: n => "далее · ${n}"; nowAt: n => "сейчас · ${n}"; lastAt: n => "последний · ${n}"; seasonOver: "сезон окончен"
+      cupLeaders: "лидеры кубка"; loading: "загрузка…"; noResults: "результатов пока нет"; noStandings: "зачёта пока нет"; results: "результаты"
+      standings: "зачёт"; calendar: "календарь"; final: "итог"; fullResults: "все результаты на ifsc.results.info"; close: "закрыть"
+      pts: p => "${p} очк."; now: "сейчас"; inDays: n => "через ${n} д"; inTime: d => "через ${d}"
+    }
+    ja {
+      live: "ライブ"; dotLive: "● ライブ"; next: n => "次 · ${n}"; nowAt: n => "開催中 · ${n}"; lastAt: n => "前回 · ${n}"; seasonOver: "シーズン終了"
+      cupLeaders: "ランキング上位"; loading: "読み込み中…"; noResults: "まだ結果がありません"; noStandings: "まだランキングがありません"; results: "結果"
+      standings: "ランキング"; calendar: "日程"; final: "確定"; fullResults: "ifsc.results.info で全結果を見る"; close: "閉じる"
+      pts: p => "${p} pt"; now: "今"; inDays: n => "${n} 日後"; inTime: d => "${d} 後"
+    }
+    uk {
+      live: "наживо"; dotLive: "● наживо"; next: n => "далі · ${n}"; nowAt: n => "зараз · ${n}"; lastAt: n => "останній · ${n}"; seasonOver: "сезон завершено"
+      cupLeaders: "лідери кубка"; loading: "завантаження…"; noResults: "результатів поки немає"; noStandings: "заліку поки немає"; results: "результати"
+      standings: "залік"; calendar: "календар"; final: "підсумок"; fullResults: "усі результати на ifsc.results.info"; close: "закрити"
+      pts: p => "${p} бал."; now: "зараз"; inDays: n => "через ${n} д"; inTime: d => "через ${d}"
+    }
+    fr {
+      live: "en direct"; dotLive: "● direct"; next: n => "prochaine · ${n}"; nowAt: n => "en cours · ${n}"; lastAt: n => "dernière · ${n}"; seasonOver: "saison terminée"
+      cupLeaders: "en tête de la coupe"; loading: "chargement…"; noResults: "pas encore de résultats"; noStandings: "pas encore de classement"; results: "résultats"
+      standings: "classement"; calendar: "calendrier"; final: "terminé"; fullResults: "tous les résultats sur ifsc.results.info"; close: "fermer"
+      pts: p => "${p} pts"; now: "maint."; inDays: n => "dans ${n} j"; inTime: d => "dans ${d}"
+    }
   }
   size: 6x4
   minSize: 3x3
@@ -93,7 +158,7 @@ widget "ifsc" {
 
   component Until(t, tint = foreground, fs = 12) {
     Text {
-      text: t - now > 86400 ? "in ${ceil((t - now) / 86400)}d" : t > now ? "in ${fmtDuration(t - now)}" : "now"
+      text: t - now > 86400 ? str.inDays(ceil((t - now) / 86400)) : t > now ? str.inTime(fmtDuration(t - now)) : str.now
       fontSize: fs; width: 64; align: end; color: tint; maxLines: 1
     }
   }
@@ -139,7 +204,7 @@ widget "ifsc" {
       Text { text: w.name; style: small; weight: 1; maxLines: 1 }
       if wide {
         Text {
-          text: c.status == null ? "${w.score} pts" : c.status == "finished" ? (w.score ?? "") : (c.round ?? "live")
+          text: c.status == null ? str.pts(w.score) : c.status == "finished" ? (w.score ?? "") : (c.round ?? str.live)
           style: small; width: 72; align: end; color: c.status == null || c.status == "finished" ? muted : accent; maxLines: 1
         }
       }
@@ -161,7 +226,7 @@ widget "ifsc" {
       if e.state == "next" {
         Until { t: e.start }
       } else {
-        Text { text: e.state == "live" ? "live" : "✓"; style: small; width: 64; align: end; color: e.state == "live" ? accent : muted }
+        Text { text: e.state == "live" ? str.live : "✓"; style: small; width: 64; align: end; color: e.state == "live" ? accent : muted }
       }
     }
   }
@@ -173,7 +238,7 @@ widget "ifsc" {
     Row {
       align: center
       Text { text: "IFSC World Cup"; style: title; weight: 1; maxLines: 1 }
-      Text { text: live ? "● live" : season ?? ""; style: small; width: 60; align: end; color: live ? accent : muted; bold: live }
+      Text { text: live ? str.dotLive : season ?? ""; style: small; width: 60; align: end; color: live ? accent : muted; bold: live }
     }
 
     // The next event (or the live one) up top.
@@ -188,34 +253,34 @@ widget "ifsc" {
         gap: 8; align: center
         Column {
           gap: 0; weight: 1
-          Text { text: "next · ${next.name}"; style: body; maxLines: 1 }
+          Text { text: str.next(next.name); style: body; maxLines: 1 }
           Text { text: next.dates; style: small; color: muted; maxLines: 1 }
         }
         if wide { Kinds { list: next.kinds } }
         Until { t: next.start; tint: accent; fs: 15 }
       }
     } else if sea != null {
-      Text { text: "season over"; style: small; color: muted }
+      Text { text: str.seasonOver; style: small; color: muted }
     }
 
     Spacer { height: 1; fill: width; background: alpha(muted, 0.25) }
 
     if latest != null {
-      Text { text: "${live ? "now" : "last"} · ${latest.name}"; style: label; color: muted; maxLines: 1 }
+      Text { text: live ? str.nowAt(latest.name) : str.lastAt(latest.name); style: label; color: muted; maxLines: 1 }
       Column {
         gap: 3
         for c in shown { Winner { c: c } }
       }
       if count(leaders) > 0 {
         Spacer { height: 4 }
-        Text { text: "cup leaders"; style: label; color: muted; maxLines: 1 }
+        Text { text: str.cupLeaders; style: label; color: muted; maxLines: 1 }
         Column {
           gap: 3
           for c in leaders { Winner { c: c } }
         }
       }
     } else {
-      Text { text: sea == null ? "loading…" : "no results yet"; style: small; color: muted }
+      Text { text: sea == null ? str.loading : str.noResults; style: small; color: muted }
     }
   }
 
@@ -225,9 +290,9 @@ widget "ifsc" {
       gap: 10
       Row {
         gap: 6
-        Button { text: live ? "live" : "results"; weight: 1; color: tab == "results" ? accent : muted; onTap: tab = "results" }
-        Button { text: "standings"; weight: 1; color: tab == "cup" ? accent : muted; onTap: { tab = "cup"; pick = 0 } }
-        Button { text: "calendar"; weight: 1; color: tab == "calendar" ? accent : muted; onTap: tab = "calendar" }
+        Button { text: live ? str.live : str.results; weight: 1; color: tab == "results" ? accent : muted; onTap: tab = "results" }
+        Button { text: str.standings; weight: 1; color: tab == "cup" ? accent : muted; onTap: { tab = "cup"; pick = 0 } }
+        Button { text: str.calendar; weight: 1; color: tab == "calendar" ? accent : muted; onTap: tab = "calendar" }
       }
 
       Column {
@@ -238,25 +303,25 @@ widget "ifsc" {
 
         if tab == "results" {
           if latest == null {
-            Text { text: "no results yet"; style: small; color: muted }
+            Text { text: str.noResults; style: small; color: muted }
           } else {
             Text { text: latest.full; style: title; maxLines: 2 }
             Row {
               gap: 8; align: center
               Text { text: latest.dates; style: small; color: muted; weight: 1 }
-              if live { Text { text: "● live"; style: small; color: accent; bold: true; width: 60; align: end } }
+              if live { Text { text: str.dotLive; style: small; color: accent; bold: true; width: 60; align: end } }
             }
             for c in results {
               Spacer { height: 6 }
               Row {
                 align: center
                 Text { text: lower(c.name); style: label; color: (c.kind == "boulder" ? yellow : c.kind == "lead" ? blue : c.kind == "speed" ? red : accent); weight: 1 }
-                Text { text: c.status == "finished" ? "final" : (c.round ?? c.status); style: small; color: c.status == "finished" ? muted : accent; width: 110; align: end; maxLines: 1 }
+                Text { text: c.status == "finished" ? str.final : (c.round ?? c.status); style: small; color: c.status == "finished" ? muted : accent; width: 110; align: end; maxLines: 1 }
               }
               for a in c.top key a.name { Athlete { a: a } }
             }
             Spacer { height: 6 }
-            Button { text: "full results on ifsc.results.info"; onTap: url("https://ifsc.results.info/event/${latest.id}") }
+            Button { text: str.fullResults; onTap: url("https://ifsc.results.info/event/${latest.id}") }
           }
         } else if tab == "cup" {
           Flow {
@@ -267,7 +332,7 @@ widget "ifsc" {
           }
           let s = standings[pick]
           if s == null {
-            Text { text: cupInfo == null ? "loading…" : "no standings yet"; style: small; color: muted }
+            Text { text: cupInfo == null ? str.loading : str.noStandings; style: small; color: muted }
           } else {
             Text { text: lower(s.name); style: title; color: (s.kind == "boulder" ? yellow : s.kind == "lead" ? blue : s.kind == "speed" ? red : accent) }
             for a in s.top key a.name { Athlete { a: a } }
@@ -277,7 +342,7 @@ widget "ifsc" {
         }
       }
 
-      Button { text: "close"; onTap: close() }
+      Button { text: str.close; onTap: close() }
     }
   }
 }

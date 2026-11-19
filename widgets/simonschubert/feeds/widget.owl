@@ -1,5 +1,18 @@
 widget "feeds" {
-  meta { description: "The newest posts from the RSS and Atom feeds listed in ~/.config/omarchy-proot/feeds, starting with Arch Linux news"; version: "1.1"; license: "MIT"; category: "news" }
+  meta { description: "The newest posts from the RSS and Atom feeds listed in ~/.config/omarchy-proot/feeds, starting with Arch Linux news"; version: "1.2"; license: "MIT"; category: "news"; owl: 16 }
+  // What it says, in the phone's language where it has a set. Posts and feed names come as the feeds have them.
+  strings {
+    en { title: "feeds"; edit: "edit"; empty: "nothing loaded: tap edit to check the feed list"; minutes: n => "${n}m"; hours: n => "${n}h"; days: n => "${n}d" }
+    id { title: "feed"; edit: "edit"; empty: "tidak ada yang dimuat: ketuk edit untuk cek daftar feed"; minutes: n => "${n}m"; hours: n => "${n}j"; days: n => "${n}h" }
+    es { title: "feeds"; edit: "editar"; empty: "no se cargó nada: toca editar para revisar la lista de feeds"; minutes: n => "${n} min"; hours: n => "${n} h"; days: n => "${n} d" }
+    pt { title: "feeds"; edit: "editar"; empty: "nada carregado: toque em editar para conferir a lista de feeds"; minutes: n => "${n} min"; hours: n => "${n} h"; days: n => "${n} d" }
+    de { title: "feeds"; edit: "ändern"; empty: "nichts geladen: tippe auf ändern und prüf die feed-liste"; minutes: n => "${n} min"; hours: n => "${n} std"; days: n => "${n} tg" }
+    zh { title: "订阅源"; edit: "编辑"; empty: "什么都没加载到：点按“编辑”检查订阅源列表"; minutes: n => "${n} 分钟"; hours: n => "${n} 小时"; days: n => "${n} 天" }
+    ru { title: "ленты"; edit: "изменить"; empty: "ничего не загружено: нажмите «изменить» и проверьте список лент"; minutes: n => "${n} мин"; hours: n => "${n} ч"; days: n => "${n} д" }
+    ja { title: "フィード"; edit: "編集"; empty: "何も読み込めませんでした。「編集」をタップしてフィードの一覧を確認してください"; minutes: n => "${n} 分"; hours: n => "${n} 時間"; days: n => "${n} 日" }
+    uk { title: "стрічки"; edit: "змінити"; empty: "нічого не завантажено: натисніть «змінити» й перевірте список стрічок"; minutes: n => "${n} хв"; hours: n => "${n} год"; days: n => "${n} д" }
+    fr { title: "flux"; edit: "modifier"; empty: "rien de chargé : touche modifier pour vérifier la liste des flux"; minutes: n => "${n} min"; hours: n => "${n} h"; days: n => "${n} j" }
+  }
   size: 6x4
   minSize: 4x3
 
@@ -67,11 +80,11 @@ print(json.dumps(posts[:40]))
   Column {
     gap: 4
     Row {
-      onTap: terminal('$EDITOR ~/.config/omarchy-proot/feeds', "feeds")
-      Text { text: "feeds"; style: muted; weight: 1 }
-      Text { text: "edit"; fontSize: 11; color: muted; width: 40; align: end }
+      onTap: terminal('$EDITOR ~/.config/omarchy-proot/feeds', str.title)
+      Text { text: str.title; style: muted; weight: 1 }
+      Text { text: str.edit; fontSize: 11; color: muted; width: 56; align: end }
     }
-    if items != null && len(items) == 0 { Text { text: "nothing loaded: tap edit to check the feed list"; style: small } }
+    if items != null && len(items) == 0 { Text { text: str.empty; style: small } }
     Column {
       scroll: true
       weight: 1
@@ -85,7 +98,7 @@ print(json.dumps(posts[:40]))
           Row {
             Text { text: p.feed; fontSize: 10; color: accent; maxLines: 1; weight: 1 }
             Text {
-              text: p.at == 0 ? "" : age < 3600 ? "${max(floor(age / 60), 1)}m" : age < 86400 ? "${floor(age / 3600)}h" : "${floor(age / 86400)}d"
+              text: p.at == 0 ? "" : age < 3600 ? str.minutes(max(floor(age / 60), 1)) : age < 86400 ? str.hours(floor(age / 3600)) : str.days(floor(age / 86400))
               fontSize: 10; color: muted; width: 40; align: end
             }
           }

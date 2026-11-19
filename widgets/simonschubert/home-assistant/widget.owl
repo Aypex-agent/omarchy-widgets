@@ -1,5 +1,18 @@
 widget "home assistant" {
-  meta { description: "Home Assistant entities with their states; tap a light or switch to toggle it. Set up in ~/.config/omarchy-proot/home-assistant"; version: "1.3"; license: "MIT"; owl: 6; category: "home" }
+  meta { description: "Home Assistant entities with their states; tap a light or switch to toggle it. Set up in ~/.config/omarchy-proot/home-assistant"; version: "1.4"; license: "MIT"; owl: 16; category: "home" }
+  // What it says, in the phone's language where it has a set. Entity names and states come as Home Assistant has them.
+  strings {
+    en { unreachable: "unreachable"; unset: "can't reach it: tap to set the URL, token and entities" }
+    id { unreachable: "tak terjangkau"; unset: "tidak bisa terhubung: ketuk untuk mengatur URL, token, dan entitas" }
+    es { unreachable: "inaccesible"; unset: "no se puede conectar: toca para configurar la URL, el token y las entidades" }
+    pt { unreachable: "inacessível"; unset: "sem conexão: toque para definir a URL, o token e as entidades" }
+    de { unreachable: "nicht erreichbar"; unset: "nicht erreichbar: tippe, um URL, token und entitäten einzustellen" }
+    zh { unreachable: "无法连接"; unset: "无法连接：点按设置 URL、令牌和实体" }
+    ru { unreachable: "недоступно"; unset: "нет связи: нажмите, чтобы указать URL, токен и сущности" }
+    ja { unreachable: "接続不可"; unset: "接続できません：タップして URL、トークン、エンティティを設定" }
+    uk { unreachable: "недоступно"; unset: "немає зв’язку: натисніть, щоб указати URL, токен і сутності" }
+    fr { unreachable: "injoignable"; unset: "injoignable : touche pour régler l’URL, le jeton et les entités" }
+  }
   size: 6x3
   minSize: 3x2
 
@@ -31,7 +44,7 @@ widget "home assistant" {
   Column {
     gap: 4
     Text { text: "home assistant"; style: muted }
-    if unset { Text { text: "can't reach it: tap to set the URL, token and entities"; style: small } }
+    if unset { Text { text: str.unset; style: small } }
     Grid {
       columns: 2
       gap: 6
@@ -45,7 +58,7 @@ widget "home assistant" {
           background: e.state == "on" ? alpha(accent, 0.2) : surface
           onTap: run(!toggles ? "true" : "f=~/.config/omarchy-proot/home-assistant; curl -fsm 8 -X POST -H \"Authorization: Bearer $(sed -n 2p $f)\" -H 'Content-Type: application/json' -d ${sh('{"entity_id": "' + e.id + '"}')} \"$(sed -n 1p $f)/api/services/homeassistant/toggle\"")
           Text { text: e.name; fontSize: 11; color: muted; maxLines: 1 }
-          Text { text: "${e.state} ${e.unit}"; fontSize: 14; color: e.state == "on" ? accent : e.state == "unreachable" ? red : foreground; maxLines: 1 }
+          Text { text: e.state == "unreachable" ? str.unreachable : "${e.state} ${e.unit}"; fontSize: 14; color: e.state == "on" ? accent : e.state == "unreachable" ? red : foreground; maxLines: 1 }
         }
       }
     }

@@ -2,9 +2,23 @@ widget "nhl" {
   meta {
     owl: 17
     description: "NHL scores from ESPN with team logos: live games first, then last night's finals and tonight's puck drops. Tap for every game and both conference standings"
-    version: "1.4"
+    version: "1.5"
     license: "MIT"
     category: "sport"
+  }
+  // What it says, in the phone's language where it has a set. Team names and ESPN's game status
+  // (Final, 7:00 PM) come as ESPN writes them.
+  strings {
+    en { scores: "scores"; standings: "standings"; loading: "loading…"; none: "no games today"; close: "close"; live: n => "${n} live"; col: "PTS" }
+    id { scores: "skor"; standings: "klasemen"; loading: "memuat…"; none: "tidak ada laga hari ini"; close: "tutup"; live: n => "${n} live"; col: "POIN" }
+    es { scores: "marcadores"; standings: "posiciones"; loading: "cargando…"; none: "no hay partidos hoy"; close: "cerrar"; live: n => "${n} en vivo"; col: "PTS" }
+    pt { scores: "placares"; standings: "classificação"; loading: "carregando…"; none: "nenhum jogo hoje"; close: "fechar"; live: n => "${n} ao vivo"; col: "PTS" }
+    de { scores: "ergebnisse"; standings: "tabelle"; loading: "lädt…"; none: "heute keine spiele"; close: "schließen"; live: n => "${n} live"; col: "PKT" }
+    zh { scores: "比分"; standings: "排名"; loading: "正在加载…"; none: "今天没有比赛"; close: "关闭"; live: n => "${n} 场进行中"; col: "积分" }
+    ru { scores: "результаты"; standings: "таблица"; loading: "загрузка…"; none: "сегодня игр нет"; close: "закрыть"; live: n => "идут: ${n}"; col: "О" }
+    ja { scores: "スコア"; standings: "順位表"; loading: "読み込み中…"; none: "今日は試合がありません"; close: "閉じる"; live: n => "ライブ ${n}"; col: "勝点" }
+    uk { scores: "результати"; standings: "таблиця"; loading: "завантаження…"; none: "сьогодні ігор немає"; close: "закрити"; live: n => "наживо: ${n}"; col: "О" }
+    fr { scores: "scores"; standings: "classement"; loading: "chargement…"; none: "aucun match aujourd’hui"; close: "fermer"; live: n => "${n} live"; col: "PTS" }
   }
   size: 6x4
   minSize: 3x3
@@ -55,7 +69,7 @@ widget "nhl" {
   let wide = tw >= 360
   // A line under the last playoff seed.
   let cuts = [8]
-  let bLabel = "PTS"
+  let bLabel = str.col
 
   // Logos at 96 px from ESPN's resizer; the launcher keeps each one, so they show offline too.
   component Badge(logo, px = 18) {
@@ -130,21 +144,21 @@ widget "nhl" {
     Row {
       Text { text: "NHL"; style: title; weight: 1; maxLines: 1 }
       if count(live) > 0 {
-        Text { text: "${count(live)} live"; style: small; color: accent; width: 60; align: end; bold: true }
+        Text { text: str.live(count(live)); style: small; color: accent; width: 72; align: end; bold: true }
       } else {
-        Text { text: fmtTime(now, "EEE d"); style: small; color: muted; width: 60; align: end }
+        Text { text: fmtTime(now, "EEE d"); style: small; color: muted; width: 72; align: end }
       }
     }
     Row {
-      Button { text: "scores"; weight: 1; color: view == "scores" ? accent : muted; onTap: view = "scores" }
-      Button { text: "standings"; weight: 1; color: view == "standings" ? accent : muted; onTap: view = "standings" }
+      Button { text: str.scores; weight: 1; color: view == "scores" ? accent : muted; onTap: view = "scores" }
+      Button { text: str.standings; weight: 1; color: view == "standings" ? accent : muted; onTap: view = "standings" }
     }
     Column {
       weight: 1
       scroll: true
       if view == "scores" {
         if count(picked) == 0 {
-          Text { text: d1 == null ? "loading…" : "no games today"; style: small; color: muted }
+          Text { text: d1 == null ? str.loading : str.none; style: small; color: muted }
         } else {
           for g in picked key g.id { GameRow { g: g } }
         }
@@ -159,12 +173,12 @@ widget "nhl" {
     Column {
       scroll: true
       onPull: refresh()
-      Text { text: "scores"; style: title }
-      if count(all) == 0 { Text { text: "no games today"; style: small; color: muted } }
+      Text { text: str.scores; style: title }
+      if count(all) == 0 { Text { text: str.none; style: small; color: muted } }
       for g in all key g.id { GameRow { g: g } }
-      Text { text: "standings"; style: title }
+      Text { text: str.standings; style: title }
       Standings {}
-      Button { text: "close"; onTap: close() }
+      Button { text: str.close; onTap: close() }
     }
   }
 }

@@ -1,9 +1,21 @@
 widget "lobsters" {
-  meta { description: "The hottest stories on Lobsters with score, comments and tags; tap a story to read it"; version: "1.2"; license: "MIT"; category: "news"; owl: 16 }
+  meta { description: "The hottest stories on Lobsters with score, comments and tags; tap a story to read it"; version: "1.3"; license: "MIT"; category: "news"; owl: 16 }
   size: 6x4
   minSize: 4x3
 
-
+  // What it says, in the phone's language where it has a set. Stories, sites and tags come as Lobsters has them.
+  strings {
+    en { pts: n => "${n} pts"; comments: n => "${n} comments" }
+    id { pts: n => "${n} poin"; comments: n => "${n} komentar" }
+    es { pts: n => "${n} pts"; comments: n => "${n} coment." }
+    pt { pts: n => "${n} pts"; comments: n => "${n} coment." }
+    de { pts: n => "${n} pkt"; comments: n => "${n} kommentare" }
+    zh { pts: n => "${n} 分"; comments: n => "${n} 条评论" }
+    ru { pts: n => "${n} очк."; comments: n => "${n} комм." }
+    ja { pts: n => "${n} pt"; comments: n => "コメント ${n}" }
+    uk { pts: n => "${n} бал."; comments: n => "${n} комент." }
+    fr { pts: n => "${n} pts"; comments: n => "${n} comm." }
+  }
 
   source feed = http("https://lobste.rs/hottest.json") every 15m json timeout 15s
   let hot = take(feed ?? [], 20).map(s => {
@@ -27,8 +39,8 @@ widget "lobsters" {
           Text { text: s.title; fontSize: 13; maxLines: 2 }
           Row {
             gap: 6
-            Text { text: "${s.score} pts"; fontSize: 10; color: muted; width: 48 }
-            Text { text: "${s.comments} comments"; fontSize: 10; color: muted; width: 88; onTap: url(s.discussion) }
+            Text { text: str.pts(s.score); fontSize: 10; color: muted; width: 48 }
+            Text { text: str.comments(s.comments); fontSize: 10; color: muted; width: 88; onTap: url(s.discussion) }
             Text { text: s.tags; fontSize: 10; color: accent; maxLines: 1; weight: 1; align: end }
           }
         }

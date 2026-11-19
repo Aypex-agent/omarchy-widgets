@@ -1,5 +1,18 @@
 widget "releases" {
-  meta { description: "The latest release of up to 8 GitHub repositories you pick; new ones stand out"; version: "1.3"; license: "MIT"; category: "dev"; owl: 16 }
+  meta { description: "The latest release of up to 8 GitHub repositories you pick; new ones stand out"; version: "1.4"; license: "MIT"; category: "dev"; owl: 16 }
+  // What it says, in the phone's language where it has a set. Repos and tags come as GitHub has them.
+  strings {
+    en { title: "releases"; edit: "edit"; today: "today"; days: n => "${n}d"; hint: "owner/repo, up to 8, separated by spaces"; close: "close" }
+    id { title: "rilis"; edit: "edit"; today: "hari ini"; days: n => "${n}h"; hint: "owner/repo, maksimal 8, dipisah spasi"; close: "tutup" }
+    es { title: "versiones"; edit: "editar"; today: "hoy"; days: n => "${n} d"; hint: "owner/repo, hasta 8, separados por espacios"; close: "cerrar" }
+    pt { title: "versões"; edit: "editar"; today: "hoje"; days: n => "${n} d"; hint: "owner/repo, até 8, separados por espaços"; close: "fechar" }
+    de { title: "releases"; edit: "ändern"; today: "heute"; days: n => "${n} tg"; hint: "owner/repo, bis zu 8, durch leerzeichen getrennt"; close: "schließen" }
+    zh { title: "版本发布"; edit: "编辑"; today: "今天"; days: n => "${n} 天"; hint: "owner/repo，最多 8 个，用空格分隔"; close: "关闭" }
+    ru { title: "релизы"; edit: "изменить"; today: "сегодня"; days: n => "${n} д"; hint: "owner/repo, до 8, через пробел"; close: "закрыть" }
+    ja { title: "リリース"; edit: "編集"; today: "今日"; days: n => "${n} 日"; hint: "owner/repo を最大 8 個、スペース区切りで"; close: "閉じる" }
+    uk { title: "релізи"; edit: "змінити"; today: "сьогодні"; days: n => "${n} д"; hint: "owner/repo, до 8, через пробіл"; close: "закрити" }
+    fr { title: "versions"; edit: "modifier"; today: "auj."; days: n => "${n} j"; hint: "owner/repo, jusqu’à 8, séparés par des espaces"; close: "fermer" }
+  }
   size: 6x3
   minSize: 3x2
 
@@ -38,8 +51,8 @@ widget "releases" {
     gap: 4
     Row {
       onTap: screen()
-      Text { text: "releases"; style: muted; weight: 1 }
-      Text { text: "edit"; fontSize: 11; color: muted; width: 40; align: end }
+      Text { text: str.title; style: muted; weight: 1 }
+      Text { text: str.edit; fontSize: 11; color: muted; width: 56; align: end }
     }
     Column {
       scroll: true
@@ -57,13 +70,13 @@ widget "releases" {
               Text { text: split(r.repo, "/")[1]; fontSize: 12; maxLines: 1 }
               Row {
                 Text { text: r.tag; fontSize: 12; color: days < 7 ? green : foreground; maxLines: 1; weight: 1 }
-                Text { text: days < 1 ? "today" : "${days}d"; fontSize: 11; color: muted; width: 40; align: end }
+                Text { text: days < 1 ? str.today : str.days(days); fontSize: 11; color: muted; width: 48; align: end }
               }
             }
           } else {
             Text { text: split(r.repo, "/")[1]; fontSize: 12; maxLines: 1; weight: 1 }
             Text { text: r.tag; fontSize: 12; color: days < 7 ? green : foreground; maxLines: 1; width: 96; align: end }
-            Text { text: days < 1 ? "today" : "${days}d"; fontSize: 11; color: muted; width: 40; align: end }
+            Text { text: days < 1 ? str.today : str.days(days); fontSize: 11; color: muted; width: 48; align: end }
           }
         }
       }
@@ -71,10 +84,10 @@ widget "releases" {
   }
 
   screen {
-    title: "releases"
+    title: str.title
     Column {
       gap: 8
-      Text { text: "owner/repo, up to 8, separated by spaces"; style: label; color: muted }
+      Text { text: str.hint; style: label; color: muted }
       Input {
         text: join(repos, " ")
         placeholder: "neovim/neovim sxyazi/yazi"
@@ -84,7 +97,7 @@ widget "releases" {
         }
       }
       for r in repos { Text { text: r; style: small; color: muted } }
-      Button { text: "close"; onTap: close() }
+      Button { text: str.close; onTap: close() }
     }
   }
 }
