@@ -1,0 +1,899 @@
+app "harbour master" {
+  meta { owl: 23; description: "A busy 3D port from above: draw the courses that bring ships into their berths and send them back out to sea through two harbour mouths, without a collision"; version: "1.0"; license: "MIT"; category: "games" }
+  // How it works. Ships come in from the open sea in three colours, through either of the breakwater's two mouths. A
+  // finger drawn from a ship lays its course; drawn into a berth of its own colour (there are two of each), it docks.
+  // The cranes unload it by themselves onto the train, then it backs out of the berth, empty, and waits for a course
+  // back out to sea. Ships going out and ships coming in share the two mouths: two that touch sink (a strike), and
+  // every ship coming in has a ring that drains until it docks; when it runs out the ship gives up, and that's a
+  // strike too (ships going out can take their time). Lifebuoys come back, one for every 8 ships sent out; with all three gone the score starts again
+  // (the best stays). The port is kept between visits. Ships going out come with the first empty ship, storms (ships drift
+  // sideways) after six ships sent out, each with a card the first time.
+  //
+  // Drawing: the sea is a shader; the quay, its markings and the lighthouses are scenes that read no clock, so the
+  // launcher keeps them recorded, and the cranes a recorded scene after them. Ships, the train and the boxes are one
+  // scene that changes every frame, drawn after the cranes so a docked ship shows. The courses, rings and rain are 2D
+  // on a Canvas on top. The camera never moves,
+  // so a finger's point on the water is a ray from the camera down to y = 0 (the same maths as Camera.project).
+  //
+  // The app.owl is built by a script that writes out the meshes and a few repeated formulas (PICK: a screen point
+  // to the water; WATER: is a point open water).
+  title: ""
+  statusBar: false
+  edge: true
+  fps: mode == "play" ? 60 : 30
+  back: mode == "play"
+  onBack: mode = "pause"
+  icon: """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+    <clipPath id="t"><rect width="256" height="256" rx="56"/></clipPath>
+    <g clip-path="url(#t)">
+    <rect width="256" height="256" fill="#2a86ad"/>
+    <path d="M196 30h40M176 120h30M20 200h30" stroke="#4fa6cb" stroke-width="9" stroke-linecap="round"/>
+    <path d="M70 34L28 0M150 34L192 0" stroke="#9fd0e4" stroke-width="10" stroke-linecap="round"/>
+    <rect y="212" width="256" height="44" fill="#bdb6a6"/>
+    <rect y="212" width="256" height="9" fill="#8f8879"/>
+    <path d="M60 28h100v128l-50 44l-50-44z" fill="#a8323a"/>
+    <path d="M68 34h84v118l-42 38l-42-38z" fill="#f2716f"/>
+    <rect x="66" y="26" width="88" height="32" fill="#efe9dc"/>
+    <rect x="66" y="52" width="88" height="7" fill="#2a3a4a"/>
+    <rect x="74" y="68" width="34" height="38" fill="#1fb5a5"/>
+    <rect x="112" y="68" width="34" height="38" fill="#9a6bf0"/>
+    <rect x="74" y="110" width="34" height="38" fill="#9a6bf0"/>
+    <rect x="112" y="110" width="34" height="38" fill="#1fb5a5"/>
+    <rect x="186" y="76" width="14" height="150" fill="#f6bf26"/>
+    <rect x="228" y="76" width="14" height="150" fill="#f6bf26"/>
+    <rect x="176" y="66" width="80" height="16" fill="#c99a14"/>
+    <rect x="210" y="82" width="6" height="40" fill="#2b2f36"/>
+    <rect x="196" y="122" width="34" height="24" fill="#9a6bf0"/>
+    </g></svg>"""
+
+  // ---- kept --------------------------------------------------------------------------------------------------
+  state best = 0 persist
+  state snd = true persist
+
+  // ---- the port, kept between visits -------------------------------------------------------------------------------------------------
+  // the port carries on where it was left: it opens paused, on the title
+  state mode = "pause"
+  state gt = 0 persist
+  state score = 0 persist
+  state nShips = 0 persist
+  state nOut = 0 persist
+  state strikes = 0 persist
+  // ships: {id, x, z, h (heading, degrees, 0 = +z), c (colour = berth), st, out (empty, on its way out), p (course:
+  // [x, z, screen x, screen y]), b (berth it's bound for; -2 a course out to sea), cg (four deck places: -1 empty,
+  // 0 teal, 1 purple), t0 (came in, or got ready to leave), t1 (docked), ua (next box), lt, bk (blocked), au (on its
+  // own way to an anchorage an)}
+  // st: 0 sailing on a course (in or out), 1 docked, 3 empty and about to back out, 4 backing out, 2 leaving by itself
+  state ships = [] persist
+  state nid = 0 persist
+  state spAt = 1.5 persist
+  // the train: x, st (0 coming, 1 waiting, 2 going, 3 away until t), w: per wagon -1 or when its box lands
+  state tr = {x: -17, st: 3, t: 5, w: [-1, -1, -1, -1]} persist
+  // boxes in the air: from a to b, starting at t
+  state fl = []
+  // sinkings, for the rings
+  state fx = []
+  // weather: 0 clear, 2 storm; wdir the way the wind blows
+  state wx = 0 persist
+  state wdir = 1 persist
+  state msg = ""
+  state msgT = -10
+  // what the finger is doing: k -2 nothing, -1 ignored, 0 a ship's course
+  state dg = {k: -2}
+  // ships sent out since the last time every lifebuoy was lost: the traffic grows with it
+  state run = 0 persist
+  // START OVER asks once more before it clears the port
+  state sure = false
+  // a lifebuoy just lost: the port holds still this many seconds, with red rings where (lp) and the reason in the banner
+  state hold = 0
+  state lp = []
+  // what cost each lifebuoy since the last time all three were lost, for the PORT CLOSED screen
+  state losses = [] persist
+  // set by the store's screenshots (screens.txt) to hold a scene still while it's drawn
+  state still = false
+  // the port opens up in stages: 0 ships coming in, 1 ships going out too, 2 storms. card: a stage's card on screen
+  // (stage + 1), which holds the game
+  state lvl = 0 persist
+  state card = 0
+  // when the train's stage came, which starts the weather's clock (-1 before)
+  state wt = -1 persist
+  // the highest stage whose card has been read, so a card shows once
+  state taught = -1 persist
+
+  let SW = screenWidth ?? 400
+  let SH = screenHeight ?? 800
+  let TOP = max(screenTop ?? 0, 10)
+  let INS = screenInset ?? 0
+  // the port is 11.2 units across at the quay: a wider fov on narrow screens keeps it in
+  // In landscape the whole port turns a quarter: the camera stands to the west, so the sea is on the left and the quay
+  // on the right, and the six berths run up the screen.
+  let LAND = SW > SH
+  let FOV = LAND ? 28 : clamp(44 * 0.4613 / (SW / SH), 40, 64)
+  let TH = tan(rad(FOV / 2))
+  let LOOK = LAND ? [1.0, 0, -4.6] : [0, 0, -4.5]
+  let EYE = LAND ? [-5, 32, -4.6] : [0, 32, 8]
+  let CAM = {eye: EYE, look: LOOK, fov: FOV, far: 90}
+  let FW = norm([LOOK[0] - EYE[0], LOOK[1] - EYE[1], LOOK[2] - EYE[2]])
+  let RT = norm(cross(FW, [0, 1, 0]))
+  let UPV = cross(RT, FW)
+  let LIGHT = [-0.45, 1, 0.5]
+
+  // ---- the port ----------------------------------------------------------------------------------------------------
+  // six berths, two of each colour mirrored, so a ship has one on each side of the port
+  let BX = [-4.65, -2.8, -0.93, 0.93, 2.8, 4.65]
+  let BCOL = [0, 1, 2, 2, 1, 0]
+  // the two harbour mouths, between the breakwater's three pieces
+  let GX = [-2.7, 2.7]
+  let BZ = 3.85
+  let BC = [#e5484d, #f6bf26, #3d85f0]
+  let BN = ["RED", "YELLOW", "BLUE"]
+  let KC = [#1fb5a5, #9a6bf0]
+  let FOGC = #9aa3ab
+  let RZ = 7.1
+  let WOFF = [1.38, 0, -1.38, -2.76]
+  // deck places on a ship, across and along
+  let SLX = [-0.15, 0.15, -0.15, 0.15]
+  let SLZ = [0.28, 0.28, -0.3, -0.3]
+  let BOXS = [0.28, 0.24, 0.56]
+  let SPD = 1.1
+  let TRN = 150
+  // how long a ship coming in may take to dock before it costs a lifebuoy (ships going out have no limit)
+  let PAT = 50
+  let FD = 0.9
+  // how long an empty ship waits for its course out before it goes by itself (a strike)
+  let TRW = 17
+
+  // ---- the look --------------------------------------------------------------------------------------------------------
+  // Sounds from Google's sound library (actions.google.com/sounds, CC BY 4.0), trimmed and made mono Opus to fit in
+  // the file: wood plank flicks (a box set down by a crane) and magic chime (a full train, a new best).
+  asset SBUILD = base64"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"
+  asset SCHIME = base64"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"
+  let FONT = "https://raw.githubusercontent.com/google/fonts/main/ofl/sairastencilone/SairaStencilOne-Regular.ttf"
+  let NAVY = #0f2a3d
+  let NAVY2 = #07182a
+  let CRM = #f3efe4
+  let YEL = #f6bf26
+  let YEL2 = #a87d0e
+  let SEA = #1f6f95
+  let REDC = #e5484d
+
+  let WAKE = mesh([[-0.28, 0.005, -0.9], [-0.36, 0.005, -0.9], [-0.95, 0.005, -2.5], [-0.8, 0.005, -2.5], [0.28, 0.005, -0.9], [0.36, 0.005, -0.9], [0.95, 0.005, -2.5], [0.8, 0.005, -2.5], [-0.22, 0.005, -0.95], [0.22, 0.005, -0.95], [0.1, 0.005, -1.9], [-0.1, 0.005, -1.9]], [[3, 2, 1, 0], [4, 5, 6, 7], [8, 9, 10, 11]], [#9fd0e4, #9fd0e4, #7fbcd6])
+  let HULL = [mesh([[-0.34, 0, -0.95], [0.34, 0, -0.95], [0.34, 0, 0.5], [0.17, 0, 0.92], [0, 0, 1.1], [-0.17, 0, 0.92], [-0.34, 0, 0.5], [-0.34, 0.12, -0.95], [0.34, 0.12, -0.95], [0.34, 0.12, 0.5], [0.17, 0.12, 0.92], [0, 0.12, 1.1], [-0.17, 0.12, 0.92], [-0.34, 0.12, 0.5], [-0.34, 0.12, -0.95], [0.34, 0.12, -0.95], [0.34, 0.12, 0.5], [0.17, 0.12, 0.92], [0, 0.12, 1.1], [-0.17, 0.12, 0.92], [-0.34, 0.12, 0.5], [-0.34, 0.2, -0.95], [0.34, 0.2, -0.95], [0.34, 0.2, 0.5], [0.17, 0.2, 0.92], [0, 0.2, 1.1], [-0.17, 0.2, 0.92], [-0.34, 0.2, 0.5], [-0.3, 0.2, -0.93], [0.3, 0.2, -0.93], [0.3, 0.2, -0.62], [-0.3, 0.2, -0.62], [-0.3, 0.56, -0.93], [0.3, 0.56, -0.93], [0.3, 0.56, -0.62], [-0.3, 0.56, -0.62], [-0.1, 0.56, -0.9], [0.1, 0.56, -0.9], [0.1, 0.56, -0.74], [-0.1, 0.56, -0.74], [-0.1, 0.8, -0.9], [0.1, 0.8, -0.9], [0.1, 0.8, -0.74], [-0.1, 0.8, -0.74]], [[7, 8, 1, 0], [8, 9, 2, 1], [9, 10, 3, 2], [10, 11, 4, 3], [11, 12, 5, 4], [12, 13, 6, 5], [13, 7, 0, 6], [27, 26, 25, 24, 23, 22, 21], [21, 22, 15, 14], [22, 23, 16, 15], [23, 24, 17, 16], [24, 25, 18, 17], [25, 26, 19, 18], [26, 27, 20, 19], [27, 21, 14, 20], [35, 34, 33, 32], [32, 33, 29, 28], [33, 34, 30, 29], [34, 35, 31, 30], [35, 32, 28, 31], [43, 42, 41, 40], [40, 41, 37, 36], [41, 42, 38, 37], [42, 43, 39, 38], [43, 40, 36, 39]], [#a8323a, #a8323a, #a8323a, #a8323a, #a8323a, #a8323a, #a8323a, #f2716f, #e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #d8d1c2, #efe9dc, #efe9dc, #2a3a4a, #efe9dc, #1e2730, #e5484d, #e5484d, #e5484d, #e5484d]), mesh([[-0.34, 0, -0.95], [0.34, 0, -0.95], [0.34, 0, 0.5], [0.17, 0, 0.92], [0, 0, 1.1], [-0.17, 0, 0.92], [-0.34, 0, 0.5], [-0.34, 0.12, -0.95], [0.34, 0.12, -0.95], [0.34, 0.12, 0.5], [0.17, 0.12, 0.92], [0, 0.12, 1.1], [-0.17, 0.12, 0.92], [-0.34, 0.12, 0.5], [-0.34, 0.12, -0.95], [0.34, 0.12, -0.95], [0.34, 0.12, 0.5], [0.17, 0.12, 0.92], [0, 0.12, 1.1], [-0.17, 0.12, 0.92], [-0.34, 0.12, 0.5], [-0.34, 0.2, -0.95], [0.34, 0.2, -0.95], [0.34, 0.2, 0.5], [0.17, 0.2, 0.92], [0, 0.2, 1.1], [-0.17, 0.2, 0.92], [-0.34, 0.2, 0.5], [-0.3, 0.2, -0.93], [0.3, 0.2, -0.93], [0.3, 0.2, -0.62], [-0.3, 0.2, -0.62], [-0.3, 0.56, -0.93], [0.3, 0.56, -0.93], [0.3, 0.56, -0.62], [-0.3, 0.56, -0.62], [-0.1, 0.56, -0.9], [0.1, 0.56, -0.9], [0.1, 0.56, -0.74], [-0.1, 0.56, -0.74], [-0.1, 0.8, -0.9], [0.1, 0.8, -0.9], [0.1, 0.8, -0.74], [-0.1, 0.8, -0.74]], [[7, 8, 1, 0], [8, 9, 2, 1], [9, 10, 3, 2], [10, 11, 4, 3], [11, 12, 5, 4], [12, 13, 6, 5], [13, 7, 0, 6], [27, 26, 25, 24, 23, 22, 21], [21, 22, 15, 14], [22, 23, 16, 15], [23, 24, 17, 16], [24, 25, 18, 17], [25, 26, 19, 18], [26, 27, 20, 19], [27, 21, 14, 20], [35, 34, 33, 32], [32, 33, 29, 28], [33, 34, 30, 29], [34, 35, 31, 30], [35, 32, 28, 31], [43, 42, 41, 40], [40, 41, 37, 36], [41, 42, 38, 37], [42, 43, 39, 38], [43, 40, 36, 39]], [#b98a12, #b98a12, #b98a12, #b98a12, #b98a12, #b98a12, #b98a12, #ffd65c, #f6bf26, #f6bf26, #f6bf26, #f6bf26, #f6bf26, #f6bf26, #f6bf26, #d8d1c2, #efe9dc, #efe9dc, #2a3a4a, #efe9dc, #1e2730, #f6bf26, #f6bf26, #f6bf26, #f6bf26]), mesh([[-0.34, 0, -0.95], [0.34, 0, -0.95], [0.34, 0, 0.5], [0.17, 0, 0.92], [0, 0, 1.1], [-0.17, 0, 0.92], [-0.34, 0, 0.5], [-0.34, 0.12, -0.95], [0.34, 0.12, -0.95], [0.34, 0.12, 0.5], [0.17, 0.12, 0.92], [0, 0.12, 1.1], [-0.17, 0.12, 0.92], [-0.34, 0.12, 0.5], [-0.34, 0.12, -0.95], [0.34, 0.12, -0.95], [0.34, 0.12, 0.5], [0.17, 0.12, 0.92], [0, 0.12, 1.1], [-0.17, 0.12, 0.92], [-0.34, 0.12, 0.5], [-0.34, 0.2, -0.95], [0.34, 0.2, -0.95], [0.34, 0.2, 0.5], [0.17, 0.2, 0.92], [0, 0.2, 1.1], [-0.17, 0.2, 0.92], [-0.34, 0.2, 0.5], [-0.3, 0.2, -0.93], [0.3, 0.2, -0.93], [0.3, 0.2, -0.62], [-0.3, 0.2, -0.62], [-0.3, 0.56, -0.93], [0.3, 0.56, -0.93], [0.3, 0.56, -0.62], [-0.3, 0.56, -0.62], [-0.1, 0.56, -0.9], [0.1, 0.56, -0.9], [0.1, 0.56, -0.74], [-0.1, 0.56, -0.74], [-0.1, 0.8, -0.9], [0.1, 0.8, -0.9], [0.1, 0.8, -0.74], [-0.1, 0.8, -0.74]], [[7, 8, 1, 0], [8, 9, 2, 1], [9, 10, 3, 2], [10, 11, 4, 3], [11, 12, 5, 4], [12, 13, 6, 5], [13, 7, 0, 6], [27, 26, 25, 24, 23, 22, 21], [21, 22, 15, 14], [22, 23, 16, 15], [23, 24, 17, 16], [24, 25, 18, 17], [25, 26, 19, 18], [26, 27, 20, 19], [27, 21, 14, 20], [35, 34, 33, 32], [32, 33, 29, 28], [33, 34, 30, 29], [34, 35, 31, 30], [35, 32, 28, 31], [43, 42, 41, 40], [40, 41, 37, 36], [41, 42, 38, 37], [42, 43, 39, 38], [43, 40, 36, 39]], [#2a5fae, #2a5fae, #2a5fae, #2a5fae, #2a5fae, #2a5fae, #2a5fae, #6aa5ff, #3d85f0, #3d85f0, #3d85f0, #3d85f0, #3d85f0, #3d85f0, #3d85f0, #d8d1c2, #efe9dc, #efe9dc, #2a3a4a, #efe9dc, #1e2730, #3d85f0, #3d85f0, #3d85f0, #3d85f0]), mesh([[-0.34, 0, -0.95], [0.34, 0, -0.95], [0.34, 0, 0.5], [0.17, 0, 0.92], [0, 0, 1.1], [-0.17, 0, 0.92], [-0.34, 0, 0.5], [-0.34, 0.12, -0.95], [0.34, 0.12, -0.95], [0.34, 0.12, 0.5], [0.17, 0.12, 0.92], [0, 0.12, 1.1], [-0.17, 0.12, 0.92], [-0.34, 0.12, 0.5], [-0.34, 0.12, -0.95], [0.34, 0.12, -0.95], [0.34, 0.12, 0.5], [0.17, 0.12, 0.92], [0, 0.12, 1.1], [-0.17, 0.12, 0.92], [-0.34, 0.12, 0.5], [-0.34, 0.2, -0.95], [0.34, 0.2, -0.95], [0.34, 0.2, 0.5], [0.17, 0.2, 0.92], [0, 0.2, 1.1], [-0.17, 0.2, 0.92], [-0.34, 0.2, 0.5], [-0.3, 0.2, -0.93], [0.3, 0.2, -0.93], [0.3, 0.2, -0.62], [-0.3, 0.2, -0.62], [-0.3, 0.56, -0.93], [0.3, 0.56, -0.93], [0.3, 0.56, -0.62], [-0.3, 0.56, -0.62], [-0.1, 0.56, -0.9], [0.1, 0.56, -0.9], [0.1, 0.56, -0.74], [-0.1, 0.56, -0.74], [-0.1, 0.8, -0.9], [0.1, 0.8, -0.9], [0.1, 0.8, -0.74], [-0.1, 0.8, -0.74]], [[7, 8, 1, 0], [8, 9, 2, 1], [9, 10, 3, 2], [10, 11, 4, 3], [11, 12, 5, 4], [12, 13, 6, 5], [13, 7, 0, 6], [27, 26, 25, 24, 23, 22, 21], [21, 22, 15, 14], [22, 23, 16, 15], [23, 24, 17, 16], [24, 25, 18, 17], [25, 26, 19, 18], [26, 27, 20, 19], [27, 21, 14, 20], [35, 34, 33, 32], [32, 33, 29, 28], [33, 34, 30, 29], [34, 35, 31, 30], [35, 32, 28, 31], [43, 42, 41, 40], [40, 41, 37, 36], [41, 42, 38, 37], [42, 43, 39, 38], [43, 40, 36, 39]], [#6b737a, #6b737a, #6b737a, #6b737a, #6b737a, #6b737a, #6b737a, #aab2b9, #8e979f, #8e979f, #8e979f, #8e979f, #8e979f, #8e979f, #8e979f, #d8d1c2, #efe9dc, #efe9dc, #2a3a4a, #efe9dc, #1e2730, #8e979f, #8e979f, #8e979f, #8e979f])]
+  let LOCO = mesh([[-0.28, 0.04, -0.62], [0.28, 0.04, -0.62], [0.28, 0.04, 0.62], [-0.28, 0.04, 0.62], [-0.28, 0.14, -0.62], [0.28, 0.14, -0.62], [0.28, 0.14, 0.62], [-0.28, 0.14, 0.62], [-0.27, 0.14, -0.25], [0.27, 0.14, -0.25], [0.27, 0.14, 0.6], [-0.27, 0.14, 0.6], [-0.27, 0.46, -0.25], [0.27, 0.46, -0.25], [0.27, 0.46, 0.6], [-0.27, 0.46, 0.6], [-0.28, 0.14, -0.6], [0.28, 0.14, -0.6], [0.28, 0.14, -0.25], [-0.28, 0.14, -0.25], [-0.28, 0.62, -0.6], [0.28, 0.62, -0.6], [0.28, 0.62, -0.25], [-0.28, 0.62, -0.25]], [[7, 6, 5, 4], [4, 5, 1, 0], [5, 6, 2, 1], [6, 7, 3, 2], [7, 4, 0, 3], [15, 14, 13, 12], [12, 13, 9, 8], [13, 14, 10, 9], [14, 15, 11, 10], [15, 12, 8, 11], [23, 22, 21, 20], [20, 21, 17, 16], [21, 22, 18, 17], [22, 23, 19, 18], [23, 20, 16, 19]], [#22272e, #22272e, #22272e, #22272e, #22272e, #4fd6c8, #1fb5a5, #1fb5a5, #f6bf26, #1fb5a5, #e8e2d4, #1d2633, #178f83, #1d2633, #178f83])
+  let WAGON = mesh([[-0.26, 0.04, -0.6], [0.26, 0.04, -0.6], [0.26, 0.04, 0.6], [-0.26, 0.04, 0.6], [-0.26, 0.18, -0.6], [0.26, 0.18, -0.6], [0.26, 0.18, 0.6], [-0.26, 0.18, 0.6], [-0.28, 0.18, -0.6], [-0.22, 0.18, -0.6], [-0.22, 0.18, 0.6], [-0.28, 0.18, 0.6], [-0.28, 0.26, -0.6], [-0.22, 0.26, -0.6], [-0.22, 0.26, 0.6], [-0.28, 0.26, 0.6], [0.22, 0.18, -0.6], [0.28, 0.18, -0.6], [0.28, 0.18, 0.6], [0.22, 0.18, 0.6], [0.22, 0.26, -0.6], [0.28, 0.26, -0.6], [0.28, 0.26, 0.6], [0.22, 0.26, 0.6]], [[7, 6, 5, 4], [4, 5, 1, 0], [5, 6, 2, 1], [6, 7, 3, 2], [7, 4, 0, 3], [15, 14, 13, 12], [12, 13, 9, 8], [13, 14, 10, 9], [14, 15, 11, 10], [15, 12, 8, 11], [23, 22, 21, 20], [20, 21, 17, 16], [21, 22, 18, 17], [22, 23, 19, 18], [23, 20, 16, 19]], [#5d6670, #4a525c, #4a525c, #4a525c, #4a525c, #2f353d, #2f353d, #2f353d, #2f353d, #2f353d, #2f353d, #2f353d, #2f353d, #2f353d, #2f353d])
+  let CRANE = [mesh([[-0.62, 0.3, 5.3], [-0.5, 0.3, 5.3], [-0.5, 0.3, 5.42], [-0.62, 0.3, 5.42], [-0.62, 1.6, 5.3], [-0.5, 1.6, 5.3], [-0.5, 1.6, 5.42], [-0.62, 1.6, 5.42], [-0.62, 0.3, 6.2], [-0.5, 0.3, 6.2], [-0.5, 0.3, 6.32], [-0.62, 0.3, 6.32], [-0.62, 1.6, 6.2], [-0.5, 1.6, 6.2], [-0.5, 1.6, 6.32], [-0.62, 1.6, 6.32], [0.5, 0.3, 5.3], [0.62, 0.3, 5.3], [0.62, 0.3, 5.42], [0.5, 0.3, 5.42], [0.5, 1.6, 5.3], [0.62, 1.6, 5.3], [0.62, 1.6, 5.42], [0.5, 1.6, 5.42], [0.5, 0.3, 6.2], [0.62, 0.3, 6.2], [0.62, 0.3, 6.32], [0.5, 0.3, 6.32], [0.5, 1.6, 6.2], [0.62, 1.6, 6.2], [0.62, 1.6, 6.32], [0.5, 1.6, 6.32], [-0.64, 1.6, 2.4], [-0.5, 1.6, 2.4], [-0.5, 1.6, 6.5], [-0.64, 1.6, 6.5], [-0.64, 1.76, 2.4], [-0.5, 1.76, 2.4], [-0.5, 1.76, 6.5], [-0.64, 1.76, 6.5], [0.5, 1.6, 2.4], [0.64, 1.6, 2.4], [0.64, 1.6, 6.5], [0.5, 1.6, 6.5], [0.5, 1.76, 2.4], [0.64, 1.76, 2.4], [0.64, 1.76, 6.5], [0.5, 1.76, 6.5], [-0.5, 1.6, 5.3], [0.5, 1.6, 5.3], [0.5, 1.6, 5.42], [-0.5, 1.6, 5.42], [-0.5, 1.72, 5.3], [0.5, 1.72, 5.3], [0.5, 1.72, 5.42], [-0.5, 1.72, 5.42], [-0.5, 1.6, 6.2], [0.5, 1.6, 6.2], [0.5, 1.6, 6.32], [-0.5, 1.6, 6.32], [-0.5, 1.72, 6.2], [0.5, 1.72, 6.2], [0.5, 1.72, 6.32], [-0.5, 1.72, 6.32], [-0.5, 1.6, 2.4], [0.5, 1.6, 2.4], [0.5, 1.6, 2.52], [-0.5, 1.6, 2.52], [-0.5, 1.72, 2.4], [0.5, 1.72, 2.4], [0.5, 1.72, 2.52], [-0.5, 1.72, 2.52], [-0.38, 1.76, 5.95], [0.38, 1.76, 5.95], [0.38, 1.76, 6.5], [-0.38, 1.76, 6.5], [-0.38, 2.02, 5.95], [0.38, 2.02, 5.95], [0.38, 2.02, 6.5], [-0.38, 2.02, 6.5]], [[7, 6, 5, 4], [4, 5, 1, 0], [5, 6, 2, 1], [6, 7, 3, 2], [7, 4, 0, 3], [15, 14, 13, 12], [12, 13, 9, 8], [13, 14, 10, 9], [14, 15, 11, 10], [15, 12, 8, 11], [23, 22, 21, 20], [20, 21, 17, 16], [21, 22, 18, 17], [22, 23, 19, 18], [23, 20, 16, 19], [31, 30, 29, 28], [28, 29, 25, 24], [29, 30, 26, 25], [30, 31, 27, 26], [31, 28, 24, 27], [39, 38, 37, 36], [36, 37, 33, 32], [37, 38, 34, 33], [38, 39, 35, 34], [39, 36, 32, 35], [47, 46, 45, 44], [44, 45, 41, 40], [45, 46, 42, 41], [46, 47, 43, 42], [47, 44, 40, 43], [55, 54, 53, 52], [52, 53, 49, 48], [53, 54, 50, 49], [54, 55, 51, 50], [55, 52, 48, 51], [63, 62, 61, 60], [60, 61, 57, 56], [61, 62, 58, 57], [62, 63, 59, 58], [63, 60, 56, 59], [71, 70, 69, 68], [68, 69, 65, 64], [69, 70, 66, 65], [70, 71, 67, 66], [71, 68, 64, 67], [79, 78, 77, 76], [76, 77, 73, 72], [77, 78, 74, 73], [78, 79, 75, 74], [79, 76, 72, 75]], [#e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #a8323a, #a8323a, #a8323a, #a8323a, #a8323a, #a8323a, #a8323a, #a8323a, #a8323a, #a8323a, #a8323a, #a8323a, #a8323a, #a8323a, #a8323a, #d8d1c2, #efe9dc, #efe9dc, #efe9dc, #efe9dc]), mesh([[-0.62, 0.3, 5.3], [-0.5, 0.3, 5.3], [-0.5, 0.3, 5.42], [-0.62, 0.3, 5.42], [-0.62, 1.6, 5.3], [-0.5, 1.6, 5.3], [-0.5, 1.6, 5.42], [-0.62, 1.6, 5.42], [-0.62, 0.3, 6.2], [-0.5, 0.3, 6.2], [-0.5, 0.3, 6.32], [-0.62, 0.3, 6.32], [-0.62, 1.6, 6.2], [-0.5, 1.6, 6.2], [-0.5, 1.6, 6.32], [-0.62, 1.6, 6.32], [0.5, 0.3, 5.3], [0.62, 0.3, 5.3], [0.62, 0.3, 5.42], [0.5, 0.3, 5.42], [0.5, 1.6, 5.3], [0.62, 1.6, 5.3], [0.62, 1.6, 5.42], [0.5, 1.6, 5.42], [0.5, 0.3, 6.2], [0.62, 0.3, 6.2], [0.62, 0.3, 6.32], [0.5, 0.3, 6.32], [0.5, 1.6, 6.2], [0.62, 1.6, 6.2], [0.62, 1.6, 6.32], [0.5, 1.6, 6.32], [-0.64, 1.6, 2.4], [-0.5, 1.6, 2.4], [-0.5, 1.6, 6.5], [-0.64, 1.6, 6.5], [-0.64, 1.76, 2.4], [-0.5, 1.76, 2.4], [-0.5, 1.76, 6.5], [-0.64, 1.76, 6.5], [0.5, 1.6, 2.4], [0.64, 1.6, 2.4], [0.64, 1.6, 6.5], [0.5, 1.6, 6.5], [0.5, 1.76, 2.4], [0.64, 1.76, 2.4], [0.64, 1.76, 6.5], [0.5, 1.76, 6.5], [-0.5, 1.6, 5.3], [0.5, 1.6, 5.3], [0.5, 1.6, 5.42], [-0.5, 1.6, 5.42], [-0.5, 1.72, 5.3], [0.5, 1.72, 5.3], [0.5, 1.72, 5.42], [-0.5, 1.72, 5.42], [-0.5, 1.6, 6.2], [0.5, 1.6, 6.2], [0.5, 1.6, 6.32], [-0.5, 1.6, 6.32], [-0.5, 1.72, 6.2], [0.5, 1.72, 6.2], [0.5, 1.72, 6.32], [-0.5, 1.72, 6.32], [-0.5, 1.6, 2.4], [0.5, 1.6, 2.4], [0.5, 1.6, 2.52], [-0.5, 1.6, 2.52], [-0.5, 1.72, 2.4], [0.5, 1.72, 2.4], [0.5, 1.72, 2.52], [-0.5, 1.72, 2.52], [-0.38, 1.76, 5.95], [0.38, 1.76, 5.95], [0.38, 1.76, 6.5], [-0.38, 1.76, 6.5], [-0.38, 2.02, 5.95], [0.38, 2.02, 5.95], [0.38, 2.02, 6.5], [-0.38, 2.02, 6.5]], [[7, 6, 5, 4], [4, 5, 1, 0], [5, 6, 2, 1], [6, 7, 3, 2], [7, 4, 0, 3], [15, 14, 13, 12], [12, 13, 9, 8], [13, 14, 10, 9], [14, 15, 11, 10], [15, 12, 8, 11], [23, 22, 21, 20], [20, 21, 17, 16], [21, 22, 18, 17], [22, 23, 19, 18], [23, 20, 16, 19], [31, 30, 29, 28], [28, 29, 25, 24], [29, 30, 26, 25], [30, 31, 27, 26], [31, 28, 24, 27], [39, 38, 37, 36], [36, 37, 33, 32], [37, 38, 34, 33], [38, 39, 35, 34], [39, 36, 32, 35], [47, 46, 45, 44], [44, 45, 41, 40], [45, 46, 42, 41], [46, 47, 43, 42], [47, 44, 40, 43], [55, 54, 53, 52], [52, 53, 49, 48], [53, 54, 50, 49], [54, 55, 51, 50], [55, 52, 48, 51], [63, 62, 61, 60], [60, 61, 57, 56], [61, 62, 58, 57], [62, 63, 59, 58], [63, 60, 56, 59], [71, 70, 69, 68], [68, 69, 65, 64], [69, 70, 66, 65], [70, 71, 67, 66], [71, 68, 64, 67], [79, 78, 77, 76], [76, 77, 73, 72], [77, 78, 74, 73], [78, 79, 75, 74], [79, 76, 72, 75]], [#f6bf26, #f6bf26, #f6bf26, #f6bf26, #f6bf26, #f6bf26, #f6bf26, #f6bf26, #f6bf26, #f6bf26, #f6bf26, #f6bf26, #f6bf26, #f6bf26, #f6bf26, #f6bf26, #f6bf26, #f6bf26, #f6bf26, #f6bf26, #f6bf26, #f6bf26, #f6bf26, #f6bf26, #f6bf26, #f6bf26, #f6bf26, #f6bf26, #f6bf26, #f6bf26, #b98a12, #b98a12, #b98a12, #b98a12, #b98a12, #b98a12, #b98a12, #b98a12, #b98a12, #b98a12, #b98a12, #b98a12, #b98a12, #b98a12, #b98a12, #d8d1c2, #efe9dc, #efe9dc, #efe9dc, #efe9dc]), mesh([[-0.62, 0.3, 5.3], [-0.5, 0.3, 5.3], [-0.5, 0.3, 5.42], [-0.62, 0.3, 5.42], [-0.62, 1.6, 5.3], [-0.5, 1.6, 5.3], [-0.5, 1.6, 5.42], [-0.62, 1.6, 5.42], [-0.62, 0.3, 6.2], [-0.5, 0.3, 6.2], [-0.5, 0.3, 6.32], [-0.62, 0.3, 6.32], [-0.62, 1.6, 6.2], [-0.5, 1.6, 6.2], [-0.5, 1.6, 6.32], [-0.62, 1.6, 6.32], [0.5, 0.3, 5.3], [0.62, 0.3, 5.3], [0.62, 0.3, 5.42], [0.5, 0.3, 5.42], [0.5, 1.6, 5.3], [0.62, 1.6, 5.3], [0.62, 1.6, 5.42], [0.5, 1.6, 5.42], [0.5, 0.3, 6.2], [0.62, 0.3, 6.2], [0.62, 0.3, 6.32], [0.5, 0.3, 6.32], [0.5, 1.6, 6.2], [0.62, 1.6, 6.2], [0.62, 1.6, 6.32], [0.5, 1.6, 6.32], [-0.64, 1.6, 2.4], [-0.5, 1.6, 2.4], [-0.5, 1.6, 6.5], [-0.64, 1.6, 6.5], [-0.64, 1.76, 2.4], [-0.5, 1.76, 2.4], [-0.5, 1.76, 6.5], [-0.64, 1.76, 6.5], [0.5, 1.6, 2.4], [0.64, 1.6, 2.4], [0.64, 1.6, 6.5], [0.5, 1.6, 6.5], [0.5, 1.76, 2.4], [0.64, 1.76, 2.4], [0.64, 1.76, 6.5], [0.5, 1.76, 6.5], [-0.5, 1.6, 5.3], [0.5, 1.6, 5.3], [0.5, 1.6, 5.42], [-0.5, 1.6, 5.42], [-0.5, 1.72, 5.3], [0.5, 1.72, 5.3], [0.5, 1.72, 5.42], [-0.5, 1.72, 5.42], [-0.5, 1.6, 6.2], [0.5, 1.6, 6.2], [0.5, 1.6, 6.32], [-0.5, 1.6, 6.32], [-0.5, 1.72, 6.2], [0.5, 1.72, 6.2], [0.5, 1.72, 6.32], [-0.5, 1.72, 6.32], [-0.5, 1.6, 2.4], [0.5, 1.6, 2.4], [0.5, 1.6, 2.52], [-0.5, 1.6, 2.52], [-0.5, 1.72, 2.4], [0.5, 1.72, 2.4], [0.5, 1.72, 2.52], [-0.5, 1.72, 2.52], [-0.38, 1.76, 5.95], [0.38, 1.76, 5.95], [0.38, 1.76, 6.5], [-0.38, 1.76, 6.5], [-0.38, 2.02, 5.95], [0.38, 2.02, 5.95], [0.38, 2.02, 6.5], [-0.38, 2.02, 6.5]], [[7, 6, 5, 4], [4, 5, 1, 0], [5, 6, 2, 1], [6, 7, 3, 2], [7, 4, 0, 3], [15, 14, 13, 12], [12, 13, 9, 8], [13, 14, 10, 9], [14, 15, 11, 10], [15, 12, 8, 11], [23, 22, 21, 20], [20, 21, 17, 16], [21, 22, 18, 17], [22, 23, 19, 18], [23, 20, 16, 19], [31, 30, 29, 28], [28, 29, 25, 24], [29, 30, 26, 25], [30, 31, 27, 26], [31, 28, 24, 27], [39, 38, 37, 36], [36, 37, 33, 32], [37, 38, 34, 33], [38, 39, 35, 34], [39, 36, 32, 35], [47, 46, 45, 44], [44, 45, 41, 40], [45, 46, 42, 41], [46, 47, 43, 42], [47, 44, 40, 43], [55, 54, 53, 52], [52, 53, 49, 48], [53, 54, 50, 49], [54, 55, 51, 50], [55, 52, 48, 51], [63, 62, 61, 60], [60, 61, 57, 56], [61, 62, 58, 57], [62, 63, 59, 58], [63, 60, 56, 59], [71, 70, 69, 68], [68, 69, 65, 64], [69, 70, 66, 65], [70, 71, 67, 66], [71, 68, 64, 67], [79, 78, 77, 76], [76, 77, 73, 72], [77, 78, 74, 73], [78, 79, 75, 74], [79, 76, 72, 75]], [#3d85f0, #3d85f0, #3d85f0, #3d85f0, #3d85f0, #3d85f0, #3d85f0, #3d85f0, #3d85f0, #3d85f0, #3d85f0, #3d85f0, #3d85f0, #3d85f0, #3d85f0, #3d85f0, #3d85f0, #3d85f0, #3d85f0, #3d85f0, #3d85f0, #3d85f0, #3d85f0, #3d85f0, #3d85f0, #3d85f0, #3d85f0, #3d85f0, #3d85f0, #3d85f0, #2a5fae, #2a5fae, #2a5fae, #2a5fae, #2a5fae, #2a5fae, #2a5fae, #2a5fae, #2a5fae, #2a5fae, #2a5fae, #2a5fae, #2a5fae, #2a5fae, #2a5fae, #d8d1c2, #efe9dc, #efe9dc, #efe9dc, #efe9dc])]
+  let LAND = mesh([[-16, 0, 5], [16, 0, 5], [16, 0, 18], [-16, 0, 18], [-16, 0.3, 5], [16, 0.3, 5], [16, 0.3, 18], [-16, 0.3, 18], [-16, 0, -5.5], [-5.6, 0, -5.5], [-5.6, 0, 5], [-16, 0, 5], [-16, 0.3, -5.5], [-5.6, 0.3, -5.5], [-5.6, 0.3, 5], [-16, 0.3, 5], [5.6, 0, -5.5], [16, 0, -5.5], [16, 0, 5], [5.6, 0, 5], [5.6, 0.3, -5.5], [16, 0.3, -5.5], [16, 0.3, 5], [5.6, 0.3, 5], [-5.6, 0, -5.5], [-3.9, 0, -5.5], [-3.9, 0, -4.7], [-5.6, 0, -4.7], [-5.6, 0.42, -5.5], [-3.9, 0.42, -5.5], [-3.9, 0.42, -4.7], [-5.6, 0.42, -4.7], [-1.5, 0, -5.5], [1.5, 0, -5.5], [1.5, 0, -4.7], [-1.5, 0, -4.7], [-1.5, 0.42, -5.5], [1.5, 0.42, -5.5], [1.5, 0.42, -4.7], [-1.5, 0.42, -4.7], [3.9, 0, -5.5], [5.6, 0, -5.5], [5.6, 0, -4.7], [3.9, 0, -4.7], [3.9, 0.42, -5.5], [5.6, 0.42, -5.5], [5.6, 0.42, -4.7], [3.9, 0.42, -4.7]], [[7, 6, 5, 4], [4, 5, 1, 0], [5, 6, 2, 1], [6, 7, 3, 2], [7, 4, 0, 3], [15, 14, 13, 12], [12, 13, 9, 8], [13, 14, 10, 9], [14, 15, 11, 10], [15, 12, 8, 11], [23, 22, 21, 20], [20, 21, 17, 16], [21, 22, 18, 17], [22, 23, 19, 18], [23, 20, 16, 19], [31, 30, 29, 28], [28, 29, 25, 24], [29, 30, 26, 25], [30, 31, 27, 26], [31, 28, 24, 27], [39, 38, 37, 36], [36, 37, 33, 32], [37, 38, 34, 33], [38, 39, 35, 34], [39, 36, 32, 35], [47, 46, 45, 44], [44, 45, 41, 40], [45, 46, 42, 41], [46, 47, 43, 42], [47, 44, 40, 43]], [#bdb6a6, #8f8879, #8f8879, #8f8879, #8f8879, #bdb6a6, #8f8879, #8f8879, #8f8879, #8f8879, #bdb6a6, #8f8879, #8f8879, #8f8879, #8f8879, #9aa1aa, #7d8590, #7d8590, #7d8590, #7d8590, #9aa1aa, #7d8590, #7d8590, #7d8590, #7d8590, #9aa1aa, #7d8590, #7d8590, #7d8590, #7d8590])
+  let DECALS = mesh([[-16, 0.302, 6.75], [16, 0.302, 6.75], [16, 0.302, 7.45], [-16, 0.302, 7.45], [-15.9, 0.305, 6.82], [-15.74, 0.305, 6.82], [-15.74, 0.305, 7.38], [-15.9, 0.305, 7.38], [-15.4, 0.305, 6.82], [-15.24, 0.305, 6.82], [-15.24, 0.305, 7.38], [-15.4, 0.305, 7.38], [-14.9, 0.305, 6.82], [-14.74, 0.305, 6.82], [-14.74, 0.305, 7.38], [-14.9, 0.305, 7.38], [-14.4, 0.305, 6.82], [-14.24, 0.305, 6.82], [-14.24, 0.305, 7.38], [-14.4, 0.305, 7.38], [-13.9, 0.305, 6.82], [-13.74, 0.305, 6.82], [-13.74, 0.305, 7.38], [-13.9, 0.305, 7.38], [-13.4, 0.305, 6.82], [-13.24, 0.305, 6.82], [-13.24, 0.305, 7.38], [-13.4, 0.305, 7.38], [-12.9, 0.305, 6.82], [-12.74, 0.305, 6.82], [-12.74, 0.305, 7.38], [-12.9, 0.305, 7.38], [-12.4, 0.305, 6.82], [-12.24, 0.305, 6.82], [-12.24, 0.305, 7.38], [-12.4, 0.305, 7.38], [-11.9, 0.305, 6.82], [-11.74, 0.305, 6.82], [-11.74, 0.305, 7.38], [-11.9, 0.305, 7.38], [-11.4, 0.305, 6.82], [-11.24, 0.305, 6.82], [-11.24, 0.305, 7.38], [-11.4, 0.305, 7.38], [-10.9, 0.305, 6.82], [-10.74, 0.305, 6.82], [-10.74, 0.305, 7.38], [-10.9, 0.305, 7.38], [-10.4, 0.305, 6.82], [-10.24, 0.305, 6.82], [-10.24, 0.305, 7.38], [-10.4, 0.305, 7.38], [-9.9, 0.305, 6.82], [-9.74, 0.305, 6.82], [-9.74, 0.305, 7.38], [-9.9, 0.305, 7.38], [-9.4, 0.305, 6.82], [-9.24, 0.305, 6.82], [-9.24, 0.305, 7.38], [-9.4, 0.305, 7.38], [-8.9, 0.305, 6.82], [-8.74, 0.305, 6.82], [-8.74, 0.305, 7.38], [-8.9, 0.305, 7.38], [-8.4, 0.305, 6.82], [-8.24, 0.305, 6.82], [-8.24, 0.305, 7.38], [-8.4, 0.305, 7.38], [-7.9, 0.305, 6.82], [-7.74, 0.305, 6.82], [-7.74, 0.305, 7.38], [-7.9, 0.305, 7.38], [-7.4, 0.305, 6.82], [-7.24, 0.305, 6.82], [-7.24, 0.305, 7.38], [-7.4, 0.305, 7.38], [-6.9, 0.305, 6.82], [-6.74, 0.305, 6.82], [-6.74, 0.305, 7.38], [-6.9, 0.305, 7.38], [-6.4, 0.305, 6.82], [-6.24, 0.305, 6.82], [-6.24, 0.305, 7.38], [-6.4, 0.305, 7.38], [-5.9, 0.305, 6.82], [-5.74, 0.305, 6.82], [-5.74, 0.305, 7.38], [-5.9, 0.305, 7.38], [-5.4, 0.305, 6.82], [-5.24, 0.305, 6.82], [-5.24, 0.305, 7.38], [-5.4, 0.305, 7.38], [-4.9, 0.305, 6.82], [-4.74, 0.305, 6.82], [-4.74, 0.305, 7.38], [-4.9, 0.305, 7.38], [-4.4, 0.305, 6.82], [-4.24, 0.305, 6.82], [-4.24, 0.305, 7.38], [-4.4, 0.305, 7.38], [-3.9, 0.305, 6.82], [-3.74, 0.305, 6.82], [-3.74, 0.305, 7.38], [-3.9, 0.305, 7.38], [-3.4, 0.305, 6.82], [-3.24, 0.305, 6.82], [-3.24, 0.305, 7.38], [-3.4, 0.305, 7.38], [-2.9, 0.305, 6.82], [-2.74, 0.305, 6.82], [-2.74, 0.305, 7.38], [-2.9, 0.305, 7.38], [-2.4, 0.305, 6.82], [-2.24, 0.305, 6.82], [-2.24, 0.305, 7.38], [-2.4, 0.305, 7.38], [-1.9, 0.305, 6.82], [-1.74, 0.305, 6.82], [-1.74, 0.305, 7.38], [-1.9, 0.305, 7.38], [-1.4, 0.305, 6.82], [-1.24, 0.305, 6.82], [-1.24, 0.305, 7.38], [-1.4, 0.305, 7.38], [-0.9, 0.305, 6.82], [-0.74, 0.305, 6.82], [-0.74, 0.305, 7.38], [-0.9, 0.305, 7.38], [-0.4, 0.305, 6.82], [-0.24, 0.305, 6.82], [-0.24, 0.305, 7.38], [-0.4, 0.305, 7.38], [0.1, 0.305, 6.82], [0.26, 0.305, 6.82], [0.26, 0.305, 7.38], [0.1, 0.305, 7.38], [0.6, 0.305, 6.82], [0.76, 0.305, 6.82], [0.76, 0.305, 7.38], [0.6, 0.305, 7.38], [1.1, 0.305, 6.82], [1.26, 0.305, 6.82], [1.26, 0.305, 7.38], [1.1, 0.305, 7.38], [1.6, 0.305, 6.82], [1.76, 0.305, 6.82], [1.76, 0.305, 7.38], [1.6, 0.305, 7.38], [2.1, 0.305, 6.82], [2.26, 0.305, 6.82], [2.26, 0.305, 7.38], [2.1, 0.305, 7.38], [2.6, 0.305, 6.82], [2.76, 0.305, 6.82], [2.76, 0.305, 7.38], [2.6, 0.305, 7.38], [3.1, 0.305, 6.82], [3.26, 0.305, 6.82], [3.26, 0.305, 7.38], [3.1, 0.305, 7.38], [3.6, 0.305, 6.82], [3.76, 0.305, 6.82], [3.76, 0.305, 7.38], [3.6, 0.305, 7.38], [4.1, 0.305, 6.82], [4.26, 0.305, 6.82], [4.26, 0.305, 7.38], [4.1, 0.305, 7.38], [4.6, 0.305, 6.82], [4.76, 0.305, 6.82], [4.76, 0.305, 7.38], [4.6, 0.305, 7.38], [5.1, 0.305, 6.82], [5.26, 0.305, 6.82], [5.26, 0.305, 7.38], [5.1, 0.305, 7.38], [5.6, 0.305, 6.82], [5.76, 0.305, 6.82], [5.76, 0.305, 7.38], [5.6, 0.305, 7.38], [6.1, 0.305, 6.82], [6.26, 0.305, 6.82], [6.26, 0.305, 7.38], [6.1, 0.305, 7.38], [6.6, 0.305, 6.82], [6.76, 0.305, 6.82], [6.76, 0.305, 7.38], [6.6, 0.305, 7.38], [7.1, 0.305, 6.82], [7.26, 0.305, 6.82], [7.26, 0.305, 7.38], [7.1, 0.305, 7.38], [7.6, 0.305, 6.82], [7.76, 0.305, 6.82], [7.76, 0.305, 7.38], [7.6, 0.305, 7.38], [8.1, 0.305, 6.82], [8.26, 0.305, 6.82], [8.26, 0.305, 7.38], [8.1, 0.305, 7.38], [8.6, 0.305, 6.82], [8.76, 0.305, 6.82], [8.76, 0.305, 7.38], [8.6, 0.305, 7.38], [9.1, 0.305, 6.82], [9.26, 0.305, 6.82], [9.26, 0.305, 7.38], [9.1, 0.305, 7.38], [9.6, 0.305, 6.82], [9.76, 0.305, 6.82], [9.76, 0.305, 7.38], [9.6, 0.305, 7.38], [10.1, 0.305, 6.82], [10.26, 0.305, 6.82], [10.26, 0.305, 7.38], [10.1, 0.305, 7.38], [10.6, 0.305, 6.82], [10.76, 0.305, 6.82], [10.76, 0.305, 7.38], [10.6, 0.305, 7.38], [11.1, 0.305, 6.82], [11.26, 0.305, 6.82], [11.26, 0.305, 7.38], [11.1, 0.305, 7.38], [11.6, 0.305, 6.82], [11.76, 0.305, 6.82], [11.76, 0.305, 7.38], [11.6, 0.305, 7.38], [12.1, 0.305, 6.82], [12.26, 0.305, 6.82], [12.26, 0.305, 7.38], [12.1, 0.305, 7.38], [12.6, 0.305, 6.82], [12.76, 0.305, 6.82], [12.76, 0.305, 7.38], [12.6, 0.305, 7.38], [13.1, 0.305, 6.82], [13.26, 0.305, 6.82], [13.26, 0.305, 7.38], [13.1, 0.305, 7.38], [13.6, 0.305, 6.82], [13.76, 0.305, 6.82], [13.76, 0.305, 7.38], [13.6, 0.305, 7.38], [14.1, 0.305, 6.82], [14.26, 0.305, 6.82], [14.26, 0.305, 7.38], [14.1, 0.305, 7.38], [14.6, 0.305, 6.82], [14.76, 0.305, 6.82], [14.76, 0.305, 7.38], [14.6, 0.305, 7.38], [15.1, 0.305, 6.82], [15.26, 0.305, 6.82], [15.26, 0.305, 7.38], [15.1, 0.305, 7.38], [15.6, 0.305, 6.82], [15.76, 0.305, 6.82], [15.76, 0.305, 7.38], [15.6, 0.305, 7.38], [-16, 0.31, 6.92], [16, 0.31, 6.92], [16, 0.31, 6.99], [-16, 0.31, 6.99], [-16, 0.31, 7.21], [16, 0.31, 7.21], [16, 0.31, 7.28], [-16, 0.31, 7.28], [-5.15, 0.306, 5], [-4.15, 0.306, 5], [-4.15, 0.306, 5.18], [-5.15, 0.306, 5.18], [-3.3, 0.306, 5], [-2.3, 0.306, 5], [-2.3, 0.306, 5.18], [-3.3, 0.306, 5.18], [-1.43, 0.306, 5], [-0.43, 0.306, 5], [-0.43, 0.306, 5.18], [-1.43, 0.306, 5.18], [0.43, 0.306, 5], [1.43, 0.306, 5], [1.43, 0.306, 5.18], [0.43, 0.306, 5.18], [2.3, 0.306, 5], [3.3, 0.306, 5], [3.3, 0.306, 5.18], [2.3, 0.306, 5.18], [4.15, 0.306, 5], [5.15, 0.306, 5], [5.15, 0.306, 5.18], [4.15, 0.306, 5.18]], [[3, 2, 1, 0], [7, 6, 5, 4], [11, 10, 9, 8], [15, 14, 13, 12], [19, 18, 17, 16], [23, 22, 21, 20], [27, 26, 25, 24], [31, 30, 29, 28], [35, 34, 33, 32], [39, 38, 37, 36], [43, 42, 41, 40], [47, 46, 45, 44], [51, 50, 49, 48], [55, 54, 53, 52], [59, 58, 57, 56], [63, 62, 61, 60], [67, 66, 65, 64], [71, 70, 69, 68], [75, 74, 73, 72], [79, 78, 77, 76], [83, 82, 81, 80], [87, 86, 85, 84], [91, 90, 89, 88], [95, 94, 93, 92], [99, 98, 97, 96], [103, 102, 101, 100], [107, 106, 105, 104], [111, 110, 109, 108], [115, 114, 113, 112], [119, 118, 117, 116], [123, 122, 121, 120], [127, 126, 125, 124], [131, 130, 129, 128], [135, 134, 133, 132], [139, 138, 137, 136], [143, 142, 141, 140], [147, 146, 145, 144], [151, 150, 149, 148], [155, 154, 153, 152], [159, 158, 157, 156], [163, 162, 161, 160], [167, 166, 165, 164], [171, 170, 169, 168], [175, 174, 173, 172], [179, 178, 177, 176], [183, 182, 181, 180], [187, 186, 185, 184], [191, 190, 189, 188], [195, 194, 193, 192], [199, 198, 197, 196], [203, 202, 201, 200], [207, 206, 205, 204], [211, 210, 209, 208], [215, 214, 213, 212], [219, 218, 217, 216], [223, 222, 221, 220], [227, 226, 225, 224], [231, 230, 229, 228], [235, 234, 233, 232], [239, 238, 237, 236], [243, 242, 241, 240], [247, 246, 245, 244], [251, 250, 249, 248], [255, 254, 253, 252], [259, 258, 257, 256], [263, 262, 261, 260], [267, 266, 265, 264], [271, 270, 269, 268], [275, 274, 273, 272], [279, 278, 277, 276], [283, 282, 281, 280], [287, 286, 285, 284], [291, 290, 289, 288]], [#7a7368, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #5a4a3c, #d6dade, #d6dade, #e5484d, #f6bf26, #3d85f0, #3d85f0, #f6bf26, #e5484d])
+  let BERTHW = mesh([[-5.15, 0.01, 2.1], [-4.15, 0.01, 2.1], [-4.15, 0.01, 5], [-5.15, 0.01, 5], [-5.23, 0.01, 1.9], [-4.07, 0.01, 1.9], [-4.07, 0.01, 2.1], [-5.23, 0.01, 2.1], [-5.23, 0.01, 2.1], [-5.13, 0.01, 2.1], [-5.13, 0.01, 5], [-5.23, 0.01, 5], [-4.17, 0.01, 2.1], [-4.07, 0.01, 2.1], [-4.07, 0.01, 5], [-4.17, 0.01, 5], [-3.3, 0.01, 2.1], [-2.3, 0.01, 2.1], [-2.3, 0.01, 5], [-3.3, 0.01, 5], [-3.38, 0.01, 1.9], [-2.22, 0.01, 1.9], [-2.22, 0.01, 2.1], [-3.38, 0.01, 2.1], [-3.38, 0.01, 2.1], [-3.28, 0.01, 2.1], [-3.28, 0.01, 5], [-3.38, 0.01, 5], [-2.32, 0.01, 2.1], [-2.22, 0.01, 2.1], [-2.22, 0.01, 5], [-2.32, 0.01, 5], [-1.43, 0.01, 2.1], [-0.43, 0.01, 2.1], [-0.43, 0.01, 5], [-1.43, 0.01, 5], [-1.51, 0.01, 1.9], [-0.35, 0.01, 1.9], [-0.35, 0.01, 2.1], [-1.51, 0.01, 2.1], [-1.51, 0.01, 2.1], [-1.41, 0.01, 2.1], [-1.41, 0.01, 5], [-1.51, 0.01, 5], [-0.45, 0.01, 2.1], [-0.35, 0.01, 2.1], [-0.35, 0.01, 5], [-0.45, 0.01, 5], [0.43, 0.01, 2.1], [1.43, 0.01, 2.1], [1.43, 0.01, 5], [0.43, 0.01, 5], [0.35, 0.01, 1.9], [1.51, 0.01, 1.9], [1.51, 0.01, 2.1], [0.35, 0.01, 2.1], [0.35, 0.01, 2.1], [0.45, 0.01, 2.1], [0.45, 0.01, 5], [0.35, 0.01, 5], [1.41, 0.01, 2.1], [1.51, 0.01, 2.1], [1.51, 0.01, 5], [1.41, 0.01, 5], [2.3, 0.01, 2.1], [3.3, 0.01, 2.1], [3.3, 0.01, 5], [2.3, 0.01, 5], [2.22, 0.01, 1.9], [3.38, 0.01, 1.9], [3.38, 0.01, 2.1], [2.22, 0.01, 2.1], [2.22, 0.01, 2.1], [2.32, 0.01, 2.1], [2.32, 0.01, 5], [2.22, 0.01, 5], [3.28, 0.01, 2.1], [3.38, 0.01, 2.1], [3.38, 0.01, 5], [3.28, 0.01, 5], [4.15, 0.01, 2.1], [5.15, 0.01, 2.1], [5.15, 0.01, 5], [4.15, 0.01, 5], [4.07, 0.01, 1.9], [5.23, 0.01, 1.9], [5.23, 0.01, 2.1], [4.07, 0.01, 2.1], [4.07, 0.01, 2.1], [4.17, 0.01, 2.1], [4.17, 0.01, 5], [4.07, 0.01, 5], [5.13, 0.01, 2.1], [5.23, 0.01, 2.1], [5.23, 0.01, 5], [5.13, 0.01, 5]], [[3, 2, 1, 0], [7, 6, 5, 4], [11, 10, 9, 8], [15, 14, 13, 12], [19, 18, 17, 16], [23, 22, 21, 20], [27, 26, 25, 24], [31, 30, 29, 28], [35, 34, 33, 32], [39, 38, 37, 36], [43, 42, 41, 40], [47, 46, 45, 44], [51, 50, 49, 48], [55, 54, 53, 52], [59, 58, 57, 56], [63, 62, 61, 60], [67, 66, 65, 64], [71, 70, 69, 68], [75, 74, 73, 72], [79, 78, 77, 76], [83, 82, 81, 80], [87, 86, 85, 84], [91, 90, 89, 88], [95, 94, 93, 92]], [#99697d, #e5484d, #e5484d, #e5484d, #a3ae67, #f6bf26, #f6bf26, #f6bf26, #388ddc, #3d85f0, #3d85f0, #3d85f0, #388ddc, #3d85f0, #3d85f0, #3d85f0, #a3ae67, #f6bf26, #f6bf26, #f6bf26, #99697d, #e5484d, #e5484d, #e5484d])
+  let PROPS = mesh([[-3.65, 0.42, -4.84], [-3.466, 0.42, -4.916], [-3.39, 0.42, -5.1], [-3.466, 0.42, -5.284], [-3.65, 0.42, -5.36], [-3.834, 0.42, -5.284], [-3.91, 0.42, -5.1], [-3.834, 0.42, -4.916], [-3.65, 0.8, -4.84], [-3.466, 0.8, -4.916], [-3.39, 0.8, -5.1], [-3.466, 0.8, -5.284], [-3.65, 0.8, -5.36], [-3.834, 0.8, -5.284], [-3.91, 0.8, -5.1], [-3.834, 0.8, -4.916], [-3.65, 0.8, -4.86], [-3.48, 0.8, -4.93], [-3.41, 0.8, -5.1], [-3.48, 0.8, -5.27], [-3.65, 0.8, -5.34], [-3.82, 0.8, -5.27], [-3.89, 0.8, -5.1], [-3.82, 0.8, -4.93], [-3.65, 1.15, -4.86], [-3.48, 1.15, -4.93], [-3.41, 1.15, -5.1], [-3.48, 1.15, -5.27], [-3.65, 1.15, -5.34], [-3.82, 1.15, -5.27], [-3.89, 1.15, -5.1], [-3.82, 1.15, -4.93], [-3.65, 1.15, -4.88], [-3.494, 1.15, -4.944], [-3.43, 1.15, -5.1], [-3.494, 1.15, -5.256], [-3.65, 1.15, -5.32], [-3.806, 1.15, -5.256], [-3.87, 1.15, -5.1], [-3.806, 1.15, -4.944], [-3.65, 1.45, -4.88], [-3.494, 1.45, -4.944], [-3.43, 1.45, -5.1], [-3.494, 1.45, -5.256], [-3.65, 1.45, -5.32], [-3.806, 1.45, -5.256], [-3.87, 1.45, -5.1], [-3.806, 1.45, -4.944], [-3.65, 1.45, -4.93], [-3.53, 1.45, -4.98], [-3.48, 1.45, -5.1], [-3.53, 1.45, -5.22], [-3.65, 1.45, -5.27], [-3.77, 1.45, -5.22], [-3.82, 1.45, -5.1], [-3.77, 1.45, -4.98], [-3.65, 1.65, -4.93], [-3.53, 1.65, -4.98], [-3.48, 1.65, -5.1], [-3.53, 1.65, -5.22], [-3.65, 1.65, -5.27], [-3.77, 1.65, -5.22], [-3.82, 1.65, -5.1], [-3.77, 1.65, -4.98], [-3.65, 1.65, -4.86], [-3.48, 1.65, -4.93], [-3.41, 1.65, -5.1], [-3.48, 1.65, -5.27], [-3.65, 1.65, -5.34], [-3.82, 1.65, -5.27], [-3.89, 1.65, -5.1], [-3.82, 1.65, -4.93], [-3.65, 1.75, -4.86], [-3.48, 1.75, -4.93], [-3.41, 1.75, -5.1], [-3.48, 1.75, -5.27], [-3.65, 1.75, -5.34], [-3.82, 1.75, -5.27], [-3.89, 1.75, -5.1], [-3.82, 1.75, -4.93], [-1.75, 0.42, -4.84], [-1.566, 0.42, -4.916], [-1.49, 0.42, -5.1], [-1.566, 0.42, -5.284], [-1.75, 0.42, -5.36], [-1.934, 0.42, -5.284], [-2.01, 0.42, -5.1], [-1.934, 0.42, -4.916], [-1.75, 0.8, -4.84], [-1.566, 0.8, -4.916], [-1.49, 0.8, -5.1], [-1.566, 0.8, -5.284], [-1.75, 0.8, -5.36], [-1.934, 0.8, -5.284], [-2.01, 0.8, -5.1], [-1.934, 0.8, -4.916], [-1.75, 0.8, -4.86], [-1.58, 0.8, -4.93], [-1.51, 0.8, -5.1], [-1.58, 0.8, -5.27], [-1.75, 0.8, -5.34], [-1.92, 0.8, -5.27], [-1.99, 0.8, -5.1], [-1.92, 0.8, -4.93], [-1.75, 1.15, -4.86], [-1.58, 1.15, -4.93], [-1.51, 1.15, -5.1], [-1.58, 1.15, -5.27], [-1.75, 1.15, -5.34], [-1.92, 1.15, -5.27], [-1.99, 1.15, -5.1], [-1.92, 1.15, -4.93], [-1.75, 1.15, -4.88], [-1.594, 1.15, -4.944], [-1.53, 1.15, -5.1], [-1.594, 1.15, -5.256], [-1.75, 1.15, -5.32], [-1.906, 1.15, -5.256], [-1.97, 1.15, -5.1], [-1.906, 1.15, -4.944], [-1.75, 1.45, -4.88], [-1.594, 1.45, -4.944], [-1.53, 1.45, -5.1], [-1.594, 1.45, -5.256], [-1.75, 1.45, -5.32], [-1.906, 1.45, -5.256], [-1.97, 1.45, -5.1], [-1.906, 1.45, -4.944], [-1.75, 1.45, -4.93], [-1.63, 1.45, -4.98], [-1.58, 1.45, -5.1], [-1.63, 1.45, -5.22], [-1.75, 1.45, -5.27], [-1.87, 1.45, -5.22], [-1.92, 1.45, -5.1], [-1.87, 1.45, -4.98], [-1.75, 1.65, -4.93], [-1.63, 1.65, -4.98], [-1.58, 1.65, -5.1], [-1.63, 1.65, -5.22], [-1.75, 1.65, -5.27], [-1.87, 1.65, -5.22], [-1.92, 1.65, -5.1], [-1.87, 1.65, -4.98], [-1.75, 1.65, -4.86], [-1.58, 1.65, -4.93], [-1.51, 1.65, -5.1], [-1.58, 1.65, -5.27], [-1.75, 1.65, -5.34], [-1.92, 1.65, -5.27], [-1.99, 1.65, -5.1], [-1.92, 1.65, -4.93], [-1.75, 1.75, -4.86], [-1.58, 1.75, -4.93], [-1.51, 1.75, -5.1], [-1.58, 1.75, -5.27], [-1.75, 1.75, -5.34], [-1.92, 1.75, -5.27], [-1.99, 1.75, -5.1], [-1.92, 1.75, -4.93], [1.75, 0.42, -4.84], [1.934, 0.42, -4.916], [2.01, 0.42, -5.1], [1.934, 0.42, -5.284], [1.75, 0.42, -5.36], [1.566, 0.42, -5.284], [1.49, 0.42, -5.1], [1.566, 0.42, -4.916], [1.75, 0.8, -4.84], [1.934, 0.8, -4.916], [2.01, 0.8, -5.1], [1.934, 0.8, -5.284], [1.75, 0.8, -5.36], [1.566, 0.8, -5.284], [1.49, 0.8, -5.1], [1.566, 0.8, -4.916], [1.75, 0.8, -4.86], [1.92, 0.8, -4.93], [1.99, 0.8, -5.1], [1.92, 0.8, -5.27], [1.75, 0.8, -5.34], [1.58, 0.8, -5.27], [1.51, 0.8, -5.1], [1.58, 0.8, -4.93], [1.75, 1.15, -4.86], [1.92, 1.15, -4.93], [1.99, 1.15, -5.1], [1.92, 1.15, -5.27], [1.75, 1.15, -5.34], [1.58, 1.15, -5.27], [1.51, 1.15, -5.1], [1.58, 1.15, -4.93], [1.75, 1.15, -4.88], [1.906, 1.15, -4.944], [1.97, 1.15, -5.1], [1.906, 1.15, -5.256], [1.75, 1.15, -5.32], [1.594, 1.15, -5.256], [1.53, 1.15, -5.1], [1.594, 1.15, -4.944], [1.75, 1.45, -4.88], [1.906, 1.45, -4.944], [1.97, 1.45, -5.1], [1.906, 1.45, -5.256], [1.75, 1.45, -5.32], [1.594, 1.45, -5.256], [1.53, 1.45, -5.1], [1.594, 1.45, -4.944], [1.75, 1.45, -4.93], [1.87, 1.45, -4.98], [1.92, 1.45, -5.1], [1.87, 1.45, -5.22], [1.75, 1.45, -5.27], [1.63, 1.45, -5.22], [1.58, 1.45, -5.1], [1.63, 1.45, -4.98], [1.75, 1.65, -4.93], [1.87, 1.65, -4.98], [1.92, 1.65, -5.1], [1.87, 1.65, -5.22], [1.75, 1.65, -5.27], [1.63, 1.65, -5.22], [1.58, 1.65, -5.1], [1.63, 1.65, -4.98], [1.75, 1.65, -4.86], [1.92, 1.65, -4.93], [1.99, 1.65, -5.1], [1.92, 1.65, -5.27], [1.75, 1.65, -5.34], [1.58, 1.65, -5.27], [1.51, 1.65, -5.1], [1.58, 1.65, -4.93], [1.75, 1.75, -4.86], [1.92, 1.75, -4.93], [1.99, 1.75, -5.1], [1.92, 1.75, -5.27], [1.75, 1.75, -5.34], [1.58, 1.75, -5.27], [1.51, 1.75, -5.1], [1.58, 1.75, -4.93], [3.65, 0.42, -4.84], [3.834, 0.42, -4.916], [3.91, 0.42, -5.1], [3.834, 0.42, -5.284], [3.65, 0.42, -5.36], [3.466, 0.42, -5.284], [3.39, 0.42, -5.1], [3.466, 0.42, -4.916], [3.65, 0.8, -4.84], [3.834, 0.8, -4.916], [3.91, 0.8, -5.1], [3.834, 0.8, -5.284], [3.65, 0.8, -5.36], [3.466, 0.8, -5.284], [3.39, 0.8, -5.1], [3.466, 0.8, -4.916], [3.65, 0.8, -4.86], [3.82, 0.8, -4.93], [3.89, 0.8, -5.1], [3.82, 0.8, -5.27], [3.65, 0.8, -5.34], [3.48, 0.8, -5.27], [3.41, 0.8, -5.1], [3.48, 0.8, -4.93], [3.65, 1.15, -4.86], [3.82, 1.15, -4.93], [3.89, 1.15, -5.1], [3.82, 1.15, -5.27], [3.65, 1.15, -5.34], [3.48, 1.15, -5.27], [3.41, 1.15, -5.1], [3.48, 1.15, -4.93], [3.65, 1.15, -4.88], [3.806, 1.15, -4.944], [3.87, 1.15, -5.1], [3.806, 1.15, -5.256], [3.65, 1.15, -5.32], [3.494, 1.15, -5.256], [3.43, 1.15, -5.1], [3.494, 1.15, -4.944], [3.65, 1.45, -4.88], [3.806, 1.45, -4.944], [3.87, 1.45, -5.1], [3.806, 1.45, -5.256], [3.65, 1.45, -5.32], [3.494, 1.45, -5.256], [3.43, 1.45, -5.1], [3.494, 1.45, -4.944], [3.65, 1.45, -4.93], [3.77, 1.45, -4.98], [3.82, 1.45, -5.1], [3.77, 1.45, -5.22], [3.65, 1.45, -5.27], [3.53, 1.45, -5.22], [3.48, 1.45, -5.1], [3.53, 1.45, -4.98], [3.65, 1.65, -4.93], [3.77, 1.65, -4.98], [3.82, 1.65, -5.1], [3.77, 1.65, -5.22], [3.65, 1.65, -5.27], [3.53, 1.65, -5.22], [3.48, 1.65, -5.1], [3.53, 1.65, -4.98], [3.65, 1.65, -4.86], [3.82, 1.65, -4.93], [3.89, 1.65, -5.1], [3.82, 1.65, -5.27], [3.65, 1.65, -5.34], [3.48, 1.65, -5.27], [3.41, 1.65, -5.1], [3.48, 1.65, -4.93], [3.65, 1.75, -4.86], [3.82, 1.75, -4.93], [3.89, 1.75, -5.1], [3.82, 1.75, -5.27], [3.65, 1.75, -5.34], [3.48, 1.75, -5.27], [3.41, 1.75, -5.1], [3.48, 1.75, -4.93], [-5.4, 0.3, 5.27], [-5.339, 0.3, 5.235], [-5.339, 0.3, 5.165], [-5.4, 0.3, 5.13], [-5.461, 0.3, 5.165], [-5.461, 0.3, 5.235], [-5.4, 0.42, 5.27], [-5.339, 0.42, 5.235], [-5.339, 0.42, 5.165], [-5.4, 0.42, 5.13], [-5.461, 0.42, 5.165], [-5.461, 0.42, 5.235], [-1.8, 0.3, 5.27], [-1.739, 0.3, 5.235], [-1.739, 0.3, 5.165], [-1.8, 0.3, 5.13], [-1.861, 0.3, 5.165], [-1.861, 0.3, 5.235], [-1.8, 0.42, 5.27], [-1.739, 0.42, 5.235], [-1.739, 0.42, 5.165], [-1.8, 0.42, 5.13], [-1.861, 0.42, 5.165], [-1.861, 0.42, 5.235], [1.8, 0.3, 5.27], [1.861, 0.3, 5.235], [1.861, 0.3, 5.165], [1.8, 0.3, 5.13], [1.739, 0.3, 5.165], [1.739, 0.3, 5.235], [1.8, 0.42, 5.27], [1.861, 0.42, 5.235], [1.861, 0.42, 5.165], [1.8, 0.42, 5.13], [1.739, 0.42, 5.165], [1.739, 0.42, 5.235], [5.4, 0.3, 5.27], [5.461, 0.3, 5.235], [5.461, 0.3, 5.165], [5.4, 0.3, 5.13], [5.339, 0.3, 5.165], [5.339, 0.3, 5.235], [5.4, 0.42, 5.27], [5.461, 0.42, 5.235], [5.461, 0.42, 5.165], [5.4, 0.42, 5.13], [5.339, 0.42, 5.165], [5.339, 0.42, 5.235]], [[8, 9, 10, 11, 12, 13, 14, 15], [0, 1, 9, 8], [1, 2, 10, 9], [2, 3, 11, 10], [3, 4, 12, 11], [4, 5, 13, 12], [5, 6, 14, 13], [6, 7, 15, 14], [7, 0, 8, 15], [24, 25, 26, 27, 28, 29, 30, 31], [16, 17, 25, 24], [17, 18, 26, 25], [18, 19, 27, 26], [19, 20, 28, 27], [20, 21, 29, 28], [21, 22, 30, 29], [22, 23, 31, 30], [23, 16, 24, 31], [40, 41, 42, 43, 44, 45, 46, 47], [32, 33, 41, 40], [33, 34, 42, 41], [34, 35, 43, 42], [35, 36, 44, 43], [36, 37, 45, 44], [37, 38, 46, 45], [38, 39, 47, 46], [39, 32, 40, 47], [56, 57, 58, 59, 60, 61, 62, 63], [48, 49, 57, 56], [49, 50, 58, 57], [50, 51, 59, 58], [51, 52, 60, 59], [52, 53, 61, 60], [53, 54, 62, 61], [54, 55, 63, 62], [55, 48, 56, 63], [72, 73, 74, 75, 76, 77, 78, 79], [64, 65, 73, 72], [65, 66, 74, 73], [66, 67, 75, 74], [67, 68, 76, 75], [68, 69, 77, 76], [69, 70, 78, 77], [70, 71, 79, 78], [71, 64, 72, 79], [88, 89, 90, 91, 92, 93, 94, 95], [80, 81, 89, 88], [81, 82, 90, 89], [82, 83, 91, 90], [83, 84, 92, 91], [84, 85, 93, 92], [85, 86, 94, 93], [86, 87, 95, 94], [87, 80, 88, 95], [104, 105, 106, 107, 108, 109, 110, 111], [96, 97, 105, 104], [97, 98, 106, 105], [98, 99, 107, 106], [99, 100, 108, 107], [100, 101, 109, 108], [101, 102, 110, 109], [102, 103, 111, 110], [103, 96, 104, 111], [120, 121, 122, 123, 124, 125, 126, 127], [112, 113, 121, 120], [113, 114, 122, 121], [114, 115, 123, 122], [115, 116, 124, 123], [116, 117, 125, 124], [117, 118, 126, 125], [118, 119, 127, 126], [119, 112, 120, 127], [136, 137, 138, 139, 140, 141, 142, 143], [128, 129, 137, 136], [129, 130, 138, 137], [130, 131, 139, 138], [131, 132, 140, 139], [132, 133, 141, 140], [133, 134, 142, 141], [134, 135, 143, 142], [135, 128, 136, 143], [152, 153, 154, 155, 156, 157, 158, 159], [144, 145, 153, 152], [145, 146, 154, 153], [146, 147, 155, 154], [147, 148, 156, 155], [148, 149, 157, 156], [149, 150, 158, 157], [150, 151, 159, 158], [151, 144, 152, 159], [168, 169, 170, 171, 172, 173, 174, 175], [160, 161, 169, 168], [161, 162, 170, 169], [162, 163, 171, 170], [163, 164, 172, 171], [164, 165, 173, 172], [165, 166, 174, 173], [166, 167, 175, 174], [167, 160, 168, 175], [184, 185, 186, 187, 188, 189, 190, 191], [176, 177, 185, 184], [177, 178, 186, 185], [178, 179, 187, 186], [179, 180, 188, 187], [180, 181, 189, 188], [181, 182, 190, 189], [182, 183, 191, 190], [183, 176, 184, 191], [200, 201, 202, 203, 204, 205, 206, 207], [192, 193, 201, 200], [193, 194, 202, 201], [194, 195, 203, 202], [195, 196, 204, 203], [196, 197, 205, 204], [197, 198, 206, 205], [198, 199, 207, 206], [199, 192, 200, 207], [216, 217, 218, 219, 220, 221, 222, 223], [208, 209, 217, 216], [209, 210, 218, 217], [210, 211, 219, 218], [211, 212, 220, 219], [212, 213, 221, 220], [213, 214, 222, 221], [214, 215, 223, 222], [215, 208, 216, 223], [232, 233, 234, 235, 236, 237, 238, 239], [224, 225, 233, 232], [225, 226, 234, 233], [226, 227, 235, 234], [227, 228, 236, 235], [228, 229, 237, 236], [229, 230, 238, 237], [230, 231, 239, 238], [231, 224, 232, 239], [248, 249, 250, 251, 252, 253, 254, 255], [240, 241, 249, 248], [241, 242, 250, 249], [242, 243, 251, 250], [243, 244, 252, 251], [244, 245, 253, 252], [245, 246, 254, 253], [246, 247, 255, 254], [247, 240, 248, 255], [264, 265, 266, 267, 268, 269, 270, 271], [256, 257, 265, 264], [257, 258, 266, 265], [258, 259, 267, 266], [259, 260, 268, 267], [260, 261, 269, 268], [261, 262, 270, 269], [262, 263, 271, 270], [263, 256, 264, 271], [280, 281, 282, 283, 284, 285, 286, 287], [272, 273, 281, 280], [273, 274, 282, 281], [274, 275, 283, 282], [275, 276, 284, 283], [276, 277, 285, 284], [277, 278, 286, 285], [278, 279, 287, 286], [279, 272, 280, 287], [296, 297, 298, 299, 300, 301, 302, 303], [288, 289, 297, 296], [289, 290, 298, 297], [290, 291, 299, 298], [291, 292, 300, 299], [292, 293, 301, 300], [293, 294, 302, 301], [294, 295, 303, 302], [295, 288, 296, 303], [312, 313, 314, 315, 316, 317, 318, 319], [304, 305, 313, 312], [305, 306, 314, 313], [306, 307, 315, 314], [307, 308, 316, 315], [308, 309, 317, 316], [309, 310, 318, 317], [310, 311, 319, 318], [311, 304, 312, 319], [326, 327, 328, 329, 330, 331], [320, 321, 327, 326], [321, 322, 328, 327], [322, 323, 329, 328], [323, 324, 330, 329], [324, 325, 331, 330], [325, 320, 326, 331], [338, 339, 340, 341, 342, 343], [332, 333, 339, 338], [333, 334, 340, 339], [334, 335, 341, 340], [335, 336, 342, 341], [336, 337, 343, 342], [337, 332, 338, 343], [350, 351, 352, 353, 354, 355], [344, 345, 351, 350], [345, 346, 352, 351], [346, 347, 353, 352], [347, 348, 354, 353], [348, 349, 355, 354], [349, 344, 350, 355], [362, 363, 364, 365, 366, 367], [356, 357, 363, 362], [357, 358, 364, 363], [358, 359, 365, 364], [359, 360, 366, 365], [360, 361, 367, 366], [361, 356, 362, 367]], [#f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #3ec46d, #3ec46d, #3ec46d, #3ec46d, #3ec46d, #3ec46d, #3ec46d, #3ec46d, #3ec46d, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #ffe9a6, #ffe9a6, #ffe9a6, #ffe9a6, #ffe9a6, #ffe9a6, #ffe9a6, #ffe9a6, #ffe9a6, #2b2f36, #2b2f36, #2b2f36, #2b2f36, #2b2f36, #2b2f36, #2b2f36, #2b2f36, #2b2f36, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #ffe9a6, #ffe9a6, #ffe9a6, #ffe9a6, #ffe9a6, #ffe9a6, #ffe9a6, #ffe9a6, #ffe9a6, #2b2f36, #2b2f36, #2b2f36, #2b2f36, #2b2f36, #2b2f36, #2b2f36, #2b2f36, #2b2f36, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #3ec46d, #3ec46d, #3ec46d, #3ec46d, #3ec46d, #3ec46d, #3ec46d, #3ec46d, #3ec46d, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #ffe9a6, #ffe9a6, #ffe9a6, #ffe9a6, #ffe9a6, #ffe9a6, #ffe9a6, #ffe9a6, #ffe9a6, #2b2f36, #2b2f36, #2b2f36, #2b2f36, #2b2f36, #2b2f36, #2b2f36, #2b2f36, #2b2f36, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #e5484d, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #f3efe4, #ffe9a6, #ffe9a6, #ffe9a6, #ffe9a6, #ffe9a6, #ffe9a6, #ffe9a6, #ffe9a6, #ffe9a6, #2b2f36, #2b2f36, #2b2f36, #2b2f36, #2b2f36, #2b2f36, #2b2f36, #2b2f36, #2b2f36, #3a4552, #2b2f36, #2b2f36, #2b2f36, #2b2f36, #2b2f36, #2b2f36, #3a4552, #2b2f36, #2b2f36, #2b2f36, #2b2f36, #2b2f36, #2b2f36, #3a4552, #2b2f36, #2b2f36, #2b2f36, #2b2f36, #2b2f36, #2b2f36, #3a4552, #2b2f36, #2b2f36, #2b2f36, #2b2f36, #2b2f36, #2b2f36])
+  let BOX = cube()
+
+  // ---- weather and the clock, for drawing --------------------------------------------------------------------------
+  let PH = wt < 0 ? -1 : gt - wt - 15
+  let WXA = wx == 0 ? 0 : clamp(min(PH % 55, 22 - PH % 55) / 2.5, 0, 1)
+  let DRF = wx == 2 ? wdir * 0.32 : 0
+  let HINT = mode != "play" || card > 0 ? "" : nShips == 0 ? "DRAG FROM A SHIP TO A BERTH OF ITS COLOUR" : nOut == 0 && any(ships, s => (s.st == 0 || s.st == 3 || s.st == 4) && s.out && len(s.p) == 0) ? "DRAG THE EMPTY SHIP OUT PAST THE BREAKWATER" : ""
+  // the cards: a title and what's new
+  let CARDS = [
+    {t: "BRING THE SHIPS IN", a: "Drag from a ship to draw its course, in through either harbour mouth. End it in a berth of the ship's colour and it docks.", b: "Ships that touch sink. And watch the ring round each ship: if it runs out before it docks, you lose a lifebuoy."},
+    {t: "SEND THEM OUT", a: "The cranes unload a docked ship by themselves. Then it backs out of its berth, empty and ready to go.", b: "Drag its course out through a harbour mouth to the open sea, clear of the ships coming in."},
+    {t: "STORMS", a: "Storms push every ship sideways. Give the breakwater and each other room.", b: "And the ships come in faster from here on."}]
+  // pairs of ships close enough to warn about, at least one of them moving
+  let NEARP = mode != "play" ? [] : flatten(ships.map((a, i) => ships.drop(i + 1).filter(b => a.st != 2 && b.st != 2 && !a.sk && !b.sk && a.z > -19 && b.z > -19 && (a.st == 0 || b.st == 0 || a.st == 4 || b.st == 4) && !(a.au && b.au) && ((a.x) - (b.x)) * ((a.x) - (b.x)) + ((a.z) - (b.z)) * ((a.z) - (b.z)) < 3).map(b => [a.x, a.z, b.x, b.z])))
+  // which ship's course is being drawn: shown thicker
+  let DRAW = dg.k == 0 ? dg.id : -1
+
+  every frame {
+    if mode == "play" && !still && card == 0 && taught < 0 {
+      card = 1
+    }
+    if mode == "play" && !still && card == 0 && hold > 0 {
+      hold = max(0, hold - dt)
+      if hold == 0 {
+        fx = fx + ships.filter(q => q.sk).map(q => {x: q.x, z: q.z, t: gt})
+        ships = ships.filter(q => !q.sk)
+        lp = []
+        if strikes >= 3 {
+          best = max(best, score)
+          mode = "lost"
+          dg = {k: -2}
+        }
+      }
+    }
+    if mode == "play" && !still && card == 0 && hold == 0 && strikes >= 3 {
+      mode = "lost"
+    }
+    if mode == "play" && !still && card == 0 && hold == 0 {
+      gt = gt + dt
+      // a new stage: ships going out (with the first ship that's ready), then fog, then storms
+      let nl = nOut >= 6 ? 2 : nOut > 0 || any(ships, s => s.out) ? 1 : 0
+      if nl > lvl {
+        lvl = nl
+        if nl > taught { card = nl + 1 }
+        if nl == 2 { wt = gt }
+        msg = ["", "SHIPS GOING OUT", "STORMS FROM NOW ON"][nl]
+        msgT = gt
+      }
+      let nwx = lvl >= 2 && PH >= 0 && PH % 55 < 22 ? 2 : 0
+      if nwx != wx {
+        wx = nwx
+        wdir = random() < 0.5 ? -1 : 1
+        msg = nwx == 2 ? "STORM! THE SHIPS DRIFT" : "THE SKY CLEARS"
+        msgT = gt
+      }
+
+      // a new ship from the top or a side, not on top of another
+      if gt >= spAt && count(ships, s => s.st == 0 && !s.out) < min(8, 2 + lvl + floor(run / 6)) {
+        let side = random(3)
+        let px = side == 0 ? random() * 8 - 4 : (side == 1 ? -8.6 : 8.6)
+        let pz = side == 0 ? -21 : -19 + random() * 6
+        let n = 1 + random(4)
+        if all(ships, s => ((s.x) - (px)) * ((s.x) - (px)) + ((s.z) - (pz)) * ((s.z) - (pz)) > 7) {
+          // until it's given a course it sails for an anchorage outside the breakwater, spread so they don't meet
+          let an = first(range(8).filter(k => !any(ships, o => o.st == 0 && o.an == k))) ?? 0
+          let anc = [[-5.3, 0, 5.3, -5.6, -1.2, 1.2, 5.6, 0][an], [-8.8, -8.4, -8.8, -11.4, -11.0, -11.0, -11.4, -13.4][an]]
+          ships = ships + [{id: nid, x: px, z: pz, h: (deg(atan2(anc[0] - px, anc[1] - pz)) + 360) % 360, c: random(3), st: 0, out: false, p: [[anc[0], anc[1], 0, 0]], au: true, an: an, b: -1, cg: range(4).map(i => i < n ? random(2) : -1), t0: gt, t1: -1, ua: 0, lt: 0, bk: false}]
+          nid = nid + 1
+          spAt = gt + max(3.5, [10, 8.5, 7.5][lvl] - run * 0.12)
+        }
+      }
+
+      // steer for the next point of the course, sail, and dock at the end of a course into a berth
+      ships = ships
+        // a ship still on its own way to an anchorage steers round the ships near it, widest round those going out
+        .map(s => (s.st == 0 || s.st == 2) && len(s.p) > 0 ? [s.au ? [[reduce(ships, (a, o) => o.id != s.id && o.st != 2 && ((o.x) - (s.x)) * ((o.x) - (s.x)) + ((o.z) - (s.z)) * ((o.z) - (s.z)) < 9 ? [a[0] + (s.x - o.x) / max(((o.x) - (s.x)) * ((o.x) - (s.x)) + ((o.z) - (s.z)) * ((o.z) - (s.z)), 0.4) * (o.out ? 3 : 1.4), a[1] + (s.z - o.z) / max(((o.x) - (s.x)) * ((o.x) - (s.x)) + ((o.z) - (s.z)) * ((o.z) - (s.z)), 0.4) * (o.out ? 3 : 1.4)] : a, [0, 0]), [s.p[0][0] - s.x, s.p[0][1] - s.z]]].map(q => [q[1][0] / max(sqrt(q[1][0] * q[1][0] + q[1][1] * q[1][1]), 0.01) + q[0][0], q[1][1] / max(sqrt(q[1][0] * q[1][0] + q[1][1] * q[1][1]), 0.01) + q[0][1]])[0] : [s.p[0][0] - s.x, s.p[0][1] - s.z]].map(v => merge(s, {h: (s.h + clamp((deg(atan2(v[0], v[1])) - s.h + 540) % 360 - 180, -TRN * dt, TRN * dt) + 360) % 360}))[0] : s)
+        // at anchor, it slides aside from a ship going out that comes close
+        .map(s => s.st == 0 && s.au && len(s.p) == 0 ? [reduce(ships, (a, o) => o.out && o.st == 0 && ((o.x) - (s.x)) * ((o.x) - (s.x)) + ((o.z) - (s.z)) * ((o.z) - (s.z)) < 7 ? [a[0] + (s.x - o.x), a[1] + (s.z - o.z)] : a, [0, 0])].map(r => r[0] == 0 && r[1] == 0 ? s : [[s.x + r[0] / max(sqrt(r[0] * r[0] + r[1] * r[1]), 0.01) * 0.9 * dt, s.z + r[1] / max(sqrt(r[0] * r[0] + r[1] * r[1]), 0.01) * 0.9 * dt]].map(q => [[q[0], q[1]]].map(w => w[1] < 5 && w[1] > -23 && abs(w[0]) < 11.5 && !(w[1] > -5.5 && abs(w[0]) > 5.6) && !(w[1] > -5.5 && w[1] < -4.7 && !(abs(w[0]) > 1.5 && abs(w[0]) < 3.9)))[0] && q[1] < -6.2 ? merge(s, {x: q[0], z: q[1]}) : s)[0])[0] : s)
+        .map(s => s.st == 0 && s.au && len(s.p) > 0 && any(ships, o => o.id != s.id && o.st != 2 && ((o.x) - (s.x)) * ((o.x) - (s.x)) + ((o.z) - (s.z)) * ((o.z) - (s.z)) < 4.4 && sin(rad(s.h)) * (o.x - s.x) + cos(rad(s.h)) * (o.z - s.z) > 0.3) ? merge(s, {bk: false}) : s.st == 0 && len(s.p) > 0 ? [[s.x + (sin(rad(s.h)) * SPD + DRF) * dt, s.z + cos(rad(s.h)) * SPD * dt]].map(q => [[q[0] + sin(rad(s.h)) * 1.1, q[1] + cos(rad(s.h)) * 1.1]].map(w => w[1] < 5 && w[1] > -23 && abs(w[0]) < 11.5 && !(w[1] > -5.5 && abs(w[0]) > 5.6) && !(w[1] > -5.5 && w[1] < -4.7 && !(abs(w[0]) > 1.5 && abs(w[0]) < 3.9)))[0] && [[q[0] - sin(rad(s.h)) * 0.9, q[1] - cos(rad(s.h)) * 0.9]].map(w => w[1] < 5 && w[1] > -23 && abs(w[0]) < 11.5 && !(w[1] > -5.5 && abs(w[0]) > 5.6) && !(w[1] > -5.5 && w[1] < -4.7 && !(abs(w[0]) > 1.5 && abs(w[0]) < 3.9)))[0] ? merge(s, {x: q[0], z: q[1], bk: false}) : merge(s, {bk: true}))[0]
+          : s.st == 2 ? merge(s, {x: s.x + sin(rad(s.h)) * SPD * 1.3 * dt, z: s.z + cos(rad(s.h)) * SPD * 1.3 * dt})
+          : s.st == 4 ? merge(s, {z: s.z - 0.8 * dt}) : s.st == 0 ? merge(s, {bk: false}) : s)
+        .map(s => len(s.p) == 0 || (s.st != 0 && s.st != 2) ? s : [((s.x) - (s.p[0][0])) * ((s.x) - (s.p[0][0])) + ((s.z) - (s.p[0][1])) * ((s.z) - (s.p[0][1]))].map(d => s.st == 0 && s.b >= 0 && len(s.p) == 1 ? (d < 0.1 || s.bk ? merge(s, {st: 1, x: BX[s.b], z: BZ, h: 0, p: [], t1: gt, ua: gt + 1.0, bk: false}) : s) : d < 0.09 || (d < 1.0 && sin(rad(s.h)) * (s.p[0][0] - s.x) + cos(rad(s.h)) * (s.p[0][1] - s.z) < 0) ? merge(s, {p: drop(s.p, 1)}) : s)[0])
+        // unloaded: it backs out of the berth, then follows the course drawn for it meanwhile, or waits for one
+        .map(s => s.st == 3 && gt > s.lt ? merge(s, {st: 4}) : s.st == 4 && s.z < 2.1 ? merge(s, {st: 0, out: true, b: s.b == -2 ? -2 : -1, t0: gt, au: false, an: -1}) : s)
+      let nd = count(ships, s => s.st == 1 && s.t1 == gt)
+      if nd > 0 {
+        score = score + 5 * nd
+        nShips = nShips + nd
+        haptic("light")
+      }
+      // out at sea on its way: a ship sent out
+      let gone = count(ships, s => s.st == 0 && s.out && s.z < -19)
+      if gone > 0 {
+        score = score + 10 * gone
+        nOut = nOut + gone
+        ships = ships.filter(s => !(s.st == 0 && s.out && s.z < -19))
+        if snd { sound(SBUILD) }
+        // every 8 ships sent out bring a lifebuoy back
+        if strikes > 0 && floor((run + gone) / 8) > floor(run / 8) {
+          strikes = strikes - 1
+          msg = "A LIFEBUOY BACK!"
+          msgT = gt
+          if snd { sound(SCHIME) }
+        }
+        run = run + gone
+        best = max(best, score)
+      }
+
+      // kept waiting too long to dock: it goes off by itself, and that's a strike
+      let tired = ships.filter(s => s.st == 0 && !s.out && gt - s.t0 > PAT)
+      if len(tired) > 0 {
+        strikes = strikes + len(tired)
+        lp = tired.map(q => [q.x, q.z])
+        hold = 2.2
+        losses = (losses + tired.map(q => "THE ${BN[q.c]} SHIP WAITED TOO LONG TO DOCK")).take(3)
+        ships = ships.map(s => s.st == 0 && !s.out && gt - s.t0 > PAT ? merge(s, {st: 2, b: -1, p: s.z > -5 ? [[GX[s.x < 0 ? 0 : 1], -2.8], [GX[s.x < 0 ? 0 : 1], -5.1], [GX[s.x < 0 ? 0 : 1], -9], [GX[s.x < 0 ? 0 : 1] * 1.6, -24]] : [[s.x, -24]]}) : s)
+        msg = "THE ${BN[tired[0].c]} SHIP WAITED TOO LONG TO DOCK"
+        msgT = gt
+        haptic()
+        if dg.k == 0 && any(tired, q => q.id == dg.id) { dg = {k: -1, fid: dg.fid} }
+      }
+
+      // ships that clearly overlap sink: each is two small circles, bow half and stern half, so a brush of the hulls
+      // doesn't count. They stay on show, ringed in red, while the port holds still
+      let hit = hold > 0 ? [] : ships.filter(a => a.st != 2 && a.z > -19 && any(ships, b => b.id != a.id && b.st != 2 && b.z > -19 && (a.st == 0 || b.st == 0 || a.st == 4 || b.st == 4) && ((a.x) - (b.x)) * ((a.x) - (b.x)) + ((a.z) - (b.z)) * ((a.z) - (b.z)) < 4 && any([[0.5, 0.5], [0.5, -0.5], [-0.5, 0.5], [-0.5, -0.5]], o => ((a.x + sin(rad(a.h)) * o[0]) - (b.x + sin(rad(b.h)) * o[1])) * ((a.x + sin(rad(a.h)) * o[0]) - (b.x + sin(rad(b.h)) * o[1])) + ((a.z + cos(rad(a.h)) * o[0]) - (b.z + cos(rad(b.h)) * o[1])) * ((a.z + cos(rad(a.h)) * o[0]) - (b.z + cos(rad(b.h)) * o[1])) < 0.2)))
+      if len(hit) > 0 {
+        ships = ships.map(s => any(hit, q => q.id == s.id) ? merge(s, {sk: true}) : s)
+        strikes = strikes + 1
+        lp = [[avg(hit.map(q => q.x)), avg(hit.map(q => q.z))]]
+        hold = 2.2
+        msg = len(hit) >= 2 && hit[0].c != hit[1].c ? "THE ${BN[hit[0].c]} AND ${BN[hit[1].c]} SHIPS COLLIDED" : "TWO ${BN[hit[0].c]} SHIPS COLLIDED"
+        losses = (losses + [msg]).take(3)
+        msgT = gt
+        haptic("strong")
+        if dg.k == 0 && any(hit, q => q.id == dg.id) { dg = {k: -1, fid: dg.fid} }
+      }
+      ships = ships.filter(s => s.z > -23.5 && abs(s.x) < 11)
+      fx = fx.filter(f => gt - f.t < 1.6)
+      fl = fl.filter(f => gt - f.t < FD + 0.05)
+
+      // The cranes work by themselves: a box a second off a docked ship, onto the train if it's in, else onto the quay
+      // behind the crane to be carted off.
+      let U = first(ships.filter(s => s.st == 1 && gt >= s.ua && any(s.cg, c => c >= 0)))
+      if U != null {
+        let i = last(range(4).filter(j => U.cg[j] >= 0))
+        let wi = tr.st == 1 ? first(range(4).filter(w => tr.w[w] < 0)) : null
+        fl = fl + [{a: [U.x + SLX[i], 0.32, U.z + SLZ[i]], b: wi != null ? [tr.x + WOFF[wi], 0.62, RZ] : [U.x, 0.42, 6.0], t: gt, k: U.cg[i], ha: 0, hb: 90}]
+        if wi != null {
+          tr = merge(tr, {w: set(tr.w, wi, gt + FD)})
+        }
+        ships = ships.map(s => s.id == U.id ? [set(s.cg, i, -1)].map(c => merge(s, all(c, k => k < 0) ? {cg: c, st: 3, out: true, lt: gt + FD + 0.6} : {cg: c, ua: gt + 0.9}))[0] : s)
+      }
+
+      // the train comes, waits, and goes, sooner once it's full
+      if tr.st == 3 && gt > tr.t {
+        tr = {x: -17, st: 0, t: gt, w: [-1, -1, -1, -1]}
+      } else if tr.st == 0 {
+        let v = clamp(-tr.x * 1.1, 1.0, 8) * dt
+        tr = tr.x + v >= 0 ? merge(tr, {x: 0, st: 1, t: gt}) : merge(tr, {x: tr.x + v})
+      } else if tr.st == 1 && gt > reduce(tr.w, (m, a) => max(m, a), -1) + 0.5 && (all(tr.w, a => a >= 0) || gt > tr.t + TRW) {
+        tr = merge(tr, {st: 2, t: gt})
+      } else if tr.st == 2 {
+        tr = tr.x > 18 ? merge(tr, {st: 3, t: gt + 4}) : merge(tr, {x: tr.x + min(9, 0.5 + (gt - tr.t) * 5) * dt})
+      }
+    }
+  }
+
+  Box {
+    fill: true
+    background: SEA
+
+    // ---- the water: each pixel is traced down to the sea, so the swell lies flat in the scene ----
+    Shader {
+      fill: true
+      fallback: SEA
+      uniforms: {eye: EYE, fw: FW, rt: RT, upv: UPV, th: TH, deep: wx == 2 ? #164a68 : #1d6c96, shal: wx == 2 ? #22678a : #3197c0, wxs: wx == 2 ? 1 : 0, fogv: wx == 1 ? 1 : 0, tt: gt}
+      code: """
+        uniform float3 eye;
+        uniform float3 fw;
+        uniform float3 rt;
+        uniform float3 upv;
+        uniform float th;
+        uniform half4 deep;
+        uniform half4 shal;
+        uniform float wxs;
+        uniform float fogv;
+        uniform float tt;
+        half4 main(float2 p) {
+          float2 q = float2((2.0 * p.x / size.x - 1.0) * th * size.x / size.y, (1.0 - 2.0 * p.y / size.y) * th);
+          float3 d = fw + rt * q.x + upv * q.y;
+          float2 w = float2(eye.x - d.x * eye.y / d.y, eye.z - d.z * eye.y / d.y);
+          float a = 1.0 + wxs * 1.4;
+          float sp = 1.0 + wxs * 1.5;
+          float v = sin(w.x * 1.9 + w.y * 0.7 + tt * 0.9 * sp) * sin(w.y * 2.4 - w.x * 0.9 - tt * 0.7 * sp);
+          float v2 = sin(w.x * 4.1 - w.y * 3.3 + tt * 1.6 * sp) * 0.5;
+          float g = smoothstep(0.8, 1.05, v * 0.8 + v2 * 0.4);
+          half3 c = mix(deep.rgb, shal.rgb, half(smoothstep(-7.0, 0.5, w.y)));
+          c += half3(0.02, 0.03, 0.035) * half(v * a);
+          c += half3(0.1, 0.11, 0.11) * half(g * a * 0.4);
+          c = mix(c, half3(0.78, 0.82, 0.85), half(fogv * smoothstep(-1.5, -9.0, w.y) * 0.75));
+          return half4(c, 1.0);
+        }
+      """
+    }
+
+    // ---- the port, recorded: it reads no clock ----
+    Canvas {
+      fill: true
+      scene(CAM, light: LIGHT, ambient: 0.9) {
+        model(BERTHW, ambient: 1)
+      }
+      scene(CAM, light: LIGHT, ambient: 0.6) {
+        model(LAND)
+      }
+      scene(CAM, light: LIGHT, ambient: 0.75) {
+        model(DECALS)
+      }
+      scene(CAM, light: LIGHT, ambient: 0.6) {
+        model(PROPS)
+      }
+    }
+
+    // ---- the cranes, recorded; the ships are drawn after them, so a docked ship and its boxes show ----
+    Canvas {
+      fill: true
+      scene(CAM, light: LIGHT, ambient: 0.6) {
+        for b in range(6) { model(CRANE[BCOL[b]], at: [BX[b], 0, 0]) }
+      }
+    }
+
+    // ---- what moves ----
+    Canvas {
+      fill: true
+      scene(CAM, light: LIGHT, ambient: 0.6) {
+        for s in ships {
+          let fg = false
+          let ch = cos(rad(s.h))
+          let sh = sin(rad(s.h))
+          if s.st == 2 || s.st == 4 || (s.st == 0 && !s.bk && len(s.p) > 0) {
+            model(WAKE, at: [s.x, 0, s.z], turn: [0, s.h, 0], ambient: 1)
+          }
+          model(HULL[fg ? 3 : s.c], at: [s.x, 0, s.z], turn: [0, s.h, wx == 2 && s.st != 1 ? sin(gt * 2.6 + s.id) * 5 : 0])
+          for j in range(4) {
+            if s.cg[j] >= 0 {
+              model(BOX, at: [s.x + SLX[j] * ch + SLZ[j] * sh, 0.32, s.z - SLX[j] * sh + SLZ[j] * ch], turn: [0, s.h, 0], scale: BOXS, color: fg ? FOGC : KC[s.cg[j]])
+            }
+          }
+        }
+        if tr.st != 3 {
+          model(LOCO, at: [tr.x + 2.76, 0.3, RZ], turn: [0, 90, 0])
+          for w in range(4) {
+            model(WAGON, at: [tr.x + WOFF[w], 0.3, RZ], turn: [0, 90, 0])
+            if tr.w[w] >= 0 && gt >= tr.w[w] {
+              model(BOX, at: [tr.x + WOFF[w], 0.62, RZ], turn: [0, 90, 0], scale: BOXS, color: KC[0])
+            }
+          }
+        }
+        for f in fl {
+          let u = clamp((gt - f.t) / FD, 0, 1)
+          let e = u * u * (3 - 2 * u)
+          model(BOX, at: [lerp(f.a[0], f.b[0], e), lerp(f.a[1], f.b[1], e) + sin(u * 3.1416) * 1.7, lerp(f.a[2], f.b[2], e)], turn: [0, lerp(f.ha, f.hb, e), 0], scale: BOXS, color: KC[f.k])
+        }
+      }
+    }
+
+    // ---- courses, rings, fog and rain; the finger ----
+    Canvas {
+      fill: true
+      if mode == "play" || mode == "pause" {
+        if wx == 1 && WXA > 0 {
+          rect(0, 0, width, height * 0.5, fill: linear(0, 0, 0, height * 0.5, [alpha(#e3e9ec, 0.94 * WXA), alpha(#e3e9ec, 0.8 * WXA), alpha(#e3e9ec, 0)]))
+        }
+        if wx == 2 && WXA > 0 {
+          rect(0, 0, width, height, fill: alpha(#08131f, 0.3 * WXA))
+          for i in range(36) {
+            let rx = (hash(i) * width + gt * (60 + hash(i, 2) * 40) * wdir) % width
+            let ry = (hash(i, 1) * height + gt * (520 + hash(i, 3) * 200)) % height
+            line(rx, ry, rx + 7 * wdir, ry + 22, stroke: alpha(#cfe3f0, 0.45 * WXA), width: 1.5)
+          }
+        }
+        for s in ships {
+          let sp = project([s.x, 0.2, s.z], CAM, width, height)
+          if sp != null {
+            let fg = false
+            let col = BC[s.c]
+            if (s.st == 0 || s.st == 3 || s.st == 4) && len(s.p) > 0 && !s.au {
+              path([[sp.x, sp.y]] + s.p.map(q => len(q) > 2 ? [q[2], q[3]] : [project([q[0], 0.2, q[1]], CAM, width, height)].map(pp => [pp.x, pp.y])[0]), stroke: alpha(col, 0.85), width: s.id == DRAW ? 5 : 3.5, cap: round)
+              let ep = len(last(s.p)) > 2 ? {x: last(s.p)[2], y: last(s.p)[3]} : project([last(s.p)[0], 0.2, last(s.p)[1]], CAM, width, height)
+              if s.b >= 0 {
+                circle(ep.x, ep.y, 6, fill: col)
+              } else if s.b == -2 {
+                path([[ep.x - 8, ep.y + 6], [ep.x, ep.y - 6], [ep.x + 8, ep.y + 6]], stroke: col, width: 3.5, cap: round)
+              } else {
+                circle(ep.x, ep.y, 5, stroke: col, width: 2.5)
+              }
+            }
+            if s.st == 0 {
+              // patience: a ring that drains, the ship's colour, then yellow, then red and pulsing
+              let left = clamp(1 - (gt - s.t0) / PAT, 0, 1)
+              if s.z > -19 && !s.out {
+                arc(sp.x, sp.y, 25, 0, 360, stroke: alpha(NAVY2, 0.35), width: 4)
+                arc(sp.x, sp.y, 25, 0, 360 * left, stroke: left < 0.25 ? alpha(REDC, 0.6 + 0.4 * sin(gt * 12)) : left < 0.5 ? YEL : alpha(BC[s.c], 0.9), width: 4, cap: round)
+              }
+              if fg {
+                let ph = (gt * 0.9 + s.id * 0.37) % 1
+                circle(sp.x, sp.y, 12 + ph * 26, stroke: alpha(#ffffff, 0.8 * (1 - ph)), width: 2.5)
+              }
+              if s.bk {
+                circle(sp.x, sp.y - 30, 10, fill: REDC)
+                text("!", sp.x, sp.y - 30, size: 14, font: FONT, align: center, color: CRM)
+              }
+              // empty and waiting for its way out: a pulsing ring and an arrow out to sea
+              if s.out && len(s.p) == 0 {
+                let ph = (gt * 1.2 + s.id * 0.3) % 1
+                circle(sp.x, sp.y, 16 + ph * 16, stroke: alpha(col, 1 - ph), width: 3)
+                path([[sp.x - 9, sp.y - 34], [sp.x, sp.y - 44], [sp.x + 9, sp.y - 34]], stroke: CRM, width: 4, cap: round)
+              }
+            }
+            // about to back out of its berth: arrows behind its stern
+            if s.st == 3 || s.st == 4 || (s.st == 1 && count(s.cg, c => c >= 0) == 1) {
+              let bp = project([s.x, 0.2, s.z - 1.5], CAM, width, height)
+              let ph = (gt * 2) % 1
+              path([[bp.x - 8, bp.y + 4 - ph * 6], [bp.x, bp.y - 4 - ph * 6], [bp.x + 8, bp.y + 4 - ph * 6]], stroke: alpha(CRM, 0.4 + 0.6 * (1 - ph)), width: 3.5, cap: round)
+            }
+          }
+        }
+        // two ships getting close: a red line between them and rings, before they touch
+        for q in NEARP {
+          let a = project([q[0], 0.2, q[1]], CAM, width, height)
+          let b = project([q[2], 0.2, q[3]], CAM, width, height)
+          let pu = 0.5 + 0.5 * sin(gt * 14)
+          line(a.x, a.y, b.x, b.y, stroke: alpha(REDC, 0.5 + 0.4 * pu), width: 3, cap: round)
+          circle(a.x, a.y, 20, stroke: alpha(REDC, 0.4 + 0.5 * pu), width: 3)
+          circle(b.x, b.y, 20, stroke: alpha(REDC, 0.4 + 0.5 * pu), width: 3)
+        }
+        // a lifebuoy just lost: everything holds, red rings close in on where it happened
+        if hold > 0 {
+          rect(0, 0, width, height, fill: alpha(#2a0508, 0.25))
+          for q in lp {
+            let a = project([q[0], 0.2, q[1]], CAM, width, height)
+            circle(a.x, a.y, 30 + hold * 40, stroke: alpha(REDC, 0.9), width: 5)
+            circle(a.x, a.y, 30, stroke: REDC, width: 4)
+            line(a.x - 14, a.y - 14, a.x + 14, a.y + 14, stroke: REDC, width: 5, cap: round)
+            line(a.x - 14, a.y + 14, a.x + 14, a.y - 14, stroke: REDC, width: 5, cap: round)
+          }
+        }
+        // a sinking: rings on the water
+        for f in fx {
+          let fp = project([f.x, 0, f.z], CAM, width, height)
+          let u = (gt - f.t) / 1.6
+          if fp != null {
+            circle(fp.x, fp.y, 10 + u * 50, stroke: alpha(#ffffff, 1 - u), width: 4)
+            circle(fp.x, fp.y, 4 + u * 28, stroke: alpha(#ffffff, 0.7 * (1 - u)), width: 2.5)
+          }
+        }
+      }
+
+      // One finger, drawn from a ship: the course it sails. Coming in, it ends in a berth of the ship's colour; going
+      // out, past the breakwater at sea.
+      onTouch: {
+        let T = touches
+        if mode == "play" && card == 0 && hold == 0 {
+          let t = first(T.filter(f => dg.k > -2 && f.id == dg.fid)) ?? (dg.k == -2 ? first(T) : null)
+          if t == null && dg.k > -2 {
+            dg = {k: -2}
+          } else if t != null && dg.k == -2 {
+            // a finger down: on which ship?
+            let W = [[(2 * (t.x) / SW - 1) * TH * SW / SH, (1 - 2 * (t.y) / SH) * TH]].map(q => [FW[0] + RT[0] * q[0] + UPV[0] * q[1], FW[1] + RT[1] * q[0] + UPV[1] * q[1], FW[2] + RT[2] * q[0] + UPV[2] * q[1]]).map(d => [EYE[0] - d[0] * EYE[1] / d[1], EYE[2] - d[2] * EYE[1] / d[1]])[0]
+            let S = first(ships.filter(s => (s.st == 0 || s.st == 3 || s.st == 4) && s.z > -23).sortBy(s => ((s.x) - (W[0])) * ((s.x) - (W[0])) + ((s.z) - (W[1])) * ((s.z) - (W[1]))))
+            if S != null && ((S.x) - (W[0])) * ((S.x) - (W[0])) + ((S.z) - (W[1])) * ((S.z) - (W[1])) < 2.0 {
+              dg = {k: 0, id: S.id, fid: t.id, lx: t.x, ly: t.y}
+              ships = ships.map(s => s.id == S.id ? merge(s, {p: [], b: s.st == 0 ? -1 : -3, au: false, an: -1}) : s)
+            } else {
+              dg = {k: -1, fid: t.id}
+            }
+          } else if t != null && dg.k == 0 {
+            let W = [[(2 * (t.x) / SW - 1) * TH * SW / SH, (1 - 2 * (t.y) / SH) * TH]].map(q => [FW[0] + RT[0] * q[0] + UPV[0] * q[1], FW[1] + RT[1] * q[0] + UPV[1] * q[1], FW[2] + RT[2] * q[0] + UPV[2] * q[1]]).map(d => [EYE[0] - d[0] * EYE[1] / d[1], EYE[2] - d[2] * EYE[1] / d[1]])[0]
+            let S = first(ships.filter(s => s.id == dg.id))
+            dg = merge(dg, {lx: t.x, ly: t.y})
+            if S == null || !(S.st == 0 || S.st == 3 || S.st == 4) {
+              dg = {k: -1, fid: t.id}
+            } else if S.b == -1 || S.b == -3 {
+              let L = len(S.p) > 0 ? last(S.p) : [S.x, S.z]
+              if ((W[0]) - (L[0])) * ((W[0]) - (L[0])) + ((W[1]) - (L[1])) * ((W[1]) - (L[1])) > 0.1 && len(S.p) < 90 && [[W[0], W[1]]].map(w => w[1] < 5 && w[1] > -23 && abs(w[0]) < 11.5 && !(w[1] > -5.5 && abs(w[0]) > 5.6) && !(w[1] > -5.5 && w[1] < -4.7 && !(abs(w[0]) > 1.5 && abs(w[0]) < 3.9)))[0] {
+                let bb = S.out ? null : first(range(6).filter(b => abs(W[0] - BX[b]) < 0.6 && W[1] > 1.7))
+                let free = bb != null && BCOL[bb] == S.c && !any(ships, o => o.id != S.id && o.b == bb && o.st != 2)
+                let sea = S.out && W[1] < -9.5
+                if bb != null && BCOL[bb] != S.c && (gt - msgT > 1.5 || msg != "${BN[S.c]} SHIPS DOCK AT A ${BN[S.c]} BERTH") {
+                  msg = "${BN[S.c]} SHIPS DOCK AT A ${BN[S.c]} BERTH"
+                  msgT = gt
+                }
+                if bb != null && BCOL[bb] == S.c && !free && gt - msgT > 1.5 {
+                  msg = "THAT BERTH IS BUSY"
+                  msgT = gt
+                }
+                let pts = free ? [[BX[bb], clamp(W[1], 1.7, 2.8)], [BX[bb], BZ]] : sea ? [[W[0], W[1]], [W[0], -25]] : [[W[0], W[1]]]
+                ships = ships.map(s => s.id == S.id ? merge(s, {b: free ? bb : sea ? -2 : S.b, p: s.p + pts.map(q => [project([q[0], 0.2, q[1]], CAM, SW, SH)].map(pp => [q[0], q[1], pp.x, pp.y])[0])}) : s)
+                if free || sea { haptic("light") }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // ---- along the top: score, the best, the lifebuoys left ----
+    if mode == "play" {
+      Column {
+        fill: width
+        gap: 6
+        padding: [10, TOP, 10, 0]
+        Row {
+          fill: width
+          gap: 6
+          Column {
+            gap: 0
+            background: NAVY2
+            padding: [0, 0, 0, 4]
+            Column {
+              gap: 0
+              background: NAVY
+              padding: [12, 5]
+              Text { text: fmtNum(score); font: FONT; fontSize: 22; color: CRM; maxLines: 1 }
+              Text { text: "SCORE"; font: FONT; fontSize: 10; color: #8fb3c9 }
+            }
+          }
+          Column {
+            gap: 0
+            background: NAVY2
+            padding: [0, 0, 0, 4]
+            Column {
+              gap: 0
+              background: NAVY
+              padding: [12, 5]
+              Text { text: fmtNum(best); font: FONT; fontSize: 22; color: CRM; maxLines: 1 }
+              Text { text: wx == 2 ? "BEST · STORM" : "BEST"; font: FONT; fontSize: 10; color: wx == 0 ? #8fb3c9 : YEL }
+            }
+          }
+          Spacer { weight: 1 }
+          Column {
+            gap: 0
+            background: NAVY2
+            padding: [0, 0, 0, 4]
+            Canvas {
+              width: 96
+              height: 47
+              background: NAVY
+              for i in range(3) {
+                let on = i < 3 - strikes
+                circle(20 + i * 28, 23.5, 10, stroke: on ? #ff5a4e : #3a5163, width: 6)
+                if on {
+                  for a in [45, 135, 225, 315] {
+                    arc(20 + i * 28, 23.5, 10, a - 12, 24, stroke: CRM, width: 6)
+                  }
+                }
+              }
+            }
+          }
+          Column {
+            gap: 0
+            background: YEL2
+            padding: [0, 0, 0, 4]
+            onTap: mode = "pause"
+            Canvas {
+              width: 47
+              height: 47
+              background: YEL
+              if mode == "play" {
+                rect(16, 14, 5, 19, fill: NAVY)
+                rect(26, 14, 5, 19, fill: NAVY)
+              } else {
+                path([[18, 13], [33, 23.5], [18, 34]], closed: true, fill: NAVY)
+              }
+            }
+          }
+        }
+        if HINT != "" {
+          Text { text: HINT; font: FONT; fontSize: 13; color: NAVY; background: CRM; padding: [10, 6]; maxLines: 2; width: LAND ? 460 : SW - 20 }
+        }
+      }
+    }
+
+    // ---- a new stage's card: the game holds while it's up ----
+    if mode == "play" && card > 0 {
+      Column {
+        fill: true
+        align: center
+        justify: center
+        padding: [20, TOP, 20, INS + 12]
+        background: alpha(#05121c, 0.5)
+        Column {
+          gap: 0
+          width: LAND ? 560 : SW - 40
+          background: NAVY2
+          padding: [0, 0, 0, 5]
+          Column {
+            gap: LAND ? 7 : 12
+            background: NAVY
+            padding: LAND ? [20, 12] : [20, 18]
+            Text { text: card == 1 ? "WELCOME, HARBOUR MASTER" : "NEW AT THE PORT"; font: FONT; fontSize: 12; color: #8fb3c9 }
+            Text { text: CARDS[card - 1].t; font: FONT; fontSize: 30; color: YEL }
+            Canvas {
+              fill: width
+              height: 64
+              if card == 1 {
+                for i in range(3) {
+                  rect(16 + i * 70, 18, 16, 34, fill: BC[i])
+                  path([[16 + i * 70, 52], [32 + i * 70, 52], [24 + i * 70, 62]], closed: true, fill: BC[i])
+                  rect(44 + i * 70, 10, 16, 50, stroke: BC[i], width: 3)
+                }
+              } else if card == 2 {
+                rect(24, 34, 16, 26, fill: BC[0])
+                path([[24, 34], [32, 22], [40, 34]], closed: true, fill: BC[0])
+                path([[32, 18], [32, 6], [120, 6]], stroke: BC[0], width: 3.5, cap: round)
+                path([[112, 0], [122, 6], [112, 12]], stroke: BC[0], width: 3.5, cap: round)
+                rect(150, 30, 34, 14, fill: BC[2])
+                path([[184, 30], [196, 37], [184, 44]], closed: true, fill: BC[2])
+                path([[146, 37], [110, 37], [100, 56]], stroke: BC[2], width: 3.5, cap: round)
+                circle(222, 37, 9, stroke: CRM, width: 2.5)
+                line(216, 31, 228, 43, stroke: CRM, width: 2.5)
+              } else if card == 99 {
+                for i in range(3) {
+                  circle(40 + i * 80, 32, 10, fill: FOGC)
+                  circle(40 + i * 80, 32, 20, stroke: alpha(CRM, 0.8), width: 2.5)
+                  circle(40 + i * 80, 32, 29, stroke: alpha(CRM, 0.35), width: 2)
+                }
+              } else {
+                for i in range(12) { line(10 + i * 22, 6, 18 + i * 22, 30, stroke: alpha(#cfe3f0, 0.8), width: 2) }
+                path([[30, 46], [200, 46]], stroke: CRM, width: 3, cap: round)
+                path([[190, 39], [202, 46], [190, 53]], stroke: CRM, width: 3, cap: round)
+              }
+            }
+            Text { text: upper(CARDS[card - 1].a); font: FONT; fontSize: 15; color: CRM }
+            Text { text: upper(CARDS[card - 1].b); font: FONT; fontSize: 13; color: #8fb3c9 }
+            Column {
+              gap: 0
+              background: YEL2
+              padding: [0, 0, 0, 5]
+              onTap: {
+                taught = max(taught, card - 1)
+                card = 0
+              }
+              Text { text: "GOT IT"; font: FONT; fontSize: 20; color: NAVY; background: YEL; padding: [26, 10]; align: center; fill: width }
+            }
+          }
+        }
+      }
+    }
+
+    // ---- a word in the middle of the water ----
+    if mode == "play" && card == 0 && (hold > 0 || gt - msgT < (len(msg) > 30 ? 3.5 : 2.4)) && msg != "" {
+      Column {
+        fill: width
+        align: center
+        padding: [16, SH * 0.27, 16, 0]
+        Text { text: msg; font: FONT; fontSize: hold > 0 ? 19 : 17; color: hold > 0 ? CRM : NAVY; background: hold > 0 ? REDC : YEL; padding: [14, 8]; align: center; maxLines: 2 }
+      }
+    }
+
+    // ---- every lifebuoy lost: what cost each one, then carry on with the score at 0 ----
+    if mode == "lost" {
+      Column {
+        fill: true
+        align: center
+        justify: center
+        gap: LAND ? 8 : 14
+        padding: [20, TOP, 20, INS + 12]
+        background: alpha(#1a0507, 0.6)
+        Text { text: "PORT CLOSED"; font: FONT; fontSize: LAND ? 36 : 44; color: CRM; align: center }
+        Text { text: "ALL THREE LIFEBUOYS ARE GONE. THIS IS WHAT HAPPENED:"; font: FONT; fontSize: 13; color: #f0b8b8; align: center }
+        Column {
+          gap: 0
+          width: LAND ? 520 : SW - 40
+          background: NAVY2
+          padding: [0, 0, 0, 5]
+          Column {
+            gap: 8
+            background: NAVY
+            padding: [16, 12]
+            for w, i in losses {
+              Row {
+                gap: 12
+                align: center
+                Canvas {
+                  width: 26
+                  height: 26
+                  circle(13, 13, 9, stroke: #3a5163, width: 5)
+                  line(5, 5, 21, 21, stroke: REDC, width: 3.5, cap: round)
+                }
+                Text { text: w; font: FONT; fontSize: 14; color: CRM; weight: 1; maxLines: 2 }
+              }
+            }
+          }
+        }
+        Text { text: "SCORE ${fmtNum(score)} · BEST ${fmtNum(best)}"; font: FONT; fontSize: 16; color: CRM; align: center }
+        Column {
+          gap: 0
+          width: LAND ? 420 : SW - 40
+          background: YEL2
+          padding: [0, 0, 0, 5]
+          onTap: {
+            ships = []
+            fl = []
+            fx = []
+            lp = []
+            score = 0
+            run = 0
+            strikes = 0
+            losses = []
+            spAt = gt + 2
+            msg = ""
+            msgT = -10
+            dg = {k: -2}
+            mode = "play"
+          }
+          Text { text: "CARRY ON"; font: FONT; fontSize: 24; color: NAVY; background: YEL; padding: [34, 12]; align: center }
+        }
+        Text { text: "THE SCORE STARTS AGAIN FROM 0"; font: FONT; fontSize: 12; color: #8fb3c9; align: center }
+      }
+    }
+
+    // ---- paused, which is also how the port opens: the name, the score so far, the rules ----
+    if mode == "pause" {
+      Column {
+        fill: true
+        align: center
+        justify: center
+        gap: LAND ? 6 : 14
+        padding: [20, TOP, 20, INS + 12]
+        background: alpha(#05121c, 0.45)
+        if LAND {
+          Row {
+            gap: 14
+            align: center
+            Text { text: "HARBOUR"; font: FONT; fontSize: 40; color: CRM }
+            Text { text: "MASTER"; font: FONT; fontSize: 40; color: YEL }
+          }
+        } else {
+          Column {
+            gap: 0
+            align: center
+            Text { text: "HARBOUR"; font: FONT; fontSize: 54; color: CRM; align: center }
+            Text { text: "MASTER"; font: FONT; fontSize: 54; color: YEL; align: center }
+          }
+        }
+        Text { text: "BRING THEM IN · SEND THEM OUT · NEVER LET THEM TOUCH"; font: FONT; fontSize: 12; color: CRM; align: center }
+        Column {
+          gap: 0
+          width: LAND ? 420 : SW - 40
+          background: YEL2
+          padding: [0, 0, 0, 5]
+          onTap: {
+            mode = "play"
+            sure = false
+          }
+          Text { text: nShips > 0 ? "BACK TO THE PORT" : "OPEN THE PORT"; font: FONT; fontSize: 24; color: NAVY; background: YEL; padding: [34, 12]; align: center }
+        }
+        if nShips > 0 {
+          Column {
+            gap: 0
+            width: LAND ? 420 : SW - 40
+            background: NAVY2
+            padding: [0, 0, 0, 5]
+            onTap: {
+              if sure {
+                ships = []
+                fl = []
+                fx = []
+                score = 0
+                run = 0
+                strikes = 0
+                losses = []
+                lp = []
+                hold = 0
+                nShips = 0
+                nOut = 0
+                gt = 0
+                spAt = 1.5
+                tr = {x: -17, st: 3, t: 5, w: [-1, -1, -1, -1]}
+                wx = 0
+                wt = -1
+                lvl = 0
+                msg = ""
+                msgT = -10
+                dg = {k: -2}
+                sure = false
+                mode = "play"
+              } else {
+                sure = true
+              }
+            }
+            Text { text: sure ? "TAP AGAIN: CLEAR THE PORT" : "START OVER"; font: FONT; fontSize: 18; color: sure ? YEL : CRM; background: NAVY; padding: [26, 9]; align: center }
+          }
+        }
+        Row {
+          gap: 18
+          align: center
+          Text { text: nShips > 0 ? "SCORE ${fmtNum(score)} · BEST ${fmtNum(best)}" : "A NEW PORT"; font: FONT; fontSize: 16; color: CRM }
+          Text { text: snd ? "SOUND ON" : "SOUND OFF"; font: FONT; fontSize: 16; color: snd ? YEL : #8fb3c9; padding: [6, 4]; onTap: snd = !snd }
+        }
+        Column {
+          gap: LAND ? 3 : 6
+          padding: [0, LAND ? 2 : 10, 0, 0]
+          Row {
+            gap: 10
+            align: center
+            Canvas { width: 30; height: 16; rect(0, 3, 9, 10, fill: BC[0]); rect(10, 3, 9, 10, fill: BC[1]); rect(20, 3, 9, 10, fill: BC[2]) }
+            Text { text: "SHIPS TO A BERTH OF THEIR COLOUR"; font: FONT; fontSize: 12; color: CRM }
+          }
+          Row {
+            gap: 10
+            align: center
+            Canvas { width: 30; height: 16; path([[4, 14], [15, 3], [26, 14]], stroke: CRM, width: 3.5, cap: round) }
+            Text { text: "EMPTY SHIPS: DRAW THEIR WAY OUT TO SEA"; font: FONT; fontSize: 12; color: CRM }
+          }
+          Row {
+            gap: 10
+            align: center
+            Canvas { width: 30; height: 16; circle(8, 8, 6, stroke: #ff5a4e, width: 4); circle(22, 8, 6, stroke: #ff5a4e, width: 4) }
+            Text { text: "A CRASH, OR A SHIP WHOSE RING RUNS OUT BEFORE IT DOCKS, COSTS A LIFEBUOY"; font: FONT; fontSize: 12; color: CRM }
+          }
+          Row {
+            gap: 10
+            align: center
+            Canvas { width: 30; height: 16; circle(15, 8, 6, stroke: #ff5a4e, width: 4) }
+            Text { text: "EVERY 8 SHIPS SENT OUT BRING ONE BACK"; font: FONT; fontSize: 12; color: CRM }
+          }
+        }
+      }
+    }
+  }
+}
