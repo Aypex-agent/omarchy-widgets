@@ -1,0 +1,497 @@
+widget "ticktick" {
+  meta {
+    owl: 17
+    description: "TickTick tasks on your home screen: grouped by date, filter chips, quick add, complete with a tap, and open any task in the TickTick app."
+    version: "2.0"
+    license: "MIT"
+    category: "productivity"
+  }
+  size: 6x12
+  minSize: 3x4
+
+  // The token is a secret: the launcher keeps it encrypted on this phone.
+  // It only ever goes to api.ticktick.com in the Authorization header.
+  state token = null secret
+  state selectedFilter = "all" persist
+  state completed = []
+  state adding = false
+  state newTaskText = ""
+  state demo = false
+  // Rolling sweep over the project list: TickTick's open API has no
+  // "all tasks" endpoint, so each project's data is fetched in turn.
+  state projIndex = -1
+  state lastSweep = 0
+  state projTasks = []
+  state addResult = null
+  state doneResult = null
+
+  source now = clock every 1m
+  source projects = http(token == null ? null : "https://api.ticktick.com/open/v1/project", {Authorization: "Bearer ${token}"}) every 10m timeout 15s json status
+  source inbox = http(token == null ? null : "https://api.ticktick.com/open/v1/project/inbox/data", {Authorization: "Bearer ${token}"}) every 3m timeout 15s json status
+  source projData = http(token == null || projIndex < 0 || projIndex >= len(projects.out ?? []) ? null : "https://api.ticktick.com/open/v1/project/${enc(projects.out[projIndex].id)}/data", {Authorization: "Bearer ${token}"}) every 1h timeout 15s json status
+
+  // Step through the projects every 2 s while a sweep is running, and
+  // start a new sweep every 3 minutes. Tasks are matched to their project
+  // by projectId, so a slow answer still lands in the right list.
+  every 2s {
+    if token != null && !demo {
+      if projIndex < 0 {
+        if projects.ok == true && now - lastSweep >= 180 {
+          projTasks = []
+          projIndex = 0
+        }
+      } else if projIndex >= len(projects.out ?? []) {
+        projIndex = -1
+        lastSweep = now
+      } else {
+        projIndex = projIndex + 1
+      }
+    }
+  }
+
+  on projData first {
+    if value.ok == true && value.out != null {
+      let fresh = (value.out.tasks ?? []).filter(t => !contains(map(projTasks, p => p.id), t.id))
+      projTasks = projTasks + fresh
+    }
+  }
+
+  let projectList = projects.out ?? []
+  let inboxTasks = (inbox.out.tasks ?? []).map(t => merge(t, {listName: "Inbox"}))
+  let customTasks = projTasks.map(t => merge(t, {listName: (find(projectList, p => p.id == t.projectId) ?? {}).name ?? "List"}))
+
+  // Sample data for the store preview and a first look without an account.
+  let demoTasks = [
+    {id: "d1", title: "Pay electricity bill", listName: "Personal", priority: 5, status: 0, ts: now - 2 * 86400},
+    {id: "d2", title: "Call the dentist", listName: "Inbox", priority: 3, status: 0, ts: now + 3600},
+    {id: "d3", title: "Buy groceries for the week", listName: "Shopping", priority: 1, status: 0, ts: now + 2 * 3600},
+    {id: "d4", title: "Renew gym membership", listName: "Personal", priority: 0, status: 0, ts: now + 86400},
+    {id: "d5", title: "Plan the weekend trip", listName: "Inbox", priority: 3, status: 0, ts: now + 4 * 86400},
+    {id: "d6", title: "Read 20 pages", listName: "Inbox", priority: 0, status: 0, ts: null}
+  ]
+
+  let today = fmtTime(now, "yyyy-MM-dd")
+  let tomorrow = fmtTime(now + 86400, "yyyy-MM-dd")
+  let allTasks = demo ? demoTasks : inboxTasks + customTasks
+  let enriched = allTasks.map(t => merge(t, {
+    ts: t.ts ?? parseTime(t.dueDate ?? ""),
+    prio: t.priority ?? 0
+  })).map(t => merge(t, {
+    day: t.ts == null ? "" : fmtTime(t.ts, "yyyy-MM-dd"),
+    timeStr: t.ts == null || t.isAllDay == true || fmtTime(t.ts, "HH:mm") == "00:00" ? "" : fmtTime(t.ts, "HH:mm"),
+    prioColor: t.prio == 5 ? "red" : (t.prio == 3 ? "yellow" : (t.prio == 1 ? "blue" : "muted"))
+  })).map(t => merge(t, {
+    group: t.day == "" ? "No Due Date" : (t.day < today ? "Overdue" : (t.day == today ? "Today" : (t.day == tomorrow ? "Tomorrow" : fmtTime(t.ts, "EEE, MMM d")))),
+    groupOrder: t.day == "" ? 99999999 : (t.day < today ? 0 : (t.day == today ? 1 : (t.day == tomorrow ? 2 : num(replace(t.day, "-", ""), 0))))
+  }))
+
+  let activeTasks = enriched.filter(t => (t.status ?? 0) == 0 && !contains(completed, t.id))
+  let totalTasks = len(activeTasks)
+  let filteredTasks = selectedFilter == "today" ? activeTasks.filter(t => t.group == "Today" || t.group == "Overdue") : (selectedFilter == "upcoming" ? activeTasks.filter(t => t.group != "Today" && t.group != "Overdue") : activeTasks)
+  let sortedTasks = filteredTasks.sortBy(t => t.title).sortBy(t => -t.prio).sortBy(t => t.groupOrder)
+  let groupList = unique(sortedTasks.map(t => t.group))
+
+  strings {
+    en {
+      connectTitle: "Connect TickTick Account"
+      connectHint: "To show your tasks on this widget, generate a Personal API Token from your TickTick account."
+      openSettings: "1. Open TickTick Account Settings"
+      tokenHelp: "In Settings → Account → API Token (or Developer), click Generate Token and paste it below:"
+      tokenPlaceholder: "Paste Personal API Token here…"
+      demoBtn: "Preview with sample data"
+      taskPlaceholder: "Task title…"
+      add: "Add"
+      inApp: "In App"
+      all: "All"
+      today: "Today"
+      upcoming: "Upcoming"
+      allClear: "All clear!"
+      noPending: "No pending reminders or tasks."
+      loading: "Connecting…"
+      synced: "Synced with TickTick"
+      offline: "Offline (cached)"
+      demoBadge: "Demo · sample data"
+      exitDemo: "Exit demo"
+      signOut: "Sign Out"
+      badToken: "Token rejected — sign out and enter it again."
+      addFailed: code => "Couldn't add the task (${code}). Check TickTick before retrying."
+      completeFailed: code => "Couldn't complete the task (${code}). Check TickTick before retrying."
+      screenTitle: "TickTick Reminders"
+      allTasks: k => "All Tasks (${k})"
+      close: "Close"
+    }
+  }
+
+  component PriorityBar(colorName) {
+    Box {
+      width: 4
+      height: 36
+      radius: 2 * corners
+      background: colorName == "red" ? red : (colorName == "yellow" ? yellow : (colorName == "blue" ? blue : alpha(muted, 0.4)))
+    }
+  }
+
+  component FilterChip(id, label, count) {
+    let isActive = selectedFilter == id
+    Row {
+      gap: 4
+      align: center
+      padding: [10, 6]
+      radius: 12 * corners
+      background: isActive ? accent : alpha(surface, 0.5)
+      onTap: selectedFilter = id
+      Text {
+        text: label
+        style: small
+        bold: isActive
+        color: isActive ? background : foreground
+      }
+      if count > 0 {
+        Text {
+          text: "${count}"
+          style: small
+          color: isActive ? background : muted
+        }
+      }
+    }
+  }
+
+  component TaskRow(t, full) {
+    let isOverdue = t.group == "Overdue"
+    let isToday = t.group == "Today"
+    Row {
+      gap: 8
+      align: center
+      padding: full ? [12, 10] : [10, 8]
+      background: alpha(surface, full ? 0.5 : 0.4)
+      radius: 8 * corners
+
+      PriorityBar { colorName: t.prioColor }
+
+      Text {
+        text: "☐"
+        fontSize: 20
+        color: isOverdue ? red : muted
+        onTap: {
+          completed = completed + [t.id]
+          if !demo {
+            doneResult = post("https://api.ticktick.com/open/v1/project/${enc(t.projectId)}/task/${enc(t.id)}/complete", null, {Authorization: "Bearer ${token}"})
+          }
+        }
+      }
+
+      Column {
+        weight: 1
+        gap: 2
+        onTap: url("ticktick://v1/search?keyword=${enc(t.title)}")
+        Text {
+          text: t.title
+          style: body
+          bold: true
+          color: isOverdue ? red : foreground
+          maxLines: 2
+        }
+        Row {
+          gap: 6
+          if t.listName != "" {
+            Text { text: t.listName; style: small; color: muted }
+          }
+          if t.timeStr != "" {
+            Text {
+              text: "·  ${t.timeStr}"
+              style: small
+              color: isOverdue ? red : (isToday ? accent : muted)
+            }
+          }
+        }
+      }
+
+      Text {
+        text: "↗"
+        style: body
+        color: accent
+        padding: [6, 4]
+        onTap: url("ticktick://v1/search?keyword=${enc(t.title)}")
+      }
+    }
+  }
+
+  Column {
+    fill: true
+    gap: 10
+    padding: 12
+
+    // TOP HEADER
+    Row {
+      align: center
+      gap: 8
+      Row {
+        gap: 6
+        align: center
+        weight: 1
+        Text { text: "✓"; style: title; color: accent; bold: true }
+        Text { text: "TickTick"; style: title; bold: true }
+        if totalTasks > 0 {
+          Text {
+            text: "${totalTasks}"
+            style: small
+            bold: true
+            color: accent
+            padding: [6, 2]
+            background: alpha(accent, 0.15)
+            radius: 8 * corners
+          }
+        }
+      }
+      Row {
+        gap: 12
+        align: center
+        Text {
+          text: adding ? "✕" : "＋"
+          fontSize: 20
+          bold: true
+          color: accent
+          onTap: adding = !adding
+        }
+        Text {
+          text: "↗"
+          fontSize: 18
+          color: muted
+          onTap: url("ticktick://v1/show?smartlist=today")
+        }
+        Text {
+          text: "↻"
+          fontSize: 18
+          color: muted
+          onTap: {
+            projIndex = -1
+            lastSweep = 0
+            refresh()
+          }
+        }
+        Text {
+          text: "⛶"
+          fontSize: 16
+          color: muted
+          onTap: screen()
+        }
+      }
+    }
+
+    // SETUP VIEW (no token yet)
+    if token == null && !demo {
+      Column {
+        weight: 1
+        justify: center
+        align: center
+        gap: 12
+        padding: 16
+        background: alpha(surface, 0.4)
+        radius: 12 * corners
+
+        Text { text: str.connectTitle; style: title; bold: true; align: center }
+        Text { text: str.connectHint; style: body; color: muted; align: center }
+        Button {
+          text: str.openSettings
+          color: accent
+          onTap: url("https://ticktick.com/webapp/#settings/account")
+        }
+        Text { text: str.tokenHelp; style: small; color: muted; align: center }
+        Input {
+          placeholder: str.tokenPlaceholder
+          password: true
+          clear: true
+          underline: false
+          background: surface
+          padding: 10
+          radius: 8 * corners
+          onSubmit: token = trim(value)
+        }
+        Button {
+          text: str.demoBtn
+          color: muted
+          onTap: demo = true
+        }
+      }
+    } else {
+      // QUICK ADD TASK INPUT
+      if adding {
+        Row {
+          gap: 6
+          align: center
+          Input {
+            weight: 1
+            placeholder: str.taskPlaceholder
+            clear: true
+            onChange: newTaskText = value
+            onSubmit: {
+              if trim(value) != "" {
+                if !demo {
+                  addResult = post("https://api.ticktick.com/open/v1/task", {title: trim(value)}, {Authorization: "Bearer ${token}"})
+                }
+                adding = false
+                newTaskText = ""
+              }
+            }
+          }
+          Button {
+            text: str.add
+            color: accent
+            onTap: {
+              if trim(newTaskText) != "" {
+                if !demo {
+                  addResult = post("https://api.ticktick.com/open/v1/task", {title: trim(newTaskText)}, {Authorization: "Bearer ${token}"})
+                }
+                adding = false
+                newTaskText = ""
+              }
+            }
+          }
+          Button {
+            text: str.inApp
+            color: surface
+            onTap: {
+              url("ticktick://x-callback-url/v1/add_task")
+              adding = false
+            }
+          }
+        }
+      }
+
+      if addResult != null && addResult.ok == false {
+        Text { text: str.addFailed(addResult.code); style: small; color: red }
+      }
+      if doneResult != null && doneResult.ok == false {
+        Text { text: str.completeFailed(doneResult.code); style: small; color: red }
+      }
+
+      // FILTER TABS
+      Row {
+        gap: 8
+        FilterChip { id: "all"; label: str.all; count: totalTasks }
+        FilterChip { id: "today"; label: str.today; count: len(activeTasks.filter(t => t.group == "Today" || t.group == "Overdue")) }
+        FilterChip { id: "upcoming"; label: str.upcoming; count: len(activeTasks.filter(t => t.group != "Today" && t.group != "Overdue")) }
+      }
+
+      // TASK LIST
+      Column {
+        weight: 1
+        scroll: true
+        onPull: refresh()
+        gap: 12
+
+        if totalTasks == 0 {
+          Column {
+            weight: 1
+            justify: center
+            align: center
+            gap: 8
+            padding: 32
+            Text { text: "🎉"; fontSize: 36 }
+            Text { text: str.allClear; style: title; bold: true }
+            Text { text: str.noPending; style: muted }
+          }
+        }
+
+        for g in groupList {
+          let groupTasks = sortedTasks.filter(t => t.group == g)
+          let isOverdue = g == "Overdue"
+          let isToday = g == "Today"
+          Column {
+            gap: 6
+            Row {
+              align: center
+              gap: 8
+              padding: [4, 2]
+              Text {
+                text: g
+                style: body
+                bold: true
+                color: isOverdue ? red : (isToday ? accent : foreground)
+                weight: 1
+              }
+              Text {
+                text: "${len(groupTasks)}"
+                style: small
+                color: isOverdue ? red : muted
+              }
+            }
+            for t in groupTasks key t.id {
+              TaskRow { t: t; full: false }
+            }
+          }
+        }
+      }
+
+      // FOOTER BAR
+      Row {
+        align: center
+        Text {
+          text: demo ? str.demoBadge : (inbox.ok == true ? str.synced : (inbox.out != null ? str.offline : str.loading))
+          style: small
+          color: muted
+          weight: 1
+        }
+        if demo {
+          Text {
+            text: str.exitDemo
+            style: small
+            color: accent
+            onTap: {
+              demo = false
+              completed = []
+            }
+          }
+        } else {
+          Text {
+            text: str.signOut
+            style: small
+            color: red
+            onTap: {
+              token = null
+              completed = []
+              projTasks = []
+              projIndex = -1
+              lastSweep = 0
+              addResult = null
+              doneResult = null
+            }
+          }
+        }
+      }
+      if !demo && inbox.ok == false && inbox.code == 401 {
+        Text { text: str.badToken; style: small; color: red }
+      }
+    }
+  }
+
+  // FULL SCREEN VIEW
+  screen {
+    title: str.screenTitle
+    Column {
+      weight: 1
+      scroll: true
+      gap: 12
+      padding: 16
+      Row {
+        align: center
+        Text { text: str.allTasks(totalTasks); style: title; bold: true; weight: 1 }
+        Button { text: str.close; onTap: close() }
+      }
+      for g in groupList {
+        Column {
+          gap: 6
+          Text {
+            text: g
+            style: body
+            bold: true
+            color: g == "Overdue" ? red : (g == "Today" ? accent : foreground)
+          }
+          for t in sortedTasks.filter(t => t.group == g) key t.id {
+            TaskRow { t: t; full: true }
+          }
+        }
+      }
+    }
+  }
+}
