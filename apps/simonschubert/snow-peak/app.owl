@@ -1,0 +1,953 @@
+app "snow peak" {
+  meta { owl: 22; description: "A downhill ski and snowboard game on endless mountains grown from a seed: tilt to carve through pine forest, birch glades, ice falls, an alpine village and under a chairlift, dodge trees, snowmen and snowcats, and fly off ramps, take the shortcuts and see how far you get before your first crash"; version: "1.0"; license: "MIT"; category: "games" }
+  // How it works: a mountain is a seed. The seed sets how the run winds (two sine waves for the middle of the piste),
+  // how wide it is, the light, the order of its places (forest, birch glade, ice falls, village, lift line) and where
+  // everything in them stands, so the same seed is the same mountain.
+  // The ground's height is one formula of x and z: falling away downhill, rising into banks either side of the piste,
+  // with a gentle roll. The physics read it where the rider is; the terrain is it sampled every 4 m in chunks of 48 m,
+  // five chunks from just behind the rider to far ahead, rebuilt when the rider crosses into the next chunk.
+  //
+  // Downhill, the slope under the rider pulls it along the way it points; carving across it, deep snow off the piste
+  // and the air slow it. Anything in the way is a wipeout. The rider is a dozen parts (board or skis, shins, thighs,
+  // body, upper arms, forearms, poles, the gaiter's end), so the knees bend, the body tucks and leans into a carve and
+  // the arms balance.
+  //
+  // Ramps throw the rider into the air, over what's in the way; where the piste swings far round a bend, a blue lane
+  // cuts across with a boost. A run ends at the first wipeout, scored by how far it got, and the next starts by itself.
+  title: ""
+  statusBar: false
+  edge: true
+  fps: mode == "run" || mode == "count" ? 60 : (modes.saver ? 15 : 30)
+  source modes = android.modes
+  icon: """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+    <rect width="256" height="256" rx="56" fill="#86c0ec"/>
+    <path d="M0 176L84 72L128 120L168 84L256 172V200A56 56 0 0 1 200 256H56A56 56 0 0 1 0 200Z" fill="#6d7889"/>
+    <path d="M84 72L112 106L96 100L80 112L68 92ZM168 84L196 112L178 108L164 118L150 102Z" fill="#f4f8fc"/>
+    <path d="M0 196L256 150V200A56 56 0 0 1 200 256H56A56 56 0 0 1 0 200Z" fill="#f4f8fc"/>
+    <path d="M28 160H52V176H28ZM20 176H60V192H20ZM36 192H44V204H36ZM204 132H224V146H204ZM198 146H230V160H198ZM210 160H218V170H210Z" fill="#2c5a3f"/>
+    <path d="M28 160H52V164H28ZM20 176H60V180H20ZM204 132H224V136H204ZM198 146H230V150H198Z" fill="#f4f8fc"/>
+    <path d="M112 208L176 194L178 202L114 216Z" fill="#e8412f"/>
+    <path d="M132 160H156V192H132Z" fill="#e8412f"/>
+    <path d="M136 140H152V158H136Z" fill="#f0c8a0"/>
+    <path d="M134 136H154V142H134Z" fill="#1b1b1e"/>
+    <path d="M136 192H146V204H136ZM148 190H158V200H148Z" fill="#2a2f3a"/>
+  </svg>"""
+
+  source m = android.motion
+  source now = clock every 1m
+
+  // "menu", "count" (the start gate's 3, 2, 1), "run" or "over"
+  state mode = "menu"
+  // the mountain: any number; and the rider, skis or a board, and the jacket's color
+  state seed = 4217 persist
+  state rider = "board" persist
+  state jacket = 0 persist
+  // the furthest run on each mountain, by seed, and on any
+  state best = {} persist
+  state bestAll = 0 persist
+  state gt = 0
+  state t0 = 0
+  // The rider: x across, z downhill (metres from the start gate), heading in degrees (0 straight down the fall line,
+  // + toward +x), speed along it, height and vertical speed (it can leave the snow over the top of a roll), and how
+  // far it leans into the carve.
+  state px = 0
+  state pz = 0
+  state ph = 0
+  state v = 0
+  state ay = 0
+  state vy = 0
+  state air = false
+  state lean = 0
+  state crashT = -100
+  state landT = -100
+  // a wipeout ends the run once the rider has tumbled (ending), falling to one side (fallS); why the run ended and
+  // when, for the next one to start by itself
+  state ending = false
+  state fallS = 1
+  state why = ""
+  state overAt = 0
+  // the stretch of mountain the rider is in, to name it when it comes
+  state zoneI = 0
+  // when the rider last left the snow (a long flight is big air), and whether it's on a shortcut lane
+  state airT = -100
+  state laneS = false
+  // the next gate (by number, every 400 m)
+  state nextCP = 1
+  state score = 0
+  state newBest = false
+  // the word in the middle of the screen: a checkpoint or a wipeout (k: 1 bad, 2 time)
+  state msg = ""
+  state msg2 = ""
+  state msgK = 0
+  state msgAt = -100
+  state left = false
+  state right = false
+  state restX = 0
+  state camH = 0
+  state camY = 0
+  // snow spray: {x, y, z, vx, vy, vz, t (age), l (life)}
+  state fx = []
+  // bumped to start a run
+  state go = 0
+  // set by the store's screenshots to hold a scene still while it's drawn in each theme
+  state still = false
+  // counts the first frames, so the work of setting up is spread over them (an update may only do so much)
+  state boot = 0
+  // the chunk the things standing are built round (see CHDO)
+  state CIO = -1
+
+  let tilted = m.available == true
+  let CH = 48
+  let CPD = 400
+  let PIX = "https://raw.githubusercontent.com/google/fonts/main/ofl/silkscreen/Silkscreen-Regular.ttf"
+  let INK = #1b1b1e
+  let GOLD = #ffd34a
+  let ICE = #2b6cb0
+  let ICED = #1b4a80
+  let RED = #e8412f
+  let REDD = #a82a1e
+
+  // The mountain from its seed: how the piste winds and its light.
+  let S = {a1: 12 + hash(seed, 1) * 16, p1: 55 + hash(seed, 2) * 45, s1: hash(seed, 3) * 6.28, a2: 4 + hash(seed, 4) * 6, p2: 20 + hash(seed, 5) * 14, s2: hash(seed, 6) * 6.28, s3: hash(seed, 7) * 6.28, s4: hash(seed, 8) * 6.28, s5: hash(seed, 9) * 6.28}
+  let SKIES = [
+    {n: "BLUEBIRD", top: #2a6fc4, sky: #86c0ec, haze: #e4f0fa, sun: #fff7dc, sunDir: [-0.45, 0.32, 0.83], p1: #eef4fb, p2: #e5eef8, edge: #d9e4f1, pow: #f8fbfe, rock: #6d7889, rockT: #8793a3, spray: #ffffff, snow: false},
+    {n: "GOLDEN HOUR", top: #34508e, sky: #f0a46c, haze: #fbdcbc, sun: #ffe4a8, sunDir: [0.68, 0.12, 0.72], p1: #fbefe4, p2: #f5e5d8, edge: #ecd8c8, pow: #fff6ee, rock: #6e5c63, rockT: #8a7178, spray: #fff4e8, snow: false},
+    {n: "SNOWFALL", top: #7f8fa3, sky: #b9c4d1, haze: #dce3ea, sun: #f4f6f8, sunDir: [-0.3, 0.45, 0.84], p1: #eef1f5, p2: #e6eaf0, edge: #d8dee6, pow: #f7f9fb, rock: #5f6772, rockT: #737c88, spray: #ffffff, snow: true},
+    {n: "ALPENGLOW", top: #1f2759, sky: #c46d8e, haze: #f1bcb8, sun: #ffd6b8, sunDir: [-0.72, 0.1, 0.68], p1: #f6e9ee, p2: #efdfe6, edge: #e4d0da, pow: #fdf3f6, rock: #4e4a66, rockT: #6a5f80, spray: #fff4f6, snow: false}
+  ]
+  let SKY = SKIES[floor(hash(seed, 10) * 4) % 4]
+  let SNOWING = SKY.snow || hash(seed, 12) < 0.2
+  let NA = ["FROST", "EAGLE", "SILVER", "WOLF", "CLOUD", "THUNDER", "RAVEN", "GLACIER", "CEDAR", "STORM", "ECHO", "GRANITE", "LYNX", "AURORA", "BLIZZARD", "SUMMIT"]
+  let NB = ["PEAK", "RIDGE", "COULOIR", "BOWL", "HORN", "CREST", "SPIRE", "GLADE"]
+  let NAME = NA[floor(hash(seed, 13) * 16) % 16] + " " + NB[floor(hash(seed, 14) * 8) % 8]
+  let LIGHT = [SKY.sunDir[0], 1.3, SKY.sunDir[2]]
+  // The ranges' skylines, by bearing: a far one every 2 degrees and a near one every 3, each the highest of a few
+  // seeded peaks there (a peak falls away from its top at its own slope), in degrees above the horizon; snow above
+  // the snowline.
+  let PROF = boot < 1 ? [[0], [0]] : [[180, 9, 4, 7, 0.32, 0.3], [120, 7, 1.5, 4.5, 0.22, 0.25]].map((P, L) => [range(P[1]).map(k => [hash(k, L, seed, 41) * 360, P[2] + hash(k, L, seed, 42) * P[3], P[4] + hash(k, L, seed, 43) * P[5]])].map(PK => range(P[0]).map(b => [b * 360 / P[0]].map(az => max(PK.map(pk => [abs(((az - pk[0] + 540) % 360) - 180)].map(d => pk[1] - d * pk[2])[0]) + [L == 0 ? 0.6 : -1]) + hash(b, L, seed, 44) * 0.5)[0]))[0])
+  let SNOWL = [5.5, 3.6]
+  let HAZE = SKY.haze
+  let SEEDS = pad(str(seed), 5, "0")
+  let DAY = floor((now ?? 0) / 86400) % 100000
+  let BEST = best[str(seed)] ?? 0
+  // The run passes through stretches of 6 chunks (288 m), each its own kind of place: the forest at the top, then the
+  // others in an order the seed shuffles, round and round.
+  let ZNAMES = ["PINE FOREST", "BIRCH GLADE", "ICE FALLS", "ALPINE VILLAGE", "LIFT LINE"]
+  let ZORD = [0] + [1, 2, 3, 4].sortBy(i => hash(i, seed, 61))
+
+  // A box: eight corners of a unit box standing on y 0, and its faces (top, then the sides), counterclockwise seen
+  // from outside. Boxes are {x, y, z, w, h, d, c (sides), t (top)}; nt: no top (it's under another box).
+  let CORN = [[-1, 0, -1], [1, 0, -1], [1, 0, 1], [-1, 0, 1], [-1, 1, -1], [1, 1, -1], [1, 1, 1], [-1, 1, 1]]
+  let BF = [[4, 7, 6, 5], [3, 2, 6, 7], [1, 0, 4, 5], [2, 1, 5, 6], [0, 3, 7, 4]]
+  // the faces of the i-th box of a mesh, with its top and without, worked out once
+  let BFT = range(120).map(i => BF.map(f => [f[0] + 8 * i, f[1] + 8 * i, f[2] + 8 * i, f[3] + 8 * i]))
+  let BFN = BFT.map(fs => drop(fs, 1))
+
+  // The chunks in view: the one the rider is in, one behind and three ahead. Each knows the middle of the piste, its
+  // half width and the base height every 4 m down it (R), and where its terrain grid is centred across (xc).
+  let CI = floor((mode == "menu" ? -4 : pz) / CH)
+  // The shortcuts: now and then a groomed lane peels off the piste on the inside of a bend, runs through the trees
+  // 6 m beyond its edge and comes back 150 m on, with a speed boost in it; none in a lift line. One may start every
+  // 192 m. {zs, ze (where it leaves and rejoins), sd (the side)}
+  let SCI = floor(CI / 4)
+  let LANES = range(SCI - 1, SCI + 3).filter(s => s >= 1 && hash(s, seed, 70) < 0.7 && (((floor((s * 192 + 30) / CH))) < 6 ? 0 : ZORD[floor(((floor((s * 192 + 30) / CH))) / 6) % 5]) != 4 && (((floor((s * 192 + 180) / CH))) < 6 ? 0 : ZORD[floor(((floor((s * 192 + 180) / CH))) / 6) % 5]) != 4).map(s => [s * 192 + 30].map(zs => {zs: zs, ze: zs + 150, sd: ((S.a1 * sin((zs + 75) / S.p1 + S.s1) + S.a2 * sin((zs + 75) / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp((zs + 75) / 160, 0, 1)) > (((S.a1 * sin(zs / S.p1 + S.s1) + S.a2 * sin(zs / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(zs / 160, 0, 1)) + ((S.a1 * sin((zs + 150) / S.p1 + S.s1) + S.a2 * sin((zs + 150) / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp((zs + 150) / 160, 0, 1))) / 2 ? -1 : 1})[0])
+  let CHD = range(CI - 1, CI + 4).map(k => [k * CH].map(z0 => [range(13).map(i => [z0 + i * 4].map(z => [z, ((S.a1 * sin(z / S.p1 + S.s1) + S.a2 * sin(z / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(z / 160, 0, 1)), (10.5 + 2.5 * sin(z / 130 + S.s3)), (-0.34 * z + 5 * sin(z / 120 + S.s4)), [first(LANES.filter(s => (z) >= s.zs && (z) <= s.ze))].map(s => s == null ? 9999 : (((S.a1 * sin(z / S.p1 + S.s1) + S.a2 * sin(z / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(z / 160, 0, 1)) + s.sd * ((10.5 + 2.5 * sin(z / 130 + S.s3)) + 6) * sin(3.1416 * ((z) - s.zs) / 150)))[0]])[0])].map(R => {k: k, z0: z0, R: R, xc: round(R[6][1] / 4) * 4, zt: ((k) < 6 ? 0 : ZORD[floor((k) / 6) % 5])})[0])[0])
+  // the chunks whose things stand: the same, a frame behind, so building them comes in the next update
+  let CHDO = range(CIO - 1, CIO + 4).map(k => [k * CH].map(z0 => [range(13).map(i => [z0 + i * 4].map(z => [z, ((S.a1 * sin(z / S.p1 + S.s1) + S.a2 * sin(z / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(z / 160, 0, 1)), (10.5 + 2.5 * sin(z / 130 + S.s3)), (-0.34 * z + 5 * sin(z / 120 + S.s4)), [first(LANES.filter(s => (z) >= s.zs && (z) <= s.ze))].map(s => s == null ? 9999 : (((S.a1 * sin(z / S.p1 + S.s1) + S.a2 * sin(z / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(z / 160, 0, 1)) + s.sd * ((10.5 + 2.5 * sin(z / 130 + S.s3)) + 6) * sin(3.1416 * ((z) - s.zs) / 150)))[0]])[0])].map(R => {k: k, z0: z0, R: R, xc: round(R[6][1] / 4) * 4, zt: ((k) < 6 ? 0 : ZORD[floor((k) / 6) % 5])})[0])[0])
+  // The snow: groomed corduroy on the piste, a darker line at its edge, powder beyond; blue and glassy at the ice falls.
+  let PALS = [[SKY.p1, SKY.p2, SKY.edge, SKY.pow, mix(SKY.p1, #6fb6ff, 0.3)], [mix(SKY.p1, #a9dcf2, 0.38), mix(SKY.p2, #a9dcf2, 0.38), mix(SKY.edge, #a9dcf2, 0.38), mix(SKY.pow, #a9dcf2, 0.38), mix(SKY.p1, #6fb6ff, 0.3)]]
+  let TERC = CHD.map(c => [c.zt == 2 ? PALS[1] : PALS[0]].map(P => range(12).map(i => [[(c.R[i][1] + c.R[i + 1][1]) / 2 - c.xc + 50, c.R[i][2], i % 2 == 0 ? P[0] : P[1], (c.R[i][4] + c.R[i + 1][4]) / 2 - c.xc + 50]].map(rw => range(26).map(j => [abs(j * 4 - rw[0]) - rw[1]].map(e => e < -1 ? rw[2] : (abs(j * 4 - rw[3]) < 2.6 ? P[4] : (e < 3 ? P[2] : P[3])))[0]))[0]))[0])
+  // (the roll's sines once a row and once a column)
+  let TER = CHD.map((c, n) => [range(27).map(j => sin((c.xc + (j - 13) * 4) * 0.23 + S.s5))].map(SX => terrain(c.R.map(r => [0.4 * sin(r[0] * 0.11)].map(sz => range(27).map(j => r[3] + pow(clamp(min(abs(c.xc + (j - 13) * 4 - r[1]) - r[2], abs(c.xc + (j - 13) * 4 - r[4]) - 2.4), 0, 26), 2) * 0.024 + sz * SX[j]))[0]), TERC[n]))[0])
+  // A checkpoint gate where a multiple of 400 m falls in the chunk (the start gate at 0).
+  let GATEZ = CHDO.map(c => [ceil(c.z0 / CPD) * CPD].map(zg => zg >= 0 && zg < c.z0 + CH ? zg : null)[0])
+
+  // The things that stand on the mountain, each a few boxes of size 1 standing at 0 (scaled where it stands), by kind:
+  // 0 a pine, 1 and 2 birches (gold and rust), 3 a rock, 4 to 6 ice spires, 7 a snowman, 8 a snowcat, 9 and 10
+  // chalets (log and painted), 11 a lift pylon. Boxes only touch, never overlap.
+  let SNW = #f4f8fc
+  let UNITS = [
+    [{x: 0, y: -0.5, z: 0, w: 0.6, h: 1.6, d: 0.6, c: #5d3f25, t: #5d3f25, nt: true}, {x: 0, y: 1.1, z: 0, w: 4, h: 2, d: 4, c: #2c5a3f, t: SNW}, {x: 0, y: 3.1, z: 0, w: 2.9, h: 1.8, d: 2.9, c: #2f6142, t: SNW}, {x: 0, y: 4.9, z: 0, w: 1.8, h: 1.6, d: 1.8, c: #336847, t: SNW}],
+    [{x: 0, y: -0.5, z: 0, w: 0.42, h: 1.4, d: 0.42, c: #ece8de, t: #ece8de, nt: true}, {x: 0, y: 0.9, z: 0, w: 0.42, h: 0.16, d: 0.42, c: #2a2a2a, t: #2a2a2a, nt: true}, {x: 0, y: 1.06, z: 0, w: 0.42, h: 1.7, d: 0.42, c: #ece8de, t: #ece8de, nt: true}, {x: 0, y: 2.76, z: 0, w: 2.6, h: 1.5, d: 2.6, c: #d9a23a, t: SNW}, {x: 0, y: 4.26, z: 0, w: 1.6, h: 1.4, d: 1.6, c: #e6b84c, t: SNW}],
+    [{x: 0, y: -0.5, z: 0, w: 0.42, h: 1.4, d: 0.42, c: #ece8de, t: #ece8de, nt: true}, {x: 0, y: 0.9, z: 0, w: 0.42, h: 0.16, d: 0.42, c: #2a2a2a, t: #2a2a2a, nt: true}, {x: 0, y: 1.06, z: 0, w: 0.42, h: 1.7, d: 0.42, c: #ece8de, t: #ece8de, nt: true}, {x: 0, y: 2.76, z: 0, w: 2.4, h: 1.6, d: 2.4, c: #c2582a, t: SNW}, {x: 0, y: 4.36, z: 0, w: 1.5, h: 1.2, d: 1.5, c: #d46c34, t: SNW}],
+    [{x: 0, y: -0.4, z: 0, w: 2.6, h: 1.7, d: 2.2, c: SKY.rock, t: SNW}, {x: 0.3, y: 1.3, z: -0.2, w: 1.4, h: 0.6, d: 1.2, c: SKY.rockT, t: SNW}],
+    [{x: 0, y: -0.4, z: 0, w: 1.5, h: 3.2, d: 1.5, c: #6fbfe2, t: #dff6ff}, {x: 0, y: 2.8, z: 0, w: 1, h: 2.4, d: 1, c: #8fd2ee, t: #e8f9ff}, {x: 0, y: 5.2, z: 0, w: 0.5, h: 1.6, d: 0.5, c: #bce8f8, t: #ffffff}],
+    [{x: 0, y: -0.4, z: 0, w: 1.2, h: 4.4, d: 1.2, c: #7cc8e8, t: #e8f9ff}, {x: 0, y: 4, z: 0, w: 0.6, h: 1.8, d: 0.6, c: #a8e0f4, t: #ffffff}, {x: 0.95, y: -0.4, z: 0.1, w: 0.7, h: 2.2, d: 0.7, c: #9ad8f0, t: #ffffff}, {x: -0.85, y: -0.4, z: -0.2, w: 0.5, h: 1.4, d: 0.5, c: #b4e6f6, t: #ffffff}],
+    [{x: 0, y: -0.4, z: 0, w: 2, h: 1.6, d: 1.8, c: #6fbfe2, t: #dff6ff}, {x: -0.3, y: 1.2, z: 0, w: 1, h: 2.6, d: 0.9, c: #9ad8f0, t: #ffffff}],
+    [{x: 0, y: -0.2, z: 0, w: 1.3, h: 1.1, d: 1.3, c: #e8eef5, t: #ffffff}, {x: 0, y: 0.9, z: 0, w: 1, h: 0.85, d: 1, c: #eef3f8, t: #ffffff}, {x: 0, y: 1.75, z: 0, w: 0.78, h: 0.14, d: 0.78, c: RED, t: RED}, {x: 0, y: 1.89, z: 0, w: 0.7, h: 0.62, d: 0.7, c: #f2f6fa, t: #ffffff}, {x: 0, y: 2.51, z: 0, w: 0.86, h: 0.07, d: 0.86, c: INK, t: #2a2a2e}, {x: 0, y: 2.58, z: 0, w: 0.52, h: 0.48, d: 0.52, c: INK, t: #2a2a2e}, {x: 0, y: 2.1, z: -0.5, w: 0.1, h: 0.1, d: 0.3, c: #ff7a1a, t: #ff7a1a}, {x: 0.15, y: 2.26, z: -0.36, w: 0.08, h: 0.08, d: 0.02, c: INK, t: INK}, {x: -0.15, y: 2.26, z: -0.36, w: 0.08, h: 0.08, d: 0.02, c: INK, t: INK}, {x: 0.85, y: 1.4, z: 0, w: 0.7, h: 0.07, d: 0.07, c: #5d3f25, t: #5d3f25}, {x: -0.85, y: 1.4, z: 0, w: 0.7, h: 0.07, d: 0.07, c: #5d3f25, t: #5d3f25}, {x: 0.2, y: 1.3, z: -0.53, w: 0.16, h: 0.42, d: 0.06, c: RED, t: RED}],
+    [{x: 0, y: 0.5, z: 0, w: 2.4, h: 1, d: 3.6, c: #e8412f, t: SNW}, {x: 0, y: 1.5, z: 0.5, w: 2, h: 1.1, d: 1.8, c: #263040, t: #e8412f}, {x: 0, y: 2.6, z: 0.5, w: 0.8, h: 0.14, d: 0.22, c: #ffb020, t: #ffb020}, {x: 1.45, y: -0.2, z: 0, w: 0.5, h: 0.8, d: 3.8, c: #1d1f24, t: #2c2f36}, {x: -1.45, y: -0.2, z: 0, w: 0.5, h: 0.8, d: 3.8, c: #1d1f24, t: #2c2f36}, {x: 0, y: -0.2, z: -2.025, w: 3.4, h: 0.9, d: 0.25, c: #c9ccd2, t: #e6e8ec}, {x: 0, y: -0.1, z: 2.3, w: 2.6, h: 0.5, d: 0.8, c: #a8adb6, t: SNW}, {x: 0.7, y: 0.75, z: -1.82, w: 0.34, h: 0.22, d: 0.04, c: #fff3c0, t: #fff3c0}, {x: -0.7, y: 0.75, z: -1.82, w: 0.34, h: 0.22, d: 0.04, c: #fff3c0, t: #fff3c0}],
+    [{x: 0, y: -3.5, z: 0, w: 6, h: 6.1, d: 5, c: #7a4a2a, t: #7a4a2a, nt: true}, {x: 0, y: 2.6, z: 0, w: 7, h: 0.55, d: 6, c: #3c2618, t: SNW}, {x: 0, y: 3.15, z: 0, w: 5.2, h: 0.55, d: 6, c: #3c2618, t: SNW}, {x: 0, y: 3.7, z: 0, w: 3.4, h: 0.55, d: 6, c: #3c2618, t: SNW}, {x: 0, y: 4.25, z: 0, w: 1.6, h: 0.5, d: 6, c: #3c2618, t: SNW}, {x: 2.15, y: 3.7, z: 1.2, w: 0.5, h: 1.1, d: 0.5, c: #6b6f78, t: #3a3a3a}, {x: 3.02, y: 0.3, z: 1.4, w: 0.04, h: 1, d: 1, c: #ffcf5a, t: #ffcf5a}, {x: 3.02, y: 0.3, z: -1.4, w: 0.04, h: 1, d: 1, c: #ffcf5a, t: #ffcf5a}, {x: 3.02, y: -0.4, z: 0, w: 0.04, h: 1.7, d: 0.9, c: #4a2c1c, t: #4a2c1c}, {x: -3.02, y: 0.3, z: 1.4, w: 0.04, h: 1, d: 1, c: #ffcf5a, t: #ffcf5a}, {x: -3.02, y: 0.3, z: -1.4, w: 0.04, h: 1, d: 1, c: #ffcf5a, t: #ffcf5a}, {x: 0, y: 0.3, z: -2.52, w: 1.2, h: 1, d: 0.04, c: #ffcf5a, t: #ffcf5a}],
+    [{x: 0, y: -3.5, z: 0, w: 6, h: 6.1, d: 5, c: #b8433a, t: #b8433a, nt: true}, {x: 0, y: 2.6, z: 0, w: 7, h: 0.55, d: 6, c: #2e3440, t: SNW}, {x: 0, y: 3.15, z: 0, w: 5.2, h: 0.55, d: 6, c: #2e3440, t: SNW}, {x: 0, y: 3.7, z: 0, w: 3.4, h: 0.55, d: 6, c: #2e3440, t: SNW}, {x: 0, y: 4.25, z: 0, w: 1.6, h: 0.5, d: 6, c: #2e3440, t: SNW}, {x: -2.15, y: 3.7, z: -1.2, w: 0.5, h: 1.1, d: 0.5, c: #6b6f78, t: #3a3a3a}, {x: 3.02, y: 0.3, z: 1.4, w: 0.04, h: 1, d: 1, c: #ffcf5a, t: #ffcf5a}, {x: 3.02, y: 0.3, z: -1.4, w: 0.04, h: 1, d: 1, c: #ffcf5a, t: #ffcf5a}, {x: -3.02, y: -0.4, z: 0, w: 0.04, h: 1.7, d: 0.9, c: #f4ecd8, t: #f4ecd8}, {x: -3.02, y: 0.3, z: 1.4, w: 0.04, h: 1, d: 1, c: #ffcf5a, t: #ffcf5a}, {x: 0, y: 0.3, z: -2.52, w: 1.2, h: 1, d: 0.04, c: #ffcf5a, t: #ffcf5a}],
+    [{x: 0, y: -0.3, z: 0, w: 1.1, h: 0.5, d: 1.1, c: #9aa0a8, t: SNW}, {x: 0, y: 0.2, z: 0, w: 0.45, h: 10.8, d: 0.45, c: #7d8590, t: #7d8590, nt: true}, {x: 0, y: 11, z: 0, w: 3.8, h: 0.35, d: 0.5, c: #5a5f6a, t: SNW}, {x: 1.6, y: 10.65, z: 0, w: 0.25, h: 0.35, d: 0.7, c: INK, t: INK, nt: true}, {x: -1.6, y: 10.65, z: 0, w: 0.25, h: 0.35, d: 0.7, c: INK, t: INK, nt: true}]
+  ]
+  let UNITM = boot < 2 ? [] : UNITS.map(u => mesh(flatten(u.map(b => [[b.x - b.w / 2, b.x + b.w / 2, b.y, b.y + b.h, b.z - b.d / 2, b.z + b.d / 2]].map(e => [[e[0], e[2], e[4]], [e[1], e[2], e[4]], [e[1], e[2], e[5]], [e[0], e[2], e[5]], [e[0], e[3], e[4]], [e[1], e[3], e[4]], [e[1], e[3], e[5]], [e[0], e[3], e[5]]])[0])), flatten(u.map((b, i) => b.nt == true ? BFN[i] : BFT[i])), flatten(u.map(b => b.nt == true ? [b.c, b.c, b.c, b.c] : [b.t, b.c, b.c, b.c, b.c]))))
+  // by kind: how far across and along it hits, how high (it can be flown over), and how near the camera it may stand
+  let HIT = [[1.3, 1.4, 9, 2.7], [0.9, 0.9, 9, 2.4], [0.9, 0.9, 9, 2.4], [1.5, 1.4, 1.8, 2.2], [1, 1, 8, 1.8], [1.1, 1.1, 8, 1.9], [1.2, 1.2, 4, 2], [0.8, 0.8, 3, 1.5], [1.9, 2.4, 3.2, 4], [3.6, 3.1, 7, 5.5], [3.6, 3.1, 7, 5.5], [0.7, 0.7, 12, 2]]
+
+  // What stands in each chunk, by its kind of place. Off the piste, thick toward the banks: pines; birches in the
+  // glade; spires of ice and boulders at the ice falls; chalets along the piste in the village (the pines further
+  // back); in the lift line the pylons beside the run, the trees kept clear of them. On the piste, to dodge (more the
+  // further down, none near the start or a gate): pines and rocks, birches and snowmen, ice, snowmen and a snowcat.
+  // {x, y, z, s (size), k (kind), r and rz (how close hits), h (how high), cr (camera clearance)}
+  let OBS = CHDO.map((c, n) => range(22).map(i => [[c.z0 + hash(c.k, i, seed, 11) * CH, hash(c.k, i, seed, 20), hash(c.k, i, seed, 13), hash(c.k, i, seed, 12) < 0.5 ? -1 : 1]].map(h => [[h[0], ((S.a1 * sin(h[0] / S.p1 + S.s1) + S.a2 * sin(h[0] / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(h[0] / 160, 0, 1)), (10.5 + 2.5 * sin(h[0] / 130 + S.s3)), (-0.34 * h[0] + 5 * sin(h[0] / 120 + S.s4)), [first(LANES.filter(s => (h[0]) >= s.zs && (h[0]) <= s.ze))].map(s => s == null ? 9999 : (((S.a1 * sin(h[0] / S.p1 + S.s1) + S.a2 * sin(h[0] / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(h[0] / 160, 0, 1)) + s.sd * ((10.5 + 2.5 * sin(h[0] / 130 + S.s3)) + 6) * sin(3.1416 * ((h[0]) - s.zs) / 150)))[0]]].map(q => [c.zt == 3 && i < 3 ? (h[1] < 0.5 ? 9 : 10) : (c.zt == 1 ? (h[1] < 0.4 ? 1 : (h[1] < 0.75 ? 2 : 0)) : (c.zt == 2 ? (h[1] < 0.15 ? 4 : (h[1] < 0.28 ? 5 : (h[1] < 0.4 ? 6 : (h[1] < 0.7 ? 3 : 0)))) : 0))].map(kd => [q[1] + h[3] * (q[2] + (kd >= 9 ? 8 + h[2] * 6 : 3.6 + pow(h[2], 1.6) * 44 + (c.zt == 3 ? 18 : 0) + (c.zt == 4 && h[3] == (hash(floor((c.k) / 6), seed, 63) < 0.5 ? -1 : 1) && pow(h[2], 1.6) * 44 < 14 ? 16 : 0)))].map(x => [[x, ((q[3] + pow(clamp(min(abs(x - q[1]) - q[2], abs(x - q[4]) - 2.4), 0, 26), 2) * 0.024 + 0.4 * sin(x * 0.23 + S.s5) * sin(h[0] * 0.11))), h[0], (kd >= 9 ? 0.85 + hash(c.k, i, seed, 14) * 0.2 : (kd == 3 ? 1.1 : 0.8) + hash(c.k, i, seed, 14) * 0.7), kd, q[4]]].map(u => {x: u[0], y: u[1], z: u[2], s: u[3], k: u[4], ln: u[5], r: HIT[u[4]][0] * u[3], rz: HIT[u[4]][1] * u[3], h: HIT[u[4]][2] * u[3], cr: HIT[u[4]][3] * u[3]})[0])[0])[0])[0])[0]).filter(o => (o.z > 30 || abs(o.x) > 20) && abs(o.x - o.ln) > 3.4 + o.r)
+    + (c.k < 2 || GATEZ[n] != null ? [] : range(min(5, 1 + floor(c.k / 6))).filter(i => i == 0 || hash(c.k, i, seed, 15) < 0.7).map(i => [[c.z0 + 6 + (i * 0.2 + hash(c.k, i, seed, 16) * 0.16) * (CH - 8), hash(c.k, i, seed, 18)]].map(h => [[h[0], ((S.a1 * sin(h[0] / S.p1 + S.s1) + S.a2 * sin(h[0] / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(h[0] / 160, 0, 1)), (10.5 + 2.5 * sin(h[0] / 130 + S.s3)), (-0.34 * h[0] + 5 * sin(h[0] / 120 + S.s4)), [first(LANES.filter(s => (h[0]) >= s.zs && (h[0]) <= s.ze))].map(s => s == null ? 9999 : (((S.a1 * sin(h[0] / S.p1 + S.s1) + S.a2 * sin(h[0] / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(h[0] / 160, 0, 1)) + s.sd * ((10.5 + 2.5 * sin(h[0] / 130 + S.s3)) + 6) * sin(3.1416 * ((h[0]) - s.zs) / 150)))[0]]].map(q => [c.zt == 0 ? (h[1] < 0.3 ? 3 : 0) : (c.zt == 1 ? (h[1] < 0.2 ? 1 : (h[1] < 0.4 ? 2 : (h[1] < 0.75 ? 7 : 3))) : (c.zt == 2 ? (h[1] < 0.6 ? 4 + floor(h[1] * 5) % 3 : 3) : (c.zt == 3 ? (i == 0 && h[1] < 0.4 ? 8 : (h[1] < 0.75 ? 7 : 0)) : (h[1] < 0.5 ? 0 : (h[1] < 0.8 ? 3 : 7)))))].map(kd => [q[1] + (hash(c.k, i, seed, 17) - 0.5) * 2 * (q[2] - (kd == 8 ? 3 : 1.5))].map(x => [[x, ((q[3] + pow(clamp(min(abs(x - q[1]) - q[2], abs(x - q[4]) - 2.4), 0, 26), 2) * 0.024 + 0.4 * sin(x * 0.23 + S.s5) * sin(h[0] * 0.11))), h[0], (kd >= 7 ? 1 : 0.75 + hash(c.k, i, seed, 19) * 0.4), kd, q[4]]].map(u => {x: u[0], y: u[1], z: u[2], s: u[3], k: u[4], ln: u[5], r: HIT[u[4]][0] * u[3], rz: HIT[u[4]][1] * u[3], h: HIT[u[4]][2] * u[3], cr: HIT[u[4]][3] * u[3]})[0])[0])[0])[0])[0]).filter(o => abs(o.x - o.ln) > 3.4 + o.r))
+    + (c.zt == 4 ? [12, 36].map(dz => [c.z0 + dz].map(z => [(((S.a1 * sin(z / S.p1 + S.s1) + S.a2 * sin(z / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(z / 160, 0, 1)) + ((hash(floor((c.k) / 6), seed, 63) < 0.5 ? -1 : 1)) * ((10.5 + 2.5 * sin(z / 130 + S.s3)) + 5.5))].map(x => [[x, ((((-0.34 * z + 5 * sin(z / 120 + S.s4))) + pow(clamp(min(abs(x - (((S.a1 * sin(z / S.p1 + S.s1) + S.a2 * sin(z / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(z / 160, 0, 1)))) - ((10.5 + 2.5 * sin(z / 130 + S.s3))), abs(x - ([first(LANES.filter(s => (z) >= s.zs && (z) <= s.ze))].map(s => s == null ? 9999 : (((S.a1 * sin(z / S.p1 + S.s1) + S.a2 * sin(z / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(z / 160, 0, 1)) + s.sd * ((10.5 + 2.5 * sin(z / 130 + S.s3)) + 6) * sin(3.1416 * ((z) - s.zs) / 150)))[0])) - 2.4), 0, 26), 2) * 0.024 + 0.4 * sin(x * 0.23 + S.s5) * sin(z * 0.11))), z, 1, 11, 9999]].map(u => {x: u[0], y: u[1], z: u[2], s: u[3], k: u[4], ln: u[5], r: HIT[u[4]][0] * u[3], rz: HIT[u[4]][1] * u[3], h: HIT[u[4]][2] * u[3], cr: HIT[u[4]][3] * u[3]})[0])[0])[0]) : []))
+  // Everything that stands, as boxes: what's in the chunk, the poles along both edges of the piste and the gate. What
+  // stands in the two chunks nearest the camera is drawn one by one instead (UNITM), so what would be between the
+  // camera and the rider can be left out.
+  let BXS = CHDO.map((c, n) => flatten(OBS[n].filter(o => n >= 2).map(o => UNITS[o.k].map(b => merge(b, {x: o.x + b.x * o.s, y: o.y + b.y * o.s, z: o.z + b.z * o.s, w: b.w * o.s, h: b.h * o.s, d: b.d * o.s}))))
+    + flatten(flatten(range(4).map(i => [c.R[3 * i]].map(r => [-1, 1].map(sd => [r[1] + sd * (r[2] + 0.7)].map(x => abs(x - r[4]) < 3.2 ? null : {x: x, y: (r[3] + pow(clamp(min(abs(x - r[1]) - r[2], abs(x - r[4]) - 2.4), 0, 26), 2) * 0.024 + 0.4 * sin(x * 0.23 + S.s5) * sin(r[0] * 0.11)) - 0.3, z: r[0], w: 0.22, h: 1.9, d: 0.22, c: (c.k + i) % 2 == 0 ? #ff6a1a : #1b1b1e, t: #ff6a1a})[0]))[0]))).filter(b => b != null)
+    + flatten(flatten(LANES.map(s => range(6).map(i => c.z0 + i * 8 + 4).filter(z => z >= s.zs + 30 && z <= s.ze - 30).map(z => [(((S.a1 * sin(z / S.p1 + S.s1) + S.a2 * sin(z / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(z / 160, 0, 1)) + s.sd * ((10.5 + 2.5 * sin(z / 130 + S.s3)) + 6) * sin(3.1416 * ((z) - s.zs) / 150))].map(L => [-1, 1].map(sd => {x: L + sd * 3, y: (((-0.34 * z + 5 * sin(z / 120 + S.s4))) + pow(clamp(min(abs(((L + sd * 3)) - (((S.a1 * sin(z / S.p1 + S.s1) + S.a2 * sin(z / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(z / 160, 0, 1)))) - ((10.5 + 2.5 * sin(z / 130 + S.s3))), abs(((L + sd * 3)) - ([first(LANES.filter(s => (z) >= s.zs && (z) <= s.ze))].map(s => s == null ? 9999 : (((S.a1 * sin(z / S.p1 + S.s1) + S.a2 * sin(z / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(z / 160, 0, 1)) + s.sd * ((10.5 + 2.5 * sin(z / 130 + S.s3)) + 6) * sin(3.1416 * ((z) - s.zs) / 150)))[0])) - 2.4), 0, 26), 2) * 0.024 + 0.4 * sin(((L + sd * 3)) * 0.23 + S.s5) * sin(z * 0.11)) - 0.3, z: z, w: 0.24, h: 2.2, d: 0.24, c: floor(z / 8) % 2 == 0 ? ICE : GOLD, t: GOLD}))[0]))))
+    + flatten(LANES.filter(s => s.zs + 22 >= c.z0 && s.zs + 22 < c.z0 + CH).map(s => [s.zs + 22].map(z => [[(((S.a1 * sin(z / S.p1 + S.s1) + S.a2 * sin(z / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(z / 160, 0, 1)) + s.sd * ((10.5 + 2.5 * sin(z / 130 + S.s3)) + 6) * sin(3.1416 * ((z) - s.zs) / 150)), (((-0.34 * z + 5 * sin(z / 120 + S.s4))) + pow(clamp(min(abs((((((S.a1 * sin(z / S.p1 + S.s1) + S.a2 * sin(z / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(z / 160, 0, 1)) + s.sd * ((10.5 + 2.5 * sin(z / 130 + S.s3)) + 6) * sin(3.1416 * ((z) - s.zs) / 150)))) - (((S.a1 * sin(z / S.p1 + S.s1) + S.a2 * sin(z / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(z / 160, 0, 1)))) - ((10.5 + 2.5 * sin(z / 130 + S.s3))), abs((((((S.a1 * sin(z / S.p1 + S.s1) + S.a2 * sin(z / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(z / 160, 0, 1)) + s.sd * ((10.5 + 2.5 * sin(z / 130 + S.s3)) + 6) * sin(3.1416 * ((z) - s.zs) / 150)))) - ([first(LANES.filter(s => (z) >= s.zs && (z) <= s.ze))].map(s => s == null ? 9999 : (((S.a1 * sin(z / S.p1 + S.s1) + S.a2 * sin(z / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(z / 160, 0, 1)) + s.sd * ((10.5 + 2.5 * sin(z / 130 + S.s3)) + 6) * sin(3.1416 * ((z) - s.zs) / 150)))[0])) - 2.4), 0, 26), 2) * 0.024 + 0.4 * sin((((((S.a1 * sin(z / S.p1 + S.s1) + S.a2 * sin(z / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(z / 160, 0, 1)) + s.sd * ((10.5 + 2.5 * sin(z / 130 + S.s3)) + 6) * sin(3.1416 * ((z) - s.zs) / 150)))) * 0.23 + S.s5) * sin(z * 0.11))]].map(e => [
+        {x: e[0] - 3.2, y: e[1] - 0.4, z: z, w: 0.4, h: 4.2, d: 0.4, c: ICED, t: ICED, nt: true},
+        {x: e[0] + 3.2, y: e[1] - 0.4, z: z, w: 0.4, h: 4.2, d: 0.4, c: ICED, t: ICED, nt: true},
+        {x: e[0], y: e[1] + 3.8, z: z, w: 6.8, h: 1, d: 0.4, c: ICE, t: ICED},
+        {x: e[0], y: e[1] + 4.05, z: z - 0.22, w: 3.2, h: 0.5, d: 0.04, c: GOLD, t: GOLD}
+      ])[0])[0]))
+    + (GATEZ[n] == null ? [] : [GATEZ[n]].map(zg => [[zg, ((S.a1 * sin(zg / S.p1 + S.s1) + S.a2 * sin(zg / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(zg / 160, 0, 1)), (10.5 + 2.5 * sin(zg / 130 + S.s3)), (-0.34 * zg + 5 * sin(zg / 120 + S.s4))]].map(q => [[q[3], q[2] + 1.6, zg == 0 ? ICE : RED, zg == 0 ? ICED : REDD]].map(g => [
+        {x: q[1] - g[1], y: g[0] - 0.4, z: zg, w: 0.6, h: 6.4, d: 0.6, c: g[3], t: g[3], nt: true},
+        {x: q[1] + g[1], y: g[0] - 0.4, z: zg, w: 0.6, h: 6.4, d: 0.6, c: g[3], t: g[3], nt: true},
+        {x: q[1], y: g[0] + 6, z: zg, w: 2 * g[1] + 0.6, h: 1.4, d: 0.5, c: g[2], t: g[3]}
+      ] + range(10).map(k => {x: q[1] - g[1] + (k + 0.5) * g[1] / 5, y: g[0] + 6.35, z: zg - 0.275, w: g[1] / 10, h: 0.7, d: 0.05, c: k % 2 == 0 ? #f4f4f4 : INK, t: #f4f4f4}))[0])[0])[0]))
+
+  // Ramps: a kicker of snow at the top of some chunks, across part of the piste, its sides marked orange, that throws
+  // the rider into the air over what comes after it. {x, z (its middle), and the mesh, laid on the slope corner by corner}
+  let RAMPS = flatten(CHDO.map((c, n) => c.k < 2 || GATEZ[n] != null || hash(c.k, seed, 80) > 0.55 ? [] : [c.z0 + 2.5].map(z => [((S.a1 * sin(z / S.p1 + S.s1) + S.a2 * sin(z / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(z / 160, 0, 1)) + (hash(c.k, seed, 81) - 0.5) * 1.1 * (10.5 + 2.5 * sin(z / 130 + S.s3))].map(x => {x: x, z: z})[0])))
+  let RAMPM = RAMPS.map(r => [[(((-0.34 * ((r.z - 1.5)) + 5 * sin(((r.z - 1.5)) / 120 + S.s4))) + pow(clamp(min(abs(((r.x - 1.7)) - (((S.a1 * sin(((r.z - 1.5)) / S.p1 + S.s1) + S.a2 * sin(((r.z - 1.5)) / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(((r.z - 1.5)) / 160, 0, 1)))) - ((10.5 + 2.5 * sin(((r.z - 1.5)) / 130 + S.s3))), abs(((r.x - 1.7)) - ([first(LANES.filter(s => (((r.z - 1.5))) >= s.zs && (((r.z - 1.5))) <= s.ze))].map(s => s == null ? 9999 : (((S.a1 * sin(((((r.z - 1.5)))) / S.p1 + S.s1) + S.a2 * sin(((((r.z - 1.5)))) / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(((((r.z - 1.5)))) / 160, 0, 1)) + s.sd * ((10.5 + 2.5 * sin(((((r.z - 1.5)))) / 130 + S.s3)) + 6) * sin(3.1416 * (((((r.z - 1.5)))) - s.zs) / 150)))[0])) - 2.4), 0, 26), 2) * 0.024 + 0.4 * sin(((r.x - 1.7)) * 0.23 + S.s5) * sin(((r.z - 1.5)) * 0.11)), (((-0.34 * ((r.z - 1.5)) + 5 * sin(((r.z - 1.5)) / 120 + S.s4))) + pow(clamp(min(abs(((r.x + 1.7)) - (((S.a1 * sin(((r.z - 1.5)) / S.p1 + S.s1) + S.a2 * sin(((r.z - 1.5)) / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(((r.z - 1.5)) / 160, 0, 1)))) - ((10.5 + 2.5 * sin(((r.z - 1.5)) / 130 + S.s3))), abs(((r.x + 1.7)) - ([first(LANES.filter(s => (((r.z - 1.5))) >= s.zs && (((r.z - 1.5))) <= s.ze))].map(s => s == null ? 9999 : (((S.a1 * sin(((((r.z - 1.5)))) / S.p1 + S.s1) + S.a2 * sin(((((r.z - 1.5)))) / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(((((r.z - 1.5)))) / 160, 0, 1)) + s.sd * ((10.5 + 2.5 * sin(((((r.z - 1.5)))) / 130 + S.s3)) + 6) * sin(3.1416 * (((((r.z - 1.5)))) - s.zs) / 150)))[0])) - 2.4), 0, 26), 2) * 0.024 + 0.4 * sin(((r.x + 1.7)) * 0.23 + S.s5) * sin(((r.z - 1.5)) * 0.11)), (((-0.34 * ((r.z + 1.5)) + 5 * sin(((r.z + 1.5)) / 120 + S.s4))) + pow(clamp(min(abs(((r.x + 1.7)) - (((S.a1 * sin(((r.z + 1.5)) / S.p1 + S.s1) + S.a2 * sin(((r.z + 1.5)) / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(((r.z + 1.5)) / 160, 0, 1)))) - ((10.5 + 2.5 * sin(((r.z + 1.5)) / 130 + S.s3))), abs(((r.x + 1.7)) - ([first(LANES.filter(s => (((r.z + 1.5))) >= s.zs && (((r.z + 1.5))) <= s.ze))].map(s => s == null ? 9999 : (((S.a1 * sin(((((r.z + 1.5)))) / S.p1 + S.s1) + S.a2 * sin(((((r.z + 1.5)))) / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(((((r.z + 1.5)))) / 160, 0, 1)) + s.sd * ((10.5 + 2.5 * sin(((((r.z + 1.5)))) / 130 + S.s3)) + 6) * sin(3.1416 * (((((r.z + 1.5)))) - s.zs) / 150)))[0])) - 2.4), 0, 26), 2) * 0.024 + 0.4 * sin(((r.x + 1.7)) * 0.23 + S.s5) * sin(((r.z + 1.5)) * 0.11)), (((-0.34 * ((r.z + 1.5)) + 5 * sin(((r.z + 1.5)) / 120 + S.s4))) + pow(clamp(min(abs(((r.x - 1.7)) - (((S.a1 * sin(((r.z + 1.5)) / S.p1 + S.s1) + S.a2 * sin(((r.z + 1.5)) / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(((r.z + 1.5)) / 160, 0, 1)))) - ((10.5 + 2.5 * sin(((r.z + 1.5)) / 130 + S.s3))), abs(((r.x - 1.7)) - ([first(LANES.filter(s => (((r.z + 1.5))) >= s.zs && (((r.z + 1.5))) <= s.ze))].map(s => s == null ? 9999 : (((S.a1 * sin(((((r.z + 1.5)))) / S.p1 + S.s1) + S.a2 * sin(((((r.z + 1.5)))) / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(((((r.z + 1.5)))) / 160, 0, 1)) + s.sd * ((10.5 + 2.5 * sin(((((r.z + 1.5)))) / 130 + S.s3)) + 6) * sin(3.1416 * (((((r.z + 1.5)))) - s.zs) / 150)))[0])) - 2.4), 0, 26), 2) * 0.024 + 0.4 * sin(((r.x - 1.7)) * 0.23 + S.s5) * sin(((r.z + 1.5)) * 0.11))]].map(g => mesh(
+      [[r.x - 1.7, g[0] - 0.05, r.z - 1.5], [r.x + 1.7, g[1] - 0.05, r.z - 1.5], [r.x + 1.7, g[2] + 0.8, r.z + 1.5], [r.x - 1.7, g[3] + 0.8, r.z + 1.5], [r.x + 1.7, g[2] - 0.3, r.z + 1.5], [r.x - 1.7, g[3] - 0.3, r.z + 1.5]],
+      [[0, 1, 2, 3], [3, 2, 1, 0], [3, 2, 4, 5], [5, 4, 2, 3], [0, 3, 5], [5, 3, 0], [1, 4, 2], [2, 4, 1]],
+      [#eaf4ff, #eaf4ff, ICE, ICE, #ff6a1a, #ff6a1a, #ff6a1a, #ff6a1a]))[0])
+
+  // at most 120 boxes a mesh (a list holds 1000 points)
+  let OBM = flatten(BXS.map(b0 => [take(b0, 120), drop(b0, 120)].filter(bs => len(bs) > 0).map(bs => mesh(flatten(bs.map(b => [[b.x - b.w / 2, b.x + b.w / 2, b.y, b.y + b.h, b.z - b.d / 2, b.z + b.d / 2]].map(e => [[e[0], e[2], e[4]], [e[1], e[2], e[4]], [e[1], e[2], e[5]], [e[0], e[2], e[5]], [e[0], e[3], e[4]], [e[1], e[3], e[4]], [e[1], e[3], e[5]], [e[0], e[3], e[5]]])[0])), flatten(bs.map((b, i) => b.nt == true ? BFN[i] : BFT[i])), flatten(bs.map(b => b.nt == true ? [b.c, b.c, b.c, b.c] : [b.t, b.c, b.c, b.c, b.c]))))))
+  // The obstacles in the rider's chunk and the next, for hitting.
+  let OBN = flatten(OBS)
+
+  // The chairlift: two cables from pylon to pylon (each a thin strip, seen from both sides), from every pylon whose
+  // next one is in the same lift line; chairs ride up one cable and down the other, some with skiers on.
+  let LIFTS = flatten(CHDO.filter(c => c.zt == 4).map(c => [12, 36].map(dz => c.z0 + dz).filter(z => (((floor((z + 24) / CH))) < 6 ? 0 : ZORD[floor(((floor((z + 24) / CH))) / 6) % 5]) == 4 && floor(floor((z + 24) / CH) / 6) == floor(c.k / 6)).map(z => [z, (hash(floor((c.k) / 6), seed, 63) < 0.5 ? -1 : 1)])))
+  let CABQ = flatten(LIFTS.map(L => [-1.6, 1.6].map(o => [[[(((S.a1 * sin(L[0] / S.p1 + S.s1) + S.a2 * sin(L[0] / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(L[0] / 160, 0, 1)) + L[1] * ((10.5 + 2.5 * sin(L[0] / 130 + S.s3)) + 5.5)) + o, [(((S.a1 * sin(L[0] / S.p1 + S.s1) + S.a2 * sin(L[0] / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(L[0] / 160, 0, 1)) + L[1] * ((10.5 + 2.5 * sin(L[0] / 130 + S.s3)) + 5.5))].map(x => (((-0.34 * L[0] + 5 * sin(L[0] / 120 + S.s4))) + pow(clamp(min(abs(x - (((S.a1 * sin(L[0] / S.p1 + S.s1) + S.a2 * sin(L[0] / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(L[0] / 160, 0, 1)))) - ((10.5 + 2.5 * sin(L[0] / 130 + S.s3))), abs(x - ([first(LANES.filter(s => (L[0]) >= s.zs && (L[0]) <= s.ze))].map(s => s == null ? 9999 : (((S.a1 * sin(L[0] / S.p1 + S.s1) + S.a2 * sin(L[0] / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(L[0] / 160, 0, 1)) + s.sd * ((10.5 + 2.5 * sin(L[0] / 130 + S.s3)) + 6) * sin(3.1416 * ((L[0]) - s.zs) / 150)))[0])) - 2.4), 0, 26), 2) * 0.024 + 0.4 * sin(x * 0.23 + S.s5) * sin(L[0] * 0.11)) + 10.6)[0], L[0]], [(((S.a1 * sin(((L[0] + 24)) / S.p1 + S.s1) + S.a2 * sin(((L[0] + 24)) / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(((L[0] + 24)) / 160, 0, 1)) + L[1] * ((10.5 + 2.5 * sin(((L[0] + 24)) / 130 + S.s3)) + 5.5)) + o, [(((S.a1 * sin((((L[0] + 24))) / S.p1 + S.s1) + S.a2 * sin((((L[0] + 24))) / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp((((L[0] + 24))) / 160, 0, 1)) + L[1] * ((10.5 + 2.5 * sin((((L[0] + 24))) / 130 + S.s3)) + 5.5))].map(x => (((-0.34 * (((L[0] + 24))) + 5 * sin((((L[0] + 24))) / 120 + S.s4))) + pow(clamp(min(abs(x - (((S.a1 * sin((((L[0] + 24))) / S.p1 + S.s1) + S.a2 * sin((((L[0] + 24))) / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp((((L[0] + 24))) / 160, 0, 1)))) - ((10.5 + 2.5 * sin((((L[0] + 24))) / 130 + S.s3))), abs(x - ([first(LANES.filter(s => ((((L[0] + 24)))) >= s.zs && ((((L[0] + 24)))) <= s.ze))].map(s => s == null ? 9999 : (((S.a1 * sin((((((L[0] + 24))))) / S.p1 + S.s1) + S.a2 * sin((((((L[0] + 24))))) / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp((((((L[0] + 24))))) / 160, 0, 1)) + s.sd * ((10.5 + 2.5 * sin((((((L[0] + 24))))) / 130 + S.s3)) + 6) * sin(3.1416 * ((((((L[0] + 24))))) - s.zs) / 150)))[0])) - 2.4), 0, 26), 2) * 0.024 + 0.4 * sin(x * 0.23 + S.s5) * sin((((L[0] + 24))) * 0.11)) + 10.6)[0], L[0] + 24]]].map(e => [e[0], e[1], [e[1][0], e[1][1] - 0.09, e[1][2]], [e[0][0], e[0][1] - 0.09, e[0][2]]])[0])))
+  let CABM = len(CABQ) == 0 ? [] : [mesh(flatten(CABQ), flatten(range(len(CABQ)).map(i => [[4 * i, 4 * i + 1, 4 * i + 2, 4 * i + 3], [4 * i + 3, 4 * i + 2, 4 * i + 1, 4 * i]])), flatten(CABQ.map(q => [#2a2d33, #2a2d33])))]
+  let CHAIRM = [0, 1, 2].map(v => mesh(flatten(([{x: 0, y: -1.45, z: 0, w: 0.08, h: 1.45, d: 0.08, c: #2a2d33, t: #2a2d33}, {x: 0, y: -1.62, z: 0, w: 1.3, h: 0.17, d: 0.55, c: #2a2d33, t: #3a3f48}, {x: 0, y: -1.45, z: 0.315, w: 1.3, h: 0.6, d: 0.08, c: #3a3f48, t: #3a3f48}] + (v == 0 ? [] : [{x: 0.33, y: -1.45, z: -0.02, w: 0.3, h: 0.5, d: 0.3, c: v == 1 ? RED : GOLD, t: #f4f4f4}, {x: -0.33, y: -1.45, z: -0.02, w: 0.3, h: 0.5, d: 0.3, c: v == 1 ? ICE : #3fb565, t: INK}])).map(b => [[b.x - b.w / 2, b.x + b.w / 2, b.y, b.y + b.h, b.z - b.d / 2, b.z + b.d / 2]].map(e => [[e[0], e[2], e[4]], [e[1], e[2], e[4]], [e[1], e[2], e[5]], [e[0], e[2], e[5]], [e[0], e[3], e[4]], [e[1], e[3], e[4]], [e[1], e[3], e[5]], [e[0], e[3], e[5]]])[0])), flatten(([{x: 0, y: -1.45, z: 0, w: 0.08, h: 1.45, d: 0.08, c: #2a2d33, t: #2a2d33}, {x: 0, y: -1.62, z: 0, w: 1.3, h: 0.17, d: 0.55, c: #2a2d33, t: #3a3f48}, {x: 0, y: -1.45, z: 0.315, w: 1.3, h: 0.6, d: 0.08, c: #3a3f48, t: #3a3f48}] + (v == 0 ? [] : [{x: 0.33, y: -1.45, z: -0.02, w: 0.3, h: 0.5, d: 0.3, c: v == 1 ? RED : GOLD, t: #f4f4f4}, {x: -0.33, y: -1.45, z: -0.02, w: 0.3, h: 0.5, d: 0.3, c: v == 1 ? ICE : #3fb565, t: INK}])).map((b, i) => b.nt == true ? BFN[i] : BFT[i])), flatten(([{x: 0, y: -1.45, z: 0, w: 0.08, h: 1.45, d: 0.08, c: #2a2d33, t: #2a2d33}, {x: 0, y: -1.62, z: 0, w: 1.3, h: 0.17, d: 0.55, c: #2a2d33, t: #3a3f48}, {x: 0, y: -1.45, z: 0.315, w: 1.3, h: 0.6, d: 0.08, c: #3a3f48, t: #3a3f48}] + (v == 0 ? [] : [{x: 0.33, y: -1.45, z: -0.02, w: 0.3, h: 0.5, d: 0.3, c: v == 1 ? RED : GOLD, t: #f4f4f4}, {x: -0.33, y: -1.45, z: -0.02, w: 0.3, h: 0.5, d: 0.3, c: v == 1 ? ICE : #3fb565, t: INK}])).map(b => b.nt == true ? [b.c, b.c, b.c, b.c] : [b.t, b.c, b.c, b.c, b.c]))))
+  let CHAIRS = flatten(LIFTS.map(L => flatten([-1, 1].map(dir => range(2).map(i => [(((i * 12 - dir * gt * 2.4) % 24) + 24) % 24].map(f => {x: (((S.a1 * sin(L[0] / S.p1 + S.s1) + S.a2 * sin(L[0] / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(L[0] / 160, 0, 1)) + L[1] * ((10.5 + 2.5 * sin(L[0] / 130 + S.s3)) + 5.5)) * (1 - f / 24) + (((S.a1 * sin(((L[0] + 24)) / S.p1 + S.s1) + S.a2 * sin(((L[0] + 24)) / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(((L[0] + 24)) / 160, 0, 1)) + L[1] * ((10.5 + 2.5 * sin(((L[0] + 24)) / 130 + S.s3)) + 5.5)) * (f / 24) + dir * L[1] * 1.6, y: [(((S.a1 * sin(L[0] / S.p1 + S.s1) + S.a2 * sin(L[0] / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(L[0] / 160, 0, 1)) + L[1] * ((10.5 + 2.5 * sin(L[0] / 130 + S.s3)) + 5.5))].map(x => (((-0.34 * L[0] + 5 * sin(L[0] / 120 + S.s4))) + pow(clamp(min(abs(x - (((S.a1 * sin(L[0] / S.p1 + S.s1) + S.a2 * sin(L[0] / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(L[0] / 160, 0, 1)))) - ((10.5 + 2.5 * sin(L[0] / 130 + S.s3))), abs(x - ([first(LANES.filter(s => (L[0]) >= s.zs && (L[0]) <= s.ze))].map(s => s == null ? 9999 : (((S.a1 * sin(L[0] / S.p1 + S.s1) + S.a2 * sin(L[0] / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(L[0] / 160, 0, 1)) + s.sd * ((10.5 + 2.5 * sin(L[0] / 130 + S.s3)) + 6) * sin(3.1416 * ((L[0]) - s.zs) / 150)))[0])) - 2.4), 0, 26), 2) * 0.024 + 0.4 * sin(x * 0.23 + S.s5) * sin(L[0] * 0.11)) + 10.6)[0] * (1 - f / 24) + [(((S.a1 * sin((((L[0] + 24))) / S.p1 + S.s1) + S.a2 * sin((((L[0] + 24))) / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp((((L[0] + 24))) / 160, 0, 1)) + L[1] * ((10.5 + 2.5 * sin((((L[0] + 24))) / 130 + S.s3)) + 5.5))].map(x => (((-0.34 * (((L[0] + 24))) + 5 * sin((((L[0] + 24))) / 120 + S.s4))) + pow(clamp(min(abs(x - (((S.a1 * sin((((L[0] + 24))) / S.p1 + S.s1) + S.a2 * sin((((L[0] + 24))) / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp((((L[0] + 24))) / 160, 0, 1)))) - ((10.5 + 2.5 * sin((((L[0] + 24))) / 130 + S.s3))), abs(x - ([first(LANES.filter(s => ((((L[0] + 24)))) >= s.zs && ((((L[0] + 24)))) <= s.ze))].map(s => s == null ? 9999 : (((S.a1 * sin((((((L[0] + 24))))) / S.p1 + S.s1) + S.a2 * sin((((((L[0] + 24))))) / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp((((((L[0] + 24))))) / 160, 0, 1)) + s.sd * ((10.5 + 2.5 * sin((((((L[0] + 24))))) / 130 + S.s3)) + 6) * sin(3.1416 * ((((((L[0] + 24))))) - s.zs) / 150)))[0])) - 2.4), 0, 26), 2) * 0.024 + 0.4 * sin(x * 0.23 + S.s5) * sin((((L[0] + 24))) * 0.11)) + 10.6)[0] * (f / 24) - 0.05, z: L[0] + f, m: dir > 0 ? (hash(i, L[0], 3) < 0.7 ? 1 + floor(hash(i, L[0], 4) * 2) : 0) : 0})[0])))))
+
+
+  // The rider, in parts of boxes that only touch (never overlap), so they sort right without a depth buffer, each
+  // turned on its own so the body moves: the board or skis with the boots, a shin and a thigh on each leg (the knees
+  // bend), the body and head (from the hips: jacket with a stripe, backpack, neck gaiter, mirrored goggles, helmet),
+  // an upper arm and a forearm with its glove on each side (and a pole on skis), and the gaiter's end streaming out
+  // behind. Every part is built facing +x (the chest), shoulders along z. On a board, the board runs along z and the
+  // rider goes +z, sideways; on skis, they run along x and the whole rider is turned to go chest first.
+  // Outfits: jacket (c, d darker), accent (b: the board, the stripe and the scarf), pants (p) and helmet (h).
+  let JACKETS = [
+    {c: #e8412f, d: #a82a1e, b: #ffd34a, p: #23262e, h: #f4f4f4},
+    {c: #2b6cb0, d: #1b4a80, b: #ff7a2f, p: #e9e4d8, h: #1b1b1e},
+    {c: #ffd34a, d: #c49a1c, b: #1b1b1e, p: #3a3f4a, h: #1b1b1e},
+    {c: #3fb565, d: #23804a, b: #ff6fb0, p: #1d2b3a, h: #f4f4f4},
+    {c: #ff6fb0, d: #c24a84, b: #3ce0ff, p: #2a2140, h: #f4f4f4},
+    {c: #8a4fe0, d: #5e32a8, b: #9cff57, p: #1b1b1e, h: #ffd34a}
+  ]
+  let J = JACKETS[jacket % len(JACKETS)]
+  let SKIN = #f0c8a0
+  let BOARD = rider == "board"
+  let ANKY = BOARD ? 0.24 : 0.25
+  let STW = BOARD ? 0.27 : 0.15
+  let RB = mesh(flatten((BOARD ? [
+      {x: 0, y: 0, z: 0, w: 0.46, h: 0.06, d: 1.24, c: mix(J.b, #000000, 0.35), t: J.b},
+      {x: 0, y: 0.03, z: 0.72, w: 0.46, h: 0.06, d: 0.2, c: mix(J.b, #000000, 0.35), t: INK},
+      {x: 0, y: 0.03, z: -0.72, w: 0.46, h: 0.06, d: 0.2, c: mix(J.b, #000000, 0.35), t: INK},
+      {x: 0, y: 0.06, z: 0, w: 0.46, h: 0.01, d: 0.14, c: J.c, t: J.c},
+      {x: 0, y: 0.06, z: 0.27, w: 0.34, h: 0.08, d: 0.26, c: INK, t: INK},
+      {x: 0, y: 0.06, z: -0.27, w: 0.34, h: 0.08, d: 0.26, c: INK, t: INK},
+      {x: 0, y: 0.14, z: 0.27, w: 0.3, h: 0.1, d: 0.22, c: #3a3d45, t: #4a4e58},
+      {x: 0, y: 0.14, z: -0.27, w: 0.3, h: 0.1, d: 0.22, c: #3a3d45, t: #4a4e58}
+    ] : [
+      {x: 0.12, y: 0, z: 0.15, w: 1.9, h: 0.05, d: 0.12, c: mix(J.b, #000000, 0.35), t: J.b},
+      {x: 0.12, y: 0, z: -0.15, w: 1.9, h: 0.05, d: 0.12, c: mix(J.b, #000000, 0.35), t: J.b},
+      {x: 1.12, y: 0.03, z: 0.15, w: 0.1, h: 0.06, d: 0.12, c: INK, t: INK},
+      {x: 1.12, y: 0.03, z: -0.15, w: 0.1, h: 0.06, d: 0.12, c: INK, t: INK},
+      {x: 0, y: 0.05, z: 0.15, w: 0.32, h: 0.2, d: 0.16, c: #3a3d45, t: #4a4e58},
+      {x: 0, y: 0.05, z: -0.15, w: 0.32, h: 0.2, d: 0.16, c: #3a3d45, t: #4a4e58}
+    ]).map(b => [[b.x - b.w / 2, b.x + b.w / 2, b.y, b.y + b.h, b.z - b.d / 2, b.z + b.d / 2]].map(e => [[e[0], e[2], e[4]], [e[1], e[2], e[4]], [e[1], e[2], e[5]], [e[0], e[2], e[5]], [e[0], e[3], e[4]], [e[1], e[3], e[4]], [e[1], e[3], e[5]], [e[0], e[3], e[5]]])[0])), flatten((BOARD ? [
+      {x: 0, y: 0, z: 0, w: 0.46, h: 0.06, d: 1.24, c: mix(J.b, #000000, 0.35), t: J.b},
+      {x: 0, y: 0.03, z: 0.72, w: 0.46, h: 0.06, d: 0.2, c: mix(J.b, #000000, 0.35), t: INK},
+      {x: 0, y: 0.03, z: -0.72, w: 0.46, h: 0.06, d: 0.2, c: mix(J.b, #000000, 0.35), t: INK},
+      {x: 0, y: 0.06, z: 0, w: 0.46, h: 0.01, d: 0.14, c: J.c, t: J.c},
+      {x: 0, y: 0.06, z: 0.27, w: 0.34, h: 0.08, d: 0.26, c: INK, t: INK},
+      {x: 0, y: 0.06, z: -0.27, w: 0.34, h: 0.08, d: 0.26, c: INK, t: INK},
+      {x: 0, y: 0.14, z: 0.27, w: 0.3, h: 0.1, d: 0.22, c: #3a3d45, t: #4a4e58},
+      {x: 0, y: 0.14, z: -0.27, w: 0.3, h: 0.1, d: 0.22, c: #3a3d45, t: #4a4e58}
+    ] : [
+      {x: 0.12, y: 0, z: 0.15, w: 1.9, h: 0.05, d: 0.12, c: mix(J.b, #000000, 0.35), t: J.b},
+      {x: 0.12, y: 0, z: -0.15, w: 1.9, h: 0.05, d: 0.12, c: mix(J.b, #000000, 0.35), t: J.b},
+      {x: 1.12, y: 0.03, z: 0.15, w: 0.1, h: 0.06, d: 0.12, c: INK, t: INK},
+      {x: 1.12, y: 0.03, z: -0.15, w: 0.1, h: 0.06, d: 0.12, c: INK, t: INK},
+      {x: 0, y: 0.05, z: 0.15, w: 0.32, h: 0.2, d: 0.16, c: #3a3d45, t: #4a4e58},
+      {x: 0, y: 0.05, z: -0.15, w: 0.32, h: 0.2, d: 0.16, c: #3a3d45, t: #4a4e58}
+    ]).map((b, i) => b.nt == true ? BFN[i] : BFT[i])), flatten((BOARD ? [
+      {x: 0, y: 0, z: 0, w: 0.46, h: 0.06, d: 1.24, c: mix(J.b, #000000, 0.35), t: J.b},
+      {x: 0, y: 0.03, z: 0.72, w: 0.46, h: 0.06, d: 0.2, c: mix(J.b, #000000, 0.35), t: INK},
+      {x: 0, y: 0.03, z: -0.72, w: 0.46, h: 0.06, d: 0.2, c: mix(J.b, #000000, 0.35), t: INK},
+      {x: 0, y: 0.06, z: 0, w: 0.46, h: 0.01, d: 0.14, c: J.c, t: J.c},
+      {x: 0, y: 0.06, z: 0.27, w: 0.34, h: 0.08, d: 0.26, c: INK, t: INK},
+      {x: 0, y: 0.06, z: -0.27, w: 0.34, h: 0.08, d: 0.26, c: INK, t: INK},
+      {x: 0, y: 0.14, z: 0.27, w: 0.3, h: 0.1, d: 0.22, c: #3a3d45, t: #4a4e58},
+      {x: 0, y: 0.14, z: -0.27, w: 0.3, h: 0.1, d: 0.22, c: #3a3d45, t: #4a4e58}
+    ] : [
+      {x: 0.12, y: 0, z: 0.15, w: 1.9, h: 0.05, d: 0.12, c: mix(J.b, #000000, 0.35), t: J.b},
+      {x: 0.12, y: 0, z: -0.15, w: 1.9, h: 0.05, d: 0.12, c: mix(J.b, #000000, 0.35), t: J.b},
+      {x: 1.12, y: 0.03, z: 0.15, w: 0.1, h: 0.06, d: 0.12, c: INK, t: INK},
+      {x: 1.12, y: 0.03, z: -0.15, w: 0.1, h: 0.06, d: 0.12, c: INK, t: INK},
+      {x: 0, y: 0.05, z: 0.15, w: 0.32, h: 0.2, d: 0.16, c: #3a3d45, t: #4a4e58},
+      {x: 0, y: 0.05, z: -0.15, w: 0.32, h: 0.2, d: 0.16, c: #3a3d45, t: #4a4e58}
+    ]).map(b => b.nt == true ? [b.c, b.c, b.c, b.c] : [b.t, b.c, b.c, b.c, b.c])))
+  let SHM = mesh(flatten(([{x: 0, y: 0, z: 0, w: 0.22, h: 0.34, d: 0.21, c: J.p, t: J.p, nt: true}]).map(b => [[b.x - b.w / 2, b.x + b.w / 2, b.y, b.y + b.h, b.z - b.d / 2, b.z + b.d / 2]].map(e => [[e[0], e[2], e[4]], [e[1], e[2], e[4]], [e[1], e[2], e[5]], [e[0], e[2], e[5]], [e[0], e[3], e[4]], [e[1], e[3], e[4]], [e[1], e[3], e[5]], [e[0], e[3], e[5]]])[0])), flatten(([{x: 0, y: 0, z: 0, w: 0.22, h: 0.34, d: 0.21, c: J.p, t: J.p, nt: true}]).map((b, i) => b.nt == true ? BFN[i] : BFT[i])), flatten(([{x: 0, y: 0, z: 0, w: 0.22, h: 0.34, d: 0.21, c: J.p, t: J.p, nt: true}]).map(b => b.nt == true ? [b.c, b.c, b.c, b.c] : [b.t, b.c, b.c, b.c, b.c])))
+  let THM = mesh(flatten(([{x: 0, y: 0, z: 0, w: 0.26, h: 0.36, d: 0.24, c: J.p, t: J.p, nt: true}]).map(b => [[b.x - b.w / 2, b.x + b.w / 2, b.y, b.y + b.h, b.z - b.d / 2, b.z + b.d / 2]].map(e => [[e[0], e[2], e[4]], [e[1], e[2], e[4]], [e[1], e[2], e[5]], [e[0], e[2], e[5]], [e[0], e[3], e[4]], [e[1], e[3], e[4]], [e[1], e[3], e[5]], [e[0], e[3], e[5]]])[0])), flatten(([{x: 0, y: 0, z: 0, w: 0.26, h: 0.36, d: 0.24, c: J.p, t: J.p, nt: true}]).map((b, i) => b.nt == true ? BFN[i] : BFT[i])), flatten(([{x: 0, y: 0, z: 0, w: 0.26, h: 0.36, d: 0.24, c: J.p, t: J.p, nt: true}]).map(b => b.nt == true ? [b.c, b.c, b.c, b.c] : [b.t, b.c, b.c, b.c, b.c])))
+  let RU = mesh(flatten(([
+      {x: 0, y: 0, z: 0, w: 0.32, h: 0.14, d: 0.56, c: J.p, t: J.p, nt: true},
+      {x: 0, y: 0.14, z: 0, w: 0.38, h: 0.24, d: 0.64, c: J.c, t: J.d, nt: true},
+      {x: 0, y: 0.38, z: 0, w: 0.39, h: 0.07, d: 0.65, c: J.b, t: J.b, nt: true},
+      {x: 0, y: 0.45, z: 0, w: 0.4, h: 0.2, d: 0.7, c: J.c, t: J.d},
+      {x: -0.3, y: 0.14, z: 0, w: 0.2, h: 0.44, d: 0.46, c: #2a2d33, t: #3a3f48},
+      {x: -0.41, y: 0.3, z: 0, w: 0.02, h: 0.14, d: 0.3, c: J.b, t: J.b},
+      {x: 0, y: 0.65, z: 0, w: 0.26, h: 0.15, d: 0.26, c: J.b, t: J.b, nt: true},
+      {x: 0, y: 0.8, z: 0, w: 0.3, h: 0.1, d: 0.3, c: INK, t: INK, nt: true},
+      {x: 0.17, y: 0.85, z: 0, w: 0.04, h: 0.05, d: 0.26, c: #ffcf5a, t: #ffcf5a},
+      {x: 0.17, y: 0.8, z: 0, w: 0.04, h: 0.05, d: 0.26, c: #e2558f, t: #e2558f},
+      {x: 0, y: 0.9, z: 0, w: 0.34, h: 0.16, d: 0.34, c: J.h, t: J.h},
+      {x: 0.2, y: 0.98, z: 0, w: 0.06, h: 0.04, d: 0.3, c: J.h, t: J.h}
+    ]).map(b => [[b.x - b.w / 2, b.x + b.w / 2, b.y, b.y + b.h, b.z - b.d / 2, b.z + b.d / 2]].map(e => [[e[0], e[2], e[4]], [e[1], e[2], e[4]], [e[1], e[2], e[5]], [e[0], e[2], e[5]], [e[0], e[3], e[4]], [e[1], e[3], e[4]], [e[1], e[3], e[5]], [e[0], e[3], e[5]]])[0])), flatten(([
+      {x: 0, y: 0, z: 0, w: 0.32, h: 0.14, d: 0.56, c: J.p, t: J.p, nt: true},
+      {x: 0, y: 0.14, z: 0, w: 0.38, h: 0.24, d: 0.64, c: J.c, t: J.d, nt: true},
+      {x: 0, y: 0.38, z: 0, w: 0.39, h: 0.07, d: 0.65, c: J.b, t: J.b, nt: true},
+      {x: 0, y: 0.45, z: 0, w: 0.4, h: 0.2, d: 0.7, c: J.c, t: J.d},
+      {x: -0.3, y: 0.14, z: 0, w: 0.2, h: 0.44, d: 0.46, c: #2a2d33, t: #3a3f48},
+      {x: -0.41, y: 0.3, z: 0, w: 0.02, h: 0.14, d: 0.3, c: J.b, t: J.b},
+      {x: 0, y: 0.65, z: 0, w: 0.26, h: 0.15, d: 0.26, c: J.b, t: J.b, nt: true},
+      {x: 0, y: 0.8, z: 0, w: 0.3, h: 0.1, d: 0.3, c: INK, t: INK, nt: true},
+      {x: 0.17, y: 0.85, z: 0, w: 0.04, h: 0.05, d: 0.26, c: #ffcf5a, t: #ffcf5a},
+      {x: 0.17, y: 0.8, z: 0, w: 0.04, h: 0.05, d: 0.26, c: #e2558f, t: #e2558f},
+      {x: 0, y: 0.9, z: 0, w: 0.34, h: 0.16, d: 0.34, c: J.h, t: J.h},
+      {x: 0.2, y: 0.98, z: 0, w: 0.06, h: 0.04, d: 0.3, c: J.h, t: J.h}
+    ]).map((b, i) => b.nt == true ? BFN[i] : BFT[i])), flatten(([
+      {x: 0, y: 0, z: 0, w: 0.32, h: 0.14, d: 0.56, c: J.p, t: J.p, nt: true},
+      {x: 0, y: 0.14, z: 0, w: 0.38, h: 0.24, d: 0.64, c: J.c, t: J.d, nt: true},
+      {x: 0, y: 0.38, z: 0, w: 0.39, h: 0.07, d: 0.65, c: J.b, t: J.b, nt: true},
+      {x: 0, y: 0.45, z: 0, w: 0.4, h: 0.2, d: 0.7, c: J.c, t: J.d},
+      {x: -0.3, y: 0.14, z: 0, w: 0.2, h: 0.44, d: 0.46, c: #2a2d33, t: #3a3f48},
+      {x: -0.41, y: 0.3, z: 0, w: 0.02, h: 0.14, d: 0.3, c: J.b, t: J.b},
+      {x: 0, y: 0.65, z: 0, w: 0.26, h: 0.15, d: 0.26, c: J.b, t: J.b, nt: true},
+      {x: 0, y: 0.8, z: 0, w: 0.3, h: 0.1, d: 0.3, c: INK, t: INK, nt: true},
+      {x: 0.17, y: 0.85, z: 0, w: 0.04, h: 0.05, d: 0.26, c: #ffcf5a, t: #ffcf5a},
+      {x: 0.17, y: 0.8, z: 0, w: 0.04, h: 0.05, d: 0.26, c: #e2558f, t: #e2558f},
+      {x: 0, y: 0.9, z: 0, w: 0.34, h: 0.16, d: 0.34, c: J.h, t: J.h},
+      {x: 0.2, y: 0.98, z: 0, w: 0.06, h: 0.04, d: 0.3, c: J.h, t: J.h}
+    ]).map(b => b.nt == true ? [b.c, b.c, b.c, b.c] : [b.t, b.c, b.c, b.c, b.c])))
+  let UAM = mesh(flatten(([{x: 0, y: -0.32, z: 0, w: 0.17, h: 0.32, d: 0.17, c: J.c, t: J.d}]).map(b => [[b.x - b.w / 2, b.x + b.w / 2, b.y, b.y + b.h, b.z - b.d / 2, b.z + b.d / 2]].map(e => [[e[0], e[2], e[4]], [e[1], e[2], e[4]], [e[1], e[2], e[5]], [e[0], e[2], e[5]], [e[0], e[3], e[4]], [e[1], e[3], e[4]], [e[1], e[3], e[5]], [e[0], e[3], e[5]]])[0])), flatten(([{x: 0, y: -0.32, z: 0, w: 0.17, h: 0.32, d: 0.17, c: J.c, t: J.d}]).map((b, i) => b.nt == true ? BFN[i] : BFT[i])), flatten(([{x: 0, y: -0.32, z: 0, w: 0.17, h: 0.32, d: 0.17, c: J.c, t: J.d}]).map(b => b.nt == true ? [b.c, b.c, b.c, b.c] : [b.t, b.c, b.c, b.c, b.c])))
+  let FAM = mesh(flatten(([{x: 0, y: -0.28, z: 0, w: 0.15, h: 0.28, d: 0.15, c: J.c, t: J.d, nt: true}, {x: 0, y: -0.32, z: 0, w: 0.16, h: 0.04, d: 0.16, c: J.b, t: J.b, nt: true}, {x: 0, y: -0.44, z: 0, w: 0.17, h: 0.12, d: 0.17, c: INK, t: INK, nt: true}]).map(b => [[b.x - b.w / 2, b.x + b.w / 2, b.y, b.y + b.h, b.z - b.d / 2, b.z + b.d / 2]].map(e => [[e[0], e[2], e[4]], [e[1], e[2], e[4]], [e[1], e[2], e[5]], [e[0], e[2], e[5]], [e[0], e[3], e[4]], [e[1], e[3], e[4]], [e[1], e[3], e[5]], [e[0], e[3], e[5]]])[0])), flatten(([{x: 0, y: -0.28, z: 0, w: 0.15, h: 0.28, d: 0.15, c: J.c, t: J.d, nt: true}, {x: 0, y: -0.32, z: 0, w: 0.16, h: 0.04, d: 0.16, c: J.b, t: J.b, nt: true}, {x: 0, y: -0.44, z: 0, w: 0.17, h: 0.12, d: 0.17, c: INK, t: INK, nt: true}]).map((b, i) => b.nt == true ? BFN[i] : BFT[i])), flatten(([{x: 0, y: -0.28, z: 0, w: 0.15, h: 0.28, d: 0.15, c: J.c, t: J.d, nt: true}, {x: 0, y: -0.32, z: 0, w: 0.16, h: 0.04, d: 0.16, c: J.b, t: J.b, nt: true}, {x: 0, y: -0.44, z: 0, w: 0.17, h: 0.12, d: 0.17, c: INK, t: INK, nt: true}]).map(b => b.nt == true ? [b.c, b.c, b.c, b.c] : [b.t, b.c, b.c, b.c, b.c])))
+  let POLM = mesh(flatten(([{x: 0, y: -1.05, z: 0, w: 0.035, h: 0.1, d: 0.035, c: #c8ccd4, t: #c8ccd4, nt: true}, {x: 0, y: -0.95, z: 0, w: 0.14, h: 0.03, d: 0.14, c: INK, t: INK}, {x: 0, y: -0.92, z: 0, w: 0.035, h: 0.92, d: 0.035, c: #c8ccd4, t: #c8ccd4, nt: true}]).map(b => [[b.x - b.w / 2, b.x + b.w / 2, b.y, b.y + b.h, b.z - b.d / 2, b.z + b.d / 2]].map(e => [[e[0], e[2], e[4]], [e[1], e[2], e[4]], [e[1], e[2], e[5]], [e[0], e[2], e[5]], [e[0], e[3], e[4]], [e[1], e[3], e[4]], [e[1], e[3], e[5]], [e[0], e[3], e[5]]])[0])), flatten(([{x: 0, y: -1.05, z: 0, w: 0.035, h: 0.1, d: 0.035, c: #c8ccd4, t: #c8ccd4, nt: true}, {x: 0, y: -0.95, z: 0, w: 0.14, h: 0.03, d: 0.14, c: INK, t: INK}, {x: 0, y: -0.92, z: 0, w: 0.035, h: 0.92, d: 0.035, c: #c8ccd4, t: #c8ccd4, nt: true}]).map((b, i) => b.nt == true ? BFN[i] : BFT[i])), flatten(([{x: 0, y: -1.05, z: 0, w: 0.035, h: 0.1, d: 0.035, c: #c8ccd4, t: #c8ccd4, nt: true}, {x: 0, y: -0.95, z: 0, w: 0.14, h: 0.03, d: 0.14, c: INK, t: INK}, {x: 0, y: -0.92, z: 0, w: 0.035, h: 0.92, d: 0.035, c: #c8ccd4, t: #c8ccd4, nt: true}]).map(b => b.nt == true ? [b.c, b.c, b.c, b.c] : [b.t, b.c, b.c, b.c, b.c])))
+  let SCM = mesh(flatten(([{x: -0.07, y: 0, z: 0.36, w: 0.12, h: 0.04, d: 0.72, c: J.b, t: J.b}, {x: 0.07, y: -0.06, z: 0.3, w: 0.12, h: 0.04, d: 0.6, c: mix(J.b, #000000, 0.2), t: J.b}]).map(b => [[b.x - b.w / 2, b.x + b.w / 2, b.y, b.y + b.h, b.z - b.d / 2, b.z + b.d / 2]].map(e => [[e[0], e[2], e[4]], [e[1], e[2], e[4]], [e[1], e[2], e[5]], [e[0], e[2], e[5]], [e[0], e[3], e[4]], [e[1], e[3], e[4]], [e[1], e[3], e[5]], [e[0], e[3], e[5]]])[0])), flatten(([{x: -0.07, y: 0, z: 0.36, w: 0.12, h: 0.04, d: 0.72, c: J.b, t: J.b}, {x: 0.07, y: -0.06, z: 0.3, w: 0.12, h: 0.04, d: 0.6, c: mix(J.b, #000000, 0.2), t: J.b}]).map((b, i) => b.nt == true ? BFN[i] : BFT[i])), flatten(([{x: -0.07, y: 0, z: 0.36, w: 0.12, h: 0.04, d: 0.72, c: J.b, t: J.b}, {x: 0.07, y: -0.06, z: 0.3, w: 0.12, h: 0.04, d: 0.6, c: mix(J.b, #000000, 0.2), t: J.b}]).map(b => b.nt == true ? [b.c, b.c, b.c, b.c] : [b.t, b.c, b.c, b.c, b.c])))
+
+  let chase = mode != "menu"
+  // fallen: tumbling in a wipeout, and lying there after it
+  let FALL = (mode == "run" && ending) || (mode == "over" && why == "WIPEOUT")
+  // Where the rider shows: on the menu, waiting above the start gate.
+  let MEZ = chase ? pz : -4
+  let MEX = chase ? px : 0
+  let MEY = chase ? ay : (((-0.34 * ((-4)) + 5 * sin(((-4)) / 120 + S.s4))) + pow(clamp(min(abs(0 - (((S.a1 * sin(((-4)) / S.p1 + S.s1) + S.a2 * sin(((-4)) / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(((-4)) / 160, 0, 1)))) - ((10.5 + 2.5 * sin(((-4)) / 130 + S.s3))), abs(0 - ([first(LANES.filter(s => (((-4))) >= s.zs && (((-4))) <= s.ze))].map(s => s == null ? 9999 : (((S.a1 * sin(((((-4)))) / S.p1 + S.s1) + S.a2 * sin(((((-4)))) / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(((((-4)))) / 160, 0, 1)) + s.sd * ((10.5 + 2.5 * sin(((((-4)))) / 130 + S.s3)) + 6) * sin(3.1416 * (((((-4)))) - s.zs) / 150)))[0])) - 2.4), 0, 26), 2) * 0.024 + 0.4 * sin(0 * 0.23 + S.s5) * sin(((-4)) * 0.11))
+  let GME = (((-0.34 * MEZ + 5 * sin(MEZ / 120 + S.s4))) + pow(clamp(min(abs(MEX - (((S.a1 * sin(MEZ / S.p1 + S.s1) + S.a2 * sin(MEZ / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(MEZ / 160, 0, 1)))) - ((10.5 + 2.5 * sin(MEZ / 130 + S.s3))), abs(MEX - ([first(LANES.filter(s => (MEZ) >= s.zs && (MEZ) <= s.ze))].map(s => s == null ? 9999 : (((S.a1 * sin(MEZ / S.p1 + S.s1) + S.a2 * sin(MEZ / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(MEZ / 160, 0, 1)) + s.sd * ((10.5 + 2.5 * sin(MEZ / 130 + S.s3)) + 6) * sin(3.1416 * ((MEZ) - s.zs) / 150)))[0])) - 2.4), 0, 26), 2) * 0.024 + 0.4 * sin(MEX * 0.23 + S.s5) * sin(MEZ * 0.11))
+  let LANDV = (screenWidth ?? 400) > (screenHeight ?? 800)
+  // The camera: behind and above, swinging round after the way the rider goes, lifted clear of the slope behind
+  // (uphill, it's higher); on the menu it circles slowly in front of the rider, looking across the run.
+  let EX = MEX - sin(rad(camH)) * 8.5
+  let EZ = MEZ - cos(rad(camH)) * 8.5
+  let cam = chase ? {eye: [EX, max(camY + 5, (((-0.34 * EZ + 5 * sin(EZ / 120 + S.s4))) + pow(clamp(min(abs(EX - (((S.a1 * sin(EZ / S.p1 + S.s1) + S.a2 * sin(EZ / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(EZ / 160, 0, 1)))) - ((10.5 + 2.5 * sin(EZ / 130 + S.s3))), abs(EX - ([first(LANES.filter(s => (EZ) >= s.zs && (EZ) <= s.ze))].map(s => s == null ? 9999 : (((S.a1 * sin(EZ / S.p1 + S.s1) + S.a2 * sin(EZ / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(EZ / 160, 0, 1)) + s.sd * ((10.5 + 2.5 * sin(EZ / 130 + S.s3)) + 6) * sin(3.1416 * ((EZ) - s.zs) / 150)))[0])) - 2.4), 0, 26), 2) * 0.024 + 0.4 * sin(EX * 0.23 + S.s5) * sin(EZ * 0.11)) + 2.4), EZ], look: [MEX + sin(rad(camH)) * 7, camY - 0.8, MEZ + cos(rad(camH)) * 7], fov: (LANDV ? 44 : 58) + v * 0.3, near: 0.3, far: 210} : [rad(150 + 14 * sin(gt * 0.15))].map(a => {eye: [MEX + sin(a) * 8.5, GME + 4.2, MEZ + cos(a) * 8.5], look: [MEX - sin(a) * 4 + (LANDV ? cos(a) * 4.5 : 0), GME - 1.6, MEZ - cos(a) * 4 - (LANDV ? sin(a) * 4.5 : 0)], fov: LANDV ? 44 : 52, near: 0.3, far: 210})[0]
+  let camB = merge(cam, {far: 4000, near: 1})
+
+  // The rider's pose. Riding, the knees bend deeper carving hard and with speed and pump over the snow, the body
+  // bends forward into a tuck the faster it goes, everything leans into the carve, the arms balance (on a board out
+  // along it, the front one leading; on skis forward, planting the poles in turn) and the gaiter streams out behind.
+  // Waiting on the menu it shifts its weight and breathes. In a wipeout it spins round and falls flat on its side,
+  // arms flailing.
+  let SPF = chase ? clamp(v / 30, 0, 1) : 0
+  let CRT = min(gt - crashT, 1.6)
+  let FL = FALL ? clamp(CRT * 2.2, 0, 1) : 0
+  let YAW = chase ? ph + (FALL ? fallS * 150 * (1 - pow(0.08, CRT)) : 0) : 125 + 18 * sin(gt * 0.5)
+  let LN = FALL ? fallS * 82 * FL : lean
+  let KA = FALL ? 55 : (chase ? 26 + 22 * abs(lean) / 30 + SPF * 16 + 5 * sin(gt * 8) * clamp(v / 10, 0, 1) : 16 + 4 * sin(gt * 1.7))
+  let TK = FALL ? 45 : (chase ? (BOARD ? 12 : 22) + SPF * (BOARD ? 16 : 30) + KA * 0.3 : 6 + 4 * sin(gt * 1.1))
+  let BT = (BOARD ? [0, YAW, ((LN * 0.6)) - (0)] : [(LN * 0.6), YAW - 90, -(0)])
+  let SHT = (BOARD ? [0, YAW, ((LN * 0.6)) - (KA)] : [(LN * 0.6), YAW - 90, -(KA)])
+  let THT = (BOARD ? [0, YAW, ((LN * 0.7)) - ((-KA))] : [(LN * 0.7), YAW - 90, -((-KA))])
+  let TT = (BOARD ? [0, YAW, (LN) - (TK)] : [LN, YAW - 90, -(TK)])
+  let ROOT = [MEX, MEY, MEZ]
+  let ANK = [[ROOT, (turn([0, ANKY, 0], BT))]].map(q => [q[0][0] + q[1][0], q[0][1] + q[1][1], q[0][2] + q[1][2]])[0]
+  let KNE = [[ANK, (turn([0, 0.34, 0], SHT))]].map(q => [q[0][0] + q[1][0], q[0][1] + q[1][1], q[0][2] + q[1][2]])[0]
+  let HIPC = [[KNE, (turn([0, 0.36, 0], THT))]].map(q => [q[0][0] + q[1][0], q[0][1] + q[1][1], q[0][2] + q[1][2]])[0]
+  let LEGO = [1, -1].map(s => turn([0, 0, s * STW], BT))
+  let SHW = [1, -1].map(s => [[HIPC, (turn([0, 0.6, s * 0.44], TT))]].map(q => [q[0][0] + q[1][0], q[0][1] + q[1][1], q[0][2] + q[1][2]])[0])
+  // the arms: out to the side (abduction, about x) and forward (about z), then the elbow bends the forearm forward
+  let ABD = FALL ? [110 + 30 * sin(gt * 13), 100 + 30 * sin(gt * 11 + 1)] : (!chase ? [10 + 2 * sin(gt * 1.1), 10 + 2 * sin(gt * 1.1)] : (BOARD ? [55 - LN * 0.6 + 8 * sin(gt * 2.1), 35 + LN * 0.6 + 8 * sin(gt * 2.1 + 2)] : [18 + LN * 0.3, 18 - LN * 0.3]))
+  let FWD = FALL ? [30, 50] : (!chase ? [8, 4] : (BOARD ? [30, 4] : [34 + 14 * sin(gt * 3.4), 34 - 14 * sin(gt * 3.4)]))
+  let ELB = FALL ? 20 : (!chase ? 25 : (BOARD ? 35 : 62))
+  let UAT = [0, 1].map(i => [TT[0] - (i == 0 ? 1 : -1) * ABD[i], TT[1], TT[2] + FWD[i]])
+  let ELW = [0, 1].map(i => [[SHW[i], (turn([0, -0.32, 0], UAT[i]))]].map(q => [q[0][0] + q[1][0], q[0][1] + q[1][1], q[0][2] + q[1][2]])[0])
+  let FAT = UAT.map(t => [TT[0] + (t[0] - TT[0]) * 0.7, t[1], t[2] + ELB])
+  let HND = [0, 1].map(i => [[ELW[i], (turn([0, -0.4, 0], FAT[i]))]].map(q => [q[0][0] + q[1][0], q[0][1] + q[1][1], q[0][2] + q[1][2]])[0])
+  let PLT = [0, 1].map(i => [TT[0] - (i == 0 ? 1 : -1) * 10, TT[1], TT[2] - 28 + (FALL ? 60 : 12 * sin(gt * 3.4 + i * 3.14))])
+  // the gaiter's end, from the back of the neck, out behind the way the rider goes, lifting and flapping with speed
+  let SCF = [[[HIPC, (turn([0, 0.74, 0], TT))]].map(q => [q[0][0] + q[1][0], q[0][1] + q[1][1], q[0][2] + q[1][2]])[0]].map(p => [p[0] - sin(rad(ph)) * 0.14, p[1], p[2] - cos(rad(ph)) * 0.14])[0]
+  let SCFT = [24 - SPF * 34 + 8 * sin(gt * 13), (chase ? ph : YAW) + 180, 14 * sin(gt * 17) * (0.3 + SPF)]
+
+  // What stands nearest the camera, without what stands close round the camera (the near plane would cut it into
+  // slabs, at the sides in landscape) or between it and the rider.
+  let NEARO = (OBS[0] + OBS[1]).filter(o => pow(o.x - cam.eye[0], 2) + pow(o.z - cam.eye[2], 2) > pow(4 + o.cr * 1.6, 2)).filter(o => [[o.x - cam.eye[0], o.z - cam.eye[2], MEX - cam.eye[0], MEZ - cam.eye[2]]].map(q => [clamp((q[0] * q[2] + q[1] * q[3]) / max(0.01, q[2] * q[2] + q[3] * q[3]), 0, 1.15)].map(t => pow(q[0] - q[2] * t, 2) + pow(q[1] - q[3] * t, 2) > pow(o.cr, 2))[0])[0])
+
+  // The rider's shadow: a patch on the snow under it, laid on the slope corner by corner.
+  let SHH = rad(chase ? ph : 0)
+  let SHADOWM = mesh([[1, -1], [-1, -1], [-1, 1], [1, 1]].map(q => [MEX + q[0] * 0.38 * cos(SHH) + q[1] * 0.8 * sin(SHH), MEZ - q[0] * 0.38 * sin(SHH) + q[1] * 0.8 * cos(SHH)]).map(q => [q[0], (((-0.34 * q[1] + 5 * sin(q[1] / 120 + S.s4))) + pow(clamp(min(abs(q[0] - (((S.a1 * sin(q[1] / S.p1 + S.s1) + S.a2 * sin(q[1] / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(q[1] / 160, 0, 1)))) - ((10.5 + 2.5 * sin(q[1] / 130 + S.s3))), abs(q[0] - ([first(LANES.filter(s => (q[1]) >= s.zs && (q[1]) <= s.ze))].map(s => s == null ? 9999 : (((S.a1 * sin(q[1] / S.p1 + S.s1) + S.a2 * sin(q[1] / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(q[1] / 160, 0, 1)) + s.sd * ((10.5 + 2.5 * sin(q[1] / 130 + S.s3)) + 6) * sin(3.1416 * ((q[1]) - s.zs) / 150)))[0])) - 2.4), 0, 26), 2) * 0.024 + 0.4 * sin(q[0] * 0.23 + S.s5) * sin(q[1] * 0.11)) + 0.07, q[1]]), [[0, 1, 2, 3]], [alpha(#203040, 0.24 * clamp(1 - (MEY - GME) / 9, 0.3, 1))])
+
+  let kmh = round(v * 3.6)
+  let dist = max(0, floor(pz))
+  let BESTD = max(BEST, chase ? dist : 0)
+
+  // A new run: at the top, above the start gate.
+  on go {
+    mode = "count"
+    t0 = gt + 3.4
+    px = 0
+    pz = -4
+    ph = 0
+    v = 0
+    ay = (((-0.34 * ((-4)) + 5 * sin(((-4)) / 120 + S.s4))) + pow(clamp(min(abs(0 - (((S.a1 * sin(((-4)) / S.p1 + S.s1) + S.a2 * sin(((-4)) / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(((-4)) / 160, 0, 1)))) - ((10.5 + 2.5 * sin(((-4)) / 130 + S.s3))), abs(0 - ([first(LANES.filter(s => (((-4))) >= s.zs && (((-4))) <= s.ze))].map(s => s == null ? 9999 : (((S.a1 * sin(((((-4)))) / S.p1 + S.s1) + S.a2 * sin(((((-4)))) / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(((((-4)))) / 160, 0, 1)) + s.sd * ((10.5 + 2.5 * sin(((((-4)))) / 130 + S.s3)) + 6) * sin(3.1416 * (((((-4)))) - s.zs) / 150)))[0])) - 2.4), 0, 26), 2) * 0.024 + 0.4 * sin(0 * 0.23 + S.s5) * sin(((-4)) * 0.11))
+    vy = 0
+    air = false
+    crashT = -100
+    landT = -100
+    ending = false
+    why = ""
+    zoneI = 0
+    airT = -100
+    laneS = false
+    nextCP = 1
+    score = 0
+    newBest = false
+    msg = ""
+    msgAt = -100
+    camH = 0
+    camY = (((-0.34 * ((-4)) + 5 * sin(((-4)) / 120 + S.s4))) + pow(clamp(min(abs(0 - (((S.a1 * sin(((-4)) / S.p1 + S.s1) + S.a2 * sin(((-4)) / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(((-4)) / 160, 0, 1)))) - ((10.5 + 2.5 * sin(((-4)) / 130 + S.s3))), abs(0 - ([first(LANES.filter(s => (((-4))) >= s.zs && (((-4))) <= s.ze))].map(s => s == null ? 9999 : (((S.a1 * sin(((((-4)))) / S.p1 + S.s1) + S.a2 * sin(((((-4)))) / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(((((-4)))) / 160, 0, 1)) + s.sd * ((10.5 + 2.5 * sin(((((-4)))) / 130 + S.s3)) + 6) * sin(3.1416 * (((((-4)))) - s.zs) / 150)))[0])) - 2.4), 0, 26), 2) * 0.024 + 0.4 * sin(0 * 0.23 + S.s5) * sin(((-4)) * 0.11))
+    fx = []
+    lean = 0
+    restX = tilted ? clamp(m.x, -0.35, 0.35) : 0
+  }
+
+  every frame {
+    if boot < 3 {
+      boot = boot + 1
+    }
+    if CIO != CI {
+      CIO = CI
+    }
+    if !still {
+      gt = gt + dt
+      if mode == "count" && gt >= t0 {
+        mode = "run"
+        v = 4
+      }
+      if mode == "run" {
+        // Carving: the tilt, from where the phone was held at the start; or the arrow buttons.
+        let st = ending ? 0 : (tilted ? clamp((m.x - restX) * 2.5, -1, 1) : (left ? -1 : 0) + (right ? 1 : 0))
+        let sd = abs(st) < 0.06 ? 0 : st
+        let c0 = ((S.a1 * sin(pz / S.p1 + S.s1) + S.a2 * sin(pz / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(pz / 160, 0, 1))
+        let w0 = (10.5 + 2.5 * sin(pz / 130 + S.s3))
+        // on a shortcut lane: groomed, and a boost
+        let L0 = [first(LANES.filter(s => (pz) >= s.zs && (pz) <= s.ze))].map(s => s == null ? 9999 : (((S.a1 * sin(pz / S.p1 + S.s1) + S.a2 * sin(pz / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(pz / 160, 0, 1)) + s.sd * ((10.5 + 2.5 * sin(pz / 130 + S.s3)) + 6) * sin(3.1416 * ((pz) - s.zs) / 150)))[0]
+        let lane = abs(px - L0) < 2.4
+        let off = abs(px - c0) > w0 && !lane
+        // on a ramp
+        let rp = air || ending ? null : first(RAMPS.filter(r => abs(px - r.x) < 1.7 && pz >= r.z - 1.5 && pz <= r.z + 1.5))
+        let g0 = (((-0.34 * pz + 5 * sin(pz / 120 + S.s4))) + pow(clamp(min(abs(px - (((S.a1 * sin(pz / S.p1 + S.s1) + S.a2 * sin(pz / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(pz / 160, 0, 1)))) - ((10.5 + 2.5 * sin(pz / 130 + S.s3))), abs(px - ([first(LANES.filter(s => (pz) >= s.zs && (pz) <= s.ze))].map(s => s == null ? 9999 : (((S.a1 * sin(pz / S.p1 + S.s1) + S.a2 * sin(pz / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(pz / 160, 0, 1)) + s.sd * ((10.5 + 2.5 * sin(pz / 130 + S.s3)) + 6) * sin(3.1416 * ((pz) - s.zs) / 150)))[0])) - 2.4), 0, 26), 2) * 0.024 + 0.4 * sin(px * 0.23 + S.s5) * sin(pz * 0.11))
+        // The slope under the rider, along the way it points: downhill pulls, uphill (into a bank) holds back.
+        let gx = ((((-0.34 * pz + 5 * sin(pz / 120 + S.s4))) + pow(clamp(min(abs(((px + 0.5)) - (((S.a1 * sin(pz / S.p1 + S.s1) + S.a2 * sin(pz / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(pz / 160, 0, 1)))) - ((10.5 + 2.5 * sin(pz / 130 + S.s3))), abs(((px + 0.5)) - ([first(LANES.filter(s => (pz) >= s.zs && (pz) <= s.ze))].map(s => s == null ? 9999 : (((S.a1 * sin(pz / S.p1 + S.s1) + S.a2 * sin(pz / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(pz / 160, 0, 1)) + s.sd * ((10.5 + 2.5 * sin(pz / 130 + S.s3)) + 6) * sin(3.1416 * ((pz) - s.zs) / 150)))[0])) - 2.4), 0, 26), 2) * 0.024 + 0.4 * sin(((px + 0.5)) * 0.23 + S.s5) * sin(pz * 0.11)) - g0) * 2
+        let gz = ((((-0.34 * ((pz + 0.5)) + 5 * sin(((pz + 0.5)) / 120 + S.s4))) + pow(clamp(min(abs(px - (((S.a1 * sin(((pz + 0.5)) / S.p1 + S.s1) + S.a2 * sin(((pz + 0.5)) / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(((pz + 0.5)) / 160, 0, 1)))) - ((10.5 + 2.5 * sin(((pz + 0.5)) / 130 + S.s3))), abs(px - ([first(LANES.filter(s => (((pz + 0.5))) >= s.zs && (((pz + 0.5))) <= s.ze))].map(s => s == null ? 9999 : (((S.a1 * sin(((((pz + 0.5)))) / S.p1 + S.s1) + S.a2 * sin(((((pz + 0.5)))) / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(((((pz + 0.5)))) / 160, 0, 1)) + s.sd * ((10.5 + 2.5 * sin(((((pz + 0.5)))) / 130 + S.s3)) + 6) * sin(3.1416 * (((((pz + 0.5)))) - s.zs) / 150)))[0])) - 2.4), 0, 26), 2) * 0.024 + 0.4 * sin(px * 0.23 + S.s5) * sin(((pz + 0.5)) * 0.11)) - g0) * 2
+        let grade = gx * sin(rad(ph)) + gz * cos(rad(ph))
+        // stalled on a bank, it turns back down the fall line
+        let nph = ending ? ph : air ? clamp(ph - sd * 45 * dt, -82, 82) : (v < 2 && grade > 0 ? ph * pow(0.1, dt) : clamp(ph - sd * 110 * (0.5 + 0.5 * clamp(v / 12, 0, 1)) * dt, -82, 82))
+        let acc = -20 * grade - 0.0068 * v * v - (off ? 0.3 * v : 0) - abs(sd) * 0.16 * v + (lane ? 2.5 : 0)
+        let nv = air ? v : (ending ? v * pow(0.15, dt) : clamp(v + acc * dt, grade < 0 ? 3 : 0.5, 36))
+        // never past the bank's top, where the snow ends
+        let nx = clamp(px + nv * sin(rad(nph)) * dt, c0 - w0 - 40, c0 + w0 + 40)
+        let nz = pz + nv * cos(rad(nph)) * dt
+        let s1 = (((-0.34 * nz + 5 * sin(nz / 120 + S.s4))) + pow(clamp(min(abs(nx - (((S.a1 * sin(nz / S.p1 + S.s1) + S.a2 * sin(nz / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(nz / 160, 0, 1)))) - ((10.5 + 2.5 * sin(nz / 130 + S.s3))), abs(nx - ([first(LANES.filter(s => (nz) >= s.zs && (nz) <= s.ze))].map(s => s == null ? 9999 : (((S.a1 * sin(nz / S.p1 + S.s1) + S.a2 * sin(nz / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(nz / 160, 0, 1)) + s.sd * ((10.5 + 2.5 * sin(nz / 130 + S.s3)) + 6) * sin(3.1416 * ((nz) - s.zs) / 150)))[0])) - 2.4), 0, 26), 2) * 0.024 + 0.4 * sin(nx * 0.23 + S.s5) * sin(nz * 0.11))
+        // up the ramp, and off its lip into the air
+        let lift = rp != null && nz <= rp.z + 1.5 ? 0.8 * clamp((nz - (rp.z - 1.5)) / 3, 0, 1) : 0
+        let launch = rp != null && nz > rp.z + 1.5
+        px = nx
+        pz = nz
+        ph = nph
+        v = nv
+        // Leaning into the carve, a little behind the tilt.
+        lean = lean + ((ending ? 0 : sd * clamp(v / 14, 0, 1) * 30) - lean) * (1 - pow(0.003, dt))
+        if air {
+          // Over the top of a roll it flies a moment, and lands where the snow meets it.
+          let ny = ay + vy * dt
+          if ny <= s1 {
+            air = false
+            ay = s1
+            vy = (s1 - g0) / dt
+            landT = gt
+            if gt - airT > 0.6 {
+              msg = "BIG AIR"
+              msg2 = fixed(gt - airT, 1) + " S"
+              msgK = 3
+              msgAt = gt
+            }
+          } else {
+            ay = ny
+            vy = vy - 24 * dt
+          }
+        } else {
+          let pred = ay + vy * dt - 12 * dt * dt
+          if launch {
+            air = true
+            airT = gt
+            ay = s1 + 0.8
+            vy = 2.5 + v * 0.06
+          } else {
+            if pred > s1 + lift + 0.03 + dt * 0.6 && !ending {
+              air = true
+              airT = gt
+              ay = pred
+              vy = vy - 24 * dt
+            } else {
+              vy = (s1 + lift - ay) / dt
+              ay = s1 + lift
+            }
+          }
+        }
+        // A tree or a rock in the way (and not flown over): a wipeout, set down beside it.
+        let hit = ending ? null : first(OBN.filter(o => abs(o.z - pz) < o.rz && abs(o.x - px) < o.r && ay - o.y < o.h))
+        if hit != null {
+          crashT = gt
+          ending = true
+          fallS = px < hit.x ? -1 : 1
+          px = hit.x + (px < hit.x ? -1 : 1) * (hit.r + 0.2)
+          v = 3
+          air = false
+          ay = (((-0.34 * pz + 5 * sin(pz / 120 + S.s4))) + pow(clamp(min(abs(px - (((S.a1 * sin(pz / S.p1 + S.s1) + S.a2 * sin(pz / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(pz / 160, 0, 1)))) - ((10.5 + 2.5 * sin(pz / 130 + S.s3))), abs(px - ([first(LANES.filter(s => (pz) >= s.zs && (pz) <= s.ze))].map(s => s == null ? 9999 : (((S.a1 * sin(pz / S.p1 + S.s1) + S.a2 * sin(pz / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(pz / 160, 0, 1)) + s.sd * ((10.5 + 2.5 * sin(pz / 130 + S.s3)) + 6) * sin(3.1416 * ((pz) - s.zs) / 150)))[0])) - 2.4), 0, 26), 2) * 0.024 + 0.4 * sin(px * 0.23 + S.s5) * sin(pz * 0.11))
+          vy = 0
+          msg = "WIPEOUT"
+          msg2 = ""
+          msgK = 1
+          msgAt = gt
+        }
+        // Through a gate, every 400 m: how far.
+        if pz >= nextCP * CPD {
+          msg = fmtNum(nextCP * CPD) + " M"
+          msg2 = ""
+          msgK = 2
+          msgAt = gt
+          nextCP = nextCP + 1
+        }
+        // Onto a shortcut lane, off the piste.
+        if (lane && abs(px - c0) > w0) != laneS {
+          laneS = lane && abs(px - c0) > w0
+          if laneS {
+            msg = "SHORTCUT"
+            msg2 = "BOOST"
+            msgK = 3
+            msgAt = gt
+          }
+        }
+        // A zone's name as the rider comes into it.
+        if pz > 0 && floor(floor(pz / CH) / 6) != zoneI {
+          zoneI = floor(floor(pz / CH) / 6)
+          msg = ZNAMES[(((floor(pz / CH))) < 6 ? 0 : ZORD[floor(((floor(pz / CH))) / 6) % 5])]
+          msg2 = ""
+          msgK = 3
+          msgAt = gt
+        }
+        // The end of the run, a wipeout once the rider has tumbled: how far it got, the best kept.
+        if ending && gt - crashT > 1.4 {
+          let sc = max(0, floor(pz))
+          why = "WIPEOUT"
+          mode = "over"
+          overAt = gt
+          score = sc
+          newBest = sc > (best[str(seed)] ?? 0)
+          if sc > (best[str(seed)] ?? 0) {
+            best = set(best, str(seed), sc)
+          }
+          if sc > bestAll {
+            bestAll = sc
+          }
+        }
+        // Snow spray off the tail: more carving hard, in powder and fast; a burst landing and in a wipeout.
+        let fwx = sin(rad(ph))
+        let fwz = cos(rad(ph))
+        let rate = air ? 0 : abs(sd) * v * 2.2 + (off ? v * 1.6 : v * 0.3) + (gt - landT < 0.1 ? 260 : 0) + (gt - crashT < 0.25 ? 260 : 0)
+        let ns = min(8, floor(rate * dt + random()))
+        let born = range(ns).map(i => [[random(), random(), random()]].map(q => {
+          x: px - fwx * 0.7 + (q[0] - 0.5) * 0.6, y: ay + 0.1, z: pz - fwz * 0.7 + (q[1] - 0.5) * 0.6,
+          vx: fwx * v * 0.35 + fwz * sd * (2 + q[2] * 4) + (q[0] - 0.5) * 3, vy: 1.2 + q[2] * 3.2, vz: fwz * v * 0.35 - fwx * sd * (2 + q[2] * 4) + (q[1] - 0.5) * 3,
+          t: 0, l: 0.45 + q[2] * 0.5})[0])
+        fx = take(born + fx.filter(p => p.t + dt < p.l).map(p => merge(p, {x: p.x + p.vx * dt, y: p.y + p.vy * dt, z: p.z + p.vz * dt, vx: p.vx * pow(0.4, dt), vy: p.vy - 9 * dt, vz: p.vz * pow(0.4, dt), t: p.t + dt})), 48)
+      }
+      if mode == "over" {
+        // the next run starts by itself
+        if gt - overAt > 4 {
+          go = go + 1
+        }
+        fx = fx.filter(p => p.t + dt < p.l).map(p => merge(p, {x: p.x + p.vx * dt, y: p.y + p.vy * dt, z: p.z + p.vz * dt, vy: p.vy - 9 * dt, t: p.t + dt}))
+      }
+      // The camera swings round after the rider's way and follows its height, slower in the air.
+      camH = camH + (((ph - camH + 540) % 360) - 180) * (1 - pow(0.04, dt))
+      camY = camY + (ay - camY) * (1 - pow(air ? 0.01 : 0.0002, dt))
+    }
+  }
+
+  // The screens' parts. The UI is square blocks on darker ledges, like the world, in a blocky pixel font.
+  let LAND = LANDV
+  let PADT = max(screenTop ?? 0, 10)
+
+  component Block(label, bg, ledge, fg = white, size = 16, pad = 14) {
+    Column {
+      gap: 0
+      Text { text: label; fill: width; align: center; padding: [10, pad]; font: PIX; fontSize: size; color: fg; background: bg }
+      Spacer { fill: width; height: 6; background: ledge }
+    }
+  }
+
+  component Title(size = 34) {
+    Column {
+      gap: 0
+      fill: width
+      Text { text: "SNOW PEAK"; fill: width; font: PIX; fontSize: size; color: white; align: center; padding: [0, size / 3]; background: ICE }
+      Spacer { fill: width; height: 6; background: ICED }
+    }
+  }
+
+  // The mountain: its name, seed and light, the best score on it, and other mountains to pick.
+  component Mountain() {
+    Column {
+      fill: width
+      gap: 0
+      Column {
+        fill: width
+        gap: 4
+        padding: [14, 12]
+        background: alpha(INK, 0.86)
+        Row {
+          fill: width
+          align: center
+          Text { text: NAME; weight: 1; maxLines: 1; font: PIX; fontSize: 17; color: white }
+          if seed == DAY {
+            Text { text: "TODAY"; padding: [6, 3]; font: PIX; fontSize: 9; color: INK; background: GOLD }
+          }
+        }
+        Text { text: "SEED " + SEEDS + " - " + SKY.n + (SNOWING && !SKY.snow ? " - FLURRIES" : ""); font: PIX; fontSize: 9; maxLines: 1; color: alpha(white, 0.7) }
+        Text { text: BEST > 0 ? "BEST " + fmtNum(BEST) + " M" : "NO RUN YET"; font: PIX; fontSize: 11; color: BEST > 0 ? #9fe6a8 : alpha(white, 0.6) }
+      }
+      Spacer { fill: width; height: 5; background: alpha(black, 0.6) }
+    }
+  }
+
+  component Pickers() {
+    Column {
+      fill: width
+      gap: 8
+      Row {
+        fill: width
+        gap: 8
+        Column { gap: 0; weight: 1; onTap: seed = floor(random() * 100000); Block { label: "NEW MOUNTAIN"; bg: #3a3d45; ledge: #26282e; size: 11; pad: 11; fill: width } }
+        Column { gap: 0; weight: 1; onTap: seed = DAY; Block { label: "TODAY'S"; bg: seed == DAY ? GOLD : #3a3d45; ledge: seed == DAY ? #a8841a : #26282e; fg: seed == DAY ? INK : white; size: 11; pad: 11; fill: width } }
+      }
+      Row {
+        fill: width
+        gap: 6
+        align: center
+        for r in [["ski", "SKI"], ["board", "BOARD"]] {
+          Column { gap: 0; width: 64; onTap: rider = r[0]; Block { label: r[1]; bg: rider == r[0] ? white : #3a3d45; ledge: rider == r[0] ? #9aa3b0 : #26282e; fg: rider == r[0] ? INK : white; size: 11; pad: 11; fill: width } }
+        }
+        Spacer { weight: 1 }
+        for jc, i in JACKETS {
+          Column {
+            gap: 0
+            onTap: jacket = i
+            Column {
+              gap: 0
+              padding: 3
+              background: jacket == i ? white : alpha(INK, 0.86)
+              Spacer { size: 18; background: jc.c }
+            }
+            Spacer { width: 24; height: 5; background: jacket == i ? #9aa3b0 : alpha(black, 0.6) }
+          }
+        }
+      }
+    }
+  }
+
+  component Hint() {
+    Text { text: tilted ? "TILT TO CARVE - DODGE EVERYTHING - HIT THE RAMPS AND TAKE THE BLUE SHORTCUTS - HOW FAR CAN YOU GO?" : "NO TILT ON THIS PHONE: CARVE WITH THE ARROWS - DODGE EVERYTHING - HOW FAR CAN YOU GO?"; font: PIX; fontSize: 9; color: white; align: center; fill: width; padding: [10, 8]; background: alpha(INK, 0.7) }
+  }
+
+  Box {
+    fill: true
+    background: HAZE
+    Canvas {
+      fill: true
+      // The sky, from deep overhead to the haze at the horizon (found by projecting a point far out at eye height),
+      // and a square sun low in it, glowing.
+      let EY = cam.eye
+      let DX = cam.look[0] - EY[0]
+      let DZ = cam.look[2] - EY[2]
+      let DL = max(0.001, sqrt(DX * DX + DZ * DZ))
+      let HY = clamp((project([EY[0] + DX / DL * 30000, EY[1], EY[2] + DZ / DL * 30000], camB, width, height) ?? {y: height * 0.4}).y, 1, height)
+      // (both reach well past the sides: in landscape the 3D scene also draws over the strips beside the cutout and
+      // the navigation bar, which the canvas doesn't cover)
+      rect(-400, -400, width + 800, HY + 400, fill: linear(0, 0, 0, HY, [SKY.top, SKY.sky, HAZE]))
+      rect(-400, HY - 1, width + 800, height - HY + 401, fill: linear(0, HY, 0, height, [HAZE, mix(SKY.pow, HAZE, 0.25)]))
+      let SP = project([EY[0] + SKY.sunDir[0] * 30000, EY[1] + SKY.sunDir[1] * 30000, EY[2] + SKY.sunDir[2] * 30000], camB, width, height)
+      if SP != null && !SKY.snow {
+        rect(SP.x - 120, SP.y - 120, 240, 240, fill: alpha(SKY.sun, 0.1))
+        rect(SP.x - 78, SP.y - 78, 156, 156, fill: alpha(SKY.sun, 0.18))
+        rect(SP.x - 48, SP.y - 48, 96, 96, fill: alpha(SKY.sun, 0.35))
+        rect(SP.x - 32, SP.y - 32, 64, 64, fill: SKY.sun)
+      }
+      // The ranges round the valley: two stepped skylines, far and pale, near and darker, each step a block of rock
+      // with snow on its upper part, by compass bearing (so they turn with the camera), drawn from the horizon up.
+      let YAW = deg(atan2(DX, DZ))
+      let FOCB = height / 2 / tan(rad(cam.fov / 2))
+      for L in [0, 1] {
+        let stp = L == 0 ? 2 : 3
+        let b0 = floor((YAW - 72) / stp)
+        let EL = range(b0, b0 + ceil(144 / stp) + 1).map(b => PROF[L][((b % len(PROF[L])) + len(PROF[L])) % len(PROF[L])])
+        let XS = range(b0, b0 + ceil(144 / stp) + 2).map(b => width / 2 + tan(rad(clamp(b * stp - YAW, -80, 80))) * FOCB)
+        let snowC = mix(#f4f8fc, HAZE, L == 0 ? 0.5 : 0.22)
+        let rockC = mix(SKY.rock, HAZE, L == 0 ? 0.55 : 0.3)
+        path([[XS[0], HY + 1]] + flatten(range(len(EL)).map(i => [[XS[i], HY - tan(rad(EL[i])) * FOCB], [XS[i + 1], HY - tan(rad(EL[i])) * FOCB]])) + [[XS[len(EL)], HY + 1]], closed: true, fill: snowC)
+        path([[XS[0], HY + 1]] + flatten(range(len(EL)).map(i => [[XS[i], HY - tan(rad(min(EL[i], SNOWL[L] + (EL[i] - SNOWL[L]) * 0.35))) * FOCB], [XS[i + 1], HY - tan(rad(min(EL[i], SNOWL[L] + (EL[i] - SNOWL[L]) * 0.35))) * FOCB]])) + [[XS[len(EL)], HY + 1]], closed: true, fill: rockC)
+      }
+      // The snow, each chunk a smooth terrain 4 m a cell; then the rider's shadow on it, in a scene of its own so the
+      // slope never sorts over it.
+      scene(cam, light: LIGHT, ambient: 0.72, fog: HAZE) {
+        for c, n in CHD {
+          model(TER[n], at: [c.xc, 0, c.z0 + 24], scale: [4, 1, 4])
+        }
+      }
+      scene(cam, light: LIGHT, ambient: 1, fog: HAZE) {
+        model(SHADOWM, at: [0, 0, 0])
+      }
+      scene(cam, light: LIGHT, ambient: 0.66, fog: HAZE) {
+        for om in OBM {
+          model(om, at: [0, 0, 0])
+        }
+        if boot >= 2 {
+          for o in NEARO {
+            model(UNITM[o.k], at: [o.x, o.y, o.z], scale: o.s)
+          }
+        }
+        for rm in RAMPM {
+          model(rm, at: [0, 0, 0])
+        }
+        for cm in CABM {
+          model(cm, at: [0, 0, 0])
+        }
+        for ch in CHAIRS {
+          model(CHAIRM[ch.m], at: [ch.x, ch.y, ch.z])
+        }
+        model(RB, at: ROOT, turn: BT)
+        for i in [0, 1] {
+          model(SHM, at: [[ANK, LEGO[i]]].map(q => [q[0][0] + q[1][0], q[0][1] + q[1][1], q[0][2] + q[1][2]])[0], turn: SHT)
+          model(THM, at: [[KNE, LEGO[i]]].map(q => [q[0][0] + q[1][0], q[0][1] + q[1][1], q[0][2] + q[1][2]])[0], turn: THT)
+          model(UAM, at: SHW[i], turn: UAT[i])
+          model(FAM, at: ELW[i], turn: FAT[i])
+          if !BOARD {
+            model(POLM, at: HND[i], turn: PLT[i])
+          }
+        }
+        model(RU, at: HIPC, turn: TT)
+        model(SCM, at: SCF, turn: SCFT)
+      }
+      // The spray, drawn over the scene as squares where it shows, smaller further off, growing and fading.
+      if chase {
+        let FOC = height / 2 / tan(rad(cam.fov / 2))
+        for p in fx {
+          let q = project([p.x, p.y, p.z], cam, width, height)
+          if q != null {
+            let a = p.t / p.l
+            let sz = min(14, (0.1 + a * 0.22) * FOC / q.depth)
+            rect(q.x - sz / 2, q.y - sz / 2, sz, sz, fill: alpha(SKY.spray, 0.85 * (1 - a)))
+          }
+        }
+      }
+      // Falling snow on some mountains: flakes drifting down and sideways as the camera turns.
+      if SNOWING {
+        for i in range(46) {
+          let fz = 0.4 + hash(i, 7) * 0.6
+          let sx = (hash(i, 1) * (width + 40) + sin(gt * 0.8 + i) * 14 * fz - camH * 6 * fz + 100000) % (width + 40) - 20
+          let sy = (hash(i, 2) * (height + 40) + gt * (40 + 70 * fz) + (chase ? pz * 4 * fz : 0)) % (height + 40) - 20
+          rect(sx, sy, 2 + 3 * fz, 2 + 3 * fz, fill: alpha(#ffffff, 0.5 + 0.4 * fz))
+        }
+      }
+    }
+    // The run's numbers on square dark blocks: how far, the best, the speed, and
+    // the checkpoint or wipeout just now.
+    if chase {
+      Canvas {
+        fill: true
+        let TOPY = PADT + 8
+        rect(12, TOPY, 150, 66, fill: alpha(INK, 0.82))
+        rect(12, TOPY + 66, 150, 5, fill: alpha(black, 0.55))
+        text("DISTANCE", 24, TOPY + 15, size: 10, font: PIX, color: alpha(white, 0.75))
+        text(fmtNum(dist) + " M", 24, TOPY + 44, size: 24, font: PIX, color: white)
+        rect(width - 152, TOPY, 140, 66, fill: alpha(INK, 0.82))
+        rect(width - 152, TOPY + 66, 140, 5, fill: alpha(black, 0.55))
+        text("BEST", width - 24, TOPY + 15, size: 10, font: PIX, align: end, color: alpha(GOLD, 0.8))
+        text(fmtNum(BESTD) + " M", width - 24, TOPY + 44, size: 24, font: PIX, align: end, color: GOLD)
+        if mode != "over" {
+          // landscape: at the top on a block of its own, clear of the rider; portrait: on the snow under it
+          if LAND {
+            rect(width / 2 - 56, TOPY, 112, 66, fill: alpha(INK, 0.82))
+            rect(width / 2 - 56, TOPY + 66, 112, 5, fill: alpha(black, 0.55))
+          }
+          text(str(kmh), width / 2, LAND ? TOPY + 26 : height - 74, size: 32, font: PIX, align: center, color: LAND ? white : INK)
+          text("KM/H", width / 2, LAND ? TOPY + 52 : height - 46, size: 11, font: PIX, align: center, color: LAND ? alpha(white, 0.75) : alpha(INK, 0.75))
+        }
+        if mode == "count" {
+          let left3 = ceil(t0 - gt)
+          text(left3 > 3 ? "" : str(left3), width / 2, height * 0.34, size: 80, font: PIX, align: center, color: left3 == 1 ? GOLD : INK)
+        }
+        if mode == "run" && gt - t0 < 0.9 {
+          text("GO!", width / 2, height * 0.34, size: 80, font: PIX, align: center, color: RED)
+        }
+        if mode == "run" && gt - t0 > 0.9 && gt - t0 < 4.5 {
+          rect(width / 2 - 150, height * 0.3 - 16, 300, 32, fill: alpha(INK, 0.8))
+          text(tilted ? "TILT TO CARVE - ONE CRASH ENDS THE RUN" : "ARROWS TO CARVE - ONE CRASH ENDS THE RUN", width / 2, height * 0.3, size: 11, font: PIX, align: center, color: white)
+        }
+        if mode == "run" && gt - msgAt < 1.6 {
+          let mw = max(160, len(msg) * 17 + 40)
+          rect(width / 2 - mw / 2, height * 0.24, mw, msg2 == "" ? 46 : 70, fill: msgK == 1 ? alpha(#d8242a, 0.9) : (msgK == 2 ? alpha(ICE, 0.92) : alpha(INK, 0.86)))
+          text(msg, width / 2, height * 0.24 + 24, size: 20, font: PIX, align: center, color: msgK == 3 ? GOLD : white)
+          if msg2 != "" {
+            text(msg2, width / 2, height * 0.24 + 52, size: 13, font: PIX, align: center, color: white)
+          }
+        }
+      }
+    }
+    // Without tilt, arrows in the bottom corners carve.
+    if mode == "count" || mode == "run" {
+      if !tilted {
+        Column {
+          fill: true
+          padding: [16, 24]
+          justify: end
+          Row {
+            fill: width
+            justify: spaceBetween
+            align: bottom
+            Column {
+              gap: 0
+              onPress: left = true
+              onRelease: left = false
+              Spacer { height: left ? 6 : 0 }
+              Text { text: "<"; width: 84; height: 84; align: center; padding: [0, 26]; font: PIX; fontSize: 26; color: white; background: left ? ICE : alpha(INK, 0.82) }
+              Spacer { width: 84; height: left ? 0 : 6; background: alpha(black, 0.6) }
+            }
+            Column {
+              gap: 0
+              onPress: right = true
+              onRelease: right = false
+              Spacer { height: right ? 6 : 0 }
+              Text { text: ">"; width: 84; height: 84; align: center; padding: [0, 26]; font: PIX; fontSize: 26; color: white; background: right ? ICE : alpha(INK, 0.82) }
+              Spacer { width: 84; height: right ? 0 : 6; background: alpha(black, 0.6) }
+            }
+          }
+        }
+      }
+      Column {
+        fill: true
+        padding: [12, PADT + 84, 0, 0]
+        align: start
+        Text { text: "X"; width: 44; height: 44; align: center; padding: [0, 12]; font: PIX; fontSize: 16; color: white; background: alpha(INK, 0.8); onTap: { mode = "menu"; left = false; right = false } }
+      }
+    }
+    // The end of a run: how far, and the best on this mountain.
+    if mode == "over" {
+      Column {
+        fill: true
+        justify: center
+        align: center
+        padding: 24
+        Column {
+          gap: 0
+          Column {
+            width: 320
+            gap: 6
+            align: center
+            padding: [20, 22]
+            background: alpha(INK, 0.9)
+            Text { text: why; font: PIX; fontSize: 28; color: why == "WIPEOUT" ? #ff5a4a : GOLD; align: center }
+            Text { text: NAME; font: PIX; fontSize: 12; color: alpha(white, 0.7); align: center }
+            Spacer { size: 4 }
+            Text { text: "DISTANCE"; font: PIX; fontSize: 10; color: alpha(white, 0.6); align: center }
+            Text { text: fmtNum(score) + " M"; font: PIX; fontSize: 36; color: white; align: center }
+            Text { text: newBest ? "NEW HIGH SCORE!" : "HIGH SCORE " + fmtNum(BEST) + " M"; font: PIX; fontSize: 12; color: newBest ? #5cdc5a : GOLD; align: center }
+            Spacer { size: 4 }
+            Text { text: "NEXT RUN IN " + max(1, ceil(4 - (gt - overAt))); font: PIX; fontSize: 10; color: alpha(white, 0.6); align: center }
+            Spacer { width: 276 * clamp((gt - overAt) / 4, 0, 1); height: 4; background: RED }
+            Spacer { size: 6 }
+            Row {
+              gap: 10
+              Column { gap: 0; width: 120; onTap: go = go + 1; Block { label: "AGAIN"; bg: RED; ledge: REDD; size: 13; pad: 11; fill: width } }
+              Column { gap: 0; width: 120; onTap: mode = "menu"; Block { label: "MENU"; bg: #5a5f6a; ledge: #33363d; size: 13; pad: 11; fill: width } }
+            }
+          }
+          Spacer { width: 320; height: 6; background: alpha(black, 0.6) }
+        }
+      }
+    }
+    // The menu: the rider waiting above the start gate. Portrait: the title at the top, the mountain, the rider and
+    // RIDE at the bottom; landscape: the title on the left, the rest in a panel on the right.
+    if mode == "menu" {
+      if LAND {
+        Row {
+          fill: true
+          gap: 20
+          align: top
+          padding: [16, PADT + 6, 16, 14]
+          Column {
+            weight: 1
+            gap: 10
+            Title { size: 26 }
+          }
+          Column {
+            width: 400
+            fill: height
+            gap: 8
+            justify: end
+            Mountain {}
+            Pickers {}
+            Hint {}
+            Column { gap: 0; fill: width; onTap: go = go + 1; Block { label: "RIDE"; bg: RED; ledge: REDD; size: 24; pad: 12; fill: width } }
+          }
+        }
+      } else {
+        Column {
+          fill: true
+          padding: [20, PADT + 16, 20, 26]
+          justify: spaceBetween
+          Title {}
+          Column {
+            fill: width
+            gap: 10
+            Mountain {}
+            Pickers {}
+            Hint {}
+            Column { gap: 0; fill: width; onTap: go = go + 1; Block { label: "RIDE"; bg: RED; ledge: REDD; size: 26; pad: 14; fill: width } }
+          }
+        }
+      }
+    }
+  }
+}
