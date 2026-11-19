@@ -2,7 +2,7 @@ widget "next bus" {
   size: 6x2
   minSize: 4x2
   requires { pacman: [] }
-  meta { description: "Your next bus, tram or train, live, and whether you need to run for it: pick a stop, a line and how long you walk there, anywhere Transitous has open timetables. Tap the tile to change them"; version: "1.8"; license: "MIT"; category: "world"; owl: 17 }
+  meta { description: "Your next bus, tram or train, live, and whether you need to run for it: pick a stop, a line and how long you walk there, anywhere Transitous has open timetables. Tap the tile to change them"; version: "1.9"; license: "MIT"; category: "world"; owl: 17 }
 
   // What it says, in the phone's language where it has a set. Stops, lines and directions come as Transitous
   // names them. leaveNow and run sit in a 170dp column at 22 and 26sp: about 12 letters at most.
@@ -105,6 +105,17 @@ widget "next bus" {
       search: "знайти зупинку"; change: "змінити зупинку"; searching: "пошук…"; noStops: q => "немає зупинок «${q}»"
       yourLine: "ваша лінія"; anyLine: "будь-яка лінія"; whatever: "що поїде першим"; walkTo: "пішки до зупинки"
       data: "дані: Transitous, з відкритих розкладів. Затримки видно там, де перевізник публікує дані в реальному часі"
+    }
+    fr {
+      title: "prochain bus"; relax: "tranquille"; leaveInMin: m => "pars dans ${m} min"; leaveIn: "pars dans"; leaveNow: "pars !"
+      brisk: "marche vite"; run: "cours !"; toStop: t => "${t} jusqu’à l’arrêt"
+      pick: "Touche pour choisir ton arrêt, ta ligne et ton temps de marche jusque-là."; nothing: "rien ne part bientôt"
+      to: d => "vers ${d}"; walkMin: m => "${m} min à pied"; fromWalk: (stop, m) => "depuis ${stop} · ${m} min à pied"
+      min: "min"; mins: m => "${m} min"; yourStop: "ton arrêt"; timetable: "horaire prévu"; onTime: "à l’heure"; then: "ensuite"
+      noneLater: "pas d’autre pour l’instant"; noLater: "pas d’autre pour l’instant"; tooMany: "trop de requêtes"; offline: "transitous hors ligne"
+      search: "cherche un arrêt"; change: "changer d’arrêt"; searching: "recherche…"; noStops: q => "aucun arrêt nommé « ${q} »"
+      yourLine: "ta ligne"; anyLine: "n’importe quelle ligne"; whatever: "la première qui part"; walkTo: "à pied jusqu’à l’arrêt"
+      data: "données : Transitous, à partir d’horaires ouverts. Les retards s’affichent quand l’exploitant publie les horaires en temps réel"
     }
   }
 

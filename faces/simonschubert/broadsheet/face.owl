@@ -8,7 +8,7 @@ face "broadsheet" {
   meta {
     owl: 16
     description: "A broadsheet of the 1890s: Hacker News, BBC World and Arch news in columns, an engraving of the town, the weather as a woodcut, notices as classified ads and fastfetch as the stock tables"
-    version: "1.1"
+    version: "1.2"
     license: "MIT"
     category: "news"
   }
@@ -245,6 +245,32 @@ face "broadsheet" {
       exchange: "Біржа"; stock: "ПАПІР"; close: "ЗАКР."; chg: "ЗМІН."; unch: "б/з"
       stockName: s => get({"Memory": "Пам'ять", "Storage": "Сховище", "Battery": "Батарея", "Uptime": "Аптайм", "Apps": "Додатки", "Kernel": "Ядро", "Chip": "Чип", "Theme": "Тема"}, s, s)
       pkgs: n => "${n} пак."
+    }
+    fr {
+      title: t => t == "The Morning Herald" ? "L’Écho du Matin" : "L’Écho du Soir"
+      blackletter: true
+      edition: e => get({"Night Edition": "Édition de nuit", "Morning Edition": "Édition du matin", "Afternoon Edition": "Édition de midi", "Evening Edition": "Édition du soir", "Late Edition": "Dernière édition"}, e, e)
+      motto: "« Toutes les nouvelles qui tiennent sur l’écran. »"; est: "FONDÉ EN 1890"
+      date: "EEEE d MMMM yyyy"; vol: r => "${r}e ANNÉE"; no: d => "N° ${d}"; price: "Cinq centimes"
+      sky: s => get({"thunder": "orage", "snow": "neige", "showers": "averses", "rain": "pluie", "fog": "brouillard", "cloudy": "nuageux", "overcast": "couvert", "fair to cloudy": "passages nuageux", "clouding over": "se couvre", "fair": "beau temps", "clear": "dégagé"}, s, s)
+      wind: (d, s) => "vent ${replace(d, "W", "O")}, ${get({"calm": "calme", "light": "faible", "fresh": "frais", "a gale": "tempête"}, s, s)}"
+      view: w => "VUE DE LA VILLE ${get({"BY NIGHT": "LA NUIT", "AT DAWN": "À L’AUBE", "THIS MORNING": "CE MATIN", "AT NOON": "À MIDI", "THIS AFTERNOON": "CET APRÈS-MIDI", "AT DUSK": "AU CRÉPUSCULE"}, w, w)}.—D’après un dessin de notre artiste."
+      presses: "LES PRESSES TOURNENT."; firstEdition: "Notre première édition arrive par le fil."
+      heads: host => "Une nouvelle de ${host} fait la une"; special: "SERVICE SPÉCIAL DE L’ÉCHO."
+      quiet: "—Les fils sont muets, et nos correspondants attendent les dépêches du matin."
+      account: (by, pts, com, host) => "—L’affaire, soumise aux lecteurs de Hacker News par M. ${by}, avait recueilli à cette heure ${pts} voix et ${com} remarques, et tient la tête de la une. Le compte rendu complet se trouve chez ${host} ; les remarques des lecteurs, en appuyant longuement sur cette colonne."
+      meta: (host, pts, com) => "${host} · ${pts} voix · ${com} remarques"
+      dateline: t => t == null ? "LONDRES.—" : "LONDRES, ${t}.—"
+      fromHN: "De Hacker News"; continued: "Suite"; telegraph: "Par télégraphe"; notices: "Avis officiels"
+      hnLate: "Le fil de Mountain View a du retard à cette heure."; cableSilent: "Le câble est muet ; on attend des dépêches d’heure en heure."
+      ads: "Petites annonces"; wanted: "ON DEMANDE."
+      wantedText: "Lecteur de notifications, de bonne moralité, pour porter à cette colonne les lettres du public. Se présenter d’une touche."
+      noAds: "Aucune annonce n’est parvenue à nos bureaux aujourd’hui."; notice: "avis"
+      ago: (t, nw) => t == null ? "" : nw - t < 60 ? "à l’instant" : nw - t < 3600 ? "il y a ${floor((nw - t) / 60)} min" : nw - t < 86400 ? "il y a ${floor((nw - t) / 3600)} h" : "il y a ${floor((nw - t) / 86400)} j"
+      more: n => n == 1 ? "Une autre en pages intérieures." : "${n} autres en pages intérieures."
+      exchange: "La Bourse"; stock: "VALEUR"; close: "CLÔTURE"; chg: "VAR."; unch: "inch."
+      stockName: s => get({"Memory": "Mémoire", "Storage": "Stockage", "Battery": "Batterie", "Uptime": "Uptime", "Apps": "Applis", "Kernel": "Noyau", "Chip": "Puce", "Theme": "Thème"}, s, s)
+      pkgs: n => "${n} paq."
     }
   }
 

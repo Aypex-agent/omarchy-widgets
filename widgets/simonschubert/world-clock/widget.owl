@@ -1,5 +1,5 @@
 widget "world clock" {
-  meta { description: "A row of flip clocks with city nameplates. Tap it to add, rename, reorder or remove cities"; version: "1.10"; license: "MIT"; category: "time"; owl: 16 }
+  meta { description: "A row of flip clocks with city nameplates. Tap it to add, rename, reorder or remove cities"; version: "1.11"; license: "MIT"; category: "time"; owl: 16 }
 
   // What it says, in the phone's language where it has a set. Cities and countries come from the tz
   // database, in English, and are searched in English.
@@ -57,6 +57,12 @@ widget "world clock" {
       noneYet: "поки немає, знайдіть місто нижче"; nameplate: "підпис"; add: "додати місто"
       search: "знайти місто або країну"; loading: "завантаження місць…"; nothing: "нічого не знайдено"
       days: ["чт", "пт", "сб", "нд", "пн", "вт", "ср"]
+    }
+    fr {
+      title: "horloge mondiale"; local: "ici"; noClocks: "pas encore d’horloge, touche pour en ajouter une"; clocks: "horloges"
+      noneYet: "aucune pour l’instant, cherche une ville ci-dessous"; nameplate: "nom"; add: "ajouter une ville"
+      search: "cherche une ville ou un pays"; loading: "chargement des lieux…"; nothing: "aucun résultat"
+      days: ["jeu", "ven", "sam", "dim", "lun", "mar", "mer"]
     }
   }
   size: 6x2

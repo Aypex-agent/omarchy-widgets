@@ -9,7 +9,7 @@ face "ukiyo-e" {
   meta {
     owl: 16
     description: "A woodblock print that follows the hour, the weather and the moon, the 72 seasons of the old Japanese calendar, your letters and apps"
-    version: "1.1"
+    version: "1.2"
     license: "MIT"
     category: "fun"
   }
@@ -415,6 +415,56 @@ face "ukiyo-e" {
         "521": "мале наповнення", "606": "колосіння", "621": "літнє сонцестояння", "707": "мала спека", "723": "велика спека",
         "808": "початок осені", "823": "кінець спеки", "908": "білі роси", "923": "осіннє рівнодення", "1008": "холодні роси",
         "1023": "випадає іній", "1107": "початок зими", "1122": "малі сніги", "1207": "великі сніги", "1222": "зимове сонцестояння"
+      }, "${md}", en)
+    }
+    fr {
+      date: "EEEE d MMMM"; weather: "météo"; sun: "soleil"; moon: "lune"; letters: "lettres"; quiet: "le ciel est calme"; sets: t => "coucher à ${t}"; risesSets: "se lève et se couche"
+      allow: "Laisse la page lire tes notifications, et elles arrivent ici en lettres."
+      empty: "Pas de lettres aujourd’hui. Rien que le vent dans les pins."
+      now: "maint."; mins: n => "${n} min"; hours: n => "${n} h"; days: n => "${n} j"; weeks: n => "${n} sem"; years: n => n < 2 ? "${n} an" : "${n} ans"
+      moonName: k => get({"new moon": "nouvelle lune", "waxing crescent": "premier croissant", "first quarter": "premier quartier", "waxing gibbous": "gibbeuse croissante", "full moon": "pleine lune", "waning gibbous": "gibbeuse décroissante", "last quarter": "dernier quartier", "waning crescent": "dernier croissant"}, k, k)
+      next: (d, m, what) => "ensuite, le ${d == 1 ? "1er" : d} ${["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."][m - 1]} : ${lower(what)}"
+      ko: (md, en) => get({
+        "204": "Le vent d’est fait fondre la glace", "209": "Les fauvettes chantent dans les monts", "214": "Les poissons sortent de la glace", "219": "La pluie humecte la terre",
+        "224": "La brume commence à s’attarder", "301": "L’herbe pousse, les arbres bourgeonnent", "306": "Les insectes se réveillent", "311": "Premières fleurs de pêcher",
+        "316": "Les chenilles deviennent papillons", "321": "Les moineaux font leur nid", "326": "Premières fleurs de cerisier", "331": "Tonnerre lointain",
+        "405": "Les hirondelles reviennent", "410": "Les oies sauvages partent au nord", "415": "Premiers arcs-en-ciel", "420": "Premiers roseaux",
+        "425": "Dernier gel, les plants de riz poussent", "430": "Les pivoines fleurissent", "505": "Les grenouilles se mettent à chanter", "510": "Les vers de terre sortent",
+        "515": "Les pousses de bambou percent", "521": "Les vers à soie dévorent le mûrier", "526": "Le carthame fleurit", "531": "Le blé mûrit, on moissonne",
+        "606": "Les mantes éclosent", "611": "L’herbe pourrie devient lucioles", "616": "Les prunes jaunissent", "621": "La brunelle se fane",
+        "627": "Les iris fleurissent", "702": "La pinellia pousse", "707": "Les vents chauds soufflent", "712": "Premières fleurs de lotus",
+        "717": "Les jeunes faucons apprennent à voler", "723": "Les paulownias donnent leurs graines", "729": "Terre humide, air lourd", "803": "Parfois tombent de grosses pluies",
+        "808": "Les vents frais soufflent", "813": "Les cigales chantent le soir", "818": "Un épais brouillard descend", "823": "Le coton fleurit",
+        "828": "La chaleur retombe", "902": "Le riz mûrit", "908": "La rosée brille blanche sur l’herbe", "913": "Les bergeronnettes chantent",
+        "918": "Les hirondelles s’en vont", "923": "Le tonnerre se tait", "928": "Les insectes s’enfouissent sous terre", "1003": "Les paysans assèchent les champs",
+        "1008": "Les oies sauvages reviennent", "1013": "Les chrysanthèmes fleurissent", "1018": "Les grillons chantent à la porte", "1023": "Premières gelées",
+        "1028": "Parfois tombe une pluie fine", "1102": "Érables et lierre jaunissent", "1107": "Les camélias fleurissent", "1112": "La terre commence à geler",
+        "1117": "Les narcisses fleurissent", "1122": "Les arcs-en-ciel se cachent", "1127": "Le vent du nord arrache les feuilles", "1202": "Les agrumes tachibana jaunissent",
+        "1207": "Le froid s’installe, l’hiver commence", "1212": "Les ours se retirent pour hiberner", "1216": "Les saumons remontent la rivière", "1222": "La brunelle pousse",
+        "1227": "Les cerfs perdent leurs bois", "101": "Le blé germe sous la neige", "105": "Le persil prospère", "110": "Les sources dégèlent",
+        "115": "Les faisans se mettent à chanter", "120": "Les pétasites bourgeonnent", "125": "La glace s’épaissit sur les ruisseaux", "130": "Les poules commencent à pondre"
+      }, "${md}", en)
+      sky: (code, desc) => get({
+        "113": "dégagé", "116": "partiellement nuageux", "119": "nuageux", "122": "couvert", "143": "brume",
+        "176": "pluie éparse", "179": "neige éparse", "182": "neige fondue éparse", "185": "bruine verglaçante éparse",
+        "200": "orages", "227": "chasse-neige", "230": "blizzard", "248": "brouillard", "260": "brouillard givrant",
+        "263": "bruine légère éparse", "266": "bruine légère", "281": "bruine verglaçante", "284": "forte bruine verglaçante",
+        "293": "pluie légère éparse", "296": "pluie légère", "299": "pluie modérée par moments", "302": "pluie modérée",
+        "305": "forte pluie par moments", "308": "forte pluie", "311": "pluie verglaçante légère", "314": "forte pluie verglaçante",
+        "317": "neige fondue légère", "320": "forte neige fondue", "323": "neige légère éparse", "326": "neige légère",
+        "329": "neige modérée éparse", "332": "neige modérée", "335": "forte neige éparse", "338": "forte neige",
+        "350": "grésil", "353": "averses légères", "356": "fortes averses", "359": "pluie torrentielle",
+        "362": "averses légères de neige fondue", "365": "fortes averses de neige fondue", "368": "averses de neige légères",
+        "371": "fortes averses de neige", "374": "averses de grésil légères", "377": "fortes averses de grésil",
+        "386": "pluie légère et orage", "389": "forte pluie et orage", "392": "neige légère et orage",
+        "395": "forte neige et orage"
+      }, code, lower(trim(desc)))
+      sekki: (md, kanji, en) => get({
+        "101": "solstice d’hiver", "105": "petit froid", "120": "grand froid", "204": "début du printemps", "219": "eau de pluie",
+        "306": "réveil des insectes", "321": "équinoxe de printemps", "405": "pure clarté", "420": "pluie des grains", "505": "début de l’été",
+        "521": "petit plein", "606": "grain en épi", "621": "solstice d’été", "707": "petite chaleur", "723": "grande chaleur",
+        "808": "début de l’automne", "823": "fin des chaleurs", "908": "rosée blanche", "923": "équinoxe d’automne", "1008": "rosée froide",
+        "1023": "chute du givre", "1107": "début de l’hiver", "1122": "petite neige", "1207": "grande neige", "1222": "solstice d’hiver"
       }, "${md}", en)
     }
   }

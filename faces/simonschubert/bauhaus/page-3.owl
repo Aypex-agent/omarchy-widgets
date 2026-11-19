@@ -58,6 +58,12 @@ face "bauhaus phone" {
       mobileData: "моб. дані"; signal: "сигнал"; uptime: "у роботі"; quiet: "тиша"; torch: "ліхтарик"; on: "увімк"
       off: "вимк"; muted: "без звуку"; volume: n => "гучність ${n}%"
     }
+    fr {
+      phone: "téléphone"; battery: "batterie"; charging: "en charge"; onBattery: "sur batterie"; memory: "mémoire"
+      storage: "stockage"; free: x => "${x} libres"; down: "reçu /s"; up: "envoyé /s"; noSim: "pas de sim"
+      mobileData: "données"; signal: "signal"; uptime: "uptime"; quiet: "silence"; torch: "lampe"; on: "activé"
+      off: "désactivé"; muted: "muet"; volume: n => "volume ${n} %"
+    }
   }
 
   source now = clock every 1m

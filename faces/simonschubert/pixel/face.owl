@@ -1,7 +1,7 @@
 face "pixel" {
   // An 8-bit landscape that follows the day, with your phone as a game's HUD below it.
 
-  meta { owl: 19; description: "An 8-bit landscape that follows the day and the weather, with the battery as hearts, notifications as coins and your apps as an inventory"; version: "1.4"; license: "MIT"; category: "fun" }
+  meta { owl: 19; description: "An 8-bit landscape that follows the day and the weather, with the battery as hearts, notifications as coins and your apps as an inventory"; version: "1.5"; license: "MIT"; category: "fun" }
 
   // What it says, in the phone's language where it has a set. Day and month names come from the phone.
   strings {
@@ -14,6 +14,7 @@ face "pixel" {
     ru { day: "EEE d MMM"; level: d => "УР${d}"; search: "ПОИСК" }
     ja { day: "M月d日 EEE"; level: d => "LV${d}"; search: "検索" }
     uk { day: "EEE d MMM"; level: d => "РІВ${d}"; search: "ПОШУК" }
+    fr { day: "EEE d MMM"; level: d => "NV${d}"; search: "CHERCHER" }
   }
   // Pixel art moves in whole art pixels; 20 frames a second keep the snow and birds smooth for less battery.
   fps: modes.saver ? 10 : 20

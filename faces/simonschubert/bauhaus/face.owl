@@ -8,7 +8,7 @@ face "bauhaus" {
   meta {
     owl: 16
     description: "A Bauhaus poster in three pages: Linux, Claude Code and Grok sessions and limits; notifications, music and apps; the phone's battery, storage, network and switches"
-    version: "1.1"
+    version: "1.2"
     license: "MIT"
     category: "dev"
   }
@@ -124,6 +124,19 @@ face "bauhaus" {
       quiet: "тиша"; noSessions: "сесій агентів поки немає"; noLinuxYet: "linux ще не встановлено"
       since: x => "${x} тому"
       ago: s => s < 60 ? "зараз" : s < 3600 ? "${floor(s / 60)} хв" : s < 86400 ? "${floor(s / 3600)} год" : s < 604800 ? "${floor(s / 86400)} дн" : s < 31536000 ? "${floor(s / 604800)} тиж" : "${floor(s / 31536000)} р"
+    }
+    fr {
+      what: "linux · agents"; notInstalled: "pas installé"; packages: "paquets"; explicit: n => "${n} explicites"
+      installHint: "installe linux pour voir ici arch, claude code et grok"; install: "installer"; kernel: "noyau"
+      shell: "shell"; upgraded: "màj"; agents: "agents"; never: "jamais"; none: "aucun"
+      updates: n => "mettre à jour (${n})"; upToDate: "à jour"; busy: n => n == 1 ? "1 active" : "${n} actives"; noneBusy: "aucune active"
+      idle: "inactive"; status: s => s == "busy" ? "active" : s == "waiting" ? "attend" : s; active: "active"
+      hours5: "5 heures"; week: "semaine"; resetsIn: d => "dans ${d}"; new: "lancer"; plan: "offre grok"
+      pool: "quota grok"; noLinux: "pas de linux"; noLogin: "pas connecté"; offline: "hors ligne"; notOnPlan: "hors offre"
+      err: e => e == "no login" ? "pas connecté" : e == "offline" ? "hors ligne" : e; context: n => "contexte ${n} %"
+      quiet: "calme"; noSessions: "pas encore de session d’agent"; noLinuxYet: "pas encore de linux"
+      since: x => x == "maint." ? "à l’instant" : "il y a ${x}"
+      ago: s => s < 60 ? "maint." : s < 3600 ? "${floor(s / 60)} min" : s < 86400 ? "${floor(s / 3600)} h" : s < 604800 ? "${floor(s / 86400)} j" : s < 31536000 ? "${floor(s / 604800)} sem" : (floor(s / 31536000) < 2 ? "1 an" : "${floor(s / 31536000)} ans")
     }
   }
 

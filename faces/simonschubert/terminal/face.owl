@@ -1,7 +1,7 @@
 face "terminal" {
   // A shell session over digital rain: each command's output is the phone's state, live.
 
-  meta { owl: 19; description: "A hacker's terminal over digital rain: the date, uptime, battery, weather and notifications as command output, your apps as an ls, and a prompt that finds an app as you type"; version: "1.3"; license: "MIT"; category: "fun" }
+  meta { owl: 19; description: "A hacker's terminal over digital rain: the date, uptime, battery, weather and notifications as command output, your apps as an ls, and a prompt that finds an app as you type"; version: "1.4"; license: "MIT"; category: "fun" }
 
   // The output in the phone's language where it has a set; the commands stay as typed in any shell. The date
   // keeps its pattern: the phone names the day and month. "up" is what uptime itself prints, kept where the script is Latin.
@@ -50,6 +50,11 @@ face "terminal" {
       uptime: (up, used, total, free) => "up ${up} · озп ${used}/${total} · диск ${free} вільно"
       bat: "бат"; charging: "заряджання"; connecting: "підключення…"; denied: "tail: немає доступу (торкніться, щоб дати)"
       empty: "(порожньо)"; noMatch: "збігів немає; enter запитає агента"; placeholder: "назва застосунку"; wake: "прокинься, нео…"
+    }
+    fr {
+      uptime: (up, used, total, free) => "up ${up} · mém ${used}/${total} · disque ${free} libre"
+      bat: "bat"; charging: "en charge"; connecting: "connexion…"; denied: "tail: accès refusé (touche pour autoriser)"
+      empty: "(vide)"; noMatch: "aucune appli ; enter demande à l’agent"; placeholder: "nom de l’appli"; wake: "réveille-toi, neo…"
     }
   }
   // The rain steps a whole row at a time, at most 14 rows a second: 20 frames a second show every step.

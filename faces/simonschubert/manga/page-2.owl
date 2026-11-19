@@ -58,6 +58,11 @@ face "boulevard" {
       playSomething: "Увімкніть музику або торкніться платівки — відкриється плеєр."
       allowMedia: "Торкніться кнопки, щоб лаунчер бачив, що грає."
     }
+    fr {
+      nowPlaying: "en lecture"; nothingOn: "rien ne joue"; noAccess: "pas d’accès"; watchlist: "favoris"; oneDay: "1 j"
+      playSomething: "Lance un morceau, ou touche le disque pour ouvrir ton lecteur."
+      allowMedia: "Appuie sur une touche pour que le launcher voie ce qui joue."
+    }
   }
 
   background: background

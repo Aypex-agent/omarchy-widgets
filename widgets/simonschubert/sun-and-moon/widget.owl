@@ -1,5 +1,5 @@
 widget "sun and moon" {
-  meta { description: "Sunrise, sunset, daylight left and tonight's moon phase, located by IP or a city you type, via wttr.in"; version: "1.9"; license: "MIT"; category: "world"; owl: 16 }
+  meta { description: "Sunrise, sunset, daylight left and tonight's moon phase, located by IP or a city you type, via wttr.in"; version: "1.10"; license: "MIT"; category: "world"; owl: 16 }
 
   // What it says, in the phone's language where it has a set; wttr names the moon's phase in English.
   strings {
@@ -78,6 +78,15 @@ widget "sun and moon" {
         "New Moon": "новий місяць", "Waxing Crescent": "молодий місяць", "First Quarter": "перша чверть",
         "Waxing Gibbous": "місяць росте", "Full Moon": "повня", "Waning Gibbous": "місяць спадає",
         "Last Quarter": "остання чверть", "Waning Crescent": "старий місяць"
+      }, p, lower(p))
+    }
+    fr {
+      title: "soleil et lune"; short: "soleil et lune"; city: "ville · vide = auto"
+      sunriseIn: d => "lever dans ${d}"; daylightLeft: d => "encore ${d} de jour"
+      phase: p => get({
+        "New Moon": "nouvelle lune", "Waxing Crescent": "premier croissant", "First Quarter": "premier quartier",
+        "Waxing Gibbous": "gibbeuse croissante", "Full Moon": "pleine lune", "Waning Gibbous": "gibbeuse décroissante",
+        "Last Quarter": "dernier quartier", "Waning Crescent": "dernier croissant"
       }, p, lower(p))
     }
   }

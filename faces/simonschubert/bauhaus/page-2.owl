@@ -76,6 +76,15 @@ face "bauhaus today" {
       allClear: "усе чисто"; noNotifications: "сповіщень немає"
       ago: s => s < 60 ? "зараз" : s < 3600 ? "${floor(s / 60)} хв" : s < 86400 ? "${floor(s / 3600)} год" : s < 604800 ? "${floor(s / 86400)} дн" : s < 31536000 ? "${floor(s / 604800)} тиж" : "${floor(s / 31536000)} р"
     }
+    fr {
+      today: "aujourd’hui"; notifications: n => n == 1 ? "1 notification" : "${n} notifications"; music: "musique"
+      nothingPlaying: "rien en lecture"; nowPlaying: "en lecture"; paused: "en pause"
+      allowMusic: "autorise l’accès aux notifications pour voir la musique ici"
+      playHint: "lance un morceau et il s’affiche ici"
+      allowNotes: "autorise l’accès aux notifications pour les voir ici"; allClear: "rien de neuf"
+      noNotifications: "aucune notification"
+      ago: s => s < 60 ? "maint." : s < 3600 ? "${floor(s / 60)} min" : s < 86400 ? "${floor(s / 3600)} h" : s < 604800 ? "${floor(s / 86400)} j" : s < 31536000 ? "${floor(s / 604800)} sem" : (floor(s / 31536000) < 2 ? "1 an" : "${floor(s / 31536000)} ans")
+    }
   }
 
   source now = clock every 1m

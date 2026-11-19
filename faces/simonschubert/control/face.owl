@@ -6,7 +6,7 @@ face "control" {
   meta {
     owl: 23
     description: "Mission control: live CPU, memory, storage and latency, processes you can kill, a shell, a terminal, your inbox, phone switches and an agent prompt"
-    version: "1.3"
+    version: "1.4"
     license: "MIT"
     category: "system"
   }
@@ -326,6 +326,43 @@ face "control" {
       openHint: "торкніться — відкрити · утримуйте — прибрати"
       now: "зараз"; minutes: n => "${n} хв"; hours: n => "${n} год"; days: n => "${n} дн"; weeks: n => "${n} тиж"; years: n => "${n} р"
       runOnly: "!команда для запуску"; ask: a => "запитати ${a} · !команда"
+    }
+    fr {
+      day: "EEEE d MMMM"
+      sky: (code, desc) => get({
+        "113": "dégagé", "116": "partiellement nuageux", "119": "nuageux", "122": "couvert", "143": "brume",
+        "176": "pluie éparse", "179": "neige éparse", "182": "neige fondue éparse", "185": "bruine verglaçante éparse",
+        "200": "orages", "227": "chasse-neige", "230": "blizzard", "248": "brouillard", "260": "brouillard givrant",
+        "263": "bruine légère éparse", "266": "bruine légère", "281": "bruine verglaçante", "284": "forte bruine verglaçante",
+        "293": "pluie légère éparse", "296": "pluie légère", "299": "pluie modérée par moments", "302": "pluie modérée",
+        "305": "forte pluie par moments", "308": "forte pluie", "311": "pluie verglaçante légère", "314": "forte pluie verglaçante",
+        "317": "neige fondue légère", "320": "forte neige fondue", "323": "neige légère éparse", "326": "neige légère",
+        "329": "neige modérée éparse", "332": "neige modérée", "335": "forte neige éparse", "338": "forte neige",
+        "350": "grésil", "353": "averses légères", "356": "fortes averses", "359": "pluie torrentielle",
+        "362": "averses légères de neige fondue", "365": "fortes averses de neige fondue", "368": "averses de neige légères",
+        "371": "fortes averses de neige", "374": "averses de grésil légères", "377": "fortes averses de grésil",
+        "386": "pluie légère et orage", "389": "forte pluie et orage", "392": "neige légère et orage",
+        "395": "forte neige et orage"
+      }, code, lower(trim(desc)))
+      up: d => "uptime ${d}"; updates: n => n == 1 ? "↑ 1 mise à jour" : "↑ ${n} mises à jour"; dnd: "ne pas déranger"; saver: "économie"
+      ringer: r => get({"vibrate": "vibreur", "silent": "silencieux"}, r, r)
+      mem: "RAM"; disk: "DISQUE"; bat: "BAT"; cores: n => "${n} cœurs"; free: b => "${b} libres"
+      word: w => get({
+        "charging": "en charge", "plugged in": "branché", "on battery": "sur batterie", "good": "bon",
+        "overheating": "surchauffe", "dead": "hors service", "over voltage": "surtension", "cold": "froid",
+        "failing": "défaillante", "wireless": "sans fil", "dock": "station"
+      }, w, w)
+      cpu3m: "CPU 3 MIN"; offline: "hors ligne"
+      procs: "processus"; net: "réseau"; term: "terminal"; inbox: "notifs"; inboxN: n => "notifs ${n}"
+      process: "PROCESSUS"; running: n => n == 1 ? "1 actif" : "${n} actifs"; off: "désactivé"; endHint: "touche un processus pour l’arrêter"
+      latency: "LATENCE MS"; stats: (lo, mean, hi) => "min ${lo} · moy ${mean} · max ${hi}"; measuring: "mesure…"
+      public: "IP PUBLIQUE"; interfaces: "INTERFACES"
+      command: "lance une commande…"; busy: "en cours…"; outputHint: "la sortie s’affiche ici. reste appuyé sur une commande enregistrée pour l’oublier."
+      termHint: "touche pour écrire · touche ailleurs ou Retour pour quitter"
+      allowHint: "autorise l’accès aux notifications pour les voir ici"; allow: "autoriser"; inboxZero: "tout est lu"
+      openHint: "touche pour ouvrir · reste appuyé pour fermer"
+      now: "maint."; minutes: n => "${n} min"; hours: n => "${n} h"; days: n => "${n} j"; weeks: n => "${n} sem"; years: n => n < 2 ? "${n} an" : "${n} ans"
+      runOnly: "!commande à lancer"; ask: a => "demande à ${a} · !commande"
     }
   }
 

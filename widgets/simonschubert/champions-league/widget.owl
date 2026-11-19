@@ -2,7 +2,7 @@ widget "champions-league" {
   meta {
     owl: 17
     description: "UEFA Champions League results, live scores and kick-offs from ESPN with club crests, and the league phase table with knockout places. Tap for every match"
-    version: "1.9"
+    version: "1.10"
     license: "MIT"
     category: "sport"
   }
@@ -18,6 +18,7 @@ widget "champions-league" {
     ru { matches: "матчи"; table: "таблица"; loading: "загрузка…"; none: "на этой неделе матчей нет"; close: "закрыть"; live: n => "идут: ${n}" }
     ja { matches: "試合"; table: "順位表"; loading: "読み込み中…"; none: "今週は試合がありません"; close: "閉じる"; live: n => "ライブ ${n}" }
     uk { matches: "матчі"; table: "таблиця"; loading: "завантаження…"; none: "цього тижня матчів немає"; close: "закрити"; live: n => "наживо: ${n}" }
+    fr { matches: "matchs"; table: "classement"; loading: "chargement…"; none: "aucun match cette semaine"; close: "fermer"; live: n => "${n} live" }
   }
   size: 6x4
   minSize: 3x3

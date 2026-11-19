@@ -1,5 +1,5 @@
 widget "air and pollen" {
-  meta { description: "Air quality and today's pollen where you are, from Open-Meteo (Copernicus), located by IP or a city you type, via wttr.in. Tap it for the next 24 hours, pollutants and every pollen type"; version: "1.9"; license: "MIT"; category: "world"; owl: 17 }
+  meta { description: "Air quality and today's pollen where you are, from Open-Meteo (Copernicus), located by IP or a city you type, via wttr.in. Tap it for the next 24 hours, pollutants and every pollen type"; version: "1.10"; license: "MIT"; category: "world"; owl: 17 }
 
   // What it says, in the phone's language where it has a set. us and eu are the two indexes' levels, good
   // to worst, in each agency's words where it has them; advice goes with them, pollen is none to high.
@@ -132,6 +132,21 @@ widget "air and pollen" {
       ozone: "озон"; uvIndex: "уф-індекс"; pollenLong: "пилок · найближчі 24 години"
       europeOnlyLong: "open-meteo прогнозує пилок лише в європі."; peak: v => "пік ${v}"
       data: "дані: copernicus atmosphere monitoring service через open-meteo"
+    }
+    fr {
+      title: "air et pollen"; air: "air"; city: "ville · vide = auto"; unknown: "position inconnue"; offline: "open-meteo hors ligne"
+      us: ["bon", "modéré", "mauvais pour certains", "mauvais", "très mauvais", "dangereux"]
+      eu: ["bon", "moyen", "dégradé", "mauvais", "très mauvais", "extrêmement mauvais"]
+      advice: ["idéal pour sortir", "parfait pour tes sorties habituelles", "les personnes sensibles devraient ménager leurs efforts dehors", "privilégie des activités plus calmes dehors", "limite tes activités dehors", "évite les activités dehors"]
+      pollen: ["aucun", "faible", "moyen", "élevé"]
+      plant: k => get({"birch": "bouleau", "alder": "aulne", "olive": "olivier", "grass": "graminées", "mugwort": "armoise", "ragweed": "ambroisie"}, k, k)
+      plantLevel: (plant, level) => "${plant} : ${level}"
+      pollenLevel: (plant, level) => get({"bouleau": "pollen de bouleau", "aulne": "pollen d’aulne", "olivier": "pollen d’olivier", "graminées": "pollen de graminées", "armoise": "pollen d’armoise", "ambroisie": "pollen d’ambroisie"}, plant, "pollen de ${plant}") + " : ${level}"
+      noPollen: "pas de pollen"; uv: v => "uv ${v}"; pollenShort: "pollen · prochaines 24 h"; europeOnly: "pas de prévision de pollen ici (europe seulement)"
+      noneInAir: "aucun dans l’air"; next24: "prochaines 24 heures"; now: "maint."; pollutants: "polluants maintenant · µg/m³"
+      ozone: "ozone"; uvIndex: "indice uv"; pollenLong: "pollen · prochaines 24 heures"
+      europeOnlyLong: "open-meteo ne prévoit le pollen qu’en europe."; peak: v => "max. ${v}"
+      data: "données : copernicus atmosphere monitoring service via open-meteo"
     }
   }
   size: 3x2

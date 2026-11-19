@@ -1,5 +1,5 @@
 widget "forecast" {
-  meta { description: "Three-day weather forecast with an hourly temperature curve, located by IP or a city you type, via wttr.in"; version: "1.10"; license: "MIT"; category: "world"; owl: 16 }
+  meta { description: "Three-day weather forecast with an hourly temperature curve, located by IP or a city you type, via wttr.in"; version: "1.11"; license: "MIT"; category: "world"; owl: 16 }
 
   // What it says, in the phone's language where it has a set. wttr names the sky in English, so other
   // languages name it from wttr's weather codes, as the today widget does.
@@ -151,6 +151,24 @@ widget "forecast" {
         "371": "сильний снігопад", "374": "невелика крижана крупа", "377": "сильна крижана крупа",
         "386": "невеликий дощ із грозою", "389": "сильний дощ із грозою", "392": "невеликий сніг із грозою",
         "395": "сильний сніг із грозою"
+      }, code, lower(trim(desc)))
+    }
+    fr {
+      title: "prévisions"; today: "auj."; city: "ville · vide = auto"
+      sky: (code, desc) => get({
+        "113": "dégagé", "116": "partiellement nuageux", "119": "nuageux", "122": "couvert", "143": "brume",
+        "176": "pluie éparse", "179": "neige éparse", "182": "neige fondue éparse", "185": "bruine verglaçante éparse",
+        "200": "orages", "227": "chasse-neige", "230": "blizzard", "248": "brouillard", "260": "brouillard givrant",
+        "263": "bruine légère éparse", "266": "bruine légère", "281": "bruine verglaçante", "284": "forte bruine verglaçante",
+        "293": "pluie légère éparse", "296": "pluie légère", "299": "pluie modérée par moments", "302": "pluie modérée",
+        "305": "forte pluie par moments", "308": "forte pluie", "311": "pluie verglaçante légère", "314": "forte pluie verglaçante",
+        "317": "neige fondue légère", "320": "forte neige fondue", "323": "neige légère éparse", "326": "neige légère",
+        "329": "neige modérée éparse", "332": "neige modérée", "335": "forte neige éparse", "338": "forte neige",
+        "350": "grésil", "353": "averses légères", "356": "fortes averses", "359": "pluie torrentielle",
+        "362": "averses légères de neige fondue", "365": "fortes averses de neige fondue", "368": "averses de neige légères",
+        "371": "fortes averses de neige", "374": "averses de grésil légères", "377": "fortes averses de grésil",
+        "386": "pluie légère et orage", "389": "forte pluie et orage", "392": "neige légère et orage",
+        "395": "forte neige et orage"
       }, code, lower(trim(desc)))
     }
   }

@@ -2,7 +2,7 @@ widget "departures" {
   size: 3x2
   minSize: 2x1
   requires { pacman: [] }
-  meta { description: "Live departures from a stop you pick, anywhere Transitous has open timetables: line, direction, platform and minutes to go, with delays. Tap the tile for the full board or to change the stop"; version: "1.10"; license: "MIT"; category: "world"; owl: 17 }
+  meta { description: "Live departures from a stop you pick, anywhere Transitous has open timetables: line, direction, platform and minutes to go, with delays. Tap the tile for the full board or to change the stop"; version: "1.11"; license: "MIT"; category: "world"; owl: 17 }
 
   // What it says, in the phone's language where it has a set. Stops, lines, directions and modes come as Transitous names them.
   strings {
@@ -59,6 +59,12 @@ widget "departures" {
       tooMany: "забагато запитів"; offline: "transitous офлайн"; search: "знайти зупинку"; change: "змінити зупинку"
       searching: "пошук…"; noStops: q => "немає зупинок «${q}»"; next: "найближчі відправлення"; refresh: "оновити"
       data: "дані: Transitous, з відкритих розкладів. Затримки видно там, де перевізник публікує дані в реальному часі"
+    }
+    fr {
+      title: "départs"; pick: "Touche pour choisir un arrêt."; noneSoon: "pas de départ bientôt"; now: "maint."; min: "min"
+      tooMany: "trop de requêtes"; offline: "transitous hors ligne"; search: "cherche un arrêt"; change: "changer d’arrêt"
+      searching: "recherche…"; noStops: q => "aucun arrêt nommé « ${q} »"; next: "prochains départs"; refresh: "actualiser"
+      data: "données : Transitous, à partir d’horaires ouverts. Les retards s’affichent quand l’exploitant publie les horaires en temps réel"
     }
   }
 
