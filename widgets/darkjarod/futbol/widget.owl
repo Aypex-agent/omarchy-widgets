@@ -1,7 +1,7 @@
 widget "fútbol" {
   size: 6x4
   minSize: 4x3
-  meta { description: "Live scores, standings, top scorers and news from ESPN for 60 football leagues and cups, plus the NFL, NBA, MLB and NHL. Favourite leagues, a team to follow with its results and next match, filters"; version: "2.2"; license: "MIT"; category: "sport"; owl: 16 }
+  meta { description: "Live scores, standings, top scorers and news from ESPN for 60 football leagues and cups, plus the NFL, NBA, MLB and NHL. Favourite leagues, a team to follow with its results and next match, filters"; version: "2.3"; license: "MIT"; category: "sport"; owl: 16 }
 
   strings {
     en {
@@ -35,7 +35,7 @@ widget "fútbol" {
       no_matches: "no upcoming matches"
       no_standings: "this competition has no standings"
       leagues_title: "leagues"
-      tap_mark: "tap to mark ★"
+      tap_mark: "★ mark · ◀ ▶ sort"
       edit_btn: "★ edit"
       done_btn: "done"
       team: "team"
@@ -101,7 +101,7 @@ widget "fútbol" {
       no_matches: "no hay partidos próximos"
       no_standings: "esta competición no tiene clasificación"
       leagues_title: "ligas"
-      tap_mark: "toca para marcar ★"
+      tap_mark: "★ marca · ◀ ▶ ordena"
       edit_btn: "★ editar"
       done_btn: "listo"
       team: "equipo"
@@ -148,6 +148,7 @@ widget "fútbol" {
   state tableMode = "table"
   state picking = false
   state editing = false
+  state moving = null
 
   source now = clock every 1m
   let api = "https://site.api.espn.com/apis/site/v2/sports"
@@ -231,7 +232,8 @@ widget "fútbol" {
   ]
   let leagues = flatten(groups.map(g => g.leagues))
   let pickerRows = flatten(groups.map(g => flatten([[{head: g.name}], chunk(g.leagues, 3).map(c => ({cells: c}))])))
-  let favLeagues = leagues.filter(l => favs.any(f => f == l.id)).take(10)
+  let favLeagues = favs.map(f => leagues.find(l => l.id == f)).filter(l => l != null).take(10)
+  let movingAt = (favs.map((f, i) => ({f: f, i: i})).find(x => x.f == moving) ?? {i: -1}).i
   let current = leagues.find(l => l.id == league) ?? leagues[0]
   let us = current.us == true
   let sport = current.sport ?? "soccer"
@@ -564,7 +566,7 @@ widget "fútbol" {
       // Every league, by group and importance, as a grid of logos. In edit mode a tap stars or unstars one.
       Popup {
         visible: picking
-        onDismiss: { picking = false; editing = false }
+        onDismiss: { picking = false; editing = false; moving = null }
         // Built only while open, and lazily: the tile shows at most 32 images at once.
         if picking {
           Column {
@@ -575,6 +577,25 @@ widget "fútbol" {
               Text { text: editing ? str.tap_mark : str.leagues_title; style: label; color: editing ? accent : muted; weight: 1 }
               Button { text: editing ? str.done_btn : str.edit_btn; color: editing ? accent : muted; onTap: editing = !editing }
             }
+            if editing {
+              Row {
+                gap: 4
+                align: center
+                Button { text: "◀"; color: movingAt > 0 ? accent : muted; onTap: favs = movingAt > 0 ? favs.map((f, i) => i == movingAt ? favs[movingAt - 1] : i == movingAt - 1 ? favs[movingAt] : f) : favs }
+                for l in favLeagues {
+                  Box {
+                    weight: 1
+                    align: center
+                    padding: [0, 3]
+                    radius: 4 * corners
+                    background: l.id == moving ? alpha(accent, 0.35) : alpha(surface, 0.5)
+                    onTap: moving = l.id == moving ? null : l.id
+                    LeagueLogo { l: l; px: 20 }
+                  }
+                }
+                Button { text: "▶"; color: movingAt >= 0 && movingAt < len(favs) - 1 ? accent : muted; onTap: favs = movingAt >= 0 && movingAt < len(favs) - 1 ? favs.map((f, i) => i == movingAt ? favs[movingAt + 1] : i == movingAt + 1 ? favs[movingAt] : f) : favs }
+              }
+            }
             Row {
               gap: 6
               Box { onTap: onlyLive = !onlyLive; Chip { label: str.only_live; on: onlyLive } }
@@ -583,7 +604,7 @@ widget "fútbol" {
             Column {
               lazy: true
               gap: 4
-              height: 330
+              height: editing ? 280 : 330
               for row in pickerRows {
                 if row.head != null {
                   Text { text: row.head; style: label; color: muted; padding: [2, 6, 0, 0] }
@@ -632,7 +653,7 @@ widget "fútbol" {
       Tabs { }
     }
     // The favourites, one tap away, where the tile is tall enough for them.
-    if !short {
+    if !short && !(picking && editing) {
     Row {
       gap: 4
       for l in favLeagues {
