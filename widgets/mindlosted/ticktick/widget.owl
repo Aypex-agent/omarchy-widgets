@@ -2,7 +2,7 @@ widget "ticktick" {
   meta {
     owl: 17
     description: "TickTick tasks on your home screen: grouped by date, filter chips, quick add, complete with a tap, and open any task in the TickTick app."
-    version: "2.0"
+    version: "2.1"
     license: "MIT"
     category: "productivity"
   }
@@ -27,16 +27,16 @@ widget "ticktick" {
 
   source now = clock every 1m
   source projects = http(token == null ? null : "https://api.ticktick.com/open/v1/project", {Authorization: "Bearer ${token}"}) every 10m timeout 15s json status
-  source inbox = http(token == null ? null : "https://api.ticktick.com/open/v1/project/inbox/data", {Authorization: "Bearer ${token}"}) every 3m timeout 15s json status
+  source inbox = http(token == null ? null : "https://api.ticktick.com/open/v1/project/inbox/data", {Authorization: "Bearer ${token}"}) every 10m timeout 15s json status
   source projData = http(token == null || projIndex < 0 || projIndex >= len(projects.out ?? []) ? null : "https://api.ticktick.com/open/v1/project/${enc(projects.out[projIndex].id)}/data", {Authorization: "Bearer ${token}"}) every 1h timeout 15s json status
 
   // Step through the projects every 2 s while a sweep is running, and
-  // start a new sweep every 3 minutes. Tasks are matched to their project
+  // start a new sweep every 15 minutes. Tasks are matched to their project
   // by projectId, so a slow answer still lands in the right list.
   every 2s {
     if token != null && !demo {
       if projIndex < 0 {
-        if projects.ok == true && now - lastSweep >= 180 {
+        if projects.ok == true && now - lastSweep >= 900 {
           projTasks = []
           projIndex = 0
         }
@@ -377,7 +377,7 @@ widget "ticktick" {
       Column {
         weight: 1
         scroll: true
-        onPull: refresh()
+        onPull: { projIndex = -1; lastSweep = 0; refresh() }
         gap: 12
 
         if totalTasks == 0 {
