@@ -1,7 +1,7 @@
 widget "fútbol" {
   size: 6x4
   minSize: 4x3
-  meta { description: "Live scores, standings, top scorers and news from ESPN for 60 football leagues and cups, plus the NFL, NBA, MLB and NHL. Favourite leagues, a team to follow with its results and next match, filters"; version: "2.1"; license: "MIT"; category: "sport"; owl: 16 }
+  meta { description: "Live scores, standings, top scorers and news from ESPN for 60 football leagues and cups, plus the NFL, NBA, MLB and NHL. Favourite leagues, a team to follow with its results and next match, filters"; version: "2.2"; license: "MIT"; category: "sport"; owl: 16 }
 
   strings {
     en {
@@ -236,7 +236,7 @@ widget "fútbol" {
   let us = current.us == true
   let sport = current.sport ?? "soccer"
 
-  source board = http("${api}/${enc(sport)}/${enc(league)}/scoreboard") every 30s json timeout 10s
+  source board = http("${api}/${enc(sport)}/${enc(league)}/scoreboard") every 2m json timeout 10s
 
   let main = board.leagues[0].slug == league ? board : null
   let calType = main.leagues[0].calendarType
