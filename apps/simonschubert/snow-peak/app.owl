@@ -1,5 +1,5 @@
 app "snow peak" {
-  meta { owl: 22; description: "A downhill ski and snowboard game on endless mountains grown from a seed: tilt to carve through pine forest, birch glades, ice falls, an alpine village and under a chairlift, dodge trees, snowmen and snowcats, and fly off ramps, take the shortcuts and see how far you get before your first crash"; version: "1.0"; license: "MIT"; category: "games" }
+  meta { owl: 22; description: "A downhill ski and snowboard game on endless mountains grown from a seed: tilt to carve past pines, an alpine village and a chairlift, dodge snowmen and snowcats, and fly off ramps"; version: "1.0"; license: "MIT"; category: "games" }
   // How it works: a mountain is a seed. The seed sets how the run winds (two sine waves for the middle of the piste),
   // how wide it is, the light, the order of its places (forest, birch glade, ice falls, village, lift line) and where
   // everything in them stands, so the same seed is the same mountain.
