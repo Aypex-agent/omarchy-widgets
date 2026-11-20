@@ -1,0 +1,636 @@
+widget "tasks" {
+  size: 3x4
+  minSize: 3x3
+
+  meta { owl: 23; description: "Tasks with reminders: due time typed in words, dictation, priority, sections, tags, subtasks, repeats, snooze and gestures (→ done, ← edit)."; version: "2.2"; license: "MIT"; category: "productivity" }
+
+  // mkdir and printf (bash) write the Markdown export; omarchy-edit comes with the launcher.
+  requires { pacman: ["coreutils", "bash"] }
+
+  // The only clock; no shell command runs on a timer here.
+  source now = clock every 30s
+  source said = android.speech
+
+  // Simple icons (SVG, tinted with the theme's color).
+  asset icAlarm = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMyIgcj0iOCIvPjxwYXRoIGQ9Ik0xMiA5djRsMiAyIi8+PHBhdGggZD0iTTUgMyAyIDYiLz48cGF0aCBkPSJtMjIgNi0zLTMiLz48L3N2Zz4="
+  asset icRepeat = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0ibTE3IDIgNCA0LTQgNCIvPjxwYXRoIGQ9Ik0zIDExdi0xYTQgNCAwIDAgMSA0LTRoMTQiLz48cGF0aCBkPSJtNyAyMi00LTQgNC00Ii8+PHBhdGggZD0iTTIxIDEzdjFhNCA0IDAgMCAxLTQgNEgzIi8+PC9zdmc+"
+  asset icUndo = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTkgMTQgNCA5bDUtNSIvPjxwYXRoIGQ9Ik00IDloMTAuNWE1LjUgNS41IDAgMCAxIDAgMTFIMTEiLz48L3N2Zz4="
+  asset icEdit = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTE3IDNhMi44NSAyLjg1IDAgMSAxIDQgNEw3LjUgMjAuNSAyIDIybDEuNS01LjVaIi8+PC9zdmc+"
+  asset icCheck = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTIwIDYgOSAxN2wtNS01Ii8+PC9zdmc+"
+  asset icMic = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHJlY3QgeD0iOSIgeT0iMiIgd2lkdGg9IjYiIGhlaWdodD0iMTIiIHJ4PSIzIi8+PHBhdGggZD0iTTE5IDEwdjJhNyA3IDAgMCAxLTE0IDB2LTIiLz48cGF0aCBkPSJNMTIgMTl2MyIvPjwvc3ZnPg=="
+  asset icStop = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHJlY3QgeD0iNSIgeT0iNSIgd2lkdGg9IjE0IiBoZWlnaHQ9IjE0IiByeD0iMiIgZmlsbD0iI2ZmZmZmZiIvPjwvc3ZnPg=="
+  asset icList = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0ibTMgNyAyIDIgNC00Ii8+PHBhdGggZD0iTTEzIDdoOCIvPjxwYXRoIGQ9Ik0xMyAxN2g4Ii8+PHBhdGggZD0ibTMgMTcgMiAyIDQtNCIvPjwvc3ZnPg=="
+  asset icFlag = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTQgMjJWNGExIDEgMCAwIDEgMS0xaDEzbC0zIDUgMyA1SDUiIGZpbGw9IiNmZmZmZmYiLz48L3N2Zz4="
+  asset icTag = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTEyLjYgMi42QTIgMiAwIDAgMCAxMS4yIDJINGEyIDIgMCAwIDAtMiAydjcuMmEyIDIgMCAwIDAgLjYgMS40bDguNyA4LjdhMi40IDIuNCAwIDAgMCAzLjQgMGw2LjYtNi42YTIuNCAyLjQgMCAwIDAgMC0zLjR6Ii8+PGNpcmNsZSBjeD0iNy41IiBjeT0iNy41IiByPSIxIiBmaWxsPSIjZmZmZmZmIi8+PC9zdmc+"
+  asset icPlus = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTEyIDV2MTQiLz48cGF0aCBkPSJNNSAxMmgxNCIvPjwvc3ZnPg=="
+  asset icTrash = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTMgNmgxOCIvPjxwYXRoIGQ9Ik0xOSA2djE0YTIgMiAwIDAgMS0yIDJIN2EyIDIgMCAwIDEtMi0yVjYiLz48cGF0aCBkPSJNOCA2VjRhMiAyIDAgMCAxIDItMmg0YTIgMiAwIDAgMSAyIDJ2MiIvPjwvc3ZnPg=="
+  asset icX = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTE4IDYgNiAxOCIvPjxwYXRoIGQ9Im02IDYgMTIgMTIiLz48L3N2Zz4="
+  asset icBack = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0ibTE1IDE4LTYtNiA2LTYiLz48L3N2Zz4="
+
+  // Task: {id, t, at, anchor, rep ("" | "day" | "work" | "week" | "month"), prio, tags [..], subs [{t, d}],
+  //        done, doneAt, ringing, nextRing}. anchor is the scheduled time (snoozing only changes at).
+  // A repeating task's history entry has fromId, prevAt and prevAnchor, for undo.
+  state items = [] persist
+  state nextId = 1 persist
+  state nag = 60 persist          // how many seconds between repeated notifications; 0 = only once
+  state filter = "" persist       // tag the list is filtered by; "" = all
+  state view = "edit"             // "edit" or "list": what the screen shows
+  state fromList = false          // edit opened from the list: go back to the list after saving
+  state editId = 0
+  state draft = ""
+  state draftAt = null
+  state draftRep = ""
+  state draftPrio = false
+  state draftTags = []
+  state draftSubs = []
+  state saveRequested = false
+  state completeId = 0            // setting it checks a task off (the logic lives in one place: the `when` below)
+  state expanded = 0              // task with its subtasks expanded
+  state dragging = 0
+  state dragX = 0
+
+  // ---------- time ----------
+  let todayDate = fmtTime(now, "yyyy-MM-dd")
+  let hourNow = num(fmtTime(now, "HH"))
+  // Tomorrow and the day after are counted from noon, so a DST change can't shift the date.
+  let tomorrowDate = fmtTime(now + (36 - hourNow) * 3600, "yyyy-MM-dd")
+  let midnight = parseTime(todayDate)
+  let tomorrowMid = parseTime(tomorrowDate)
+  let dayAfterMid = parseTime(fmtTime(now + (60 - hourNow) * 3600, "yyyy-MM-dd"))
+  let dow = (floor((midnight + 43200) / 86400) + 3) % 7      // 0 = Monday
+  let soon = ceil(now / 300) * 300
+
+  // ---------- due time, repeat, priority, tags and subtasks recognized in the text ----------
+  // English first; the Polish words still work too (dictation may come in either).
+  let q = " " + replace(draft, "\n", " ") + " "
+  let mRel = match(q, '(?iu)\s((?:in|za)\s(?:(\d+)\s?|an?\s)?(minutes?|mins?|m|hours?|hrs?|h|days?|d|weeks?|w|min(?:ut[ęay]?)?|godz(?:in[ęay]?|\.)?|godzin[ęe]?|dni|dzie[nń]|tydzie[nń]|tygodni(?:e)?))(?=\s)')
+  let mDay = match(q, '(?iu)\s((?:(?:on|next|we?)\s)?(today|tonight|tomorrow|day\safter\stomorrow|monday|tuesday|tues?|wednesday|thursday|thu(?:rs)?|friday|fri|saturday|sunday|dzi[sś](?:iaj)?|jutro|pojutrze|pon(?:iedzia[lł]ek)?|wt(?:orek)?|[sś]r(?:od[aęy])?|czw(?:artek)?|pt|pi[aą]tek|sob(?:ot[aęy])?|nd|niedziel[aęi])(?:\s(?:at\s|o\s|na\s)?(\d{1,2})(?:[:.](\d{2}))?(?:\s?(am|pm))?)?)(?=\s)')
+  let mDate = match(q, '(?iu)\s((\d{1,2})[./](\d{1,2})(?:[./](\d{4}))?(?:\s(?:at\s|o\s)?(\d{1,2})(?:[:.](\d{2}))?)?)(?=\s)')
+  let mTime = match(q, '(?iu)\s((?:at|o|na|godz\.?)\s(\d{1,2})(?:[:.](\d{2}))?(?:\s?(am|pm))?|(\d{1,2}):(\d{2})(?:\s?(am|pm))?|(\d{1,2})\s?(am|pm))(?=\s)')
+  let mRep = match(q, '(?iu)\s(daily|every\s?day|weekly|every\s?week|monthly|every\s?month|(?:on\s)?weekdays|every\sweekday|workdays|codziennie|co\s?dzie[nń]|co\s?tydzie[nń]|co\s?miesi[aą]c|(?:w\s)?dni\s?robocze)(?=\s)')
+  let mPrio = match(q, '(?iu)\s(!+)(?=\s)')
+  let parsedTags = unique(matchAll(draft, '#([\p{L}\p{N}_-]+)').map(g => lower(g[0])))
+
+  let relN = mRel == null ? 0 : num(mRel[1], 1)
+  let relU = mRel == null ? "" : lower(mRel[2])
+  let atRel = mRel == null ? null : ceil((now + relN * (startsWith(relU, "m") ? 60 : (startsWith(relU, "w") || startsWith(relU, "t")) ? 604800 : startsWith(relU, "d") ? 86400 : 3600)) / 60) * 60
+
+  let dayW = mDay == null ? "" : lower(mDay[1])
+  let dayWi = (startsWith(dayW, "mon") || startsWith(dayW, "pon")) ? 0 : (startsWith(dayW, "tu") || startsWith(dayW, "wt")) ? 1 : (startsWith(dayW, "wed") || startsWith(dayW, "śr") || startsWith(dayW, "sr")) ? 2 : (startsWith(dayW, "thu") || startsWith(dayW, "czw")) ? 3 : (startsWith(dayW, "fri") || dayW == "pt" || startsWith(dayW, "pi")) ? 4 : (startsWith(dayW, "sat") || startsWith(dayW, "sob")) ? 5 : 6
+  let dayToday = dayW == "today" || dayW == "tonight" || startsWith(dayW, "dzi")
+  let dayOff = dayToday ? 0 : (dayW == "tomorrow" || dayW == "jutro") ? 1 : (startsWith(dayW, "day") || dayW == "pojutrze") ? 2 : ((dayWi - dow + 7) % 7 == 0 ? 7 : (dayWi - dow + 7) % 7)
+  let dayAp = mDay == null ? "" : lower(mDay[4])
+  let dayH0 = mDay == null ? 0 : num(mDay[2], dayW == "tonight" ? 20 : dayToday ? 18 : 9)
+  let dayH = dayAp == "pm" && dayH0 < 12 ? dayH0 + 12 : dayAp == "am" && dayH0 == 12 ? 0 : dayH0
+  let dayMin = mDay == null ? 0 : num(mDay[3], 0)
+  let atDay = mDay == null || dayH > 23 || dayMin > 59 ? null : parseTime(fmtTime(midnight + dayOff * 86400 + 43200, "yyyy-MM-dd") + " ${pad(dayH, 2, "0")}:${pad(dayMin, 2, "0")}")
+
+  let dD = mDate == null ? 0 : num(mDate[1])
+  let dM = mDate == null ? 0 : num(mDate[2])
+  let dYgiven = mDate != null && mDate[3] != ""
+  let dY = dYgiven ? num(mDate[3]) : num(fmtTime(now, "yyyy"))
+  let dHm = mDate == null ? "" : " ${pad(num(mDate[4], 9), 2, "0")}:${pad(num(mDate[5], 0), 2, "0")}"
+  let dOk = mDate != null && dM >= 1 && dM <= 12 && dD >= 1 && dD <= 31 && num(mDate[4], 9) < 24
+  let atDate0 = dOk ? parseTime("${dY}-${pad(dM, 2, "0")}-${pad(dD, 2, "0")}${dHm}") : null
+  let atDate = atDate0 != null && atDate0 <= now && !dYgiven ? parseTime("${dY + 1}-${pad(dM, 2, "0")}-${pad(dD, 2, "0")}${dHm}") : atDate0
+
+  let tH0 = mTime == null ? 0 : num(mTime[1] != "" ? mTime[1] : mTime[4] != "" ? mTime[4] : mTime[7])
+  let tM = mTime == null ? 0 : mTime[1] != "" ? num(mTime[2], 0) : mTime[4] != "" ? num(mTime[5], 0) : 0
+  let tAp = mTime == null ? "" : lower(mTime[3] + mTime[6] + mTime[8])
+  let tH = tAp == "pm" && tH0 < 12 ? tH0 + 12 : tAp == "am" && tH0 == 12 ? 0 : tH0
+  let tHm = "${pad(tH, 2, "0")}:${pad(tM, 2, "0")}"
+  let atTime = mTime == null || tH > 23 || tM > 59 ? null : parseTime(todayDate + " " + tHm) > now ? parseTime(todayDate + " " + tHm) : parseTime(tomorrowDate + " " + tHm)
+
+  let repW = mRep == null ? "" : lower(mRep[0])
+  let parsedRep = mRep == null ? null : (contains(repW, "robocze") || contains(repW, "weekday") || contains(repW, "workday")) ? "work" : (contains(repW, "week") || contains(repW, "tydzie")) ? "week" : (contains(repW, "month") || contains(repW, "miesi")) ? "month" : "day"
+  let next9 = parseTime(todayDate + " 09:00") > now ? parseTime(todayDate + " 09:00") : parseTime(tomorrowDate + " 09:00")
+  let atFound = atRel ?? atDay ?? atDate ?? atTime
+  let timePhrase = atRel != null ? mRel[0] : atDay != null ? mDay[0] : atDate != null ? mDate[0] : atTime != null ? mTime[0] : ""
+  let parsedAt = atFound ?? (parsedRep != null ? next9 : null)
+  let parsedPrio = mPrio != null
+
+  let rawTags = matchAll(draft, '#([\p{L}\p{N}_-]+)').map(g => g[0])
+  let s1 = timePhrase == "" ? q : replace(q, " " + timePhrase + " ", " ")
+  let s2 = mRep == null ? s1 : replace(s1, " " + mRep[0] + " ", " ")
+  let s3 = mPrio == null ? s2 : replace(s2, " " + mPrio[0] + " ", " ")
+  let stripped = trim(reduce(rawTags, (s, t) => replace(s, "#" + t, ""), s3))
+  let mSub = match(stripped, '^(.*?):\s*(.+,.+)$')
+  let parsedSubs = mSub == null ? null : split(mSub[1], ",").map(s => trim(s)).filter(s => s != "").map(s => {t: s, d: false})
+  let cleanTitle = join(words(mSub == null ? stripped : mSub[0]), " ")
+
+  // what will actually be saved (what's recognized in the text wins over the chosen button)
+  let effAt = parsedAt ?? draftAt
+  let effRep = effAt == null ? "" : (parsedRep ?? draftRep)
+  let effPrio = draftPrio || parsedPrio
+  let effTags = unique(draftTags + parsedTags)
+  let effSubs = draftSubs + (parsedSubs ?? [])
+  let effDow = effAt == null ? 0 : (floor((parseTime(fmtTime(effAt, "yyyy-MM-dd")) + 43200) / 86400) + 3) % 7
+  let atSaved = effRep == "work" && effDow >= 5 ? parseTime(fmtTime(effAt + (7 - effDow) * 86400, "yyyy-MM-dd") + " " + fmtTime(effAt, "HH:mm")) : effAt
+  let canSave = cleanTitle != "" && (effAt == null || effAt > now)
+  let recognized = (atFound != null || (parsedRep != null && parsedAt != null) ? [fmtTime(parsedAt, "EEE d MMM, HH:mm")] : []) + (parsedRep == "day" ? ["daily"] : parsedRep == "work" ? ["weekdays"] : parsedRep == "week" ? ["weekly"] : parsedRep == "month" ? ["monthly"] : []) + (parsedPrio ? ["important"] : []) + parsedTags.map(t => "#" + t) + (parsedSubs != null ? ["${len(parsedSubs)} subtasks"] : [])
+
+  // ---------- list ----------
+  let active = items.filter(r => !r.done)
+  let ringing = active.filter(r => r.ringing == true)
+  let done = items.filter(r => r.done).sortBy(r => -(r.doneAt ?? 0))
+  let allTags = unique(flatten(items.map(r => r.tags ?? []))).sort()
+  let activeTags = unique(flatten(active.map(r => r.tags ?? []))).sort()
+  let fEff = activeTags.any(t => t == filter) ? filter : ""
+  let shown = fEff == "" ? active : active.filter(r => (r.tags ?? []).any(t => t == fEff))
+  let secToday = shown.filter(r => r.at != null && (r.ringing == true || r.at < tomorrowMid)).sortBy(r => (r.ringing == true ? 0 : r.prio == true ? 10000000000 : 20000000000) + r.at)
+  let secTomorrow = shown.filter(r => r.at != null && r.ringing != true && r.at >= tomorrowMid && r.at < dayAfterMid).sortBy(r => (r.prio == true ? 0 : 10000000000) + r.at)
+  let secLater = shown.filter(r => r.at != null && r.ringing != true && r.at >= dayAfterMid).sortBy(r => (r.prio == true ? 0 : 10000000000) + r.at)
+  let secNone = shown.filter(r => r.at == null).sortBy(r => (r.prio == true ? 0 : 10000000000) + r.id)
+  let sections = [{n: "Today", items: secToday}, {n: "Tomorrow", items: secTomorrow}, {n: "Later", items: secLater}, {n: "No date", items: secNone}].filter(s => len(s.items) > 0)
+  let nextAt = first((active.filter(r => r.at != null && r.ringing != true).map(r => r.at) + ringing.filter(r => r.nextRing != null).map(r => r.nextRing)).sort())
+  let nagText = nag == 0 ? "" : nag < 3600 ? "every ${nag / 60} min" : "every hour"
+
+  let md = "# Tasks\n\n" + join(active.map(r => "- [ ] " + (r.prio == true ? "(!) " : "") + r.t + (r.at != null ? " — " + fmtTime(r.at, "yyyy-MM-dd HH:mm") : "") + ((r.rep ?? "") == "day" ? ", daily" : (r.rep ?? "") == "work" ? ", weekdays" : (r.rep ?? "") == "week" ? ", weekly" : (r.rep ?? "") == "month" ? ", monthly" : "") + join((r.tags ?? []).map(t => " #" + t), "") + join((r.subs ?? []).map(s => "\n  - [" + (s.d ? "x" : " ") + "] " + s.t), "")), "\n") + "\n\n## Done\n\n" + join(done.map(r => "- [x] " + r.t), "\n") + "\n"
+
+  // A Markdown file to look at (e.g. in Obsidian); the widget keeps its data in state, so this is only an export.
+  on items { run("mkdir -p ~/notes && printf '%s' ${sh(md)} > ~/notes/tasks.md") }
+
+  // Dictation: what's said goes at the end of the field (and is recognized like typed text).
+  on said.final { if value { draft = trim(draft + " " + value) } }
+
+  at nextAt {
+    let t = nextAt
+    let again = nag > 0 ? max(t, now ?? t) + nag : null
+    let names = join(items.filter(r => !r.done && ((r.ringing != true && r.at != null && r.at <= t) || (r.ringing == true && r.nextRing != null && r.nextRing <= t))).map(r => (r.prio == true ? "(!) " : "") + r.t), ", ")
+    if names != "" { notify("Reminder: " + names, nag > 0 ? "Swipe it right in the tasks widget or snooze it; I'll remind you ${nagText}." : "Swipe it right in the tasks widget or snooze it.") }
+    items = items.map(r => !r.done && ((r.ringing != true && r.at != null && r.at <= t) || (r.ringing == true && r.nextRing != null && r.nextRing <= t)) ? merge(r, {ringing: true, nextRing: again}) : r)
+  }
+
+  // Checking off. A repeating task doesn't go away: it moves to its next time (subtasks reset),
+  // and a copy goes into the history.
+  when completeId != 0 {
+    let id = completeId
+    completeId = 0
+    let task = items.find(r => r.id == id)
+    if task != null {
+      if (task.rep ?? "") != "" && task.at != null {
+        let base = task.anchor ?? task.at
+        let hm = fmtTime(base, "HH:mm")
+        let step = task.rep == "week" ? 604800 : 86400
+        let k = base > now ? 1 : floor((now - base) / step) + 1
+        let byDays = parseTime(fmtTime(base + k * step, "yyyy-MM-dd") + " " + hm) ?? (base + k * step)
+        let wd = (floor((parseTime(fmtTime(byDays, "yyyy-MM-dd")) + 43200) / 86400) + 3) % 7
+        let byWork = wd >= 5 ? parseTime(fmtTime(byDays + (7 - wd) * 86400, "yyyy-MM-dd") + " " + hm) : byDays
+        // Monthly: after a missed time, the nearest future one, the day clipped to the month's length.
+        let late = base <= now
+        let dd = num(fmtTime(base, "dd"))
+        let y = num(fmtTime(late ? now : base, "yyyy"))
+        let m = num(fmtTime(late ? now : base, "MM"))
+        let dimCur = m == 2 ? (y % 4 == 0 ? 29 : 28) : (m == 4 || m == 6 || m == 9 || m == 11) ? 30 : 31
+        let cur = parseTime("${y}-${pad(m, 2, "0")}-${pad(min(dd, dimCur), 2, "0")} ${hm}")
+        let ny = m == 12 ? y + 1 : y
+        let nm = m == 12 ? 1 : m + 1
+        let dim = nm == 2 ? (ny % 4 == 0 ? 29 : 28) : (nm == 4 || nm == 6 || nm == 9 || nm == 11) ? 30 : 31
+        let byMonth = late && cur > now ? cur : parseTime("${ny}-${pad(nm, 2, "0")}-${pad(min(dd, dim), 2, "0")} ${hm}")
+        let next = task.rep == "month" ? byMonth : task.rep == "work" ? byWork : byDays
+        items = items.map(r => r.id == id ? merge(r, {at: next, anchor: next, ringing: false, nextRing: null, subs: (r.subs ?? []).map(s => merge(s, {d: false}))}) : r) + [{id: nextId, t: task.t, tags: task.tags ?? [], done: true, doneAt: now, fromId: id, prevAt: task.at, prevAnchor: base}]
+        nextId = nextId + 1
+      } else {
+        items = items.map(r => r.id == id ? merge(r, {done: true, doneAt: now, ringing: false, nextRing: null}) : r)
+      }
+      items = items.filter(r => !r.done) + items.filter(r => r.done).sortBy(r => -(r.doneAt ?? 0)).take(50)
+    }
+  }
+
+  when saveRequested {
+    saveRequested = false
+    if canSave {
+      let fields = {t: cleanTitle, at: atSaved, anchor: atSaved, rep: effRep, prio: effPrio, tags: effTags, subs: effSubs}
+      if editId == 0 {
+        items = items + [merge({id: nextId, done: false}, fields)]
+        nextId = nextId + 1
+      } else {
+        items = items.map(r => r.id == editId ? merge(r, fields, {ringing: false, nextRing: null}) : r)
+      }
+      if fromList { view = "list" } else { close() }
+    }
+  }
+
+  // a subtask's checkbox
+  component SubBox(d) {
+    Box {
+      size: 14
+      radius: 3 * corners
+      border: 1
+      borderColor: d ? green : muted
+      align: center
+      if d {
+        Image { src: icCheck; size: 10; tint: green }
+      }
+    }
+  }
+
+  // ---------- a task's row: → done, ← edit, a tap expands its subtasks ----------
+  component TaskRow(task) {
+    Column {
+      fill: width
+      gap: 4
+      let moved = dragging == task.id ? dragX : 0
+      let day = task.at == null ? "" : fmtTime(task.at, "yyyy-MM-dd")
+      let hm = task.at == null ? "" : fmtTime(task.at, "HH:mm")
+      let due = task.at == null ? "" : task.ringing == true ? "now" : task.at - now < 3600 ? "in ${max(ceil((task.at - now) / 60), 1)} min" : day == todayDate ? hm : day == tomorrowDate ? "tomorrow " + hm : task.at - now < 6 * 86400 ? fmtTime(task.at, "EEE HH:mm") : fmtTime(task.at, "d MMM HH:mm")
+      let repText = (task.rep ?? "") == "day" ? "daily" : (task.rep ?? "") == "work" ? "Mon–Fri" : (task.rep ?? "") == "week" ? "weekly" : (task.rep ?? "") == "month" ? "monthly" : ""
+      let subs = task.subs ?? []
+      let tags = join((task.tags ?? []).map(t => "#" + t), " ")
+      let dueColor = task.ringing == true ? red : task.at != null && task.at - now < 3600 ? yellow : accent
+      let dotColor = task.ringing == true || task.prio == true ? red : task.at != null ? accent : muted
+      Box {
+        fill: width
+        Row {
+          fill: width
+          gap: 4
+          align: center
+          opacity: min(abs(moved) / 90, 1)
+          if moved > 0 {
+            Image { src: icCheck; size: 14; tint: green }
+            Text { text: "done"; style: small; color: green }
+          }
+          Spacer { weight: 1 }
+          if moved < 0 {
+            Text { text: "edit"; style: small; color: accent }
+            Image { src: icEdit; size: 14; tint: accent }
+          }
+        }
+        Row {
+          fill: width
+          gap: 10
+          align: top
+          drag: horizontal
+          offset: [moved, 0]
+          animate offset: spring()
+          onTap: { if len(subs) > 0 { haptic("light"); expanded = expanded == task.id ? 0 : task.id } }
+          onDrag: { dragging = task.id; dragX = dragX + dx }
+          onDragEnd: {
+            let far = abs(dragX) > 90 || (abs(vx) > 1000 && sign(vx) == sign(dragX))
+            let dir = sign(dragX)
+            dragging = 0
+            dragX = 0
+            if far && dir > 0 {
+              haptic()
+              completeId = task.id
+            } else if far && dir < 0 {
+              haptic("light")
+              fromList = view == "list"
+              view = "edit"; editId = task.id; draft = task.t
+              draftAt = task.at != null && task.at > now ? task.at : null
+              draftRep = task.rep ?? ""; draftPrio = task.prio == true; draftTags = task.tags ?? []; draftSubs = task.subs ?? []
+              screen()
+            }
+          }
+          // bullet: filled = important / ringing, outline = with a time (accent) or without (muted)
+          Box {
+            padding: [0, 6, 0, 0]
+            Box {
+              size: 8
+              radius: 4
+              border: task.ringing == true || task.prio == true ? 0 : 1.5
+              borderColor: dotColor
+              background: task.ringing == true || task.prio == true ? dotColor : alpha(dotColor, 0)
+            }
+          }
+          Column {
+            weight: 1
+            gap: 2
+            Text { text: task.t; style: small; color: task.ringing == true ? red : foreground; maxLines: 3 }
+            if task.at != null || repText != "" || len(subs) > 0 || tags != "" {
+              Flow {
+                gap: 4
+                if task.at != null {
+                  Image { src: icAlarm; size: 12; tint: dueColor }
+                  Text { text: due; fontSize: 11; color: dueColor }
+                }
+                if repText != "" {
+                  Image { src: icRepeat; size: 12; tint: muted }
+                  Text { text: repText; fontSize: 11; color: muted }
+                }
+                if len(subs) > 0 {
+                  Image { src: icList; size: 12; tint: muted }
+                  Text { text: "${count(subs, s => s.d)}/${len(subs)}"; fontSize: 11; color: muted }
+                }
+                if tags != "" {
+                  Text { text: tags; fontSize: 11; color: muted }
+                }
+              }
+            }
+          }
+        }
+      }
+      if expanded == task.id {
+        for s, i in subs {
+          Row {
+            gap: 8
+            align: center
+            padding: [18, 2, 0, 2]
+            onTap: { haptic("light"); items = items.map(r => r.id == task.id ? merge(r, {subs: set(r.subs, i, merge(r.subs[i], {d: !r.subs[i].d}))}) : r) }
+            SubBox { d: s.d }
+            Text { text: s.t; style: small; color: s.d ? muted : foreground; weight: 1 }
+          }
+        }
+      }
+    }
+  }
+
+  component Snooze(task, label, t) {
+    Button {
+      text: label; color: accent
+      onTap: { haptic("light"); items = items.map(r => r.id == task.id ? merge(r, {at: t, ringing: false, nextRing: null}) : r) }
+    }
+  }
+
+  component Ringing(task) {
+    Column {
+      fill: width
+      padding: 6
+      gap: 6
+      border: 1
+      borderColor: red
+      TaskRow { task: task }
+      Flow {
+        gap: 6
+        Snooze { task: task; label: "+5m"; t: now + 300 }
+        Snooze { task: task; label: "+1h"; t: now + 3600 }
+        if hourNow < 19 {
+          Snooze { task: task; label: "19:00"; t: parseTime(todayDate + " 19:00") }
+        }
+        Snooze { task: task; label: "tmrw 9"; t: parseTime(tomorrowDate + " 09:00") }
+      }
+    }
+  }
+
+  component Task(task) {
+    Column {
+      fill: width
+      gap: 0
+      if task.ringing == true {
+        Ringing { task: task }
+      } else {
+        TaskRow { task: task }
+      }
+    }
+  }
+
+  component DoneRow(task) {
+    Row {
+      gap: 8
+      onTap: {
+        haptic("light")
+        if task.fromId != null && items.any(r => r.id == task.fromId && !r.done) {
+          // undoing a repeating task: its previous time comes back, and the history copy goes away
+          items = items.filter(r => r.id != task.id).map(r => r.id == task.fromId ? merge(r, {at: task.prevAt, anchor: task.prevAnchor ?? task.prevAt, ringing: task.prevAt <= now, nextRing: task.prevAt <= now && nag > 0 ? now + nag : null}) : r)
+        } else {
+          items = items.map(r => r.id == task.id ? merge(r, {done: false, ringing: false, nextRing: null, at: r.at != null && r.at > now ? r.at : null}) : r)
+        }
+      }
+      Image { src: icUndo; size: 14; tint: muted }
+      Text { text: task.t; style: small; color: muted; maxLines: 1; weight: 1 }
+    }
+  }
+
+  // One choice button for the whole screen. On the edit screen it first turns what was recognized
+  // in the text into chosen options (the field becomes a clean title), and only then changes the choice.
+  component Chip(label, on, kind, v = null, wide = false) {
+    Button {
+      text: label
+      fill: wide ? "width" : false
+      color: on ? background : accent
+      background: on ? accent : background
+      onTap: {
+        haptic("light")
+        if kind == "nag" {
+          nag = v
+        } else if kind == "filter" {
+          filter = v
+        } else {
+          let pa = parsedAt
+          let pr = parsedRep
+          let pp = parsedPrio
+          let pt = parsedTags
+          let ps = parsedSubs
+          let ct = cleanTitle
+          draftAt = pa ?? draftAt
+          draftRep = pr ?? draftRep
+          draftPrio = draftPrio || pp
+          draftTags = unique(draftTags + pt)
+          draftSubs = draftSubs + (ps ?? [])
+          draft = ct
+          if kind == "at" { draftAt = v; if v == null { draftRep = "" } }
+          if kind == "step" { draftAt = max((draftAt ?? soon) + v, soon) }
+          if kind == "rep" { draftRep = v }
+          if kind == "prio" { draftPrio = !draftPrio }
+          if kind == "tag" { draftTags = draftTags.any(t => t == v) ? draftTags.filter(t => t != v) : draftTags + [v] }
+        }
+      }
+    }
+  }
+
+  // ---------- tile ----------
+  Column {
+    gap: 6
+    fill: true
+    Row {
+      onTap: { view = "list"; screen() }
+      Text { text: "tasks" + (fEff != "" ? " #" + fEff : ""); style: small; color: len(ringing) > 0 ? red : muted; weight: 1; maxLines: 1 }
+      Text { text: "${len(shown)}"; style: small; color: len(ringing) > 0 ? red : accent }
+    }
+    Column {
+      gap: 8
+      weight: 1
+      scroll: true
+      if len(shown) == 0 {
+        Row { gap: 6; align: center; Image { src: icCheck; size: 14; tint: green }  Text { text: "all done"; style: small; color: green } }
+      }
+      for s in sections key s.n {
+        Text { text: upper(s.n); fontSize: 10; color: s.n == "Today" ? accent : muted; letterSpacing: 1 }
+        for r in s.items key r.id {
+          Task { task: r }
+        }
+      }
+    }
+    for r in done.take(1) key r.id {
+      DoneRow { task: r }
+    }
+    Box {
+      fill: width
+      padding: [10, 8]
+      border: 1
+      borderColor: muted
+      onTap: { fromList = false; view = "edit"; editId = 0; draft = ""; draftAt = null; draftRep = ""; draftPrio = false; draftTags = fEff != "" ? [fEff] : []; draftSubs = []; screen() }
+      Row { gap: 6; align: center; Spacer { weight: 1 }  Image { src: icPlus; size: 14; tint: muted }  Text { text: "Add"; fontSize: 12; color: muted; maxLines: 1 }  Spacer { weight: 1 } }
+    }
+  }
+
+  // ---------- screen ----------
+  screen {
+    title: view == "list" ? "Tasks" : editId == 0 ? "New task" : "Edit task"
+    Column {
+      gap: 14
+      padding: 12
+      scroll: true
+
+      if view == "list" {
+        Button {
+          text: "+ new task"; color: accent; fill: width
+          onTap: { fromList = true; view = "edit"; editId = 0; draft = ""; draftAt = null; draftRep = ""; draftPrio = false; draftTags = fEff != "" ? [fEff] : []; draftSubs = [] }
+        }
+        if len(activeTags) > 0 {
+          Flow {
+            gap: 6
+            Chip { label: "all"; on: fEff == ""; kind: "filter"; v: "" }
+            for t in activeTags key t {
+              Chip { label: "#" + t; on: fEff == t; kind: "filter"; v: t }
+            }
+          }
+        }
+        if len(shown) == 0 {
+          Text { text: "Nothing to do."; color: green }
+        }
+        for s in sections key s.n {
+          Text { text: upper(s.n) + "  ${len(s.items)}"; fontSize: 11; color: s.n == "Today" ? accent : muted; letterSpacing: 1 }
+          for r in s.items key r.id {
+            Task { task: r }
+          }
+        }
+        Text { text: "Swipe right: done · left: edit · tap: subtasks"; style: small; color: muted }
+        if len(done) > 0 {
+          Row {
+            Text { text: "Done (${len(done)}): tap one to restore it"; style: small; color: muted; weight: 1 }
+            Text { text: "clear"; style: small; color: red; onTap: { haptic(); items = items.filter(r => !r.done) } }
+          }
+          for r in done.take(20) key r.id {
+            DoneRow { task: r }
+          }
+        }
+        Text { text: "Repeat the notification until it's checked off"; style: small; color: muted }
+        Flow {
+          gap: 6
+          Chip { label: "every 1 min"; on: nag == 60; kind: "nag"; v: 60 }
+          Chip { label: "every 5 min"; on: nag == 300; kind: "nag"; v: 300 }
+          Chip { label: "every 15 min"; on: nag == 900; kind: "nag"; v: 900 }
+          Chip { label: "only once"; on: nag == 0; kind: "nag"; v: 0 }
+        }
+        Text {
+          text: "open ~/notes/tasks.md"; style: small; color: muted
+          onTap: run("omarchy-edit ~/notes/tasks.md >/dev/null 2>&1 &")
+        }
+      } else {
+        Row {
+          gap: 8
+          Input {
+            weight: 1
+            text: draft
+            placeholder: "e.g. dentist tomorrow 9 #health !"
+            focus: true
+            onChange: draft = value
+            onSubmit: { draft = value; saveRequested = true }
+          }
+          if said.available != false {
+            Box {
+              padding: [8, 4]
+              onTap: { haptic("light"); speech("toggle") }
+              Image { src: said.listening ? icStop : icMic; size: 24; tint: said.listening ? red : accent }
+            }
+          }
+        }
+        if said.listening {
+          Text { text: said.text != "" ? said.text : "Listening…"; style: small; color: red }
+        }
+        if said.error != null {
+          Text { text: said.error; style: small; color: red }
+        }
+        if len(recognized) > 0 {
+          Text { spans: [{text: "Recognized: ", color: muted}, {text: join(recognized, " · "), color: green}]; style: small }
+        } else {
+          Text { text: "You can type: tomorrow 9 · friday 6pm · at 7:30 · in 2h · 24.12 · daily · weekdays · weekly · #tag · ! (important) · shopping: milk, bread"; style: small; color: muted }
+        }
+
+        Text { text: "Reminder"; style: small; color: muted }
+        Flow {
+          gap: 6
+          Chip { label: "none"; on: effAt == null; kind: "at"; v: null }
+          Chip { label: "in 1h"; on: effAt == soon + 3600; kind: "at"; v: soon + 3600 }
+          Chip { label: "in 3h"; on: effAt == soon + 3 * 3600; kind: "at"; v: soon + 3 * 3600 }
+          if hourNow < 18 {
+            Chip { label: "today 18:00"; on: effAt == parseTime(todayDate + " 18:00"); kind: "at"; v: parseTime(todayDate + " 18:00") }
+          }
+          Chip { label: "tomorrow 9:00"; on: effAt == parseTime(tomorrowDate + " 09:00"); kind: "at"; v: parseTime(tomorrowDate + " 09:00") }
+          Chip { label: "tomorrow 18:00"; on: effAt == parseTime(tomorrowDate + " 18:00"); kind: "at"; v: parseTime(tomorrowDate + " 18:00") }
+        }
+
+        if effAt != null {
+          Column {
+            gap: 8
+            padding: 10
+            border: 1
+            borderColor: effAt > now ? accent : red
+            Text { text: fmtTime(atSaved, "EEEE, d MMMM · HH:mm"); color: foreground }
+            Text {
+              text: effAt > now ? "in " + fmtDuration(atSaved - now) : "That time has already passed."
+              style: small; color: effAt > now ? muted : red
+            }
+            Row { gap: 6; Chip { label: "−1 d"; on: false; kind: "step"; v: -86400; wide: true; weight: 1 }  Chip { label: "+1 d"; on: false; kind: "step"; v: 86400; wide: true; weight: 1 } }
+            Row { gap: 6; Chip { label: "−1 h"; on: false; kind: "step"; v: -3600; wide: true; weight: 1 }  Chip { label: "+1 h"; on: false; kind: "step"; v: 3600; wide: true; weight: 1 } }
+            Row { gap: 6; Chip { label: "−15 m"; on: false; kind: "step"; v: -900; wide: true; weight: 1 }  Chip { label: "+15 m"; on: false; kind: "step"; v: 900; wide: true; weight: 1 } }
+          }
+          Text { text: "Repeat"; style: small; color: muted }
+          Flow {
+            gap: 6
+            Chip { label: "never"; on: effRep == ""; kind: "rep"; v: "" }
+            Chip { label: "daily"; on: effRep == "day"; kind: "rep"; v: "day" }
+            Chip { label: "weekdays"; on: effRep == "work"; kind: "rep"; v: "work" }
+            Chip { label: "weekly"; on: effRep == "week"; kind: "rep"; v: "week" }
+            Chip { label: "monthly"; on: effRep == "month"; kind: "rep"; v: "month" }
+          }
+        }
+
+        Text { text: "Priority and tags"; style: small; color: muted }
+        Flow {
+          gap: 6
+          Chip { label: "! important"; on: effPrio; kind: "prio" }
+          for t in unique(allTags + effTags).sort() key t {
+            Chip { label: "#" + t; on: effTags.any(x => x == t); kind: "tag"; v: t }
+          }
+        }
+
+        Text { text: "Subtasks"; style: small; color: muted }
+        for s, i in draftSubs {
+          Row {
+            gap: 8
+            align: center
+            Box { onTap: draftSubs = set(draftSubs, i, merge(s, {d: !s.d})); padding: 4; SubBox { d: s.d } }
+            Text { text: s.t; color: s.d ? muted : foreground; weight: 1 }
+            Box { onTap: draftSubs = remove(draftSubs, i); padding: [8, 4]; Image { src: icX; size: 16; tint: red } }
+          }
+        }
+        for s in parsedSubs ?? [] {
+          Row { gap: 8; align: center; padding: [4, 0, 0, 0]; SubBox { d: false }  Text { text: s.t + "  (from text)"; style: small; color: muted } }
+        }
+        Input {
+          placeholder: "+ subtask"
+          clear: true
+          onSubmit: { if trim(value) != "" { draftSubs = draftSubs + [{t: trim(value), d: false}] } }
+        }
+
+        Button {
+          text: editId == 0 ? "Add" : "Save"
+          color: canSave ? accent : muted
+          fill: width
+          onTap: { haptic(); saveRequested = true }
+        }
+        if editId != 0 {
+          Button {
+            text: "delete task"; color: red; fill: width
+            onTap: { haptic("strong"); items = items.filter(r => r.id != editId); if fromList { view = "list" } else { close() } }
+          }
+        }
+        if fromList {
+          Row { gap: 4; align: center; onTap: view = "list"; Image { src: icBack; size: 14; tint: muted }  Text { text: "back to list"; style: small; color: muted } }
+        }
+      }
+    }
+  }
+}
