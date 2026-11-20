@@ -2,7 +2,7 @@ widget "ticktick" {
   meta {
     owl: 17
     description: "TickTick tasks on your home screen: grouped by date, filter chips, quick add, complete with a tap, and open any task in the TickTick app."
-    version: "2.1"
+    version: "2.2"
     license: "MIT"
     category: "productivity"
   }
@@ -183,7 +183,7 @@ widget "ticktick" {
       Column {
         weight: 1
         gap: 2
-        onTap: url("ticktick://v1/search?keyword=${enc(t.title)}")
+        onTap: androidApp("com.ticktick.task")
         Text {
           text: t.title
           style: body
@@ -211,7 +211,7 @@ widget "ticktick" {
         style: body
         color: accent
         padding: [6, 4]
-        onTap: url("ticktick://v1/search?keyword=${enc(t.title)}")
+        onTap: androidApp("com.ticktick.task")
       }
     }
   }
@@ -257,7 +257,7 @@ widget "ticktick" {
           text: "↗"
           fontSize: 18
           color: muted
-          onTap: url("ticktick://v1/show?smartlist=today")
+          onTap: androidApp("com.ticktick.task")
         }
         Text {
           text: "↻"
@@ -351,7 +351,7 @@ widget "ticktick" {
             text: str.inApp
             color: surface
             onTap: {
-              url("ticktick://x-callback-url/v1/add_task")
+              androidApp("com.ticktick.task")
               adding = false
             }
           }
