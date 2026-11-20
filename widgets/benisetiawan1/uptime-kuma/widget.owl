@@ -1,5 +1,5 @@
 widget "uptime kuma" {
-  meta { owl: 17; description: "Uptime Kuma status page on a server you choose: ring gauge of monitors up, per-monitor ping, sparklines, 24h uptime, certificate days, and a settings card for the URL."; version: "1.0"; license: "MIT"; category: "system" }
+  meta { owl: 17; description: "Uptime Kuma status page on a server you choose: ring gauge of monitors up, per-monitor ping, sparklines, 24h uptime, certificate days, and a settings card for the URL."; version: "1.1"; license: "MIT"; category: "system" }
   size: 3x4
   minSize: 3x2
 
@@ -15,7 +15,7 @@ widget "uptime kuma" {
   let host = trim(base)
   let page = trim(slug)
   let link = configured ? "https://${host}/status/${page}" : null
-  source hb = http(configured ? "https://${enc(host)}/api/status-page/${enc(page)}/heartbeat" : null) every 30s timeout 10s json status
+  source hb = http(configured ? "https://${enc(host)}/api/status-page/heartbeat/${enc(page)}" : null) every 30s timeout 10s json status
   source cfg = http(configured ? "https://${enc(host)}/api/status-page/${enc(page)}" : null) every 10m timeout 10s json status
   source now = clock every 1m
 
@@ -132,7 +132,7 @@ widget "uptime kuma" {
               if m.certExpiryDaysRemaining != null {
                 Text { text: str.cert(m.certExpiryDaysRemaining); style: small; color: muted }
               }
-              Text { text: h != null ? str.lastCheck(parseTime(h.time)) : "…"; style: small; color: muted }
+              Text { text: h != null ? str.lastCheck(parseTime(h.time, null, "UTC")) : "…"; style: small; color: muted }
             }
             Text { text: str.open; style: small; color: accent; onTap: url("${link}") }
           }
@@ -211,7 +211,7 @@ widget "uptime kuma" {
               if m.certExpiryDaysRemaining != null {
                 Text { text: str.cert(m.certExpiryDaysRemaining); style: small; color: muted }
               }
-              Text { text: h != null ? str.lastCheck(parseTime(h.time)) : "…"; style: small; color: muted }
+              Text { text: h != null ? str.lastCheck(parseTime(h.time, null, "UTC")) : "…"; style: small; color: muted }
             }
           }
         }
