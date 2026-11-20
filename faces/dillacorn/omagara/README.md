@@ -1,10 +1,20 @@
-# Omagara v1.9.2
+# Omagara v1.9.3
+
+## v1.9.3 changes
+
+- **Alphabet opening:** Optional gentler 200 ms sine-eased worm entrance, enabled by default. Turn it off under **Settings → Alphabet → Smooth alphabet opening** to restore the original 160 ms cubic animation. Letter selection and the 110 ms return animation remain unchanged.
+- **Static scrolling:** Optional stepped app-list dragging under **Settings → Alphabet → Static app-list scrolling**, disabled by default. The default distance is **1 row** per step; choose **½, 1, 1½ or 2 rows**. **Vibrate on scroll step** is independent and disabled by default.
+- **Flick navigation:** A quick flick (at least 1.5 rows of travel and 550 dp/s release speed) resumes the normal smooth coast even in static mode. **Reduce motion** no longer disables app-list coasting; elastic bounce remains suppressed in static or reduced-motion modes. Ordinary continuous scrolling remains the default.
+- **Performance:** Reuse worm contour calculations; avoid unnecessary per-frame app-list allocations and sorting; update the virtualized row window in smaller increments. Adjust frame-independent momentum and settle behavior without changing the existing gesture and app-editing paths.
+- **Engine:** Remains compatible with OWL 21, with the 60 FPS cap unchanged. No new permissions or packages. Runtime smoothness and frame pacing still depend on the phone.
+
+
 
 Niagara-inspired OWL 21 home face for [Omalauncher](https://github.com/SimonSchubert/omalauncher). No additional packages required.
 
 ## Features
 
-- **Alphabet:** Elastic A–Z navigation, frequently launched app previews, hide apps from the worm without hiding them from Search, usage-based ordering by default or alphabetical ordering, plus persistent per-app moves within letters, a Settings cog, optional opposite-edge input, and configurable haptics.
+- **Alphabet:** Elastic A–Z navigation with optional entrance smoothing and stepped app-list scrolling (adjustable step size and optional haptics), smooth fast-flick coasting, frequently launched app previews, per-letter app ordering, a Settings cog and optional opposite-edge input.
 - **Apps:** Buffered full-height browser with elastic ends, adjustable scale, padded A–Z headings, and two compact bottom settings actions under a Settings heading. Holding the cog previews only Omagara settings and Omalauncher settings. Empty Search places the most recently opened app first.
 - **Notifications:** Grouped cards, optional per-app hiding (Omagara only) and alert compression, optional timestamps, swipe feedback, expandable actions/replies, and native scrolling with the rest of the home page.
 - **Appearance:** Clock, date and event alignment with the notification column (or screen center), automatic centering when the home alphabet is hidden, adjustable text/shade colors, opacity, and corners.

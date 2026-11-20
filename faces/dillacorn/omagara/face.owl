@@ -1,5 +1,5 @@
 face "Omagara" {
-  meta { owl: 21; description: "Niagara-inspired transparent home face with elastic alphabetical navigation, app search, notifications, calendar, timers and world clocks"; version: "1.9.2"; license: "MIT"; category: "home" }
+  meta { owl: 21; description: "Niagara-inspired transparent home face with elastic alphabetical navigation, app search, notifications, calendar, timers and world clocks"; version: "1.9.3"; license: "MIT"; category: "home" }
   // Omalauncher OWL time animations are capped at 60 FPS, regardless of display Hz.
   // Keep the highest supported rate; reduce work rather than reducing responsiveness.
   fps: 60
@@ -100,6 +100,10 @@ face "Omagara" {
   state pendingStackDismiss = []
 
   state prefs = {} persist
+  // Temporary finger travel between discrete app-list steps; never saved.
+  state staticScrollStart = 0
+  state staticScrollTravel = 0
+  state staticLastHaptic = 0
   // Run the v1.9 Most used migration once; later user sort choices stay saved.
   state mostUsedMigrationDone = false persist
   state worldZones = [] persist
@@ -210,10 +214,11 @@ face "Omagara" {
   state timerLeft = 0 persist
   state watchStarted = 0
   state watchElapsed = 0
-  let defaults = {idleAlphabet: true, hideEmpty: true, icons: true, iconStyle: "Theme overlay", iconOverlayOpacity: 30, faceFont: "Sans", headerAlignment: "Content column", clock: true, date: true, dateAbbreviated: false, batteryPercentage: false, event: true, notifications: true, previews: true, curve: true, reduceMotion: false, leftInput: true, grouping: true, actions: true, clockTap: true, dateTap: true, eventTap: true, searchContacts: false, calculator: true, sortMode: "Most used", compactPins: false, musicShortcuts: true, mediaPlayer: true, noticeAutoPosition: true, noticeStartPercent: 24, appScale: 80, timeFormat: "24-hour", notificationTimes: true, hapticFeedback: "Every letter", roundTime: false, roundDate: false, roundEvent: false, roundAlphabet: false, roundNotifications: false, roundNoticeHeading: false, roundClearAll: false, roundSearch: false, roundClose: false, roundLetterCue: false, roundCalendar: false, bubbleBorder: false, textTone: "Theme", textContrast: "High", customTextHex: "#FAFAFA", shadeColorMode: "Theme", shadeCustomHex: "#555555", shadeHeader: true, shadeAlphabet: true, shadeNoticeLabels: true, shadeAppLabels: true, shadeMediaCard: true, shadeNoticeCards: true, shadeButtons: true, shadeHeaderOpacity: 29, shadeAlphabetOpacity: 49, shadeNoticeOpacity: 49, shadeCardOpacity: 48, shadeAppOpacity: 78, shadeButtonOpacity: 85, holidayEasterEggs: true, showSwipeCue: true, roundAppLabels: false, alphabetSide: "Right", controlSide: "Right", closeSide: "Follow search"}
+  let defaults = {idleAlphabet: true, hideEmpty: true, icons: true, iconStyle: "Theme overlay", iconOverlayOpacity: 30, faceFont: "Sans", headerAlignment: "Content column", clock: true, date: true, dateAbbreviated: false, batteryPercentage: false, event: true, notifications: true, previews: true, curve: true, smoothAlphabet: true, staticScrolling: false, staticScrollVibrate: false, staticScrollStep: "1 row", reduceMotion: false, leftInput: true, grouping: true, actions: true, clockTap: true, dateTap: true, eventTap: true, searchContacts: false, calculator: true, sortMode: "Most used", compactPins: false, musicShortcuts: true, mediaPlayer: true, noticeAutoPosition: true, noticeStartPercent: 24, appScale: 80, timeFormat: "24-hour", notificationTimes: true, hapticFeedback: "Every letter", roundTime: false, roundDate: false, roundEvent: false, roundAlphabet: false, roundNotifications: false, roundNoticeHeading: false, roundClearAll: false, roundSearch: false, roundClose: false, roundLetterCue: false, roundCalendar: false, bubbleBorder: false, textTone: "Theme", textContrast: "High", customTextHex: "#FAFAFA", shadeColorMode: "Theme", shadeCustomHex: "#555555", shadeHeader: true, shadeAlphabet: true, shadeNoticeLabels: true, shadeAppLabels: true, shadeMediaCard: true, shadeNoticeCards: true, shadeButtons: true, shadeHeaderOpacity: 29, shadeAlphabetOpacity: 49, shadeNoticeOpacity: 49, shadeCardOpacity: 48, shadeAppOpacity: 78, shadeButtonOpacity: 85, holidayEasterEggs: true, showSwipeCue: true, roundAppLabels: false, alphabetSide: "Right", controlSide: "Right", closeSide: "Follow search"}
   let sortModeChoices = ["Most used", "Alphabetical"]
   let appScaleChoices = [75, 80, 85, 90, 95, 100, 105, 110, 115]
   let hapticChoices = ["Off", "Reduced", "Every letter"]
+  let staticScrollStepChoices = ["½ row", "1 row", "1½ rows", "2 rows"]
   let timeFormatChoices = ["12-hour", "24-hour"]
   let iconStyleChoices = ["Colored", "Theme overlay"]
   let iconOverlayChoices = [0, 10, 20, 30, 40, 50, 60]
@@ -227,7 +232,7 @@ face "Omagara" {
   let textContrastChoices = ["High", "Standard"]
   let shadeOpacityControls = [{key: "shadeHeaderOpacity", name: "Clock, date and event"}, {key: "shadeAlphabetOpacity", name: "Alphabet worm"}, {key: "shadeNoticeOpacity", name: "Notification headings"}, {key: "shadeCardOpacity", name: "Notification cards"}, {key: "shadeAppOpacity", name: "App labels"}, {key: "shadeButtonOpacity", name: "Search and close buttons"}]
   let quickShadeToggles = [{key: "shadeHeader", name: "Clock / date"}, {key: "shadeAlphabet", name: "Alphabet worm"}, {key: "shadeMediaCard", name: "Media player"}, {key: "shadeNoticeCards", name: "Notification cards"}, {key: "shadeNoticeLabels", name: "Notification headings"}, {key: "shadeAppLabels", name: "App labels"}, {key: "shadeButtons", name: "Search / buttons"}]
-  let cfg = merge(defaults, prefs, {alphabetSide: contains(["Left", "Right"], prefs.alphabetSide) ? prefs.alphabetSide : "Right", controlSide: contains(["Left", "Right"], prefs.controlSide) ? prefs.controlSide : "Right", closeSide: contains(["Follow search", "Left", "Right"], prefs.closeSide) ? prefs.closeSide : "Follow search", searchContacts: false, sortMode: contains(sortModeChoices, prefs.sortMode) ? prefs.sortMode : "Most used", noticeAutoPosition: prefs.noticeAutoPosition != false, noticeStartPercent: contains(range(6, 51), prefs.noticeStartPercent) ? prefs.noticeStartPercent : 24, appScale: contains(appScaleChoices, prefs.appScale) ? prefs.appScale : 80, hapticFeedback: contains(hapticChoices, prefs.hapticFeedback) ? prefs.hapticFeedback : "Every letter", timeFormat: contains(timeFormatChoices, prefs.timeFormat) ? prefs.timeFormat : "24-hour", shadeHeaderOpacity: contains(range(101), prefs.shadeHeaderOpacity) ? prefs.shadeHeaderOpacity : 29, shadeAlphabetOpacity: contains(range(101), prefs.shadeAlphabetOpacity) ? prefs.shadeAlphabetOpacity : 49, shadeNoticeOpacity: contains(range(101), prefs.shadeNoticeOpacity) ? prefs.shadeNoticeOpacity : 49, shadeCardOpacity: contains(range(101), prefs.shadeCardOpacity) ? prefs.shadeCardOpacity : 48, shadeAppOpacity: contains(range(101), prefs.shadeAppOpacity) ? prefs.shadeAppOpacity : 78, shadeButtonOpacity: contains(range(101), prefs.shadeButtonOpacity) ? prefs.shadeButtonOpacity : 85, bubbleBorder: prefs.bubbleBorder == true, iconStyle: contains(iconStyleChoices, prefs.iconStyle) ? prefs.iconStyle : "Theme overlay", iconOverlayOpacity: contains(iconOverlayChoices, prefs.iconOverlayOpacity) ? prefs.iconOverlayOpacity : 30, faceFont: contains(faceFontChoices, prefs.faceFont) ? prefs.faceFont : "Sans", headerAlignment: contains(headerAlignmentChoices, prefs.headerAlignment) ? prefs.headerAlignment : "Content column", textTone: contains(textToneChoices, prefs.textTone) ? prefs.textTone : "Theme", customTextHex: match(prefs.customTextHex ?? "", "^#[0-9A-Fa-f]{6}$") != null ? upper(prefs.customTextHex) : "#FAFAFA", shadeColorMode: contains(shadeColorChoices, prefs.shadeColorMode) ? prefs.shadeColorMode : "Theme", shadeCustomHex: match(prefs.shadeCustomHex ?? "", "^#[0-9A-Fa-f]{6}$") != null ? upper(prefs.shadeCustomHex) : "#555555", textContrast: "High"})
+  let cfg = merge(defaults, prefs, {alphabetSide: contains(["Left", "Right"], prefs.alphabetSide) ? prefs.alphabetSide : "Right", controlSide: contains(["Left", "Right"], prefs.controlSide) ? prefs.controlSide : "Right", closeSide: contains(["Follow search", "Left", "Right"], prefs.closeSide) ? prefs.closeSide : "Follow search", searchContacts: false, staticScrollStep: contains(staticScrollStepChoices, prefs.staticScrollStep) ? prefs.staticScrollStep : "1 row", sortMode: contains(sortModeChoices, prefs.sortMode) ? prefs.sortMode : "Most used", noticeAutoPosition: prefs.noticeAutoPosition != false, noticeStartPercent: contains(range(6, 51), prefs.noticeStartPercent) ? prefs.noticeStartPercent : 24, appScale: contains(appScaleChoices, prefs.appScale) ? prefs.appScale : 80, hapticFeedback: contains(hapticChoices, prefs.hapticFeedback) ? prefs.hapticFeedback : "Every letter", timeFormat: contains(timeFormatChoices, prefs.timeFormat) ? prefs.timeFormat : "24-hour", shadeHeaderOpacity: contains(range(101), prefs.shadeHeaderOpacity) ? prefs.shadeHeaderOpacity : 29, shadeAlphabetOpacity: contains(range(101), prefs.shadeAlphabetOpacity) ? prefs.shadeAlphabetOpacity : 49, shadeNoticeOpacity: contains(range(101), prefs.shadeNoticeOpacity) ? prefs.shadeNoticeOpacity : 49, shadeCardOpacity: contains(range(101), prefs.shadeCardOpacity) ? prefs.shadeCardOpacity : 48, shadeAppOpacity: contains(range(101), prefs.shadeAppOpacity) ? prefs.shadeAppOpacity : 78, shadeButtonOpacity: contains(range(101), prefs.shadeButtonOpacity) ? prefs.shadeButtonOpacity : 85, bubbleBorder: prefs.bubbleBorder == true, iconStyle: contains(iconStyleChoices, prefs.iconStyle) ? prefs.iconStyle : "Theme overlay", iconOverlayOpacity: contains(iconOverlayChoices, prefs.iconOverlayOpacity) ? prefs.iconOverlayOpacity : 30, faceFont: contains(faceFontChoices, prefs.faceFont) ? prefs.faceFont : "Sans", headerAlignment: contains(headerAlignmentChoices, prefs.headerAlignment) ? prefs.headerAlignment : "Content column", textTone: contains(textToneChoices, prefs.textTone) ? prefs.textTone : "Theme", customTextHex: match(prefs.customTextHex ?? "", "^#[0-9A-Fa-f]{6}$") != null ? upper(prefs.customTextHex) : "#FAFAFA", shadeColorMode: contains(shadeColorChoices, prefs.shadeColorMode) ? prefs.shadeColorMode : "Theme", shadeCustomHex: match(prefs.shadeCustomHex ?? "", "^#[0-9A-Fa-f]{6}$") != null ? upper(prefs.shadeCustomHex) : "#555555", textContrast: "High"})
   // Existing v1.8 Alphabetical preferences otherwise override the new default.
   when !mostUsedMigrationDone {
     prefs = set(prefs, "sortMode", "Most used")
@@ -321,6 +326,9 @@ face "Omagara" {
     {key: "hideEmpty", name: "Hide empty letters"},
     {key: "leftInput", name: "Enable opposite-edge alphabet gestures"},
     {key: "curve", name: "Curved alphabet"},
+    {key: "smoothAlphabet", name: "Smooth alphabet opening"},
+    {key: "staticScrolling", name: "Static app-list scrolling"},
+    {key: "staticScrollVibrate", name: "Vibrate on scroll step"},
     {section: "Notifications", key: "notifications", name: "Show notifications"},
     {key: "notificationTimes", name: "Show notification timestamps"},
     {key: "previews", name: "Show message previews"},
@@ -427,11 +435,13 @@ face "Omagara" {
   // The fixed touch rail does not move; only its displayed letters do.
   let railUpperReach = max(0, railTop + railStep / 2 - screenTop - 10)
   let railLowerReach = max(0, (tileHeight ?? 800) - screenInset - 10 - (railTop + railPaintHeight))
-  // Animate only the 160ms curve entrance and 110ms release return.
+  // Optional 60 FPS entrance smoothing. OFF is exactly the original 160ms cubic curve.
+  // ON uses the gentler 200ms sine curve. Touch tracking and the 110ms return stay unchanged.
   let railEnterAge = railEntering ? max(0, time - railEnterStart) : 0
-  let railEnterT = railEntering ? clamp(railEnterAge / 0.16, 0, 1) : 1
-  let railEnterEase = 1 - pow(1 - railEnterT, 3)
-  let railEnterDone = railEntering && railEnterAge >= 0.16
+  let railEnterDuration = cfg.smoothAlphabet ? 0.20 : 0.16
+  let railEnterT = railEntering ? clamp(railEnterAge / railEnterDuration, 0, 1) : 1
+  let railEnterEase = cfg.smoothAlphabet ? sin(rad(90 * railEnterT)) : 1 - pow(1 - railEnterT, 3)
+  let railEnterDone = railEntering && railEnterAge >= railEnterDuration
   on railEnterDone { if value { railEntering = false } }
   let railReturnAge = railReturning ? max(0, time - railReturnStart) : 0
   // Keep the approved 110ms release animation regardless of flick direction.
@@ -689,6 +699,7 @@ face "Omagara" {
   let appSafeBottom = max(appSafeTop, (tileHeight ?? 800) - screenInset)
   let appPanelHeight = max(0, appSafeBottom - appSafeTop)
   let appFade = min(60, appPanelHeight / 5)
+  let appFullFadeThreshold = max(1, appFade)
   let appEdgeSpace = appFade + 8
   // Keep icons clear whenever Search or Close occupies the left edge.
   // Both controls on the right preserve the original app-list placement.
@@ -720,9 +731,15 @@ face "Omagara" {
   let appElasticVisual = cfg.reduceMotion ? 0 : appElasticReturning ? appElasticFrom * pow(max(0, 1 - appElasticAge / 0.24), 3) : appElastic
   let appElasticDone = appElasticReturning && appElasticAge >= 0.24
   on appElasticDone { if value { appElasticReturning = false; appElastic = 0; appElasticFrom = 0 } }
+  // Static mode uses discrete dragging, but sufficiently fast, deliberate flicks still
+  // coast using the same analytic curve as normal scrolling, including Reduce motion.
   let appGliding = browsing && !railHeld && menu == "" && appVelocity != 0
   let appGlideAge = appGliding ? max(0, time - appGlideStarted) : 0
-  let appDecay = pow(2.718281828459045, -5 * min(appGlideAge, 1.6))
+  // Match a native-feeling fling: preserve 1:1 finger drag but allow a longer
+  // release coast. Keep one analytic curve so travel does not depend on FPS.
+  let appGlideFriction = 3.1
+  let appGlideMaxAge = 2.2
+  let appDecay = pow(2.718281828459045, -appGlideFriction * min(appGlideAge, appGlideMaxAge))
   // Read time only while the selected app is held near an edge, rather than
   // using an unconditional frame trigger that keeps the face awake at 60 FPS.
   let moveEdgeSection = moveMode == "alphabet" ? indexOf(appSections, moveLetter) : -1
@@ -738,7 +755,7 @@ face "Omagara" {
   let moveEdgeDistance = moveEdgeDirection > 0 ? max(0, moveEdgeMax - appScroll) : max(0, appScroll - moveEdgeMin)
   let moveEdgeTravel = moveEdgeActive ?
     moveEdgeDirection * min(moveEdgeDistance, max(0, time - moveEdgeStartedAt) * 300) : 0
-  let appOffset = clamp(appScroll + moveEdgeTravel + (appGliding ? appVelocity * (1 - appDecay) / 5 : 0), 0, appMaxScroll)
+  let appOffset = clamp(appScroll + moveEdgeTravel + (appGliding ? appVelocity * (1 - appDecay) / appGlideFriction : 0), 0, appMaxScroll)
   let moveEffectiveTargetIndex = moveEdgeActive ?
     clamp(moveOriginIndex + round((moveDragY + moveEdgeTravel) / appRowHeight), 0, max(0, len(moveKeys) - 1)) :
     moveTargetIndex
@@ -764,12 +781,12 @@ face "Omagara" {
           + drop(rows.filter(a => a.key != m.key), indexOf(rows.filter(a => a.key != m.key).map(a => a.key), m.anchor) + (m.after ? 1 : 0)),
       get(automaticGroups, moveLetter, [])).filter(a => !contains(hiddenAppKeys, a.key)).map(a => a.key) : []
   let alphabetAtResetPosition = moveMode == "alphabet" && toJson(movePreviewKeys) == toJson(alphabetResetKeys)
-  let appGlideDone = appGliding && (appGlideAge >= 1.6 || abs(appVelocity) * appDecay <= 30 || appVelocity < 0 && appOffset <= 0 || appVelocity > 0 && appOffset >= appMaxScroll)
+  let appGlideDone = appGliding && (appGlideAge >= appGlideMaxAge || abs(appVelocity) * appDecay <= 24 || appVelocity < 0 && appOffset <= 0 || appVelocity > 0 && appOffset >= appMaxScroll)
   on appGlideDone {
     if value {
       appScroll = appOffset
       // A rapid fling that reaches either end rebounds once, then settles.
-      if !cfg.reduceMotion && (appVelocity < 0 && appOffset <= 0 || appVelocity > 0 && appOffset >= appMaxScroll) {
+      if !cfg.reduceMotion && !cfg.staticScrolling && (appVelocity < 0 && appOffset <= 0 || appVelocity > 0 && appOffset >= appMaxScroll) {
         appElasticFrom = -sign(appVelocity) * min(54, abs(appVelocity) * appDecay * 0.016)
         appElasticStarted = time
         appElasticReturning = true
@@ -804,13 +821,15 @@ face "Omagara" {
   let appKeyGroups = reduce(appSections, (m, c) => set(m, c, get(groups, c, []).map(a => a.key)), {})
   // Render a continuous slice of the WHOLE document, with two guard rows
   // beyond each edge. Never derive this span from letter or railHeld.
-  // Keep the keyed rows alive across longer flings without regenerating
-  // the section/row window every few frames. Buffer three rows above and
-  // at least three below even at the end of a five-row stride. The actual
-  // row offset still follows every drag event and time-based glide frame.
-  let appWindowStride = appRowHeight * 5
-  let appRenderTop = max(0, floor(appOffset / appWindowStride) * appWindowStride - 3 * appRowHeight)
-  let appRenderBottom = min(appDocumentHeight, appRenderTop + appPanelHeight + 11 * appRowHeight)
+  // Advance the row window in two-row increments instead of inserting
+  // five fresh keyed rows at once during a fast fling. Retain at least
+  // three leading rows and five trailing rows around the viewport.
+  // The shared document translation below still moves every frame.
+  let appWindowStride = appRowHeight * 2
+  let appWindowOrigin = floor(appOffset / appWindowStride) * appWindowStride
+  let appRenderTop = max(0, appWindowOrigin - 3 * appRowHeight)
+  let appRenderBottom = min(appDocumentHeight, appRenderTop + appPanelHeight + 10 * appRowHeight)
+  let appWindowRowLimit = ceil((appRenderBottom - appRenderTop) / appRowHeight) + 1
   let visibleSections = appDocument.filter(s => s.top + s.height > appRenderTop && s.top < appRenderBottom).map(s => merge(s, {firstRow: max(0, floor((appRenderTop - s.top - appLabelHeight) / appRowHeight))}))
   let appMenuRows = [
     {id: "heading:settings", section: "Settings", heading: true, top: appMenuTop, height: appLabelHeight},
@@ -819,7 +838,7 @@ face "Omagara" {
   ]
   let fullAppWindow = flatten(visibleSections.map(s => (
     s.top + appLabelHeight > appRenderTop ? [{id: "heading:" + s.section, section: s.section, heading: true, top: s.top, height: appLabelHeight}] : []
-  ) + map(take(drop(get(groups, s.section, []), s.firstRow), ceil((appRenderBottom - appRenderTop) / appRowHeight) + 1), (a, j) => {id: a.key, section: s.section, heading: false, app: a, top: s.top + appLabelHeight + (s.firstRow + j) * appRowHeight, height: appRowHeight}).filter(r => r.top + r.height > appRenderTop && r.top < appRenderBottom))) + appFolderRows.filter(r => r.top + r.height > appRenderTop && r.top < appRenderBottom) + appMenuRows.filter(r => r.top + r.height > appRenderTop && r.top < appRenderBottom)
+  ) + map(take(drop(get(groups, s.section, []), s.firstRow), appWindowRowLimit), (a, j) => {id: a.key, section: s.section, heading: false, app: a, top: s.top + appLabelHeight + (s.firstRow + j) * appRowHeight, height: appRowHeight}).filter(r => r.top + r.height > appRenderTop && r.top < appRenderBottom))) + appFolderRows.filter(r => r.top + r.height > appRenderTop && r.top < appRenderBottom) + appMenuRows.filter(r => r.top + r.height > appRenderTop && r.top < appRenderBottom)
   // While touching the worm, center the selected letter's app group alongside
   // its actual glyph position, not a fixed 33%-height focus line. A long
   // group moves up to keep its rows in view. The normal continuous browser
@@ -836,7 +855,8 @@ face "Omagara" {
   // position of a crowded letter's MOST USED app toward the thumb, without
   // changing alphabetical order, asking permissions, or tracking users here.
   // Small groups retain their ordinary letter-centered positioning.
-  let appPreviewFavorite = first(appPreviewApps.filter(a => (a.score ?? 0) > 0).sortBy(a => -(a.score ?? 0)))
+  // Choose the same highest positive score, with first-in-list ties, in one pass.
+  let appPreviewFavorite = reduce(appPreviewApps, (best, a) => (a.score ?? 0) > (best == null ? 0 : (best.score ?? 0)) ? a : best, null)
   let appPreviewFavoriteIndex = appPreviewFavorite == null ? -1 : indexOf(appPreviewApps.map(a => a.key), appPreviewFavorite.key)
   let appPreviewBias = appPreviewFavorite == null ? 0 : clamp(((appPreviewFavorite.score ?? 0) / 4), 0, 1) * clamp((appPreviewHeight - appPanelHeight * 0.50) / max(1, appPanelHeight * 0.30), 0, 1) * appPreviewAlphabetWeight
   let appPreviewTargetY = clamp(appPreviewCenter * 0.84, appEdgeSpace + appLabelHeight + appRowHeight / 2, max(appEdgeSpace + appLabelHeight + appRowHeight / 2, appPanelHeight - appEdgeSpace - appRowHeight / 2))
@@ -859,12 +879,14 @@ face "Omagara" {
   let appFolderPreviewRows = appFolderRows.map(r => merge(r, {top: appFolderPreviewTop + r.top - appFolderTop})).filter(r => r.top + r.height > 0 && r.top < appPanelHeight)
   let appWindow = appPreviewing ? (railSettingsSelected ? appSettingsPreviewRows : railFolderSelected >= 0 ? appFolderPreviewRows : appPreviewRows) : fullAppWindow
   // Anchoring must use the unfiltered document even during a preview.
-  let appVisibleRows = fullAppWindow.filter(r => r.top + r.height > appOffset && r.top < appOffset + appPanelHeight)
-  let appFirst = first(appVisibleRows)
+  // Search only until the first intersecting row; don't allocate a complete
+  // filtered viewport list on each drag or glide frame.
+  let appFirst = find(fullAppWindow, r => r.top + r.height > appOffset && r.top < appOffset + appPanelHeight)
   // A single focus line serves section alignment and manual-scroll tracking.
   // Explicit rail selection remains authoritative until a real list drag.
   let appFocusY = appPanelHeight * 0.33
-  let focusLetter = (last(appDocument.filter(s => s.top <= appOffset + appFocusY)) ?? first(appDocument)).section ?? "A"
+  // Find the active section without allocating a list during each scroll/glide frame.
+  let focusLetter = reduce(appDocument, (section, s) => s.top <= appOffset + appFocusY ? s.section : section, first(appSections) ?? "A")
   let selectedSection = max(0, indexOf(appSections, letter))
   let selectedTop = get(appSectionStarts, selectedSection, 0)
   let railScroll = clamp(selectedTop - appFocusY, 0, appMaxScroll)
@@ -3215,7 +3237,7 @@ face "Omagara" {
           let pressedHeight = appLabelHeight + len(pressedApps) * appRowHeight
           let pressedCenter = railTop + railOverpull + (max(0, indexOf(alphabet, pressedLetter)) + 0.5) * railStep - appSafeTop
           let pressedBaseTop = clamp(pressedCenter - pressedHeight / 2, appEdgeSpace, max(appEdgeSpace, appPanelHeight - appEdgeSpace - pressedHeight))
-          let pressedFavorite = first(pressedApps.filter(a => (a.score ?? 0) > 0).sortBy(a => -(a.score ?? 0)))
+          let pressedFavorite = reduce(pressedApps, (best, a) => (a.score ?? 0) > (best == null ? 0 : (best.score ?? 0)) ? a : best, null)
           let pressedFavoriteIndex = pressedFavorite == null ? -1 : indexOf(pressedApps.map(a => a.key), pressedFavorite.key)
           let pressedAlphabetWeight = 0.80 + 0.20 * max(0, indexOf(alphabet, pressedLetter)) / max(1, len(alphabet) - 1)
           let pressedBias = pressedFavorite == null ? 0 : clamp(((pressedFavorite.score ?? 0) / 4), 0, 1) * clamp((pressedHeight - appPanelHeight * 0.50) / max(1, appPanelHeight * 0.30), 0, 1) * pressedAlphabetWeight
@@ -3264,7 +3286,7 @@ face "Omagara" {
           let nextHeight = appLabelHeight + len(nextApps) * appRowHeight
           let nextCenter = railTop + railOverpull + (max(0, indexOf(alphabet, nextLetter)) + 0.5) * railStep - appSafeTop
           let nextBaseTop = clamp(nextCenter - nextHeight / 2, appEdgeSpace, max(appEdgeSpace, appPanelHeight - appEdgeSpace - nextHeight))
-          let nextFavorite = first(nextApps.filter(a => (a.score ?? 0) > 0).sortBy(a => -(a.score ?? 0)))
+          let nextFavorite = reduce(nextApps, (best, a) => (a.score ?? 0) > (best == null ? 0 : (best.score ?? 0)) ? a : best, null)
           let nextFavoriteIndex = nextFavorite == null ? -1 : indexOf(nextApps.map(a => a.key), nextFavorite.key)
           let nextAlphabetWeight = 0.80 + 0.20 * max(0, indexOf(alphabet, nextLetter)) / max(1, len(alphabet) - 1)
           let nextBias = nextFavorite == null ? 0 : clamp(((nextFavorite.score ?? 0) / 4), 0, 1) * clamp((nextHeight - appPanelHeight * 0.50) / max(1, appPanelHeight * 0.30), 0, 1) * nextAlphabetWeight
@@ -3369,7 +3391,18 @@ face "Omagara" {
           // Compute the wave once; letter centers reuse the same Canvas samples.
           let wiggleActive = railWiggling && !cfg.reduceMotion
           let contourSteps = wiggleActive ? 2 : 4
-          let wigglePhases = wiggleActive ? map(range((len(alphabet) + len(folderStops) + 1) * contourSteps + 1), j => railWiggleAge - abs(j / contourSteps - 0.5 - railWiggleOrigin) * 0.015) : []
+          // Finger position changes on touch, not each animation frame.
+          // Cache the cosine profile and static ribbon geometry for the
+          // timed entrance/return, shared by Canvas and the letter glyphs.
+          let contourCount = (len(alphabet) + len(folderStops) + 1) * contourSteps
+          let contourRadius = max(10, min(14, len(alphabet) * 0.58))
+          let contourWeights = map(range(contourCount + 1), j =>
+            (1 + cos(rad(min(abs(j / contourSteps - 0.5 - fingerPosition) / contourRadius, 1) * 180))) / 2)
+          let contourCapInset = cfg.roundAlphabet ? min(3, railStep * 0.15) : 0
+          let contourY = map(range(contourCount + 1), j =>
+            12 + j * railStep / contourSteps + contourCapInset * max(0, 1 - j / contourSteps) - contourCapInset * max(0, 1 - (contourCount - j) / contourSteps))
+          let contourCapAngles = map(range(16), i => rad((i + 1) * 11.25))
+          let wigglePhases = wiggleActive ? map(range(contourCount + 1), j => railWiggleAge - abs(j / contourSteps - 0.5 - railWiggleOrigin) * 0.015) : []
           let wiggleOffsets = wiggleActive ? map(wigglePhases, phase => phase > 0 && phase < 1.34 ? railWiggleDirection * 11 * railWiggleStrength * pow(1 - phase / 1.34, 2) * sin(phase * 36) : 0) : []
           if cfg.shadeAlphabet && len(alphabet) > 0 {
             Canvas {
@@ -3380,12 +3413,10 @@ face "Omagara" {
               // In idle/drag states, retain the original four-point contour.
               // Rounded mode trims only the two end clearances; square mode
               // keeps its original coordinates and the glyphs never move.
-              let wormCapInset = cfg.roundAlphabet ? min(3, railStep * 0.15) : 0
-              let wormSamples = map(range((len(alphabet) + len(folderStops) + 1) * contourSteps + 1), j => {
+              let wormSamples = map(contourY, (sampleY, j) => {
                 x: (alphabetSide == 1 ? railMaxReach + 22 : 22) - alphabetSide * railCurvePull *
-                  (railCurveStrength > 0 ? (1 + cos(rad(min(abs(j / contourSteps - 0.5 - fingerPosition) / max(10, min(14, len(alphabet) * 0.58)), 1) * 180))) / 2 * railCurveStrength : 0) - alphabetSide * (wiggleActive ? wiggleOffsets[j] : 0),
-                // Fade each inset over one cell so the cap and letter share a smooth outline.
-                y: 12 + j * railStep / contourSteps + wormCapInset * max(0, 1 - j / contourSteps) - wormCapInset * max(0, 1 - ((len(alphabet) + len(folderStops) + 1) * contourSteps - j) / contourSteps)
+                  (railCurveStrength > 0 ? contourWeights[j] * railCurveStrength : 0) - alphabetSide * (wiggleActive ? wiggleOffsets[j] : 0),
+                y: sampleY
               })
               // Round each end as a real half-circle, sheared to follow the
               // ribbon's local tangent when the thumb bends the alphabet.
@@ -3400,9 +3431,8 @@ face "Omagara" {
               let wormLeft = map(wormSamples, p => [p.x - 12, p.y])
               let wormRight = drop(reverse(map(wormSamples, p => [p.x + 12, p.y])), 1)
               // Include the 180-degree end exactly, then skip its duplicate on the right edge.
-              let capAngles = map(range(16), i => rad((i + 1) * 11.25))
-              let wormBottomArc = map(capAngles, a => [wormBottom.x - 12 * cos(a) + 12 * wormBottomSlope * sin(a), wormBottom.y + 12 * sin(a)])
-              let wormTopArc = map(capAngles, a => [wormTop.x + 12 * cos(a) - 12 * wormTopSlope * sin(a), wormTop.y - 12 * sin(a)])
+              let wormBottomArc = map(contourCapAngles, a => [wormBottom.x - 12 * cos(a) + 12 * wormBottomSlope * sin(a), wormBottom.y + 12 * sin(a)])
+              let wormTopArc = map(contourCapAngles, a => [wormTop.x + 12 * cos(a) - 12 * wormTopSlope * sin(a), wormTop.y - 12 * sin(a)])
               // The square worm keeps its bottom right corner, which the rounded one leaves to the cap.
               path(cfg.roundAlphabet ? wormLeft + wormBottomArc + wormRight + wormTopArc : wormLeft + reverse(map(wormSamples, p => [p.x + 12, p.y])), closed: true, fill: alphabetShade)
             }
@@ -3415,9 +3445,7 @@ face "Omagara" {
               // outward travel across many adjacent letters instead of making a
               // sharp kink at the selected letter. The curve follows the finger
               // continuously; unchanged cells keep the same touch targets.
-              let distance = abs(i - fingerPosition)
-              let radius = max(10, min(14, len(alphabet) * 0.58))
-              let curve = railCurveStrength > 0 ? (1 + cos(rad(min(distance / radius, 1) * 180))) / 2 * railCurveStrength : 0
+              let curve = railCurveStrength > 0 ? contourWeights[i * contourSteps + contourSteps / 2] * railCurveStrength : 0
               // Sample the shared contour at this glyph's exact center.
               let wiggleX = wiggleActive ? wiggleOffsets[i * contourSteps + contourSteps / 2] : 0
               Box {
@@ -3595,19 +3623,29 @@ face "Omagara" {
             radius: cfg.roundAppLabels ? 7 : 0
           }
         }
-        // Paint selected app last, above neighbors flowing to final slots.
-        for row in (moveMode == "alphabet" ? appWindow.filter(r => r.id != moveKey) : appWindow) key row.id {
+        // Translate one viewport-sized document window rather than each row.
+        // Keep the parent hit-testable across every scroll position: its origin
+        // follows the two-row window stride, and its height covers the maximum
+        // two-row negative displacement. Rail previews remain screen-relative.
+        Box {
+          width: appPanelWidth
+          height: appPanelHeight + appWindowStride
+          offset: [0, appPreviewing ? 0 : appWindowOrigin - appOffset]
+          // Paint selected app last, above neighbors flowing to final slots.
+          for row in (moveMode == "alphabet" ? appWindow.filter(r => r.id != moveKey) : appWindow) key row.id {
           // Preview rows use their own bounded screen positions; ordinary
           // scrolling still uses continuous document coordinates.
           let rowY = appPreviewing ? row.top : row.top - appOffset
           // Fade by row centre: a partly clipped row must not vanish whole.
           let rowCentre = rowY + row.height / 2
-          let edge = clamp(min(rowCentre, appPanelHeight - rowCentre) / max(1, appFade), 0, 1)
-          let rowAlpha = edge * edge * (3 - 2 * edge)
+          // Fully opaque interior rows skip the fade calculation. Only
+          // rows entering or leaving the viewport need the smoothstep.
+          let edge = clamp(min(rowCentre, appPanelHeight - rowCentre) / appFullFadeThreshold, 0, 1)
+          let rowAlpha = rowCentre >= appFullFadeThreshold && rowCentre <= appPanelHeight - appFullFadeThreshold ? 1 : edge * edge * (3 - 2 * edge)
           Box {
             width: appPanelWidth
             height: row.height
-            offset: [0, rowY]
+            offset: [0, appPreviewing ? row.top : row.top - appWindowOrigin]
             opacity: rowAlpha
             // Offscreen buffer rows retain only lightweight keyed boxes:
             // avoid composing their icon and text subtrees every frame.
@@ -3708,6 +3746,7 @@ face "Omagara" {
             }
           }
         }
+        }
         // Give the selected app a full-viewport touch region so buttons stay
         // attached and usable after it leaves its original alphabetical row.
         if moveMode == "alphabet" && floatingWindowRow != null && moveApp != null {
@@ -3755,8 +3794,10 @@ face "Omagara" {
           if moveMode == "" {
           appScroll = appOffset
           appVelocity = 0
-          appElastic = appElasticVisual
+          appElastic = cfg.staticScrolling ? 0 : appElasticVisual
           appElasticReturning = false
+          staticScrollStart = appOffset
+          staticScrollTravel = 0
           if appFirst != null { appAnchor = appFirst.id; appAnchorSection = appFirst.section; appAnchorOffset = appOffset - appFirst.top }
                   }
         }
@@ -3831,25 +3872,49 @@ face "Omagara" {
           } else if moveMode == "" {
           appVelocity = 0
           appElasticReturning = false
-          // Unwind existing stretch before scrolling in the other direction.
-          // All local let values are immutable in OWL handlers.
-          let oldElastic = appElastic
-          let nextElastic = oldElastic + dy * 0.55
-          let stillElastic = oldElastic != 0 && sign(nextElastic) == sign(oldElastic)
-          let move = oldElastic == 0 ? dy : stillElastic ? 0 : dy + oldElastic / 0.55
-          if oldElastic != 0 {
-            appElastic = stillElastic ? clamp(nextElastic, -64, 64) : 0
-          }
-          if move != 0 {
-            let nextOffset = appOffset - move
-            appScroll = clamp(nextOffset, 0, appMaxScroll)
-            if !cfg.reduceMotion && nextOffset < 0 {
-              appElastic = min(64, (0 - nextOffset) * 0.55)
-            } else if !cfg.reduceMotion && nextOffset > appMaxScroll {
-              appElastic = -min(64, (nextOffset - appMaxScroll) * 0.55)
+          if cfg.staticScrolling {
+            // One step per half app-row of finger travel. The selected step size
+            // changes the actual list distance, not the touch detection threshold.
+            // Track cumulative input so sub-step movements never get discarded.
+            let travel = staticScrollTravel + dy
+            let stepIndex = round(travel / max(16, appRowHeight * 0.5))
+            let stepDistance = cfg.staticScrollStep == "½ row" ? appRowHeight * 0.5 :
+              cfg.staticScrollStep == "1 row" ? appRowHeight :
+              cfg.staticScrollStep == "1½ rows" ? appRowHeight * 1.5 : appRowHeight * 2
+            let nextOffset = clamp(staticScrollStart - stepIndex * stepDistance, 0, appMaxScroll)
+            let advanced = abs(nextOffset - appOffset) > 0.01
+            staticScrollTravel = travel
+            appScroll = nextOffset
+            appElastic = 0
+            if advanced {
+              appTracking = true
+              // OWL 21 supports haptic() with default system strength; separate from worm feedback.
+              // Cap pulses on fast drags, and never vibrate against an edge.
+              if cfg.staticScrollVibrate && time - staticLastHaptic >= 0.05 {
+                haptic()
+                staticLastHaptic = time
+              }
             }
+          } else {
+            // Unchanged native-feeling continuous drag, edge stretch and fling.
+            let oldElastic = appElastic
+            let nextElastic = oldElastic + dy * 0.55
+            let stillElastic = oldElastic != 0 && sign(nextElastic) == sign(oldElastic)
+            let move = oldElastic == 0 ? dy : stillElastic ? 0 : dy + oldElastic / 0.55
+            if oldElastic != 0 {
+              appElastic = stillElastic ? clamp(nextElastic, -64, 64) : 0
+            }
+            if move != 0 {
+              let nextOffset = appOffset - move
+              appScroll = clamp(nextOffset, 0, appMaxScroll)
+              if !cfg.reduceMotion && nextOffset < 0 {
+                appElastic = min(64, (0 - nextOffset) * 0.55)
+              } else if !cfg.reduceMotion && nextOffset > appMaxScroll {
+                appElastic = -min(64, (nextOffset - appMaxScroll) * 0.55)
+              }
+            }
+            if dy != 0 { appTracking = true }
           }
-          if dy != 0 { appTracking = true }
           menu = ""
           folderOpenId = ""
           // Do not rewrite anchor-derived state on every pointer sample.
@@ -3868,9 +3933,16 @@ face "Omagara" {
           appScroll = appOffset
           appElasticFrom = appElastic
           appElasticStarted = time
-          appElasticReturning = !cfg.reduceMotion && abs(appElastic) > 0.1
-          if cfg.reduceMotion { appElastic = 0 }
-          appVelocity = appElasticReturning || !browsing || railHeld || cfg.reduceMotion || abs(vy) < 160 || vy > 0 && appOffset <= 0 || vy < 0 && appOffset >= appMaxScroll ? 0 : clamp(-vy, -6000, 6000)
+          appElasticReturning = !cfg.reduceMotion && !cfg.staticScrolling && abs(appElastic) > 0.1
+          if cfg.reduceMotion || cfg.staticScrolling { appElastic = 0 }
+          // Normal scrolling retains its low-velocity fling threshold. Static scrolling
+          // requires both a deliberate drag of at least 1.5 rows and a quick release;
+          // short/slow drags stop exactly on their chosen step. Reduce motion still
+          // removes spring/bounce effects but no longer prevents list navigation.
+          let staticFlick = abs(staticScrollTravel) >= appRowHeight * 1.5 && abs(vy) >= 550
+          appVelocity = appElasticReturning || !browsing || railHeld ||
+            (cfg.staticScrolling ? !staticFlick : abs(vy) < 110) ||
+            vy > 0 && appOffset <= 0 || vy < 0 && appOffset >= appMaxScroll ? 0 : clamp(-vy, -7500, 7500)
           if appVelocity != 0 { appGlideStarted = time }
           if appFirst != null { appAnchor = appFirst.id; appAnchorSection = appFirst.section; appAnchorOffset = appOffset - appFirst.top }
                   }
@@ -3902,8 +3974,10 @@ face "Omagara" {
           if moveMode == "" {
           appScroll = appOffset
           appVelocity = 0
-          appElastic = appElasticVisual
+          appElastic = cfg.staticScrolling ? 0 : appElasticVisual
           appElasticReturning = false
+          staticScrollStart = appOffset
+          staticScrollTravel = 0
           if appFirst != null { appAnchor = appFirst.id; appAnchorSection = appFirst.section; appAnchorOffset = appOffset - appFirst.top }
                   }
         }
@@ -3978,25 +4052,49 @@ face "Omagara" {
           } else if moveMode == "" {
           appVelocity = 0
           appElasticReturning = false
-          // Unwind existing stretch before scrolling in the other direction.
-          // All local let values are immutable in OWL handlers.
-          let oldElastic = appElastic
-          let nextElastic = oldElastic + dy * 0.55
-          let stillElastic = oldElastic != 0 && sign(nextElastic) == sign(oldElastic)
-          let move = oldElastic == 0 ? dy : stillElastic ? 0 : dy + oldElastic / 0.55
-          if oldElastic != 0 {
-            appElastic = stillElastic ? clamp(nextElastic, -64, 64) : 0
-          }
-          if move != 0 {
-            let nextOffset = appOffset - move
-            appScroll = clamp(nextOffset, 0, appMaxScroll)
-            if !cfg.reduceMotion && nextOffset < 0 {
-              appElastic = min(64, (0 - nextOffset) * 0.55)
-            } else if !cfg.reduceMotion && nextOffset > appMaxScroll {
-              appElastic = -min(64, (nextOffset - appMaxScroll) * 0.55)
+          if cfg.staticScrolling {
+            // One step per half app-row of finger travel. The selected step size
+            // changes the actual list distance, not the touch detection threshold.
+            // Track cumulative input so sub-step movements never get discarded.
+            let travel = staticScrollTravel + dy
+            let stepIndex = round(travel / max(16, appRowHeight * 0.5))
+            let stepDistance = cfg.staticScrollStep == "½ row" ? appRowHeight * 0.5 :
+              cfg.staticScrollStep == "1 row" ? appRowHeight :
+              cfg.staticScrollStep == "1½ rows" ? appRowHeight * 1.5 : appRowHeight * 2
+            let nextOffset = clamp(staticScrollStart - stepIndex * stepDistance, 0, appMaxScroll)
+            let advanced = abs(nextOffset - appOffset) > 0.01
+            staticScrollTravel = travel
+            appScroll = nextOffset
+            appElastic = 0
+            if advanced {
+              appTracking = true
+              // OWL 21 supports haptic() with default system strength; separate from worm feedback.
+              // Cap pulses on fast drags, and never vibrate against an edge.
+              if cfg.staticScrollVibrate && time - staticLastHaptic >= 0.05 {
+                haptic()
+                staticLastHaptic = time
+              }
             }
+          } else {
+            // Unchanged native-feeling continuous drag, edge stretch and fling.
+            let oldElastic = appElastic
+            let nextElastic = oldElastic + dy * 0.55
+            let stillElastic = oldElastic != 0 && sign(nextElastic) == sign(oldElastic)
+            let move = oldElastic == 0 ? dy : stillElastic ? 0 : dy + oldElastic / 0.55
+            if oldElastic != 0 {
+              appElastic = stillElastic ? clamp(nextElastic, -64, 64) : 0
+            }
+            if move != 0 {
+              let nextOffset = appOffset - move
+              appScroll = clamp(nextOffset, 0, appMaxScroll)
+              if !cfg.reduceMotion && nextOffset < 0 {
+                appElastic = min(64, (0 - nextOffset) * 0.55)
+              } else if !cfg.reduceMotion && nextOffset > appMaxScroll {
+                appElastic = -min(64, (nextOffset - appMaxScroll) * 0.55)
+              }
+            }
+            if dy != 0 { appTracking = true }
           }
-          if dy != 0 { appTracking = true }
           menu = ""
           folderOpenId = ""
           // Do not rewrite anchor-derived state on every pointer sample.
@@ -4015,9 +4113,16 @@ face "Omagara" {
           appScroll = appOffset
           appElasticFrom = appElastic
           appElasticStarted = time
-          appElasticReturning = !cfg.reduceMotion && abs(appElastic) > 0.1
-          if cfg.reduceMotion { appElastic = 0 }
-          appVelocity = appElasticReturning || !browsing || railHeld || cfg.reduceMotion || abs(vy) < 160 || vy > 0 && appOffset <= 0 || vy < 0 && appOffset >= appMaxScroll ? 0 : clamp(-vy, -6000, 6000)
+          appElasticReturning = !cfg.reduceMotion && !cfg.staticScrolling && abs(appElastic) > 0.1
+          if cfg.reduceMotion || cfg.staticScrolling { appElastic = 0 }
+          // Normal scrolling retains its low-velocity fling threshold. Static scrolling
+          // requires both a deliberate drag of at least 1.5 rows and a quick release;
+          // short/slow drags stop exactly on their chosen step. Reduce motion still
+          // removes spring/bounce effects but no longer prevents list navigation.
+          let staticFlick = abs(staticScrollTravel) >= appRowHeight * 1.5 && abs(vy) >= 550
+          appVelocity = appElasticReturning || !browsing || railHeld ||
+            (cfg.staticScrolling ? !staticFlick : abs(vy) < 110) ||
+            vy > 0 && appOffset <= 0 || vy < 0 && appOffset >= appMaxScroll ? 0 : clamp(-vy, -7500, 7500)
           if appVelocity != 0 { appGlideStarted = time }
           if appFirst != null { appAnchor = appFirst.id; appAnchorSection = appFirst.section; appAnchorOffset = appOffset - appFirst.top }
                   }
@@ -5018,8 +5123,21 @@ face "Omagara" {
                   Button { text: (cfg.closeSide == edge ? "✓ " : "") + edge; onTap: prefs = set(prefs, "closeSide", edge) }
                 }
               }
-              for pref in preferenceRows.filter(p => contains(["idleAlphabet", "hideEmpty", "leftInput", "curve"], p.key)) {
+              for pref in preferenceRows.filter(p => contains(["idleAlphabet", "hideEmpty", "leftInput", "curve", "smoothAlphabet", "staticScrolling"], p.key)) {
                 SettingToggle { pref: pref }
+              }
+              Text { text: "Smooth alphabet opening: ON eases the initial worm expansion over 200 ms. OFF uses the original 160 ms animation."; font: chosenFont; fontSize: 12; color: secondaryText }
+              if cfg.staticScrolling {
+                for pref in preferenceRows.filter(p => p.key == "staticScrollVibrate") { SettingToggle { pref: pref } }
+                Text { text: "Static scroll step"; font: chosenFont; fontSize: 15; padding: [0, 12, 0, 0] }
+                Flow {
+                  fill: width
+                  gap: 8
+                  for stepChoice in staticScrollStepChoices {
+                    Button { text: (cfg.staticScrollStep == stepChoice ? "✓ " : "") + stepChoice; onTap: prefs = set(prefs, "staticScrollStep", stepChoice) }
+                  }
+                }
+                Text { text: "The app list jumps one step per half-row of finger movement. Choose how many rows each jump travels. Default: 1 row per step. Slow drags move in discrete steps; a deliberate fast flick coasts normally, even with Reduce motion enabled. Edge bounce stays off. Optional haptic feedback marks steps. Alphabet worm gestures and app editing are unchanged."; font: chosenFont; fontSize: 12; color: secondaryText }
               }
               Text { text: "When the alphabet is hidden, notifications, music and the content-aligned header center automatically. The chosen alphabet edge still opens it; opposite-edge gestures are optional."; font: chosenFont; fontSize: 12; color: secondaryText }
               Text { text: "Haptic feedback"; color: accent; font: chosenFont; fontSize: 16; padding: [0, 12, 0, 2] }
@@ -5207,7 +5325,7 @@ face "Omagara" {
           text: "Import Omagara settings"
           onTap: {
             let imported = parseJson(importText)
-            if imported.version == 1 && all(keys(defaults), k => (k == "shadeHeaderOpacity" || k == "shadeAlphabetOpacity" || k == "shadeNoticeOpacity" || k == "shadeCardOpacity" || k == "shadeAppOpacity" || k == "shadeButtonOpacity") ? get(imported.prefs, k) == null || contains(range(101), get(imported.prefs, k)) : k == "sortMode" ? get(imported.prefs, k) == null || contains(sortModeChoices, get(imported.prefs, k)) || get(imported.prefs, k) == "Manual" : k == "noticeStartPercent" ? get(imported.prefs, k) == null || contains(range(6, 51), get(imported.prefs, k)) : k == "appScale" ? get(imported.prefs, k) == null || contains(appScaleChoices, get(imported.prefs, k)) : k == "hapticFeedback" ? get(imported.prefs, k) == null || contains(hapticChoices, get(imported.prefs, k)) : k == "bubbleBorder" ? get(imported.prefs, k) == null || get(imported.prefs, k) == true || get(imported.prefs, k) == false : k == "iconStyle" ? get(imported.prefs, k) == null || contains(iconStyleChoices, get(imported.prefs, k)) : k == "iconOverlayOpacity" ? get(imported.prefs, k) == null || contains(iconOverlayChoices, get(imported.prefs, k)) : k == "faceFont" ? get(imported.prefs, k) == null || contains(faceFontChoices, get(imported.prefs, k)) : k == "headerAlignment" ? get(imported.prefs, k) == null || contains(headerAlignmentChoices, get(imported.prefs, k)) : k == "textTone" ? get(imported.prefs, k) == null || contains(textToneChoices, get(imported.prefs, k)) : k == "textContrast" ? get(imported.prefs, k) == null || contains(textContrastChoices, get(imported.prefs, k)) : k == "customTextHex" ? get(imported.prefs, k) == null || match(get(imported.prefs, k), "^#[0-9A-Fa-f]{6}$") != null : k == "shadeColorMode" ? get(imported.prefs, k) == null || contains(shadeColorChoices, get(imported.prefs, k)) : k == "shadeCustomHex" ? get(imported.prefs, k) == null || match(get(imported.prefs, k), "^#[0-9A-Fa-f]{6}$") != null : k == "timeFormat" ? get(imported.prefs, k) == null || get(imported.prefs, k) == "System" || contains(timeFormatChoices, get(imported.prefs, k)) : k == "alphabetSide" ? get(imported.prefs, k) == null || contains(["Left", "Right"], get(imported.prefs, k)) : k == "controlSide" ? get(imported.prefs, k) == null || contains(["Left", "Right"], get(imported.prefs, k)) : k == "closeSide" ? get(imported.prefs, k) == null || contains(["Follow search", "Left", "Right"], get(imported.prefs, k)) : k == "showSwipeCue" || k == "holidayEasterEggs" ? get(imported.prefs, k) == null || get(imported.prefs, k) == true || get(imported.prefs, k) == false : get(imported.prefs, k) == true || get(imported.prefs, k) == false || (k == "calculator" || k == "searchContacts" || k == "notificationTimes" || k == "mediaPlayer" || k == "musicShortcuts" || k == "noticeAutoPosition" || k == "compactPins" || k == "batteryPercentage" || k == "dateAbbreviated" || k == "shadeMediaCard" || k == "shadeNoticeCards" || k == "shadeButtons") && get(imported.prefs, k) == null) && sub(toJson(imported.zones), 0, 1) == "[" && all(imported.zones, z => contains(zoneChoices, z)) && sub(toJson(imported.hiddenApps ?? []), 0, 1) == "[" && sub(toJson(imported.musicApps ?? []), 0, 1) == "[" && sub(toJson(imported.compactAlerts ?? []), 0, 1) == "[" && sub(toJson(imported.hiddenNotifications ?? []), 0, 1) == "[" && sub(toJson(imported.manualMoves ?? []), 0, 1) == "[" && all(imported.manualMoves ?? [], m => m.key != null && m.anchor != null && contains(fullAlphabet, m.letter) && (m.after == true || m.after == false)) && sub(toJson(imported.rightAlignedApps ?? []), 0, 1) == "[" && (imported.layout == null || (num(get(imported.layout, "rail", 0)) != null && num(get(imported.layout, "header", 0)) != null && num(get(imported.layout, "notices", 0)) != null && (get(imported.layout, "compact", false) == true || get(imported.layout, "compact", false) == false) && (get(imported.layout, "musicExpanded", false) == true || get(imported.layout, "musicExpanded", false) == false) && num(get(imported.layout, "musicSize", 0)) != null && num(get(imported.layout, "musicSize", 0)) >= 0 && num(get(imported.layout, "musicSize", 0)) <= 80)) && sub(toJson(imported.pinnedApps ?? []), 0, 1) == "[" && sub(toJson(imported.pinLayouts ?? []), 0, 1) == "[" && all(imported.pinLayouts ?? [], p => p.key != null && (p.showLabel == null || p.showLabel == true || p.showLabel == false) && (p.newRow == null || p.newRow == true || p.newRow == false) && (p.alignRight == null || p.alignRight == true || p.alignRight == false)) && sub(toJson(imported.folders ?? []), 0, 1) == "[" && all(imported.folders ?? [], f => f.id != null && f.name != null && trim(f.name) != "" && len(f.name) <= 32 && sub(toJson(f.keys ?? []), 0, 1) == "[") && (imported.folderSerial == null || num(imported.folderSerial) >= 0 && num(imported.folderSerial) < 1000000000) {
+            if imported.version == 1 && all(keys(defaults), k => (k == "shadeHeaderOpacity" || k == "shadeAlphabetOpacity" || k == "shadeNoticeOpacity" || k == "shadeCardOpacity" || k == "shadeAppOpacity" || k == "shadeButtonOpacity") ? get(imported.prefs, k) == null || contains(range(101), get(imported.prefs, k)) : k == "staticScrollStep" ? get(imported.prefs, k) == null || contains(staticScrollStepChoices, get(imported.prefs, k)) : k == "sortMode" ? get(imported.prefs, k) == null || contains(sortModeChoices, get(imported.prefs, k)) || get(imported.prefs, k) == "Manual" : k == "noticeStartPercent" ? get(imported.prefs, k) == null || contains(range(6, 51), get(imported.prefs, k)) : k == "appScale" ? get(imported.prefs, k) == null || contains(appScaleChoices, get(imported.prefs, k)) : k == "hapticFeedback" ? get(imported.prefs, k) == null || contains(hapticChoices, get(imported.prefs, k)) : k == "bubbleBorder" ? get(imported.prefs, k) == null || get(imported.prefs, k) == true || get(imported.prefs, k) == false : k == "iconStyle" ? get(imported.prefs, k) == null || contains(iconStyleChoices, get(imported.prefs, k)) : k == "iconOverlayOpacity" ? get(imported.prefs, k) == null || contains(iconOverlayChoices, get(imported.prefs, k)) : k == "faceFont" ? get(imported.prefs, k) == null || contains(faceFontChoices, get(imported.prefs, k)) : k == "headerAlignment" ? get(imported.prefs, k) == null || contains(headerAlignmentChoices, get(imported.prefs, k)) : k == "textTone" ? get(imported.prefs, k) == null || contains(textToneChoices, get(imported.prefs, k)) : k == "textContrast" ? get(imported.prefs, k) == null || contains(textContrastChoices, get(imported.prefs, k)) : k == "customTextHex" ? get(imported.prefs, k) == null || match(get(imported.prefs, k), "^#[0-9A-Fa-f]{6}$") != null : k == "shadeColorMode" ? get(imported.prefs, k) == null || contains(shadeColorChoices, get(imported.prefs, k)) : k == "shadeCustomHex" ? get(imported.prefs, k) == null || match(get(imported.prefs, k), "^#[0-9A-Fa-f]{6}$") != null : k == "timeFormat" ? get(imported.prefs, k) == null || get(imported.prefs, k) == "System" || contains(timeFormatChoices, get(imported.prefs, k)) : k == "alphabetSide" ? get(imported.prefs, k) == null || contains(["Left", "Right"], get(imported.prefs, k)) : k == "controlSide" ? get(imported.prefs, k) == null || contains(["Left", "Right"], get(imported.prefs, k)) : k == "closeSide" ? get(imported.prefs, k) == null || contains(["Follow search", "Left", "Right"], get(imported.prefs, k)) : k == "showSwipeCue" || k == "holidayEasterEggs" ? get(imported.prefs, k) == null || get(imported.prefs, k) == true || get(imported.prefs, k) == false : get(imported.prefs, k) == true || get(imported.prefs, k) == false || (k == "calculator" || k == "searchContacts" || k == "notificationTimes" || k == "mediaPlayer" || k == "musicShortcuts" || k == "noticeAutoPosition" || k == "compactPins" || k == "batteryPercentage" || k == "dateAbbreviated" || k == "shadeMediaCard" || k == "shadeNoticeCards" || k == "shadeButtons" || k == "smoothAlphabet" || k == "staticScrolling" || k == "staticScrollVibrate") && get(imported.prefs, k) == null) && sub(toJson(imported.zones), 0, 1) == "[" && all(imported.zones, z => contains(zoneChoices, z)) && sub(toJson(imported.hiddenApps ?? []), 0, 1) == "[" && sub(toJson(imported.musicApps ?? []), 0, 1) == "[" && sub(toJson(imported.compactAlerts ?? []), 0, 1) == "[" && sub(toJson(imported.hiddenNotifications ?? []), 0, 1) == "[" && sub(toJson(imported.manualMoves ?? []), 0, 1) == "[" && all(imported.manualMoves ?? [], m => m.key != null && m.anchor != null && contains(fullAlphabet, m.letter) && (m.after == true || m.after == false)) && sub(toJson(imported.rightAlignedApps ?? []), 0, 1) == "[" && (imported.layout == null || (num(get(imported.layout, "rail", 0)) != null && num(get(imported.layout, "header", 0)) != null && num(get(imported.layout, "notices", 0)) != null && (get(imported.layout, "compact", false) == true || get(imported.layout, "compact", false) == false) && (get(imported.layout, "musicExpanded", false) == true || get(imported.layout, "musicExpanded", false) == false) && num(get(imported.layout, "musicSize", 0)) != null && num(get(imported.layout, "musicSize", 0)) >= 0 && num(get(imported.layout, "musicSize", 0)) <= 80)) && sub(toJson(imported.pinnedApps ?? []), 0, 1) == "[" && sub(toJson(imported.pinLayouts ?? []), 0, 1) == "[" && all(imported.pinLayouts ?? [], p => p.key != null && (p.showLabel == null || p.showLabel == true || p.showLabel == false) && (p.newRow == null || p.newRow == true || p.newRow == false) && (p.alignRight == null || p.alignRight == true || p.alignRight == false)) && sub(toJson(imported.folders ?? []), 0, 1) == "[" && all(imported.folders ?? [], f => f.id != null && f.name != null && trim(f.name) != "" && len(f.name) <= 32 && sub(toJson(f.keys ?? []), 0, 1) == "[") && (imported.folderSerial == null || num(imported.folderSerial) >= 0 && num(imported.folderSerial) < 1000000000) {
               letter = highlightedLetter; appTracking = false
               prefs = reduce(keys(defaults), (m, k) => set(m, k, k == "searchContacts" ? false : k == "textContrast" ? "High" : k == "timeFormat" && get(imported.prefs, k) == "System" ? "24-hour" : k == "sortMode" && get(imported.prefs, k) == "Manual" ? "Most used" : (get(imported.prefs, k) ?? get(defaults, k))), {})
               worldZones = unique(imported.zones ?? [])
