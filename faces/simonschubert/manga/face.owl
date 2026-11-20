@@ -234,7 +234,7 @@ face "manga" {
       date: "EEE d MMM"; inbox: "bildirim"; notifications: "bildirimler"; quiet: "ortalık sakin"; allow: "izin ver"
       nothing: "Yeni bir şey yok. Şehir uyuyor ya da uyuyormuş gibi yapıyor."
       tapAllow: "Sayfanın bildirimlerini okuması için dokun."
-      none: "yok"; uptime: "uptime"; pkgs: "paketler"; theme: "tema"; apps: n => "${n} uygulama"
+      none: "yok"; uptime: "uptime"; pkgs: "paket"; theme: "tema"; apps: n => "${n} uygulama"
       mem: "bellek"; disk: "disk"; bat: "pil"; free: b => "${b} boş"; comments: n => "${n} yorum"
       ago: s => s < 60 ? "şimdi" : s < 3600 ? "${floor(s / 60)} dk" : s < 86400 ? "${floor(s / 3600)} sa" : "${floor(s / 86400)} g"
       sky: (code, desc) => get({
@@ -257,7 +257,7 @@ face "manga" {
       date: "EEE d MMM"; inbox: "notifiche"; notifications: "notifiche"; quiet: "tutto tace"; allow: "consenti"
       nothing: "Niente di nuovo. La città dorme, o fa finta."
       tapAllow: "Tocca per far leggere le notifiche alla pagina."
-      none: "nessuno"; uptime: "uptime"; pkgs: "pacchetti"; theme: "tema"; apps: n => "${n} app"
+      none: "nessuno"; uptime: "uptime"; pkgs: "pacch."; theme: "tema"; apps: n => "${n} app"
       mem: "ram"; disk: "disco"; bat: "batteria"; free: b => "${b} liberi"; comments: n => "${n} comm."
       ago: s => s < 60 ? "ora" : s < 3600 ? "${floor(s / 60)} min" : s < 86400 ? "${floor(s / 3600)} h" : "${floor(s / 86400)} g"
       sky: (code, desc) => get({
