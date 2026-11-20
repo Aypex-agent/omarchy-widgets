@@ -1,0 +1,167 @@
+widget "Fusión 4096" {
+  size: 4x4
+  minSize: 4x4
+  meta {
+    owl: 18
+    description: "Merge matching tiles and reach 4096."
+    version: "1.0"
+    license: "MIT"
+    category: "games"
+  }
+  requires { pacman: [] }
+
+  strings {
+    en {
+      heading: "FUSION 4096"
+      confirmReset: "Restart?"
+      yes: "Yes"
+      no: "No"
+      noMoves: "No moves"
+      goal: "Goal reached!"
+      undo: "Undo"
+      restart: "Restart"
+    }
+    es {
+      heading: "FUSIÓN 4096"
+      confirmReset: "¿Reiniciar?"
+      yes: "Sí"
+      no: "No"
+      noMoves: "Sin jugadas"
+      goal: "¡Meta lograda!"
+      undo: "Deshacer"
+      restart: "Reiniciar"
+    }
+  }
+
+  background: #121020
+  padding: 10
+
+  let pixel = "https://raw.githubusercontent.com/google/fonts/main/ofl/pressstart2p/PressStart2P-Regular.ttf"
+  let gold = #ffdb76
+  let mint = #91f7da
+  let dim = #9387aa
+  let cells = range(16)
+  state tiles = range(16).map(i => i == 5 || i == 10 ? 2 : 0) persist
+  state score = 0 persist
+  state previous = null
+  state reset = false
+
+  // Read each line from the edge toward which the player is moving.
+  let orders = [
+    cells,
+    cells.map(i => 4 * floor(i / 4) + 3 - i % 4),
+    cells.map(i => 4 * (i % 4) + floor(i / 4)),
+    cells.map(i => 4 * (3 - i % 4) + floor(i / 4))
+  ]
+  let stuck = !contains(tiles, 0) && !any(cells, i => (i % 4 < 3 && tiles[i] == tiles[i + 1]) || (i < 12 && tiles[i] == tiles[i + 4]))
+  let colors = [#211a33, #304d85, #206c71, #3c5ca1, #674f96, #913d75, #a74562, #a34e42, #8a632e, #746526, #46713f, #287e74]
+
+  component Arrow(glyph, dir) {
+    Box {
+      weight: 1
+      height: 30
+      align: center
+      background: #2c2249
+      border: 1
+      borderColor: #8064bd
+      radius: 0
+      Text { text: glyph; color: mint; font: pixel; fontSize: 13; align: center; fill: width }
+      onTap: {
+        let order = orders[dir]
+        let lines = chunk(order.map(i => tiles[i]), 4)
+        let result = lines.map(line => reduce(line.filter(tile => tile > 0), (row, tile) =>
+          !row.locked && last(row.values) == tile
+            ? {values: set(row.values, -1, tile * 2), locked: true, points: row.points + tile * 2}
+            : {values: flatten([row.values, [tile]]), locked: false, points: row.points},
+          {values: [], locked: false, points: 0}))
+        let packed = flatten(result.map(row => range(4).map(i => row.values[i] ?? 0)))
+        let shifted = cells.map(i => packed[indexOf(order, i)])
+        if any(cells, i => shifted[i] != tiles[i]) {
+          let gaps = cells.filter(i => shifted[i] == 0)
+          previous = {tiles: tiles, score: score}
+          tiles = set(shifted, gaps[random(len(gaps))], random(10) == 0 ? 4 : 2)
+          score = score + sum(result.map(row => row.points))
+        }
+      }
+    }
+  }
+
+  Column {
+    gap: 4
+    Row {
+      align: center
+      height: 24
+      Text { text: str.heading; font: pixel; fontSize: 9; color: gold; weight: 1; maxLines: 1 }
+      Text { text: fmtNum(score); font: pixel; fontSize: 8; color: mint; maxLines: 1 }
+    }
+    Column {
+      weight: 1
+      fill: width
+      gap: 3
+      for row in chunk(tiles, 4) {
+        Row {
+          weight: 1
+          fill: width
+          gap: 3
+          for tile in row {
+            let tint = colors[len(range(11).filter(i => tile >= pow(2, i + 1)))]
+            Box {
+              weight: 1
+              fill: height
+              align: center
+              radius: 0
+              background: tint
+              border: 1
+              borderColor: mix(tint, #d3b4ff, tile == 0 ? 0.14 : 0.45)
+              if tile > 0 {
+                Canvas {
+                  fill: true
+                  rect(2, 2, width - 4, 2, fill: alpha(#ffffff, 0.20))
+                  rect(2, 4, 2, height - 7, fill: alpha(#ffffff, 0.12))
+                  rect(2, height - 4, width - 4, 2, fill: alpha(#000000, 0.28))
+                }
+                Text { text: str(tile); color: #fff4d9; fill: width; align: center; font: pixel; fontSize: tile >= 1000 ? 8 : 11; maxLines: 1 }
+              }
+            }
+          }
+        }
+      }
+    }
+    if reset {
+      Row {
+        align: center
+        Text { text: str.confirmReset; font: pixel; fontSize: 7; color: gold; weight: 1 }
+        Button {
+          text: str.yes
+          onTap: {
+            let picks = shuffle(cells)
+            tiles = cells.map(i => i == picks[0] || i == picks[1] ? 2 : 0)
+            previous = null
+            score = 0
+            reset = false
+          }
+        }
+        Button { text: str.no; onTap: reset = false }
+      }
+    } else {
+      Row {
+        align: center
+        Text { text: stuck ? str.noMoves : max(tiles) >= 4096 ? str.goal : str.undo; font: pixel; fontSize: 7; weight: 1; color: previous == null ? dim : mint; onTap: {
+          if previous != null {
+            tiles = previous.tiles
+            score = previous.score
+            previous = null
+          }
+        } }
+        Text { text: str.restart; font: pixel; fontSize: 7; color: gold; onTap: reset = true }
+      }
+    }
+    Row {
+      gap: 3
+      Arrow { glyph: "←"; dir: 0 }
+      Arrow { glyph: "↑"; dir: 2 }
+      Arrow { glyph: "↓"; dir: 3 }
+      Arrow { glyph: "→"; dir: 1 }
+    }
+  }
+}
