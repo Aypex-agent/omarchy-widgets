@@ -1,5 +1,5 @@
 widget "calendar" {
-  meta { description: "This month's calendar with today highlighted"; version: "1.2"; license: "MIT"; category: "productivity"; owl: 16 }
+  meta { description: "This month's calendar with today highlighted"; version: "1.3"; license: "MIT"; category: "productivity"; owl: 16 }
   size: 3x3
 
   // The month's title as each language writes it (the phone names the month), and the weekdays' letters from Monday.
@@ -14,6 +14,8 @@ widget "calendar" {
     ja { month: "yyyy年M月"; days: ["月", "火", "水", "木", "金", "土", "日"] }
     uk { month: "LLLL yyyy"; days: ["П", "В", "С", "Ч", "П", "С", "Н"] }
     fr { month: "MMMM yyyy"; days: ["L", "M", "M", "J", "V", "S", "D"] }
+    tr { month: "MMMM yyyy"; days: ["P", "S", "Ç", "P", "C", "C", "P"] }
+    it { month: "MMMM yyyy"; days: ["L", "M", "M", "G", "V", "S", "D"] }
   }
   source now = clock every 60s
   // Date math with only fmtTime: first weekday of the month, days in the month.

@@ -1,5 +1,5 @@
 widget "releases" {
-  meta { description: "The latest release of up to 8 GitHub repositories you pick; new ones stand out"; version: "1.4"; license: "MIT"; category: "dev"; owl: 16 }
+  meta { description: "The latest release of up to 8 GitHub repositories you pick; new ones stand out"; version: "1.5"; license: "MIT"; category: "dev"; owl: 16 }
   // What it says, in the phone's language where it has a set. Repos and tags come as GitHub has them.
   strings {
     en { title: "releases"; edit: "edit"; today: "today"; days: n => "${n}d"; hint: "owner/repo, up to 8, separated by spaces"; close: "close" }
@@ -12,6 +12,8 @@ widget "releases" {
     ja { title: "リリース"; edit: "編集"; today: "今日"; days: n => "${n} 日"; hint: "owner/repo を最大 8 個、スペース区切りで"; close: "閉じる" }
     uk { title: "релізи"; edit: "змінити"; today: "сьогодні"; days: n => "${n} д"; hint: "owner/repo, до 8, через пробіл"; close: "закрити" }
     fr { title: "versions"; edit: "modifier"; today: "auj."; days: n => "${n} j"; hint: "owner/repo, jusqu’à 8, séparés par des espaces"; close: "fermer" }
+    tr { title: "sürümler"; edit: "düzenle"; today: "bugün"; days: n => "${n} g"; hint: "owner/repo, en fazla 8, boşlukla ayrılmış"; close: "kapat" }
+    it { title: "versioni"; edit: "modifica"; today: "oggi"; days: n => "${n} g"; hint: "owner/repo, fino a 8, separati da spazi"; close: "chiudi" }
   }
   size: 6x3
   minSize: 3x2

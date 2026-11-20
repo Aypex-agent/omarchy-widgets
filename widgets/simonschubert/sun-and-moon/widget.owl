@@ -1,5 +1,5 @@
 widget "sun and moon" {
-  meta { description: "Sunrise, sunset, daylight left and tonight's moon phase, located by IP or a city you type, via wttr.in"; version: "1.10"; license: "MIT"; category: "world"; owl: 16 }
+  meta { description: "Sunrise, sunset, daylight left and tonight's moon phase, located by IP or a city you type, via wttr.in"; version: "1.11"; license: "MIT"; category: "world"; owl: 16 }
 
   // What it says, in the phone's language where it has a set; wttr names the moon's phase in English.
   strings {
@@ -87,6 +87,24 @@ widget "sun and moon" {
         "New Moon": "nouvelle lune", "Waxing Crescent": "premier croissant", "First Quarter": "premier quartier",
         "Waxing Gibbous": "gibbeuse croissante", "Full Moon": "pleine lune", "Waning Gibbous": "gibbeuse décroissante",
         "Last Quarter": "dernier quartier", "Waning Crescent": "dernier croissant"
+      }, p, lower(p))
+    }
+    tr {
+      title: "güneş ve ay"; short: "güneş ve ay"; city: "şehir · boş = otomatik"
+      sunriseIn: d => "gün doğumuna ${d}"; daylightLeft: d => "${d} gün ışığı kaldı"
+      phase: p => get({
+        "New Moon": "yeni ay", "Waxing Crescent": "büyüyen hilal", "First Quarter": "ilk dördün",
+        "Waxing Gibbous": "büyüyen şişkin ay", "Full Moon": "dolunay", "Waning Gibbous": "küçülen şişkin ay",
+        "Last Quarter": "son dördün", "Waning Crescent": "küçülen hilal"
+      }, p, lower(p))
+    }
+    it {
+      title: "sole e luna"; short: "sole e luna"; city: "città · vuoto = auto"
+      sunriseIn: d => "alba tra ${d}"; daylightLeft: d => "ancora ${d} di luce"
+      phase: p => get({
+        "New Moon": "luna nuova", "Waxing Crescent": "falce crescente", "First Quarter": "primo quarto",
+        "Waxing Gibbous": "gibbosa crescente", "Full Moon": "luna piena", "Waning Gibbous": "gibbosa calante",
+        "Last Quarter": "ultimo quarto", "Waning Crescent": "falce calante"
       }, p, lower(p))
     }
   }
