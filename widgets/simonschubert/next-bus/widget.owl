@@ -2,7 +2,7 @@ widget "next bus" {
   size: 6x2
   minSize: 4x2
   requires { pacman: [] }
-  meta { description: "Your next bus, tram or train, live, and whether you need to run for it: pick a stop, a line and how long you walk there, anywhere Transitous has open timetables. Tap the tile to change them"; version: "1.9"; license: "MIT"; category: "world"; owl: 17 }
+  meta { description: "Your next bus, tram or train, live, and whether you need to run for it: pick a stop, a line and how long you walk there, anywhere Transitous has open timetables. Tap the tile to change them"; version: "1.10"; license: "MIT"; category: "world"; owl: 17 }
 
   // What it says, in the phone's language where it has a set. Stops, lines and directions come as Transitous
   // names them. leaveNow and run sit in a 170dp column at 22 and 26sp: about 12 letters at most.
@@ -116,6 +116,28 @@ widget "next bus" {
       search: "cherche un arrêt"; change: "changer d’arrêt"; searching: "recherche…"; noStops: q => "aucun arrêt nommé « ${q} »"
       yourLine: "ta ligne"; anyLine: "n’importe quelle ligne"; whatever: "la première qui part"; walkTo: "à pied jusqu’à l’arrêt"
       data: "données : Transitous, à partir d’horaires ouverts. Les retards s’affichent quand l’exploitant publie les horaires en temps réel"
+    }
+    tr {
+      title: "sonraki otobüs"; relax: "acele yok"; leaveInMin: m => "${m} dk sonra çık"; leaveIn: "çıkmana kalan"; leaveNow: "hemen çık"
+      brisk: "hızlı yürü"; run: "koş!"; toStop: t => "durağa ${t}"
+      pick: "Durağını, hattını ve oraya kaç dakika yürüdüğünü seçmek için dokun."; nothing: "yakında kalkan yok"
+      to: d => "yön: ${d}"; walkMin: m => "${m} dk yürüme"; fromWalk: (stop, m) => "durak: ${stop} · ${m} dk yürüme"
+      min: "dk"; mins: m => "${m} dk"; yourStop: "durağın"; timetable: "tarifeye göre"; onTime: "zamanında"; then: "sonra"
+      noneLater: "henüz sonraki yok"; noLater: "henüz sonraki yok"; tooMany: "çok fazla istek"; offline: "transitous çevrimdışı"
+      search: "durak ara"; change: "durağı değiştir"; searching: "aranıyor…"; noStops: q => "“${q}” adında durak yok"
+      yourLine: "hattın"; anyLine: "herhangi bir hat"; whatever: "ilk kalkan hangisiyse"; walkTo: "durağa yürüme"
+      data: "veri: Transitous, açık tarifelerden. Gecikmeler, işletmecinin canlı saatleri yayımladığı yerlerde görünür"
+    }
+    it {
+      title: "prossimo bus"; relax: "tranquillo"; leaveInMin: m => "esci tra ${m} min"; leaveIn: "esci tra"; leaveNow: "esci ora!"
+      brisk: "cammina svelto"; run: "corri!"; toStop: t => "${t} alla fermata"
+      pick: "Tocca per scegliere la tua fermata, la linea e quanto cammini per arrivarci."; nothing: "nessuna partenza a breve"
+      to: d => "per ${d}"; walkMin: m => "${m} min a piedi"; fromWalk: (stop, m) => "da ${stop} · ${m} min a piedi"
+      min: "min"; mins: m => "${m} min"; yourStop: "la tua fermata"; timetable: "da orario"; onTime: "in orario"; then: "poi"
+      noneLater: "per ora nessun altro"; noLater: "per ora nessun altro"; tooMany: "troppe richieste"; offline: "transitous offline"
+      search: "cerca una fermata"; change: "cambia fermata"; searching: "ricerca…"; noStops: q => "nessuna fermata chiamata “${q}”"
+      yourLine: "la tua linea"; anyLine: "qualsiasi linea"; whatever: "il primo che parte"; walkTo: "a piedi fino alla fermata"
+      data: "dati: Transitous, da orari aperti. I ritardi compaiono dove l’operatore pubblica gli orari in tempo reale"
     }
   }
 

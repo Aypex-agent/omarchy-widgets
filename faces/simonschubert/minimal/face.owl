@@ -1,7 +1,7 @@
 face "minimal" {
   // A quiet page: a thin clock, the day as a hairline, one line about the phone and your apps as words.
 
-  meta { owl: 16; description: "A quiet page: a thin clock, the day as a hairline, one line about the phone and your most used apps as plain words"; version: "1.2"; license: "MIT"; category: "productivity" }
+  meta { owl: 16; description: "A quiet page: a thin clock, the day as a hairline, one line about the phone and your most used apps as plain words"; version: "1.3"; license: "MIT"; category: "productivity" }
 
   // What it says, in the phone's language where it has a set. Day and month names come from the phone.
   strings {
@@ -15,6 +15,8 @@ face "minimal" {
     ja { day: "M月d日 EEEE"; charging: n => "充電中 ${n}%"; alarm: t => "アラーム ${t}"; notifications: n => "通知 ${n} 件"; phone: "電話"; messages: "メッセージ"; search: "検索" }
     uk { day: "EEEE, d MMMM"; charging: n => "заряджання ${n}%"; alarm: t => "будильник ${t}"; notifications: n => "сповіщень: ${n}"; phone: "телефон"; messages: "повідомлення"; search: "пошук" }
     fr { day: "EEEE d MMMM"; charging: n => "en charge ${n} %"; alarm: t => "réveil ${t}"; notifications: n => n == 1 ? "1 notification" : "${n} notifications"; phone: "téléphone"; messages: "messages"; search: "rechercher" }
+    tr { day: "d MMMM EEEE"; charging: n => "şarj oluyor %${n}"; alarm: t => "alarm ${t}"; notifications: n => "${n} bildirim"; phone: "telefon"; messages: "mesajlar"; search: "ara" }
+    it { day: "EEEE d MMMM"; charging: n => "in carica ${n}%"; alarm: t => "sveglia ${t}"; notifications: n => n == 1 ? "1 notifica" : "${n} notifiche"; phone: "telefono"; messages: "messaggi"; search: "cerca" }
   }
 
   statusBar: false

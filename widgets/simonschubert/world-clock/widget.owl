@@ -1,5 +1,5 @@
 widget "world clock" {
-  meta { description: "A row of flip clocks with city nameplates. Tap it to add, rename, reorder or remove cities"; version: "1.11"; license: "MIT"; category: "time"; owl: 16 }
+  meta { description: "A row of flip clocks with city nameplates. Tap it to add, rename, reorder or remove cities"; version: "1.12"; license: "MIT"; category: "time"; owl: 16 }
 
   // What it says, in the phone's language where it has a set. Cities and countries come from the tz
   // database, in English, and are searched in English.
@@ -63,6 +63,18 @@ widget "world clock" {
       noneYet: "aucune pour l’instant, cherche une ville ci-dessous"; nameplate: "nom"; add: "ajouter une ville"
       search: "cherche une ville ou un pays"; loading: "chargement des lieux…"; nothing: "aucun résultat"
       days: ["jeu", "ven", "sam", "dim", "lun", "mar", "mer"]
+    }
+    tr {
+      title: "dünya saati"; local: "yerel"; noClocks: "henüz saat yok, eklemek için dokun"; clocks: "saatler"
+      noneYet: "henüz yok, aşağıda bir şehir ara"; nameplate: "ad"; add: "şehir ekle"
+      search: "şehir veya ülke ara"; loading: "yerler yükleniyor…"; nothing: "eşleşen yok"
+      days: ["per", "cum", "cmt", "paz", "pzt", "sal", "çar"]
+    }
+    it {
+      title: "orologio mondiale"; local: "qui"; noClocks: "ancora nessun orologio, tocca per aggiungerne uno"; clocks: "orologi"
+      noneYet: "ancora nessuno, cerca una città qui sotto"; nameplate: "nome"; add: "aggiungi una città"
+      search: "cerca una città o un paese"; loading: "caricamento luoghi…"; nothing: "nessun risultato"
+      days: ["gio", "ven", "sab", "dom", "lun", "mar", "mer"]
     }
   }
   size: 6x2

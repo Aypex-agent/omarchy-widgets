@@ -9,7 +9,7 @@ face "ukiyo-e" {
   meta {
     owl: 16
     description: "A woodblock print that follows the hour, the weather and the moon, the 72 seasons of the old Japanese calendar, your letters and apps"
-    version: "1.2"
+    version: "1.3"
     license: "MIT"
     category: "fun"
   }
@@ -465,6 +465,108 @@ face "ukiyo-e" {
         "521": "petit plein", "606": "grain en épi", "621": "solstice d’été", "707": "petite chaleur", "723": "grande chaleur",
         "808": "début de l’automne", "823": "fin des chaleurs", "908": "rosée blanche", "923": "équinoxe d’automne", "1008": "rosée froide",
         "1023": "chute du givre", "1107": "début de l’hiver", "1122": "petite neige", "1207": "grande neige", "1222": "solstice d’hiver"
+      }, "${md}", en)
+    }
+    tr {
+      date: "d MMMM EEEE"; weather: "hava durumu"; sun: "güneş"; moon: "ay"; letters: "mektuplar"; quiet: "gökyüzü sakin"; sets: t => "batış ${t}"; risesSets: "doğar ve batar"
+      allow: "Sayfanın bildirimleri okumasına izin ver; buraya mektup olarak gelsinler."
+      empty: "Bugün mektup yok. Yalnızca çamlarda rüzgâr."
+      now: "şimdi"; mins: n => "${n} dk"; hours: n => "${n} sa"; days: n => "${n} g"; weeks: n => "${n} hf"; years: n => "${n} y"
+      moonName: k => get({"new moon": "yeni ay", "waxing crescent": "büyüyen hilal", "first quarter": "ilk dördün", "waxing gibbous": "büyüyen şişkin ay", "full moon": "dolunay", "waning gibbous": "küçülen şişkin ay", "last quarter": "son dördün", "waning crescent": "küçülen hilal"}, k, k)
+      next: (d, m, what) => "sonra ${d} ${["Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"][m - 1]}: ${lower(what)}"
+      // next() lower()s these, and lower() isn't Turkish-aware: none of them starts with I or İ.
+      ko: (md, en) => get({
+        "204": "Doğu rüzgârı buzları eritiyor", "209": "Dağlarda çalı bülbülleri ötüyor", "214": "Balıklar buzun altından çıkıyor", "219": "Yağmur toprağı nemlendiriyor",
+        "224": "Pus asılı kalmaya başlıyor", "301": "Otlar filizleniyor, ağaçlar tomurcuklanıyor", "306": "Kış uykusundaki böcekler uyanıyor", "311": "Şeftaliler ilk çiçeğini açıyor",
+        "316": "Tırtıllar kelebeğe dönüşüyor", "321": "Serçeler yuva yapmaya başlıyor", "326": "Kirazlar ilk çiçeğini açıyor", "331": "Uzaklarda gök gürlüyor",
+        "405": "Kırlangıçlar dönüyor", "410": "Yaban kazları kuzeye uçuyor", "415": "Gökkuşakları ilk kez görünüyor", "420": "Sazlar filizlenmeye başlıyor",
+        "425": "Son kırağı, pirinç fideleri büyüyor", "430": "Şakayıklar çiçek açıyor", "505": "Kurbağalar ötmeye başlıyor", "510": "Solucanlar yüzeye çıkıyor",
+        "515": "Bambu filizleri boy veriyor", "521": "Dut yapraklarında ipekböcekleri ziyafette", "526": "Aspir çiçek açıyor", "531": "Buğday olgunlaşıyor, hasat başlıyor",
+        "606": "Peygamberdeveleri yumurtadan çıkıyor", "611": "Çürüyen otlar ateşböceğine dönüşüyor", "616": "Erikler sararıyor", "621": "Yara otu kuruyor",
+        "627": "Süsenler çiçek açıyor", "702": "Pinellia filizleniyor", "707": "Sıcak rüzgârlar esiyor", "712": "Nilüferler ilk çiçeğini açıyor",
+        "717": "Genç şahinler uçmayı öğreniyor", "723": "Pavlonyalar tohum veriyor", "729": "Toprak nemli, hava bunaltıcı", "803": "Zaman zaman sağanaklar yağıyor",
+        "808": "Serin rüzgârlar esiyor", "813": "Akşam ağustosböcekleri ötüyor", "818": "Yoğun sis çöküyor", "823": "Pamuk çiçekleri açıyor",
+        "828": "Sıcaklar dinmeye başlıyor", "902": "Pirinç olgunlaşıyor", "908": "Otların üstünde çiy beyaz parlıyor", "913": "Kuyruksallayanlar ötüyor",
+        "918": "Kırlangıçlar gidiyor", "923": "Gök gürültüsü diniyor", "928": "Böcekler toprağa gömülüyor", "1003": "Çiftçiler tarlaların suyunu boşaltıyor",
+        "1008": "Yaban kazları dönüyor", "1013": "Kasımpatılar çiçek açıyor", "1018": "Kapı önünde cırcırböcekleri ötüyor", "1023": "Kırağı düşmeye başlıyor",
+        "1028": "Zaman zaman çisenti yağıyor", "1102": "Akçaağaçlar ve sarmaşıklar sararıyor", "1107": "Kamelyalar çiçek açıyor", "1112": "Toprak donmaya başlıyor",
+        "1117": "Nergisler çiçek açıyor", "1122": "Gökkuşakları saklanıyor", "1127": "Kuzey rüzgârı yaprakları döküyor", "1202": "Tachibana turunçları sararıyor",
+        "1207": "Soğuk çöküyor, kış başlıyor", "1212": "Ayılar kış uykusu için inlerine çekiliyor", "1216": "Somonlar akıntıya karşı yüzüyor", "1222": "Yara otu filizleniyor",
+        "1227": "Geyikler boynuzlarını döküyor", "101": "Kar altında buğday filizleniyor", "105": "Maydanozlar serpiliyor", "110": "Pınarların buzu çözülüyor",
+        "115": "Sülünler ötmeye başlıyor", "120": "Kabalaklar tomurcuklanıyor", "125": "Derelerde buz kalınlaşıyor", "130": "Tavuklar yumurtlamaya başlıyor"
+      }, "${md}", en)
+      sky: (code, desc) => get({
+        "113": "açık", "116": "parçalı bulutlu", "119": "bulutlu", "122": "kapalı", "143": "pus",
+        "176": "yer yer yağmur", "179": "yer yer kar", "182": "yer yer sulu kar", "185": "yer yer donan çisenti",
+        "200": "gök gürültülü", "227": "kar savruluyor", "230": "tipi", "248": "sis", "260": "donan sis",
+        "263": "yer yer hafif çisenti", "266": "hafif çisenti", "281": "donan çisenti", "284": "kuvvetli donan çisenti",
+        "293": "yer yer hafif yağmur", "296": "hafif yağmur", "299": "ara ara orta yağmur", "302": "orta yağmur",
+        "305": "ara ara kuvvetli yağmur", "308": "kuvvetli yağmur", "311": "hafif donan yağmur", "314": "kuvvetli donan yağmur",
+        "317": "hafif sulu kar", "320": "kuvvetli sulu kar", "323": "yer yer hafif kar", "326": "hafif kar",
+        "329": "yer yer orta kar", "332": "orta kar", "335": "yer yer yoğun kar", "338": "yoğun kar",
+        "350": "buz taneleri", "353": "hafif sağanak", "356": "kuvvetli sağanak", "359": "şiddetli sağanak",
+        "362": "hafif sulu kar sağanağı", "365": "kuvvetli sulu kar sağanağı", "368": "hafif kar sağanağı",
+        "371": "kuvvetli kar sağanağı", "374": "hafif buz tanesi sağanağı", "377": "kuvvetli buz tanesi sağanağı",
+        "386": "hafif yağmur ve gök gürültüsü", "389": "kuvvetli yağmur ve gök gürültüsü", "392": "hafif kar ve gök gürültüsü",
+        "395": "yoğun kar ve gök gürültüsü"
+      }, code, lower(trim(desc)))
+      // Shown in capitals through upper(), which isn't Turkish-aware, so they come capitalised already.
+      sekki: (md, kanji, en) => get({
+        "101": "KIŞ GÜNDÖNÜMÜ", "105": "KÜÇÜK SOĞUK", "120": "BÜYÜK SOĞUK", "204": "BAHARIN BAŞLANGICI", "219": "YAĞMUR SUYU",
+        "306": "BÖCEKLER UYANIYOR", "321": "İLKBAHAR EKİNOKSU", "405": "SAF AYDINLIK", "420": "TAHIL YAĞMURU", "505": "YAZIN BAŞLANGICI",
+        "521": "KÜÇÜK OLGUNLUK", "606": "BAŞAK ZAMANI", "621": "YAZ GÜNDÖNÜMÜ", "707": "KÜÇÜK SICAK", "723": "BÜYÜK SICAK",
+        "808": "GÜZÜN BAŞLANGICI", "823": "SICAKLARIN SONU", "908": "BEYAZ ÇİY", "923": "SONBAHAR EKİNOKSU", "1008": "SOĞUK ÇİY",
+        "1023": "KIRAĞI DÜŞÜYOR", "1107": "KIŞIN BAŞLANGICI", "1122": "KÜÇÜK KAR", "1207": "BÜYÜK KAR", "1222": "KIŞ GÜNDÖNÜMÜ"
+      }, "${md}", en)
+    }
+    it {
+      date: "EEEE d MMMM"; weather: "meteo"; sun: "sole"; moon: "luna"; letters: "lettere"; quiet: "il cielo è calmo"; sets: t => "tramonta alle ${t}"; risesSets: "sorge e tramonta"
+      allow: "Lascia che la pagina legga le tue notifiche, e arriveranno qui come lettere."
+      empty: "Nessuna lettera oggi. Solo il vento tra i pini."
+      now: "ora"; mins: n => "${n} min"; hours: n => "${n} h"; days: n => "${n} g"; weeks: n => "${n} sett"; years: n => n < 2 ? "${n} anno" : "${n} anni"
+      moonName: k => get({"new moon": "luna nuova", "waxing crescent": "falce crescente", "first quarter": "primo quarto", "waxing gibbous": "gibbosa crescente", "full moon": "luna piena", "waning gibbous": "gibbosa calante", "last quarter": "ultimo quarto", "waning crescent": "falce calante"}, k, k)
+      next: (d, m, what) => "dal ${d == 1 ? "1°" : d} ${["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"][m - 1]}: ${lower(what)}"
+      ko: (md, en) => get({
+        "204": "Il vento d’est scioglie il ghiaccio", "209": "Gli usignoli cantano sui monti", "214": "I pesci escono dal ghiaccio", "219": "La pioggia inumidisce la terra",
+        "224": "La foschia comincia a indugiare", "301": "L’erba spunta, gli alberi germogliano", "306": "Gli insetti si risvegliano", "311": "Primi fiori di pesco",
+        "316": "I bruchi diventano farfalle", "321": "I passeri fanno il nido", "326": "Primi fiori di ciliegio", "331": "Tuono lontano",
+        "405": "Tornano le rondini", "410": "Le oche selvatiche volano a nord", "415": "Primi arcobaleni", "420": "Spuntano le prime canne",
+        "425": "Ultima brina, crescono le piantine di riso", "430": "Fioriscono le peonie", "505": "Le rane cominciano a cantare", "510": "I lombrichi affiorano",
+        "515": "Spuntano i germogli di bambù", "521": "I bachi da seta divorano il gelso", "526": "Fiorisce il cartamo", "531": "Il grano matura, si miete",
+        "606": "Nascono le mantidi", "611": "L’erba marcia diventa lucciole", "616": "Le prugne ingialliscono", "621": "La prunella appassisce",
+        "627": "Fioriscono gli iris", "702": "Spunta la pinellia", "707": "Soffiano venti caldi", "712": "Primi fiori di loto",
+        "717": "I giovani falchi imparano a volare", "723": "Le paulownie danno i semi", "729": "Terra umida, aria afosa", "803": "A volte cadono grandi piogge",
+        "808": "Soffiano venti freschi", "813": "Le cicale cantano la sera", "818": "Scende una fitta nebbia", "823": "Fiorisce il cotone",
+        "828": "Il caldo comincia a calare", "902": "Il riso matura", "908": "La rugiada brilla bianca sull’erba", "913": "Cantano le ballerine bianche",
+        "918": "Le rondini partono", "923": "Il tuono tace", "928": "Gli insetti si rintanano sottoterra", "1003": "I contadini prosciugano i campi",
+        "1008": "Tornano le oche selvatiche", "1013": "Fioriscono i crisantemi", "1018": "I grilli cantano alla porta", "1023": "Prime brinate",
+        "1028": "A volte cade una pioggia sottile", "1102": "Aceri ed edera ingialliscono", "1107": "Fioriscono le camelie", "1112": "La terra comincia a gelare",
+        "1117": "Fioriscono i narcisi", "1122": "Gli arcobaleni si nascondono", "1127": "Il vento del nord strappa le foglie", "1202": "Ingialliscono gli agrumi tachibana",
+        "1207": "Arriva il freddo, comincia l’inverno", "1212": "Gli orsi si ritirano in letargo", "1216": "I salmoni risalgono il fiume", "1222": "Spunta la prunella",
+        "1227": "I cervi perdono i palchi", "101": "Il grano germoglia sotto la neve", "105": "Il prezzemolo prospera", "110": "Le sorgenti si disgelano",
+        "115": "I fagiani cominciano a cantare", "120": "Germoglia il farfaraccio", "125": "Il ghiaccio s’ispessisce sui ruscelli", "130": "Le galline cominciano a deporre"
+      }, "${md}", en)
+      sky: (code, desc) => get({
+        "113": "sereno", "116": "parzialmente nuvoloso", "119": "nuvoloso", "122": "coperto", "143": "foschia",
+        "176": "pioggia sparsa", "179": "neve sparsa", "182": "nevischio sparso", "185": "pioviggine gelata sparsa",
+        "200": "temporali", "227": "neve e vento", "230": "bufera di neve", "248": "nebbia", "260": "nebbia gelata",
+        "263": "pioviggine debole sparsa", "266": "pioviggine debole", "281": "pioviggine gelata", "284": "forte pioviggine gelata",
+        "293": "pioggia debole sparsa", "296": "pioggia debole", "299": "a tratti pioggia moderata", "302": "pioggia moderata",
+        "305": "a tratti pioggia forte", "308": "pioggia forte", "311": "pioggia gelata debole", "314": "pioggia gelata forte",
+        "317": "nevischio debole", "320": "nevischio forte", "323": "neve debole sparsa", "326": "neve debole",
+        "329": "neve moderata sparsa", "332": "neve moderata", "335": "neve forte sparsa", "338": "neve forte",
+        "350": "granuli di ghiaccio", "353": "rovesci deboli", "356": "rovesci forti", "359": "rovesci torrenziali",
+        "362": "rovesci deboli di nevischio", "365": "rovesci forti di nevischio", "368": "rovesci deboli di neve",
+        "371": "rovesci forti di neve", "374": "rovesci deboli di granuli di ghiaccio", "377": "rovesci forti di granuli di ghiaccio",
+        "386": "pioggia debole e temporale", "389": "pioggia forte e temporale", "392": "neve debole e temporale",
+        "395": "neve forte e temporale"
+      }, code, lower(trim(desc)))
+      sekki: (md, kanji, en) => get({
+        "101": "solstizio d’inverno", "105": "piccolo freddo", "120": "grande freddo", "204": "inizio della primavera", "219": "acqua piovana",
+        "306": "risveglio degli insetti", "321": "equinozio di primavera", "405": "luce pura", "420": "pioggia dei cereali", "505": "inizio dell’estate",
+        "521": "piccola maturazione", "606": "grano in spiga", "621": "solstizio d’estate", "707": "piccolo caldo", "723": "grande caldo",
+        "808": "inizio dell’autunno", "823": "fine del caldo", "908": "rugiada bianca", "923": "equinozio d’autunno", "1008": "rugiada fredda",
+        "1023": "discesa della brina", "1107": "inizio dell’inverno", "1122": "piccola neve", "1207": "grande neve", "1222": "solstizio d’inverno"
       }, "${md}", en)
     }
   }

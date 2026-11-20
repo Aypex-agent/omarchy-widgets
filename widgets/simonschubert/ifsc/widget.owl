@@ -2,7 +2,7 @@ widget "ifsc" {
   meta {
     owl: 17
     description: "IFSC Climbing World Cup: the next event with a countdown, the latest podiums, live results and the cup standings for boulder, lead and speed. Tap for everything"
-    version: "1.3"
+    version: "1.4"
     license: "MIT"
     category: "sport"
   }
@@ -69,6 +69,18 @@ widget "ifsc" {
       cupLeaders: "en tête de la coupe"; loading: "chargement…"; noResults: "pas encore de résultats"; noStandings: "pas encore de classement"; results: "résultats"
       standings: "classement"; calendar: "calendrier"; final: "terminé"; fullResults: "tous les résultats sur ifsc.results.info"; close: "fermer"
       pts: p => "${p} pts"; now: "maint."; inDays: n => "dans ${n} j"; inTime: d => "dans ${d}"
+    }
+    tr {
+      live: "canlı"; dotLive: "● canlı"; next: n => "sıradaki · ${n}"; nowAt: n => "şimdi · ${n}"; lastAt: n => "son · ${n}"; seasonOver: "sezon bitti"
+      cupLeaders: "kupa liderleri"; loading: "yükleniyor…"; noResults: "henüz sonuç yok"; noStandings: "henüz sıralama yok"; results: "sonuçlar"
+      standings: "sıralama"; calendar: "takvim"; final: "bitti"; fullResults: "tüm sonuçlar: ifsc.results.info"; close: "kapat"
+      pts: p => "${p} puan"; now: "şimdi"; inDays: n => "${n} g sonra"; inTime: d => "${d} sonra"
+    }
+    it {
+      live: "live"; dotLive: "● live"; next: n => "prossima · ${n}"; nowAt: n => "in corso · ${n}"; lastAt: n => "ultima · ${n}"; seasonOver: "stagione finita"
+      cupLeaders: "in testa alla coppa"; loading: "caricamento…"; noResults: "ancora nessun risultato"; noStandings: "ancora nessuna classifica"; results: "risultati"
+      standings: "classifica"; calendar: "calendario"; final: "concluso"; fullResults: "tutti i risultati su ifsc.results.info"; close: "chiudi"
+      pts: p => "${p} pt"; now: "ora"; inDays: n => "tra ${n} g"; inTime: d => "tra ${d}"
     }
   }
   size: 6x4

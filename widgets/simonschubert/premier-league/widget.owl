@@ -2,7 +2,7 @@ widget "premier-league" {
   meta {
     owl: 17
     description: "Premier League results, live scores and kick-offs from ESPN with club crests, and the table with European and relegation places. Tap for every match"
-    version: "1.10"
+    version: "1.11"
     license: "MIT"
     category: "sport"
   }
@@ -19,6 +19,8 @@ widget "premier-league" {
     ja { matches: "試合"; table: "順位表"; loading: "読み込み中…"; none: "今週は試合がありません"; close: "閉じる"; live: n => "ライブ ${n}" }
     uk { matches: "матчі"; table: "таблиця"; loading: "завантаження…"; none: "цього тижня матчів немає"; close: "закрити"; live: n => "наживо: ${n}" }
     fr { matches: "matchs"; table: "classement"; loading: "chargement…"; none: "aucun match cette semaine"; close: "fermer"; live: n => "${n} live" }
+    tr { matches: "maçlar"; table: "puan durumu"; loading: "yükleniyor…"; none: "bu hafta maç yok"; close: "kapat"; live: n => "${n} canlı" }
+    it { matches: "partite"; table: "classifica"; loading: "caricamento…"; none: "nessuna partita questa settimana"; close: "chiudi"; live: n => "${n} live" }
   }
   size: 6x4
   minSize: 3x3

@@ -8,7 +8,7 @@ face "broadsheet" {
   meta {
     owl: 16
     description: "A broadsheet of the 1890s: Hacker News, BBC World and Arch news in columns, an engraving of the town, the weather as a woodcut, notices as classified ads and fastfetch as the stock tables"
-    version: "1.2"
+    version: "1.3"
     license: "MIT"
     category: "news"
   }
@@ -271,6 +271,58 @@ face "broadsheet" {
       exchange: "La Bourse"; stock: "VALEUR"; close: "CLÔTURE"; chg: "VAR."; unch: "inch."
       stockName: s => get({"Memory": "Mémoire", "Storage": "Stockage", "Battery": "Batterie", "Uptime": "Uptime", "Apps": "Applis", "Kernel": "Noyau", "Chip": "Puce", "Theme": "Thème"}, s, s)
       pkgs: n => "${n} paq."
+    }
+    tr {
+      title: t => t == "The Morning Herald" ? "Sabah Postası" : "Akşam Postası"
+      blackletter: false
+      edition: e => get({"Night Edition": "Gece Baskısı", "Morning Edition": "Sabah Baskısı", "Afternoon Edition": "Öğle Baskısı", "Evening Edition": "Akşam Baskısı", "Late Edition": "Son Baskı"}, e, e)
+      motto: "“Ekrana sığan bütün haberler.”"; est: "KURULUŞ 1890"
+      date: "d MMMM yyyy EEEE"; vol: r => "CİLT ${r}"; no: d => "Sayı ${d}"; price: "Beş Para"
+      sky: s => get({"thunder": "gök gürültülü", "snow": "kar", "showers": "sağanak", "rain": "yağmur", "fog": "sis", "cloudy": "bulutlu", "overcast": "kapalı", "fair to cloudy": "parçalı bulutlu", "clouding over": "bulutlanıyor", "fair": "güneşli", "clear": "açık"}, s, s)
+      wind: (d, s) => "rüzgâr ${replace(replace(replace(replace(d, "N", "K"), "E", "D"), "S", "G"), "W", "B")}, ${get({"calm": "durgun", "light": "hafif", "fresh": "sert", "a gale": "fırtına"}, s, s)}"
+      view: w => "ŞEHİR MANZARASI, ${get({"BY NIGHT": "GECE", "AT DAWN": "ŞAFAKTA", "THIS MORNING": "BU SABAH", "AT NOON": "ÖĞLEN", "THIS AFTERNOON": "BU ÖĞLEDEN SONRA", "AT DUSK": "ALACAKARANLIKTA"}, w, w)}.—Ressamımızın bir çiziminden."
+      presses: "MATBAA ÇALIŞIYOR."; firstEdition: "İlk baskımız telgrafla yola çıktı."
+      heads: host => "Manşette ${host} kaynaklı bir haber var"; special: "POSTA’YA ÖZEL."
+      quiet: "—Teller sessiz; muhabirlerimiz sabah telgraflarını bekliyor."
+      account: (by, pts, com, host) => "—Hacker News okurlarına Bay ${by} tarafından sunulan mesele, bu saate dek ${pts} oy ve ${com} yorum toplamış olup ilk sayfanın başında durmaktadır. Tam metni ${host} adresinde okunabilir; okurların yorumlarına ise bu sütuna uzun basarak ulaşılır."
+      meta: (host, pts, com) => "${host} · ${pts} oy · ${com} yorum"
+      dateline: t => t == null ? "LONDRA.—" : "LONDRA, ${t}.—"
+      fromHN: "Hacker News’ten"; continued: "Devamı"; telegraph: "Telgrafla"; notices: "Resmî Duyurular"
+      hnLate: "Mountain View hattı bu saatte gecikiyor."; cableSilent: "Kablo sessiz; telgraflar saat başı bekleniyor."
+      ads: "Küçük İlanlar"; wanted: "ARANIYOR."
+      wantedText: "Halkın mektuplarını bu sütuna taşıyacak, ahlakı düzgün bir bildirim okuru. Başvuru tek dokunuşla."
+      noAds: "Bugün idarehanemize hiç ilan ulaşmadı."; notice: "İLAN"
+      ago: (t, nw) => t == null ? "" : nw - t < 60 ? "şimdi" : nw - t < 3600 ? "${floor((nw - t) / 60)} dk önce" : nw - t < 86400 ? "${floor((nw - t) / 3600)} sa önce" : "${floor((nw - t) / 86400)} g önce"
+      more: n => "İç sayfalarda ${n} ilan daha."
+      exchange: "Borsa"; stock: "HİSSE"; close: "KAPANIŞ"; chg: "DEĞ."; unch: "sabit"
+      stockName: s => get({"Memory": "Bellek", "Storage": "Depolama", "Battery": "Pil", "Uptime": "Uptime", "Apps": "Uygulamalar", "Kernel": "Kernel", "Chip": "Çip", "Theme": "Tema"}, s, s)
+      pkgs: n => "${n} paket"
+    }
+    it {
+      title: t => t == "The Morning Herald" ? "L’Eco del Mattino" : "L’Eco della Sera"
+      blackletter: true
+      edition: e => get({"Night Edition": "Edizione notturna", "Morning Edition": "Edizione mattutina", "Afternoon Edition": "Edizione pomeridiana", "Evening Edition": "Edizione serale", "Late Edition": "Ultima edizione"}, e, e)
+      motto: "«Tutte le notizie che stanno sullo schermo.»"; est: "FONDATO NEL 1890"
+      date: "EEEE d MMMM yyyy"; vol: r => "ANNO ${r}"; no: d => "N. ${d}"; price: "Cinque centesimi"
+      sky: s => get({"thunder": "temporale", "snow": "neve", "showers": "rovesci", "rain": "pioggia", "fog": "nebbia", "cloudy": "nuvoloso", "overcast": "coperto", "fair to cloudy": "poco nuvoloso", "clouding over": "si rannuvola", "fair": "bel tempo", "clear": "sereno"}, s, s)
+      wind: (d, s) => "vento ${replace(d, "W", "O")}, ${get({"calm": "calmo", "light": "debole", "fresh": "teso", "a gale": "burrasca"}, s, s)}"
+      view: w => "VEDUTA DELLA CITTÀ ${get({"BY NIGHT": "DI NOTTE", "AT DAWN": "ALL’ALBA", "THIS MORNING": "STAMATTINA", "AT NOON": "A MEZZOGIORNO", "THIS AFTERNOON": "OGGI POMERIGGIO", "AT DUSK": "AL TRAMONTO"}, w, w)}.—Da un disegno del nostro artista."
+      presses: "LE ROTATIVE GIRANO."; firstEdition: "La nostra prima edizione arriva dal telegrafo."
+      heads: host => "Una notizia da ${host} apre la prima pagina"; special: "SERVIZIO SPECIALE DELL’ECO."
+      quiet: "—I fili tacciono, e i nostri corrispondenti attendono i dispacci del mattino."
+      account: (by, pts, com, host) => "—La faccenda, sottoposta ai lettori di Hacker News dal sig. ${by}, aveva raccolto a quest’ora ${pts} voti e ${com} commenti, e guida la prima pagina. Il resoconto completo si trova presso ${host}; i commenti dei lettori, con una lunga pressione su questa colonna."
+      meta: (host, pts, com) => "${host} · ${pts} voti · ${com} commenti"
+      dateline: t => t == null ? "LONDRA.—" : "LONDRA, ${t}.—"
+      fromHN: "Da Hacker News"; continued: "Continua"; telegraph: "Per telegrafo"; notices: "Avvisi ufficiali"
+      hnLate: "Il filo da Mountain View è in ritardo a quest’ora."; cableSilent: "Il cavo tace; i dispacci sono attesi di ora in ora."
+      ads: "Annunci economici"; wanted: "CERCASI."
+      wantedText: "Lettore di notifiche, di buona condotta, per portare a questa colonna le lettere del pubblico. Presentarsi con un tocco."
+      noAds: "Nessun annuncio è giunto oggi alla nostra redazione."; notice: "avviso"
+      ago: (t, nw) => t == null ? "" : nw - t < 60 ? "ora" : nw - t < 3600 ? "${floor((nw - t) / 60)} min fa" : nw - t < 86400 ? "${floor((nw - t) / 3600)} h fa" : "${floor((nw - t) / 86400)} g fa"
+      more: n => n == 1 ? "Un altro nelle pagine interne." : "Altri ${n} nelle pagine interne."
+      exchange: "La Borsa"; stock: "TITOLO"; close: "CHIUSURA"; chg: "VAR."; unch: "inv."
+      stockName: s => get({"Memory": "RAM", "Storage": "Memoria", "Battery": "Batteria", "Uptime": "Uptime", "Apps": "App", "Kernel": "Kernel", "Chip": "Chip", "Theme": "Tema"}, s, s)
+      pkgs: n => "${n} pacch."
     }
   }
 

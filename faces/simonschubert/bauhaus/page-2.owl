@@ -85,6 +85,24 @@ face "bauhaus today" {
       noNotifications: "aucune notification"
       ago: s => s < 60 ? "maint." : s < 3600 ? "${floor(s / 60)} min" : s < 86400 ? "${floor(s / 3600)} h" : s < 604800 ? "${floor(s / 86400)} j" : s < 31536000 ? "${floor(s / 604800)} sem" : (floor(s / 31536000) < 2 ? "1 an" : "${floor(s / 31536000)} ans")
     }
+    tr {
+      today: "bugün"; notifications: n => "${n} bildirim"; music: "müzik"
+      nothingPlaying: "çalan bir şey yok"; nowPlaying: "şimdi çalıyor"; paused: "duraklatıldı"
+      allowMusic: "müziği burada görmek için bildirim erişimine izin ver"
+      playHint: "bir şey çal, burada görünsün"
+      allowNotes: "bildirimleri burada görmek için erişime izin ver"; allClear: "yeni bir şey yok"
+      noNotifications: "bildirim yok"
+      ago: s => s < 60 ? "şimdi" : s < 3600 ? "${floor(s / 60)} dk" : s < 86400 ? "${floor(s / 3600)} sa" : s < 604800 ? "${floor(s / 86400)} g" : s < 31536000 ? "${floor(s / 604800)} hf" : "${floor(s / 31536000)} y"
+    }
+    it {
+      today: "oggi"; notifications: n => n == 1 ? "1 notifica" : "${n} notifiche"; music: "musica"
+      nothingPlaying: "niente in riproduzione"; nowPlaying: "in riproduzione"; paused: "in pausa"
+      allowMusic: "consenti l’accesso alle notifiche per vedere qui la musica"
+      playHint: "fai partire qualcosa e compare qui"
+      allowNotes: "consenti l’accesso alle notifiche per vederle qui"; allClear: "niente di nuovo"
+      noNotifications: "nessuna notifica"
+      ago: s => s < 60 ? "ora" : s < 3600 ? "${floor(s / 60)} min" : s < 86400 ? "${floor(s / 3600)} h" : s < 604800 ? "${floor(s / 86400)} g" : s < 31536000 ? "${floor(s / 604800)} sett" : (floor(s / 31536000) < 2 ? "1 anno" : "${floor(s / 31536000)} anni")
+    }
   }
 
   source now = clock every 1m

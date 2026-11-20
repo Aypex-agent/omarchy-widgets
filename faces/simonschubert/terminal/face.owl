@@ -1,7 +1,7 @@
 face "terminal" {
   // A shell session over digital rain: each command's output is the phone's state, live.
 
-  meta { owl: 19; description: "A hacker's terminal over digital rain: the date, uptime, battery, weather and notifications as command output, your apps as an ls, and a prompt that finds an app as you type"; version: "1.4"; license: "MIT"; category: "fun" }
+  meta { owl: 19; description: "A hacker's terminal over digital rain: the date, uptime, battery, weather and notifications as command output, your apps as an ls, and a prompt that finds an app as you type"; version: "1.5"; license: "MIT"; category: "fun" }
 
   // The output in the phone's language where it has a set; the commands stay as typed in any shell. The date
   // keeps its pattern: the phone names the day and month. "up" is what uptime itself prints, kept where the script is Latin.
@@ -55,6 +55,16 @@ face "terminal" {
       uptime: (up, used, total, free) => "up ${up} · mém ${used}/${total} · disque ${free} libre"
       bat: "bat"; charging: "en charge"; connecting: "connexion…"; denied: "tail: accès refusé (touche pour autoriser)"
       empty: "(vide)"; noMatch: "aucune appli ; enter demande à l’agent"; placeholder: "nom de l’appli"; wake: "réveille-toi, neo…"
+    }
+    tr {
+      uptime: (up, used, total, free) => "up ${up} · bellek ${used}/${total} · disk ${free} boş"
+      bat: "pil"; charging: "şarj oluyor"; connecting: "bağlanıyor…"; denied: "tail: izin yok (izin vermek için dokun)"
+      empty: "(boş)"; noMatch: "eşleşen uygulama yok; enter ajana sorar"; placeholder: "bir uygulama adı yaz"; wake: "uyan, neo…"
+    }
+    it {
+      uptime: (up, used, total, free) => "up ${up} · ram ${used}/${total} · disco ${free} liberi"
+      bat: "bat"; charging: "in carica"; connecting: "connessione…"; denied: "tail: permesso negato (tocca per concedere)"
+      empty: "(vuoto)"; noMatch: "nessuna app corrisponde; enter chiede all’agente"; placeholder: "scrivi il nome di un’app"; wake: "svegliati, neo…"
     }
   }
   // The rain steps a whole row at a time, at most 14 rows a second: 20 frames a second show every step.

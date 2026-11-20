@@ -6,7 +6,7 @@ face "control" {
   meta {
     owl: 23
     description: "Mission control: live CPU, memory, storage and latency, processes you can kill, a shell, a terminal, your inbox, phone switches and an agent prompt"
-    version: "1.4"
+    version: "1.5"
     license: "MIT"
     category: "system"
   }
@@ -363,6 +363,80 @@ face "control" {
       openHint: "touche pour ouvrir · reste appuyé pour fermer"
       now: "maint."; minutes: n => "${n} min"; hours: n => "${n} h"; days: n => "${n} j"; weeks: n => "${n} sem"; years: n => n < 2 ? "${n} an" : "${n} ans"
       runOnly: "!commande à lancer"; ask: a => "demande à ${a} · !commande"
+    }
+    tr {
+      day: "d MMMM EEEE"
+      sky: (code, desc) => get({
+        "113": "açık", "116": "parçalı bulutlu", "119": "bulutlu", "122": "kapalı", "143": "pus",
+        "176": "yer yer yağmur", "179": "yer yer kar", "182": "yer yer sulu kar", "185": "yer yer donan çisenti",
+        "200": "gök gürültülü", "227": "kar savruluyor", "230": "tipi", "248": "sis", "260": "donan sis",
+        "263": "yer yer hafif çisenti", "266": "hafif çisenti", "281": "donan çisenti", "284": "kuvvetli donan çisenti",
+        "293": "yer yer hafif yağmur", "296": "hafif yağmur", "299": "ara ara orta yağmur", "302": "orta yağmur",
+        "305": "ara ara kuvvetli yağmur", "308": "kuvvetli yağmur", "311": "hafif donan yağmur", "314": "kuvvetli donan yağmur",
+        "317": "hafif sulu kar", "320": "kuvvetli sulu kar", "323": "yer yer hafif kar", "326": "hafif kar",
+        "329": "yer yer orta kar", "332": "orta kar", "335": "yer yer yoğun kar", "338": "yoğun kar",
+        "350": "buz taneleri", "353": "hafif sağanak", "356": "kuvvetli sağanak", "359": "şiddetli sağanak",
+        "362": "hafif sulu kar sağanağı", "365": "kuvvetli sulu kar sağanağı", "368": "hafif kar sağanağı",
+        "371": "kuvvetli kar sağanağı", "374": "hafif buz tanesi sağanağı", "377": "kuvvetli buz tanesi sağanağı",
+        "386": "hafif yağmur ve gök gürültüsü", "389": "kuvvetli yağmur ve gök gürültüsü", "392": "hafif kar ve gök gürültüsü",
+        "395": "yoğun kar ve gök gürültüsü"
+      }, code, lower(trim(desc)))
+      up: d => "uptime ${d}"; updates: n => "↑ ${n} güncelleme"; dnd: "rahatsız etme"; saver: "tasarruf"
+      ringer: r => get({"vibrate": "titreşim", "silent": "sessiz"}, r, r)
+      mem: "RAM"; disk: "DİSK"; bat: "PİL"; cores: n => "${n} çekirdek"; free: b => "${b} boş"
+      word: w => get({
+        "charging": "şarj oluyor", "plugged in": "takılı", "on battery": "pille çalışıyor", "good": "iyi",
+        "overheating": "aşırı ısınma", "dead": "arızalı", "over voltage": "aşırı voltaj", "cold": "soğuk",
+        "failing": "zayıflıyor", "wireless": "kablosuz", "dock": "yuva"
+      }, w, w)
+      cpu3m: "CPU 3 DK"; offline: "çevrimdışı"
+      procs: "süreçler"; net: "ağ"; term: "terminal"; inbox: "bildirim"; inboxN: n => "bildirim ${n}"
+      process: "SÜREÇ"; running: n => "${n} çalışıyor"; off: "kapalı"; endHint: "sonlandırmak için bir sürece dokun"
+      latency: "GECİKME MS"; stats: (lo, mean, hi) => "min ${lo} · ort ${mean} · maks ${hi}"; measuring: "ölçülüyor…"
+      public: "GENEL IP"; interfaces: "ARAYÜZLER"
+      command: "bir komut çalıştır…"; busy: "çalışıyor…"; outputHint: "çıktı burada görünür. kayıtlı bir komutu unutmak için ona uzun bas."
+      termHint: "yazmak için dokun · bırakmak için dışarıya ya da Geri tuşuna dokun"
+      allowHint: "bildirimleri burada görmek için erişime izin ver"; allow: "izin ver"; inboxZero: "hepsi okundu"
+      openHint: "açmak için dokun · kapatmak için basılı tut"
+      now: "şimdi"; minutes: n => "${n} dk"; hours: n => "${n} sa"; days: n => "${n} g"; weeks: n => "${n} hf"; years: n => "${n} y"
+      runOnly: "!çalıştırılacak komut"; ask: a => "${a} ajanına sor · !komut"
+    }
+    it {
+      day: "EEEE d MMMM"
+      sky: (code, desc) => get({
+        "113": "sereno", "116": "parzialmente nuvoloso", "119": "nuvoloso", "122": "coperto", "143": "foschia",
+        "176": "pioggia sparsa", "179": "neve sparsa", "182": "nevischio sparso", "185": "pioviggine gelata sparsa",
+        "200": "temporali", "227": "neve e vento", "230": "bufera di neve", "248": "nebbia", "260": "nebbia gelata",
+        "263": "pioviggine debole sparsa", "266": "pioviggine debole", "281": "pioviggine gelata", "284": "forte pioviggine gelata",
+        "293": "pioggia debole sparsa", "296": "pioggia debole", "299": "a tratti pioggia moderata", "302": "pioggia moderata",
+        "305": "a tratti pioggia forte", "308": "pioggia forte", "311": "pioggia gelata debole", "314": "pioggia gelata forte",
+        "317": "nevischio debole", "320": "nevischio forte", "323": "neve debole sparsa", "326": "neve debole",
+        "329": "neve moderata sparsa", "332": "neve moderata", "335": "neve forte sparsa", "338": "neve forte",
+        "350": "granuli di ghiaccio", "353": "rovesci deboli", "356": "rovesci forti", "359": "rovesci torrenziali",
+        "362": "rovesci deboli di nevischio", "365": "rovesci forti di nevischio", "368": "rovesci deboli di neve",
+        "371": "rovesci forti di neve", "374": "rovesci deboli di granuli di ghiaccio", "377": "rovesci forti di granuli di ghiaccio",
+        "386": "pioggia debole e temporale", "389": "pioggia forte e temporale", "392": "neve debole e temporale",
+        "395": "neve forte e temporale"
+      }, code, lower(trim(desc)))
+      up: d => "uptime ${d}"; updates: n => n == 1 ? "↑ 1 aggiornamento" : "↑ ${n} aggiornamenti"; dnd: "non disturbare"; saver: "risparmio"
+      ringer: r => get({"vibrate": "vibrazione", "silent": "silenzioso"}, r, r)
+      mem: "RAM"; disk: "DISCO"; bat: "BAT"; cores: n => "${n} core"; free: b => "${b} liberi"
+      word: w => get({
+        "charging": "in carica", "plugged in": "collegato", "on battery": "a batteria", "good": "buono",
+        "overheating": "surriscaldamento", "dead": "guasto", "over voltage": "sovratensione", "cold": "freddo",
+        "failing": "difettoso", "wireless": "wireless", "dock": "dock"
+      }, w, w)
+      cpu3m: "CPU 3 MIN"; offline: "offline"
+      procs: "processi"; net: "rete"; term: "terminale"; inbox: "notifiche"; inboxN: n => "notifiche ${n}"
+      process: "PROCESSO"; running: n => n == 1 ? "1 attivo" : "${n} attivi"; off: "off"; endHint: "tocca un processo per terminarlo"
+      latency: "LATENZA MS"; stats: (lo, mean, hi) => "min ${lo} · media ${mean} · max ${hi}"; measuring: "misuro…"
+      public: "IP PUBBLICO"; interfaces: "INTERFACCE"
+      command: "esegui un comando…"; busy: "in corso…"; outputHint: "l’output compare qui. tieni premuto un comando salvato per dimenticarlo."
+      termHint: "tocca per scrivere · tocca fuori o Indietro per uscire"
+      allowHint: "consenti l’accesso alle notifiche per vederle qui"; allow: "consenti"; inboxZero: "tutto letto"
+      openHint: "tocca per aprire · tieni premuto per chiudere"
+      now: "ora"; minutes: n => "${n} min"; hours: n => "${n} h"; days: n => "${n} g"; weeks: n => "${n} sett"; years: n => n < 2 ? "${n} anno" : "${n} anni"
+      runOnly: "!comando da eseguire"; ask: a => "chiedi a ${a} · !comando"
     }
   }
 

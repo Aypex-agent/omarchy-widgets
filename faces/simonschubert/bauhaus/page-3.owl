@@ -64,6 +64,18 @@ face "bauhaus phone" {
       mobileData: "données"; signal: "signal"; uptime: "uptime"; quiet: "silence"; torch: "lampe"; on: "activé"
       off: "désactivé"; muted: "muet"; volume: n => "volume ${n} %"
     }
+    tr {
+      phone: "telefon"; battery: "pil"; charging: "şarj oluyor"; onBattery: "pilde"; memory: "bellek"
+      storage: "depolama"; free: x => "${x} boş"; down: "alınan /s"; up: "gönderilen /s"; noSim: "sim yok"
+      mobileData: "mobil veri"; signal: "sinyal"; uptime: "uptime"; quiet: "sessiz"; torch: "fener"; on: "açık"
+      off: "kapalı"; muted: "sessiz"; volume: n => "ses %${n}"
+    }
+    it {
+      phone: "telefono"; battery: "batteria"; charging: "in carica"; onBattery: "a batteria"; memory: "memoria"
+      storage: "spazio"; free: x => "${x} liberi"; down: "ricevuti /s"; up: "inviati /s"; noSim: "niente sim"
+      mobileData: "dati mobili"; signal: "segnale"; uptime: "uptime"; quiet: "silenzio"; torch: "torcia"; on: "on"
+      off: "off"; muted: "muto"; volume: n => "volume ${n}%"
+    }
   }
 
   source now = clock every 1m

@@ -1,5 +1,5 @@
 widget "forecast" {
-  meta { description: "Three-day weather forecast with an hourly temperature curve, located by IP or a city you type, via wttr.in"; version: "1.11"; license: "MIT"; category: "world"; owl: 16 }
+  meta { description: "Three-day weather forecast with an hourly temperature curve, located by IP or a city you type, via wttr.in"; version: "1.12"; license: "MIT"; category: "world"; owl: 16 }
 
   // What it says, in the phone's language where it has a set. wttr names the sky in English, so other
   // languages name it from wttr's weather codes, as the today widget does.
@@ -169,6 +169,42 @@ widget "forecast" {
         "371": "fortes averses de neige", "374": "averses de grésil légères", "377": "fortes averses de grésil",
         "386": "pluie légère et orage", "389": "forte pluie et orage", "392": "neige légère et orage",
         "395": "forte neige et orage"
+      }, code, lower(trim(desc)))
+    }
+    tr {
+      title: "hava tahmini"; today: "bugün"; city: "şehir · boş = otomatik"
+      sky: (code, desc) => get({
+        "113": "açık", "116": "parçalı bulutlu", "119": "bulutlu", "122": "kapalı", "143": "pus",
+        "176": "yer yer yağmur", "179": "yer yer kar", "182": "yer yer sulu kar", "185": "yer yer donan çisenti",
+        "200": "gök gürültülü", "227": "kar savruluyor", "230": "tipi", "248": "sis", "260": "donan sis",
+        "263": "yer yer hafif çisenti", "266": "hafif çisenti", "281": "donan çisenti", "284": "kuvvetli donan çisenti",
+        "293": "yer yer hafif yağmur", "296": "hafif yağmur", "299": "ara ara orta yağmur", "302": "orta yağmur",
+        "305": "ara ara kuvvetli yağmur", "308": "kuvvetli yağmur", "311": "hafif donan yağmur", "314": "kuvvetli donan yağmur",
+        "317": "hafif sulu kar", "320": "kuvvetli sulu kar", "323": "yer yer hafif kar", "326": "hafif kar",
+        "329": "yer yer orta kar", "332": "orta kar", "335": "yer yer yoğun kar", "338": "yoğun kar",
+        "350": "buz taneleri", "353": "hafif sağanak", "356": "kuvvetli sağanak", "359": "şiddetli sağanak",
+        "362": "hafif sulu kar sağanağı", "365": "kuvvetli sulu kar sağanağı", "368": "hafif kar sağanağı",
+        "371": "kuvvetli kar sağanağı", "374": "hafif buz tanesi sağanağı", "377": "kuvvetli buz tanesi sağanağı",
+        "386": "hafif yağmur ve gök gürültüsü", "389": "kuvvetli yağmur ve gök gürültüsü", "392": "hafif kar ve gök gürültüsü",
+        "395": "yoğun kar ve gök gürültüsü"
+      }, code, lower(trim(desc)))
+    }
+    it {
+      title: "previsioni"; today: "oggi"; city: "città · vuoto = auto"
+      sky: (code, desc) => get({
+        "113": "sereno", "116": "parzialmente nuvoloso", "119": "nuvoloso", "122": "coperto", "143": "foschia",
+        "176": "pioggia sparsa", "179": "neve sparsa", "182": "nevischio sparso", "185": "pioviggine gelata sparsa",
+        "200": "temporali", "227": "neve e vento", "230": "bufera di neve", "248": "nebbia", "260": "nebbia gelata",
+        "263": "pioviggine debole sparsa", "266": "pioviggine debole", "281": "pioviggine gelata", "284": "forte pioviggine gelata",
+        "293": "pioggia debole sparsa", "296": "pioggia debole", "299": "a tratti pioggia moderata", "302": "pioggia moderata",
+        "305": "a tratti pioggia forte", "308": "pioggia forte", "311": "pioggia gelata debole", "314": "pioggia gelata forte",
+        "317": "nevischio debole", "320": "nevischio forte", "323": "neve debole sparsa", "326": "neve debole",
+        "329": "neve moderata sparsa", "332": "neve moderata", "335": "neve forte sparsa", "338": "neve forte",
+        "350": "granuli di ghiaccio", "353": "rovesci deboli", "356": "rovesci forti", "359": "rovesci torrenziali",
+        "362": "rovesci deboli di nevischio", "365": "rovesci forti di nevischio", "368": "rovesci deboli di neve",
+        "371": "rovesci forti di neve", "374": "rovesci deboli di granuli di ghiaccio", "377": "rovesci forti di granuli di ghiaccio",
+        "386": "pioggia debole e temporale", "389": "pioggia forte e temporale", "392": "neve debole e temporale",
+        "395": "neve forte e temporale"
       }, code, lower(trim(desc)))
     }
   }

@@ -1,5 +1,5 @@
 widget "lobsters" {
-  meta { description: "The hottest stories on Lobsters with score, comments and tags; tap a story to read it"; version: "1.3"; license: "MIT"; category: "news"; owl: 16 }
+  meta { description: "The hottest stories on Lobsters with score, comments and tags; tap a story to read it"; version: "1.4"; license: "MIT"; category: "news"; owl: 16 }
   size: 6x4
   minSize: 4x3
 
@@ -15,6 +15,8 @@ widget "lobsters" {
     ja { pts: n => "${n} pt"; comments: n => "コメント ${n}" }
     uk { pts: n => "${n} бал."; comments: n => "${n} комент." }
     fr { pts: n => "${n} pts"; comments: n => "${n} comm." }
+    tr { pts: n => "${n} puan"; comments: n => "${n} yorum" }
+    it { pts: n => "${n} pt"; comments: n => n == 1 ? "1 commento" : "${n} commenti" }
   }
 
   source feed = http("https://lobste.rs/hottest.json") every 15m json timeout 15s

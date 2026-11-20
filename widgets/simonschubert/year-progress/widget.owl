@@ -1,5 +1,5 @@
 widget "year progress" {
-  meta { description: "How much of today, this week, this month and this year has passed"; version: "1.8"; license: "MIT"; category: "time"; owl: 16 }
+  meta { description: "How much of today, this week, this month and this year has passed"; version: "1.9"; license: "MIT"; category: "time"; owl: 16 }
 
   // What the bars are called, in the phone's language where it has a set.
   strings {
@@ -13,6 +13,8 @@ widget "year progress" {
     ja { day: "今日"; week: "今週"; month: "今月"; year: "今年" }
     uk { day: "день"; week: "тиждень"; month: "місяць"; year: "рік" }
     fr { day: "jour"; week: "semaine"; month: "mois"; year: "année" }
+    tr { day: "gün"; week: "hafta"; month: "ay"; year: "yıl" }
+    it { day: "giorno"; week: "settimana"; month: "mese"; year: "anno" }
   }
   size: 3x3
   minSize: 3x2

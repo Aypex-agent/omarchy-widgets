@@ -6,7 +6,7 @@ face "manga" {
   meta {
     owl: 16
     description: "A manga page: a halftone city that follows the hour and the weather, your newest notification, a close-up, fastfetch and Hacker News"
-    version: "1.6"
+    version: "1.7"
     license: "MIT"
     category: "fun"
   }
@@ -233,7 +233,7 @@ face "manga" {
     tr {
       date: "EEE d MMM"; inbox: "bildirim"; notifications: "bildirimler"; quiet: "ortalık sakin"; allow: "izin ver"
       nothing: "Yeni bir şey yok. Şehir uyuyor ya da uyuyormuş gibi yapıyor."
-      tapAllow: "Sayfanın bildirimlerini okuması için dokun."
+      tapAllow: "Sayfanın bildirimleri okuması için dokun."
       none: "yok"; uptime: "uptime"; pkgs: "paket"; theme: "tema"; apps: n => "${n} uygulama"
       mem: "bellek"; disk: "disk"; bat: "pil"; free: b => "${b} boş"; comments: n => "${n} yorum"
       ago: s => s < 60 ? "şimdi" : s < 3600 ? "${floor(s / 60)} dk" : s < 86400 ? "${floor(s / 3600)} sa" : "${floor(s / 86400)} g"

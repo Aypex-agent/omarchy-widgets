@@ -63,6 +63,17 @@ face "boulevard" {
       playSomething: "Lance un morceau, ou touche le disque pour ouvrir ton lecteur."
       allowMedia: "Appuie sur une touche pour que le launcher voie ce qui joue."
     }
+    tr {
+      // upper() isn't Turkish-aware: the two labels it shows in capitals come capitalised already.
+      nowPlaying: "ŞİMDİ ÇALIYOR"; nothingOn: "çalan bir şey yok"; noAccess: "erişim yok"; watchlist: "TAKİP LİSTESİ"; oneDay: "1 g"
+      playSomething: "Bir şey çal ya da oynatıcını açmak için plağa dokun."
+      allowMedia: "Başlatıcı neyin çaldığını görsün diye bir tuşa dokun."
+    }
+    it {
+      nowPlaying: "in riproduzione"; nothingOn: "niente in onda"; noAccess: "nessun accesso"; watchlist: "preferiti"; oneDay: "1 g"
+      playSomething: "Fai partire qualcosa, o tocca il disco per aprire il tuo player."
+      allowMedia: "Tocca un tasto per far vedere al launcher cosa sta suonando."
+    }
   }
 
   background: background

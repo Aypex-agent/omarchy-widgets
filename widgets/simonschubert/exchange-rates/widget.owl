@@ -1,5 +1,5 @@
 widget "exchange rates" {
-  meta { description: "Daily exchange rates from the European Central Bank with a 30-day trend; tap to pick the currencies"; version: "1.4"; license: "MIT"; category: "finance"; owl: 16 }
+  meta { description: "Daily exchange rates from the European Central Bank with a 30-day trend; tap to pick the currencies"; version: "1.5"; license: "MIT"; category: "finance"; owl: 16 }
   // What it says, in the phone's language where it has a set. Currency codes and rates stay as they are.
   strings {
     en { title: "exchange rates"; hint: "currency codes, the base first"; quoted: (b, l) => "${b} in ${l}"; close: "close" }
@@ -12,6 +12,8 @@ widget "exchange rates" {
     ja { title: "為替レート"; hint: "通貨コード（基準通貨を先頭に）"; quoted: (b, l) => "${b} → ${l}"; close: "閉じる" }
     uk { title: "курси валют"; hint: "коди валют, базова першою"; quoted: (b, l) => "${b} у ${l}"; close: "закрити" }
     fr { title: "taux de change"; hint: "codes de devise, la base d’abord"; quoted: (b, l) => "${b} en ${l}"; close: "fermer" }
+    tr { title: "döviz kurları"; hint: "para birimi kodları, önce temel birim"; quoted: (b, l) => "${b} karşılığı: ${l}"; close: "kapat" }
+    it { title: "tassi di cambio"; hint: "codici valuta, prima la base"; quoted: (b, l) => "${b} in ${l}"; close: "chiudi" }
   }
   size: 6x2
   minSize: 3x2

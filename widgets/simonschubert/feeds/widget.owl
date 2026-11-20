@@ -1,5 +1,5 @@
 widget "feeds" {
-  meta { description: "The newest posts from the RSS and Atom feeds listed in ~/.config/omarchy-proot/feeds, starting with Arch Linux news"; version: "1.2"; license: "MIT"; category: "news"; owl: 16 }
+  meta { description: "The newest posts from the RSS and Atom feeds listed in ~/.config/omarchy-proot/feeds, starting with Arch Linux news"; version: "1.3"; license: "MIT"; category: "news"; owl: 16 }
   // What it says, in the phone's language where it has a set. Posts and feed names come as the feeds have them.
   strings {
     en { title: "feeds"; edit: "edit"; empty: "nothing loaded: tap edit to check the feed list"; minutes: n => "${n}m"; hours: n => "${n}h"; days: n => "${n}d" }
@@ -12,6 +12,8 @@ widget "feeds" {
     ja { title: "フィード"; edit: "編集"; empty: "何も読み込めませんでした。「編集」をタップしてフィードの一覧を確認してください"; minutes: n => "${n} 分"; hours: n => "${n} 時間"; days: n => "${n} 日" }
     uk { title: "стрічки"; edit: "змінити"; empty: "нічого не завантажено: натисніть «змінити» й перевірте список стрічок"; minutes: n => "${n} хв"; hours: n => "${n} год"; days: n => "${n} д" }
     fr { title: "flux"; edit: "modifier"; empty: "rien de chargé : touche modifier pour vérifier la liste des flux"; minutes: n => "${n} min"; hours: n => "${n} h"; days: n => "${n} j" }
+    tr { title: "akışlar"; edit: "düzenle"; empty: "hiçbir şey yüklenmedi: akış listesini kontrol etmek için düzenle’ye dokun"; minutes: n => "${n} dk"; hours: n => "${n} sa"; days: n => "${n} g" }
+    it { title: "feed"; edit: "modifica"; empty: "niente caricato: tocca modifica per controllare l’elenco dei feed"; minutes: n => "${n} min"; hours: n => "${n} h"; days: n => "${n} g" }
   }
   size: 6x4
   minSize: 4x3

@@ -2,7 +2,7 @@ widget "now-playing" {
   size: 6x2
   minSize: 3x2
   requires { pacman: [] }
-  meta { description: "What's playing on your phone, from any music or podcast app: album art, track, progress and play, pause and skip. Tap the tile to open the app"; version: "1.12"; license: "MIT"; category: "media"; owl: 23 }
+  meta { description: "What's playing on your phone, from any music or podcast app: album art, track, progress and play, pause and skip. Tap the tile to open the app"; version: "1.13"; license: "MIT"; category: "media"; owl: 23 }
   fps: modes.saver ? 15 : 30
   source modes = android.modes
 
@@ -47,6 +47,14 @@ widget "now-playing" {
     fr {
       title: "en lecture"; nothing: "rien en lecture"; start: "mets de la musique dans une appli"
       allow: "Autorise l’accès aux notifications pour que le launcher voie ce qui passe. Touche pour ouvrir le réglage."
+    }
+    tr {
+      title: "şimdi çalıyor"; nothing: "çalan bir şey yok"; start: "herhangi bir uygulamada müzik başlat"
+      allow: "Neyin çaldığını görmek için bildirim erişimine izin ver. Ayarı açmak için dokun."
+    }
+    it {
+      title: "in riproduzione"; nothing: "niente in riproduzione"; start: "avvia la musica in un’app"
+      allow: "Consenti l’accesso alle notifiche perché il launcher veda cosa suona. Tocca per aprire l’impostazione."
     }
   }
 

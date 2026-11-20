@@ -1,5 +1,5 @@
 widget "github" {
-  meta { description: "Unread GitHub notifications, reviews waiting on you and your open pull requests, via the GitHub CLI"; version: "1.8"; license: "MIT"; category: "dev"; owl: 16 }
+  meta { description: "Unread GitHub notifications, reviews waiting on you and your open pull requests, via the GitHub CLI"; version: "1.9"; license: "MIT"; category: "dev"; owl: 16 }
 
   // What it says, in the phone's language where it has a set.
   strings {
@@ -13,6 +13,8 @@ widget "github" {
     ja { notSignedIn: "GitHub CLI にサインインしていません"; signIn: "サインイン"; unread: "未読"; reviews: "レビュー"; mine: "自分の PR" }
     uk { notSignedIn: "вхід у GitHub CLI не виконано"; signIn: "увійти"; unread: "нові"; reviews: "рев'ю"; mine: "мої pr" }
     fr { notSignedIn: "la CLI GitHub n’est pas connectée"; signIn: "se connecter"; unread: "non lues"; reviews: "reviews"; mine: "mes pr" }
+    tr { notSignedIn: "GitHub CLI’da oturum açılmamış"; signIn: "oturum aç"; unread: "okunmamış"; reviews: "incelemeler"; mine: "pr’larım" }
+    it { notSignedIn: "la CLI di GitHub non è connessa"; signIn: "accedi"; unread: "non lette"; reviews: "revisioni"; mine: "le mie pr" }
   }
   size: 6x4
   minSize: 3x3

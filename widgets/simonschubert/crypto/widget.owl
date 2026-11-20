@@ -1,5 +1,5 @@
 widget "bitcoin" {
-  meta { description: "Bitcoin from CoinGecko: price, change over 1 hour, 24 hours and 7 days, the day's range and a 7-day chart. Tap it for market cap, volume, supply and the all-time high"; version: "2.8"; license: "MIT"; category: "finance"; owl: 17 }
+  meta { description: "Bitcoin from CoinGecko: price, change over 1 hour, 24 hours and 7 days, the day's range and a 7-day chart. Tap it for market cap, volume, supply and the all-time high"; version: "2.9"; license: "MIT"; category: "finance"; owl: 17 }
 
   // What it says, in the phone's language where it has a set. Prices stay in US dollars, written the US way.
   strings {
@@ -82,6 +82,22 @@ widget "bitcoin" {
       ath: "record historique"; rank: "rang"; byCap: "par capitalisation"; supply: "offre"
       mined: m => "${m} M minés"; of: m => "sur ${m} M"; toGo: (p, k) => "${p} % minés, encore ${k} k btc"
       open: "ouvrir sur coingecko"; updated: t => "données : coingecko · mis à jour à ${t} utc"
+    }
+    tr {
+      busy: "coingecko meşgul, tekrar deneniyor"; offline: "coingecko çevrimdışı"; h1: "1sa"; h24: "24sa"; d7: "7g"
+      hour: "1 saat"; day: "24 saat"; week: "7 gün"; last7: "son 7 gün"; now: "şimdi"; daysAgo: d => "${d}g"
+      market: "piyasa"; cap: "piyasa değeri"; today: p => "bugün %${p}"; volume: "24 sa hacim"; ofCap: p => "piyasa değerinin %${p} kadarı"
+      ath: "tüm zamanların zirvesi"; rank: "sıra"; byCap: "piyasa değerine göre"; supply: "arz"
+      mined: m => "${m} mn çıkarıldı"; of: m => "toplam ${m} mn"; toGo: (p, k) => "%${p} çıkarıldı, ${k} bin btc kaldı"
+      open: "coingecko’da aç"; updated: t => "veri: coingecko · güncelleme ${t} utc"
+    }
+    it {
+      busy: "coingecko è sovraccarico, riprovo"; offline: "coingecko offline"; h1: "1h"; h24: "24h"; d7: "7g"
+      hour: "1 ora"; day: "24 ore"; week: "7 giorni"; last7: "ultimi 7 giorni"; now: "ora"; daysAgo: d => "${d}g"
+      market: "mercato"; cap: "capitalizzazione"; today: p => "${p}% oggi"; volume: "volume 24h"; ofCap: p => "${p}% della capitalizzazione"
+      ath: "massimo storico"; rank: "posizione"; byCap: "per capitalizzazione"; supply: "offerta"
+      mined: m => "${m} mln estratti"; of: m => "su ${m} mln"; toGo: (p, k) => "${p}% estratti, mancano ${k} mila btc"
+      open: "apri su coingecko"; updated: t => "dati: coingecko · aggiornati alle ${t} utc"
     }
   }
   size: 3x3

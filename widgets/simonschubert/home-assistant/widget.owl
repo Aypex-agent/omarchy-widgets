@@ -1,5 +1,5 @@
 widget "home assistant" {
-  meta { description: "Home Assistant entities with their states; tap a light or switch to toggle it. Set up in ~/.config/omarchy-proot/home-assistant"; version: "1.4"; license: "MIT"; owl: 16; category: "home" }
+  meta { description: "Home Assistant entities with their states; tap a light or switch to toggle it. Set up in ~/.config/omarchy-proot/home-assistant"; version: "1.5"; license: "MIT"; owl: 16; category: "home" }
   // What it says, in the phone's language where it has a set. Entity names and states come as Home Assistant has them.
   strings {
     en { unreachable: "unreachable"; unset: "can't reach it: tap to set the URL, token and entities" }
@@ -12,6 +12,8 @@ widget "home assistant" {
     ja { unreachable: "接続不可"; unset: "接続できません：タップして URL、トークン、エンティティを設定" }
     uk { unreachable: "недоступно"; unset: "немає зв’язку: натисніть, щоб указати URL, токен і сутності" }
     fr { unreachable: "injoignable"; unset: "injoignable : touche pour régler l’URL, le jeton et les entités" }
+    tr { unreachable: "erişilemiyor"; unset: "erişilemiyor: URL, token ve varlıkları ayarlamak için dokun" }
+    it { unreachable: "non raggiungibile"; unset: "non raggiungibile: tocca per impostare URL, token ed entità" }
   }
   size: 6x3
   minSize: 3x2

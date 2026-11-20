@@ -1,5 +1,5 @@
 widget "air and pollen" {
-  meta { description: "Air quality and today's pollen where you are, from Open-Meteo (Copernicus), located by IP or a city you type, via wttr.in. Tap it for the next 24 hours, pollutants and every pollen type"; version: "1.10"; license: "MIT"; category: "world"; owl: 17 }
+  meta { description: "Air quality and today's pollen where you are, from Open-Meteo (Copernicus), located by IP or a city you type, via wttr.in. Tap it for the next 24 hours, pollutants and every pollen type"; version: "1.11"; license: "MIT"; category: "world"; owl: 17 }
 
   // What it says, in the phone's language where it has a set. us and eu are the two indexes' levels, good
   // to worst, in each agency's words where it has them; advice goes with them, pollen is none to high.
@@ -147,6 +147,34 @@ widget "air and pollen" {
       ozone: "ozone"; uvIndex: "indice uv"; pollenLong: "pollen · prochaines 24 heures"
       europeOnlyLong: "open-meteo ne prévoit le pollen qu’en europe."; peak: v => "max. ${v}"
       data: "données : copernicus atmosphere monitoring service via open-meteo"
+    }
+    tr {
+      title: "hava ve polen"; air: "hava"; city: "şehir · boş = otomatik"; unknown: "konum bilinmiyor"; offline: "open-meteo çevrimdışı"
+      us: ["iyi", "orta", "hassaslar için kötü", "sağlıksız", "çok sağlıksız", "tehlikeli"]
+      eu: ["iyi", "makul", "orta", "kötü", "çok kötü", "son derece kötü"]
+      advice: ["dışarıda vakit geçirmek için ideal", "dışarıdaki her zamanki planların için uygun", "hassas kişiler dışarıda kendini fazla yormasın", "dışarıda daha hafif etkinlikleri düşün", "dışarıdaki etkinliklerini azalt", "dışarıda etkinlikten kaçın"]
+      pollen: ["yok", "düşük", "orta", "yüksek"]
+      plant: k => get({"birch": "huş", "alder": "kızılağaç", "olive": "zeytin", "grass": "çimen", "mugwort": "pelin", "ragweed": "ambrosia"}, k, k)
+      plantLevel: (plant, level) => "${plant} ${level}"; pollenLevel: (plant, level) => "${plant} poleni ${level}"
+      noPollen: "polen yok"; uv: v => "uv ${v}"; pollenShort: "polen · sonraki 24 sa"; europeOnly: "burada polen tahmini yok (yalnızca avrupa)"
+      noneInAir: "havada polen yok"; next24: "önümüzdeki 24 saat"; now: "şimdi"; pollutants: "şu anki kirleticiler · µg/m³"
+      ozone: "ozon"; uvIndex: "uv indeksi"; pollenLong: "polen · önümüzdeki 24 saat"
+      europeOnlyLong: "open-meteo yalnızca avrupa için polen tahmini veriyor."; peak: v => "zirve ${v}"
+      data: "veri: copernicus atmosphere monitoring service, open-meteo üzerinden"
+    }
+    it {
+      title: "aria e pollini"; air: "aria"; city: "città · vuoto = auto"; unknown: "posizione sconosciuta"; offline: "open-meteo offline"
+      us: ["buona", "moderata", "dannosa per alcuni", "dannosa", "molto dannosa", "pericolosa"]
+      eu: ["buona", "discreta", "moderata", "scadente", "molto scadente", "estremamente scadente"]
+      advice: ["ideale per stare all’aperto", "va bene per i tuoi soliti programmi all’aperto", "le persone sensibili farebbero bene a non sforzarsi all’aperto", "valuta attività meno intense all’aperto", "riduci le attività all’aperto", "evita le attività all’aperto"]
+      pollen: ["nessuno", "basso", "medio", "alto"]
+      plant: k => get({"birch": "betulla", "alder": "ontano", "olive": "olivo", "grass": "graminacee", "mugwort": "artemisia", "ragweed": "ambrosia"}, k, k)
+      plantLevel: (plant, level) => "${plant}: ${level}"; pollenLevel: (plant, level) => "polline di ${plant}: ${level}"
+      noPollen: "niente pollini"; uv: v => "uv ${v}"; pollenShort: "pollini · prossime 24 h"; europeOnly: "qui niente previsioni dei pollini (solo europa)"
+      noneInAir: "nessuno nell’aria"; next24: "prossime 24 ore"; now: "ora"; pollutants: "inquinanti ora · µg/m³"
+      ozone: "ozono"; uvIndex: "indice uv"; pollenLong: "pollini · prossime 24 ore"
+      europeOnlyLong: "open-meteo prevede i pollini solo in europa."; peak: v => "picco ${v}"
+      data: "dati: copernicus atmosphere monitoring service via open-meteo"
     }
   }
   size: 3x2

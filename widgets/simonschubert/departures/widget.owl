@@ -2,7 +2,7 @@ widget "departures" {
   size: 3x2
   minSize: 2x1
   requires { pacman: [] }
-  meta { description: "Live departures from a stop you pick, anywhere Transitous has open timetables: line, direction, platform and minutes to go, with delays. Tap the tile for the full board or to change the stop"; version: "1.11"; license: "MIT"; category: "world"; owl: 17 }
+  meta { description: "Live departures from a stop you pick, anywhere Transitous has open timetables: line, direction, platform and minutes to go, with delays. Tap the tile for the full board or to change the stop"; version: "1.12"; license: "MIT"; category: "world"; owl: 17 }
 
   // What it says, in the phone's language where it has a set. Stops, lines, directions and modes come as Transitous names them.
   strings {
@@ -65,6 +65,18 @@ widget "departures" {
       tooMany: "trop de requêtes"; offline: "transitous hors ligne"; search: "cherche un arrêt"; change: "changer d’arrêt"
       searching: "recherche…"; noStops: q => "aucun arrêt nommé « ${q} »"; next: "prochains départs"; refresh: "actualiser"
       data: "données : Transitous, à partir d’horaires ouverts. Les retards s’affichent quand l’exploitant publie les horaires en temps réel"
+    }
+    tr {
+      title: "kalkışlar"; pick: "Durak seçmek için dokun."; noneSoon: "yakında kalkış yok"; now: "şimdi"; min: "dk"
+      tooMany: "çok fazla istek"; offline: "transitous çevrimdışı"; search: "durak ara"; change: "durağı değiştir"
+      searching: "aranıyor…"; noStops: q => "“${q}” adında durak yok"; next: "sonraki kalkışlar"; refresh: "yenile"
+      data: "veri: Transitous, açık tarifelerden. Gecikmeler, işletmecinin canlı saatleri yayımladığı yerlerde görünür"
+    }
+    it {
+      title: "partenze"; pick: "Tocca per scegliere una fermata."; noneSoon: "nessuna partenza a breve"; now: "ora"; min: "min"
+      tooMany: "troppe richieste"; offline: "transitous offline"; search: "cerca una fermata"; change: "cambia fermata"
+      searching: "ricerca…"; noStops: q => "nessuna fermata chiamata “${q}”"; next: "prossime partenze"; refresh: "aggiorna"
+      data: "dati: Transitous, da orari aperti. I ritardi compaiono dove l’operatore pubblica gli orari in tempo reale"
     }
   }
 

@@ -1,5 +1,5 @@
 widget "habits" {
-  meta { description: "A daily habit tracker: tap a habit to check it off for today, with the last week and your streak. Habits are listed in ~/.config/omarchy-proot/habits"; version: "1.3"; license: "MIT"; category: "productivity"; owl: 16 }
+  meta { description: "A daily habit tracker: tap a habit to check it off for today, with the last week and your streak. Habits are listed in ~/.config/omarchy-proot/habits"; version: "1.4"; license: "MIT"; category: "productivity"; owl: 16 }
   size: 6x3
   minSize: 4x2
 
@@ -15,6 +15,8 @@ widget "habits" {
     ja { title: "習慣"; edit: "編集"; days: n => "${n}日" }
     uk { title: "звички"; edit: "змінити"; days: n => "${n}д" }
     fr { title: "habitudes"; edit: "modifier"; days: n => "${n}j" }
+    tr { title: "alışkanlıklar"; edit: "düzenle"; days: n => "${n}g" }
+    it { title: "abitudini"; edit: "modifica"; days: n => "${n}g" }
   }
 
   // One habit per line in the file. Check-ins are kept by the launcher as "habit@yyyy-MM-dd".

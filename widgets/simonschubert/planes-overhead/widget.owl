@@ -1,5 +1,5 @@
 widget "planes overhead" {
-  meta { description: "Aircraft around you on a live radar, from the OpenSky Network, located by IP or a city you type, via wttr.in. Tap it for every flight's altitude, speed and distance"; version: "1.9"; license: "MIT"; category: "world"; owl: 17 }
+  meta { description: "Aircraft around you on a live radar, from the OpenSky Network, located by IP or a city you type, via wttr.in. Tap it for every flight's altitude, speed and distance"; version: "1.10"; license: "MIT"; category: "world"; owl: 17 }
 
   // What it says, in the phone's language where it has a set. Callsigns and OpenSky's country names stay as they come.
   strings {
@@ -72,6 +72,20 @@ widget "planes overhead" {
       clear: r => "aucun avion à moins de ${r}"; away: (call, d) => "${call} · à ${d}"
       flights: (n, r, place) => "${n} ${n < 2 ? "vol" : "vols"} à moins de ${r} de ${place}"
       data: "données : opensky network"; map: "carte en direct ↗"
+    }
+    tr {
+      title: "yakındaki uçaklar"; city: "şehir · boş = otomatik"; locating: "konum bulunuyor…"; unknown: "konum bilinmiyor"
+      listening: "dinleniyor…"; limit: "opensky’nin günlük sınırı doldu"; offline: "opensky çevrimdışı"
+      clear: r => "${r} içinde uçak yok"; away: (call, d) => "${call} · ${d} uzakta"
+      flights: (n, r, place) => "${place}: ${r} içinde ${n} uçuş"
+      data: "veri: opensky network"; map: "canlı harita ↗"
+    }
+    it {
+      title: "aerei sopra di te"; city: "città · vuoto = auto"; locating: "localizzazione…"; unknown: "posizione sconosciuta"
+      listening: "in ascolto…"; limit: "il limite giornaliero di opensky è esaurito"; offline: "opensky offline"
+      clear: r => "nessun aereo entro ${r}"; away: (call, d) => "${call} · a ${d}"
+      flights: (n, r, place) => "${n} ${n == 1 ? "volo" : "voli"} entro ${r} da ${place}"
+      data: "dati: opensky network"; map: "mappa in diretta ↗"
     }
   }
   size: 3x3

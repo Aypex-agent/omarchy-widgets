@@ -2,7 +2,7 @@ widget "nba" {
   meta {
     owl: 17
     description: "NBA scores from ESPN with team logos: live games first, then last night's finals and today's tip-offs. Tap for every game and both conference standings"
-    version: "1.5"
+    version: "1.6"
     license: "MIT"
     category: "sport"
   }
@@ -19,6 +19,8 @@ widget "nba" {
     ja { scores: "スコア"; standings: "順位表"; loading: "読み込み中…"; none: "今日は試合がありません"; close: "閉じる"; live: n => "ライブ ${n}"; col: "差" }
     uk { scores: "результати"; standings: "таблиця"; loading: "завантаження…"; none: "сьогодні ігор немає"; close: "закрити"; live: n => "наживо: ${n}"; col: "GB" }
     fr { scores: "scores"; standings: "classement"; loading: "chargement…"; none: "aucun match aujourd’hui"; close: "fermer"; live: n => "${n} live"; col: "GB" }
+    tr { scores: "skorlar"; standings: "puan durumu"; loading: "yükleniyor…"; none: "bugün maç yok"; close: "kapat"; live: n => "${n} canlı"; col: "GB" }
+    it { scores: "risultati"; standings: "classifica"; loading: "caricamento…"; none: "nessuna partita oggi"; close: "chiudi"; live: n => "${n} live"; col: "GB" }
   }
   size: 6x4
   minSize: 3x3

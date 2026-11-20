@@ -8,7 +8,7 @@ face "bauhaus" {
   meta {
     owl: 16
     description: "A Bauhaus poster in three pages: Linux, Claude Code and Grok sessions and limits; notifications, music and apps; the phone's battery, storage, network and switches"
-    version: "1.2"
+    version: "1.3"
     license: "MIT"
     category: "dev"
   }
@@ -137,6 +137,32 @@ face "bauhaus" {
       quiet: "calme"; noSessions: "pas encore de session d’agent"; noLinuxYet: "pas encore de linux"
       since: x => x == "maint." ? "à l’instant" : "il y a ${x}"
       ago: s => s < 60 ? "maint." : s < 3600 ? "${floor(s / 60)} min" : s < 86400 ? "${floor(s / 3600)} h" : s < 604800 ? "${floor(s / 86400)} j" : s < 31536000 ? "${floor(s / 604800)} sem" : (floor(s / 31536000) < 2 ? "1 an" : "${floor(s / 31536000)} ans")
+    }
+    tr {
+      what: "linux · ajanlar"; notInstalled: "yüklü değil"; packages: "paketler"; explicit: n => "${n} elle yüklenen"
+      installHint: "arch, claude code ve grok’u burada görmek için linux’u yükle"; install: "yükle"; kernel: "kernel"
+      shell: "shell"; upgraded: "güncelleme"; agents: "ajanlar"; never: "hiç"; none: "yok"
+      updates: n => "güncelle (${n})"; upToDate: "güncel"; busy: n => "${n} çalışıyor"; noneBusy: "çalışan yok"
+      idle: "boşta"; status: s => s == "busy" ? "çalışıyor" : s == "waiting" ? "bekliyor" : s; active: "etkin"
+      hours5: "5 saat"; week: "hafta"; resetsIn: d => "${d} sonra"; new: "yeni"; plan: "grok planı"
+      pool: "grok kotası"; noLinux: "linux yok"; noLogin: "giriş yok"; offline: "çevrimdışı"; notOnPlan: "planda yok"
+      err: e => e == "no login" ? "giriş yok" : e == "offline" ? "çevrimdışı" : e; context: n => "bağlam %${n}"
+      quiet: "sakin"; noSessions: "henüz ajan oturumu yok"; noLinuxYet: "henüz linux yok"
+      since: x => x == "şimdi" ? "az önce" : "${x} önce"
+      ago: s => s < 60 ? "şimdi" : s < 3600 ? "${floor(s / 60)} dk" : s < 86400 ? "${floor(s / 3600)} sa" : s < 604800 ? "${floor(s / 86400)} g" : s < 31536000 ? "${floor(s / 604800)} hf" : "${floor(s / 31536000)} y"
+    }
+    it {
+      what: "linux · agenti"; notInstalled: "non installato"; packages: "pacchetti"; explicit: n => "${n} espliciti"
+      installHint: "installa linux per vedere qui arch, claude code e grok"; install: "installa"; kernel: "kernel"
+      shell: "shell"; upgraded: "aggiornato"; agents: "agenti"; never: "mai"; none: "nessuno"
+      updates: n => "aggiorna (${n})"; upToDate: "aggiornato"; busy: n => n == 1 ? "1 attiva" : "${n} attive"; noneBusy: "nessuna attiva"
+      idle: "inattiva"; status: s => s == "busy" ? "attiva" : s == "waiting" ? "in attesa" : s; active: "attiva"
+      hours5: "5 ore"; week: "settimana"; resetsIn: d => "tra ${d}"; new: "nuova"; plan: "piano grok"
+      pool: "quota grok"; noLinux: "niente linux"; noLogin: "non connesso"; offline: "offline"; notOnPlan: "fuori piano"
+      err: e => e == "no login" ? "non connesso" : e; context: n => "contesto ${n}%"
+      quiet: "calma"; noSessions: "ancora nessuna sessione di agenti"; noLinuxYet: "ancora niente linux"
+      since: x => x == "ora" ? "adesso" : "${x} fa"
+      ago: s => s < 60 ? "ora" : s < 3600 ? "${floor(s / 60)} min" : s < 86400 ? "${floor(s / 3600)} h" : s < 604800 ? "${floor(s / 86400)} g" : s < 31536000 ? "${floor(s / 604800)} sett" : (floor(s / 31536000) < 2 ? "1 anno" : "${floor(s / 31536000)} anni")
     }
   }
 
