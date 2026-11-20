@@ -1,0 +1,559 @@
+// sigye (github.com/am2rican5/sigye, MIT), the animated terminal clock, in a home tile that fits itself to the tile's size.
+// The tile shows the clock only; a tap opens the full screen: sigye itself, and every setting under it.
+// sigye isn't in Arch's repositories, so the screen offers to install its official v0.7.0 release into ~/.local/bin,
+// checked against the SHA-256 sums below. Settings live in sigye's own ~/.config/sigye/config.toml.
+widget "sigye" {
+  page: 1
+  order: 1
+  size: 6x3
+  minSize: 2x1
+  padding: 0
+  meta { owl: 15; description: "sigye, the animated terminal clock, in a tile, with every setting a tap away. Downloads sigye's official release when you tap install. Uses more battery than a plain clock."; version: "1.0"; license: "MIT"; category: "time" }
+  requires { pacman: ["python", "curl", "tar", "gzip", "tzdata", "tmux"] }
+
+  // sigye's settings as JSON, its defaults filled in. It also stamps ~/.cache/sigye-owl/beat: the launcher polls only
+  // while home shows this page or the screen is open, so a stale beat means nobody is looking (see the screen's command).
+  source cfg = cmd("""python3 -c 'if 1:
+      import json, os, shutil, tomllib
+      home = os.path.expanduser("~")
+      path = home + "/.config/sigye/config.toml"
+      cache = home + "/.cache/sigye-owl"
+      os.makedirs(cache, exist_ok=True)
+      open(cache + "/beat", "a").close()
+      os.utime(cache + "/beat")
+      out = {"font_name": "Standard", "color_theme": "Cyan", "time_format": "TwentyFourHour",
+             "animation_style": "None", "animation_speed": "Medium", "colon_blink": False,
+             "background_style": "None", "weather_location": "", "show_seconds": True,
+             "pomodoro_work_mins": 25, "pomodoro_break_mins": 5, "pomodoro_long_break_mins": 15,
+             "pomodoro_sessions_until_long": 4, "pomodoro_sound": True, "timer_duration_mins": 5,
+             "desktop_notifications": True,
+             "world_clock_zones": ["New York=America/New_York", "London=Europe/London", "Tokyo=Asia/Tokyo", "Seoul=Asia/Seoul"]}
+      out["_mtime"] = 0
+      try:
+          with open(path, "rb") as f:
+              out.update(tomllib.load(f))
+          out["_mtime"] = os.stat(path).st_mtime_ns // 1000000
+      except FileNotFoundError:
+          pass
+      except tomllib.TOMLDecodeError as e:
+          out["_error"] = str(e)
+      for k in ("on_complete", "on_start", "on_break"):
+          out.pop(k, None)
+      try:
+          out["_custom_fonts"] = sorted(f[:-4] for f in os.listdir(home + "/.config/sigye/fonts") if f.endswith(".flf"))
+      except OSError:
+          out["_custom_fonts"] = []
+      try:
+          with open(cache + "/screen.ends") as f:
+              out["_screen_ends"] = int(f.read().strip() or 0)
+      except (OSError, ValueError):
+          out["_screen_ends"] = 0
+      out["_sigye"] = shutil.which("sigye", path=os.environ.get("PATH", "") + ":" + home + "/.local/bin")
+      print(json.dumps(out))
+    '""") every 15s json
+  source sys = android.system every 60s
+
+  state tileView = "minimal" persist   // minimal: the time alone; full: sigye's screensaver (date, bars, background)
+  state mode = "clock" persist         // the mode the screen opens sigye in
+  state showKeys = false persist       // sigye's own key bar at the bottom of the screen's clock
+  state gen = 0                        // bumped after each setting is written, to restart the screen's sigye
+  state tallest = 0                    // the screen's tallest height so far, in dp (see termH)
+  when (screenHeight ?? 0) > tallest { tallest = screenHeight }
+  state moreKeys = false               // the screen's extra keys: arrows, Enter, Esc and a box to type into sigye
+  state res = null
+  on res first { gen = gen + 1 }       // `first`: the first edit after a reload counts too
+  state install = null                 // what installing sigye printed
+  // Every change to ~/.config/sigye/config.toml goes through here: a tap sets `edit` to [what, key, value, count],
+  // and this writes it, one at a time. Only the keys and values below get in, so nothing reaches sigye's hook
+  // commands (on_complete, on_start, on_break). The other settings, countdown events included, are kept, but the
+  // file is written anew: comments in it go.
+  state edit = null
+  state edits = 0
+  on edit first {
+    res = run("set -- ${sh(value[0])} ${sh(value[1])} ${sh(value[2])}; " + """python3 -c 'if 1:
+      import datetime, fcntl, json, os, re, sys, tempfile, tomllib
+      op, key, val = sys.argv[1:4]
+      cfg_dir = os.path.expanduser("~/.config/sigye")
+      os.makedirs(cfg_dir, exist_ok=True)
+      path = os.path.realpath(cfg_dir + "/config.toml")  # a symlinked config stays a symlink
+      def fail(msg):
+          print(msg)
+          sys.exit(1)
+      lock = open(cfg_dir + "/.owl-lock", "w")  # one edit at a time, however fast the taps come
+      fcntl.flock(lock, fcntl.LOCK_EX)
+      try:
+          with open(path, "rb") as f:
+              cfg = tomllib.load(f)
+      except FileNotFoundError:
+          cfg = {}
+      except tomllib.TOMLDecodeError as e:
+          fail("config.toml has an error, so nothing was changed: " + str(e))
+      fonts = ["3D-ASCII", "Acrobatic", "Alligator", "Alphabet", "ANSI Regular", "ANSI Shadow", "Avatar", "Banner",
+               "Bell", "Big", "Big Money-ne", "Block", "BlurVision ASCII", "Chunky", "Colossal", "Doh", "Doom",
+               "Electronic", "Epic", "Graffiti", "Ivrit", "Larry 3D", "Lean", "Mini", "Mono 12", "Mono 9", "Ogre",
+               "Poison", "Puffy", "Rebel", "Rectangles", "Script", "Shadow", "Slant", "Small", "Speed", "Standard",
+               "Star Wars", "Terrace", "Tmplr"]
+      try:
+          fonts += [f[:-4] for f in os.listdir(cfg_dir + "/fonts") if f.endswith(".flf")]
+      except OSError:
+          pass
+      enums = {
+          "font_name": fonts,
+          "color_theme": ["Cyan", "Green", "White", "Magenta", "Yellow", "Red", "Blue", "Rainbow", "RainbowVertical",
+                          "GradientWarm", "GradientCool", "GradientOcean", "GradientNeon", "GradientFire",
+                          "GradientFrost", "GradientAurora", "GradientWinter", "GradientSakura"],
+          "time_format": ["TwentyFourHour", "TwelveHour"],
+          "animation_style": ["None", "Shifting", "Pulsing", "Wave", "Reactive"],
+          "animation_speed": ["Slow", "Medium", "Fast"],
+          "background_style": ["None", "Starfield", "MatrixRain", "GradientWave", "Snowfall", "Frost", "Aurora",
+                               "Sunny", "Rainy", "Stormy", "Windy", "Cloudy", "Foggy", "Weather", "TwilightDawn",
+                               "TwilightDusk", "CherryBlossom", "SystemPulse", "ResourceWave", "DataFlow", "HeatMap"]}
+      bools = {"colon_blink": False, "show_seconds": True, "pomodoro_sound": True, "desktop_notifications": True}
+      ints = {"pomodoro_work_mins": (1, 180, 25), "pomodoro_break_mins": (1, 60, 5), "pomodoro_long_break_mins": (1, 120, 15),
+              "pomodoro_sessions_until_long": (1, 12, 4), "timer_duration_mins": (1, 99, 5)}
+      zones = list(cfg.get("world_clock_zones", ["New York=America/New_York", "London=Europe/London",
+                                                 "Tokyo=Asia/Tokyo", "Seoul=Asia/Seoul"]))
+      # toggle and step work from the file as it is now, not from the copy the widget read up to 15 s ago
+      if op == "set" and key in enums:
+          if val not in enums[key]:
+              fail(key + " can not be " + val)
+          cfg[key] = val
+      elif op == "toggle" and key in bools:
+          cfg[key] = not cfg.get(key, bools[key])
+      elif op == "step" and key in ints and val in ("1", "-1"):
+          lo, hi, d = ints[key]
+          cfg[key] = max(lo, min(hi, int(cfg.get(key, d)) + int(val)))
+      elif op == "set" and key == "weather_location":
+          cfg[key] = "".join(c for c in val if c.isprintable())[:80].strip()
+      elif op == "zone-add":
+          label, eq, tz = val.partition("=")
+          label = "".join(c for c in label if c.isprintable()).strip()[:40]
+          tz = tz.strip()
+          if not eq or not label or not re.fullmatch("[A-Za-z0-9_+-]+(/[A-Za-z0-9_+-]+)*", tz) or not os.path.isfile("/usr/share/zoneinfo/" + tz):
+              fail("write it as Label=Area/City, a zone in /usr/share/zoneinfo")
+          if label + "=" + tz not in zones:
+              zones.append(label + "=" + tz)
+          cfg["world_clock_zones"] = zones[:12]
+      elif op == "zone-del" and val.isdigit():
+          if int(val) < len(zones):
+              zones.pop(int(val))
+          cfg["world_clock_zones"] = zones
+      else:
+          fail("can not set " + key)
+      def value(v):
+          if isinstance(v, bool):
+              return "true" if v else "false"
+          if isinstance(v, (int, float)):
+              return repr(v)
+          if isinstance(v, str):
+              return json.dumps(v, ensure_ascii=False).replace(chr(127), chr(92) + "u007f")
+          if isinstance(v, (datetime.date, datetime.time)):
+              return v.isoformat()
+          if isinstance(v, list) and all(not isinstance(x, dict) for x in v):
+              return "[" + ", ".join(value(x) for x in v) + "]"
+          fail("can not write " + repr(v) + ", so nothing was changed")
+      def name(k):
+          return k if re.fullmatch("[A-Za-z0-9_-]+", k) else value(k)
+      lines, tables = [], []
+      for k, v in cfg.items():
+          if isinstance(v, list) and v and all(isinstance(x, dict) for x in v):
+              tables.append((k, v))
+          elif isinstance(v, dict):
+              fail("config.toml has a table this can not rewrite (" + k + "), so nothing was changed")
+          else:
+              lines.append(name(k) + " = " + value(v))
+      for k, rows in tables:
+          for row in rows:
+              lines.append("")
+              lines.append("[[" + name(k) + "]]")
+              lines += [name(rk) + " = " + value(rv) for rk, rv in row.items()]
+      fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path), prefix=".config.toml.")
+      with os.fdopen(fd, "w", encoding="utf-8") as f:
+          f.write(chr(10).join(lines) + chr(10))
+          f.flush()
+          os.fsync(f.fileno())
+      try:
+          os.chmod(tmp, os.stat(path).st_mode & 0o777)  # the file keeps its own permissions
+      except FileNotFoundError:
+          os.chmod(tmp, 0o644)
+      os.replace(tmp, path)
+      print(os.stat(path).st_mtime_ns)
+    ' "$@"
+    """)
+  }
+
+  // FIGlet sizes of sigye's fonts: [height, HH:MM, HH:MM:SS, HH:MM AM, HH:MM:SS PM] in characters,
+  // measured from its .flf files the way it draws them.
+  let metrics = {"3D-ASCII": [10, 68, 106, 105, 141], "Acrobatic": [12, 81, 124, 120, 156], "Alligator": [7, 73, 114, 110, 152], "Alphabet": [7, 27, 42, 42, 58], "ANSI Regular": [7, 39, 60, 62, 83], "ANSI Shadow": [7, 39, 60, 62, 83], "Avatar": [6, 26, 40, 41, 55], "Banner": [8, 41, 64, 63, 86], "Bell": [6, 30, 46, 52, 65], "Big": [8, 40, 62, 62, 82], "Big Money-ne": [11, 44, 68, 73, 97], "Block": [8, 57, 88, 85, 116], "BlurVision ASCII": [9, 69, 108, 112, 151], "Chunky": [5, 36, 56, 58, 77], "Colossal": [11, 48, 74, 81, 105], "Doh": [25, 88, 136, 157, 192], "Doom": [8, 31, 48, 47, 64], "Electronic": [12, 52, 78, 83, 109], "Epic": [9, 43, 66, 63, 86], "Graffiti": [6, 44, 68, 67, 91], "Ivrit": [6, 40, 62, 61, 81], "Larry 3D": [9, 54, 84, 89, 116], "Lean": [8, 68, 106, 110, 148], "Mini": [4, 27, 42, 41, 55], "Mono 12": [10, 50, 80, 80, 110], "Mono 9": [8, 35, 56, 56, 77], "Ogre": [6, 35, 54, 51, 70], "Poison": [12, 53, 82, 79, 108], "Puffy": [8, 39, 60, 56, 77], "Rebel": [11, 55, 84, 88, 116], "Rectangles": [6, 31, 48, 47, 64], "Script": [7, 30, 46, 52, 66], "Shadow": [5, 40, 62, 62, 82], "Slant": [6, 45, 70, 71, 97], "Small": [5, 32, 50, 51, 67], "Speed": [6, 46, 72, 72, 99], "Standard": [6, 40, 62, 61, 81], "Star Wars": [7, 39, 60, 67, 84], "Terrace": [10, 48, 74, 76, 103], "Tmplr": [4, 9, 14, 16, 21]}
+  let fonts = keys(metrics) + (cfg._custom_fonts ?? [])
+  let m = get(metrics, cfg.font_name ?? "Standard", [10, 50, 80, 80, 110])
+  let twelve = cfg.time_format == "TwelveHour"
+  let secs = cfg.show_seconds ?? true
+  let clockCols = m[1 + (secs ? 1 : 0) + (twelve ? 2 : 0)]
+
+  // foot's cells, in dp: it sizes in points at an integer scale (the density rounded down), 0.6 em wide,
+  // about 1.32 em high, with 8 px of padding a side (TerminalFont.kt in the launcher).
+  let density = (sys.display.dpi ?? 420) / 160
+  let ptDp = max(1, floor(density)) * 96 / 72 / density
+  let padDp = 8 * max(1, floor(density)) / density
+  let tileCols = tileView == "minimal" ? clockCols + 2 : max(clockCols + 2, 32)
+  let tileRows = tileView == "minimal" ? m[0] + 1 : m[0] + 8 + ceil(120 / tileCols)
+  let tileFont = clamp(floor(2 * min(((tileWidth ?? 360) - 2 * padDp - 4) / (tileCols * 0.6 * ptDp), ((tileHeight ?? 180) - 2 * padDp - 4) / (tileRows * 1.32 * ptDp))) / 2, 4, 40)
+  // The screen shrinks while the soft keyboard is up. Sized from that, the clock's font would change, and a Terminal
+  // whose font changes starts over, dropping the keyboard. So the screen's clock is sized from the tallest it has been.
+  let termH = round(max(tallest, screenHeight ?? 760) * 0.42)
+  let scrCols = max(clockCols + 4, 56)
+  let scrRows = m[0] + 12
+  let screenFont = clamp(floor(2 * min(((screenWidth ?? 390) - 2 * padDp - 4) / (scrCols * 0.6 * ptDp), (termH - 2 * padDp - 4) / (scrRows * 1.32 * ptDp))) / 2, 4, 40)
+
+  // sigye's key bar is its last rows, as many as its keys wrap to across the terminal's columns. To hide it, the
+  // screen's terminal is that many rows taller than the space showing it, in a Column that clips it.
+  // Widths at which each mode's key bar needs one row fewer (from sigye's footer_rows: "[k] label", 2 apart).
+  let footThr = {clock: [119, 64, 42, 32, 27], pomodoro: [84, 42, 32, 22], timer: [94, 50, 32, 29], stopwatch: [83, 42, 31, 22], worldclock: [65, 32, 22], countdown: [89, 45, 32, 22]}
+  let scaleI = max(1, floor(density))
+  let scrTermCols = floor(((screenWidth ?? 390) * density - 16 * scaleI) / max(1, round(0.6 * screenFont * 96 / 72 * scaleI)))
+  let footRows = 1 + len(filter(get(footThr, mode, [119, 64, 42, 32, 27]), t => t > scrTermCols))
+  let lineDp = round(1.32 * screenFont * 96 / 72 * scaleI) / density
+  let keysExtra = showKeys ? 0 : round(footRows * lineDp + 8 * scaleI / density)
+
+  let modes = [{id: "clock", name: "Clock"}, {id: "pomodoro", name: "Pomodoro"}, {id: "timer", name: "Timer"}, {id: "stopwatch", name: "Stopwatch"}, {id: "worldclock", name: "World clock"}, {id: "countdown", name: "Countdown"}]
+  let themes = [
+    {id: "Cyan", name: "Cyan", c: [#00d7d7, #00d7d7]}, {id: "Green", name: "Green", c: [#5fd75f, #5fd75f]},
+    {id: "White", name: "White", c: [#e4e4e4, #e4e4e4]}, {id: "Magenta", name: "Magenta", c: [#d75fd7, #d75fd7]},
+    {id: "Yellow", name: "Yellow", c: [#d7d75f, #d7d75f]}, {id: "Red", name: "Red", c: [#d75f5f, #d75f5f]},
+    {id: "Blue", name: "Blue", c: [#5f87ff, #5f87ff]},
+    {id: "Rainbow", name: "Rainbow", c: [#ff4040, #ffa040, #ffff40, #40ff40, #4080ff, #a040ff]},
+    {id: "RainbowVertical", name: "Rainbow V", c: [#ff4040, #ffa040, #ffff40, #40ff40, #4080ff, #a040ff]},
+    {id: "GradientWarm", name: "Warm", c: [#e04030, #f08020, #f0d020]}, {id: "GradientCool", name: "Cool", c: [#3070e0, #20d0d0, #30d070]},
+    {id: "GradientOcean", name: "Ocean", c: [#103070, #10a0c8, #20b0a0]}, {id: "GradientNeon", name: "Neon", c: [#ff30ff, #30ffff]},
+    {id: "GradientFire", name: "Fire", c: [#900000, #ff6000, #ffd000]}, {id: "GradientFrost", name: "Frost", c: [#ffffff, #a8d8ff, #4682b4]},
+    {id: "GradientAurora", name: "Aurora", c: [#30d070, #20d0d0, #3080e0, #9050c0]}, {id: "GradientWinter", name: "Winter", c: [#102060, #4169e1, #a8d8ff]},
+    {id: "GradientSakura", name: "Sakura", c: [#ffb0c8, #fff0f5]}]
+  let anims = ["None", "Shifting", "Pulsing", "Wave", "Reactive"]
+  let speeds = ["Slow", "Medium", "Fast"]
+  let bgs = [
+    {id: "None", name: "None"}, {id: "Starfield", name: "Starfield"}, {id: "MatrixRain", name: "Matrix"}, {id: "GradientWave", name: "Gradient"},
+    {id: "Weather", name: "Weather (live)"}, {id: "Sunny", name: "Sunny"}, {id: "Cloudy", name: "Cloudy"}, {id: "Foggy", name: "Foggy"},
+    {id: "Rainy", name: "Rainy"}, {id: "Stormy", name: "Stormy"}, {id: "Windy", name: "Windy"}, {id: "Snowfall", name: "Snowfall"},
+    {id: "Frost", name: "Frost"}, {id: "Aurora", name: "Aurora"}, {id: "TwilightDawn", name: "Dawn"}, {id: "TwilightDusk", name: "Dusk"},
+    {id: "CherryBlossom", name: "Sakura"}, {id: "SystemPulse", name: "Sys Pulse"}, {id: "ResourceWave", name: "Resource"},
+    {id: "DataFlow", name: "Data Flow"}, {id: "HeatMap", name: "Heat Map"}]
+  let steppers = [
+    {key: "pomodoro_work_mins", name: "work (min)"}, {key: "pomodoro_break_mins", name: "break (min)"},
+    {key: "pomodoro_long_break_mins", name: "long break (min)"}, {key: "pomodoro_sessions_until_long", name: "sessions before long"},
+    {key: "timer_duration_mins", name: "timer (min)"}]
+  let toggles = [
+    {key: "show_seconds", name: "seconds"}, {key: "colon_blink", name: "blinking colon"},
+    {key: "pomodoro_sound", name: "pomodoro sound"}, {key: "desktop_notifications", name: "notifications"}]
+
+  component Chip(label, on) {
+    // A Row, as wide as its text; a Text alone in a Box would stretch across the line.
+    Row {
+      background: on ? accent : surface
+      border: 1
+      borderColor: on ? accent : border
+      padding: [10, 6]
+      radius: 6
+      Text { text: label; style: small; maxLines: 1; color: on ? background : foreground }
+    }
+  }
+  // A button that presses one of sigye's keys in the screen's tmux session (a tmux key name: Space, Enter, Left, r, ...).
+  // Not through `res`, so a key doesn't restart the clock.
+  component Key(label, k) {
+    Box {
+      onTap: run("tmux -L sigye-owl send-keys -t screen -- ${sh(k)}")
+      Chip { label: label; on: false }
+    }
+  }
+  component Heading(label) {
+    Text { text: label; style: label; color: muted; padding: [0, 6, 0, 0] }
+  }
+
+  // The tile: sigye, and over it a sheet that takes every tap, so nothing reaches sigye from home. sigye runs from a
+  // copy of the config, so the tile's view (minimal_mode) stays its own; it restarts when the config changes.
+  Box {
+    fill: true
+    if cfg != null && cfg._sigye == null {
+      Column {
+        fill: true
+        align: center
+        justify: center
+        padding: 12
+        Text { text: "sigye"; style: title; align: center }
+        Text { text: "isn't installed yet: tap to set it up"; style: small; color: accent; align: center }
+      }
+    } else if cfg != null {
+      Terminal {
+        command: "set -- ${sh(tileView)} ${int(cfg._mtime / 1000)}; " + """v=$1  # $2 (when the config last changed) restarts it on a change
+          d="$HOME/.cache/sigye-owl/tile/sigye"; mkdir -p "$d"
+          if [ "$v" = minimal ]; then m=true; a=; else m=false; a=--screensaver; fi
+          { echo "minimal_mode = $m"; grep -v "^minimal_mode" "$HOME/.config/sigye/config.toml" 2>/dev/null; } > "$d/config.toml"
+          rm -f "$d/fonts"; if [ -d "$HOME/.config/sigye/fonts" ]; then ln -s "$HOME/.config/sigye/fonts" "$d/fonts"; fi
+          PATH="$PATH:$HOME/.local/bin" XDG_CONFIG_HOME="$HOME/.cache/sigye-owl/tile" exec sigye $a
+        """
+        fontSize: tileFont
+      }
+    }
+    Box { fill: true; onTap: screen() }
+  }
+
+  screen {
+    title: "sigye"
+    Column {
+      fill: true
+      gap: 8
+      if cfg != null && cfg._sigye == null {
+        Column {
+          gap: 8
+          padding: 12
+          border: 1
+          borderColor: accent
+          radius: 8
+          Text { text: "sigye isn't installed"; style: label; color: accent }
+          Text { text: "sigye isn't in Arch's package repositories, so this widget installs it itself: it downloads the official v0.7.0 release for this phone from github.com/am2rican5/sigye, checks it against the SHA-256 checksum written into this widget, and puts the program at ~/.local/bin/sigye. The install downloads and runs nothing else. (Once running, sigye's Weather (live) background fetches the weather from wttr.in.)"; style: small }
+          Text { text: "Downloading the release was the best option we had: sigye isn't packaged for Arch, and building it from source takes a long time and a lot of battery on a phone. If you're at all concerned, have your agent tear this widget apart before you tap install."; style: small }
+          Text { text: "Expect more battery use than a plain clock: sigye redraws all the time while it runs."; style: small; color: yellow }
+          Button {
+            text: "install sigye 0.7.0"
+            onTap: install = run("""{
+              set -e
+              a=$(uname -m)
+              if [ "$a" = aarch64 ]; then s=08de28e43a07ad26b38a30eda70eba4a4aec38ffee0165302821a9aa12ecab55
+              elif [ "$a" = x86_64 ]; then s=1e5dd69d63283e849a24370a93acd92c8f1622f07e300312d4a2afe246ce4557
+              else echo "sigye has no Linux release for $a"; exit 1; fi
+              t=$(mktemp -d); trap 'rm -f "$t/sigye.tgz" "$t/sigye"; rmdir "$t"' EXIT
+              curl -fsSL --proto =https --connect-timeout 20 --max-time 300 -o "$t/sigye.tgz" "https://github.com/am2rican5/sigye/releases/download/v0.7.0/sigye-$a-unknown-linux-gnu.tar.gz"
+              echo "$s  $t/sigye.tgz" | sha256sum -c --quiet - || { echo "the download doesn't match its checksum, so it wasn't installed"; exit 1; }
+              tar -xzf "$t/sigye.tgz" -C "$t" --no-same-owner sigye
+              mkdir -p "$HOME/.local/bin"
+              install -m 755 "$t/sigye" "$HOME/.local/bin/.sigye.new"
+              mv -f "$HOME/.local/bin/.sigye.new" "$HOME/.local/bin/sigye"
+              echo "installed sigye 0.7.0 at ~/.local/bin/sigye"
+            } 2>&1""")
+          }
+          if install != null {
+            Text { text: "${install}"; style: small; color: muted }
+          }
+        }
+      } else if cfg != null {
+        Column {
+          height: termH
+          fill: width
+          scroll: true
+          clip: true
+          Terminal {
+            // sigye runs in its own tmux session ("screen" on the socket sigye-owl), so the buttons below can send it
+            // keys with tmux send-keys; tapping the clock to type works too. The session ends with this terminal.
+            // The launcher keeps a screen's terminal running after it closes and doesn't say when, so the loop below
+            // ends it about a minute after the widget stops polling (home left, phone locked). Not in pomodoro, timer or
+            // stopwatch, which would lose their time. A new screen.ends number restarts it the next time it opens.
+            command: "set -- ${sh(mode)} ${int(gen)} ${int(cfg._screen_ends ?? 0)}; " + """m=$1  # $2 and $3 restart it after a change or an end
+              c="$HOME/.cache/sigye-owl"; mkdir -p "$c"; touch "$c/beat"
+              if [ "$m" != pomodoro ] && [ "$m" != timer ] && [ "$m" != stopwatch ]; then
+                  p=$$
+                  ( stale=0
+                    t0=$(sed "s/.*) //" /proc/$p/stat | cut -d" " -f20)  # its start time; the name before it can hold spaces
+                    [ -n "$t0" ] || exit 0
+                    while sleep 20; do
+                      [ "$(sed "s/.*) //" /proc/$p/stat 2>/dev/null | cut -d" " -f20)" = "$t0" ] || exit 0
+                      age=$(( $(date +%s) - $(stat -c %Y "$c/beat" 2>/dev/null || echo 0) ))
+                      if [ "$age" -gt 60 ]; then stale=$((stale + 1)); else stale=0; fi
+                      if [ "$stale" -ge 3 ]; then
+                        n=$(cat "$c/screen.ends" 2>/dev/null | tr -cd 0-9)
+                        echo $((n + 1)) > "$c/screen.ends"
+                        [ "$(sed "s/.*) //" /proc/$p/stat 2>/dev/null | cut -d" " -f20)" = "$t0" ] && kill "$p"
+                        exit 0
+                      fi
+                    done ) </dev/null >/dev/null 2>&1 &
+              fi
+              tmux -L sigye-owl kill-session -t screen 2>/dev/null
+              exec tmux -L sigye-owl -f /dev/null -T RGB new-session -s screen env PATH="$PATH:$HOME/.local/bin" COLORTERM=truecolor sigye --mode "$m" ";" set -s escape-time 0 ";" set -g status off ";" set -t screen destroy-unattached on ";" set -g prefix None ";" set -g prefix2 None
+            """
+            fontSize: screenFont
+            height: termH + keysExtra
+            fill: width
+          }
+        }
+        Flow {
+          gap: 6
+          if mode == "pomodoro" || mode == "timer" || mode == "stopwatch" {
+            Key { label: "start / pause"; k: "Space" }
+            Key { label: "reset"; k: "r" }
+          }
+          if mode == "pomodoro" { Key { label: "skip"; k: "n" } }
+          if mode == "timer" {
+            Key { label: "− 1 min"; k: "-" }
+            Key { label: "+ 1 min"; k: "+" }
+          }
+          if mode == "stopwatch" { Key { label: "lap"; k: "l" } }
+          if mode == "countdown" {
+            Key { label: "◀ previous"; k: "p" }
+            Key { label: "next ▶"; k: "n" }
+            Key { label: "events"; k: "e" }
+          }
+          if mode == "clock" || mode == "worldclock" { Key { label: "12/24 h"; k: "t" } }
+          Box { onTap: moreKeys = !moreKeys; Chip { label: moreKeys ? "fewer keys" : "more keys"; on: moreKeys } }
+        }
+        if moreKeys {
+          Flow {
+            gap: 6
+            Key { label: "Esc (closes a dialog; on the clock it quits)"; k: "Escape" }
+            Key { label: "Enter"; k: "Enter" }
+            Key { label: "Tab"; k: "Tab" }
+            Key { label: "⌫"; k: "BSpace" }
+            Key { label: "←"; k: "Left" }
+            Key { label: "→"; k: "Right" }
+            Key { label: "↑"; k: "Up" }
+            Key { label: "↓"; k: "Down" }
+            Key { label: "space"; k: "Space" }
+            Key { label: "?"; k: "?" }
+          }
+          Input {
+            placeholder: "type into sigye (then Enter above)"
+            clear: true
+            // Through a paste buffer, so the text arrives exactly as typed (send-keys would take a final ; as its own).
+            onSubmit: run("set -- ${sh(value)}; " + """printf %s "$1" | tmux -L sigye-owl load-buffer -b sigye-owl - && tmux -L sigye-owl paste-buffer -d -b sigye-owl -t screen""")
+          }
+        }
+        Text { text: "The buttons press sigye's keys; tapping the clock lets you type them too (? lists them)${showKeys ? "" : ". Its key bar is hidden: swipe the clock up to peek"}."; style: small; color: muted }
+      }
+      if res != null && num(res, -1) < 0 {
+        Text { text: "That setting wasn't saved: ${res}"; style: small; color: red }
+      }
+      if cfg._error != null {
+        Text { text: "~/.config/sigye/config.toml has an error, so sigye's defaults show: ${cfg._error}"; style: small; color: red }
+      }
+
+      Column {
+        weight: 1
+        scroll: true
+        gap: 6
+
+        Heading { label: "mode (the screen opens in it)" }
+        Flow {
+          gap: 6
+          for md in modes {
+            Box { onTap: mode = md.id; Chip { label: md.name; on: mode == md.id } }
+          }
+        }
+
+        Heading { label: "tile" }
+        Flow {
+          gap: 6
+          Box { onTap: tileView = "minimal"; Chip { label: "time only"; on: tileView == "minimal" } }
+          Box { onTap: tileView = "full"; Chip { label: "time, date and background"; on: tileView == "full" } }
+        }
+        Text { text: "sigye redraws all the time, in the tile and while this screen's clock runs, so it uses more battery than a plain clock; time only uses the least."; style: small; color: muted }
+        Heading { label: "screen" }
+        Row {
+          align: center
+          Text { text: "sigye's key bar"; weight: 1 }
+          Box { width: 72; align: end; onTap: showKeys = !showKeys; Chip { label: showKeys ? "shown" : "hidden"; on: showKeys } }
+        }
+        Text { text: "The clock up here keeps running after you close this screen, until about a minute after you leave home or lock the phone. One opened in pomodoro, timer or stopwatch keeps running, so it doesn't lose its time."; style: small; color: muted }
+        if tileView == "full" && cfg.background_style == "None" {
+          Text { text: "sigye's screensaver view draws Aurora when the background is None"; style: small; color: muted }
+        }
+
+        Heading { label: "time" }
+        Flow {
+          gap: 6
+          Box { onTap: { edits = edits + 1; edit = ["set", "time_format", "TwentyFourHour", edits] }; Chip { label: "24 hour"; on: !twelve } }
+          Box { onTap: { edits = edits + 1; edit = ["set", "time_format", "TwelveHour", edits] }; Chip { label: "12 hour"; on: twelve } }
+        }
+        for t in toggles {
+          let v = get(cfg, t.key, false)
+          Row {
+            align: center
+            Text { text: t.name; weight: 1 }
+            Box { width: 72; align: end; onTap: { edits = edits + 1; edit = ["toggle", t.key, "", edits] }; Chip { label: v ? "on" : "off"; on: v } }
+          }
+        }
+
+        Heading { label: "color" }
+        Flow {
+          gap: 6
+          for th in themes {
+            Box {
+              onTap: { edits = edits + 1; edit = ["set", "color_theme", th.id, edits] }
+              Row {
+                gap: 6
+                align: center
+                padding: [8, 5]
+                radius: 6
+                border: 1
+                borderColor: cfg.color_theme == th.id ? accent : border
+                background: cfg.color_theme == th.id ? alpha(accent, 0.18) : surface
+                Box { width: 22; height: 12; radius: 3; background: linear(0, 0, 1, 0, th.c) }
+                Text { text: th.name; style: small }
+              }
+            }
+          }
+        }
+
+        Heading { label: "font" }
+        Flow {
+          gap: 6
+          for f in fonts {
+            Box { onTap: { edits = edits + 1; edit = ["set", "font_name", f, edits] }; Chip { label: f; on: cfg.font_name == f } }
+          }
+        }
+
+        Heading { label: "animation" }
+        Flow {
+          gap: 6
+          for a in anims {
+            Box { onTap: { edits = edits + 1; edit = ["set", "animation_style", a, edits] }; Chip { label: a; on: cfg.animation_style == a } }
+          }
+        }
+        Flow {
+          gap: 6
+          Text { text: "speed"; style: small; color: muted; padding: [0, 6] }
+          for s in speeds {
+            Box { onTap: { edits = edits + 1; edit = ["set", "animation_speed", s, edits] }; Chip { label: s; on: cfg.animation_speed == s } }
+          }
+        }
+
+        Heading { label: "background" }
+        Flow {
+          gap: 6
+          for b in bgs {
+            Box { onTap: { edits = edits + 1; edit = ["set", "background_style", b.id, edits] }; Chip { label: b.name; on: cfg.background_style == b.id } }
+          }
+        }
+        Input {
+          text: cfg.weather_location ?? ""
+          placeholder: "weather city (empty: found from your connection)"
+          onSubmit: { edits = edits + 1; edit = ["set", "weather_location", value, edits] }
+        }
+        Text { text: "Weather (live) has sigye fetch the weather for this city from wttr.in every so often; with no city, wttr.in works out where you are from your connection."; style: small; color: muted }
+
+        Heading { label: "pomodoro and timer" }
+        for st in steppers {
+          let n = get(cfg, st.key, 0)
+          Row {
+            align: center
+            Text { text: st.name; weight: 1 }
+            Box { width: 40; onTap: { edits = edits + 1; edit = ["step", st.key, "-1", edits] }; Chip { label: "−"; on: false } }
+            Text { text: "${n}"; width: 40; align: center }
+            Box { width: 40; onTap: { edits = edits + 1; edit = ["step", st.key, "1", edits] }; Chip { label: "+"; on: false } }
+          }
+        }
+
+        Heading { label: "world clock (tap one to remove it)" }
+        Flow {
+          gap: 6
+          for z, i in cfg.world_clock_zones ?? [] {
+            Box { onTap: { edits = edits + 1; edit = ["zone-del", "", "${int(i)}", edits] }; Chip { label: "${z}  ✕"; on: false } }
+          }
+        }
+        Input {
+          placeholder: "add one: Paris=Europe/Paris"
+          clear: true
+          onSubmit: { edits = edits + 1; edit = ["zone-add", "", value, edits] }
+        }
+        Text { text: "Countdown events: open Countdown mode, tap the clock, then e."; style: small; color: muted; padding: [0, 8, 0, 16] }
+      }
+    }
+  }
+}
