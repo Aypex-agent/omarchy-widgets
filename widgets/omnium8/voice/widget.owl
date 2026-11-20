@@ -1,0 +1,50 @@
+widget "voice" {
+  // A whole home page (as one tile, so the strip and prompt bar stay below it) to talk to the default agent: tap anywhere and the launcher's own
+  // voice screen opens, already listening (it listens as soon as it opens).
+
+  size: 6x10
+  background: alpha(background, 0)
+
+  meta { owl: 13; description: "Tap to talk to your agent with the built-in voice screen"; version: "1.0"; license: "MIT"; category: "productivity" }
+
+  source ag = android.agents
+  source d = android.drawer
+
+  let voice = find(d.apps ?? [], a => a.kind == "linux" && a.name == "Voice")
+  let key = voice ? voice.key : "l:omarchy-voice"
+  let agent = ag.default
+  let side = min(tileWidth ?? 360, tileHeight ?? 640) * 0.55
+
+  Column {
+    align: center
+    padding: [24, 32]
+    gap: 20
+    onTap: open(key)
+    Spacer { weight: 1 }
+    Box {
+      align: center
+      width: side
+      height: side
+      radius: side / 2
+      background: radial(0.5, 0.5, 0.7, [alpha(accent, 0.45), alpha(accent, 0.08)])
+      border: 2
+      borderColor: alpha(accent, 0.7)
+
+      Box {
+        align: center
+        width: side * 0.5
+        height: side * 0.5
+        radius: side / 4
+        background: alpha(accent, 0.9)
+        if agent && agent.icon {
+          Image { src: agent.icon; width: side * 0.28; height: side * 0.28; fit: contain; label: agent.name }
+        } else {
+          Text { text: "🎤"; fontSize: side * 0.18 }
+        }
+      }
+    }
+    Text { text: agent ? "talk to ${agent.name}" : "no agent installed"; style: title; align: center }
+    Text { text: "tap anywhere to start"; style: muted; align: center }
+    Spacer { weight: 1 }
+  }
+}
