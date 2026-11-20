@@ -1,0 +1,196 @@
+widget "music-volume" {
+  meta {
+    owl: 23
+    description: "Now-playing music player and interactive vertical volume slider in one adaptive tile."
+    version: "1.0"
+    license: "MIT"
+    category: "media"
+  }
+  size: 6x2
+  minSize: 4x2
+
+  source md = android.media
+  source v = android.volume
+
+  state draggingVol = null
+
+  let h = tileHeight ?? 120
+  let volVal = draggingVol != null ? draggingVol : (v.muted ? 0 : (v.level ?? 0))
+  let hasTrack = (md.title ?? "") != ""
+
+  Row {
+    fill: true
+    gap: 10
+
+    // 1. Music Player Card
+    Box {
+      weight: 1
+      fill: height
+      radius: 8 * corners
+      background: alpha(foreground, 0.08)
+      border: 1
+      borderColor: alpha(foreground, 0.12)
+      padding: 10
+      Row {
+        fill: true
+        align: center
+        gap: 10
+
+        // Album Art
+        Box {
+          size: 64
+          radius: 8 * corners
+          clip: true
+          background: alpha(foreground, 0.1)
+          align: center
+          onTap: media("open")
+          if md.art != null {
+            Image { src: md.art; fit: cover; fill: true }
+          } else {
+            Canvas {
+              text("♪", width / 2, height / 2, size: 30, align: center, color: accent)
+            }
+          }
+        }
+
+        // Details & Controls
+        Column {
+          weight: 1
+          fill: height
+          justify: spaceBetween
+          // Top: Title and Output
+          Row {
+            fill: width
+            align: center
+            justify: spaceBetween
+            Column {
+              weight: 1
+              onTap: media("open")
+              Text { text: hasTrack ? md.title : "Not playing"; fontSize: 15; bold: true; maxLines: 1; color: hasTrack ? foreground : muted; font: sans }
+              Text { text: hasTrack ? (md.artist ?? (md.app ?? "")) : "start music in any app"; style: small; color: muted; maxLines: 1; font: sans }
+            }
+            Box {
+              size: 28
+              align: center
+              onTap: { haptic(); settings("output") }
+              Canvas {
+                let cx = width / 2
+                let cy = height / 2
+                path([[cx - 3, cy + 4], [cx + 3, cy + 4], [cx, cy]], closed: true, fill: accent)
+                arc(cx, cy + 4, 6, 305, 110, stroke: accent, width: 1.6, cap: round)
+                arc(cx, cy + 4, 10, 315, 90, stroke: accent, width: 1.6, cap: round)
+              }
+            }
+          }
+
+          // Bottom: Controls
+          Row {
+            fill: width
+            align: center
+            gap: 12
+            Box {
+              size: 28
+              align: center
+              onTap: { haptic(); media("previous") }
+              Canvas {
+                let cx = width / 2
+                let cy = height / 2
+                let col = hasTrack ? foreground : muted
+                path([[cx + 3, cy - 6], [cx - 3, cy], [cx + 3, cy + 6]], closed: true, fill: col)
+                rect(cx - 5, cy - 6, 2, 12, radius: 1, fill: col)
+              }
+            }
+            Box {
+              size: 32
+              align: center
+              onTap: { haptic(); media("toggle") }
+              Canvas {
+                let cx = width / 2
+                let cy = height / 2
+                if md.playing == true {
+                  rect(cx - 4, cy - 7, 3, 14, radius: 1, fill: accent)
+                  rect(cx + 2, cy - 7, 3, 14, radius: 1, fill: accent)
+                } else {
+                  path([[cx - 4, cy - 8], [cx + 6, cy], [cx - 4, cy + 8]], closed: true, fill: accent)
+                }
+              }
+            }
+            Box {
+              size: 28
+              align: center
+              onTap: { haptic(); media("next") }
+              Canvas {
+                let cx = width / 2
+                let cy = height / 2
+                let col = hasTrack ? foreground : muted
+                path([[cx - 3, cy - 6], [cx + 3, cy], [cx - 3, cy + 6]], closed: true, fill: col)
+                rect(cx + 3, cy - 6, 2, 12, radius: 1, fill: col)
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // 2. Vertical Volume Slider
+    Box {
+      width: 58
+      fill: height
+      radius: 8 * corners
+      clip: true
+      align: bottom
+      background: alpha(foreground, 0.08)
+      border: 1
+      borderColor: alpha(foreground, 0.12)
+      drag: vertical
+      onDrag: {
+        let newLvl = clamp(round((1 - y / h) * 100), 0, 100)
+        draggingVol = newLvl
+        volume(newLvl)
+        haptic("light")
+      }
+      onDragEnd: { draggingVol = null }
+      onTap: {
+        if y > h - 40 {
+          volume("toggle")
+        } else {
+          let newLvl = clamp(round((1 - y / h) * 100), 0, 100)
+          volume(newLvl)
+        }
+        haptic()
+      }
+      Box {
+        fill: width
+        height: max(h * (volVal / 100), 0)
+        background: accent
+      }
+      Column {
+        fill: true
+        justify: spaceBetween
+        align: center
+        padding: [6, 6]
+        Text {
+          text: v.muted ? "off" : "${volVal}%"
+          fontSize: 11
+          bold: true
+          color: volVal > 75 ? background : foreground
+        }
+        Canvas {
+          size: [22, 22]
+          let cx = width / 2 - 2
+          let cy = height / 2
+          let col = v.muted ? muted : (volVal > 25 ? background : foreground)
+          path([[cx - 5, cy - 3], [cx - 2, cy - 3], [cx + 3, cy - 6], [cx + 3, cy + 6], [cx - 2, cy + 3], [cx - 5, cy + 3]], closed: true, fill: col)
+          if !v.muted && volVal > 0 {
+            arc(cx + 2, cy, 5, 45, 90, stroke: col, width: 1.8, cap: round)
+            if volVal > 35 {
+              arc(cx + 2, cy, 9, 50, 80, stroke: col, width: 1.8, cap: round)
+            }
+          } else {
+            line(cx - 5, cy - 5, cx + 5, cy + 5, stroke: col, width: 1.8, cap: round)
+          }
+        }
+      }
+    }
+  }
+}
