@@ -10,7 +10,7 @@ app "pocket blocks" {
   //   START  start, pause and resume (tapping the screen does the same)
   //   SELECT shows or hides the ghost piece
 
-  meta { owl: 11; description: "Falling blocks on a classic green-screen handheld, with its D-pad and A/B buttons as the controls"; version: "1.4"; license: "MIT"; category: "games" }
+  meta { owl: 21; description: "Falling blocks on a classic green-screen handheld, with its D-pad and A/B buttons as the controls"; version: "1.5"; license: "MIT"; category: "games" }
 
   // The handheld is the whole view: no title row or status bar, and it runs on under the navigation bar.
   title: ""
@@ -37,11 +37,20 @@ app "pocket blocks" {
     </g>
   </svg>"""
 
-  requires { pacman: ["bash", "coreutils"] }
-
-  // Gravity needs a beat faster than `every` allows: 8 ticks a second. Sources only run while the
-  // app is open, and the game is idle-paused below in case it's left open.
-  source tick = stream("i=0; while :; do echo $i; i=$((i+1)); sleep 0.125; done")
+  // Gravity needs a beat faster than `every` allows: 8 ticks a second, counted by the launcher's
+  // own frame clock rather than a shell loop, so no Linux process runs and nothing wakes the CPU
+  // while the app is closed. Between games 2 frames a second are enough for the blinking text.
+  // The game is still idle-paused below in case it's left open.
+  fps: mode == "play" ? 8 : 2
+  state tick = 0
+  state acc = 0
+  every frame {
+    acc = acc + dt
+    if acc >= 0.1 {
+      acc = max(0, min(0.125, acc - 0.125))
+      tick = tick + 1
+    }
+  }
 
   // "title", "play", "pause" or "over"
   state mode = "title" persist
@@ -208,7 +217,7 @@ app "pocket blocks" {
     range(7).map(k => [bzX + bzW - r2 + r2 * cos(rad(k * 15)), bzY + bzH - r2 + r2 * sin(rad(k * 15))]),
     range(7).map(k => [bzX + r1 - r1 * sin(rad(k * 15)), bzY + bzH - r1 + r1 * cos(rad(k * 15))])
   ])
-  let blink = (tick ?? 0) % 8 < 5
+  let blink = tick % 2 == 0
   let fs = max(6, round(c * 0.5))
 
   // ---- the buttons -----------------------------------------------------------------------------
