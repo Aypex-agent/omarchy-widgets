@@ -9,7 +9,648 @@ app "delve" {
   // turn. Both leave timed events (`fx`, in seconds from the turn's start) that the canvases play
   // from `fxAt`, the frame clock when the turn began.
 
-  meta { owl: 23; description: "A roguelike dungeon crawl in pixel art: swipe to move and fight, one floor per screen; potions, bombs and scrolls, stairs down to worse monsters, and death is for good"; version: "1.0.2"; license: "MIT"; category: "games" }
+  meta { owl: 23; description: "A roguelike dungeon crawl in pixel art: swipe to move and fight, one floor per screen; potions, bombs and scrolls, stairs down to worse monsters, and death is for good"; version: "1.1"; license: "MIT"; category: "games" }
+  strings {
+    en {
+      // Monsters, and what each does to the hero ("THE RAT BITES YOU: 2"); log lines are 7 px pixel font, keep them short.
+      mons: ["RAT", "BAT", "SLIME", "GOBLIN", "ARCHER", "SKELETON", "ORC", "GHOST", "DEMON"]
+      verbs: ["BITES", "BITES", "BURNS", "STABS", "HITS", "HITS", "CLEAVES", "CHILLS", "CLAWS"]
+      items: ["A POTION", "A BOMB", "A BLINK SCROLL", "A FIRE SCROLL", "GOLD", "A SWORD: ATK +1", "A SHIELD: DEF +1"]
+      empty: ["NO POTIONS LEFT", "NO BOMBS LEFT", "NO BLINK SCROLLS", "NO FIRE SCROLLS"]
+      intro1: "THE DUNGEON TAKES YOU IN"
+      intro2: "FIND THE STAIRS DOWN"
+      floor: n => "FLOOR ${n}"
+      theDungeon: "THE DUNGEON"
+      deeper: "DEEPER"
+      slay: n => "YOU SLAY THE ${n}"
+      hit: (n, d) => "YOU HIT THE ${n}: ${d}"
+      miss: n => "YOU MISS THE ${n}"
+      missFx: "MISS"
+      findGold: n => "YOU FIND ${n} GOLD"
+      find: s => "YOU FIND ${s}"
+      down: n => "YOU GO DOWN TO FLOOR ${n}"
+      drink: n => "YOU DRINK A POTION: +${n} HP"
+      boomNone: "BOOM! NOTHING CAUGHT"
+      boomDead: n => "BOOM! ${n} BLOWN AWAY"
+      boomHit: n => "BOOM! ${n} CAUGHT"
+      blink: "YOU BLINK AWAY"
+      noBurn: "NOTHING IN VIEW TO BURN"
+      fireDead: n => "FIRE! ${n} BURNED TO ASH"
+      fireHit: n => "FIRE! ${n} SCORCHED"
+      // What killed the hero, after "SLAIN BY".
+      byMon: n => "A ${n}"
+      byArrow: "AN ARCHER'S ARROW"
+      monHits: (n, v, d) => "THE ${n} ${v} YOU: ${d}"
+      arrowHits: d => "AN ARROW HITS YOU: ${d}"
+      monMisses: n => "THE ${n} MISSES"
+      arrowPast: "AN ARROW FLIES PAST"
+      level: n => "LEVEL ${n}"
+      reachLevel: n => "YOU REACH LEVEL ${n}"
+      best: n => "BEST ${n}"
+      slain: n => "${n} SLAIN"
+      // The item buttons, 6 px in a fifth of the width.
+      buttons: ["HEAL", "BOMB", "BLINK", "FIRE", "WAIT"]
+      youDied: "YOU DIED"
+      slainBy: c => "SLAIN BY ${c}"
+      onFloor: n => "ON FLOOR ${n}"
+      runLine: (l, k, g) => "LEVEL ${l} · ${k} SLAIN · ${g} GOLD"
+      deepestYet: "YOUR DEEPEST YET"
+      deepest: n => "DEEPEST: FLOOR ${n}"
+      forGood: "DEATH IS FOR GOOD"
+      newRun: "NEW RUN"
+      tagline: "A DUNGEON CRAWL"
+      going: (f, l) => "FLOOR ${f} · LEVEL ${l}"
+      cont: "CONTINUE"
+      descend: "DESCEND"
+      help1: "SWIPE OR TAP TO MOVE"
+      help2: "WALK INTO MONSTERS TO FIGHT"
+      help3: "ONE LIFE: DEATH IS FOR GOOD"
+      records: (f, g) => "DEEPEST: FLOOR ${f} · MOST GOLD: ${g}"
+    }
+    id {
+      mons: ["TIKUS", "KELELAWAR", "LENDIR", "GOBLIN", "PEMANAH", "KERANGKA", "ORC", "HANTU", "IBLIS"]
+      verbs: ["MENGGIGIT", "MENGGIGIT", "MEMBAKAR", "MENUSUK", "MEMUKUL", "MEMUKUL", "MEMBELAH", "MEMBEKUKAN", "MENCAKAR"]
+      items: ["RAMUAN", "BOM", "GULUNGAN LOMPAT", "GULUNGAN API", "EMAS", "PEDANG: ATK +1", "PERISAI: DEF +1"]
+      empty: ["RAMUAN HABIS", "BOM HABIS", "GULUNGAN LOMPAT HABIS", "GULUNGAN API HABIS"]
+      intro1: "RUANG BAWAH TANAH MENELANMU"
+      intro2: "CARI TANGGA TURUN"
+      floor: n => "LANTAI ${n}"
+      theDungeon: "RUANG BAWAH TANAH"
+      deeper: "LEBIH DALAM"
+      slay: n => "KAMU MEMBUNUH ${n}"
+      hit: (n, d) => "KAMU MEMUKUL ${n}: ${d}"
+      miss: n => "KAMU MELESET: ${n}"
+      missFx: "MELESET"
+      findGold: n => "KAMU MENEMUKAN ${n} EMAS"
+      find: s => "KAMU MENEMUKAN ${s}"
+      down: n => "KAMU TURUN KE LANTAI ${n}"
+      drink: n => "KAMU MINUM RAMUAN: +${n} HP"
+      boomNone: "BUM! TAK ADA YANG KENA"
+      boomDead: n => "BUM! ${n} HANCUR"
+      boomHit: n => "BUM! ${n} KENA"
+      blink: "KAMU MELOMPAT PERGI"
+      noBurn: "TAK ADA YANG BISA DIBAKAR"
+      fireDead: n => "API! ${n} JADI ABU"
+      fireHit: n => "API! ${n} HANGUS"
+      byMon: n => "${n}"
+      byArrow: "PANAH PEMANAH"
+      monHits: (n, v, d) => "${n} ${v}MU: ${d}"
+      arrowHits: d => "PANAH MENGENAIMU: ${d}"
+      monMisses: n => "${n} MELESET"
+      arrowPast: "PANAH MELESAT LEWAT"
+      level: n => "LEVEL ${n}"
+      reachLevel: n => "KAMU NAIK KE LEVEL ${n}"
+      best: n => "REKOR ${n}"
+      slain: n => "${n} TEWAS"
+      buttons: ["OBATI", "BOM", "LOMPAT", "API", "TUNGGU"]
+      youDied: "KAMU MATI"
+      slainBy: c => "DIBUNUH OLEH ${c}"
+      onFloor: n => "DI LANTAI ${n}"
+      runLine: (l, k, g) => "LEVEL ${l} · ${k} TEWAS · ${g} EMAS"
+      deepestYet: "REKOR TERDALAMMU"
+      deepest: n => "TERDALAM: LANTAI ${n}"
+      forGood: "MATI ITU SELAMANYA"
+      newRun: "MAIN BARU"
+      tagline: "PETUALANGAN BAWAH TANAH"
+      going: (f, l) => "LANTAI ${f} · LEVEL ${l}"
+      cont: "LANJUT"
+      descend: "TURUN"
+      help1: "USAP ATAU KETUK UNTUK JALAN"
+      help2: "TABRAK MONSTER UNTUK BERTARUNG"
+      help3: "SATU NYAWA: MATI ITU SELAMANYA"
+      records: (f, g) => "TERDALAM: LANTAI ${f} · EMAS TERBANYAK: ${g}"
+    }
+    es {
+      mons: ["RATA", "MURCIÉLAGO", "LIMO", "GOBLIN", "ARQUERO", "ESQUELETO", "ORCO", "FANTASMA", "DEMONIO"]
+      verbs: ["MUERDE", "MUERDE", "QUEMA", "APUÑALA", "GOLPEA", "GOLPEA", "HIENDE", "HIELA", "ARAÑA"]
+      items: ["UNA POCIÓN", "UNA BOMBA", "UN PERGAMINO DE SALTO", "UN PERGAMINO DE FUEGO", "ORO", "UNA ESPADA: ATK +1", "UN ESCUDO: DEF +1"]
+      empty: ["SIN POCIONES", "SIN BOMBAS", "SIN PERGAMINOS DE SALTO", "SIN PERGAMINOS DE FUEGO"]
+      intro1: "LA MAZMORRA TE TRAGA"
+      intro2: "BUSCA LA ESCALERA ABAJO"
+      floor: n => "PISO ${n}"
+      theDungeon: "LA MAZMORRA"
+      deeper: "MÁS HONDO"
+      slay: n => "MATAS: ${n}"
+      hit: (n, d) => "GOLPEAS: ${n}, ${d}"
+      miss: n => "FALLAS: ${n}"
+      missFx: "FALLO"
+      findGold: n => "ENCUENTRAS ${n} DE ORO"
+      find: s => "ENCUENTRAS ${s}"
+      down: n => "BAJAS AL PISO ${n}"
+      drink: n => "BEBES UNA POCIÓN: +${n} HP"
+      boomNone: "¡BUM! NADIE ATRAPADO"
+      boomDead: n => "¡BUM! ${n} VOLADOS"
+      boomHit: n => "¡BUM! ${n} ALCANZADOS"
+      blink: "TE TELETRANSPORTAS"
+      noBurn: "NADA A LA VISTA QUE QUEMAR"
+      fireDead: n => "¡FUEGO! ${n} EN CENIZAS"
+      fireHit: n => "¡FUEGO! ${n} CHAMUSCADOS"
+      byMon: n => "${n}"
+      byArrow: "LA FLECHA DE UN ARQUERO"
+      monHits: (n, v, d) => "${n} TE ${v}: ${d}"
+      arrowHits: d => "UNA FLECHA TE DA: ${d}"
+      monMisses: n => "${n} FALLA"
+      arrowPast: "UNA FLECHA PASA DE LARGO"
+      level: n => "NIVEL ${n}"
+      reachLevel: n => "LLEGAS AL NIVEL ${n}"
+      best: n => "RÉCORD ${n}"
+      slain: n => "${n} CAÍDOS"
+      buttons: ["CURAR", "BOMBA", "SALTO", "FUEGO", "ESPERAR"]
+      youDied: "HAS MUERTO"
+      slainBy: c => "TE MATÓ: ${c}"
+      onFloor: n => "EN EL PISO ${n}"
+      runLine: (l, k, g) => "NIVEL ${l} · ${k} CAÍDOS · ${g} ORO"
+      deepestYet: "TU RÉCORD DE PROFUNDIDAD"
+      deepest: n => "MÁS HONDO: PISO ${n}"
+      forGood: "LA MUERTE ES PARA SIEMPRE"
+      newRun: "NUEVA PARTIDA"
+      tagline: "UN DUNGEON CRAWLER"
+      going: (f, l) => "PISO ${f} · NIVEL ${l}"
+      cont: "CONTINUAR"
+      descend: "BAJAR"
+      help1: "DESLIZA O TOCA PARA MOVERTE"
+      help2: "CHOCA CON MONSTRUOS PARA LUCHAR"
+      help3: "UNA VIDA: LA MUERTE ES PARA SIEMPRE"
+      records: (f, g) => "MÁS HONDO: PISO ${f} · MÁS ORO: ${g}"
+    }
+    pt {
+      mons: ["RATO", "MORCEGO", "GOSMA", "GOBLIN", "ARQUEIRO", "ESQUELETO", "ORC", "FANTASMA", "DEMÔNIO"]
+      verbs: ["MORDE", "MORDE", "QUEIMA", "ESFAQUEIA", "ACERTA", "ACERTA", "RACHA", "GELA", "ARRANHA"]
+      items: ["UMA POÇÃO", "UMA BOMBA", "UM PERGAMINHO DE SALTO", "UM PERGAMINHO DE FOGO", "OURO", "UMA ESPADA: ATK +1", "UM ESCUDO: DEF +1"]
+      empty: ["SEM POÇÕES", "SEM BOMBAS", "SEM PERGAMINHOS DE SALTO", "SEM PERGAMINHOS DE FOGO"]
+      intro1: "A MASMORRA TE ENGOLE"
+      intro2: "ACHE A ESCADA PARA BAIXO"
+      floor: n => "ANDAR ${n}"
+      theDungeon: "A MASMORRA"
+      deeper: "MAIS FUNDO"
+      slay: n => "VOCÊ MATA: ${n}"
+      hit: (n, d) => "VOCÊ ACERTA: ${n}, ${d}"
+      miss: n => "VOCÊ ERRA: ${n}"
+      missFx: "ERROU"
+      findGold: n => "VOCÊ ACHA ${n} DE OURO"
+      find: s => "VOCÊ ACHA ${s}"
+      down: n => "VOCÊ DESCE AO ANDAR ${n}"
+      drink: n => "VOCÊ BEBE UMA POÇÃO: +${n} HP"
+      boomNone: "BUM! NINGUÉM PEGO"
+      boomDead: n => "BUM! ${n} PELOS ARES"
+      boomHit: n => "BUM! ${n} ATINGIDOS"
+      blink: "VOCÊ SE TELETRANSPORTA"
+      noBurn: "NADA À VISTA PARA QUEIMAR"
+      fireDead: n => "FOGO! ${n} VIRARAM CINZA"
+      fireHit: n => "FOGO! ${n} CHAMUSCADOS"
+      byMon: n => "${n}"
+      byArrow: "A FLECHA DE UM ARQUEIRO"
+      monHits: (n, v, d) => "${n} TE ${v}: ${d}"
+      arrowHits: d => "UMA FLECHA TE ACERTA: ${d}"
+      monMisses: n => "${n} ERRA"
+      arrowPast: "UMA FLECHA PASSA RASPANDO"
+      level: n => "NÍVEL ${n}"
+      reachLevel: n => "VOCÊ CHEGA AO NÍVEL ${n}"
+      best: n => "RECORDE ${n}"
+      slain: n => "${n} ABATIDOS"
+      buttons: ["CURAR", "BOMBA", "SALTO", "FOGO", "ESPERAR"]
+      youDied: "VOCÊ MORREU"
+      slainBy: c => "MORTO POR: ${c}"
+      onFloor: n => "NO ANDAR ${n}"
+      runLine: (l, k, g) => "NÍVEL ${l} · ${k} ABATIDOS · ${g} OURO"
+      deepestYet: "SEU MAIS FUNDO ATÉ AGORA"
+      deepest: n => "MAIS FUNDO: ANDAR ${n}"
+      forGood: "A MORTE É PARA SEMPRE"
+      newRun: "NOVA PARTIDA"
+      tagline: "UMA AVENTURA NA MASMORRA"
+      going: (f, l) => "ANDAR ${f} · NÍVEL ${l}"
+      cont: "CONTINUAR"
+      descend: "DESCER"
+      help1: "DESLIZE OU TOQUE PARA ANDAR"
+      help2: "ANDE CONTRA MONSTROS PARA LUTAR"
+      help3: "UMA VIDA: A MORTE É PARA SEMPRE"
+      records: (f, g) => "MAIS FUNDO: ANDAR ${f} · MAIS OURO: ${g}"
+    }
+    de {
+      mons: ["RATTE", "FLEDERMAUS", "SCHLEIM", "GOBLIN", "SCHÜTZE", "SKELETT", "ORK", "GEIST", "DÄMON"]
+      verbs: ["BEISST", "BEISST", "VERÄTZT", "STICHT", "TRIFFT", "TRIFFT", "SPALTET", "LÄHMT", "KRALLT"]
+      items: ["EINEN TRANK", "EINE BOMBE", "EINE SPRUNGROLLE", "EINE FEUERROLLE", "GOLD", "EIN SCHWERT: ATK +1", "EINEN SCHILD: DEF +1"]
+      empty: ["KEINE TRÄNKE MEHR", "KEINE BOMBEN MEHR", "KEINE SPRUNGROLLEN", "KEINE FEUERROLLEN"]
+      intro1: "DER KERKER NIMMT DICH AUF"
+      intro2: "FINDE DIE TREPPE NACH UNTEN"
+      floor: n => "EBENE ${n}"
+      theDungeon: "DER KERKER"
+      deeper: "TIEFER"
+      slay: n => "ERSCHLAGEN: ${n}"
+      hit: (n, d) => "TREFFER: ${n}, ${d}"
+      miss: n => "DANEBEN: ${n}"
+      missFx: "DANEBEN"
+      findGold: n => "DU FINDEST ${n} GOLD"
+      find: s => "DU FINDEST ${s}"
+      down: n => "HINAB AUF EBENE ${n}"
+      drink: n => "DU TRINKST EINEN TRANK: +${n} HP"
+      boomNone: "BUMM! NIEMAND ERWISCHT"
+      boomDead: n => "BUMM! ${n} ZERFETZT"
+      boomHit: n => "BUMM! ${n} ERWISCHT"
+      blink: "DU SPRINGST WEG"
+      noBurn: "NICHTS IN SICHT ZUM VERBRENNEN"
+      fireDead: n => "FEUER! ${n} ZU ASCHE"
+      fireHit: n => "FEUER! ${n} VERSENGT"
+      byMon: n => "${n}"
+      byArrow: "PFEIL EINES SCHÜTZEN"
+      monHits: (n, v, d) => "${n} ${v} DICH: ${d}"
+      arrowHits: d => "EIN PFEIL TRIFFT DICH: ${d}"
+      monMisses: n => "${n} VERFEHLT DICH"
+      arrowPast: "EIN PFEIL FLIEGT VORBEI"
+      level: n => "STUFE ${n}"
+      reachLevel: n => "DU ERREICHST STUFE ${n}"
+      best: n => "REKORD ${n}"
+      slain: n => "${n} BESIEGT"
+      buttons: ["HEILEN", "BOMBE", "SPRUNG", "FEUER", "WARTEN"]
+      youDied: "DU BIST TOT"
+      slainBy: c => "GETÖTET VON: ${c}"
+      onFloor: n => "AUF EBENE ${n}"
+      runLine: (l, k, g) => "STUFE ${l} · ${k} BESIEGT · ${g} GOLD"
+      deepestYet: "SO TIEF WIE NOCH NIE"
+      deepest: n => "TIEFSTE: EBENE ${n}"
+      forGood: "DER TOD IST ENDGÜLTIG"
+      newRun: "NEUER LAUF"
+      tagline: "EIN KERKERABENTEUER"
+      going: (f, l) => "EBENE ${f} · STUFE ${l}"
+      cont: "WEITER"
+      descend: "HINAB"
+      help1: "WISCHEN ODER TIPPEN ZUM GEHEN"
+      help2: "LAUF IN MONSTER, UM ZU KÄMPFEN"
+      help3: "EIN LEBEN: DER TOD IST ENDGÜLTIG"
+      records: (f, g) => "TIEFSTE: EBENE ${f} · MEISTES GOLD: ${g}"
+    }
+    zh {
+      mons: ["老鼠", "蝙蝠", "史莱姆", "哥布林", "弓箭手", "骷髅", "兽人", "幽灵", "恶魔"]
+      verbs: ["咬了", "咬了", "灼伤了", "刺了", "击中了", "击中了", "劈中了", "冻伤了", "抓伤了"]
+      items: ["一瓶药水", "一枚炸弹", "一张闪现卷轴", "一张火焰卷轴", "金币", "一把剑：ATK +1", "一面盾：DEF +1"]
+      empty: ["药水用完了", "炸弹用完了", "没有闪现卷轴了", "没有火焰卷轴了"]
+      intro1: "地下城吞没了你"
+      intro2: "找到下楼的台阶"
+      floor: n => "第 ${n} 层"
+      theDungeon: "地下城"
+      deeper: "更深处"
+      slay: n => "你杀死了${n}"
+      hit: (n, d) => "你击中${n}：${d}"
+      miss: n => "你没打中${n}"
+      missFx: "未中"
+      findGold: n => "你找到 ${n} 金币"
+      find: s => "你找到${s}"
+      down: n => "你下到第 ${n} 层"
+      drink: n => "你喝下药水：+${n} HP"
+      boomNone: "轰！什么也没炸到"
+      boomDead: n => "轰！炸飞 ${n} 个"
+      boomHit: n => "轰！炸到 ${n} 个"
+      blink: "你闪现离开"
+      noBurn: "视野里没有可烧的"
+      fireDead: n => "火！${n} 个化为灰烬"
+      fireHit: n => "火！烧到 ${n} 个"
+      byMon: n => "${n}"
+      byArrow: "弓箭手的箭"
+      monHits: (n, v, d) => "${n}${v}你：${d}"
+      arrowHits: d => "一支箭射中你：${d}"
+      monMisses: n => "${n}没打中"
+      arrowPast: "一支箭擦身而过"
+      level: n => "等级 ${n}"
+      reachLevel: n => "你升到 ${n} 级"
+      best: n => "最深 ${n}"
+      slain: n => "击杀 ${n}"
+      buttons: ["治疗", "炸弹", "闪现", "火焰", "等待"]
+      youDied: "你死了"
+      slainBy: c => "死于${c}"
+      onFloor: n => "在第 ${n} 层"
+      runLine: (l, k, g) => "等级 ${l} · 击杀 ${k} · 金币 ${g}"
+      deepestYet: "新的最深纪录"
+      deepest: n => "最深：第 ${n} 层"
+      forGood: "死亡是永久的"
+      newRun: "重新开始"
+      tagline: "地下城探险"
+      going: (f, l) => "第 ${f} 层 · 等级 ${l}"
+      cont: "继续"
+      descend: "出发"
+      help1: "滑动或点击来移动"
+      help2: "走向怪物即可战斗"
+      help3: "只有一条命：死亡是永久的"
+      records: (f, g) => "最深：第 ${f} 层 · 最多金币：${g}"
+    }
+    ru {
+      mons: ["КРЫСА", "ЛЕТУЧАЯ МЫШЬ", "СЛИЗЕНЬ", "ГОБЛИН", "ЛУЧНИК", "СКЕЛЕТ", "ОРК", "ПРИЗРАК", "ДЕМОН"]
+      verbs: ["КУСАЕТ", "КУСАЕТ", "ЖЖЁТ", "КОЛЕТ", "БЬЁТ", "БЬЁТ", "РУБИТ", "ЛЕДЕНИТ", "ДЕРЁТ"]
+      items: ["ЗЕЛЬЕ", "БОМБА", "СВИТОК СКАЧКА", "СВИТОК ОГНЯ", "ЗОЛОТО", "МЕЧ: ATK +1", "ЩИТ: DEF +1"]
+      empty: ["ЗЕЛИЙ НЕТ", "БОМБ НЕТ", "СВИТКОВ СКАЧКА НЕТ", "СВИТКОВ ОГНЯ НЕТ"]
+      intro1: "ПОДЗЕМЕЛЬЕ ПРИНИМАЕТ ВАС"
+      intro2: "НАЙДИТЕ ЛЕСТНИЦУ ВНИЗ"
+      floor: n => "ЭТАЖ ${n}"
+      theDungeon: "ПОДЗЕМЕЛЬЕ"
+      deeper: "ГЛУБЖЕ"
+      slay: n => "ВЫ СРАЗИЛИ: ${n}"
+      hit: (n, d) => "ВЫ РАНИЛИ: ${n}, ${d}"
+      miss: n => "ПРОМАХ: ${n}"
+      missFx: "МИМО"
+      findGold: n => "ВЫ НАШЛИ ЗОЛОТО: ${n}"
+      find: s => "ВЫ НАШЛИ: ${s}"
+      down: n => "ВЫ СПУСТИЛИСЬ НА ЭТАЖ ${n}"
+      drink: n => "ВЫ ВЫПИЛИ ЗЕЛЬЕ: +${n} HP"
+      boomNone: "БУМ! НИКОГО НЕ ЗАДЕЛО"
+      boomDead: n => "БУМ! РАЗНЕСЕНО: ${n}"
+      boomHit: n => "БУМ! ЗАДЕТО: ${n}"
+      blink: "ВЫ ПЕРЕНЕСЛИСЬ ПРОЧЬ"
+      noBurn: "НЕКОГО СЖЕЧЬ"
+      fireDead: n => "ОГОНЬ! СОЖЖЕНО: ${n}"
+      fireHit: n => "ОГОНЬ! ОПАЛЕНО: ${n}"
+      byMon: n => "${n}"
+      byArrow: "СТРЕЛА ЛУЧНИКА"
+      monHits: (n, v, d) => "${n} ${v} ВАС: ${d}"
+      arrowHits: d => "СТРЕЛА ПОПАЛА В ВАС: ${d}"
+      monMisses: n => "${n} ПРОМАХИВАЕТСЯ"
+      arrowPast: "СТРЕЛА ПРОЛЕТЕЛА МИМО"
+      level: n => "УРОВЕНЬ ${n}"
+      reachLevel: n => "ВЫ ДОСТИГЛИ УРОВНЯ ${n}"
+      best: n => "РЕКОРД ${n}"
+      slain: n => "УБИТО: ${n}"
+      buttons: ["ЛЕЧИТЬ", "БОМБА", "СКАЧОК", "ОГОНЬ", "ЖДАТЬ"]
+      youDied: "ВЫ ПОГИБЛИ"
+      slainBy: c => "УБИЙЦА: ${c}"
+      onFloor: n => "НА ЭТАЖЕ ${n}"
+      runLine: (l, k, g) => "УРОВЕНЬ ${l} · УБИТО ${k} · ЗОЛОТО ${g}"
+      deepestYet: "ВАШ САМЫЙ ГЛУБОКИЙ СПУСК"
+      deepest: n => "РЕКОРД: ЭТАЖ ${n}"
+      forGood: "СМЕРТЬ НАВСЕГДА"
+      newRun: "НОВЫЙ ЗАБЕГ"
+      tagline: "ПОХОД В ПОДЗЕМЕЛЬЕ"
+      going: (f, l) => "ЭТАЖ ${f} · УРОВЕНЬ ${l}"
+      cont: "ПРОДОЛЖИТЬ"
+      descend: "СПУСТИТЬСЯ"
+      help1: "СВАЙП ИЛИ НАЖАТИЕ: ХОД"
+      help2: "ИДИТЕ НА МОНСТРА, ЧТОБЫ БИТЬСЯ"
+      help3: "ОДНА ЖИЗНЬ: СМЕРТЬ НАВСЕГДА"
+      records: (f, g) => "РЕКОРД: ЭТАЖ ${f} · ЗОЛОТО: ${g}"
+    }
+    ja {
+      mons: ["ネズミ", "コウモリ", "スライム", "ゴブリン", "弓兵", "ガイコツ", "オーク", "ゴースト", "デーモン"]
+      verbs: ["かみつき", "かみつき", "酸", "突き", "攻撃", "攻撃", "斬撃", "冷気", "爪"]
+      items: ["ポーション", "爆弾", "ブリンクの巻物", "炎の巻物", "ゴールド", "剣：ATK +1", "盾：DEF +1"]
+      empty: ["ポーションがありません", "爆弾がありません", "ブリンクの巻物がありません", "炎の巻物がありません"]
+      intro1: "ダンジョンに足を踏み入れました"
+      intro2: "下り階段を探しましょう"
+      floor: n => "地下${n}階"
+      theDungeon: "ダンジョン"
+      deeper: "さらに深く"
+      slay: n => "${n}を倒しました"
+      hit: (n, d) => "${n}に${d}のダメージ"
+      miss: n => "${n}への攻撃は外れました"
+      missFx: "ミス"
+      findGold: n => "${n}ゴールドを見つけました"
+      find: s => "${s}を見つけました"
+      down: n => "地下${n}階へ降りました"
+      drink: n => "ポーションを飲みました：+${n} HP"
+      boomNone: "ドカン！誰もいません"
+      boomDead: n => "ドカン！${n}体を吹き飛ばしました"
+      boomHit: n => "ドカン！${n}体に命中"
+      blink: "瞬間移動しました"
+      noBurn: "燃やせる敵が見えません"
+      fireDead: n => "炎！${n}体が灰になりました"
+      fireHit: n => "炎！${n}体を焦がしました"
+      byMon: n => "${n}"
+      byArrow: "弓兵の矢"
+      monHits: (n, v, d) => "${n}の${v}：${d}"
+      arrowHits: d => "矢が当たりました：${d}"
+      monMisses: n => "${n}の攻撃は外れました"
+      arrowPast: "矢がかすめました"
+      level: n => "レベル ${n}"
+      reachLevel: n => "レベル${n}になりました"
+      best: n => "最深 ${n}"
+      slain: n => "${n}体撃破"
+      buttons: ["回復", "爆弾", "ブリンク", "炎", "待つ"]
+      youDied: "力尽きました"
+      slainBy: c => "死因：${c}"
+      onFloor: n => "地下${n}階にて"
+      runLine: (l, k, g) => "レベル${l} · ${k}体撃破 · ${g}G"
+      deepestYet: "最深記録です"
+      deepest: n => "最深：地下${n}階"
+      forGood: "死んだら終わりです"
+      newRun: "新しい冒険"
+      tagline: "ダンジョン探索"
+      going: (f, l) => "地下${f}階 · レベル${l}"
+      cont: "つづける"
+      descend: "もぐる"
+      help1: "スワイプかタップで移動"
+      help2: "モンスターに体当たりで攻撃"
+      help3: "命はひとつ：死んだら終わりです"
+      records: (f, g) => "最深：地下${f}階 · 最多ゴールド：${g}"
+    }
+    uk {
+      mons: ["ЩУР", "КАЖАН", "СЛИЗ", "ГОБЛІН", "ЛУЧНИК", "СКЕЛЕТ", "ОРК", "ПРИВИД", "ДЕМОН"]
+      verbs: ["КУСАЄ", "КУСАЄ", "ПЕЧЕ", "КОЛЕ", "Б'Є", "Б'Є", "РУБАЄ", "МОРОЗИТЬ", "ДЕРЕ"]
+      items: ["ЗІЛЛЯ", "БОМБА", "СУВІЙ СТРИБКА", "СУВІЙ ВОГНЮ", "ЗОЛОТО", "МЕЧ: ATK +1", "ЩИТ: DEF +1"]
+      empty: ["ЗІЛЛЯ НЕМАЄ", "БОМБ НЕМАЄ", "СУВОЇВ СТРИБКА НЕМАЄ", "СУВОЇВ ВОГНЮ НЕМАЄ"]
+      intro1: "ПІДЗЕМЕЛЛЯ ПРИЙМАЄ ВАС"
+      intro2: "ЗНАЙДІТЬ СХОДИ ВНИЗ"
+      floor: n => "ПОВЕРХ ${n}"
+      theDungeon: "ПІДЗЕМЕЛЛЯ"
+      deeper: "ГЛИБШЕ"
+      slay: n => "ВИ ЗДОЛАЛИ: ${n}"
+      hit: (n, d) => "ВИ ПОРАНИЛИ: ${n}, ${d}"
+      miss: n => "ПРОМАХ: ${n}"
+      missFx: "ПОВЗ"
+      findGold: n => "ВИ ЗНАЙШЛИ ЗОЛОТО: ${n}"
+      find: s => "ВИ ЗНАЙШЛИ: ${s}"
+      down: n => "ВИ СПУСТИЛИСЯ НА ПОВЕРХ ${n}"
+      drink: n => "ВИ ВИПИЛИ ЗІЛЛЯ: +${n} HP"
+      boomNone: "БУМ! НІКОГО НЕ ЗАЧЕПИЛО"
+      boomDead: n => "БУМ! РОЗНЕСЕНО: ${n}"
+      boomHit: n => "БУМ! ЗАЧЕПЛЕНО: ${n}"
+      blink: "ВИ ПЕРЕНЕСЛИСЯ ГЕТЬ"
+      noBurn: "НЕМАЄ КОГО СПАЛИТИ"
+      fireDead: n => "ВОГОНЬ! СПАЛЕНО: ${n}"
+      fireHit: n => "ВОГОНЬ! ОБПАЛЕНО: ${n}"
+      byMon: n => "${n}"
+      byArrow: "СТРІЛА ЛУЧНИКА"
+      monHits: (n, v, d) => "${n} ${v} ВАС: ${d}"
+      arrowHits: d => "СТРІЛА ВЛУЧИЛА У ВАС: ${d}"
+      monMisses: n => "${n} ПРОМАХУЄТЬСЯ"
+      arrowPast: "СТРІЛА ПРОЛЕТІЛА ПОВЗ"
+      level: n => "РІВЕНЬ ${n}"
+      reachLevel: n => "ВИ ДОСЯГЛИ РІВНЯ ${n}"
+      best: n => "РЕКОРД ${n}"
+      slain: n => "ЗДОЛАНО: ${n}"
+      buttons: ["ЛІКУВАТИ", "БОМБА", "СТРИБОК", "ВОГОНЬ", "ЧЕКАТИ"]
+      youDied: "ВИ ЗАГИНУЛИ"
+      slainBy: c => "ВБИВЦЯ: ${c}"
+      onFloor: n => "НА ПОВЕРСІ ${n}"
+      runLine: (l, k, g) => "РІВЕНЬ ${l} · ЗДОЛАНО ${k} · ЗОЛОТО ${g}"
+      deepestYet: "ВАШ НАЙГЛИБШИЙ СПУСК"
+      deepest: n => "РЕКОРД: ПОВЕРХ ${n}"
+      forGood: "СМЕРТЬ НАЗАВЖДИ"
+      newRun: "НОВИЙ ЗАБІГ"
+      tagline: "ПОХІД У ПІДЗЕМЕЛЛЯ"
+      going: (f, l) => "ПОВЕРХ ${f} · РІВЕНЬ ${l}"
+      cont: "ДАЛІ"
+      descend: "СПУСТИТИСЯ"
+      help1: "СВАЙП АБО ДОТИК: ХІД"
+      help2: "ЙДІТЬ НА МОНСТРА, ЩОБ БИТИСЯ"
+      help3: "ОДНЕ ЖИТТЯ: СМЕРТЬ НАЗАВЖДИ"
+      records: (f, g) => "РЕКОРД: ПОВЕРХ ${f} · ЗОЛОТО: ${g}"
+    }
+    fr {
+      mons: ["RAT", "CHAUVE-SOURIS", "GELÉE", "GOBELIN", "ARCHER", "SQUELETTE", "ORQUE", "FANTÔME", "DÉMON"]
+      verbs: ["MORD", "MORD", "BRÛLE", "POIGNARDE", "FRAPPE", "FRAPPE", "TRANCHE", "GLACE", "GRIFFE"]
+      items: ["UNE POTION", "UNE BOMBE", "UN PARCHEMIN DE SAUT", "UN PARCHEMIN DE FEU", "DE L'OR", "UNE ÉPÉE : ATK +1", "UN BOUCLIER : DEF +1"]
+      empty: ["PLUS DE POTIONS", "PLUS DE BOMBES", "PLUS DE PARCHEMINS DE SAUT", "PLUS DE PARCHEMINS DE FEU"]
+      intro1: "LE DONJON T'ENGLOUTIT"
+      intro2: "TROUVE L'ESCALIER QUI DESCEND"
+      floor: n => "ÉTAGE ${n}"
+      theDungeon: "LE DONJON"
+      deeper: "PLUS BAS"
+      slay: n => "TU ABATS : ${n}"
+      hit: (n, d) => "TU FRAPPES : ${n}, ${d}"
+      miss: n => "TU RATES : ${n}"
+      missFx: "RATÉ"
+      findGold: n => "TU TROUVES ${n} OR"
+      find: s => "TU TROUVES ${s}"
+      down: n => "TU DESCENDS À L'ÉTAGE ${n}"
+      drink: n => "TU BOIS UNE POTION : +${n} HP"
+      boomNone: "BOUM ! PERSONNE TOUCHÉ"
+      boomDead: n => "BOUM ! ${n} PULVÉRISÉS"
+      boomHit: n => "BOUM ! ${n} TOUCHÉS"
+      blink: "TU TE TÉLÉPORTES"
+      noBurn: "RIEN EN VUE À BRÛLER"
+      fireDead: n => "FEU ! ${n} EN CENDRES"
+      fireHit: n => "FEU ! ${n} ROUSSIS"
+      byMon: n => "${n}"
+      byArrow: "LA FLÈCHE D'UN ARCHER"
+      monHits: (n, v, d) => "${n} TE ${v} : ${d}"
+      arrowHits: d => "UNE FLÈCHE TE TOUCHE : ${d}"
+      monMisses: n => "${n} TE RATE"
+      arrowPast: "UNE FLÈCHE TE FRÔLE"
+      level: n => "NIVEAU ${n}"
+      reachLevel: n => "TU ATTEINS LE NIVEAU ${n}"
+      best: n => "RECORD ${n}"
+      slain: n => "${n} TUÉS"
+      buttons: ["SOIN", "BOMBE", "SAUT", "FEU", "ATTENDRE"]
+      youDied: "TU ES MORT"
+      slainBy: c => "TUÉ PAR : ${c}"
+      onFloor: n => "À L'ÉTAGE ${n}"
+      runLine: (l, k, g) => "NIVEAU ${l} · ${k} TUÉS · ${g} OR"
+      deepestYet: "TON RECORD DE PROFONDEUR"
+      deepest: n => "RECORD : ÉTAGE ${n}"
+      forGood: "LA MORT EST DÉFINITIVE"
+      newRun: "NOUVELLE PARTIE"
+      tagline: "UN DUNGEON CRAWLER"
+      going: (f, l) => "ÉTAGE ${f} · NIVEAU ${l}"
+      cont: "CONTINUER"
+      descend: "DESCENDRE"
+      help1: "GLISSE OU TOUCHE POUR BOUGER"
+      help2: "FONCE DANS LES MONSTRES"
+      help3: "UNE VIE : LA MORT EST DÉFINITIVE"
+      records: (f, g) => "RECORD : ÉTAGE ${f} · MAX D'OR : ${g}"
+    }
+    tr {
+      mons: ["SIÇAN", "YARASA", "BALÇIK", "GOBLİN", "OKÇU", "İSKELET", "ORK", "HAYALET", "İBLİS"]
+      verbs: ["ISIRDI", "ISIRDI", "YAKTI", "BIÇAKLADI", "VURDU", "VURDU", "YARDI", "DONDURDU", "PENÇELEDİ"]
+      items: ["İKSİR", "BOMBA", "IŞINLANMA PARŞÖMENİ", "ATEŞ PARŞÖMENİ", "ALTIN", "KILIÇ: ATK +1", "KALKAN: DEF +1"]
+      empty: ["İKSİR KALMADI", "BOMBA KALMADI", "IŞINLANMA PARŞÖMENİ YOK", "ATEŞ PARŞÖMENİ YOK"]
+      intro1: "ZİNDAN SENİ İÇİNE ALDI"
+      intro2: "AŞAĞI MERDİVENİ BUL"
+      floor: n => "KAT ${n}"
+      theDungeon: "ZİNDAN"
+      deeper: "DAHA DERİN"
+      slay: n => "ÖLDÜRDÜN: ${n}"
+      hit: (n, d) => "VURDUN: ${n}, ${d}"
+      miss: n => "ISKALADIN: ${n}"
+      missFx: "ISKA"
+      findGold: n => "${n} ALTIN BULDUN"
+      find: s => "BULDUN: ${s}"
+      down: n => "${n}. KATA İNDİN"
+      drink: n => "İKSİR İÇTİN: +${n} HP"
+      boomNone: "BUM! KİMSE YAKALANMADI"
+      boomDead: n => "BUM! ${n} PARÇALANDI"
+      boomHit: n => "BUM! ${n} VURULDU"
+      blink: "IŞINLANDIN"
+      noBurn: "GÖRÜŞTE YAKILACAK YOK"
+      fireDead: n => "ATEŞ! ${n} KÜL OLDU"
+      fireHit: n => "ATEŞ! ${n} KAVRULDU"
+      byMon: n => "${n}"
+      byArrow: "BİR OKÇUNUN OKU"
+      monHits: (n, v, d) => "${n} SENİ ${v}: ${d}"
+      arrowHits: d => "BİR OK SANA İSABET ETTİ: ${d}"
+      monMisses: n => "${n} ISKALADI"
+      arrowPast: "BİR OK YANINDAN GEÇTİ"
+      level: n => "SEVİYE ${n}"
+      reachLevel: n => "SEVİYE ${n} OLDUN"
+      best: n => "REKOR ${n}"
+      slain: n => "${n} ÖLDÜRÜLDÜ"
+      buttons: ["İYİLEŞ", "BOMBA", "IŞINLAN", "ATEŞ", "BEKLE"]
+      youDied: "ÖLDÜN"
+      slainBy: c => "SENİ ÖLDÜREN: ${c}"
+      onFloor: n => "KAT ${n}"
+      runLine: (l, k, g) => "SEVİYE ${l} · ${k} ÖLDÜRÜLDÜ · ${g} ALTIN"
+      deepestYet: "EN DERİN REKORUN"
+      deepest: n => "EN DERİN: KAT ${n}"
+      forGood: "ÖLÜM KALICIDIR"
+      newRun: "YENİ OYUN"
+      tagline: "BİR ZİNDAN MACERASI"
+      going: (f, l) => "KAT ${f} · SEVİYE ${l}"
+      cont: "DEVAM"
+      descend: "İN"
+      help1: "YÜRÜMEK İÇİN KAYDIR VEYA DOKUN"
+      help2: "SAVAŞMAK İÇİN CANAVARA YÜRÜ"
+      help3: "TEK CAN: ÖLÜM KALICIDIR"
+      records: (f, g) => "EN DERİN: KAT ${f} · EN ÇOK ALTIN: ${g}"
+    }
+    it {
+      mons: ["RATTO", "PIPISTRELLO", "MELMA", "GOBLIN", "ARCIERE", "SCHELETRO", "ORCO", "FANTASMA", "DEMONE"]
+      verbs: ["MORDE", "MORDE", "BRUCIA", "PUGNALA", "COLPISCE", "COLPISCE", "SQUARCIA", "GELA", "GRAFFIA"]
+      items: ["UNA POZIONE", "UNA BOMBA", "UNA PERGAMENA DI SALTO", "UNA PERGAMENA DI FUOCO", "DELL'ORO", "UNA SPADA: ATK +1", "UNO SCUDO: DEF +1"]
+      empty: ["POZIONI FINITE", "BOMBE FINITE", "NIENTE PERGAMENE DI SALTO", "NIENTE PERGAMENE DI FUOCO"]
+      intro1: "IL DUNGEON TI INGHIOTTE"
+      intro2: "TROVA LE SCALE PER SCENDERE"
+      floor: n => "PIANO ${n}"
+      theDungeon: "IL DUNGEON"
+      deeper: "PIÙ GIÙ"
+      slay: n => "HAI UCCISO: ${n}"
+      hit: (n, d) => "COLPISCI: ${n}, ${d}"
+      miss: n => "MANCHI: ${n}"
+      missFx: "MANCATO"
+      findGold: n => "TROVI ${n} ORO"
+      find: s => "TROVI ${s}"
+      down: n => "SCENDI AL PIANO ${n}"
+      drink: n => "BEVI UNA POZIONE: +${n} HP"
+      boomNone: "BUM! NESSUNO PRESO"
+      boomDead: n => "BUM! ${n} SPAZZATI VIA"
+      boomHit: n => "BUM! ${n} COLPITI"
+      blink: "TI TELETRASPORTI"
+      noBurn: "NIENTE IN VISTA DA BRUCIARE"
+      fireDead: n => "FUOCO! ${n} IN CENERE"
+      fireHit: n => "FUOCO! ${n} BRUCIACCHIATI"
+      byMon: n => "${n}"
+      byArrow: "LA FRECCIA DI UN ARCIERE"
+      monHits: (n, v, d) => "${n} TI ${v}: ${d}"
+      arrowHits: d => "UNA FRECCIA TI COLPISCE: ${d}"
+      monMisses: n => "${n} TI MANCA"
+      arrowPast: "UNA FRECCIA TI SFIORA"
+      level: n => "LIVELLO ${n}"
+      reachLevel: n => "SALI AL LIVELLO ${n}"
+      best: n => "RECORD ${n}"
+      slain: n => "${n} UCCISI"
+      buttons: ["CURA", "BOMBA", "SALTO", "FUOCO", "ASPETTA"]
+      youDied: "SEI MORTO"
+      slainBy: c => "UCCISO DA: ${c}"
+      onFloor: n => "AL PIANO ${n}"
+      runLine: (l, k, g) => "LIVELLO ${l} · ${k} UCCISI · ${g} ORO"
+      deepestYet: "IL TUO RECORD DI PROFONDITÀ"
+      deepest: n => "RECORD: PIANO ${n}"
+      forGood: "LA MORTE È PER SEMPRE"
+      newRun: "NUOVA PARTITA"
+      tagline: "UN DUNGEON CRAWLER"
+      going: (f, l) => "PIANO ${f} · LIVELLO ${l}"
+      cont: "CONTINUA"
+      descend: "SCENDI"
+      help1: "SCORRI O TOCCA PER MUOVERTI"
+      help2: "CAMMINA SUI MOSTRI PER LOTTARE"
+      help3: "UNA VITA: LA MORTE È PER SEMPRE"
+      records: (f, g) => "RECORD: PIANO ${f} · PIÙ ORO: ${g}"
+    }
+  }
 
   title: ""
   statusBar: false
@@ -109,18 +750,18 @@ app "delve" {
   // ai: 0 walks up, 1 flutters (half its moves are random), 2 slow (every other turn), 3 shoots
   // along a row or a column, 4 drifts through walls
   let KD = [
-    {n: "RAT", v: "BITES", hp: 3, atk: 2, def: 0, xp: 1, from: 1, ai: 0},
-    {n: "BAT", v: "BITES", hp: 3, atk: 1, def: 0, xp: 1, from: 1, ai: 1},
-    {n: "SLIME", v: "BURNS", hp: 8, atk: 2, def: 0, xp: 2, from: 2, ai: 2},
-    {n: "GOBLIN", v: "STABS", hp: 6, atk: 3, def: 0, xp: 3, from: 2, ai: 0},
-    {n: "ARCHER", v: "HITS", hp: 5, atk: 2, def: 0, xp: 3, from: 3, ai: 3},
-    {n: "SKELETON", v: "HITS", hp: 10, atk: 3, def: 1, xp: 4, from: 4, ai: 0},
-    {n: "ORC", v: "CLEAVES", hp: 14, atk: 4, def: 1, xp: 6, from: 6, ai: 0},
-    {n: "GHOST", v: "CHILLS", hp: 9, atk: 4, def: 0, xp: 5, from: 7, ai: 4},
-    {n: "DEMON", v: "CLAWS", hp: 22, atk: 6, def: 2, xp: 10, from: 9, ai: 0}
+    {n: str.mons[0], v: str.verbs[0], hp: 3, atk: 2, def: 0, xp: 1, from: 1, ai: 0},
+    {n: str.mons[1], v: str.verbs[1], hp: 3, atk: 1, def: 0, xp: 1, from: 1, ai: 1},
+    {n: str.mons[2], v: str.verbs[2], hp: 8, atk: 2, def: 0, xp: 2, from: 2, ai: 2},
+    {n: str.mons[3], v: str.verbs[3], hp: 6, atk: 3, def: 0, xp: 3, from: 2, ai: 0},
+    {n: str.mons[4], v: str.verbs[4], hp: 5, atk: 2, def: 0, xp: 3, from: 3, ai: 3},
+    {n: str.mons[5], v: str.verbs[5], hp: 10, atk: 3, def: 1, xp: 4, from: 4, ai: 0},
+    {n: str.mons[6], v: str.verbs[6], hp: 14, atk: 4, def: 1, xp: 6, from: 6, ai: 0},
+    {n: str.mons[7], v: str.verbs[7], hp: 9, atk: 4, def: 0, xp: 5, from: 7, ai: 4},
+    {n: str.mons[8], v: str.verbs[8], hp: 22, atk: 6, def: 2, xp: 10, from: 9, ai: 0}
   ]
-  let ITN = ["A POTION", "A BOMB", "A BLINK SCROLL", "A FIRE SCROLL", "GOLD", "A SWORD: ATK +1", "A SHIELD: DEF +1"]
-  let EMPTY = ["NO POTIONS LEFT", "NO BOMBS LEFT", "NO BLINK SCROLLS", "NO FIRE SCROLLS"]
+  let ITN = str.items
+  let EMPTY = str.empty
 
   // ---- what the hero sees and how far monsters must walk ----------------------------------------
   // every cell within five, in a straight line past nothing but floor; a wall is seen as the line ends on it
@@ -136,7 +777,7 @@ app "delve" {
     gold = 0
     kills = 0
     turnN = 0
-    log = ["THE DUNGEON TAKES YOU IN", "FIND THE STAIRS DOWN"]
+    log = [str.intro1, str.intro2]
     cause = ""
     over = false
     xpGain = 0
@@ -178,7 +819,7 @@ app "delve" {
     // potions most, then fire and bombs, blink, swords and shields; and gold
     items = free.drop(nm).take(ni).map((c, n) => [hash(R, n, 13) * 100].map(h => {c: c, k: h < 34 ? 0 : h < 48 ? 1 : h < 60 ? 2 : h < 74 ? 3 : h < 87 ? 5 : 6})[0]) + free.drop(nm + ni).take(ng).map(c => {c: c, k: 4})
     hero = merge(hero, {x: start % W, y: floor(start / W)})
-    fx = [{k: 7, s: "FLOOR ${depth}", s2: depth == 1 ? "THE DUNGEON" : "DEEPER", t0: 0.1}]
+    fx = [{k: 7, s: str.floor(depth), s2: depth == 1 ? str.theDungeon : str.deeper, t0: 0.1}]
     fxLen = 1.6
     fxTap = time
     fxAt = -1
@@ -209,12 +850,12 @@ app "delve" {
           let dead = hit && foe.hp <= dm
           hero = merge(hero, {f: fd})
           mons = dead ? mons.filter(m => m.i != foe.i) : mons.map(m => m.i == foe.i ? merge(m, {hp: m.hp - dm, aw: true}) : m)
-          fx = [{k: 1, i: -1, a: [hx, hy], b: [tx, ty], t0: 0}] + (hit ? [{k: 2, i: foe.i, t0: 0.07}, {k: 3, x: tx, y: ty, s: "-${dm}", c: "#ffffff", t0: 0.07}] : [{k: 3, x: tx, y: ty, s: "MISS", c: "#a8a0c0", t0: 0.07}]) + (dead ? [{k: 8, m: foe.k, x: tx, y: ty, f: foe.f, t0: 0.1}] : [])
+          fx = [{k: 1, i: -1, a: [hx, hy], b: [tx, ty], t0: 0}] + (hit ? [{k: 2, i: foe.i, t0: 0.07}, {k: 3, x: tx, y: ty, s: "-${dm}", c: "#ffffff", t0: 0.07}] : [{k: 3, x: tx, y: ty, s: str.missFx, c: "#a8a0c0", t0: 0.07}]) + (dead ? [{k: 8, m: foe.k, x: tx, y: ty, f: foe.f, t0: 0.1}] : [])
           if dead {
             xpGain = xpGain + K.xp
             kills = kills + 1
           }
-          log = (log + [dead ? "YOU SLAY THE ${K.n}" : hit ? "YOU HIT THE ${K.n}: ${dm}" : "YOU MISS THE ${K.n}"]).drop(max(0, len(log) - 2))
+          log = (log + [dead ? str.slay(K.n) : hit ? str.hit(K.n, dm) : str.miss(K.n)]).drop(max(0, len(log) - 2))
           spent = true
         } else if inb && grid[tc] != 0 {
           hero = merge(hero, {x: tx, y: ty, f: fd})
@@ -228,12 +869,12 @@ app "delve" {
             if it.k == 5 { hero = merge(hero, {atk: hero.atk + 1}) }
             if it.k == 6 { hero = merge(hero, {def: hero.def + 1}) }
             fx = fx + [{k: 9, x: tx, y: ty, t0: 0.06}, {k: 3, x: tx, y: ty, s: it.k == 4 ? "+${amt}" : it.k == 5 ? "ATK+1" : it.k == 6 ? "DEF+1" : "+1", c: "#ffe14a", t0: 0.08}]
-            log = (log + [it.k == 4 ? "YOU FIND ${amt} GOLD" : "YOU FIND ${ITN[it.k]}"]).drop(max(0, len(log) - 2))
+            log = (log + [it.k == 4 ? str.findGold(amt) : str.find(ITN[it.k])]).drop(max(0, len(log) - 2))
           }
           if grid[tc] == 2 {
             depth = depth + 1
             best = max(best, depth)
-            log = (log + ["YOU GO DOWN TO FLOOR ${depth}"]).drop(max(0, len(log) - 2))
+            log = (log + [str.down(depth)]).drop(max(0, len(log) - 2))
             haptic()
             go = go + 1
           } else {
@@ -252,7 +893,7 @@ app "delve" {
           hero = merge(hero, {hp: hero.hp + hl})
           inv = set(inv, 0, inv[0] - 1)
           fx = [{k: 9, x: hx, y: hy, t0: 0}, {k: 3, x: hx, y: hy, s: "+${hl}", c: "#6fe05a", t0: 0.05}]
-          log = (log + ["YOU DRINK A POTION: +${hl} HP"]).drop(max(0, len(log) - 2))
+          log = (log + [str.drink(hl)]).drop(max(0, len(log) - 2))
           spent = true
         } else if k == 1 {
           // a bomb at the hero's feet: the eight cells around take the blast, the hero doesn't
@@ -264,7 +905,7 @@ app "delve" {
           kills = kills + len(dead)
           inv = set(inv, 1, inv[1] - 1)
           fx = [{k: 4, x: hx, y: hy, t0: 0}] + hitm.map(m => {k: 3, x: m.x, y: m.y, s: "-${dmg}", c: "#ffffff", t0: 0.12}) + dead.map(m => {k: 8, m: m.k, x: m.x, y: m.y, f: m.f, t0: 0.15})
-          log = (log + [len(hitm) == 0 ? "BOOM! NOTHING CAUGHT" : len(dead) > 0 ? "BOOM! ${len(dead)} BLOWN AWAY" : "BOOM! ${len(hitm)} CAUGHT"]).drop(max(0, len(log) - 2))
+          log = (log + [len(hitm) == 0 ? str.boomNone : len(dead) > 0 ? str.boomDead(len(dead)) : str.boomHit(len(hitm))]).drop(max(0, len(log) - 2))
           haptic()
           spent = true
         } else if k == 2 {
@@ -274,13 +915,13 @@ app "delve" {
           hero = merge(hero, {x: dest % W, y: floor(dest / W)})
           inv = set(inv, 2, inv[2] - 1)
           fx = [{k: 9, x: hx, y: hy, t0: 0}, {k: 9, x: dest % W, y: floor(dest / W), t0: 0.12}]
-          log = (log + ["YOU BLINK AWAY"]).drop(max(0, len(log) - 2))
+          log = (log + [str.blink]).drop(max(0, len(log) - 2))
           spent = true
         } else {
           // fire: every monster in view
           let tg = mons.filter(m => vis[m.y * W + m.x])
           if len(tg) == 0 {
-            log = (log + ["NOTHING IN VIEW TO BURN"]).drop(max(0, len(log) - 2))
+            log = (log + [str.noBurn]).drop(max(0, len(log) - 2))
           } else {
             let dmg = 5 + floor(depth / 2)
             let dead = tg.filter(m => m.hp <= dmg)
@@ -289,7 +930,7 @@ app "delve" {
             kills = kills + len(dead)
             inv = set(inv, 3, inv[3] - 1)
             fx = tg.map((m, n) => {k: 6, a: [hx, hy], b: [m.x, m.y], t0: n * 0.06}) + tg.map((m, n) => {k: 3, x: m.x, y: m.y, s: "-${dmg}", c: "#ffb070", t0: 0.22 + n * 0.06}) + tg.map((m, n) => {k: 2, i: m.i, t0: 0.2 + n * 0.06}) + dead.map((m, n) => {k: 8, m: m.k, x: m.x, y: m.y, f: m.f, t0: 0.28 + n * 0.06})
-            log = (log + [len(dead) > 0 ? "FIRE! ${len(dead)} BURNED TO ASH" : "FIRE! ${len(tg)} SCORCHED"]).drop(max(0, len(log) - 2))
+            log = (log + [len(dead) > 0 ? str.fireDead(len(dead)) : str.fireHit(len(tg))]).drop(max(0, len(log) - 2))
             haptic()
             spent = true
           }
@@ -324,10 +965,10 @@ app "delve" {
           [hash(R, m.i, 1) < (md == 1 ? 0.85 : 0.75)].map(hit => [hit ? max(1, K.atk + m.ab - (md == 1 ? 0 : 1) - hero.def + floor(hash(R, m.i, 2) * 3) - 1) : 0].map(dm => {
             ms: set(A.ms, j, merge(m, {aw: true, f: hx != m.x ? sign(hx - m.x) : m.f})),
             hp: A.hp - dm,
-            by: A.hp > 0 && A.hp - dm <= 0 ? (md == 1 ? "A ${K.n}" : "AN ARCHER'S ARROW") : A.by,
+            by: A.hp > 0 && A.hp - dm <= 0 ? (md == 1 ? str.byMon(K.n) : str.byArrow) : A.by,
             wk: A.wk + (m.aw ? [] : [j]),
-            fx: A.fx + (md == 1 ? [{k: 1, i: m.i, a: [m.x, m.y], b: [hx, hy], t0: A.t}] : [{k: 5, a: [m.x, m.y], b: [hx, hy], t0: A.t}]) + (hit ? [{k: 2, i: -1, t0: A.t + 0.1}, {k: 3, x: hx, y: hy, s: "-${dm}", c: "#ff5a4a", t0: A.t + 0.1}] : [{k: 3, x: hx, y: hy, s: "MISS", c: "#a8a0c0", t0: A.t + 0.1}]),
-            said: A.said + [hit ? (md == 1 ? "THE ${K.n} ${K.v} YOU: ${dm}" : "AN ARROW HITS YOU: ${dm}") : md == 1 ? "THE ${K.n} MISSES" : "AN ARROW FLIES PAST"],
+            fx: A.fx + (md == 1 ? [{k: 1, i: m.i, a: [m.x, m.y], b: [hx, hy], t0: A.t}] : [{k: 5, a: [m.x, m.y], b: [hx, hy], t0: A.t}]) + (hit ? [{k: 2, i: -1, t0: A.t + 0.1}, {k: 3, x: hx, y: hy, s: "-${dm}", c: "#ff5a4a", t0: A.t + 0.1}] : [{k: 3, x: hx, y: hy, s: str.missFx, c: "#a8a0c0", t0: A.t + 0.1}]),
+            said: A.said + [hit ? (md == 1 ? str.monHits(K.n, K.v, dm) : str.arrowHits(dm)) : md == 1 ? str.monMisses(K.n) : str.arrowPast],
             t: A.t + 0.16
           })[0])[0] :
           [[0, 1, 2, 3].map(d => [m.x + DX[d], m.y + DY[d]]).filter(p => p[0] >= 0 && p[0] < W && p[1] >= 0 && p[1] < H && (K.ai == 4 || grid[p[1] * W + p[0]] != 0) && !(p[0] == hx && p[1] == hy) && !any(A.ms, o => o.x == p[0] && o.y == p[1]))].map(nb =>
@@ -358,9 +999,9 @@ app "delve" {
         let rg = turnN % 6 == 0 ? 1 : 0
         hero = merge(hero, up ? {xp: xp2 - hero.lv * 5, lv: hero.lv + 1, mh: hero.mh + 4, hp: min(hero.mh + 4, res.hp + 4 + floor(hero.mh / 3)), atk: hero.atk + 1} : {xp: xp2, hp: min(hero.mh, res.hp + rg)})
         if up {
-          fx = fx + [{k: 7, s: "LEVEL ${hero.lv}", s2: "ATK +1 · HP +4", t0: 0.3}]
+          fx = fx + [{k: 7, s: str.level(hero.lv), s2: "ATK +1 · HP +4", t0: 0.3}]
           fxLen = max(fxLen, 1.8)
-          let nl2 = log + ["YOU REACH LEVEL ${hero.lv}"]
+          let nl2 = log + [str.reachLevel(hero.lv)]
           log = nl2.drop(max(0, len(nl2) - 3))
           haptic("strong")
         }
@@ -923,11 +1564,11 @@ app "delve" {
       if mode == "play" && len(grid) == N {
         // ---- the top bar: the floor, the gold, the deepest yet, and the way to the title ----
         let ty = TOP + 14
-        text("FLOOR ${depth}", HX, ty, size: 9, color: accent, font: press)
-        let gx = HX + 9 * len("FLOOR ${depth}") + 14
+        text(str.floor(depth), HX, ty, size: 9, color: accent, font: press)
+        let gx = HX + 9 * len(str.floor(depth)) + 14
         sprite(SP_GOLD, gx, ty - 13, 1.6, palette: P_GOLD)
         text("${gold}", gx + 22, ty, size: 8, color: foreground, font: press)
-        text("BEST ${max(best, depth)}", HX + HW - 52, ty, size: 7, color: muted, font: press, align: end)
+        text(str.best(max(best, depth)), HX + HW - 52, ty, size: 7, color: muted, font: press, align: end)
         let md = downAt[0] >= HX + HW - 46 && downAt[1] < TOP + 32 ? 2 : 0
         rect(HX + HW - 38, TOP + 2, 38, 24, radius: 4, fill: INK)
         rect(HX + HW - 36, TOP + 4 + md, 34, 18, radius: 3, fill: "#4a4466")
@@ -948,7 +1589,7 @@ app "delve" {
         text("${hero.atk}", ax + 23, PY + 10, size: 8, color: foreground, font: press)
         sprite(SP_SHIELD, ax + 46, PY - 1, 1.7, palette: P_SHIELD)
         text("${hero.def}", ax + 69, PY + 10, size: 8, color: foreground, font: press)
-        text("${kills} SLAIN", ax, PY + 30, size: 6, color: muted, font: press)
+        text(str.slain(kills), ax, PY + 30, size: 6, color: muted, font: press)
         // ---- the last of the log ----
         let ll = log.drop(max(0, len(log) - 2))
         for s, n in ll { text(s, PX, PY + 50 + n * 14, size: 7, color: n == len(ll) - 1 ? foreground : muted, font: press) }
@@ -963,7 +1604,7 @@ app "delve" {
           rect(x0 + 3, BTY + pd + 3, BW - 6, 4, radius: 2, fill: pal[0])
           rect(x0 + 3, BTY + pd + 34, BW - 6, 5, radius: 2, fill: pal[2])
           layer(can ? 1 : 0.45) { sprite(b < 4 ? ITA[b] : SP_WAIT, x0 + BW / 2 - 12, BTY + pd + 4, 2, palette: b < 4 ? ITP[b] : P_WAIT) }
-          let lab = ["HEAL", "BOMB", "BLINK", "FIRE", "WAIT"][b]
+          let lab = str.buttons[b]
           text(lab, x0 + BW / 2 + 1, BTY + pd + 34, size: 6, color: INK, font: press, align: center)
           text(lab, x0 + BW / 2, BTY + pd + 33, size: 6, color: can ? "#ffffff" : "#a8a2c0", font: press, align: center)
           if b < 4 {
@@ -981,20 +1622,20 @@ app "delve" {
           rect(ccx, ccy, ccw, 280, radius: 14 * corners, fill: surface, stroke: INK, width: 2)
           rect(ccx - 10, ccy + 16, ccw + 20, 44, radius: 4, fill: "#8a2a32", stroke: INK, width: 2)
           rect(ccx - 7, ccy + 19, ccw + 14, 3, radius: 1.5, fill: alpha("#ffffff", 0.3))
-          text("YOU DIED", SW / 2 + 2, ccy + 41, size: 16, color: INK, font: press, align: center)
-          text("YOU DIED", SW / 2, ccy + 39, size: 16, color: "#ffffff", font: press, align: center)
-          text("SLAIN BY ${cause}", SW / 2, ccy + 84, size: 7, color: foreground, font: press, align: center)
-          text("ON FLOOR ${depth}", SW / 2, ccy + 104, size: 8, color: foreground, font: press, align: center)
-          text("LEVEL ${hero.lv} · ${kills} SLAIN · ${gold} GOLD", SW / 2, ccy + 130, size: 7, color: muted, font: press, align: center)
-          text(depth >= best ? "YOUR DEEPEST YET" : "DEEPEST: FLOOR ${best}", SW / 2, ccy + 160, size: 8, color: accent, font: press, align: center)
-          text("DEATH IS FOR GOOD", SW / 2, ccy + 184, size: 6, color: muted, font: press, align: center)
+          text(str.youDied, SW / 2 + 2, ccy + 41, size: 16, color: INK, font: press, align: center)
+          text(str.youDied, SW / 2, ccy + 39, size: 16, color: "#ffffff", font: press, align: center)
+          text(str.slainBy(cause), SW / 2, ccy + 84, size: 7, color: foreground, font: press, align: center)
+          text(str.onFloor(depth), SW / 2, ccy + 104, size: 8, color: foreground, font: press, align: center)
+          text(str.runLine(hero.lv, kills, gold), SW / 2, ccy + 130, size: 7, color: muted, font: press, align: center)
+          text(depth >= best ? str.deepestYet : str.deepest(best), SW / 2, ccy + 160, size: 8, color: accent, font: press, align: center)
+          text(str.forGood, SW / 2, ccy + 184, size: 6, color: muted, font: press, align: center)
           let pd = downAt[1] >= OBY && downAt[1] < OBY + 50 && abs(downAt[0] - SW / 2) < 110 ? 3 : 0
           rect(SW / 2 - 110, OBY + 4, 220, 46, radius: 4, fill: BTN.red[3])
           rect(SW / 2 - 110, OBY + pd, 220, 46, radius: 4, fill: BTN.red[1], stroke: INK, width: 2)
           rect(SW / 2 - 107, OBY + pd + 3, 214, 4, radius: 2, fill: BTN.red[0])
           rect(SW / 2 - 107, OBY + pd + 37, 214, 6, radius: 2, fill: BTN.red[2])
-          text("NEW RUN", SW / 2 + 2, OBY + pd + 25, size: 13, color: INK, font: press, align: center)
-          text("NEW RUN", SW / 2, OBY + pd + 23, size: 13, color: "#ffffff", font: press, align: center)
+          text(str.newRun, SW / 2 + 2, OBY + pd + 25, size: 13, color: INK, font: press, align: center)
+          text(str.newRun, SW / 2, OBY + pd + 23, size: 13, color: "#ffffff", font: press, align: center)
         }
       }
       // ---- the title ----
@@ -1004,7 +1645,7 @@ app "delve" {
         let ls = min(40, (SW - 40) / 5)
         text("DELVE", SW / 2 + 3, ty + 3, size: ls, color: INK, font: press, align: center)
         text("DELVE", SW / 2, ty, size: ls, color: accent, font: press, align: center)
-        text("A DUNGEON CRAWL", SW / 2, ty + ls * 0.5 + 18, size: 8, color: muted, font: press, align: center)
+        text(str.tagline, SW / 2, ty + ls * 0.5 + 18, size: 8, color: muted, font: press, align: center)
         // a doorway with stairs going down, a torch either side, and the hero before it
         let sc = LS ? 4 : min(6, SW / 64)
         let dy = LS ? ty + 50 : SH * 0.3
@@ -1028,25 +1669,25 @@ app "delve" {
         sprite(SP_HERO, dx - 20 * sc, dy + 15.5 * sc - floor(tt * 2.2) % 2 * 0.5 * sc, sc, palette: P_HERO)
         // a run under way carries on; else a new one
         let going = len(grid) == N && hero.hp > 0
-        if going { text("FLOOR ${depth} · LEVEL ${hero.lv}", SW / 2, TBY - 18, size: 8, color: foreground, font: press, align: center) }
+        if going { text(str.going(depth, hero.lv), SW / 2, TBY - 18, size: 8, color: foreground, font: press, align: center) }
         let pd = downAt[1] >= TBY && downAt[1] < TBY + 56 && abs(downAt[0] - SW / 2) < 120 ? 3 : 0
         rect(SW / 2 - 120, TBY + 5, 240, 50, radius: 4, fill: BTN.go[3])
         rect(SW / 2 - 120, TBY + pd, 240, 50, radius: 4, fill: BTN.go[1], stroke: INK, width: 2)
         rect(SW / 2 - 117, TBY + pd + 3, 234, 4, radius: 2, fill: BTN.go[0])
         rect(SW / 2 - 117, TBY + pd + 41, 234, 6, radius: 2, fill: BTN.go[2])
-        let dl = going ? "CONTINUE" : "DESCEND"
+        let dl = going ? str.cont : str.descend
         text(dl, SW / 2 + 2, TBY + pd + 26, size: 14, color: INK, font: press, align: center)
         text(dl, SW / 2, TBY + pd + 24, size: 14, color: "#ffffff", font: press, align: center)
         if going {
           let nd = downAt[1] >= TBY + 70 && downAt[1] < TBY + 106 && abs(downAt[0] - SW / 2) < 110 ? 2 : 0
           rect(SW / 2 - 110, TBY + 72 + nd, 220, 32, radius: 4, fill: alpha(foreground, 0.08), stroke: alpha(foreground, 0.2), width: 1)
-          text("NEW RUN", SW / 2, TBY + 88 + nd, size: 8, color: muted, font: press, align: center)
+          text(str.newRun, SW / 2, TBY + 88 + nd, size: 8, color: muted, font: press, align: center)
         }
         let hy = going ? TBY + 128 : TBY + 82
-        text("SWIPE OR TAP TO MOVE", SW / 2, hy, size: 7, color: muted, font: press, align: center)
-        text("WALK INTO MONSTERS TO FIGHT", SW / 2, hy + 16, size: 7, color: muted, font: press, align: center)
-        text("ONE LIFE: DEATH IS FOR GOOD", SW / 2, hy + 32, size: 7, color: muted, font: press, align: center)
-        if best > 0 { text("DEEPEST: FLOOR ${best} · MOST GOLD: ${bestGold}", SW / 2, hy + 58, size: 7, color: accent, font: press, align: center) }
+        text(str.help1, SW / 2, hy, size: 7, color: muted, font: press, align: center)
+        text(str.help2, SW / 2, hy + 16, size: 7, color: muted, font: press, align: center)
+        text(str.help3, SW / 2, hy + 32, size: 7, color: muted, font: press, align: center)
+        if best > 0 { text(str.records(best, bestGold), SW / 2, hy + 58, size: 7, color: accent, font: press, align: center) }
       }
     }
   }

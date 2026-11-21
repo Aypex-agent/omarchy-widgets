@@ -10,7 +10,193 @@ app "pixel cafe" {
   // into `bank`. The customers are worked out from the clock: every seat has a round of 30
   // seconds, and in each one a customer comes or doesn't, as many as the café can serve.
 
-  meta { owl: 14; description: "A pixel art café: buy tables, a coffee machine, an oven and decor, hire cooks and waiters, and watch the customers come in, eat and pay"; version: "1.0.1"; license: "MIT"; category: "games" }
+  meta { owl: 16; description: "A pixel art café: buy tables, a coffee machine, an oven and decor, hire cooks and waiters, and watch the customers come in, eat and pay"; version: "1.1"; license: "MIT"; category: "games" }
+
+  strings {
+    en {
+      sign: "MENU"; kd: i => ["TABLE", "ROUND TABLE", "LONG TABLE", "COFFEE", "JUICER", "OVEN", "STOVE", "CAKE CASE", "PLANT", "LAMP", "JUKEBOX", "AQUARIUM"][i]
+      tab: i => ["TABLES", "KITCHEN", "DECOR", "STAFF"][i]; welcome: c => "WELCOME BACK +${c}"; lane: "KEEP THE LANE FREE"
+      noRoom: "NO ROOM HERE"; noCoins: "NOT ENOUGH COINS"; taken: "THAT SPOT IS TAKEN"; seatsOf: (g, n) => "${g} OF ${n} SEATS"
+      seats: n => "${n} SEATS"; level: l => "LEVEL ${l}"; decor: "DECOR"; noWay: "NO WAY TO THIS TABLE"; leaveWay: "LEAVE A WAY FROM THE DOOR"
+      fromPass: "AND FROM THE PASS"; eatHere: "CUSTOMERS EAT HERE"; ownRow1: "A TABLE IN A ROW OF ITS OWN"; ownRow2: "NEEDS A WAY TO IT"
+      perDish: p => "+${p} A DISH"; doubles: l => "LEVEL ${l} DOUBLES IT"; best: "AS GOOD AS IT GETS"; upgrade: "UPGRADE"
+      looks: b => "+${b} LOOKS"; nicer1: "A NICER ROOM BRINGS MORE"; nicer2: "CUSTOMERS AND BIGGER TIPS"; sell: "SELL"
+      staffWarn: "STAFF!"; cooks: n => "COOKS ${n}"; waiters: n => "WAITERS ${n}"; dishesMin: n => "${n} DISHES A MINUTE"
+      tripsMin: n => "${n} TRIPS A MINUTE"; full: "FULL"; hire: "HIRE"; menu1: "NOTHING ON THE MENU YET:"; menu2: "BUY A COFFEE MACHINE"
+      cook1: "CUSTOMERS WAIT FOR FOOD:"; cook2: "HIRE A COOK"; machine1: "A COOK HAS NO MACHINE:"; machine2: "BUY ONE IN THE KITCHEN"
+      waiter1: "CUSTOMERS WAIT FOR A WAITER:"; waiter2: "HIRE ONE"; ok1: "THE STAFF KEEP UP:"; ok2: "ROOM FOR MORE CUSTOMERS"
+      tablesWay: "TABLES NEED A WAY FROM THE DOOR"; stars1: "A NICER ROOM: MORE STARS,"; stars2: "MORE CUSTOMERS, BIGGER TIPS"
+      hintBuy1: "BUY A COFFEE MACHINE"; hintBuy2: "IN THE KITCHEN TAB"; pick1: "PICK A TABLE BELOW,"; pick2: "THEN TAP THE FLOOR"
+      leave1: "LEAVE A WAY TO"; leave2: "THE TABLES"
+    }
+    id {
+      sign: "MENU"; kd: i => ["MEJA", "MEJA BUNDAR", "MEJA PANJANG", "KOPI", "JUS", "OVEN", "KOMPOR", "ETALASE KUE", "TANAMAN", "LAMPU", "JUKEBOX", "AKUARIUM"][i]
+      tab: i => ["MEJA", "DAPUR", "DEKOR", "STAF"][i]; welcome: c => "SELAMAT KEMBALI +${c}"; lane: "JANGAN HALANGI JALUR"
+      noRoom: "TIDAK ADA TEMPAT"; noCoins: "KOIN TIDAK CUKUP"; taken: "TEMPAT ITU TERISI"; seatsOf: (g, n) => "${g} DARI ${n} KURSI"
+      seats: n => "${n} KURSI"; level: l => "LEVEL ${l}"; decor: "DEKOR"; noWay: "MEJA INI TAK TERJANGKAU"; leaveWay: "SISAKAN JALAN DARI PINTU"
+      fromPass: "DAN DARI MEJA SAJI"; eatHere: "PELANGGAN MAKAN DI SINI"; ownRow1: "MEJA DI BARIS SENDIRI"; ownRow2: "BUTUH JALAN KE SANA"
+      perDish: p => "+${p} PER HIDANGAN"; doubles: l => "LEVEL ${l} MENGGANDAKAN"; best: "SUDAH PALING BAGUS"; upgrade: "TINGKATKAN"
+      looks: b => "+${b} PESONA"; nicer1: "RUANG YANG LEBIH BAGUS"; nicer2: "MENARIK PELANGGAN & TIP"; sell: "JUAL"; staffWarn: "STAF!"
+      cooks: n => "KOKI ${n}"; waiters: n => "PELAYAN ${n}"; dishesMin: n => "${n} HIDANGAN SEMENIT"; tripsMin: n => "${n} ANTARAN SEMENIT"
+      full: "PENUH"; hire: "REKRUT"; menu1: "MENU MASIH KOSONG:"; menu2: "BELI MESIN KOPI"; cook1: "PELANGGAN MENUNGGU MAKANAN:"
+      cook2: "REKRUT KOKI"; machine1: "ADA KOKI TANPA MESIN:"; machine2: "BELI DI TAB DAPUR"; waiter1: "PELANGGAN MENUNGGU PELAYAN:"
+      waiter2: "REKRUT SATU"; ok1: "STAF SANGGUP:"; ok2: "MASIH MUAT PELANGGAN"; tablesWay: "MEJA BUTUH JALAN DARI PINTU"
+      stars1: "RUANG BAGUS: BINTANG NAIK,"; stars2: "PELANGGAN & TIP BERTAMBAH"; hintBuy1: "BELI MESIN KOPI"; hintBuy2: "DI TAB DAPUR"
+      pick1: "PILIH MEJA DI BAWAH,"; pick2: "LALU KETUK LANTAI"; leave1: "SISAKAN JALAN"; leave2: "KE MEJA-MEJA"
+    }
+    es {
+      sign: "MENÚ"; kd: i => ["MESA", "MESA REDONDA", "MESA LARGA", "CAFÉ", "EXPRIMIDOR", "HORNO", "FOGÓN", "VITRINA", "PLANTA", "LÁMPARA", "JUKEBOX", "ACUARIO"][i]
+      tab: i => ["MESAS", "COCINA", "DECO", "EQUIPO"][i]; welcome: c => "¡HOLA DE NUEVO! +${c}"; lane: "DEJA EL PASILLO LIBRE"
+      noRoom: "NO HAY SITIO"; noCoins: "FALTAN MONEDAS"; taken: "ESE SITIO ESTÁ OCUPADO"; seatsOf: (g, n) => "${g} DE ${n} SILLAS"
+      seats: n => "${n} SILLAS"; level: l => "NIVEL ${l}"; decor: "DECORACIÓN"; noWay: "ESTA MESA NO TIENE PASO"; leaveWay: "DEJA PASO DESDE LA PUERTA"
+      fromPass: "Y DESDE EL PASE"; eatHere: "AQUÍ COMEN LOS CLIENTES"; ownRow1: "UNA MESA EN SU PROPIA FILA"; ownRow2: "NECESITA UN PASO HASTA ELLA"
+      perDish: p => "+${p} POR PLATO"; doubles: l => "NIVEL ${l} LO DUPLICA"; best: "YA NO MEJORA MÁS"; upgrade: "MEJORAR"
+      looks: b => "+${b} ENCANTO"; nicer1: "UN LOCAL MÁS BONITO TRAE MÁS"; nicer2: "CLIENTES Y MEJORES PROPINAS"; sell: "VENDER"
+      staffWarn: "¡EQUIPO!"; cooks: n => "COCINEROS ${n}"; waiters: n => "CAMAREROS ${n}"; dishesMin: n => "${n} PLATOS POR MINUTO"
+      tripsMin: n => "${n} VIAJES POR MINUTO"; full: "COMPLETO"; hire: "CONTRATAR"; menu1: "AÚN NO HAY NADA EN LA CARTA:"
+      menu2: "COMPRA UNA CAFETERA"; cook1: "ESPERAN LA COMIDA:"; cook2: "CONTRATA UN COCINERO"; machine1: "UN COCINERO SIN MÁQUINA:"
+      machine2: "COMPRA UNA EN LA COCINA"; waiter1: "ESPERAN A UN CAMARERO:"; waiter2: "CONTRATA UNO"; ok1: "EL EQUIPO DA ABASTO:"
+      ok2: "CABEN MÁS CLIENTES"; tablesWay: "LAS MESAS: PASO DESDE LA PUERTA"; stars1: "MÁS BONITO: MÁS ESTRELLAS,"; stars2: "MÁS CLIENTES, MÁS PROPINAS"
+      hintBuy1: "COMPRA UNA CAFETERA"; hintBuy2: "EN LA PESTAÑA COCINA"; pick1: "ELIGE UNA MESA ABAJO,"; pick2: "Y TOCA EL SUELO"
+      leave1: "DEJA PASO"; leave2: "HASTA LAS MESAS"
+    }
+    pt {
+      sign: "MENU"; kd: i => ["MESA", "MESA REDONDA", "MESA LONGA", "CAFÉ", "ESPREMEDOR", "FORNO", "FOGÃO", "VITRINE", "PLANTA", "LUMINÁRIA", "JUKEBOX", "AQUÁRIO"][i]
+      tab: i => ["MESAS", "COZINHA", "DECOR", "EQUIPE"][i]; welcome: c => "BEM-VINDO DE VOLTA +${c}"; lane: "DEIXE O CORREDOR LIVRE"
+      noRoom: "SEM ESPAÇO AQUI"; noCoins: "MOEDAS INSUFICIENTES"; taken: "ESSE LUGAR ESTÁ OCUPADO"; seatsOf: (g, n) => "${g} DE ${n} LUGARES"
+      seats: n => "${n} LUGARES"; level: l => "NÍVEL ${l}"; decor: "DECORAÇÃO"; noWay: "SEM CAMINHO ATÉ A MESA"; leaveWay: "DEIXE PASSAGEM DA PORTA"
+      fromPass: "E DO BALCÃO"; eatHere: "OS CLIENTES COMEM AQUI"; ownRow1: "MESA NUMA FILEIRA SÓ SUA"; ownRow2: "PRECISA DE PASSAGEM"
+      perDish: p => "+${p} POR PRATO"; doubles: l => "NÍVEL ${l} DOBRA"; best: "NÃO DÁ PARA MELHORAR"; upgrade: "MELHORAR"
+      looks: b => "+${b} CHARME"; nicer1: "UM SALÃO MAIS BONITO TRAZ"; nicer2: "MAIS CLIENTES E GORJETAS"; sell: "VENDER"
+      staffWarn: "EQUIPE!"; cooks: n => "COZINHEIROS ${n}"; waiters: n => "GARÇONS ${n}"; dishesMin: n => "${n} PRATOS POR MINUTO"
+      tripsMin: n => "${n} VIAGENS POR MINUTO"; full: "CHEIO"; hire: "CONTRATAR"; menu1: "NADA NO CARDÁPIO AINDA:"; menu2: "COMPRE UMA CAFETEIRA"
+      cook1: "CLIENTES ESPERAM COMIDA:"; cook2: "CONTRATE UM COZINHEIRO"; machine1: "COZINHEIRO SEM MÁQUINA:"; machine2: "COMPRE UMA NA COZINHA"
+      waiter1: "CLIENTES ESPERAM GARÇOM:"; waiter2: "CONTRATE UM"; ok1: "A EQUIPE DÁ CONTA:"; ok2: "CABEM MAIS CLIENTES"
+      tablesWay: "MESAS: PASSAGEM DA PORTA"; stars1: "SALÃO BONITO: MAIS ESTRELAS,"; stars2: "MAIS CLIENTES, MAIS GORJETAS"
+      hintBuy1: "COMPRE UMA CAFETEIRA"; hintBuy2: "NA ABA COZINHA"; pick1: "ESCOLHA UMA MESA ABAIXO,"; pick2: "E TOQUE NO CHÃO"
+      leave1: "DEIXE PASSAGEM"; leave2: "ATÉ AS MESAS"
+    }
+    de {
+      sign: "KARTE"; kd: i => ["TISCH", "RUNDER TISCH", "LANGER TISCH", "KAFFEE", "ENTSAFTER", "OFEN", "HERD", "KUCHENTHEKE", "PFLANZE", "LAMPE", "JUKEBOX", "AQUARIUM"][i]
+      tab: i => ["TISCHE", "KÜCHE", "DEKO", "TEAM"][i]; welcome: c => "WILLKOMMEN ZURÜCK +${c}"; lane: "HALT DEN GANG FREI"
+      noRoom: "HIER IST KEIN PLATZ"; noCoins: "NICHT GENUG MÜNZEN"; taken: "DER PLATZ IST BELEGT"; seatsOf: (g, n) => "${g} VON ${n} PLÄTZEN"
+      seats: n => "${n} PLÄTZE"; level: l => "STUFE ${l}"; decor: "DEKO"; noWay: "KEIN WEG ZU DIESEM TISCH"; leaveWay: "LASS EINEN WEG VON DER TÜR"
+      fromPass: "UND VON DER AUSGABE"; eatHere: "HIER ESSEN DIE GÄSTE"; ownRow1: "EIN TISCH IN EIGENER REIHE"; ownRow2: "BRAUCHT EINEN WEG ZU IHM"
+      perDish: p => "+${p} PRO GERICHT"; doubles: l => "STUFE ${l} VERDOPPELT"; best: "BESSER GEHT'S NICHT"; upgrade: "AUSBAUEN"
+      looks: b => "+${b} FLAIR"; nicer1: "EIN SCHÖNERER RAUM BRINGT"; nicer2: "MEHR GÄSTE UND TRINKGELD"; sell: "VERKAUFEN"
+      staffWarn: "TEAM!"; cooks: n => "KÖCHE ${n}"; waiters: n => "KELLNER ${n}"; dishesMin: n => "${n} GERICHTE PRO MINUTE"
+      tripsMin: n => "${n} GÄNGE PRO MINUTE"; full: "VOLL"; hire: "EINSTELLEN"; menu1: "NOCH NICHTS AUF DER KARTE:"; menu2: "KAUF EINE KAFFEEMASCHINE"
+      cook1: "GÄSTE WARTEN AUFS ESSEN:"; cook2: "STELL EINEN KOCH EIN"; machine1: "EIN KOCH OHNE MASCHINE:"; machine2: "KAUF EINE IN DER KÜCHE"
+      waiter1: "GÄSTE WARTEN AUF KELLNER:"; waiter2: "STELL EINEN EIN"; ok1: "DAS TEAM KOMMT MIT:"; ok2: "PLATZ FÜR MEHR GÄSTE"
+      tablesWay: "TISCHE BRAUCHEN WEG VON DER TÜR"; stars1: "SCHÖNER RAUM: MEHR STERNE,"; stars2: "MEHR GÄSTE, MEHR TRINKGELD"
+      hintBuy1: "KAUF EINE KAFFEEMASCHINE"; hintBuy2: "IM TAB KÜCHE"; pick1: "WÄHL UNTEN EINEN TISCH,"; pick2: "DANN TIPP AUF DEN BODEN"
+      leave1: "LASS EINEN WEG"; leave2: "ZU DEN TISCHEN"
+    }
+    zh {
+      sign: "菜单"; kd: i => ["餐桌", "圆桌", "长桌", "咖啡机", "榨汁机", "烤箱", "炉灶", "蛋糕柜", "绿植", "台灯", "点唱机", "水族箱"][i]; tab: i => ["餐桌", "厨房", "装饰", "员工"][i]
+      welcome: c => "欢迎回来 +${c}"; lane: "保持通道畅通"; noRoom: "这里放不下"; noCoins: "金币不够"; taken: "这个位置已被占用"; seatsOf: (g, n) => "${g}/${n} 个座位"
+      seats: n => "${n} 个座位"; level: l => "等级 ${l}"; decor: "装饰"; noWay: "没有路通往这张桌子"; leaveWay: "从门口留出通道"; fromPass: "也要从出餐口留出"
+      eatHere: "顾客在这里用餐"; ownRow1: "单独一排的桌子"; ownRow2: "需要一条通道"; perDish: p => "每份 +${p}"; doubles: l => "等级 ${l} 翻倍"
+      best: "已经是最好的了"; upgrade: "升级"; looks: b => "+${b} 颜值"; nicer1: "更漂亮的店面带来"; nicer2: "更多顾客和小费"; sell: "出售"; staffWarn: "员工!"
+      cooks: n => "厨师 ${n}"; waiters: n => "服务员 ${n}"; dishesMin: n => "每分钟 ${n} 份"; tripsMin: n => "每分钟 ${n} 趟"; full: "已满"
+      hire: "雇用"; menu1: "菜单上还没有东西："; menu2: "买一台咖啡机"; cook1: "顾客在等餐："; cook2: "雇一位厨师"; machine1: "有厨师没有机器："; machine2: "去厨房买一台"
+      waiter1: "顾客在等服务员："; waiter2: "雇一位"; ok1: "员工忙得过来："; ok2: "还能接待更多顾客"; tablesWay: "餐桌需要从门口留出通道"; stars1: "店面更漂亮：更多星星，"
+      stars2: "更多顾客，更多小费"; hintBuy1: "在厨房页"; hintBuy2: "买一台咖啡机"; pick1: "在下方选一张桌子，"; pick2: "再点击地板"; leave1: "留出通往"; leave2: "餐桌的通道"
+    }
+    ru {
+      sign: "МЕНЮ"; kd: i => ["СТОЛ", "КРУГЛЫЙ СТОЛ", "ДЛИННЫЙ СТОЛ", "КОФЕ", "СОКОВЫЖИМАЛКА", "ДУХОВКА", "ПЛИТА", "ВИТРИНА", "РАСТЕНИЕ", "ЛАМПА", "МУЗАВТОМАТ", "АКВАРИУМ"][i]
+      tab: i => ["СТОЛЫ", "КУХНЯ", "ДЕКОР", "ШТАТ"][i]; welcome: c => "С ВОЗВРАЩЕНИЕМ +${c}"; lane: "НЕ ЗАГОРАЖИВАЙТЕ ПРОХОД"
+      noRoom: "ЗДЕСЬ НЕТ МЕСТА"; noCoins: "НЕ ХВАТАЕТ МОНЕТ"; taken: "ЭТО МЕСТО ЗАНЯТО"; seatsOf: (g, n) => "${g} ИЗ ${n} МЕСТ"
+      seats: n => "МЕСТ: ${n}"; level: l => "УРОВЕНЬ ${l}"; decor: "ДЕКОР"; noWay: "К ЭТОМУ СТОЛУ НЕТ ПРОХОДА"; leaveWay: "ОСТАВЬТЕ ПРОХОД ОТ ДВЕРИ"
+      fromPass: "И ОТ РАЗДАЧИ"; eatHere: "ЗДЕСЬ ЕДЯТ ГОСТИ"; ownRow1: "СТОЛУ В ОТДЕЛЬНОМ РЯДУ"; ownRow2: "НУЖЕН ПРОХОД"
+      perDish: p => "+${p} ЗА БЛЮДО"; doubles: l => "УРОВЕНЬ ${l} УДВАИВАЕТ"; best: "ЛУЧШЕ НЕ БЫВАЕТ"; upgrade: "УЛУЧШИТЬ"
+      looks: b => "+${b} УЮТ"; nicer1: "КРАСИВЫЙ ЗАЛ ПРИВОДИТ"; nicer2: "БОЛЬШЕ ГОСТЕЙ И ЧАЕВЫХ"; sell: "ПРОДАТЬ"; staffWarn: "ШТАТ!"
+      cooks: n => "ПОВАРА ${n}"; waiters: n => "ОФИЦИАНТЫ ${n}"; dishesMin: n => "БЛЮД В МИНУТУ: ${n}"; tripsMin: n => "ПОДАЧ В МИНУТУ: ${n}"
+      full: "ПОЛНО"; hire: "НАНЯТЬ"; menu1: "В МЕНЮ ПОКА ПУСТО:"; menu2: "КУПИТЕ КОФЕМАШИНУ"; cook1: "ГОСТИ ЖДУТ ЕДУ:"
+      cook2: "НАЙМИТЕ ПОВАРА"; machine1: "У ПОВАРА НЕТ МАШИНЫ:"; machine2: "КУПИТЕ ЕЁ НА КУХНЕ"; waiter1: "ГОСТИ ЖДУТ ОФИЦИАНТА:"
+      waiter2: "НАЙМИТЕ ЕГО"; ok1: "ШТАТ СПРАВЛЯЕТСЯ:"; ok2: "ЕСТЬ МЕСТО ДЛЯ ГОСТЕЙ"; tablesWay: "СТОЛАМ НУЖЕН ПРОХОД ОТ ДВЕРИ"
+      stars1: "КРАСИВЫЙ ЗАЛ: БОЛЬШЕ ЗВЁЗД,"; stars2: "ГОСТЕЙ И ЧАЕВЫХ"; hintBuy1: "КУПИТЕ КОФЕМАШИНУ"; hintBuy2: "НА ВКЛАДКЕ КУХНЯ"
+      pick1: "ВЫБЕРИТЕ СТОЛ ВНИЗУ,"; pick2: "ПОТОМ НАЖМИТЕ НА ПОЛ"; leave1: "ОСТАВЬТЕ ПРОХОД"; leave2: "К СТОЛАМ"
+    }
+    ja {
+      sign: "メニュー"; kd: i => ["テーブル", "丸テーブル", "長テーブル", "コーヒー", "ジューサー", "オーブン", "コンロ", "ケーキケース", "観葉植物", "ランプ", "ジュークボックス", "水槽"][i]
+      tab: i => ["テーブル", "キッチン", "装飾", "スタッフ"][i]; welcome: c => "おかえりなさい +${c}"; lane: "通路をあけてください"; noRoom: "ここには置けません"
+      noCoins: "コインが足りません"; taken: "その場所は使われています"; seatsOf: (g, n) => "${n}席中${g}席"; seats: n => "${n}席"; level: l => "レベル ${l}"
+      decor: "装飾"; noWay: "このテーブルへの通路がありません"; leaveWay: "ドアからの通路をあけて"; fromPass: "カウンターからも"; eatHere: "お客さんがここで食べます"; ownRow1: "1列だけのテーブルには"
+      ownRow2: "通路が必要です"; perDish: p => "1品 +${p}"; doubles: l => "レベル${l}で2倍"; best: "これ以上は上がりません"; upgrade: "強化"; looks: b => "+${b} 見栄え"
+      nicer1: "きれいな店ほど"; nicer2: "お客さんもチップも増えます"; sell: "売却"; staffWarn: "スタッフ!"; cooks: n => "コック ${n}"; waiters: n => "ウェイター ${n}"
+      dishesMin: n => "毎分${n}品"; tripsMin: n => "毎分${n}往復"; full: "満員"; hire: "雇う"; menu1: "メニューがまだありません:"; menu2: "コーヒーマシンを買いましょう"
+      cook1: "料理待ちのお客さんがいます:"; cook2: "コックを雇いましょう"; machine1: "マシンのないコックがいます:"; machine2: "キッチンで買いましょう"; waiter1: "ウェイター待ちです:"
+      waiter2: "雇いましょう"; ok1: "スタッフは足りています:"; ok2: "まだお客さんを増やせます"; tablesWay: "テーブルにはドアからの通路と"; stars1: "きれいな店: 星が増え、"
+      stars2: "お客さんもチップも増えます"; hintBuy1: "キッチンタブで"; hintBuy2: "コーヒーマシンを買います"; pick1: "下でテーブルを選び、"; pick2: "床をタップします"; leave1: "テーブルへの"
+      leave2: "通路をあけてください"
+    }
+    uk {
+      sign: "МЕНЮ"; kd: i => ["СТІЛ", "КРУГЛИЙ СТІЛ", "ДОВГИЙ СТІЛ", "КАВА", "СОКОВИЖИМАЧКА", "ДУХОВКА", "ПЛИТА", "ВІТРИНА", "РОСЛИНА", "ЛАМПА", "МУЗАВТОМАТ", "АКВАРІУМ"][i]
+      tab: i => ["СТОЛИ", "КУХНЯ", "ДЕКОР", "ШТАТ"][i]; welcome: c => "З ПОВЕРНЕННЯМ +${c}"; lane: "НЕ ЗАГОРОДЖУЙТЕ ПРОХІД"
+      noRoom: "ТУТ НЕМАЄ МІСЦЯ"; noCoins: "БРАКУЄ МОНЕТ"; taken: "ЦЕ МІСЦЕ ЗАЙНЯТЕ"; seatsOf: (g, n) => "${g} З ${n} МІСЦЬ"
+      seats: n => "МІСЦЬ: ${n}"; level: l => "РІВЕНЬ ${l}"; decor: "ДЕКОР"; noWay: "ДО ЦЬОГО СТОЛУ НЕМАЄ ПРОХОДУ"; leaveWay: "ЗАЛИШТЕ ПРОХІД ВІД ДВЕРЕЙ"
+      fromPass: "І ВІД РОЗДАЧІ"; eatHere: "ТУТ ЇДЯТЬ ГОСТІ"; ownRow1: "СТОЛУ В ОКРЕМОМУ РЯДУ"; ownRow2: "ПОТРІБЕН ПРОХІД"
+      perDish: p => "+${p} ЗА СТРАВУ"; doubles: l => "РІВЕНЬ ${l} ПОДВОЮЄ"; best: "КРАЩЕ НЕ БУВАЄ"; upgrade: "ПОКРАЩИТИ"
+      looks: b => "+${b} ЗАТИШОК"; nicer1: "ГАРНА ЗАЛА ПРИВОДИТЬ"; nicer2: "БІЛЬШЕ ГОСТЕЙ І ЧАЙОВИХ"; sell: "ПРОДАТИ"
+      staffWarn: "ШТАТ!"; cooks: n => "КУХАРІ ${n}"; waiters: n => "ОФІЦІАНТИ ${n}"; dishesMin: n => "СТРАВ ЗА ХВИЛИНУ: ${n}"
+      tripsMin: n => "ПОДАЧ ЗА ХВИЛИНУ: ${n}"; full: "ПОВНО"; hire: "НАЙНЯТИ"; menu1: "У МЕНЮ ЩЕ ПОРОЖНЬО:"; menu2: "КУПІТЬ КАВОМАШИНУ"
+      cook1: "ГОСТІ ЧЕКАЮТЬ НА ЇЖУ:"; cook2: "НАЙМІТЬ КУХАРЯ"; machine1: "У КУХАРЯ НЕМАЄ МАШИНИ:"; machine2: "КУПІТЬ ЇЇ НА КУХНІ"
+      waiter1: "ГОСТІ ЧЕКАЮТЬ ОФІЦІАНТА:"; waiter2: "НАЙМІТЬ ЙОГО"; ok1: "ШТАТ СПРАВЛЯЄТЬСЯ:"; ok2: "Є МІСЦЕ ДЛЯ ГОСТЕЙ"
+      tablesWay: "СТОЛАМ ТРЕБА ПРОХІД ВІД ДВЕРЕЙ"; stars1: "ГАРНА ЗАЛА: БІЛЬШЕ ЗІРОК,"; stars2: "ГОСТЕЙ І ЧАЙОВИХ"; hintBuy1: "КУПІТЬ КАВОМАШИНУ"
+      hintBuy2: "НА ВКЛАДЦІ КУХНЯ"; pick1: "ВИБЕРІТЬ СТІЛ УНИЗУ,"; pick2: "ПОТІМ ТОРКНІТЬСЯ ПІДЛОГИ"; leave1: "ЗАЛИШТЕ ПРОХІД"
+      leave2: "ДО СТОЛІВ"
+    }
+    fr {
+      sign: "MENU"; kd: i => ["TABLE", "TABLE RONDE", "LONGUE TABLE", "CAFÉ", "CENTRIFUGEUSE", "FOUR", "FOURNEAU", "VITRINE", "PLANTE", "LAMPE", "JUKEBOX", "AQUARIUM"][i]
+      tab: i => ["TABLES", "CUISINE", "DÉCO", "ÉQUIPE"][i]; welcome: c => "BON RETOUR +${c}"; lane: "LAISSE L'ALLÉE LIBRE"
+      noRoom: "PAS DE PLACE ICI"; noCoins: "PAS ASSEZ DE PIÈCES"; taken: "CET ENDROIT EST PRIS"; seatsOf: (g, n) => "${g} SUR ${n} PLACES"
+      seats: n => "${n} PLACES"; level: l => "NIVEAU ${l}"; decor: "DÉCO"; noWay: "AUCUN PASSAGE VERS CETTE TABLE"; leaveWay: "LAISSE UN PASSAGE DEPUIS LA PORTE"
+      fromPass: "ET DEPUIS LE PASSE"; eatHere: "LES CLIENTS MANGENT ICI"; ownRow1: "UNE TABLE SEULE DANS SA RANGÉE"; ownRow2: "A BESOIN D'UN PASSAGE"
+      perDish: p => "+${p} LE PLAT"; doubles: l => "LE NIVEAU ${l} DOUBLE"; best: "IMPOSSIBLE DE FAIRE MIEUX"; upgrade: "AMÉLIORER"
+      looks: b => "+${b} CHARME"; nicer1: "UNE PLUS BELLE SALLE ATTIRE"; nicer2: "PLUS DE CLIENTS ET DE POURBOIRES"; sell: "VENDRE"
+      staffWarn: "ÉQUIPE !"; cooks: n => "CUISINIERS ${n}"; waiters: n => "SERVEURS ${n}"; dishesMin: n => "${n} PLATS PAR MINUTE"
+      tripsMin: n => "${n} SERVICES PAR MINUTE"; full: "COMPLET"; hire: "EMBAUCHER"; menu1: "RIEN À LA CARTE POUR L'INSTANT :"
+      menu2: "ACHÈTE UNE MACHINE À CAFÉ"; cook1: "LES CLIENTS ATTENDENT À MANGER :"; cook2: "EMBAUCHE UN CUISINIER"; machine1: "UN CUISINIER SANS MACHINE :"
+      machine2: "ACHÈTES-EN UNE EN CUISINE"; waiter1: "LES CLIENTS ATTENDENT UN SERVEUR :"; waiter2: "EMBAUCHES-EN UN"
+      ok1: "L'ÉQUIPE SUIT LE RYTHME :"; ok2: "PLACE POUR PLUS DE CLIENTS"; tablesWay: "IL FAUT UN PASSAGE DEPUIS LA PORTE"
+      stars1: "PLUS BELLE SALLE : PLUS D'ÉTOILES,"; stars2: "DE CLIENTS ET DE POURBOIRES"; hintBuy1: "ACHÈTE UNE MACHINE À CAFÉ"
+      hintBuy2: "DANS L'ONGLET CUISINE"; pick1: "CHOISIS UNE TABLE EN BAS,"; pick2: "PUIS TOUCHE LE SOL"; leave1: "LAISSE UN PASSAGE"
+      leave2: "VERS LES TABLES"
+    }
+    tr {
+      sign: "MENÜ"; kd: i => ["MASA", "YUVARLAK MASA", "UZUN MASA", "KAHVE", "SIKACAK", "FIRIN", "OCAK", "PASTA DOLABI", "BİTKİ", "LAMBA", "MÜZİK KUTUSU", "AKVARYUM"][i]
+      tab: i => ["MASALAR", "MUTFAK", "DEKOR", "EKİP"][i]; welcome: c => "TEKRAR HOŞ GELDİN +${c}"; lane: "YOLU BOŞ BIRAK"
+      noRoom: "BURADA YER YOK"; noCoins: "YETERLİ PARA YOK"; taken: "O YER DOLU"; seatsOf: (g, n) => "${g}/${n} SANDALYE"
+      seats: n => "${n} SANDALYE"; level: l => "SEVİYE ${l}"; decor: "DEKOR"; noWay: "BU MASAYA YOL YOK"; leaveWay: "KAPIDAN BİR YOL BIRAK"
+      fromPass: "VE TEZGAHTAN"; eatHere: "MÜŞTERİLER BURADA YER"; ownRow1: "KENDİ SIRASINDAKİ MASAYA"; ownRow2: "BİR YOL GEREKİR"
+      perDish: p => "TABAK BAŞI +${p}"; doubles: l => "SEVİYE ${l} İKİYE KATLAR"; best: "DAHA İYİSİ YOK"; upgrade: "GELİŞTİR"
+      looks: b => "+${b} GÜZELLİK"; nicer1: "DAHA GÜZEL BİR SALON"; nicer2: "DAHA ÇOK MÜŞTERİ VE BAHŞİŞ"; sell: "SAT"
+      staffWarn: "EKİP!"; cooks: n => "AŞÇILAR ${n}"; waiters: n => "GARSONLAR ${n}"; dishesMin: n => "DAKİKADA ${n} TABAK"
+      tripsMin: n => "DAKİKADA ${n} SERVİS"; full: "DOLU"; hire: "İŞE AL"; menu1: "MENÜDE HENÜZ BİR ŞEY YOK:"; menu2: "BİR KAHVE MAKİNESİ AL"
+      cook1: "MÜŞTERİLER YEMEK BEKLİYOR:"; cook2: "BİR AŞÇI AL"; machine1: "BİR AŞÇININ MAKİNESİ YOK:"; machine2: "MUTFAKTAN BİR TANE AL"
+      waiter1: "MÜŞTERİLER GARSON BEKLİYOR:"; waiter2: "BİR GARSON AL"; ok1: "EKİP YETİŞİYOR:"; ok2: "DAHA ÇOK MÜŞTERİYE YER VAR"
+      tablesWay: "MASALARA KAPIDAN YOL GEREKİR"; stars1: "GÜZEL SALON: DAHA ÇOK YILDIZ,"; stars2: "MÜŞTERİ VE BAHŞİŞ"
+      hintBuy1: "MUTFAK SEKMESİNDEN"; hintBuy2: "KAHVE MAKİNESİ AL"; pick1: "AŞAĞIDAN BİR MASA SEÇ,"; pick2: "SONRA YERE DOKUN"
+      leave1: "MASALARA"; leave2: "BİR YOL BIRAK"
+    }
+    it {
+      sign: "MENU"; kd: i => ["TAVOLO", "TAVOLO TONDO", "TAVOLATA", "CAFFÈ", "SPREMIAGRUMI", "FORNO", "FORNELLI", "VETRINA DOLCI", "PIANTA", "LAMPADA", "JUKEBOX", "ACQUARIO"][i]
+      tab: i => ["TAVOLI", "CUCINA", "ARREDO", "STAFF"][i]; welcome: c => "BENTORNATO +${c}"; lane: "LASCIA LIBERO IL PASSAGGIO"
+      noRoom: "QUI NON C'È SPAZIO"; noCoins: "MONETE INSUFFICIENTI"; taken: "QUEL POSTO È OCCUPATO"; seatsOf: (g, n) => "${g} SU ${n} POSTI"
+      seats: n => "${n} POSTI"; level: l => "LIVELLO ${l}"; decor: "ARREDO"; noWay: "NESSUN PASSAGGIO PER IL TAVOLO"; leaveWay: "LASCIA UN PASSAGGIO DALLA PORTA"
+      fromPass: "E DAL BANCONE"; eatHere: "QUI MANGIANO I CLIENTI"; ownRow1: "UN TAVOLO IN UNA FILA A SÉ"; ownRow2: "HA BISOGNO DI UN PASSAGGIO"
+      perDish: p => "+${p} A PIATTO"; doubles: l => "IL LIVELLO ${l} RADDOPPIA"; best: "MEGLIO DI COSÌ NON SI PUÒ"; upgrade: "MIGLIORA"
+      looks: b => "+${b} FASCINO"; nicer1: "UNA SALA PIÙ BELLA PORTA"; nicer2: "PIÙ CLIENTI E PIÙ MANCE"; sell: "VENDI"
+      staffWarn: "STAFF!"; cooks: n => "CUOCHI ${n}"; waiters: n => "CAMERIERI ${n}"; dishesMin: n => "${n} PIATTI AL MINUTO"
+      tripsMin: n => "${n} GIRI AL MINUTO"; full: "AL COMPLETO"; hire: "ASSUMI"; menu1: "NIENTE NEL MENU PER ORA:"; menu2: "COMPRA UNA MACCHINA DA CAFFÈ"
+      cook1: "I CLIENTI ASPETTANO IL CIBO:"; cook2: "ASSUMI UN CUOCO"; machine1: "UN CUOCO SENZA MACCHINA:"; machine2: "COMPRANE UNA IN CUCINA"
+      waiter1: "I CLIENTI ASPETTANO UN CAMERIERE:"; waiter2: "ASSUMINE UNO"; ok1: "LO STAFF TIENE IL PASSO:"; ok2: "C'È POSTO PER ALTRI CLIENTI"
+      tablesWay: "SERVE UN PASSAGGIO DALLA PORTA"; stars1: "SALA PIÙ BELLA: PIÙ STELLE,"; stars2: "PIÙ CLIENTI, PIÙ MANCE"
+      hintBuy1: "COMPRA UNA MACCHINA DA CAFFÈ"; hintBuy2: "NELLA SCHEDA CUCINA"; pick1: "SCEGLI UN TAVOLO QUI SOTTO,"
+      pick2: "POI TOCCA IL PAVIMENTO"; leave1: "LASCIA UN PASSAGGIO"; leave2: "VERSO I TAVOLI"
+    }
+  }
 
   title: ""
   statusBar: false
@@ -106,7 +292,7 @@ app "pixel cafe" {
   when now != null && !greeted {
     greeted = true
     if last > 0 && now - last > 120 && rate > 0 {
-      msg = "WELCOME BACK +${[rate * (now - last)].map(fmt)[0]}"
+      msg = str.welcome([rate * (now - last)].map(fmt)[0])
       msgT = time
     }
     last = now
@@ -116,18 +302,18 @@ app "pixel cafe" {
   // t: 0 table, 1 machine, 2 decor; w: cells across. A table seats `seats`; a machine puts a dish
   // on the menu that sells for p (times its level); decor brings b to the café's looks.
   let KD = [
-    {n: "TABLE", t: 0, w: 1, cost: 40, seats: 2},
-    {n: "ROUND TABLE", t: 0, w: 1, cost: 900, seats: 4},
-    {n: "LONG TABLE", t: 0, w: 2, cost: 12000, seats: 6},
-    {n: "COFFEE", t: 1, w: 1, cost: 60, p: 20},
-    {n: "JUICER", t: 1, w: 1, cost: 600, p: 50},
-    {n: "OVEN", t: 1, w: 1, cost: 5000, p: 160},
-    {n: "STOVE", t: 1, w: 1, cost: 40000, p: 550},
-    {n: "CAKE CASE", t: 1, w: 1, cost: 300000, p: 2000},
-    {n: "PLANT", t: 2, w: 1, cost: 80, b: 1},
-    {n: "LAMP", t: 2, w: 1, cost: 700, b: 2},
-    {n: "JUKEBOX", t: 2, w: 1, cost: 8000, b: 4},
-    {n: "AQUARIUM", t: 2, w: 1, cost: 60000, b: 7}
+    {n: str.kd(0), t: 0, w: 1, cost: 40, seats: 2},
+    {n: str.kd(1), t: 0, w: 1, cost: 900, seats: 4},
+    {n: str.kd(2), t: 0, w: 2, cost: 12000, seats: 6},
+    {n: str.kd(3), t: 1, w: 1, cost: 60, p: 20},
+    {n: str.kd(4), t: 1, w: 1, cost: 600, p: 50},
+    {n: str.kd(5), t: 1, w: 1, cost: 5000, p: 160},
+    {n: str.kd(6), t: 1, w: 1, cost: 40000, p: 550},
+    {n: str.kd(7), t: 1, w: 1, cost: 300000, p: 2000},
+    {n: str.kd(8), t: 2, w: 1, cost: 80, b: 1},
+    {n: str.kd(9), t: 2, w: 1, cost: 700, b: 2},
+    {n: str.kd(10), t: 2, w: 1, cost: 8000, b: 4},
+    {n: str.kd(11), t: 2, w: 1, cost: 60000, b: 7}
   ]
   let TABS = [[0, 1, 2], [3, 4, 5, 6, 7], [8, 9, 10, 11]]
   // where the customers sit at each kind of table, in sixteenths of a cell: the middle of the seat
@@ -328,10 +514,10 @@ app "pixel cafe" {
           let w = KD[tool].w
           let fit = (w == 1 ? [cell] : [cell, cell - 1]).filter(a => a >= 8 && a < 72 && a % 8 <= 8 - w && floor(a / 8) == ay && all(w == 1 ? [a] : [a, a + 1], c => own[c] < 0 && c != 67 && c != 68))
           if len(fit) == 0 {
-            msg = ay == 0 ? "KEEP THE LANE FREE" : "NO ROOM HERE"
+            msg = ay == 0 ? str.lane : str.noRoom
             msgT = time
           } else if coins < price[tool] {
-            msg = "NOT ENOUGH COINS"
+            msg = str.noCoins
             msgT = time
           } else {
             bank = coins - price[tool]
@@ -350,10 +536,10 @@ app "pixel cafe" {
         let s = ax
         if tool >= 0 && KD[tool].t == 1 {
           if slotK[s] >= 0 {
-            msg = "THAT SPOT IS TAKEN"
+            msg = str.taken
             msgT = time
           } else if coins < price[tool] {
-            msg = "NOT ENOUGH COINS"
+            msg = str.noCoins
             msgT = time
           } else {
             bank = coins - price[tool]
@@ -378,7 +564,7 @@ app "pixel cafe" {
             kit = set(kit, ki, merge(kit[ki], {l: kit[ki].l + 1, sp: kit[ki].sp + upCost[ki]}))
             haptic()
           } else {
-            msg = "NOT ENOUGH COINS"
+            msg = str.noCoins
             msgT = time
           }
         } else if y >= BY && x >= PX + UW + 8 {
@@ -402,7 +588,7 @@ app "pixel cafe" {
             if r == 0 { cooks = cooks + 1 } else { waiters = waiters + 1 }
             haptic()
           } else {
-            msg = "NOT ENOUGH COINS"
+            msg = str.noCoins
             msgT = time
           }
         }
@@ -434,7 +620,7 @@ app "pixel cafe" {
     line(FX + 2.25 * C, RY + 6 * q, FX + 2.25 * C + sin(rad(mm * 6)) * 3.2 * q, RY + 6 * q - cos(rad(mm * 6)) * 3.2 * q, stroke: "#2a1e30", width: q * 0.6)
     rect(FX + 3 * C, RY + q, 2.9 * C, 10 * q, fill: "#6a4428")
     rect(FX + 3 * C + q, RY + 2 * q, 2.9 * C - 2 * q, 8 * q, fill: "#2e4a3c")
-    text("MENU", FX + 4.45 * C, RY + 4 * q, size: 2.4 * q, color: "#fff6e8", font: press, align: center)
+    text(str.sign, FX + 4.45 * C, RY + 4 * q, size: 2.4 * q, color: "#fff6e8", font: press, align: center)
     for k, j in menu {
       for r in DISH[k - 3] { rect(FX + 3.3 * C + (j + 0.5) * 0.46 * C + r[0] * q * 0.8, RY + 7.8 * q + r[1] * q * 0.8, r[2] * q * 0.8, r[3] * q * 0.8, fill: r[4]) }
     }
@@ -657,7 +843,7 @@ app "pixel cafe" {
     for s in range(5) {
       sprite(starArt, SW - 14 - (5 - s) * 13, TOP + 8, 2.2, palette: s < stars ? PAL : {o: alpha(muted, 0.6)})
     }
-    text("${guests} OF ${NS} SEATS", SW - 16, TOP + 31, size: 7, color: muted, font: press, align: end)
+    text(str.seatsOf(guests, NS), SW - 16, TOP + 31, size: 7, color: muted, font: press, align: end)
 
     // ---- the panel ----
     if si >= 0 || ki >= 0 {
@@ -666,37 +852,37 @@ app "pixel cafe" {
       rect(PX, PY + 2, 44, 44, fill: alpha(foreground, 0.06), stroke: border, width: 2)
       for r in ART[K] { rect(PX + 22 - 8 * 2.4 + r[0] * 2.4 / KD[K].w, PY + 5 + (KD[K].t == 1 ? 1.5 : KD[K].w - 1) * 4 * 2.4 / KD[K].w + r[1] * 2.4 / KD[K].w, r[2] * 2.4 / KD[K].w, r[3] * 2.4 / KD[K].w, fill: r[4]) }
       text(KD[K].n, PX + 54, PY + 14, size: 10, color: foreground, font: press)
-      text(KD[K].t == 0 ? "${KD[K].seats} SEATS" : KD[K].t == 1 ? "LEVEL ${kit[ki].l}" : "DECOR", PX + 54, PY + 34, size: 7, color: muted, font: press)
+      text(KD[K].t == 0 ? str.seats(KD[K].seats) : KD[K].t == 1 ? str.level(kit[ki].l) : str.decor, PX + 54, PY + 34, size: 7, color: muted, font: press)
       text("✕", PX + PW - 14, PY + 14, size: 14, color: muted, align: center)
       if KD[K].t == 0 && indexOf(lost, si) >= 0 {
-        text("NO WAY TO THIS TABLE", PX + 4, PY + 64, size: 8, color: red, font: press)
-        text("LEAVE A WAY FROM THE DOOR", PX + 4, PY + 82, size: 7, color: muted, font: press)
-        text("AND FROM THE PASS", PX + 4, PY + 98, size: 7, color: muted, font: press)
+        text(str.noWay, PX + 4, PY + 64, size: 8, color: red, font: press)
+        text(str.leaveWay, PX + 4, PY + 82, size: 7, color: muted, font: press)
+        text(str.fromPass, PX + 4, PY + 98, size: 7, color: muted, font: press)
       } else if KD[K].t == 0 {
-        text("CUSTOMERS EAT HERE", PX + 4, PY + 64, size: 8, color: foreground, font: press)
-        text("A TABLE IN A ROW OF ITS OWN", PX + 4, PY + 82, size: 7, color: muted, font: press)
-        text("NEEDS A WAY TO IT", PX + 4, PY + 98, size: 7, color: muted, font: press)
+        text(str.eatHere, PX + 4, PY + 64, size: 8, color: foreground, font: press)
+        text(str.ownRow1, PX + 4, PY + 82, size: 7, color: muted, font: press)
+        text(str.ownRow2, PX + 4, PY + 98, size: 7, color: muted, font: press)
       } else if KD[K].t == 1 {
         let l = kit[ki].l
-        text("+${[KD[K].p * [l].map(lvm)[0]].map(fmt)[0]} A DISH", PX + 4, PY + 64, size: 10, color: accent, font: press)
-        text(l < 10 ? "LEVEL 10 DOUBLES IT" : l < 25 ? "LEVEL 25 DOUBLES IT" : l < 50 ? "LEVEL 50 DOUBLES IT" : "AS GOOD AS IT GETS", PX + 4, PY + 84, size: 7, color: muted, font: press)
+        text(str.perDish([KD[K].p * [l].map(lvm)[0]].map(fmt)[0]), PX + 4, PY + 64, size: 10, color: accent, font: press)
+        text(l < 10 ? str.doubles(10) : l < 25 ? str.doubles(25) : l < 50 ? str.doubles(50) : str.best, PX + 4, PY + 84, size: 7, color: muted, font: press)
         rect(PX, BY, UW, BH, fill: coins >= upCost[ki] ? green : alpha(foreground, 0.06), stroke: coins >= upCost[ki] ? green : border, width: 2)
-        text("UPGRADE", PX + UW / 2, BY + BH / 2 - 7, size: 8, color: coins >= upCost[ki] ? background : muted, font: press, align: center)
+        text(str.upgrade, PX + UW / 2, BY + BH / 2 - 7, size: 8, color: coins >= upCost[ki] ? background : muted, font: press, align: center)
         text([upCost[ki]].map(fmt)[0], PX + UW / 2, BY + BH / 2 + 8, size: 8, color: coins >= upCost[ki] ? background : muted, font: press, align: center)
       } else {
-        text("+${KD[K].b} LOOKS", PX + 4, PY + 64, size: 10, color: accent, font: press)
-        text("A NICER ROOM BRINGS MORE", PX + 4, PY + 84, size: 7, color: muted, font: press)
-        text("CUSTOMERS AND BIGGER TIPS", PX + 4, PY + 100, size: 7, color: muted, font: press)
+        text(str.looks(KD[K].b), PX + 4, PY + 64, size: 10, color: accent, font: press)
+        text(str.nicer1, PX + 4, PY + 84, size: 7, color: muted, font: press)
+        text(str.nicer2, PX + 4, PY + 100, size: 7, color: muted, font: press)
       }
       rect(PX + UW + 8, BY, PW - UW - 8, BH, fill: alpha(foreground, 0.06), stroke: border, width: 2)
-      text("SELL", PX + UW + 8 + (PW - UW - 8) / 2, BY + BH / 2 - 7, size: 8, color: foreground, font: press, align: center)
+      text(str.sell, PX + UW + 8 + (PW - UW - 8) / 2, BY + BH / 2 - 7, size: 8, color: foreground, font: press, align: center)
       text("+${[floor(sp / 2)].map(fmt)[0]}", PX + UW + 8 + (PW - UW - 8) / 2, BY + BH / 2 + 8, size: 8, color: muted, font: press, align: center)
     } else {
       for t in range(4) {
         let tx = PX + t * PW / 4
         let warn = t == 3 && (need == "cook" || need == "waiter") && time % 1.2 < 0.8
         rect(tx + 2, PY, PW / 4 - 4, TH, fill: tab == t ? accent : alpha(foreground, 0.06), stroke: tab == t ? accent : border, width: 2)
-        text(["TABLES", "KITCHEN", "DECOR", warn ? "STAFF!" : "STAFF"][t], tx + PW / 8, PY + TH / 2, size: 7, color: tab == t ? background : warn ? accent : foreground, font: press, align: center)
+        text([str.tab(0), str.tab(1), str.tab(2), warn ? str.staffWarn : str.tab(3)][t], tx + PW / 8, PY + TH / 2, size: 7, color: tab == t ? background : warn ? accent : foreground, font: press, align: center)
       }
       if tab == 3 {
         for r in range(2) {
@@ -722,17 +908,17 @@ app "pixel cafe" {
             rect(gx - 1.75 * ic, gy - 11 * ic, 3.5 * ic, 3 * ic, fill: "#fff6e8")
             rect(gx - 1.25 * ic, gy - 8.5 * ic, 2.5 * ic, 0.8 * ic, fill: "#d8ccc0")
           }
-          text("${r == 0 ? "COOKS" : "WAITERS"} ${n}", PX + 52, ry + SRH / 2 - 8, size: 9, color: foreground, font: press)
-          text(r == 0 ? "${round(cookCap * 60)} DISHES A MINUTE" : "${round(waitCap * 60)} TRIPS A MINUTE", PX + 52, ry + SRH / 2 + 9, size: 6, color: muted, font: press)
+          text(r == 0 ? str.cooks(n) : str.waiters(n), PX + 52, ry + SRH / 2 - 8, size: 9, color: foreground, font: press)
+          text(r == 0 ? str.dishesMin(round(cookCap * 60)) : str.tripsMin(round(waitCap * 60)), PX + 52, ry + SRH / 2 + 9, size: 6, color: muted, font: press)
           rect(PX + PW - 104, ry + 8, 96, SRH - 16, fill: can ? green : alpha(foreground, 0.04), stroke: can ? green : border, width: 2)
-          text(n >= 8 ? "FULL" : "HIRE", PX + PW - 56, ry + SRH / 2 - (n >= 8 ? 0 : 7), size: 8, color: can ? background : muted, font: press, align: center)
+          text(n >= 8 ? str.full : str.hire, PX + PW - 56, ry + SRH / 2 - (n >= 8 ? 0 : 7), size: 8, color: can ? background : muted, font: press, align: center)
           if n < 8 { text([cost].map(fmt)[0], PX + PW - 56, ry + SRH / 2 + 8, size: 8, color: can ? background : muted, font: press, align: center) }
         }
-        let say = need == "menu" ? ["NOTHING ON THE MENU YET:", "BUY A COFFEE MACHINE"]
-          : need == "cook" ? ["CUSTOMERS WAIT FOR FOOD:", "HIRE A COOK"]
-          : need == "machine" ? ["A COOK HAS NO MACHINE:", "BUY ONE IN THE KITCHEN"]
-          : need == "waiter" ? ["CUSTOMERS WAIT FOR A WAITER:", "HIRE ONE"]
-          : ["THE STAFF KEEP UP:", "ROOM FOR MORE CUSTOMERS"]
+        let say = need == "menu" ? [str.menu1, str.menu2]
+          : need == "cook" ? [str.cook1, str.cook2]
+          : need == "machine" ? [str.machine1, str.machine2]
+          : need == "waiter" ? [str.waiter1, str.waiter2]
+          : [str.ok1, str.ok2]
         text(say[0], PX + 4, CY + 2 * (SRH + 6) + 12, size: 7, color: need == "cook" || need == "waiter" || need == "machine" ? accent : muted, font: press)
         text(say[1], PX + 4, CY + 2 * (SRH + 6) + 28, size: 7, color: muted, font: press)
       } else {
@@ -748,18 +934,18 @@ app "pixel cafe" {
           text([price[k]].map(fmt)[0], cx + CW / 2, cy + CH - 9, size: 7, color: can ? accent : muted, font: press, align: center)
         }
         if tab == 0 {
-          text("TABLES NEED A WAY FROM THE DOOR", PX + 4, CY + CH + 20, size: 6, color: muted, font: press)
-          text("AND FROM THE PASS", PX + 4, CY + CH + 34, size: 6, color: muted, font: press)
+          text(str.tablesWay, PX + 4, CY + CH + 20, size: 6, color: muted, font: press)
+          text(str.fromPass, PX + 4, CY + CH + 34, size: 6, color: muted, font: press)
         }
         if tab == 2 && CY + 2 * (CH + 6) + 40 < PY + PH {
-          text("A NICER ROOM: MORE STARS,", PX + 4, CY + 2 * (CH + 6) + 14, size: 6, color: muted, font: press)
-          text("MORE CUSTOMERS, BIGGER TIPS", PX + 4, CY + 2 * (CH + 6) + 28, size: 6, color: muted, font: press)
+          text(str.stars1, PX + 4, CY + 2 * (CH + 6) + 14, size: 6, color: muted, font: press)
+          text(str.stars2, PX + 4, CY + 2 * (CH + 6) + 28, size: 6, color: muted, font: press)
         }
       }
     }
 
     // ---- a hint for a new café, and messages ----
-    let hint = len(kit) == 0 ? ["BUY A COFFEE MACHINE", "IN THE KITCHEN TAB"] : len(room) == 0 ? ["PICK A TABLE BELOW,", "THEN TAP THE FLOOR"] : NS == 0 && len(lost) > 0 ? ["LEAVE A WAY TO", "THE TABLES"] : []
+    let hint = len(kit) == 0 ? [str.hintBuy1, str.hintBuy2] : len(room) == 0 ? [str.pick1, str.pick2] : NS == 0 && len(lost) > 0 ? [str.leave1, str.leave2] : []
     if len(hint) > 0 && time % 1.4 < 1 {
       text(hint[0], FX + MW / 2, FY + 5 * C, size: 8, color: "#2a1e30", font: press, align: center)
       text(hint[1], FX + MW / 2, FY + 5 * C + 16, size: 8, color: "#2a1e30", font: press, align: center)

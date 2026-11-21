@@ -1,6 +1,6 @@
 app "linux commands" {
-  meta { owl: 23; description: "The Linux Command Library: 9,000+ commands with examples and options, cheat sheets and terminal tips"; version: "1.6"; license: "MIT"; category: "dev" }
-  title: sel != "" ? sel : basic != "" ? get(titles, basic, basic) : "linux commands"
+  meta { owl: 23; description: "The Linux Command Library: 9,000+ commands with examples and options, cheat sheets and terminal tips"; version: "1.7"; license: "MIT"; category: "dev" }
+  title: sel != "" ? sel : basic != "" ? get(str.topics, basic, basic) : str.title
   // Back goes from a page to the one before it (a command's "see also" chain), then to the list.
   back: sel != "" || basic != ""
   onBack: { was = sel == "" || prev == "" || url == "commands/${prev}.md" ? null : page; url = sel == "" || prev == "" ? url : "commands/${prev}.md"; basic = ""; sel = prev; back = drop(back, 1); copied = "" }
@@ -17,6 +17,145 @@ app "linux commands" {
   </svg>"""
 
   let TIPS = "tips.md"
+
+  // The text a person reads. Command names, the pages and their section headings come from the
+  // Linux Command Library in English and stay as they are; topics are the basics pages' titles by id.
+  strings {
+    en {
+      // The window's title on the lists; the bottom bar's tabs (small, a third of the width each).
+      title: "linux commands"
+      basics: "basics"; tips: "tips"; commands: "commands"
+      loading: "loading…"; loadingList: "loading the command list…"
+      httpError: n => "couldn't load the page (HTTP ${n})"
+      offline: "offline: the pages come from GitHub"; tryAgain: "try again"
+      search: "search commands"
+      // Heads the start page's chips: the installed packages with a page, or popular commands.
+      installed: n => "installed (${n})"; popular: "popular"
+      noMatch: q => "no command matches “${q}”"
+      topics: {aitools: "AI tools", backupimaging: "Backup & Imaging", compressionarchiving: "Compression & Archiving", cryptocurrencies: "Cryptocurrencies", emacstexteditor: "Emacs Text Editor", filesfolders: "Files & Folders", git: "Git", hackingtools: "Hacking tools", input: "Input", json: "JSON", microtexteditor: "Micro Text Editor", nanotexteditor: "Nano Text Editor", network: "Network", oneliners: "One-liners", packagemanager: "Package manager", picotexteditor: "Pico Text Editor", printing: "Printing", regularexpressions: "Regular Expressions", searchfind: "Search & Find", shellscripting: "Shell Scripting", ssh: "SSH", systemcontrol: "System control", systeminformation: "System information", systemrecovery: "System Recovery", terminalgames: "Terminal games", textprocessing: "Text Processing", tmux: "Tmux", usersgroups: "Users & Groups", videoaudio: "Video & Audio", vimtexteditor: "VIM Text Editor"}
+    }
+    id {
+      title: "perintah linux"
+      basics: "dasar"; tips: "tips"; commands: "perintah"
+      loading: "memuat…"; loadingList: "memuat daftar perintah…"
+      httpError: n => "halaman tidak bisa dimuat (HTTP ${n})"
+      offline: "offline: halaman diambil dari GitHub"; tryAgain: "coba lagi"
+      search: "cari perintah"
+      installed: n => "terinstal (${n})"; popular: "populer"
+      noMatch: q => "tidak ada perintah yang cocok dengan “${q}”"
+      topics: {aitools: "Alat AI", backupimaging: "Cadangan & Image Disk", compressionarchiving: "Kompresi & Arsip", cryptocurrencies: "Mata Uang Kripto", emacstexteditor: "Editor Teks Emacs", filesfolders: "File & Folder", git: "Git", hackingtools: "Alat peretasan", input: "Input", json: "JSON", microtexteditor: "Editor Teks Micro", nanotexteditor: "Editor Teks Nano", network: "Jaringan", oneliners: "Perintah satu baris", packagemanager: "Manajer paket", picotexteditor: "Editor Teks Pico", printing: "Mencetak", regularexpressions: "Ekspresi Reguler", searchfind: "Cari & Temukan", shellscripting: "Skrip Shell", ssh: "SSH", systemcontrol: "Kontrol sistem", systeminformation: "Informasi sistem", systemrecovery: "Pemulihan Sistem", terminalgames: "Game terminal", textprocessing: "Pengolahan Teks", tmux: "Tmux", usersgroups: "Pengguna & Grup", videoaudio: "Video & Audio", vimtexteditor: "Editor Teks VIM"}
+    }
+    es {
+      title: "comandos de linux"
+      basics: "básicos"; tips: "consejos"; commands: "comandos"
+      loading: "cargando…"; loadingList: "cargando la lista de comandos…"
+      httpError: n => "no se pudo cargar la página (HTTP ${n})"
+      offline: "sin conexión: las páginas vienen de GitHub"; tryAgain: "reintentar"
+      search: "buscar comandos"
+      installed: n => "instalados (${n})"; popular: "populares"
+      noMatch: q => "ningún comando coincide con “${q}”"
+      topics: {aitools: "Herramientas de IA", backupimaging: "Copias de seguridad e imágenes", compressionarchiving: "Compresión y archivado", cryptocurrencies: "Criptomonedas", emacstexteditor: "Editor de texto Emacs", filesfolders: "Archivos y carpetas", git: "Git", hackingtools: "Herramientas de hacking", input: "Entrada", json: "JSON", microtexteditor: "Editor de texto Micro", nanotexteditor: "Editor de texto Nano", network: "Red", oneliners: "Comandos de una línea", packagemanager: "Gestor de paquetes", picotexteditor: "Editor de texto Pico", printing: "Impresión", regularexpressions: "Expresiones regulares", searchfind: "Buscar y encontrar", shellscripting: "Scripts de shell", ssh: "SSH", systemcontrol: "Control del sistema", systeminformation: "Información del sistema", systemrecovery: "Recuperación del sistema", terminalgames: "Juegos de terminal", textprocessing: "Procesamiento de texto", tmux: "Tmux", usersgroups: "Usuarios y grupos", videoaudio: "Vídeo y audio", vimtexteditor: "Editor de texto VIM"}
+    }
+    pt {
+      title: "comandos do linux"
+      basics: "básico"; tips: "dicas"; commands: "comandos"
+      loading: "carregando…"; loadingList: "carregando a lista de comandos…"
+      httpError: n => "não deu para carregar a página (HTTP ${n})"
+      offline: "offline: as páginas vêm do GitHub"; tryAgain: "tentar de novo"
+      search: "buscar comandos"
+      installed: n => "instalados (${n})"; popular: "populares"
+      noMatch: q => "nenhum comando corresponde a “${q}”"
+      topics: {aitools: "Ferramentas de IA", backupimaging: "Backup e imagens", compressionarchiving: "Compressão e arquivamento", cryptocurrencies: "Criptomoedas", emacstexteditor: "Editor de texto Emacs", filesfolders: "Arquivos e pastas", git: "Git", hackingtools: "Ferramentas de hacking", input: "Entrada", json: "JSON", microtexteditor: "Editor de texto Micro", nanotexteditor: "Editor de texto Nano", network: "Rede", oneliners: "Comandos de uma linha", packagemanager: "Gerenciador de pacotes", picotexteditor: "Editor de texto Pico", printing: "Impressão", regularexpressions: "Expressões regulares", searchfind: "Buscar e encontrar", shellscripting: "Scripts de shell", ssh: "SSH", systemcontrol: "Controle do sistema", systeminformation: "Informações do sistema", systemrecovery: "Recuperação do sistema", terminalgames: "Jogos de terminal", textprocessing: "Processamento de texto", tmux: "Tmux", usersgroups: "Usuários e grupos", videoaudio: "Vídeo e áudio", vimtexteditor: "Editor de texto VIM"}
+    }
+    de {
+      title: "linux-befehle"
+      basics: "grundlagen"; tips: "tipps"; commands: "befehle"
+      loading: "lädt…"; loadingList: "befehlsliste lädt…"
+      httpError: n => "seite konnte nicht geladen werden (HTTP ${n})"
+      offline: "offline: die seiten kommen von GitHub"; tryAgain: "nochmal versuchen"
+      search: "befehle suchen"
+      installed: n => "installiert (${n})"; popular: "beliebt"
+      noMatch: q => "kein befehl passt zu „${q}“"
+      topics: {aitools: "KI-Tools", backupimaging: "Backup & Images", compressionarchiving: "Komprimieren & Archivieren", cryptocurrencies: "Kryptowährungen", emacstexteditor: "Texteditor Emacs", filesfolders: "Dateien & Ordner", git: "Git", hackingtools: "Hacking-Tools", input: "Eingabe", json: "JSON", microtexteditor: "Texteditor Micro", nanotexteditor: "Texteditor Nano", network: "Netzwerk", oneliners: "Einzeiler", packagemanager: "Paketmanager", picotexteditor: "Texteditor Pico", printing: "Drucken", regularexpressions: "Reguläre Ausdrücke", searchfind: "Suchen & Finden", shellscripting: "Shell-Skripte", ssh: "SSH", systemcontrol: "Systemsteuerung", systeminformation: "Systeminformationen", systemrecovery: "Systemwiederherstellung", terminalgames: "Terminal-Spiele", textprocessing: "Textverarbeitung", tmux: "Tmux", usersgroups: "Benutzer & Gruppen", videoaudio: "Video & Audio", vimtexteditor: "Texteditor VIM"}
+    }
+    zh {
+      title: "linux 命令"
+      basics: "基础"; tips: "技巧"; commands: "命令"
+      loading: "正在加载…"; loadingList: "正在加载命令列表…"
+      httpError: n => "无法加载页面（HTTP ${n}）"
+      offline: "离线：页面来自 GitHub"; tryAgain: "重试"
+      search: "搜索命令"
+      installed: n => "已安装（${n}）"; popular: "常用"
+      noMatch: q => "没有与“${q}”匹配的命令"
+      topics: {aitools: "AI 工具", backupimaging: "备份与镜像", compressionarchiving: "压缩与归档", cryptocurrencies: "加密货币", emacstexteditor: "Emacs 文本编辑器", filesfolders: "文件与文件夹", git: "Git", hackingtools: "黑客工具", input: "输入", json: "JSON", microtexteditor: "Micro 文本编辑器", nanotexteditor: "Nano 文本编辑器", network: "网络", oneliners: "单行命令", packagemanager: "包管理器", picotexteditor: "Pico 文本编辑器", printing: "打印", regularexpressions: "正则表达式", searchfind: "搜索与查找", shellscripting: "Shell 脚本", ssh: "SSH", systemcontrol: "系统控制", systeminformation: "系统信息", systemrecovery: "系统恢复", terminalgames: "终端游戏", textprocessing: "文本处理", tmux: "Tmux", usersgroups: "用户与组", videoaudio: "视频与音频", vimtexteditor: "VIM 文本编辑器"}
+    }
+    ru {
+      title: "команды linux"
+      basics: "основы"; tips: "советы"; commands: "команды"
+      loading: "загрузка…"; loadingList: "загрузка списка команд…"
+      httpError: n => "не удалось загрузить страницу (HTTP ${n})"
+      offline: "нет сети: страницы загружаются с GitHub"; tryAgain: "попробовать снова"
+      search: "поиск команд"
+      installed: n => "установленные (${n})"; popular: "популярные"
+      noMatch: q => "нет команд по запросу «${q}»"
+      topics: {aitools: "Инструменты ИИ", backupimaging: "Резервные копии и образы", compressionarchiving: "Сжатие и архивы", cryptocurrencies: "Криптовалюты", emacstexteditor: "Текстовый редактор Emacs", filesfolders: "Файлы и папки", git: "Git", hackingtools: "Инструменты для взлома", input: "Ввод", json: "JSON", microtexteditor: "Текстовый редактор Micro", nanotexteditor: "Текстовый редактор Nano", network: "Сеть", oneliners: "Однострочники", packagemanager: "Менеджер пакетов", picotexteditor: "Текстовый редактор Pico", printing: "Печать", regularexpressions: "Регулярные выражения", searchfind: "Поиск", shellscripting: "Скрипты оболочки", ssh: "SSH", systemcontrol: "Управление системой", systeminformation: "Сведения о системе", systemrecovery: "Восстановление системы", terminalgames: "Игры в терминале", textprocessing: "Обработка текста", tmux: "Tmux", usersgroups: "Пользователи и группы", videoaudio: "Видео и аудио", vimtexteditor: "Текстовый редактор VIM"}
+    }
+    ja {
+      title: "linux コマンド"
+      basics: "基本"; tips: "ヒント"; commands: "コマンド"
+      loading: "読み込み中…"; loadingList: "コマンド一覧を読み込み中…"
+      httpError: n => "ページを読み込めませんでした（HTTP ${n}）"
+      offline: "オフラインです：ページは GitHub から取得します"; tryAgain: "再試行"
+      search: "コマンドを検索"
+      installed: n => "インストール済み（${n}）"; popular: "よく使うもの"
+      noMatch: q => "「${q}」に一致するコマンドはありません"
+      topics: {aitools: "AI ツール", backupimaging: "バックアップとイメージ", compressionarchiving: "圧縮とアーカイブ", cryptocurrencies: "暗号通貨", emacstexteditor: "Emacs テキストエディタ", filesfolders: "ファイルとフォルダ", git: "Git", hackingtools: "ハッキングツール", input: "入力", json: "JSON", microtexteditor: "Micro テキストエディタ", nanotexteditor: "Nano テキストエディタ", network: "ネットワーク", oneliners: "ワンライナー", packagemanager: "パッケージマネージャ", picotexteditor: "Pico テキストエディタ", printing: "印刷", regularexpressions: "正規表現", searchfind: "検索", shellscripting: "シェルスクリプト", ssh: "SSH", systemcontrol: "システム制御", systeminformation: "システム情報", systemrecovery: "システム復旧", terminalgames: "ターミナルゲーム", textprocessing: "テキスト処理", tmux: "Tmux", usersgroups: "ユーザーとグループ", videoaudio: "動画と音声", vimtexteditor: "VIM テキストエディタ"}
+    }
+    uk {
+      title: "команди linux"
+      basics: "основи"; tips: "поради"; commands: "команди"
+      loading: "завантаження…"; loadingList: "завантаження списку команд…"
+      httpError: n => "не вдалося завантажити сторінку (HTTP ${n})"
+      offline: "немає мережі: сторінки завантажуються з GitHub"; tryAgain: "ще раз"
+      search: "пошук команд"
+      installed: n => "встановлені (${n})"; popular: "популярні"
+      noMatch: q => "немає команд за запитом «${q}»"
+      topics: {aitools: "Інструменти ШІ", backupimaging: "Резервні копії та образи", compressionarchiving: "Стиснення та архіви", cryptocurrencies: "Криптовалюти", emacstexteditor: "Текстовий редактор Emacs", filesfolders: "Файли та теки", git: "Git", hackingtools: "Інструменти для злому", input: "Введення", json: "JSON", microtexteditor: "Текстовий редактор Micro", nanotexteditor: "Текстовий редактор Nano", network: "Мережа", oneliners: "Однорядкові команди", packagemanager: "Менеджер пакетів", picotexteditor: "Текстовий редактор Pico", printing: "Друк", regularexpressions: "Регулярні вирази", searchfind: "Пошук", shellscripting: "Скрипти оболонки", ssh: "SSH", systemcontrol: "Керування системою", systeminformation: "Відомості про систему", systemrecovery: "Відновлення системи", terminalgames: "Ігри в терміналі", textprocessing: "Обробка тексту", tmux: "Tmux", usersgroups: "Користувачі та групи", videoaudio: "Відео та аудіо", vimtexteditor: "Текстовий редактор VIM"}
+    }
+    fr {
+      title: "commandes linux"
+      basics: "bases"; tips: "astuces"; commands: "commandes"
+      loading: "chargement…"; loadingList: "chargement de la liste des commandes…"
+      httpError: n => "impossible de charger la page (HTTP ${n})"
+      offline: "hors ligne : les pages viennent de GitHub"; tryAgain: "réessayer"
+      search: "chercher une commande"
+      installed: n => "installés (${n})"; popular: "populaires"
+      noMatch: q => "aucune commande ne correspond à « ${q} »"
+      topics: {aitools: "Outils d’IA", backupimaging: "Sauvegarde et images", compressionarchiving: "Compression et archivage", cryptocurrencies: "Cryptomonnaies", emacstexteditor: "Éditeur de texte Emacs", filesfolders: "Fichiers et dossiers", git: "Git", hackingtools: "Outils de hacking", input: "Saisie", json: "JSON", microtexteditor: "Éditeur de texte Micro", nanotexteditor: "Éditeur de texte Nano", network: "Réseau", oneliners: "Commandes en une ligne", packagemanager: "Gestionnaire de paquets", picotexteditor: "Éditeur de texte Pico", printing: "Impression", regularexpressions: "Expressions régulières", searchfind: "Rechercher et trouver", shellscripting: "Scripts shell", ssh: "SSH", systemcontrol: "Contrôle du système", systeminformation: "Infos système", systemrecovery: "Récupération du système", terminalgames: "Jeux en terminal", textprocessing: "Traitement de texte", tmux: "Tmux", usersgroups: "Utilisateurs et groupes", videoaudio: "Vidéo et audio", vimtexteditor: "Éditeur de texte VIM"}
+    }
+    tr {
+      title: "linux komutları"
+      basics: "temeller"; tips: "ipuçları"; commands: "komutlar"
+      loading: "yükleniyor…"; loadingList: "komut listesi yükleniyor…"
+      httpError: n => "sayfa yüklenemedi (HTTP ${n})"
+      offline: "çevrimdışı: sayfalar GitHub’dan gelir"; tryAgain: "tekrar dene"
+      search: "komut ara"
+      installed: n => "yüklü (${n})"; popular: "popüler"
+      noMatch: q => "“${q}” ile eşleşen komut yok"
+      topics: {aitools: "Yapay zekâ araçları", backupimaging: "Yedekleme ve imajlar", compressionarchiving: "Sıkıştırma ve arşivleme", cryptocurrencies: "Kripto paralar", emacstexteditor: "Emacs metin düzenleyici", filesfolders: "Dosyalar ve klasörler", git: "Git", hackingtools: "Hacking araçları", input: "Girdi", json: "JSON", microtexteditor: "Micro metin düzenleyici", nanotexteditor: "Nano metin düzenleyici", network: "Ağ", oneliners: "Tek satırlık komutlar", packagemanager: "Paket yöneticisi", picotexteditor: "Pico metin düzenleyici", printing: "Yazdırma", regularexpressions: "Düzenli ifadeler", searchfind: "Arama ve bulma", shellscripting: "Kabuk betikleri", ssh: "SSH", systemcontrol: "Sistem denetimi", systeminformation: "Sistem bilgisi", systemrecovery: "Sistem kurtarma", terminalgames: "Terminal oyunları", textprocessing: "Metin işleme", tmux: "Tmux", usersgroups: "Kullanıcılar ve gruplar", videoaudio: "Video ve ses", vimtexteditor: "VIM metin düzenleyici"}
+    }
+    it {
+      title: "comandi linux"
+      basics: "basi"; tips: "consigli"; commands: "comandi"
+      loading: "caricamento…"; loadingList: "caricamento dell’elenco dei comandi…"
+      httpError: n => "impossibile caricare la pagina (HTTP ${n})"
+      offline: "offline: le pagine arrivano da GitHub"; tryAgain: "riprova"
+      search: "cerca comandi"
+      installed: n => "installati (${n})"; popular: "popolari"
+      noMatch: q => "nessun comando corrisponde a “${q}”"
+      topics: {aitools: "Strumenti IA", backupimaging: "Backup e immagini", compressionarchiving: "Compressione e archivi", cryptocurrencies: "Criptovalute", emacstexteditor: "Editor di testo Emacs", filesfolders: "File e cartelle", git: "Git", hackingtools: "Strumenti di hacking", input: "Input", json: "JSON", microtexteditor: "Editor di testo Micro", nanotexteditor: "Editor di testo Nano", network: "Rete", oneliners: "Comandi di una riga", packagemanager: "Gestore di pacchetti", picotexteditor: "Editor di testo Pico", printing: "Stampa", regularexpressions: "Espressioni regolari", searchfind: "Cerca e trova", shellscripting: "Script di shell", ssh: "SSH", systemcontrol: "Controllo del sistema", systeminformation: "Informazioni di sistema", systemrecovery: "Ripristino del sistema", terminalgames: "Giochi da terminale", textprocessing: "Elaborazione del testo", tmux: "Tmux", usersgroups: "Utenti e gruppi", videoaudio: "Video e audio", vimtexteditor: "Editor di testo VIM"}
+    }
+  }
 
   state tab = "commands" persist
   // The Linux Command Library app's own tab icons.
@@ -63,11 +202,10 @@ app "linux commands" {
   let shown = secs.filter(s => s[0] != "TAGLINE" && trim(s[1]) != "").sortBy(s => indexOf(FIRST, s[0]) >= 0 ? indexOf(FIRST, s[0]) : indexOf(LAST, s[0]) >= 0 ? 89 + indexOf(LAST, s[0]) : 50)
   let prev = first(back) ?? ""
 
-  let titles = {aitools: "AI tools", backupimaging: "Backup & Imaging", compressionarchiving: "Compression & Archiving", cryptocurrencies: "Cryptocurrencies", emacstexteditor: "Emacs Text Editor", filesfolders: "Files & Folders", git: "Git", hackingtools: "Hacking tools", input: "Input", json: "JSON", microtexteditor: "Micro Text Editor", nanotexteditor: "Nano Text Editor", network: "Network", oneliners: "One-liners", packagemanager: "Package manager", picotexteditor: "Pico Text Editor", printing: "Printing", regularexpressions: "Regular Expressions", searchfind: "Search & Find", shellscripting: "Shell Scripting", ssh: "SSH", systemcontrol: "System control", systeminformation: "System information", systemrecovery: "System Recovery", terminalgames: "Terminal games", textprocessing: "Text Processing", tmux: "Tmux", usersgroups: "Users & Groups", videoaudio: "Video & Audio", vimtexteditor: "VIM Text Editor"}
-  let basics = bidx == null ? [] : lines(bidx).map(l => replace(trim(l), ".md", "")).sortBy(b => lower(get(titles, b, b)))
+  let basics = bidx == null ? [] : lines(bidx).map(l => replace(trim(l), ".md", "")).sortBy(b => lower(get(str.topics, b, b)))
 
   // A tab of the bottom bar, as in the mobile app: an icon in a pill when it's the one open, and its name.
-  component Tab(name, icon) {
+  component Tab(name, label, icon) {
     Column {
       weight: 1
       align: center
@@ -80,7 +218,7 @@ app "linux commands" {
         height: 32
         Image { src: icon; size: 24; tint: tab == name ? foreground : muted }
       }
-      Text { text: name; style: small; align: center; maxLines: 1; bold: tab == name; color: tab == name ? foreground : muted }
+      Text { text: label; style: small; align: center; maxLines: 1; bold: tab == name; color: tab == name ? foreground : muted }
     }
   }
 
@@ -139,11 +277,11 @@ app "linux commands" {
 
   component Status() {
     if !ready {
-      Text { text: "loading…"; color: muted }
+      Text { text: str.loading; color: muted }
     } else {
       if !page.ok {
-        Text { text: page.code > 0 ? "couldn't load the page (HTTP ${page.code})" : "offline: the pages come from GitHub"; color: muted }
-        Button { text: "try again"; onTap: refresh() }
+        Text { text: page.code > 0 ? str.httpError(page.code) : str.offline; color: muted }
+        Button { text: str.tryAgain; onTap: refresh() }
       }
     }
   }
@@ -159,7 +297,7 @@ app "linux commands" {
       if tab == "commands" && sel == "" {
         Row {
           align: center
-          Input { text: q; placeholder: "search commands"; weight: 1; onChange: { q = value; copied = "" } }
+          Input { text: q; placeholder: str.search; weight: 1; onChange: { q = value; copied = "" } }
           if q != "" {
             Text { text: "✕"; color: muted; width: 32; align: center; onTap: q = "" }
           }
@@ -169,17 +307,17 @@ app "linux commands" {
           weight: 1
           gap: 2
           if idx == null {
-            Text { text: "loading the command list…"; color: muted }
+            Text { text: str.loadingList; color: muted }
           } else {
             if qq == "" {
-              Text { text: len(mine) > 0 ? "installed (${len(mine)})" : "popular"; style: label; color: muted; padding: [0, 6, 0, 4] }
+              Text { text: len(mine) > 0 ? str.installed(len(mine)) : str.popular; style: label; color: muted; padding: [0, 6, 0, 4] }
               Flow {
                 gap: 6
                 for n in len(mine) > 0 ? mine : popular key n { Chip { name: n } }
               }
             } else {
               if len(hits) == 0 {
-                Text { text: "no command matches “${qq}”"; color: muted }
+                Text { text: str.noMatch(qq); color: muted }
               }
               for n in hits key n {
                 Text { text: n; font: mono; fill: width; maxLines: 1; padding: [4, 9]; onTap: { back = []; was = url == "commands/${n}.md" ? null : page; url = "commands/${n}.md"; sel = n; copied = "" } }
@@ -226,10 +364,10 @@ app "linux commands" {
           weight: 1
           gap: 2
           if bidx == null {
-            Text { text: "loading…"; color: muted }
+            Text { text: str.loading; color: muted }
           }
           for b in basics key b {
-            Text { text: get(titles, b, b); fill: width; maxLines: 1; padding: [4, 10]; onTap: { was = url == "basics/${b}.md" ? null : page; url = "basics/${b}.md"; basic = b; copied = "" } }
+            Text { text: get(str.topics, b, b); fill: width; maxLines: 1; padding: [4, 10]; onTap: { was = url == "basics/${b}.md" ? null : page; url = "basics/${b}.md"; basic = b; copied = "" } }
           }
         }
       }
@@ -262,9 +400,9 @@ app "linux commands" {
     Box { height: 1; fill: width; background: alpha(muted, 0.25) }
     Row {
       gap: 0
-      Tab { name: "basics"; icon: puzzle }
-      Tab { name: "tips"; icon: idea }
-      Tab { name: "commands"; icon: search }
+      Tab { name: "basics"; label: str.basics; icon: puzzle }
+      Tab { name: "tips"; label: str.tips; icon: idea }
+      Tab { name: "commands"; label: str.commands; icon: search }
     }
   }
 }

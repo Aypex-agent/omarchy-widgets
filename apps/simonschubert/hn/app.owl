@@ -1,7 +1,7 @@
 app "hacker news" {
-  meta { owl: 23; description: "A Hacker News reader: the front page, newest, Ask and Show HN, and every story's comments, threaded and in HN's order"; version: "2.2"; license: "MIT"; category: "news" }
+  meta { owl: 23; description: "A Hacker News reader: the front page, newest, Ask and Show HN, and every story's comments, threaded and in HN's order"; version: "2.3"; license: "MIT"; category: "news" }
   // A story's comments are a view of their own; Back returns to the list.
-  title: open == 0 ? "hacker news" : story.comments == 1 ? "1 comment" : "${story.comments ?? 0} comments"
+  title: open == 0 ? "hacker news" : str.comments(story.comments ?? 0)
   back: open != 0
   onBack: { open = 0; expanded = [] }
   icon: """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
@@ -20,6 +20,168 @@ app "hacker news" {
   asset newIcon = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iI2ZmZiIgZD0iTTExLjk5IDJDNi40NyAyIDIgNi40OCAyIDEyczQuNDcgMTAgOS45OSAxMEMxNy41MiAyMiAyMiAxNy41MiAyMiAxMlMxNy41MiAyIDExLjk5IDJ6TTEyIDIwYy00LjQyIDAtOC0zLjU4LTgtOHMzLjU4LTggOC04IDggMy41OCA4IDgtMy41OCA4LTggOHptLjUtMTNIMTF2Nmw1LjI1IDMuMTUuNzUtMS4yMy00LjUtMi42N3oiLz48L3N2Zz4K"
   asset askIcon = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iI2ZmZiIgZD0iTTExIDE4aDJ2LTJoLTJ2MnptMS0xNkM2LjQ4IDIgMiA2LjQ4IDIgMTJzNC40OCAxMCAxMCAxMCAxMC00LjQ4IDEwLTEwUzE3LjUyIDIgMTIgMnptMCAxOGMtNC40MSAwLTgtMy41OS04LThzMy41OS04IDgtOCA4IDMuNTkgOCA4LTMuNTkgOC04IDh6bTAtMTRjLTIuMjEgMC00IDEuNzktNCA0aDJjMC0xLjEuOS0yIDItMnMyIC45IDIgMmMwIDItMyAxLjc1LTMgNWgyYzAtMi4yNSAzLTIuNSAzLTUgMC0yLjIxLTEuNzktNC00LTR6Ii8+PC9zdmc+Cg=="
   asset showIcon = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iI2ZmZiIgZD0iTTEyIDQuNUM3IDQuNSAyLjczIDcuNjEgMSAxMmMxLjczIDQuMzkgNiA3LjUgMTEgNy41czkuMjctMy4xMSAxMS03LjVjLTEuNzMtNC4zOS02LTcuNS0xMS03LjV6TTEyIDE3Yy0yLjc2IDAtNS0yLjI0LTUtNXMyLjI0LTUgNS01IDUgMi4yNCA1IDUtMi4yNCA1LTUgNXptMC04Yy0xLjY2IDAtMyAxLjM0LTMgM3MxLjM0IDMgMyAzIDMtMS4zNCAzLTMtMS4zNC0zLTMtM3oiLz48L3N2Zz4K"
+
+  strings {
+    en {
+      // The title over a story's comments.
+      comments: n => n == 1 ? "1 comment" : "${n} comments"
+      deleted: "[deleted]"
+      offline: "offline"; loading: "loading…"; tryAgain: "try again"
+      // Under a story's title, orange: its points and who posted it.
+      points: (n, who) => "${n} points · ${who}"
+      showingLast: "offline · showing the last list"
+      openArticle: "open the article ↗"
+      noLoad: "the comments didn't load"; noComments: "no comments yet"; loadingComments: "loading the comments…"
+      hideReplies: "hide replies"
+      replies: n => n == 1 ? "1 reply" : "${n} replies"
+      more: "more on news.ycombinator.com ↗"
+      // The bottom bar's tabs, a quarter of the width each. Ask and show are HN's own section names.
+      tabTop: "top"; tabNew: "new"; tabAsk: "ask"; tabShow: "show"
+    }
+    id {
+      comments: n => "${n} komentar"
+      deleted: "[dihapus]"
+      offline: "offline"; loading: "memuat…"; tryAgain: "coba lagi"
+      points: (n, who) => "${n} poin · ${who}"
+      showingLast: "offline · daftar terakhir"
+      openArticle: "buka artikel ↗"
+      noLoad: "komentar gagal dimuat"; noComments: "belum ada komentar"; loadingComments: "memuat komentar…"
+      hideReplies: "sembunyikan balasan"
+      replies: n => "${n} balasan"
+      more: "selengkapnya di news.ycombinator.com ↗"
+      tabTop: "top"; tabNew: "baru"; tabAsk: "ask"; tabShow: "show"
+    }
+    es {
+      comments: n => n == 1 ? "1 comentario" : "${n} comentarios"
+      deleted: "[borrado]"
+      offline: "sin conexión"; loading: "cargando…"; tryAgain: "reintentar"
+      points: (n, who) => n == 1 ? "1 punto · ${who}" : "${n} puntos · ${who}"
+      showingLast: "sin conexión · la última lista"
+      openArticle: "abrir el artículo ↗"
+      noLoad: "los comentarios no cargaron"; noComments: "aún no hay comentarios"; loadingComments: "cargando los comentarios…"
+      hideReplies: "ocultar respuestas"
+      replies: n => n == 1 ? "1 respuesta" : "${n} respuestas"
+      more: "más en news.ycombinator.com ↗"
+      tabTop: "top"; tabNew: "nuevo"; tabAsk: "ask"; tabShow: "show"
+    }
+    pt {
+      comments: n => n == 1 ? "1 comentário" : "${n} comentários"
+      deleted: "[apagado]"
+      offline: "offline"; loading: "carregando…"; tryAgain: "tentar de novo"
+      points: (n, who) => n == 1 ? "1 ponto · ${who}" : "${n} pontos · ${who}"
+      showingLast: "offline · mostrando a última lista"
+      openArticle: "abrir o artigo ↗"
+      noLoad: "os comentários não carregaram"; noComments: "nenhum comentário ainda"; loadingComments: "carregando os comentários…"
+      hideReplies: "ocultar respostas"
+      replies: n => n == 1 ? "1 resposta" : "${n} respostas"
+      more: "mais em news.ycombinator.com ↗"
+      tabTop: "top"; tabNew: "novo"; tabAsk: "ask"; tabShow: "show"
+    }
+    de {
+      comments: n => n == 1 ? "1 kommentar" : "${n} kommentare"
+      deleted: "[gelöscht]"
+      offline: "offline"; loading: "lädt…"; tryAgain: "nochmal versuchen"
+      points: (n, who) => n == 1 ? "1 punkt · ${who}" : "${n} punkte · ${who}"
+      showingLast: "offline · die letzte liste"
+      openArticle: "artikel öffnen ↗"
+      noLoad: "die kommentare haben nicht geladen"; noComments: "noch keine kommentare"; loadingComments: "kommentare laden…"
+      hideReplies: "antworten ausblenden"
+      replies: n => n == 1 ? "1 antwort" : "${n} antworten"
+      more: "mehr auf news.ycombinator.com ↗"
+      tabTop: "top"; tabNew: "neu"; tabAsk: "ask"; tabShow: "show"
+    }
+    zh {
+      comments: n => "${n} 条评论"
+      deleted: "[已删除]"
+      offline: "离线"; loading: "加载中…"; tryAgain: "重试"
+      points: (n, who) => "${n} 分 · ${who}"
+      showingLast: "离线 · 显示上次的列表"
+      openArticle: "打开文章 ↗"
+      noLoad: "评论没有加载出来"; noComments: "还没有评论"; loadingComments: "正在加载评论…"
+      hideReplies: "收起回复"
+      replies: n => "${n} 条回复"
+      more: "在 news.ycombinator.com 查看更多 ↗"
+      tabTop: "热门"; tabNew: "最新"; tabAsk: "ask"; tabShow: "show"
+    }
+    ru {
+      comments: n => n % 10 == 1 && n % 100 != 11 ? "${n} комментарий" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "${n} комментария" : "${n} комментариев"
+      deleted: "[удалено]"
+      offline: "нет сети"; loading: "загрузка…"; tryAgain: "попробовать снова"
+      points: (n, who) => n % 10 == 1 && n % 100 != 11 ? "${n} балл · ${who}" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "${n} балла · ${who}" : "${n} баллов · ${who}"
+      showingLast: "нет сети · последний список"
+      openArticle: "открыть статью ↗"
+      noLoad: "комментарии не загрузились"; noComments: "комментариев пока нет"; loadingComments: "загрузка комментариев…"
+      hideReplies: "скрыть ответы"
+      replies: n => n % 10 == 1 && n % 100 != 11 ? "${n} ответ" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "${n} ответа" : "${n} ответов"
+      more: "ещё на news.ycombinator.com ↗"
+      tabTop: "топ"; tabNew: "новое"; tabAsk: "ask"; tabShow: "show"
+    }
+    ja {
+      comments: n => "${n} 件のコメント"
+      deleted: "[削除済み]"
+      offline: "オフライン"; loading: "読み込み中…"; tryAgain: "再試行"
+      points: (n, who) => "${n} ポイント · ${who}"
+      showingLast: "オフライン · 前回のリストを表示中"
+      openArticle: "記事を開く ↗"
+      noLoad: "コメントを読み込めませんでした"; noComments: "まだコメントはありません"; loadingComments: "コメントを読み込み中…"
+      hideReplies: "返信を隠す"
+      replies: n => "${n} 件の返信"
+      more: "news.ycombinator.com でもっと見る ↗"
+      tabTop: "トップ"; tabNew: "新着"; tabAsk: "ask"; tabShow: "show"
+    }
+    uk {
+      comments: n => n % 10 == 1 && n % 100 != 11 ? "${n} коментар" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "${n} коментарі" : "${n} коментарів"
+      deleted: "[видалено]"
+      offline: "немає мережі"; loading: "завантаження…"; tryAgain: "ще раз"
+      points: (n, who) => n % 10 == 1 && n % 100 != 11 ? "${n} бал · ${who}" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "${n} бали · ${who}" : "${n} балів · ${who}"
+      showingLast: "немає мережі · останній список"
+      openArticle: "відкрити статтю ↗"
+      noLoad: "коментарі не завантажилися"; noComments: "коментарів ще немає"; loadingComments: "завантаження коментарів…"
+      hideReplies: "сховати відповіді"
+      replies: n => n % 10 == 1 && n % 100 != 11 ? "${n} відповідь" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "${n} відповіді" : "${n} відповідей"
+      more: "більше на news.ycombinator.com ↗"
+      tabTop: "топ"; tabNew: "нове"; tabAsk: "ask"; tabShow: "show"
+    }
+    fr {
+      comments: n => n <= 1 ? "${n} commentaire" : "${n} commentaires"
+      deleted: "[supprimé]"
+      offline: "hors ligne"; loading: "chargement…"; tryAgain: "réessayer"
+      points: (n, who) => n <= 1 ? "${n} point · ${who}" : "${n} points · ${who}"
+      showingLast: "hors ligne · la dernière liste"
+      openArticle: "ouvrir l'article ↗"
+      noLoad: "les commentaires n'ont pas chargé"; noComments: "pas encore de commentaires"; loadingComments: "chargement des commentaires…"
+      hideReplies: "masquer les réponses"
+      replies: n => n <= 1 ? "${n} réponse" : "${n} réponses"
+      more: "plus sur news.ycombinator.com ↗"
+      tabTop: "top"; tabNew: "nouveau"; tabAsk: "ask"; tabShow: "show"
+    }
+    tr {
+      comments: n => "${n} yorum"
+      deleted: "[silindi]"
+      offline: "çevrimdışı"; loading: "yükleniyor…"; tryAgain: "tekrar dene"
+      points: (n, who) => "${n} puan · ${who}"
+      showingLast: "çevrimdışı · son liste"
+      openArticle: "makaleyi aç ↗"
+      noLoad: "yorumlar yüklenmedi"; noComments: "henüz yorum yok"; loadingComments: "yorumlar yükleniyor…"
+      hideReplies: "yanıtları gizle"
+      replies: n => "${n} yanıt"
+      more: "devamı news.ycombinator.com'da ↗"
+      tabTop: "top"; tabNew: "yeni"; tabAsk: "ask"; tabShow: "show"
+    }
+    it {
+      comments: n => n == 1 ? "1 commento" : "${n} commenti"
+      deleted: "[eliminato]"
+      offline: "offline"; loading: "caricamento…"; tryAgain: "riprova"
+      points: (n, who) => n == 1 ? "1 punto · ${who}" : "${n} punti · ${who}"
+      showingLast: "offline · l'ultima lista"
+      openArticle: "apri l'articolo ↗"
+      noLoad: "i commenti non si sono caricati"; noComments: "ancora nessun commento"; loadingComments: "caricamento dei commenti…"
+      hideReplies: "nascondi le risposte"
+      replies: n => n == 1 ? "1 risposta" : "${n} risposte"
+      more: "altro su news.ycombinator.com ↗"
+      tabTop: "top"; tabNew: "nuovi"; tabAsk: "ask"; tabShow: "show"
+    }
+  }
 
   state feed = "top" persist
   // The story whose comments are open (0 for the lists), and the comment threads unfolded in it.
@@ -96,11 +258,11 @@ app "hacker news" {
         weight: 1
         Row {
           gap: 6
-          Text { text: c.author ?? "[deleted]"; style: small; bold: true; color: c.author == story.author ? orange : accent; weight: 1; maxLines: 1 }
+          Text { text: c.author ?? str.deleted; style: small; bold: true; color: c.author == story.author ? orange : accent; weight: 1; maxLines: 1 }
           Ago { t: c.created_at_i }
         }
         if c.text == null {
-          Text { text: "[deleted]"; style: small; color: muted }
+          Text { text: str.deleted; style: small; color: muted }
         } else {
           Html { t: c.text; small: depth > 0 }
         }
@@ -109,7 +271,7 @@ app "hacker news" {
   }
 
   // A tab of the bottom bar: an icon in a pill when it's the one open, and its name.
-  component Tab(name, icon) {
+  component Tab(name, icon, label) {
     Column {
       weight: 1
       align: center
@@ -122,7 +284,7 @@ app "hacker news" {
         height: 32
         Image { src: icon; size: 24; tint: feed == name ? foreground : muted }
       }
-      Text { text: name; style: small; align: center; maxLines: 1; bold: feed == name; color: feed == name ? foreground : muted }
+      Text { text: label; style: small; align: center; maxLines: 1; bold: feed == name; color: feed == name ? foreground : muted }
     }
   }
 
@@ -137,8 +299,8 @@ app "hacker news" {
         gap: 14
         padding: [12, 4, 12, 12]
         if len(stories) == 0 {
-          Text { text: offline ? "offline" : "loading…"; color: muted }
-          if offline { Button { text: "try again"; onTap: refresh() } }
+          Text { text: offline ? str.offline : str.loading; color: muted }
+          if offline { Button { text: str.tryAgain; onTap: refresh() } }
         }
         for s, i in stories key s.id {
           let link = "https://news.ycombinator.com/item?id=${s.id}"
@@ -157,7 +319,7 @@ app "hacker news" {
                 gap: 6
                 Text { text: s.site == "" ? "news.ycombinator.com" : s.site; style: small; color: muted; maxLines: 1; weight: 1 }
               }
-              Text { text: "${s.points} points · ${s.author}"; style: small; color: orange; maxLines: 1 }
+              Text { text: str.points(s.points, s.author); style: small; color: orange; maxLines: 1 }
             }
             // The comments, in the app.
             Column {
@@ -174,7 +336,7 @@ app "hacker news" {
           }
         }
         if offline && len(stories) > 0 {
-          Text { text: "offline · showing the last list"; style: label; color: muted }
+          Text { text: str.showingLast; style: label; color: muted }
         }
       }
     } else {
@@ -187,9 +349,9 @@ app "hacker news" {
         Column {
           gap: 4
           Text { text: story.title; style: title; onTap: url(story.url == "" ? "https://news.ycombinator.com/item?id=${open}" : story.url) }
-          Text { text: "${story.points} points · ${story.author}${story.site == "" ? "" : " · " + story.site}"; style: small; color: orange; maxLines: 1 }
+          Text { text: str.points(story.points, story.author) + (story.site == "" ? "" : " · " + story.site); style: small; color: orange; maxLines: 1 }
           if story.url != "" {
-            Text { text: "open the article ↗"; color: accent; onTap: url(story.url) }
+            Text { text: str.openArticle; color: accent; onTap: url(story.url) }
           }
           if story.text != "" {
             Html { t: story.text }
@@ -197,10 +359,10 @@ app "hacker news" {
         }
         Box { height: 1; fill: width; background: alpha(muted, 0.25) }
         if tree == null {
-          Text { text: thread != null && !thread.ok ? "the comments didn't load" : story.comments == 0 ? "no comments yet" : "loading the comments…"; color: muted }
-          if thread != null && !thread.ok { Button { text: "try again"; onTap: refresh() } }
+          Text { text: thread != null && !thread.ok ? str.noLoad : story.comments == 0 ? str.noComments : str.loadingComments; color: muted }
+          if thread != null && !thread.ok { Button { text: str.tryAgain; onTap: refresh() } }
         } else {
-          if len(tops) == 0 { Text { text: "no comments yet"; color: muted } }
+          if len(tops) == 0 { Text { text: str.noComments; color: muted } }
           for c in tops.take(150) key c.id {
             let all = flatten((c.children ?? []).map(a => [{c: a, d: 1}] + flatten((a.children ?? []).map(b => [{c: b, d: 2}] + flatten((b.children ?? []).map(x => [{c: x, d: 3}] + flatten((x.children ?? []).map(y => [{c: y, d: 4}] + flatten((y.children ?? []).map(z => [{c: z, d: 5}] + (z.children ?? []).map(w => {c: w, d: 6})))))))))))
             let unfolded = contains(expanded, c.id)
@@ -213,7 +375,7 @@ app "hacker news" {
               }
               if len(all) > 0 {
                 Text {
-                  text: unfolded ? "hide replies" : len(all) == 1 ? "1 reply" : "${len(all)} replies"
+                  text: unfolded ? str.hideReplies : str.replies(len(all))
                   style: small
                   color: accent
                   padding: [0, 2]
@@ -226,7 +388,7 @@ app "hacker news" {
             }
           }
           if len(tops) > 150 || tree.children == null {
-            Text { text: "more on news.ycombinator.com ↗"; color: accent; onTap: url("https://news.ycombinator.com/item?id=${open}") }
+            Text { text: str.more; color: accent; onTap: url("https://news.ycombinator.com/item?id=${open}") }
           }
         }
       }
@@ -236,10 +398,10 @@ app "hacker news" {
       Box { height: 1; fill: width; background: alpha(muted, 0.25) }
       Row {
         gap: 0
-        Tab { name: "top"; icon: topIcon }
-        Tab { name: "new"; icon: newIcon }
-        Tab { name: "ask"; icon: askIcon }
-        Tab { name: "show"; icon: showIcon }
+        Tab { name: "top"; icon: topIcon; label: str.tabTop }
+        Tab { name: "new"; icon: newIcon; label: str.tabNew }
+        Tab { name: "ask"; icon: askIcon; label: str.tabAsk }
+        Tab { name: "show"; icon: showIcon; label: str.tabShow }
       }
     }
   }

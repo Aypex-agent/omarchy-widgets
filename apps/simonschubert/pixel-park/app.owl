@@ -9,11 +9,649 @@ app "pixel park" {
   // `bank`. The guests walking about are worked out from the clock: each one picks a ride for
   // every round of 22 seconds and walks there along the paths and back.
 
-  meta { owl: 14; description: "A pixel art theme park tycoon: lay paths, build carousels, teacups, a ferris wheel and a roller coaster, open food stalls, plant gardens and watch the guests come"; version: "1.1.0"; license: "MIT"; category: "games" }
+  meta { owl: 16; description: "A pixel art theme park tycoon: lay paths, build carousels, teacups, a ferris wheel and a roller coaster, open food stalls, plant gardens and watch the guests come"; version: "1.2"; license: "MIT"; category: "games" }
 
   title: ""
   statusBar: false
   edge: true
+  strings {
+    en {
+      carousel: "CAROUSEL"
+      teacups: "TEACUPS"
+      bumper: "BUMPER CARS"
+      ferris: "FERRIS WHEEL"
+      flume: "LOG FLUME"
+      coaster: "ROLLER COASTER"
+      icecream: "ICE CREAM"
+      burgers: "BURGERS"
+      gift: "GIFT SHOP"
+      tree: "TREE"
+      flowers: "FLOWERS"
+      fountain: "FOUNTAIN"
+      noCoins: "NOT ENOUGH COINS"
+      noRoom: "NO ROOM HERE"
+      landBought: "MORE LAND!"
+      forSale: "FOR SALE"
+      park: "PARK"
+      moreLand: "MORE LAND"
+      landLine1: "TWO MORE ROWS OF GRASS"
+      landLine2: "FOR RIDES, STALLS AND GARDENS"
+      garden: "GARDEN"
+      boost2: "AND STALL NEXT TO IT"
+      noPath1: "NO PATH TO THE GATE"
+      noPath2: "LAY ONE FROM THE PATH TAB"
+      upgrade: "UPGRADE"
+      sell: "SELL"
+      path1: "TAP OR DRAG ON GRASS"
+      path2: "TO LAY PATH, 10 A CELL"
+      path3: "TAP A PATH TO TAKE IT UP"
+      path4: "RIDES AND STALLS EARN ONCE"
+      path5: "A PATH LEADS TO THE GATE"
+      soundOn: "SOUND ON"
+      soundOff: "SOUND OFF"
+      stalls1: "STALLS EARN FROM EVERY GUEST"
+      stalls2: "IN THE PARK"
+      gardens1: "GARDENS: MORE FOR WHAT'S NEXT TO THEM"
+      gardens2: "AND MORE STARS FOR THE PARK"
+      pick1: "PICK A RIDE BELOW,"
+      pick2: "THEN TAP THE GRASS"
+      layPath1: "LAY A PATH FROM THE GATE"
+      layPath2: "IN THE PATH TAB"
+      welcomeBack: c => "WELCOME BACK +${c}"
+      perSec: r => "${r}/S"
+      guests: n => "${n} GUESTS"
+      buy: c => "BUY  ${c}"
+      level: l => "LEVEL ${l}"
+      boost1: b => "+${b}% FOR EVERY RIDE"
+      brings: n => "BRINGS ${n} GUESTS"
+      sellsTo: n => "SELLS TO ${n} GUESTS"
+      gardens: p => "GARDENS +${p}%"
+      tab: t => ["RIDES", "FOOD", "GARDEN", "PATH"][t]
+    }
+    id {
+      carousel: "KOMIDI PUTAR"
+      teacups: "CANGKIR PUTAR"
+      bumper: "BOM-BOM CAR"
+      ferris: "BIANGLALA"
+      flume: "ARUNG JERAM"
+      coaster: "ROLLER COASTER"
+      icecream: "ES KRIM"
+      burgers: "BURGER"
+      gift: "TOKO SUVENIR"
+      tree: "POHON"
+      flowers: "BUNGA"
+      fountain: "AIR MANCUR"
+      noCoins: "KOIN TIDAK CUKUP"
+      noRoom: "TIDAK ADA TEMPAT"
+      landBought: "LAHAN BERTAMBAH!"
+      forSale: "DIJUAL"
+      park: "TAMAN"
+      moreLand: "LAHAN TAMBAHAN"
+      landLine1: "DUA BARIS RUMPUT LAGI"
+      landLine2: "UNTUK WAHANA, KIOS, DAN TAMAN"
+      garden: "TAMAN"
+      boost2: "DAN KIOS DI SEBELAHNYA"
+      noPath1: "TIDAK ADA JALAN KE GERBANG"
+      noPath2: "BUAT DARI TAB JALAN"
+      upgrade: "TINGKATKAN"
+      sell: "JUAL"
+      path1: "KETUK ATAU GESER DI RUMPUT"
+      path2: "UNTUK MEMBUAT JALAN, 10 PER PETAK"
+      path3: "KETUK JALAN UNTUK MENGHAPUSNYA"
+      path4: "WAHANA DAN KIOS MULAI UNTUNG"
+      path5: "SETELAH ADA JALAN KE GERBANG"
+      soundOn: "SUARA NYALA"
+      soundOff: "SUARA MATI"
+      stalls1: "KIOS UNTUNG DARI SETIAP PENGUNJUNG"
+      stalls2: "DI TAMAN"
+      gardens1: "TAMAN: LEBIH BANYAK UNTUK SEKITARNYA"
+      gardens2: "DAN LEBIH BANYAK BINTANG UNTUK TAMAN"
+      pick1: "PILIH WAHANA DI BAWAH,"
+      pick2: "LALU KETUK RUMPUTNYA"
+      layPath1: "BUAT JALAN DARI GERBANG"
+      layPath2: "DI TAB JALAN"
+      welcomeBack: c => "SELAMAT KEMBALI +${c}"
+      perSec: r => "${r}/D"
+      guests: n => "${n} PENGUNJUNG"
+      buy: c => "BELI  ${c}"
+      level: l => "TINGKAT ${l}"
+      boost1: b => "+${b}% UNTUK SETIAP WAHANA"
+      brings: n => "MENDATANGKAN ${n} PENGUNJUNG"
+      sellsTo: n => "MENJUAL KE ${n} PENGUNJUNG"
+      gardens: p => "TAMAN +${p}%"
+      tab: t => ["WAHANA", "MAKANAN", "TAMAN", "JALAN"][t]
+    }
+    es {
+      carousel: "CARRUSEL"
+      teacups: "TAZAS"
+      bumper: "AUTOS DE CHOQUE"
+      ferris: "NORIA"
+      flume: "TRONCOS"
+      coaster: "MONTAÑA RUSA"
+      icecream: "HELADOS"
+      burgers: "HAMBURGUESAS"
+      gift: "TIENDA DE REGALOS"
+      tree: "ÁRBOL"
+      flowers: "FLORES"
+      fountain: "FUENTE"
+      noCoins: "FALTAN MONEDAS"
+      noRoom: "NO CABE AQUÍ"
+      landBought: "¡MÁS TERRENO!"
+      forSale: "SE VENDE"
+      park: "PARQUE"
+      moreLand: "MÁS TERRENO"
+      landLine1: "DOS FILAS MÁS DE CÉSPED"
+      landLine2: "PARA ATRACCIONES, PUESTOS Y JARDINES"
+      garden: "JARDÍN"
+      boost2: "Y PUESTO DE AL LADO"
+      noPath1: "SIN CAMINO A LA ENTRADA"
+      noPath2: "HAZ UNO EN LA PESTAÑA CAMINO"
+      upgrade: "MEJORAR"
+      sell: "VENDER"
+      path1: "TOCA O ARRASTRA SOBRE EL CÉSPED"
+      path2: "PARA PONER CAMINO, 10 POR CASILLA"
+      path3: "TOCA UN CAMINO PARA QUITARLO"
+      path4: "ATRACCIONES Y PUESTOS GANAN"
+      path5: "CUANDO UN CAMINO LLEGA A LA ENTRADA"
+      soundOn: "SONIDO SÍ"
+      soundOff: "SONIDO NO"
+      stalls1: "LOS PUESTOS GANAN CON CADA VISITANTE"
+      stalls2: "DEL PARQUE"
+      gardens1: "JARDINES: MÁS PARA LO QUE TIENEN AL LADO"
+      gardens2: "Y MÁS ESTRELLAS PARA EL PARQUE"
+      pick1: "ELIGE UNA ATRACCIÓN ABAJO,"
+      pick2: "Y TOCA EL CÉSPED"
+      layPath1: "HAZ UN CAMINO DESDE LA ENTRADA"
+      layPath2: "EN LA PESTAÑA CAMINO"
+      welcomeBack: c => "¡HOLA DE NUEVO! +${c}"
+      perSec: r => "${r}/S"
+      guests: n => "${n} VISITANTES"
+      buy: c => "COMPRAR  ${c}"
+      level: l => "NIVEL ${l}"
+      boost1: b => "+${b}% A CADA ATRACCIÓN"
+      brings: n => "ATRAE ${n} VISITANTES"
+      sellsTo: n => "VENDE A ${n} VISITANTES"
+      gardens: p => "JARDINES +${p}%"
+      tab: t => ["ATRACCIONES", "COMIDA", "JARDÍN", "CAMINO"][t]
+    }
+    pt {
+      carousel: "CARROSSEL"
+      teacups: "XÍCARAS"
+      bumper: "BATE-BATE"
+      ferris: "RODA-GIGANTE"
+      flume: "TRONCOS"
+      coaster: "MONTANHA-RUSSA"
+      icecream: "SORVETE"
+      burgers: "HAMBÚRGUER"
+      gift: "LOJA DE PRESENTES"
+      tree: "ÁRVORE"
+      flowers: "FLORES"
+      fountain: "FONTE"
+      noCoins: "MOEDAS INSUFICIENTES"
+      noRoom: "NÃO CABE AQUI"
+      landBought: "MAIS TERRENO!"
+      forSale: "À VENDA"
+      park: "PARQUE"
+      moreLand: "MAIS TERRENO"
+      landLine1: "MAIS DUAS FILEIRAS DE GRAMA"
+      landLine2: "PARA BRINQUEDOS, BARRACAS E JARDINS"
+      garden: "JARDIM"
+      boost2: "E BARRACA AO LADO"
+      noPath1: "SEM CAMINHO ATÉ O PORTÃO"
+      noPath2: "FAÇA UM NA ABA CAMINHO"
+      upgrade: "MELHORAR"
+      sell: "VENDER"
+      path1: "TOQUE OU ARRASTE NA GRAMA"
+      path2: "PARA FAZER CAMINHO, 10 POR CASA"
+      path3: "TOQUE UM CAMINHO PARA TIRÁ-LO"
+      path4: "BRINQUEDOS E BARRACAS RENDEM"
+      path5: "QUANDO UM CAMINHO LEVA AO PORTÃO"
+      soundOn: "SOM LIGADO"
+      soundOff: "SOM DESLIGADO"
+      stalls1: "AS BARRACAS LUCRAM COM CADA VISITANTE"
+      stalls2: "DO PARQUE"
+      gardens1: "JARDINS: MAIS PARA O QUE ESTÁ AO LADO"
+      gardens2: "E MAIS ESTRELAS PARA O PARQUE"
+      pick1: "ESCOLHA UM BRINQUEDO ABAIXO,"
+      pick2: "E TOQUE NA GRAMA"
+      layPath1: "FAÇA UM CAMINHO DESDE O PORTÃO"
+      layPath2: "NA ABA CAMINHO"
+      welcomeBack: c => "BEM-VINDO DE VOLTA +${c}"
+      perSec: r => "${r}/S"
+      guests: n => "${n} VISITANTES"
+      buy: c => "COMPRAR  ${c}"
+      level: l => "NÍVEL ${l}"
+      boost1: b => "+${b}% PARA CADA BRINQUEDO"
+      brings: n => "ATRAI ${n} VISITANTES"
+      sellsTo: n => "VENDE PARA ${n} VISITANTES"
+      gardens: p => "JARDINS +${p}%"
+      tab: t => ["BRINQUEDOS", "COMIDA", "JARDIM", "CAMINHO"][t]
+    }
+    de {
+      carousel: "KARUSSELL"
+      teacups: "TEETASSEN"
+      bumper: "AUTOSCOOTER"
+      ferris: "RIESENRAD"
+      flume: "WILDWASSERBAHN"
+      coaster: "ACHTERBAHN"
+      icecream: "EIS"
+      burgers: "BURGER"
+      gift: "SOUVENIRLADEN"
+      tree: "BAUM"
+      flowers: "BLUMEN"
+      fountain: "BRUNNEN"
+      noCoins: "ZU WENIG MÜNZEN"
+      noRoom: "KEIN PLATZ HIER"
+      landBought: "MEHR LAND!"
+      forSale: "VERKAUF"
+      park: "PARK"
+      moreLand: "MEHR LAND"
+      landLine1: "ZWEI REIHEN WIESE MEHR"
+      landLine2: "FÜR BAHNEN, STÄNDE UND GÄRTEN"
+      garden: "GARTEN"
+      boost2: "UND JEDEN STAND DANEBEN"
+      noPath1: "KEIN WEG ZUM TOR"
+      noPath2: "LEG EINEN IM TAB WEG AN"
+      upgrade: "AUSBAUEN"
+      sell: "VERKAUFEN"
+      path1: "TIPPE ODER ZIEH AUF DER WIESE"
+      path2: "FÜR EINEN WEG, 10 PRO FELD"
+      path3: "TIPPE AUF EINEN WEG ZUM ENTFERNEN"
+      path4: "BAHNEN UND STÄNDE VERDIENEN, SOBALD"
+      path5: "EIN WEG ZUM TOR FÜHRT"
+      soundOn: "TON AN"
+      soundOff: "TON AUS"
+      stalls1: "STÄNDE VERDIENEN AN JEDEM GAST"
+      stalls2: "IM PARK"
+      gardens1: "GÄRTEN: MEHR FÜR ALLES DANEBEN"
+      gardens2: "UND MEHR STERNE FÜR DEN PARK"
+      pick1: "WÄHLE UNTEN EINE BAHN,"
+      pick2: "DANN TIPPE AUF DIE WIESE"
+      layPath1: "LEG EINEN WEG VOM TOR AUS"
+      layPath2: "IM TAB WEG"
+      welcomeBack: c => "WILLKOMMEN ZURÜCK +${c}"
+      perSec: r => "${r}/S"
+      guests: n => "${n} GÄSTE"
+      buy: c => "KAUFEN  ${c}"
+      level: l => "STUFE ${l}"
+      boost1: b => "+${b}% FÜR JEDE BAHN"
+      brings: n => "BRINGT ${n} GÄSTE"
+      sellsTo: n => "VERKAUFT AN ${n} GÄSTE"
+      gardens: p => "GÄRTEN +${p}%"
+      tab: t => ["BAHNEN", "ESSEN", "GARTEN", "WEG"][t]
+    }
+    zh {
+      carousel: "旋转木马"
+      teacups: "旋转茶杯"
+      bumper: "碰碰车"
+      ferris: "摩天轮"
+      flume: "激流勇进"
+      coaster: "过山车"
+      icecream: "冰淇淋"
+      burgers: "汉堡"
+      gift: "礼品店"
+      tree: "树"
+      flowers: "花"
+      fountain: "喷泉"
+      noCoins: "金币不足"
+      noRoom: "这里放不下"
+      landBought: "土地扩大了！"
+      forSale: "出售"
+      park: "乐园"
+      moreLand: "扩建土地"
+      landLine1: "再多两排草地"
+      landLine2: "用于游乐设施、摊位和花园"
+      garden: "花园"
+      boost2: "相邻摊位同样适用"
+      noPath1: "没有通往大门的道路"
+      noPath2: "在“道路”页里铺一条"
+      upgrade: "升级"
+      sell: "出售"
+      path1: "在草地上点按或拖动"
+      path2: "即可铺路，每格 10"
+      path3: "点按道路可拆除"
+      path4: "设施和摊位要等"
+      path5: "有路通往大门才有收入"
+      soundOn: "声音 开"
+      soundOff: "声音 关"
+      stalls1: "摊位从园内每位游客"
+      stalls2: "身上赚钱"
+      gardens1: "花园：让旁边的设施赚更多"
+      gardens2: "也让乐园多得星星"
+      pick1: "先在下方选一个设施，"
+      pick2: "再点按草地"
+      layPath1: "从大门铺一条道路"
+      layPath2: "（在“道路”页中）"
+      welcomeBack: c => "欢迎回来 +${c}"
+      perSec: r => "${r}/秒"
+      guests: n => "${n} 位游客"
+      buy: c => "购买  ${c}"
+      level: l => "等级 ${l}"
+      boost1: b => "每个相邻设施 +${b}%"
+      brings: n => "带来 ${n} 位游客"
+      sellsTo: n => "卖给 ${n} 位游客"
+      gardens: p => "花园 +${p}%"
+      tab: t => ["设施", "美食", "花园", "道路"][t]
+    }
+    ru {
+      carousel: "КАРУСЕЛЬ"
+      teacups: "ЧАШКИ"
+      bumper: "АВТОДРОМ"
+      ferris: "КОЛЕСО ОБОЗРЕНИЯ"
+      flume: "ВОДНЫЕ ГОРКИ"
+      coaster: "АМЕРИКАНСКИЕ ГОРКИ"
+      icecream: "МОРОЖЕНОЕ"
+      burgers: "БУРГЕРЫ"
+      gift: "СУВЕНИРЫ"
+      tree: "ДЕРЕВО"
+      flowers: "ЦВЕТЫ"
+      fountain: "ФОНТАН"
+      noCoins: "НЕ ХВАТАЕТ МОНЕТ"
+      noRoom: "ЗДЕСЬ НЕТ МЕСТА"
+      landBought: "БОЛЬШЕ ЗЕМЛИ!"
+      forSale: "ПРОДАЖА"
+      park: "ПАРК"
+      moreLand: "БОЛЬШЕ ЗЕМЛИ"
+      landLine1: "ЕЩЁ ДВА РЯДА ТРАВЫ"
+      landLine2: "ДЛЯ АТТРАКЦИОНОВ, ЛАРЬКОВ И САДОВ"
+      garden: "САД"
+      boost2: "И ЛАРЬКУ РЯДОМ"
+      noPath1: "НЕТ ДОРОЖКИ К ВОРОТАМ"
+      noPath2: "ПРОЛОЖИТЕ ЕЁ ВО ВКЛАДКЕ ДОРОЖКИ"
+      upgrade: "УЛУЧШИТЬ"
+      sell: "ПРОДАТЬ"
+      path1: "НАЖМИТЕ ИЛИ ВЕДИТЕ ПО ТРАВЕ"
+      path2: "ЧТОБЫ ПРОЛОЖИТЬ ДОРОЖКУ, 10 ЗА КЛЕТКУ"
+      path3: "НАЖМИТЕ НА ДОРОЖКУ, ЧТОБЫ УБРАТЬ"
+      path4: "АТТРАКЦИОНЫ И ЛАРЬКИ ПРИНОСЯТ ДОХОД,"
+      path5: "КОГДА К НИМ ВЕДЁТ ДОРОЖКА"
+      soundOn: "ЗВУК ВКЛ"
+      soundOff: "ЗВУК ВЫКЛ"
+      stalls1: "ЛАРЬКИ ЗАРАБАТЫВАЮТ НА КАЖДОМ ГОСТЕ"
+      stalls2: "В ПАРКЕ"
+      gardens1: "САДЫ: БОЛЬШЕ ДОХОДА ТОМУ, ЧТО РЯДОМ"
+      gardens2: "И БОЛЬШЕ ЗВЁЗД ПАРКУ"
+      pick1: "ВЫБЕРИТЕ АТТРАКЦИОН НИЖЕ,"
+      pick2: "ЗАТЕМ НАЖМИТЕ НА ТРАВУ"
+      layPath1: "ПРОЛОЖИТЕ ДОРОЖКУ ОТ ВОРОТ"
+      layPath2: "ВО ВКЛАДКЕ ДОРОЖКИ"
+      welcomeBack: c => "С ВОЗВРАЩЕНИЕМ +${c}"
+      perSec: r => "${r}/С"
+      guests: n => "ГОСТЕЙ: ${n}"
+      buy: c => "КУПИТЬ  ${c}"
+      level: l => "УРОВЕНЬ ${l}"
+      boost1: b => "+${b}% КАЖДОМУ АТТРАКЦИОНУ"
+      brings: n => "ПРИВОДИТ ГОСТЕЙ: ${n}"
+      sellsTo: n => "ПРОДАЁТ ГОСТЯМ: ${n}"
+      gardens: p => "САДЫ +${p}%"
+      tab: t => ["АТТРАКЦИОНЫ", "ЕДА", "САД", "ДОРОЖКИ"][t]
+    }
+    ja {
+      carousel: "メリーゴーランド"
+      teacups: "ティーカップ"
+      bumper: "バンパーカー"
+      ferris: "観覧車"
+      flume: "ログフルーム"
+      coaster: "ジェットコースター"
+      icecream: "アイス"
+      burgers: "バーガー"
+      gift: "ギフトショップ"
+      tree: "木"
+      flowers: "花"
+      fountain: "噴水"
+      noCoins: "コインが足りません"
+      noRoom: "ここには置けません"
+      landBought: "土地が広がりました！"
+      forSale: "売り地"
+      park: "パーク"
+      moreLand: "土地を広げる"
+      landLine1: "芝生がもう2列"
+      landLine2: "乗り物・屋台・庭園に"
+      garden: "庭園"
+      boost2: "と屋台すべてに"
+      noPath1: "入口への道がありません"
+      noPath2: "「道」タブで敷いてください"
+      upgrade: "強化"
+      sell: "売却"
+      path1: "芝生をタップかドラッグして"
+      path2: "道を敷きます（1マス 10）"
+      path3: "道をタップすると撤去します"
+      path4: "乗り物と屋台は、入口から"
+      path5: "道がつながると稼ぎます"
+      soundOn: "サウンド オン"
+      soundOff: "サウンド オフ"
+      stalls1: "屋台は園内の来場者みんなから"
+      stalls2: "稼ぎます"
+      gardens1: "庭園：隣のものの稼ぎが増え、"
+      gardens2: "パークの星も増えます"
+      pick1: "下で乗り物を選んで、"
+      pick2: "芝生をタップしてください"
+      layPath1: "「道」タブで入口から"
+      layPath2: "道を敷いてください"
+      welcomeBack: c => "おかえりなさい +${c}"
+      perSec: r => "${r}/秒"
+      guests: n => "来場者 ${n}人"
+      buy: c => "購入  ${c}"
+      level: l => "レベル ${l}"
+      boost1: b => "+${b}%：隣の乗り物"
+      brings: n => "来場者 ${n}人を呼びます"
+      sellsTo: n => "来場者 ${n}人に販売"
+      gardens: p => "庭園 +${p}%"
+      tab: t => ["乗り物", "食べ物", "庭園", "道"][t]
+    }
+    uk {
+      carousel: "КАРУСЕЛЬ"
+      teacups: "ЧАШКИ"
+      bumper: "АВТОДРОМ"
+      ferris: "ОГЛЯДОВЕ КОЛЕСО"
+      flume: "ВОДНІ ГІРКИ"
+      coaster: "АМЕРИКАНСЬКІ ГІРКИ"
+      icecream: "МОРОЗИВО"
+      burgers: "БУРГЕРИ"
+      gift: "СУВЕНІРИ"
+      tree: "ДЕРЕВО"
+      flowers: "КВІТИ"
+      fountain: "ФОНТАН"
+      noCoins: "БРАКУЄ МОНЕТ"
+      noRoom: "ТУТ НЕМАЄ МІСЦЯ"
+      landBought: "БІЛЬШЕ ЗЕМЛІ!"
+      forSale: "ПРОДАЖ"
+      park: "ПАРК"
+      moreLand: "БІЛЬШЕ ЗЕМЛІ"
+      landLine1: "ЩЕ ДВА РЯДИ ТРАВИ"
+      landLine2: "ДЛЯ АТРАКЦІОНІВ, ЯТОК І САДІВ"
+      garden: "САД"
+      boost2: "І ЯТЦІ ПОРУЧ"
+      noPath1: "НЕМАЄ ДОРІЖКИ ДО ВОРІТ"
+      noPath2: "ПРОКЛАДІТЬ ЇЇ У ВКЛАДЦІ ДОРІЖКИ"
+      upgrade: "ПОКРАЩИТИ"
+      sell: "ПРОДАТИ"
+      path1: "НАТИСНІТЬ АБО ВЕДІТЬ ПО ТРАВІ"
+      path2: "ЩОБ ПРОКЛАСТИ ДОРІЖКУ, 10 ЗА КЛІТИНКУ"
+      path3: "НАТИСНІТЬ НА ДОРІЖКУ, ЩОБ ПРИБРАТИ"
+      path4: "АТРАКЦІОНИ Й ЯТКИ ПРИНОСЯТЬ ДОХІД,"
+      path5: "КОЛИ ДО НИХ ВЕДЕ ДОРІЖКА"
+      soundOn: "ЗВУК УВІМК"
+      soundOff: "ЗВУК ВИМК"
+      stalls1: "ЯТКИ ЗАРОБЛЯЮТЬ НА КОЖНОМУ ГОСТІ"
+      stalls2: "У ПАРКУ"
+      gardens1: "САДИ: БІЛЬШЕ ДОХОДУ ТОМУ, ЩО ПОРУЧ"
+      gardens2: "І БІЛЬШЕ ЗІРОК ПАРКУ"
+      pick1: "ОБЕРІТЬ АТРАКЦІОН НИЖЧЕ,"
+      pick2: "ПОТІМ НАТИСНІТЬ НА ТРАВУ"
+      layPath1: "ПРОКЛАДІТЬ ДОРІЖКУ ВІД ВОРІТ"
+      layPath2: "У ВКЛАДЦІ ДОРІЖКИ"
+      welcomeBack: c => "З ПОВЕРНЕННЯМ +${c}"
+      perSec: r => "${r}/С"
+      guests: n => "ГОСТЕЙ: ${n}"
+      buy: c => "КУПИТИ  ${c}"
+      level: l => "РІВЕНЬ ${l}"
+      boost1: b => "+${b}% КОЖНОМУ АТРАКЦІОНУ"
+      brings: n => "ПРИВОДИТЬ ГОСТЕЙ: ${n}"
+      sellsTo: n => "ПРОДАЄ ГОСТЯМ: ${n}"
+      gardens: p => "САДИ +${p}%"
+      tab: t => ["АТРАКЦІОНИ", "ЇЖА", "САД", "ДОРІЖКИ"][t]
+    }
+    fr {
+      carousel: "CARROUSEL"
+      teacups: "TASSES"
+      bumper: "AUTOS TAMPONNEUSES"
+      ferris: "GRANDE ROUE"
+      flume: "BÛCHES"
+      coaster: "MONTAGNES RUSSES"
+      icecream: "GLACES"
+      burgers: "BURGERS"
+      gift: "BOUTIQUE"
+      tree: "ARBRE"
+      flowers: "FLEURS"
+      fountain: "FONTAINE"
+      noCoins: "PAS ASSEZ DE PIÈCES"
+      noRoom: "PAS DE PLACE ICI"
+      landBought: "PLUS DE TERRAIN !"
+      forSale: "À VENDRE"
+      park: "PARC"
+      moreLand: "PLUS DE TERRAIN"
+      landLine1: "DEUX RANGÉES D'HERBE EN PLUS"
+      landLine2: "POUR MANÈGES, STANDS ET JARDINS"
+      garden: "JARDIN"
+      boost2: "ET STAND À CÔTÉ"
+      noPath1: "AUCUN CHEMIN VERS L'ENTRÉE"
+      noPath2: "POSE-EN UN DANS L'ONGLET CHEMIN"
+      upgrade: "AMÉLIORER"
+      sell: "VENDRE"
+      path1: "TOUCHE OU GLISSE SUR L'HERBE"
+      path2: "POUR POSER UN CHEMIN, 10 LA CASE"
+      path3: "TOUCHE UN CHEMIN POUR L'ENLEVER"
+      path4: "MANÈGES ET STANDS RAPPORTENT"
+      path5: "DÈS QU'UN CHEMIN MÈNE À L'ENTRÉE"
+      soundOn: "SON ACTIVÉ"
+      soundOff: "SON COUPÉ"
+      stalls1: "LES STANDS GAGNENT SUR CHAQUE VISITEUR"
+      stalls2: "DU PARC"
+      gardens1: "JARDINS : PLUS POUR CE QUI EST À CÔTÉ"
+      gardens2: "ET PLUS D'ÉTOILES POUR LE PARC"
+      pick1: "CHOISIS UN MANÈGE EN BAS,"
+      pick2: "PUIS TOUCHE L'HERBE"
+      layPath1: "POSE UN CHEMIN DEPUIS L'ENTRÉE"
+      layPath2: "DANS L'ONGLET CHEMIN"
+      welcomeBack: c => "BON RETOUR +${c}"
+      perSec: r => "${r}/S"
+      guests: n => "${n} VISITEURS"
+      buy: c => "ACHETER  ${c}"
+      level: l => "NIVEAU ${l}"
+      boost1: b => "+${b}% À CHAQUE MANÈGE"
+      brings: n => "ATTIRE ${n} VISITEURS"
+      sellsTo: n => "VEND À ${n} VISITEURS"
+      gardens: p => "JARDINS +${p}%"
+      tab: t => ["MANÈGES", "MANGER", "JARDIN", "CHEMIN"][t]
+    }
+    tr {
+      carousel: "ATLI KARINCA"
+      teacups: "ÇAY FİNCANI"
+      bumper: "ÇARPIŞAN ARABA"
+      ferris: "DÖNME DOLAP"
+      flume: "SU KIZAĞI"
+      coaster: "HIZ TRENİ"
+      icecream: "DONDURMA"
+      burgers: "BURGER"
+      gift: "HEDİYELİK"
+      tree: "AĞAÇ"
+      flowers: "ÇİÇEKLER"
+      fountain: "ÇEŞME"
+      noCoins: "PARA YETMİYOR"
+      noRoom: "BURADA YER YOK"
+      landBought: "DAHA FAZLA ARAZİ!"
+      forSale: "SATILIK"
+      park: "PARK"
+      moreLand: "DAHA FAZLA ARAZİ"
+      landLine1: "İKİ SIRA DAHA ÇİM"
+      landLine2: "OYUNCAK, TEZGAH VE BAHÇELER İÇİN"
+      garden: "BAHÇE"
+      boost2: "VE TEZGAHA"
+      noPath1: "KAPIYA YOL YOK"
+      noPath2: "YOL SEKMESİNDEN BİR TANE DÖŞE"
+      upgrade: "GELİŞTİR"
+      sell: "SAT"
+      path1: "ÇİMENE DOKUN YA DA SÜRÜKLE"
+      path2: "YOL DÖŞEMEK İÇİN, KARE BAŞI 10"
+      path3: "KALDIRMAK İÇİN YOLA DOKUN"
+      path4: "OYUNCAK VE TEZGAHLAR, KAPIYA"
+      path5: "BİR YOL ÇIKINCA KAZANIR"
+      soundOn: "SES AÇIK"
+      soundOff: "SES KAPALI"
+      stalls1: "TEZGAHLAR PARKTAKİ"
+      stalls2: "HER ZİYARETÇİDEN KAZANIR"
+      gardens1: "BAHÇELER: YANINDAKİLERE DAHA ÇOK"
+      gardens2: "VE PARKA DAHA ÇOK YILDIZ"
+      pick1: "AŞAĞIDAN BİR OYUNCAK SEÇ,"
+      pick2: "SONRA ÇİMENE DOKUN"
+      layPath1: "KAPIDAN BİR YOL DÖŞE"
+      layPath2: "YOL SEKMESİNDE"
+      welcomeBack: c => "TEKRAR HOŞ GELDİN +${c}"
+      perSec: r => "${r}/SN"
+      guests: n => "${n} ZİYARETÇİ"
+      buy: c => "SATIN AL  ${c}"
+      level: l => "SEVİYE ${l}"
+      boost1: b => "+${b}% YANINDAKİ HER OYUNCAK"
+      brings: n => "${n} ZİYARETÇİ GETİRİR"
+      sellsTo: n => "${n} ZİYARETÇİYE SATAR"
+      gardens: p => "BAHÇELER +${p}%"
+      tab: t => ["OYUNCAKLAR", "YEMEK", "BAHÇE", "YOL"][t]
+    }
+    it {
+      carousel: "GIOSTRA"
+      teacups: "TAZZE"
+      bumper: "AUTOSCONTRO"
+      ferris: "RUOTA PANORAMICA"
+      flume: "TRONCHI"
+      coaster: "MONTAGNE RUSSE"
+      icecream: "GELATI"
+      burgers: "HAMBURGER"
+      gift: "NEGOZIO REGALI"
+      tree: "ALBERO"
+      flowers: "FIORI"
+      fountain: "FONTANA"
+      noCoins: "MONETE INSUFFICIENTI"
+      noRoom: "QUI NON C'È SPAZIO"
+      landBought: "PIÙ TERRENO!"
+      forSale: "VENDESI"
+      park: "PARCO"
+      moreLand: "PIÙ TERRENO"
+      landLine1: "DUE FILE DI PRATO IN PIÙ"
+      landLine2: "PER GIOSTRE, CHIOSCHI E GIARDINI"
+      garden: "GIARDINO"
+      boost2: "E CHIOSCO ACCANTO"
+      noPath1: "NESSUN SENTIERO ALL'INGRESSO"
+      noPath2: "POSANE UNO DALLA SCHEDA SENTIERO"
+      upgrade: "MIGLIORA"
+      sell: "VENDI"
+      path1: "TOCCA O TRASCINA SUL PRATO"
+      path2: "PER POSARE IL SENTIERO, 10 A CASELLA"
+      path3: "TOCCA UN SENTIERO PER TOGLIERLO"
+      path4: "GIOSTRE E CHIOSCHI GUADAGNANO"
+      path5: "QUANDO UN SENTIERO PORTA ALL'INGRESSO"
+      soundOn: "AUDIO SÌ"
+      soundOff: "AUDIO NO"
+      stalls1: "I CHIOSCHI GUADAGNANO DA OGNI VISITATORE"
+      stalls2: "NEL PARCO"
+      gardens1: "GIARDINI: DI PIÙ PER CIÒ CHE È ACCANTO"
+      gardens2: "E PIÙ STELLE PER IL PARCO"
+      pick1: "SCEGLI UNA GIOSTRA SOTTO,"
+      pick2: "POI TOCCA IL PRATO"
+      layPath1: "POSA UN SENTIERO DALL'INGRESSO"
+      layPath2: "NELLA SCHEDA SENTIERO"
+      welcomeBack: c => "BENTORNATO +${c}"
+      perSec: r => "${r}/S"
+      guests: n => "${n} VISITATORI"
+      buy: c => "COMPRA  ${c}"
+      level: l => "LIVELLO ${l}"
+      boost1: b => "+${b}% A OGNI GIOSTRA"
+      brings: n => "PORTA ${n} VISITATORI"
+      sellsTo: n => "VENDE A ${n} VISITATORI"
+      gardens: p => "GIARDINI +${p}%"
+      tab: t => ["GIOSTRE", "CIBO", "GIARDINO", "SENTIERO"][t]
+    }
+  }
   icon: """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
     <clipPath id="t"><rect width="256" height="256" rx="56"/></clipPath>
     <g clip-path="url(#t)">
@@ -228,7 +866,7 @@ app "pixel park" {
   when now != null && !greeted {
     greeted = true
     if last > 0 && now - last > 120 && rate > 0 {
-      msg = "WELCOME BACK +${[rate * (now - last)].map(fmt)[0]}"
+      msg = str.welcomeBack([rate * (now - last)].map(fmt)[0])
       msgT = time
       if snd { sound(S_COIN) }
     }
@@ -240,18 +878,18 @@ app "pixel park" {
   // pull guests; a stall earns r for every 10 guests in the park; a garden adds b tenths to what the
   // rides and stalls around it earn.
   let KD = [
-    {n: "CAROUSEL", t: 0, w: 1, cost: 100, r: 1.5, pull: 8},
-    {n: "TEACUPS", t: 0, w: 1, cost: 800, r: 9, pull: 14},
-    {n: "BUMPER CARS", t: 0, w: 2, cost: 6000, r: 50, pull: 30},
-    {n: "FERRIS WHEEL", t: 0, w: 2, cost: 40000, r: 280, pull: 55},
-    {n: "LOG FLUME", t: 0, w: 2, cost: 300000, r: 1700, pull: 90},
-    {n: "ROLLER COASTER", t: 0, w: 2, cost: 2500000, r: 11000, pull: 150},
-    {n: "ICE CREAM", t: 1, w: 1, cost: 150, r: 1},
-    {n: "BURGERS", t: 1, w: 1, cost: 5000, r: 10},
-    {n: "GIFT SHOP", t: 1, w: 1, cost: 60000, r: 90},
-    {n: "TREE", t: 2, w: 1, cost: 40, b: 1},
-    {n: "FLOWERS", t: 2, w: 1, cost: 150, b: 2},
-    {n: "FOUNTAIN", t: 2, w: 1, cost: 3000, b: 4}
+    {n: str.carousel, t: 0, w: 1, cost: 100, r: 1.5, pull: 8},
+    {n: str.teacups, t: 0, w: 1, cost: 800, r: 9, pull: 14},
+    {n: str.bumper, t: 0, w: 2, cost: 6000, r: 50, pull: 30},
+    {n: str.ferris, t: 0, w: 2, cost: 40000, r: 280, pull: 55},
+    {n: str.flume, t: 0, w: 2, cost: 300000, r: 1700, pull: 90},
+    {n: str.coaster, t: 0, w: 2, cost: 2500000, r: 11000, pull: 150},
+    {n: str.icecream, t: 1, w: 1, cost: 150, r: 1},
+    {n: str.burgers, t: 1, w: 1, cost: 5000, r: 10},
+    {n: str.gift, t: 1, w: 1, cost: 60000, r: 90},
+    {n: str.tree, t: 2, w: 1, cost: 40, b: 1},
+    {n: str.flowers, t: 2, w: 1, cost: 150, b: 2},
+    {n: str.fountain, t: 2, w: 1, cost: 3000, b: 4}
   ]
   let TABS = [[0, 1, 2, 3, 4, 5], [6, 7, 8], [9, 10, 11]]
   let LANDCOST = [3000, 50000, 900000]
@@ -435,7 +1073,7 @@ app "pixel park" {
               since = tnow
               paths = paths + [cell]
             } else {
-              msg = "NOT ENOUGH COINS"
+              msg = str.noCoins
               msgT = time
               if snd { sound(S_NOPE) }
             }
@@ -444,11 +1082,11 @@ app "pixel park" {
           let w = KD[tool].w
           let fit = (w == 1 ? [cell] : [cell, cell - 1, cell - 8, cell - 9]).filter(a => a >= 0 && a % 8 <= ax && a % 8 <= 8 - w && floor(a / 8) >= 12 - land && floor(a / 8) <= 12 - w && all(w == 1 ? [a] : [a, a + 1, a + 8, a + 9], c => own[c] < 0 && !isP[c]))
           if len(fit) == 0 {
-            msg = "NO ROOM HERE"
+            msg = str.noRoom
             msgT = time
             if snd { sound(S_NOPE) }
           } else if coins < price[tool] {
-            msg = "NOT ENOUGH COINS"
+            msg = str.noCoins
             msgT = time
             if snd { sound(S_NOPE) }
           } else {
@@ -472,12 +1110,12 @@ app "pixel park" {
             since = tnow
             land = land + 2
             sel = -1
-            msg = "MORE LAND!"
+            msg = str.landBought
             msgT = time
             if snd { sound(S_OPEN) }
             haptic()
           } else {
-            msg = "NOT ENOUGH COINS"
+            msg = str.noCoins
             msgT = time
             if snd { sound(S_NOPE) }
           }
@@ -494,7 +1132,7 @@ app "pixel park" {
             if snd { sound(S_UP) }
             haptic()
           } else {
-            msg = "NOT ENOUGH COINS"
+            msg = str.noCoins
             msgT = time
             if snd { sound(S_NOPE) }
           }
@@ -564,7 +1202,7 @@ app "pixel park" {
       let sx = MX + MW / 2 - 11 * sq
       let sy = MY + (12 - land) * C - 11 * sq
       sprite(signArt, sx, sy, sq, palette: PAL)
-      text("FOR SALE", MX + MW / 2, sy + 2.3 * sq, size: 1.9 * sq, color: "#e04848", font: press, align: center)
+      text(str.forSale, MX + MW / 2, sy + 2.3 * sq, size: 1.9 * sq, color: "#e04848", font: press, align: center)
       text([LANDCOST[(land - 6) / 2]].map(fmt)[0], MX + MW / 2, sy + 4.7 * sq, size: 1.7 * sq, color: "#2a1e30", font: press, align: center)
       if sel == -2 { rect(MX, MY, MW, (12 - land) * C, stroke: UI.gold, width: 2) }
     }
@@ -613,7 +1251,7 @@ app "pixel park" {
     rect(MX + 5 * C, MY + MH - 10 * q, q, GH + 10 * q, fill: "#c0b8d0")
     rect(MX + 3 * C - 5 * q, MY + MH - 16 * q, 2 * C + 10 * q, 7 * q, fill: "#2a1e30")
     rect(MX + 3 * C - 4 * q, MY + MH - 15 * q, 2 * C + 8 * q, 5 * q, fill: "#e04848")
-    text("PARK", MX + 4 * C, MY + MH - 12.3 * q, size: 3.4 * q, color: "#ffd36a", font: press, align: center)
+    text(str.park, MX + 4 * C, MY + MH - 12.3 * q, size: 3.4 * q, color: "#ffd36a", font: press, align: center)
     for j in range(2) {
       let fx = MX + 3 * C - 3 * q + j * (2 * C + 3 * q)
       rect(fx + q, MY + MH - 22 * q, q / 2, 6 * q, fill: "#2a1e30")
@@ -763,20 +1401,20 @@ app "pixel park" {
     // ---- what the park is making ----
     sprite(coinArt, 14, TOP + 6, 2.8, palette: PAL)
     text([coins].map(fmt)[0], 40, TOP + 14, size: 13, color: UI.text, font: press)
-    text("${[rate].map(fmtRate)[0]}/S", 40, TOP + 31, size: 7, color: UI.dim, font: press)
+    text(str.perSec([rate].map(fmtRate)[0]), 40, TOP + 31, size: 7, color: UI.dim, font: press)
     for s in range(5) {
       sprite(starArt, SW - 14 - (5 - s) * 13, TOP + 8, 2.2, palette: s < stars ? PAL : {o: alpha(UI.dim, 0.6)})
     }
-    text("${guests} GUESTS", SW - 16, TOP + 31, size: 7, color: UI.dim, font: press, align: end)
+    text(str.guests(guests), SW - 16, TOP + 31, size: 7, color: UI.dim, font: press, align: end)
 
     // ---- the panel ----
     if sel == -2 && land < 12 {
-      text("MORE LAND", PX + 4, PY + 16, size: 11, color: UI.text, font: press)
-      text("TWO MORE ROWS OF GRASS", PX + 4, PY + 38, size: 7, color: UI.dim, font: press)
-      text("FOR RIDES, STALLS AND GARDENS", PX + 4, PY + 54, size: 7, color: UI.dim, font: press)
+      text(str.moreLand, PX + 4, PY + 16, size: 11, color: UI.text, font: press)
+      text(str.landLine1, PX + 4, PY + 38, size: 7, color: UI.dim, font: press)
+      text(str.landLine2, PX + 4, PY + 54, size: 7, color: UI.dim, font: press)
       text("✕", PX + PW - 14, PY + 14, size: 14, color: UI.dim, align: center)
       rect(PX, BY, PW, BH, fill: coins >= LANDCOST[(land - 6) / 2] ? UI.go : UI.card, radius: 6 * corners)
-      text("BUY  ${[LANDCOST[(land - 6) / 2]].map(fmt)[0]}", PX + PW / 2, BY + BH / 2, size: 10, color: coins >= LANDCOST[(land - 6) / 2] ? UI.text : UI.dim, font: press, align: center)
+      text(str.buy([LANDCOST[(land - 6) / 2]].map(fmt)[0]), PX + PW / 2, BY + BH / 2, size: 10, color: coins >= LANDCOST[(land - 6) / 2] ? UI.text : UI.dim, font: press, align: center)
     } else if si >= 0 {
       let it = items[si]
       let f = info[si]
@@ -784,43 +1422,43 @@ app "pixel park" {
       rect(PX, PY + 2, 44, 44, fill: UI.card, radius: 6 * corners)
       for r in ic { rect(PX + 4 + r[0] * 3, PY + 6 + r[1] * 3, r[2] * 3, r[3] * 3, fill: r[4]) }
       text(KD[it.k].n, PX + 54, PY + 14, size: 10, color: UI.text, font: press)
-      text(KD[it.k].t == 2 ? "GARDEN" : "LEVEL ${it.l}", PX + 54, PY + 34, size: 7, color: UI.dim, font: press)
+      text(KD[it.k].t == 2 ? str.garden : str.level(it.l), PX + 54, PY + 34, size: 7, color: UI.dim, font: press)
       text("✕", PX + PW - 14, PY + 14, size: 14, color: UI.dim, align: center)
       if KD[it.k].t == 2 {
-        text("+${KD[it.k].b * 10}% FOR EVERY RIDE", PX + 4, PY + 64, size: 7, color: UI.text, font: press)
-        text("AND STALL NEXT TO IT", PX + 4, PY + 80, size: 7, color: UI.text, font: press)
+        text(str.boost1(KD[it.k].b * 10), PX + 4, PY + 64, size: 7, color: UI.text, font: press)
+        text(str.boost2, PX + 4, PY + 80, size: 7, color: UI.text, font: press)
       } else if !conn[si] {
-        text("NO PATH TO THE GATE", PX + 4, PY + 64, size: 8, color: UI.warn, font: press)
-        text("LAY ONE FROM THE PATH TAB", PX + 4, PY + 82, size: 7, color: UI.dim, font: press)
+        text(str.noPath1, PX + 4, PY + 64, size: 8, color: UI.warn, font: press)
+        text(str.noPath2, PX + 4, PY + 82, size: 7, color: UI.dim, font: press)
       } else {
-        text("+${[earn[si]].map(fmtRate)[0]}/S", PX + 4, PY + 64, size: 10, color: UI.gold, font: press)
-        text(KD[it.k].t == 0 ? "BRINGS ${floor(KD[it.k].pull * (1 + 0.15 * (it.l - 1)) * boost[si] * (0.6 + 0.2 * stars))} GUESTS" : "SELLS TO ${guests} GUESTS", PX + 4, PY + 84, size: 7, color: UI.dim, font: press)
+        text("+" + str.perSec([earn[si]].map(fmtRate)[0]), PX + 4, PY + 64, size: 10, color: UI.gold, font: press)
+        text(KD[it.k].t == 0 ? str.brings(floor(KD[it.k].pull * (1 + 0.15 * (it.l - 1)) * boost[si] * (0.6 + 0.2 * stars))) : str.sellsTo(guests), PX + 4, PY + 84, size: 7, color: UI.dim, font: press)
         if f.beauty > 0 {
-          text("GARDENS +${round(min(0.6, 0.1 * f.beauty) * 100)}%", PX + 4, PY + 100, size: 7, color: UI.go, font: press)
+          text(str.gardens(round(min(0.6, 0.1 * f.beauty) * 100)), PX + 4, PY + 100, size: 7, color: UI.go, font: press)
         }
       }
       if KD[it.k].t < 2 {
         rect(PX, BY, UW, BH, fill: coins >= upCost[si] ? UI.go : UI.card, radius: 6 * corners)
-        text("UPGRADE", PX + UW / 2, BY + BH / 2 - 7, size: 8, color: coins >= upCost[si] ? UI.text : UI.dim, font: press, align: center)
+        text(str.upgrade, PX + UW / 2, BY + BH / 2 - 7, size: 8, color: coins >= upCost[si] ? UI.text : UI.dim, font: press, align: center)
         text([upCost[si]].map(fmt)[0], PX + UW / 2, BY + BH / 2 + 8, size: 8, color: coins >= upCost[si] ? UI.text : UI.dim, font: press, align: center)
       }
       rect(PX + UW + 8, BY, PW - UW - 8, BH, fill: UI.card, radius: 6 * corners)
-      text("SELL", PX + UW + 8 + (PW - UW - 8) / 2, BY + BH / 2 - 7, size: 8, color: UI.text, font: press, align: center)
+      text(str.sell, PX + UW + 8 + (PW - UW - 8) / 2, BY + BH / 2 - 7, size: 8, color: UI.text, font: press, align: center)
       text("+${[floor(it.sp / 2)].map(fmt)[0]}", PX + UW + 8 + (PW - UW - 8) / 2, BY + BH / 2 + 8, size: 8, color: UI.dim, font: press, align: center)
     } else {
       for t in range(4) {
         let tx = PX + t * PW / 4
         rect(tx + 2, PY, PW / 4 - 4, TH, fill: tab == t ? UI.gold : UI.card, radius: 6 * corners)
-        text(["RIDES", "FOOD", "GARDEN", "PATH"][t], tx + PW / 8, PY + TH / 2, size: 7, color: tab == t ? UI.bg : UI.text, font: press, align: center)
+        text(str.tab(t), tx + PW / 8, PY + TH / 2, size: 7, color: tab == t ? UI.bg : UI.text, font: press, align: center)
       }
       if tab == 3 {
-        text("TAP OR DRAG ON GRASS", PX + 4, CY + 12, size: 8, color: UI.text, font: press)
-        text("TO LAY PATH, 10 A CELL", PX + 4, CY + 30, size: 8, color: UI.text, font: press)
-        text("TAP A PATH TO TAKE IT UP", PX + 4, CY + 54, size: 7, color: UI.dim, font: press)
-        text("RIDES AND STALLS EARN ONCE", PX + 4, CY + 74, size: 7, color: UI.dim, font: press)
-        text("A PATH LEADS TO THE GATE", PX + 4, CY + 90, size: 7, color: UI.dim, font: press)
+        text(str.path1, PX + 4, CY + 12, size: 8, color: UI.text, font: press)
+        text(str.path2, PX + 4, CY + 30, size: 8, color: UI.text, font: press)
+        text(str.path3, PX + 4, CY + 54, size: 7, color: UI.dim, font: press)
+        text(str.path4, PX + 4, CY + 74, size: 7, color: UI.dim, font: press)
+        text(str.path5, PX + 4, CY + 90, size: 7, color: UI.dim, font: press)
         rect(PX, BY, PW, BH, fill: UI.card, radius: 6 * corners)
-        text(snd ? "SOUND ON" : "SOUND OFF", PX + PW / 2, BY + BH / 2, size: 8, color: snd ? UI.text : UI.dim, font: press, align: center)
+        text(snd ? str.soundOn : str.soundOff, PX + PW / 2, BY + BH / 2, size: 8, color: snd ? UI.text : UI.dim, font: press, align: center)
       } else {
         for k, j in TABS[tab] {
           let cx = PX + j % CC * (CW + 6)
@@ -834,8 +1472,8 @@ app "pixel park" {
           text([price[k]].map(fmt)[0], cx + CW / 2, cy + CH - 9, size: 7, color: can ? UI.gold : UI.dim, font: press, align: center)
         }
         if tab > 0 {
-          text(tab == 1 ? "STALLS EARN FROM EVERY GUEST" : "GARDENS: MORE FOR WHAT'S NEXT TO THEM", PX + 4, CY + CH + 20, size: 6, color: UI.dim, font: press)
-          text(tab == 1 ? "IN THE PARK" : "AND MORE STARS FOR THE PARK", PX + 4, CY + CH + 34, size: 6, color: UI.dim, font: press)
+          text(tab == 1 ? str.stalls1 : str.gardens1, PX + 4, CY + CH + 20, size: 6, color: UI.dim, font: press)
+          text(tab == 1 ? str.stalls2 : str.gardens2, PX + 4, CY + CH + 34, size: 6, color: UI.dim, font: press)
         }
       }
     }
@@ -843,13 +1481,13 @@ app "pixel park" {
     // ---- a hint for a new park, and messages ----
     if len(items) == 0 {
       if time % 1.4 < 1 {
-        text("PICK A RIDE BELOW,", MX + MW / 2, MY + MH - 3.2 * C, size: 8, color: "#2a1e30", font: press, align: center)
-        text("THEN TAP THE GRASS", MX + MW / 2, MY + MH - 3.2 * C + 16, size: 8, color: "#2a1e30", font: press, align: center)
+        text(str.pick1, MX + MW / 2, MY + MH - 3.2 * C, size: 8, color: "#2a1e30", font: press, align: center)
+        text(str.pick2, MX + MW / 2, MY + MH - 3.2 * C + 16, size: 8, color: "#2a1e30", font: press, align: center)
       }
     } else if len(dest) == 0 && any(info, f => f.t < 2) {
       if time % 1.4 < 1 {
-        text("LAY A PATH FROM THE GATE", MX + MW / 2, MY + MH - 3.2 * C, size: 7, color: "#2a1e30", font: press, align: center)
-        text("IN THE PATH TAB", MX + MW / 2, MY + MH - 3.2 * C + 14, size: 7, color: "#2a1e30", font: press, align: center)
+        text(str.layPath1, MX + MW / 2, MY + MH - 3.2 * C, size: 7, color: "#2a1e30", font: press, align: center)
+        text(str.layPath2, MX + MW / 2, MY + MH - 3.2 * C + 14, size: 7, color: "#2a1e30", font: press, align: center)
       }
     }
     if time - msgT < 2.2 && time >= msgT {

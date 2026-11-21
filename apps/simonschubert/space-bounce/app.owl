@@ -1,5 +1,5 @@
 app "space bounce" {
-  meta { owl: 21; description: "A neon arena shooter: tilt the phone to fly, hold a finger where to fire, and bounce off the walls as the swarm grows"; version: "1.1"; license: "MIT"; category: "games" }
+  meta { owl: 21; description: "A neon arena shooter: tilt the phone to fly, hold a finger where to fire, and bounce off the walls as the swarm grows"; version: "1.2"; license: "MIT"; category: "games" }
   // How it works: `every frame` moves everything by its speed times `dt`, the seconds since the
   // last frame, so the game runs at the same speed at any frame rate. android.motion's x and y
   // are how far the phone leans right and towards you; a new game takes the way it's held as
@@ -18,6 +18,21 @@ app "space bounce" {
     <path d="M204 176L222 200L204 224L186 200Z" fill="none" stroke="#3ce0ff" stroke-width="9" stroke-linejoin="round"/>
     <path d="M128 76V40" stroke="#ffd166" stroke-width="8" stroke-linecap="round" stroke-dasharray="10 12"/>
   </svg>"""
+
+  strings {
+    en { gameOver: "game over"; best: n => "best ${n}"; tiltHelp: "tilt to fly · hold a finger where to fire"; noSensor: "this phone has no motion sensor: the ship follows your finger"; holdHint: "hold the phone the way you want to play, then tap" }
+    id { gameOver: "game over"; best: n => "terbaik ${n}"; tiltHelp: "miringkan untuk terbang · tahan jari di arah tembakan"; noSensor: "ponsel ini tidak punya sensor gerak: kapal mengikuti jarimu"; holdHint: "pegang ponsel seperti saat kamu ingin bermain, lalu ketuk" }
+    es { gameOver: "fin del juego"; best: n => "récord ${n}"; tiltHelp: "inclina para volar · mantén un dedo donde disparar"; noSensor: "este teléfono no tiene sensor de movimiento: la nave sigue tu dedo"; holdHint: "sostén el teléfono como quieras jugar y toca" }
+    pt { gameOver: "fim de jogo"; best: n => "recorde ${n}"; tiltHelp: "incline para voar · segure um dedo onde atirar"; noSensor: "este celular não tem sensor de movimento: a nave segue seu dedo"; holdHint: "segure o celular do jeito que quer jogar e toque" }
+    de { gameOver: "game over"; best: n => "rekord ${n}"; tiltHelp: "neigen zum fliegen · finger halten, wohin du schießt"; noSensor: "dieses handy hat keinen bewegungssensor: das schiff folgt deinem finger"; holdHint: "halte das handy so, wie du spielen willst, dann tippe" }
+    zh { gameOver: "游戏结束"; best: n => "最高 ${n}"; tiltHelp: "倾斜手机飞行 · 按住手指的地方开火"; noSensor: "这台手机没有运动传感器：飞船会跟随你的手指"; holdHint: "按你想玩的方式拿好手机，然后轻点" }
+    ru { gameOver: "игра окончена"; best: n => "рекорд ${n}"; tiltHelp: "наклоняйте, чтобы лететь · держите палец там, куда стрелять"; noSensor: "у этого телефона нет датчика движения: корабль следует за пальцем"; holdHint: "держите телефон так, как хотите играть, и коснитесь" }
+    ja { gameOver: "ゲームオーバー"; best: n => "ベスト ${n}"; tiltHelp: "傾けて飛びます · 撃ちたい場所を指で押さえます"; noSensor: "このスマホにはモーションセンサーがありません：機体は指を追います"; holdHint: "遊びたい向きにスマホを持って、タップしてください" }
+    uk { gameOver: "гру завершено"; best: n => "рекорд ${n}"; tiltHelp: "нахиляйте, щоб летіти · тримайте палець там, куди стріляти"; noSensor: "у цього телефона немає датчика руху: корабель слідує за пальцем"; holdHint: "тримайте телефон так, як хочете грати, і торкніться" }
+    fr { gameOver: "game over"; best: n => "record ${n}"; tiltHelp: "incline pour voler · garde un doigt là où tirer"; noSensor: "ce téléphone n'a pas de capteur de mouvement : le vaisseau suit ton doigt"; holdHint: "tiens le téléphone comme tu veux jouer, puis touche" }
+    tr { gameOver: "oyun bitti"; best: n => "rekor ${n}"; tiltHelp: "uçmak için eğ · ateş edeceğin yere parmağını bas"; noSensor: "bu telefonda hareket sensörü yok: gemi parmağını takip eder"; holdHint: "telefonu oynamak istediğin gibi tut, sonra dokun" }
+    it { gameOver: "game over"; best: n => "record ${n}"; tiltHelp: "inclina per volare · tieni un dito dove sparare"; noSensor: "questo telefono non ha un sensore di movimento: la nave segue il tuo dito"; holdHint: "tieni il telefono come vuoi giocare, poi tocca" }
+  }
 
   source m = android.motion
 
@@ -307,14 +322,14 @@ app "space bounce" {
         justify: center
         gap: 12
         padding: 24
-        Text { text: mode == "title" ? "space bounce" : "game over"; style: huge; color: mode == "title" ? yellow : red; align: center }
+        Text { text: mode == "title" ? "space bounce" : str.gameOver; style: huge; color: mode == "title" ? yellow : red; align: center }
         if mode == "over" {
           Text { text: fmtNum(score); style: title; align: center }
         }
-        Text { text: best > 0 ? "best ${fmtNum(best)}" : ""; style: muted; align: center }
+        Text { text: best > 0 ? str.best(fmtNum(best)) : ""; style: muted; align: center }
         Spacer { height: 12 }
-        Text { text: tilted ? "tilt to fly · hold a finger where to fire" : "this phone has no motion sensor: the ship follows your finger"; align: center }
-        Text { text: "hold the phone the way you want to play, then tap"; style: muted; align: center }
+        Text { text: tilted ? str.tiltHelp : str.noSensor; align: center }
+        Text { text: str.holdHint; style: muted; align: center }
       }
     }
   }

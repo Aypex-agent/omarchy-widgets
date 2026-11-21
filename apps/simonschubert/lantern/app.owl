@@ -12,7 +12,275 @@ app "lantern" {
   // `base`. A step that levels up or kills the player stops the film there, and the screen shows the
   // choice or the end without waiting for a handler.
 
-  meta { owl: 14; description: "A survivors-like in pixel art: steer a lamplighter with one thumb through a night meadow as ever bigger crowds close in; weapons fire on their own, and every level brings a choice of three upgrades"; version: "1.1.1"; license: "MIT"; category: "games" }
+  meta { owl: 16; description: "A survivors-like in pixel art: steer a lamplighter with one thumb through a night meadow as ever bigger crowds close in; weapons fire on their own, and every level brings a choice of three upgrades"; version: "1.2"; license: "MIT"; category: "games" }
+
+  // pixel font in capitals: buttons hold about 18 letters, the title tag about 27, item names about 10
+  strings {
+    en {
+      itemName: i => ["SPARK", "HALO", "BLADES", "SCYTHE", "BOLT", "MIGHT", "SWIFT", "MAGNET", "VIGOR", "HASTE", "SUPPER"][i]
+      itemDesc: i => ["Sparks seek the nearest foes", "Light burns all who come close", "Blades circle around you", "Reaps a row in front of you", "Lightning strikes foes on screen", "All damage +12%", "Walk 10% faster", "Pick up gems from further away", "+20 health and slow healing", "Weapons fire 7% more often", "Heal 50 health"][i]
+      lv: n => "LV ${n}"
+      newTag: "NEW!"
+      levelUp: "LEVEL UP!"
+      paused: "PAUSED"
+      lightGoes: "THE LIGHT"
+      lightOut: "GOES OUT"
+      survived: "SURVIVED"
+      endStats: (lv, k) => "LEVEL ${lv} · ${k} FALLEN"
+      best: t => "BEST ${t}"
+      bestLevel: (t, lv) => "BEST ${t} · LEVEL ${lv}"
+      newBest: "NEW BEST!"
+      tagline: "SURVIVE THE NIGHT"
+      dragHint: "DRAG ANYWHERE TO WALK"
+      weaponsHint: "WEAPONS FIRE ON THEIR OWN"
+      start: "TAP TO START"
+      resume: "RESUME"
+      quit: "QUIT"
+      tryAgain: "TRY AGAIN"
+    }
+    id {
+      itemName: i => ["PERCIK", "HALO", "BILAH", "SABIT", "PETIR", "KEKUATAN", "GESIT", "MAGNET", "STAMINA", "TANGKAS", "SANTAPAN"][i]
+      itemDesc: i => ["Percikan memburu musuh terdekat", "Cahaya membakar siapa pun yang mendekat", "Bilah berputar mengelilingimu", "Menebas sebaris di depanmu", "Petir menyambar musuh di layar", "Semua kerusakan +12%", "Berjalan 10% lebih cepat", "Ambil permata dari lebih jauh", "+20 nyawa dan pulih perlahan", "Senjata menembak 7% lebih sering", "Pulihkan 50 nyawa"][i]
+      lv: n => "LV ${n}"
+      newTag: "BARU!"
+      levelUp: "NAIK LEVEL!"
+      paused: "JEDA"
+      lightGoes: "CAHAYA"
+      lightOut: "PADAM"
+      survived: "BERTAHAN"
+      endStats: (lv, k) => "LEVEL ${lv} · ${k} TUMBANG"
+      best: t => "TERBAIK ${t}"
+      bestLevel: (t, lv) => "TERBAIK ${t} · LEVEL ${lv}"
+      newBest: "REKOR BARU!"
+      tagline: "BERTAHANLAH SAMPAI PAGI"
+      dragHint: "SERET DI MANA SAJA UNTUK JALAN"
+      weaponsHint: "SENJATA MENEMBAK SENDIRI"
+      start: "KETUK UNTUK MULAI"
+      resume: "LANJUT"
+      quit: "KELUAR"
+      tryAgain: "COBA LAGI"
+    }
+    es {
+      itemName: i => ["CHISPA", "HALO", "HOJAS", "GUADAÑA", "RAYO", "PODER", "VELOZ", "IMÁN", "VIGOR", "PRISA", "CENA"][i]
+      itemDesc: i => ["Las chispas buscan al enemigo más cercano", "La luz quema a quien se acerque", "Hojas que giran a tu alrededor", "Siega una fila frente a ti", "Rayos que golpean a los enemigos en pantalla", "Todo el daño +12%", "Caminas un 10% más rápido", "Recoge gemas desde más lejos", "+20 de vida y curación lenta", "Las armas disparan un 7% más a menudo", "Cura 50 de vida"][i]
+      lv: n => "NV ${n}"
+      newTag: "¡NUEVO!"
+      levelUp: "¡SUBES DE NIVEL!"
+      paused: "PAUSA"
+      lightGoes: "LA LUZ"
+      lightOut: "SE APAGA"
+      survived: "AGUANTASTE"
+      endStats: (lv, k) => "NIVEL ${lv} · ${k} CAÍDOS"
+      best: t => "RÉCORD ${t}"
+      bestLevel: (t, lv) => "RÉCORD ${t} · NIVEL ${lv}"
+      newBest: "¡NUEVO RÉCORD!"
+      tagline: "SOBREVIVE A LA NOCHE"
+      dragHint: "ARRASTRA DONDE SEA PARA ANDAR"
+      weaponsHint: "LAS ARMAS DISPARAN SOLAS"
+      start: "TOCA PARA EMPEZAR"
+      resume: "SEGUIR"
+      quit: "SALIR"
+      tryAgain: "OTRA VEZ"
+    }
+    pt {
+      itemName: i => ["FAÍSCA", "HALO", "LÂMINAS", "FOICE", "RAIO", "PODER", "VELOZ", "ÍMÃ", "VIGOR", "PRESSA", "CEIA"][i]
+      itemDesc: i => ["Faíscas buscam o inimigo mais próximo", "A luz queima quem chega perto", "Lâminas giram ao seu redor", "Ceifa uma fileira à sua frente", "Raios atingem os inimigos na tela", "Todo o dano +12%", "Ande 10% mais rápido", "Pegue gemas de mais longe", "+20 de vida e cura lenta", "Armas disparam 7% mais vezes", "Cura 50 de vida"][i]
+      lv: n => "NV ${n}"
+      newTag: "NOVO!"
+      levelUp: "SUBIU DE NÍVEL!"
+      paused: "PAUSADO"
+      lightGoes: "A LUZ"
+      lightOut: "SE APAGA"
+      survived: "SOBREVIVEU"
+      endStats: (lv, k) => "NÍVEL ${lv} · ${k} CAÍDOS"
+      best: t => "RECORDE ${t}"
+      bestLevel: (t, lv) => "RECORDE ${t} · NÍVEL ${lv}"
+      newBest: "NOVO RECORDE!"
+      tagline: "SOBREVIVA À NOITE"
+      dragHint: "ARRASTE EM QUALQUER LUGAR PARA ANDAR"
+      weaponsHint: "AS ARMAS ATIRAM SOZINHAS"
+      start: "TOQUE PARA COMEÇAR"
+      resume: "CONTINUAR"
+      quit: "SAIR"
+      tryAgain: "DE NOVO"
+    }
+    de {
+      itemName: i => ["FUNKE", "HALO", "KLINGEN", "SENSE", "BLITZ", "MACHT", "FLINK", "MAGNET", "KRAFT", "EILE", "VESPER"][i]
+      itemDesc: i => ["Funken jagen die nächsten Feinde", "Licht verbrennt alle, die nah kommen", "Klingen kreisen um dich", "Mäht eine Reihe vor dir", "Blitze treffen Feinde im Bild", "Aller Schaden +12%", "Du läufst 10% schneller", "Hol Edelsteine von weiter weg", "+20 Leben und langsame Heilung", "Waffen feuern 7% öfter", "Heilt 50 Leben"][i]
+      lv: n => "LV ${n}"
+      newTag: "NEU!"
+      levelUp: "LEVEL UP!"
+      paused: "PAUSE"
+      lightGoes: "DAS LICHT"
+      lightOut: "ERLISCHT"
+      survived: "ÜBERLEBT"
+      endStats: (lv, k) => "LEVEL ${lv} · ${k} BESIEGT"
+      best: t => "BESTZEIT ${t}"
+      bestLevel: (t, lv) => "BESTZEIT ${t} · LEVEL ${lv}"
+      newBest: "NEUE BESTZEIT!"
+      tagline: "ÜBERLEBE DIE NACHT"
+      dragHint: "ZIEH IRGENDWO, UM ZU LAUFEN"
+      weaponsHint: "WAFFEN FEUERN VON SELBST"
+      start: "TIPP ZUM STARTEN"
+      resume: "WEITER"
+      quit: "BEENDEN"
+      tryAgain: "NOCHMAL"
+    }
+    zh {
+      itemName: i => ["火花", "光环", "飞刃", "镰刀", "闪电", "力量", "迅捷", "磁铁", "活力", "急速", "晚餐"][i]
+      itemDesc: i => ["火花追踪最近的敌人", "光芒灼烧靠近的一切", "飞刃环绕在你身边", "收割你面前的一排", "闪电劈向屏幕上的敌人", "所有伤害 +12%", "移动速度 +10%", "从更远处拾取宝石", "生命 +20 并缓慢回复", "武器射速 +7%", "回复 50 生命"][i]
+      lv: n => "LV ${n}"
+      newTag: "新！"
+      levelUp: "升级！"
+      paused: "暂停"
+      lightGoes: "灯火"
+      lightOut: "熄灭了"
+      survived: "坚持了"
+      endStats: (lv, k) => "等级 ${lv} · 击倒 ${k}"
+      best: t => "最佳 ${t}"
+      bestLevel: (t, lv) => "最佳 ${t} · 等级 ${lv}"
+      newBest: "新纪录！"
+      tagline: "熬过这一夜"
+      dragHint: "在任意位置拖动来行走"
+      weaponsHint: "武器会自动开火"
+      start: "点击开始"
+      resume: "继续"
+      quit: "退出"
+      tryAgain: "再来一次"
+    }
+    ru {
+      itemName: i => ["ИСКРА", "НИМБ", "КЛИНКИ", "КОСА", "МОЛНИЯ", "МОЩЬ", "ЛОВКОСТЬ", "МАГНИТ", "БОДРОСТЬ", "СПЕШКА", "УЖИН"][i]
+      itemDesc: i => ["Искры летят к ближайшим врагам", "Свет сжигает всех, кто рядом", "Клинки кружат вокруг вас", "Косит ряд перед вами", "Молнии бьют врагов на экране", "Весь урон +12%", "Ходьба на 10% быстрее", "Самоцветы притягиваются издалека", "+20 здоровья и медленное лечение", "Оружие стреляет на 7% чаще", "Лечит 50 здоровья"][i]
+      lv: n => "УР ${n}"
+      newTag: "НОВОЕ!"
+      levelUp: "НОВЫЙ УРОВЕНЬ!"
+      paused: "ПАУЗА"
+      lightGoes: "СВЕТ"
+      lightOut: "ГАСНЕТ"
+      survived: "ПРОДЕРЖАЛИСЬ"
+      endStats: (lv, k) => "УРОВЕНЬ ${lv} · ПОВЕРЖЕНО: ${k}"
+      best: t => "РЕКОРД ${t}"
+      bestLevel: (t, lv) => "РЕКОРД ${t} · УРОВЕНЬ ${lv}"
+      newBest: "НОВЫЙ РЕКОРД!"
+      tagline: "ПЕРЕЖИВИТЕ НОЧЬ"
+      dragHint: "ВЕДИТЕ ПАЛЬЦЕМ, ЧТОБЫ ИДТИ"
+      weaponsHint: "ОРУЖИЕ СТРЕЛЯЕТ САМО"
+      start: "НАЧАТЬ ИГРУ"
+      resume: "ПРОДОЛЖИТЬ"
+      quit: "ВЫЙТИ"
+      tryAgain: "ЕЩЁ РАЗ"
+    }
+    ja {
+      itemName: i => ["スパーク", "ハロー", "ブレード", "大鎌", "稲妻", "パワー", "俊足", "マグネット", "活力", "連射", "夕食"][i]
+      itemDesc: i => ["火花が一番近い敵を追います", "光が近づく敵を焼きます", "刃があなたの周りを回ります", "前方の一列を刈り取ります", "稲妻が画面上の敵を打ちます", "全ダメージ +12%", "移動速度 +10%", "遠くの宝石も拾えます", "体力 +20、ゆっくり回復します", "武器の攻撃頻度 +7%", "体力を 50 回復します"][i]
+      lv: n => "LV ${n}"
+      newTag: "NEW!"
+      levelUp: "レベルアップ！"
+      paused: "一時停止"
+      lightGoes: "灯りが"
+      lightOut: "消えました"
+      survived: "生存時間"
+      endStats: (lv, k) => "レベル ${lv} · 撃破 ${k}"
+      best: t => "ベスト ${t}"
+      bestLevel: (t, lv) => "ベスト ${t} · レベル ${lv}"
+      newBest: "新記録！"
+      tagline: "夜を生き延びましょう"
+      dragHint: "どこでもドラッグして歩きます"
+      weaponsHint: "武器は自動で撃ちます"
+      start: "タップでスタート"
+      resume: "再開"
+      quit: "やめる"
+      tryAgain: "もう一度"
+    }
+    uk {
+      itemName: i => ["ІСКРА", "НІМБ", "КЛИНКИ", "КОСА", "БЛИСКАВКА", "МІЦЬ", "СПРИТНІСТЬ", "МАГНІТ", "СНАГА", "ПОСПІХ", "ВЕЧЕРЯ"][i]
+      itemDesc: i => ["Іскри летять до найближчих ворогів", "Світло палить усіх, хто поруч", "Клинки кружляють навколо вас", "Косить ряд перед вами", "Блискавки б'ють ворогів на екрані", "Уся шкода +12%", "Ходьба на 10% швидша", "Самоцвіти притягуються здалеку", "+20 здоров'я і повільне лікування", "Зброя стріляє на 7% частіше", "Лікує 50 здоров'я"][i]
+      lv: n => "РІВ ${n}"
+      newTag: "НОВЕ!"
+      levelUp: "НОВИЙ РІВЕНЬ!"
+      paused: "ПАУЗА"
+      lightGoes: "СВІТЛО"
+      lightOut: "ГАСНЕ"
+      survived: "ПРОТРИМАЛИСЯ"
+      endStats: (lv, k) => "РІВЕНЬ ${lv} · ПОВАЛЕНО: ${k}"
+      best: t => "РЕКОРД ${t}"
+      bestLevel: (t, lv) => "РЕКОРД ${t} · РІВЕНЬ ${lv}"
+      newBest: "НОВИЙ РЕКОРД!"
+      tagline: "ПЕРЕЖИВІТЬ НІЧ"
+      dragHint: "ВЕДІТЬ ПАЛЬЦЕМ, ЩОБ ІТИ"
+      weaponsHint: "ЗБРОЯ СТРІЛЯЄ САМА"
+      start: "ПОЧАТИ ГРУ"
+      resume: "ПРОДОВЖИТИ"
+      quit: "ВИЙТИ"
+      tryAgain: "ЩЕ РАЗ"
+    }
+    fr {
+      itemName: i => ["ÉTINCELLE", "HALO", "LAMES", "FAUX", "FOUDRE", "PUISSANCE", "VIVACITÉ", "AIMANT", "VIGUEUR", "HÂTE", "SOUPER"][i]
+      itemDesc: i => ["Les étincelles visent l'ennemi le plus proche", "La lumière brûle qui s'approche", "Des lames tournent autour de toi", "Fauche une rangée devant toi", "La foudre frappe les ennemis à l'écran", "Tous les dégâts +12%", "Tu marches 10% plus vite", "Ramasse les gemmes de plus loin", "+20 de vie et soin lent", "Les armes tirent 7% plus souvent", "Soigne 50 de vie"][i]
+      lv: n => "NV ${n}"
+      newTag: "NOUVEAU!"
+      levelUp: "NIVEAU SUPÉRIEUR!"
+      paused: "PAUSE"
+      lightGoes: "LA LUMIÈRE"
+      lightOut: "S'ÉTEINT"
+      survived: "SURVÉCU"
+      endStats: (lv, k) => "NIVEAU ${lv} · ${k} VAINCUS"
+      best: t => "RECORD ${t}"
+      bestLevel: (t, lv) => "RECORD ${t} · NIVEAU ${lv}"
+      newBest: "NOUVEAU RECORD!"
+      tagline: "SURVIS À LA NUIT"
+      dragHint: "GLISSE N'IMPORTE OÙ POUR MARCHER"
+      weaponsHint: "LES ARMES TIRENT SEULES"
+      start: "TOUCHE POUR JOUER"
+      resume: "REPRENDRE"
+      quit: "QUITTER"
+      tryAgain: "REJOUER"
+    }
+    tr {
+      itemName: i => ["KIVILCIM", "HALE", "BIÇAKLAR", "TIRPAN", "YILDIRIM", "GÜÇ", "ÇEVİKLİK", "MIKNATIS", "DİNÇLİK", "ACELE", "ZİYAFET"][i]
+      itemDesc: i => ["Kıvılcımlar en yakın düşmanı bulur", "Işık yaklaşan herkesi yakar", "Bıçaklar etrafında döner", "Önündeki sırayı biçer", "Yıldırım ekrandaki düşmanlara çarpar", "Tüm hasar +%12", "%10 daha hızlı yürürsün", "Mücevherleri daha uzaktan toplarsın", "+20 can ve yavaş iyileşme", "Silahlar %7 daha sık ateş eder", "50 can iyileştirir"][i]
+      lv: n => "SV ${n}"
+      newTag: "YENİ!"
+      levelUp: "SEVİYE ATLADIN!"
+      paused: "DURAKLATILDI"
+      lightGoes: "IŞIK"
+      lightOut: "SÖNDÜ"
+      survived: "HAYATTA KALDIN"
+      endStats: (lv, k) => "SEVİYE ${lv} · ${k} DÜŞMAN"
+      best: t => "EN İYİ ${t}"
+      bestLevel: (t, lv) => "EN İYİ ${t} · SEVİYE ${lv}"
+      newBest: "YENİ REKOR!"
+      tagline: "GECEYİ ATLAT"
+      dragHint: "YÜRÜMEK İÇİN EKRANDA SÜRÜKLE"
+      weaponsHint: "SİLAHLAR KENDİLİĞİNDEN ATEŞ EDER"
+      start: "DOKUN VE BAŞLA"
+      resume: "DEVAM"
+      quit: "ÇIK"
+      tryAgain: "TEKRAR DENE"
+    }
+    it {
+      itemName: i => ["SCINTILLA", "ALONE", "LAME", "FALCE", "FULMINE", "POTENZA", "RAPIDITÀ", "MAGNETE", "VIGORE", "FRETTA", "CENA"][i]
+      itemDesc: i => ["Le scintille cercano i nemici più vicini", "La luce brucia chi si avvicina", "Lame che ruotano intorno a te", "Falcia una fila davanti a te", "Fulmini colpiscono i nemici a schermo", "Tutti i danni +12%", "Cammini il 10% più veloce", "Raccogli gemme da più lontano", "+20 salute e cura lenta", "Le armi sparano il 7% più spesso", "Cura 50 salute"][i]
+      lv: n => "LV ${n}"
+      newTag: "NUOVO!"
+      levelUp: "NUOVO LIVELLO!"
+      paused: "IN PAUSA"
+      lightGoes: "LA LUCE"
+      lightOut: "SI SPEGNE"
+      survived: "SOPRAVVISSUTO"
+      endStats: (lv, k) => "LIVELLO ${lv} · ${k} ABBATTUTI"
+      best: t => "RECORD ${t}"
+      bestLevel: (t, lv) => "RECORD ${t} · LIVELLO ${lv}"
+      newBest: "NUOVO RECORD!"
+      tagline: "SOPRAVVIVI ALLA NOTTE"
+      dragHint: "TRASCINA OVUNQUE PER CAMMINARE"
+      weaponsHint: "LE ARMI SPARANO DA SOLE"
+      start: "TOCCA PER INIZIARE"
+      resume: "RIPRENDI"
+      quit: "ESCI"
+      tryAgain: "RIPROVA"
+    }
+  }
 
   title: ""
   statusBar: false
@@ -100,17 +368,17 @@ app "lantern" {
 
   // ---- weapons and gifts ------------------------------------------------------------------------
   let ITEMS = [
-    {n: "SPARK", d: "Sparks seek the nearest foes", w: true},
-    {n: "HALO", d: "Light burns all who come close", w: true},
-    {n: "BLADES", d: "Blades circle around you", w: true},
-    {n: "SCYTHE", d: "Reaps a row in front of you", w: true},
-    {n: "BOLT", d: "Lightning strikes foes on screen", w: true},
-    {n: "MIGHT", d: "All damage +12%", w: false},
-    {n: "SWIFT", d: "Walk 10% faster", w: false},
-    {n: "MAGNET", d: "Pick up gems from further away", w: false},
-    {n: "VIGOR", d: "+20 health and slow healing", w: false},
-    {n: "HASTE", d: "Weapons fire 7% more often", w: false},
-    {n: "SUPPER", d: "Heal 50 health", w: false}
+    {w: true},
+    {w: true},
+    {w: true},
+    {w: true},
+    {w: true},
+    {w: false},
+    {w: false},
+    {w: false},
+    {w: false},
+    {w: false},
+    {w: false}
   ]
   let MAXL = [6, 6, 6, 6, 6, 5, 5, 5, 5, 5]
   let MT = 1 + 0.12 * wl[5]
@@ -818,7 +1086,7 @@ app "lantern" {
         rect(SX + 2, TOP + 4, bw - 4, 12, radius: 3, fill: "#2a2440")
         rect(SX + 2, TOP + 4, max(0, (bw - 4) * clamp(F.xp / need, 0, 1)), 12, radius: 3, fill: linear(0, TOP + 4, 0, TOP + 16, ["#9ad8ff", "#3a8ae8"]))
         rect(SX + 4, TOP + 5, max(0, (bw - 8) * clamp(F.xp / need, 0, 1)), 2, fill: alpha("#ffffff", 0.35))
-        text("LV ${F.lv}", SX + bw - 8, TOP + 11, size: 7, color: "#ffffff", font: press, align: end)
+        text(str.lv(F.lv), SX + bw - 8, TOP + 11, size: 7, color: "#ffffff", font: press, align: end)
         // ---- the time and the toll, and below them what the player carries ----
         let ts = "${pad(floor(F.t / 60), 2, "0")}:${pad(floor(F.t % 60), 2, "0")}"
         text(ts, SW / 2 + 2, TOP + 38, size: 14, color: INK, font: press, align: center)
@@ -853,8 +1121,8 @@ app "lantern" {
           rect(SW / 2 - rw / 2 - 14, ry - 2, rw + 28, 34, radius: 3, fill: "#24407a", stroke: INK, width: 2)
           rect(SW / 2 - rw / 2, ry - 8, rw, 34, radius: 3, fill: "#4a7ad8", stroke: INK, width: 2)
           rect(SW / 2 - rw / 2 + 3, ry - 5, rw - 6, 3, radius: 1.5, fill: alpha("#ffffff", 0.3))
-          text("LEVEL UP!", SW / 2 + 2, ry + 11, size: 14, color: INK, font: press, align: center)
-          text("LEVEL UP!", SW / 2, ry + 9, size: 14, color: "#ffffff", font: press, align: center)
+          text(str.levelUp, SW / 2 + 2, ry + 11, size: 14, color: INK, font: press, align: center)
+          text(str.levelUp, SW / 2, ry + 9, size: 14, color: "#ffffff", font: press, align: center)
           for o, i in offer {
             let x0 = SW / 2 - cardW / 2
             let y0 = cardY + i * (cardH + 12)
@@ -866,18 +1134,18 @@ app "lantern" {
             rect(x0 + 10, y0 + 10 + (pressed ? 3 : 0), 9 * isz + 12, cardH - 20, radius: 8, fill: alpha(INK, 0.6))
             sprite(ICONS[o], x0 + 16, y0 + cardH / 2 - 4.5 * isz + (pressed ? 3 : 0), isz, palette: ICONPAL)
             let tx = x0 + 9 * isz + 34
-            text(it.n, tx, y0 + cardH * 0.3 + (pressed ? 3 : 0), size: 11, color: foreground, font: press)
-            let tag = o == 10 ? "" : wl[o] == 0 ? "NEW!" : "LV ${wl[o] + 1}"
+            text(str.itemName(o), tx, y0 + cardH * 0.3 + (pressed ? 3 : 0), size: 11, color: foreground, font: press)
+            let tag = o == 10 ? "" : wl[o] == 0 ? str.newTag : str.lv(wl[o] + 1)
             text(tag, x0 + cardW - 12, y0 + cardH * 0.3 + (pressed ? 3 : 0), size: 7, color: wl[o] == 0 ? "#6fe05a" : GOLD, font: press, align: end)
-            text(it.d, tx, y0 + cardH * 0.62 + (pressed ? 3 : 0), size: 8, color: muted)
+            text(str.itemDesc(o), tx, y0 + cardH * 0.62 + (pressed ? 3 : 0), size: 8, color: muted)
           }
         }
         // ---- paused ----
         if paused {
           rect(0, 0, SW, SH, fill: alpha("#05030c", 0.7))
           let pcy = SH * 0.42
-          text("PAUSED", SW / 2 + 2, pcy + 2, size: 18, color: INK, font: press, align: center)
-          text("PAUSED", SW / 2, pcy, size: 18, color: "#ffffff", font: press, align: center)
+          text(str.paused, SW / 2 + 2, pcy + 2, size: 18, color: INK, font: press, align: center)
+          text(str.paused, SW / 2, pcy, size: 18, color: "#ffffff", font: press, align: center)
         }
         // ---- the end ----
         if endF.dead && u >= FZ {
@@ -891,17 +1159,17 @@ app "lantern" {
             rect(ccx, ccy, ccw, 250, radius: 14, fill: linear(0, ccy, 0, ccy + 250, [mix(surface, foreground, 0.06), surface]), stroke: INK, width: 2)
             rect(ccx - 10, ccy + 14, ccw + 20, 50, radius: 4, fill: "#5a3a8a", stroke: INK, width: 2)
             rect(ccx - 7, ccy + 17, ccw + 14, 3, radius: 1.5, fill: alpha("#ffffff", 0.3))
-            text("THE LIGHT", SW / 2 + 2, ccy + 32, size: 13, color: INK, font: press, align: center)
-            text("THE LIGHT", SW / 2, ccy + 30, size: 13, color: "#ffffff", font: press, align: center)
-            text("GOES OUT", SW / 2 + 2, ccy + 52, size: 13, color: INK, font: press, align: center)
-            text("GOES OUT", SW / 2, ccy + 50, size: 13, color: "#ffffff", font: press, align: center)
-            text("SURVIVED", SW / 2, ccy + 86, size: 7, color: muted, font: press, align: center)
+            text(str.lightGoes, SW / 2 + 2, ccy + 32, size: 13, color: INK, font: press, align: center)
+            text(str.lightGoes, SW / 2, ccy + 30, size: 13, color: "#ffffff", font: press, align: center)
+            text(str.lightOut, SW / 2 + 2, ccy + 52, size: 13, color: INK, font: press, align: center)
+            text(str.lightOut, SW / 2, ccy + 50, size: 13, color: "#ffffff", font: press, align: center)
+            text(str.survived, SW / 2, ccy + 86, size: 7, color: muted, font: press, align: center)
             let es2 = "${pad(floor(endF.t / 60), 2, "0")}:${pad(floor(endF.t % 60), 2, "0")}"
             text(es2, SW / 2 + 2, ccy + 112, size: 24, color: INK, font: press, align: center)
             text(es2, SW / 2, ccy + 110, size: 24, color: GOLD, font: press, align: center)
-            text("LEVEL ${endF.lv} · ${endF.kills} FALLEN", SW / 2, ccy + 140, size: 7, color: foreground, font: press, align: center)
-            text("BEST ${pad(floor(bestT / 60), 2, "0")}:${pad(floor(bestT % 60), 2, "0")}", SW / 2, ccy + 160, size: 8, color: accent, font: press, align: center)
-            if endF.t >= bestT && time % 0.8 < 0.55 { text("NEW BEST!", SW / 2, ccy + 178, size: 7, color: "#6fe05a", font: press, align: center) }
+            text(str.endStats(endF.lv, endF.kills), SW / 2, ccy + 140, size: 7, color: foreground, font: press, align: center)
+            text(str.best("${pad(floor(bestT / 60), 2, "0")}:${pad(floor(bestT % 60), 2, "0")}"), SW / 2, ccy + 160, size: 8, color: accent, font: press, align: center)
+            if endF.t >= bestT && time % 0.8 < 0.55 { text(str.newBest, SW / 2, ccy + 178, size: 7, color: "#6fe05a", font: press, align: center) }
           }
         }
       }
@@ -931,18 +1199,18 @@ app "lantern" {
         clip(0, ty - ls, SW, ls * 0.95) { text("LANTERN", SW / 2, ty, size: ls, color: GOLD, font: press, align: center) }
         rect(SW / 2 - 120, ty + 26, 240, 22, radius: 3, fill: "#5a3a8a", stroke: INK, width: 2)
         rect(SW / 2 - 117, ty + 29, 234, 2, fill: alpha("#ffffff", 0.3))
-        text("SURVIVE THE NIGHT", SW / 2, ty + 37, size: 8, color: "#ffffff", font: press, align: center)
-        text("DRAG ANYWHERE TO WALK", SW / 2, iy, size: 7, color: foreground, font: press, align: center)
-        text("WEAPONS FIRE ON THEIR OWN", SW / 2, iy + 16, size: 7, color: muted, font: press, align: center)
+        text(str.tagline, SW / 2, ty + 37, size: 8, color: "#ffffff", font: press, align: center)
+        text(str.dragHint, SW / 2, iy, size: 7, color: foreground, font: press, align: center)
+        text(str.weaponsHint, SW / 2, iy + 16, size: 7, color: muted, font: press, align: center)
         if bestT > 0 {
-          text("BEST ${pad(floor(bestT / 60), 2, "0")}:${pad(floor(bestT % 60), 2, "0")} · LEVEL ${bestLv}", SW / 2, LOW ? tby - 22 : SH / 2 + 222, size: 7, color: accent, font: press, align: center)
+          text(str.bestLevel("${pad(floor(bestT / 60), 2, "0")}:${pad(floor(bestT % 60), 2, "0")}", bestLv), SW / 2, LOW ? tby - 22 : SH / 2 + 222, size: 7, color: accent, font: press, align: center)
         }
       }
       // ---- the buttons, over everything: each is [x, y, width, height, colours, label], and sinks while pressed ----
       let pcy = SH * 0.42
-      let btns = mode == "title" ? [[round(SW / 2 - 105), round(tby), 210, 48, "go", "TAP TO START"]]
-        : playing && paused ? [[round(SW / 2 - 100), round(pcy + 40), 200, 48, "go", "RESUME"], [round(SW / 2 - 100), round(pcy + 100), 200, 44, "off", "QUIT"]]
-        : playing && endF.dead && u >= FZ && overT > 0 && time - overT > 0.8 ? [[round(SW / 2 - 110), round(SH * 0.24 + 196), 220, 44, "go", "TRY AGAIN"]]
+      let btns = mode == "title" ? [[round(SW / 2 - 105), round(tby), 210, 48, "go", str.start]]
+        : playing && paused ? [[round(SW / 2 - 100), round(pcy + 40), 200, 48, "go", str.resume], [round(SW / 2 - 100), round(pcy + 100), 200, 44, "off", str.quit]]
+        : playing && endF.dead && u >= FZ && overT > 0 && time - overT > 0.8 ? [[round(SW / 2 - 110), round(SH * 0.24 + 196), 220, 44, "go", str.tryAgain]]
         : []
       for b in btns {
         let c = BTN[b[4]]

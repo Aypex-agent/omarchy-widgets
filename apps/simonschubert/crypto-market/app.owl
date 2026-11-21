@@ -1,7 +1,255 @@
 app "crypto market" {
-  meta { owl: 23; description: "CoinGecko prices: the top 250 coins, coin pages with charts, a watchlist, trending coins, gainers and losers, categories, a converter and a portfolio"; version: "1.2"; license: "MIT"; category: "finance" }
+  meta { owl: 23; description: "CoinGecko prices: the top 250 coins, coin pages with charts, a watchlist, trending coins, gainers and losers, categories, a converter and a portfolio"; version: "1.3"; license: "MIT"; category: "finance" }
+
+  strings {
+    en {
+      markets: "markets"; watchlist: "watchlist"; discover: "discover"; portfolio: "portfolio"; settings: "settings"; website: "website"
+      whitepaper: "whitepaper"; explorer: "explorer"; curName: i => ["US Dollar", "Euro", "British Pound", "Japanese Yen", "Swiss Franc", "Canadian Dollar", "Australian Dollar", "Chinese Yuan", "Indian Rupee", "South Korean Won", "Brazilian Real", "Swedish Krona", "Bitcoin", "Ether", "Satoshi"][i]
+      rank: r => " · rank ${r}"; last24: "last 24 hours"; last7: "last 7 days"; lastMonth: "last month"; last3m: "last 3 months"
+      lastYear: "last year"; busyRest: "CoinGecko is busy; the rest comes back in a minute"; loadSome: "couldn't load everything"
+      loadingChart: "loading chart…"; chartNA: "chart unavailable"; change: "change"; range24: "24h range"; market: "market"
+      marketCap: "market cap"; fdv: "fully diluted value"; vol24: "24h volume"; circ: "circulating supply"; totalSupply: "total supply"
+      maxSupply: "max supply"; athAtl: "all-time high and low"; high: d => "high · ${d}"; low: d => "low · ${d}"; converter: "converter"
+      amount: "amount"; youHold: (a, s) => "portfolio · you hold ${a} ${s}"; addTx: "add a transaction"; buy: "buy"; sell: "sell"
+      price: "price"; perCoin: "per coin"; save: "save"; cancel: "cancel"; categories: "categories"; about: "about"; less: "less"
+      more: "more"; data: "data: CoinGecko"; search: "search coins"; allCG: "all of CoinGecko"; searching: "searching…"
+      busyTry: "CoinGecko is busy; try again in a minute"; searchFailed: "search failed"; notTop: "not in the top 250; press send to search all of CoinGecko"
+      pressSend: "press send to search all of CoinGecko"; btcDom: "BTC dominance"; ethDom: "ETH dominance"; rankSort: "rank"
+      volume: "volume"; loading: "loading…"; busyPrices: "CoinGecko is busy; prices come back in a minute"; offline: "offline"
+      tryAgain: "try again"; busyLast: "CoinGecko is busy: these are the last prices"; offlineLast: "offline: these are the last prices"
+      prev: "‹ prev"; next: "next ›"; pageOf: (a, b, n) => "${a}–${b} of ${n}"; tapStar: "tap ☆ next to a coin to follow it here"
+      trending: "trending on CoinGecko"; noTrending: "couldn't load trending coins"; gainers: "biggest gainers, 24h"; losers: "biggest losers, 24h"
+      catsByCap: "categories by market cap"; noCats: "couldn't load categories"; portfolioEmpty: "open a coin and add a buy or a sell to track what you hold"
+      value: "value"; pnl: "P&L"; holdings: "holdings"; transactions: "transactions"; currency: "currency"; about2: "Prices, charts and coin details come from CoinGecko's free API, fetched only while the app is open."
+    }
+    id {
+      markets: "pasar"; watchlist: "pantauan"; discover: "jelajahi"; portfolio: "portofolio"; settings: "setelan"; website: "situs web"
+      whitepaper: "whitepaper"; explorer: "explorer"; curName: i => ["Dolar AS", "Euro", "Pound Inggris", "Yen Jepang", "Franc Swiss", "Dolar Kanada", "Dolar Australia", "Yuan Tiongkok", "Rupee India", "Won Korea Selatan", "Real Brasil", "Krona Swedia", "Bitcoin", "Ether", "Satoshi"][i]
+      rank: r => " · peringkat ${r}"; last24: "24 jam terakhir"; last7: "7 hari terakhir"; lastMonth: "sebulan terakhir"
+      last3m: "3 bulan terakhir"; lastYear: "setahun terakhir"; busyRest: "CoinGecko sedang sibuk; sisanya kembali dalam semenit"
+      loadSome: "tidak semua bisa dimuat"; loadingChart: "memuat grafik…"; chartNA: "grafik tidak tersedia"; change: "perubahan"
+      range24: "rentang 24j"; market: "pasar"; marketCap: "kapitalisasi pasar"; fdv: "nilai terdilusi penuh"; vol24: "volume 24j"
+      circ: "suplai beredar"; totalSupply: "suplai total"; maxSupply: "suplai maks"; athAtl: "tertinggi dan terendah sepanjang masa"
+      high: d => "tertinggi · ${d}"; low: d => "terendah · ${d}"; converter: "konverter"; amount: "jumlah"; youHold: (a, s) => "portofolio · kamu punya ${a} ${s}"
+      addTx: "tambah transaksi"; buy: "beli"; sell: "jual"; price: "harga"; perCoin: "per koin"; save: "simpan"; cancel: "batal"
+      categories: "kategori"; about: "tentang"; less: "lebih sedikit"; more: "selengkapnya"; data: "data: CoinGecko"; search: "cari koin"
+      allCG: "semua di CoinGecko"; searching: "mencari…"; busyTry: "CoinGecko sedang sibuk; coba lagi sebentar lagi"; searchFailed: "pencarian gagal"
+      notTop: "tidak ada di 250 teratas; tekan kirim untuk mencari di seluruh CoinGecko"; pressSend: "tekan kirim untuk mencari di seluruh CoinGecko"
+      btcDom: "dominasi BTC"; ethDom: "dominasi ETH"; rankSort: "peringkat"; volume: "volume"; loading: "memuat…"; busyPrices: "CoinGecko sedang sibuk; harga kembali dalam semenit"
+      offline: "offline"; tryAgain: "coba lagi"; busyLast: "CoinGecko sedang sibuk: ini harga terakhir"; offlineLast: "offline: ini harga terakhir"
+      prev: "‹ sebelumnya"; next: "berikutnya ›"; pageOf: (a, b, n) => "${a}–${b} dari ${n}"; tapStar: "ketuk ☆ di samping koin untuk memantaunya di sini"
+      trending: "tren di CoinGecko"; noTrending: "tidak bisa memuat koin tren"; gainers: "naik terbesar, 24j"; losers: "turun terbesar, 24j"
+      catsByCap: "kategori menurut kapitalisasi pasar"; noCats: "tidak bisa memuat kategori"; portfolioEmpty: "buka koin lalu tambah pembelian atau penjualan untuk melacak asetmu"
+      value: "nilai"; pnl: "L/R"; holdings: "aset"; transactions: "transaksi"; currency: "mata uang"; about2: "Harga, grafik, dan detail koin berasal dari API gratis CoinGecko, diambil hanya saat aplikasi terbuka."
+    }
+    es {
+      markets: "mercados"; watchlist: "seguimiento"; discover: "descubrir"; portfolio: "cartera"; settings: "ajustes"
+      website: "web"; whitepaper: "whitepaper"; explorer: "explorador"; curName: i => ["Dólar estadounidense", "Euro", "Libra esterlina", "Yen japonés", "Franco suizo", "Dólar canadiense", "Dólar australiano", "Yuan chino", "Rupia india", "Won surcoreano", "Real brasileño", "Corona sueca", "Bitcoin", "Ether", "Satoshi"][i]
+      rank: r => " · puesto ${r}"; last24: "últimas 24 horas"; last7: "últimos 7 días"; lastMonth: "último mes"; last3m: "últimos 3 meses"
+      lastYear: "último año"; busyRest: "CoinGecko está saturado; el resto vuelve en un minuto"; loadSome: "no se pudo cargar todo"
+      loadingChart: "cargando gráfico…"; chartNA: "gráfico no disponible"; change: "variación"; range24: "rango 24h"; market: "mercado"
+      marketCap: "capitalización"; fdv: "valoración totalmente diluida"; vol24: "volumen 24h"; circ: "suministro circulante"
+      totalSupply: "suministro total"; maxSupply: "suministro máximo"; athAtl: "máximo y mínimo históricos"; high: d => "máximo · ${d}"
+      low: d => "mínimo · ${d}"; converter: "conversor"; amount: "cantidad"; youHold: (a, s) => "cartera · tienes ${a} ${s}"
+      addTx: "añadir una operación"; buy: "compra"; sell: "venta"; price: "precio"; perCoin: "por moneda"; save: "guardar"
+      cancel: "cancelar"; categories: "categorías"; about: "acerca de"; less: "menos"; more: "más"; data: "datos: CoinGecko"
+      search: "buscar monedas"; allCG: "todo CoinGecko"; searching: "buscando…"; busyTry: "CoinGecko está saturado; vuelve a intentarlo en un minuto"
+      searchFailed: "la búsqueda falló"; notTop: "no está en el top 250; pulsa enviar para buscar en todo CoinGecko"; pressSend: "pulsa enviar para buscar en todo CoinGecko"
+      btcDom: "dominancia BTC"; ethDom: "dominancia ETH"; rankSort: "puesto"; volume: "volumen"; loading: "cargando…"
+      busyPrices: "CoinGecko está saturado; los precios vuelven en un minuto"; offline: "sin conexión"; tryAgain: "reintentar"
+      busyLast: "CoinGecko está saturado: estos son los últimos precios"; offlineLast: "sin conexión: estos son los últimos precios"
+      prev: "‹ anterior"; next: "siguiente ›"; pageOf: (a, b, n) => "${a}–${b} de ${n}"; tapStar: "toca ☆ junto a una moneda para seguirla aquí"
+      trending: "tendencias en CoinGecko"; noTrending: "no se pudieron cargar las tendencias"; gainers: "las que más suben, 24h"
+      losers: "las que más bajan, 24h"; catsByCap: "categorías por capitalización"; noCats: "no se pudieron cargar las categorías"
+      portfolioEmpty: "abre una moneda y añade una compra o una venta para seguir lo que tienes"; value: "valor"; pnl: "G/P"
+      holdings: "posiciones"; transactions: "operaciones"; currency: "moneda"; about2: "Los precios, gráficos y detalles vienen de la API gratuita de CoinGecko, solo mientras la app está abierta."
+    }
+    pt {
+      markets: "mercados"; watchlist: "favoritas"; discover: "descobrir"; portfolio: "carteira"; settings: "ajustes"; website: "site"
+      whitepaper: "whitepaper"; explorer: "explorador"; curName: i => ["Dólar americano", "Euro", "Libra esterlina", "Iene japonês", "Franco suíço", "Dólar canadense", "Dólar australiano", "Yuan chinês", "Rupia indiana", "Won sul-coreano", "Real brasileiro", "Coroa sueca", "Bitcoin", "Ether", "Satoshi"][i]
+      rank: r => " · posição ${r}"; last24: "últimas 24 horas"; last7: "últimos 7 dias"; lastMonth: "último mês"; last3m: "últimos 3 meses"
+      lastYear: "último ano"; busyRest: "o CoinGecko está ocupado; o resto volta em um minuto"; loadSome: "não deu para carregar tudo"
+      loadingChart: "carregando gráfico…"; chartNA: "gráfico indisponível"; change: "variação"; range24: "faixa de 24h"
+      market: "mercado"; marketCap: "valor de mercado"; fdv: "valor totalmente diluído"; vol24: "volume em 24h"; circ: "oferta circulante"
+      totalSupply: "oferta total"; maxSupply: "oferta máxima"; athAtl: "máxima e mínima históricas"; high: d => "máxima · ${d}"
+      low: d => "mínima · ${d}"; converter: "conversor"; amount: "quantidade"; youHold: (a, s) => "carteira · você tem ${a} ${s}"
+      addTx: "adicionar uma transação"; buy: "compra"; sell: "venda"; price: "preço"; perCoin: "por moeda"; save: "salvar"
+      cancel: "cancelar"; categories: "categorias"; about: "sobre"; less: "menos"; more: "mais"; data: "dados: CoinGecko"
+      search: "buscar moedas"; allCG: "todo o CoinGecko"; searching: "buscando…"; busyTry: "o CoinGecko está ocupado; tente de novo em um minuto"
+      searchFailed: "a busca falhou"; notTop: "fora do top 250; toque em enviar para buscar em todo o CoinGecko"; pressSend: "toque em enviar para buscar em todo o CoinGecko"
+      btcDom: "dominância BTC"; ethDom: "dominância ETH"; rankSort: "posição"; volume: "volume"; loading: "carregando…"
+      busyPrices: "o CoinGecko está ocupado; os preços voltam em um minuto"; offline: "offline"; tryAgain: "tentar de novo"
+      busyLast: "o CoinGecko está ocupado: estes são os últimos preços"; offlineLast: "offline: estes são os últimos preços"
+      prev: "‹ anterior"; next: "próxima ›"; pageOf: (a, b, n) => "${a}–${b} de ${n}"; tapStar: "toque em ☆ ao lado de uma moeda para segui-la aqui"
+      trending: "em alta no CoinGecko"; noTrending: "não deu para carregar as moedas em alta"; gainers: "maiores altas, 24h"
+      losers: "maiores quedas, 24h"; catsByCap: "categorias por valor de mercado"; noCats: "não deu para carregar as categorias"
+      portfolioEmpty: "abra uma moeda e adicione uma compra ou venda para acompanhar o que você tem"; value: "valor"; pnl: "L/P"
+      holdings: "posições"; transactions: "transações"; currency: "moeda"; about2: "Preços, gráficos e detalhes das moedas vêm da API gratuita do CoinGecko, buscados só enquanto o app está aberto."
+    }
+    de {
+      markets: "märkte"; watchlist: "beobachtet"; discover: "entdecken"; portfolio: "portfolio"; settings: "einstellungen"
+      website: "website"; whitepaper: "whitepaper"; explorer: "explorer"; curName: i => ["US-Dollar", "Euro", "Britisches Pfund", "Japanischer Yen", "Schweizer Franken", "Kanadischer Dollar", "Australischer Dollar", "Chinesischer Yuan", "Indische Rupie", "Südkoreanischer Won", "Brasilianischer Real", "Schwedische Krone", "Bitcoin", "Ether", "Satoshi"][i]
+      rank: r => " · rang ${r}"; last24: "letzte 24 stunden"; last7: "letzte 7 tage"; lastMonth: "letzter monat"; last3m: "letzte 3 monate"
+      lastYear: "letztes jahr"; busyRest: "CoinGecko ist ausgelastet; der rest kommt in einer minute"; loadSome: "nicht alles ließ sich laden"
+      loadingChart: "lade chart…"; chartNA: "chart nicht verfügbar"; change: "änderung"; range24: "24h-spanne"; market: "markt"
+      marketCap: "marktkapitalisierung"; fdv: "voll verwässerter wert"; vol24: "24h-volumen"; circ: "umlaufmenge"; totalSupply: "gesamtmenge"
+      maxSupply: "maximalmenge"; athAtl: "allzeithoch und -tief"; high: d => "hoch · ${d}"; low: d => "tief · ${d}"; converter: "umrechner"
+      amount: "menge"; youHold: (a, s) => "portfolio · du hast ${a} ${s}"; addTx: "transaktion hinzufügen"; buy: "kauf"
+      sell: "verkauf"; price: "preis"; perCoin: "pro coin"; save: "speichern"; cancel: "abbrechen"; categories: "kategorien"
+      about: "über"; less: "weniger"; more: "mehr"; data: "daten: CoinGecko"; search: "coins suchen"; allCG: "ganz CoinGecko"
+      searching: "suche…"; busyTry: "CoinGecko ist ausgelastet; versuch es in einer minute noch mal"; searchFailed: "suche fehlgeschlagen"
+      notTop: "nicht in den top 250; tipp auf senden, um ganz CoinGecko zu durchsuchen"; pressSend: "tipp auf senden, um ganz CoinGecko zu durchsuchen"
+      btcDom: "BTC-dominanz"; ethDom: "ETH-dominanz"; rankSort: "rang"; volume: "volumen"; loading: "lädt…"; busyPrices: "CoinGecko ist ausgelastet; die preise kommen in einer minute"
+      offline: "offline"; tryAgain: "nochmal"; busyLast: "CoinGecko ist ausgelastet: das sind die letzten preise"; offlineLast: "offline: das sind die letzten preise"
+      prev: "‹ zurück"; next: "weiter ›"; pageOf: (a, b, n) => "${a}–${b} von ${n}"; tapStar: "tipp auf ☆ neben einem coin, um ihn hier zu verfolgen"
+      trending: "im trend auf CoinGecko"; noTrending: "trends ließen sich nicht laden"; gainers: "größte gewinner, 24h"
+      losers: "größte verlierer, 24h"; catsByCap: "kategorien nach marktkapitalisierung"; noCats: "kategorien ließen sich nicht laden"
+      portfolioEmpty: "öffne einen coin und trag einen kauf oder verkauf ein, um zu sehen, was du hältst"; value: "wert"
+      pnl: "G/V"; holdings: "bestände"; transactions: "transaktionen"; currency: "währung"; about2: "Preise, Charts und Coin-Details kommen aus der kostenlosen API von CoinGecko, nur solange die App offen ist."
+    }
+    zh {
+      markets: "市场"; watchlist: "自选"; discover: "发现"; portfolio: "投资组合"; settings: "设置"; website: "官网"; whitepaper: "白皮书"
+      explorer: "浏览器"; curName: i => ["美元", "欧元", "英镑", "日元", "瑞士法郎", "加拿大元", "澳元", "人民币", "印度卢比", "韩元", "巴西雷亚尔", "瑞典克朗", "比特币", "以太币", "聪"][i]
+      rank: r => " · 排名 ${r}"; last24: "过去 24 小时"; last7: "过去 7 天"; lastMonth: "过去一个月"; last3m: "过去 3 个月"; lastYear: "过去一年"
+      busyRest: "CoinGecko 繁忙，其余内容一分钟后恢复"; loadSome: "部分内容加载失败"; loadingChart: "正在加载图表…"; chartNA: "图表不可用"; change: "涨跌"
+      range24: "24h 区间"; market: "市场"; marketCap: "市值"; fdv: "完全稀释估值"; vol24: "24h 成交量"; circ: "流通量"; totalSupply: "总量"
+      maxSupply: "最大供应量"; athAtl: "历史最高和最低"; high: d => "最高 · ${d}"; low: d => "最低 · ${d}"; converter: "换算"; amount: "数量"
+      youHold: (a, s) => "投资组合 · 持有 ${a} ${s}"; addTx: "添加交易"; buy: "买入"; sell: "卖出"; price: "价格"; perCoin: "每枚"; save: "保存"
+      cancel: "取消"; categories: "分类"; about: "简介"; less: "收起"; more: "展开"; data: "数据：CoinGecko"; search: "搜索币种"; allCG: "CoinGecko 全部"
+      searching: "搜索中…"; busyTry: "CoinGecko 繁忙，请一分钟后再试"; searchFailed: "搜索失败"; notTop: "不在前 250 名；按发送在整个 CoinGecko 中搜索"
+      pressSend: "按发送在整个 CoinGecko 中搜索"; btcDom: "BTC 占比"; ethDom: "ETH 占比"; rankSort: "排名"; volume: "成交量"; loading: "加载中…"
+      busyPrices: "CoinGecko 繁忙，价格一分钟后恢复"; offline: "离线"; tryAgain: "重试"; busyLast: "CoinGecko 繁忙：这是最后的价格"; offlineLast: "离线：这是最后的价格"
+      prev: "‹ 上一页"; next: "下一页 ›"; pageOf: (a, b, n) => "${a}–${b}，共 ${n}"; tapStar: "点击币种旁的 ☆ 即可在这里关注"; trending: "CoinGecko 热门"
+      noTrending: "无法加载热门币种"; gainers: "涨幅最大，24h"; losers: "跌幅最大，24h"; catsByCap: "按市值排列的分类"; noCats: "无法加载分类"; portfolioEmpty: "打开一个币种，添加买入或卖出来追踪你的持仓"
+      value: "价值"; pnl: "盈亏"; holdings: "持仓"; transactions: "交易"; currency: "货币"; about2: "价格、图表和币种详情来自 CoinGecko 的免费 API，仅在应用打开时获取。"
+    }
+    ru {
+      markets: "рынки"; watchlist: "избранное"; discover: "обзор"; portfolio: "портфель"; settings: "настройки"; website: "сайт"
+      whitepaper: "white paper"; explorer: "обозреватель"; curName: i => ["Доллар США", "Евро", "Британский фунт", "Японская иена", "Швейцарский франк", "Канадский доллар", "Австралийский доллар", "Китайский юань", "Индийская рупия", "Южнокорейская вона", "Бразильский реал", "Шведская крона", "Биткоин", "Эфир", "Сатоши"][i]
+      rank: r => " · место ${r}"; last24: "за 24 часа"; last7: "за 7 дней"; lastMonth: "за месяц"; last3m: "за 3 месяца"
+      lastYear: "за год"; busyRest: "CoinGecko перегружен; остальное появится через минуту"; loadSome: "не всё удалось загрузить"
+      loadingChart: "загрузка графика…"; chartNA: "график недоступен"; change: "изменение"; range24: "диапазон за 24ч"
+      market: "рынок"; marketCap: "капитализация"; fdv: "полностью разводнённая стоимость"; vol24: "объём за 24ч"; circ: "в обращении"
+      totalSupply: "всего выпущено"; maxSupply: "максимум эмиссии"; athAtl: "исторический максимум и минимум"; high: d => "максимум · ${d}"
+      low: d => "минимум · ${d}"; converter: "конвертер"; amount: "количество"; youHold: (a, s) => "портфель · у вас ${a} ${s}"
+      addTx: "добавить сделку"; buy: "покупка"; sell: "продажа"; price: "цена"; perCoin: "за монету"; save: "сохранить"
+      cancel: "отмена"; categories: "категории"; about: "о монете"; less: "свернуть"; more: "ещё"; data: "данные: CoinGecko"
+      search: "поиск монет"; allCG: "весь CoinGecko"; searching: "поиск…"; busyTry: "CoinGecko перегружен; попробуйте через минуту"
+      searchFailed: "поиск не удался"; notTop: "нет в топ-250; нажмите «отправить», чтобы искать по всему CoinGecko"; pressSend: "нажмите «отправить», чтобы искать по всему CoinGecko"
+      btcDom: "доминирование BTC"; ethDom: "доминирование ETH"; rankSort: "место"; volume: "объём"; loading: "загрузка…"
+      busyPrices: "CoinGecko перегружен; цены вернутся через минуту"; offline: "нет сети"; tryAgain: "повторить"; busyLast: "CoinGecko перегружен: это последние цены"
+      offlineLast: "нет сети: это последние цены"; prev: "‹ назад"; next: "далее ›"; pageOf: (a, b, n) => "${a}–${b} из ${n}"
+      tapStar: "нажмите ☆ рядом с монетой, чтобы следить за ней здесь"; trending: "в тренде на CoinGecko"; noTrending: "не удалось загрузить тренды"
+      gainers: "лидеры роста, 24ч"; losers: "лидеры падения, 24ч"; catsByCap: "категории по капитализации"; noCats: "не удалось загрузить категории"
+      portfolioEmpty: "откройте монету и добавьте покупку или продажу, чтобы следить за активами"; value: "стоимость"
+      pnl: "П/У"; holdings: "активы"; transactions: "сделки"; currency: "валюта"; about2: "Цены, графики и данные о монетах берутся из бесплатного API CoinGecko и загружаются, только пока приложение открыто."
+    }
+    ja {
+      markets: "マーケット"; watchlist: "ウォッチ"; discover: "発見"; portfolio: "ポートフォリオ"; settings: "設定"; website: "公式サイト"; whitepaper: "ホワイトペーパー"
+      explorer: "エクスプローラー"; curName: i => ["米ドル", "ユーロ", "英ポンド", "日本円", "スイスフラン", "カナダドル", "豪ドル", "人民元", "インドルピー", "韓国ウォン", "ブラジルレアル", "スウェーデンクローナ", "ビットコイン", "イーサ", "サトシ"][i]
+      rank: r => " · ${r}位"; last24: "過去24時間"; last7: "過去7日間"; lastMonth: "過去1か月"; last3m: "過去3か月"; lastYear: "過去1年"; busyRest: "CoinGeckoが混み合っています。残りは1分後に戻ります"
+      loadSome: "一部を読み込めませんでした"; loadingChart: "チャートを読み込み中…"; chartNA: "チャートを表示できません"; change: "変動"; range24: "24h レンジ"
+      market: "市場"; marketCap: "時価総額"; fdv: "完全希薄化後評価額"; vol24: "24h 出来高"; circ: "流通供給量"; totalSupply: "総供給量"; maxSupply: "最大供給量"
+      athAtl: "史上最高値と最安値"; high: d => "最高値 · ${d}"; low: d => "最安値 · ${d}"; converter: "換算"; amount: "数量"; youHold: (a, s) => "ポートフォリオ · ${a} ${s} 保有"
+      addTx: "取引を追加"; buy: "購入"; sell: "売却"; price: "価格"; perCoin: "1枚あたり"; save: "保存"; cancel: "キャンセル"; categories: "カテゴリ"
+      about: "概要"; less: "閉じる"; more: "続きを読む"; data: "データ: CoinGecko"; search: "コインを検索"; allCG: "CoinGecko全体"; searching: "検索中…"
+      busyTry: "CoinGeckoが混み合っています。1分後にもう一度お試しください"; searchFailed: "検索に失敗しました"; notTop: "上位250にありません。送信を押すとCoinGecko全体を検索します"
+      pressSend: "送信を押すとCoinGecko全体を検索します"; btcDom: "BTCドミナンス"; ethDom: "ETHドミナンス"; rankSort: "順位"; volume: "出来高"; loading: "読み込み中…"
+      busyPrices: "CoinGeckoが混み合っています。価格は1分後に戻ります"; offline: "オフライン"; tryAgain: "再試行"; busyLast: "CoinGeckoが混み合っています: 最後の価格です"
+      offlineLast: "オフライン: 最後の価格です"; prev: "‹ 前へ"; next: "次へ ›"; pageOf: (a, b, n) => "${n}件中 ${a}–${b}"; tapStar: "コインの横の ☆ をタップするとここでフォローできます"
+      trending: "CoinGeckoのトレンド"; noTrending: "トレンドを読み込めませんでした"; gainers: "値上がり上位、24h"; losers: "値下がり上位、24h"; catsByCap: "時価総額順のカテゴリ"
+      noCats: "カテゴリを読み込めませんでした"; portfolioEmpty: "コインを開いて購入か売却を追加すると、保有資産を記録できます"; value: "評価額"; pnl: "損益"; holdings: "保有資産"
+      transactions: "取引"; currency: "通貨"; about2: "価格、チャート、コインの詳細はCoinGeckoの無料APIから、アプリを開いている間だけ取得します。"
+    }
+    uk {
+      markets: "ринки"; watchlist: "обране"; discover: "огляд"; portfolio: "портфель"; settings: "налаштування"; website: "сайт"
+      whitepaper: "white paper"; explorer: "оглядач"; curName: i => ["Долар США", "Євро", "Британський фунт", "Японська єна", "Швейцарський франк", "Канадський долар", "Австралійський долар", "Китайський юань", "Індійська рупія", "Південнокорейська вона", "Бразильський реал", "Шведська крона", "Біткоїн", "Етер", "Сатоші"][i]
+      rank: r => " · місце ${r}"; last24: "за 24 години"; last7: "за 7 днів"; lastMonth: "за місяць"; last3m: "за 3 місяці"
+      lastYear: "за рік"; busyRest: "CoinGecko перевантажений; решта з'явиться за хвилину"; loadSome: "не все вдалося завантажити"
+      loadingChart: "завантаження графіка…"; chartNA: "графік недоступний"; change: "зміна"; range24: "діапазон за 24г"
+      market: "ринок"; marketCap: "капіталізація"; fdv: "повністю розбавлена вартість"; vol24: "обсяг за 24г"; circ: "в обігу"
+      totalSupply: "усього випущено"; maxSupply: "максимум емісії"; athAtl: "історичний максимум і мінімум"; high: d => "максимум · ${d}"
+      low: d => "мінімум · ${d}"; converter: "конвертер"; amount: "кількість"; youHold: (a, s) => "портфель · у вас ${a} ${s}"
+      addTx: "додати угоду"; buy: "купівля"; sell: "продаж"; price: "ціна"; perCoin: "за монету"; save: "зберегти"; cancel: "скасувати"
+      categories: "категорії"; about: "про монету"; less: "згорнути"; more: "ще"; data: "дані: CoinGecko"; search: "пошук монет"
+      allCG: "весь CoinGecko"; searching: "пошук…"; busyTry: "CoinGecko перевантажений; спробуйте за хвилину"; searchFailed: "пошук не вдався"
+      notTop: "немає в топ-250; натисніть «надіслати», щоб шукати по всьому CoinGecko"; pressSend: "натисніть «надіслати», щоб шукати по всьому CoinGecko"
+      btcDom: "домінування BTC"; ethDom: "домінування ETH"; rankSort: "місце"; volume: "обсяг"; loading: "завантаження…"
+      busyPrices: "CoinGecko перевантажений; ціни повернуться за хвилину"; offline: "немає мережі"; tryAgain: "повторити"
+      busyLast: "CoinGecko перевантажений: це останні ціни"; offlineLast: "немає мережі: це останні ціни"; prev: "‹ назад"
+      next: "далі ›"; pageOf: (a, b, n) => "${a}–${b} з ${n}"; tapStar: "натисніть ☆ біля монети, щоб стежити за нею тут"
+      trending: "у тренді на CoinGecko"; noTrending: "не вдалося завантажити тренди"; gainers: "лідери зростання, 24г"
+      losers: "лідери падіння, 24г"; catsByCap: "категорії за капіталізацією"; noCats: "не вдалося завантажити категорії"
+      portfolioEmpty: "відкрийте монету й додайте купівлю чи продаж, щоб стежити за активами"; value: "вартість"; pnl: "П/З"
+      holdings: "активи"; transactions: "угоди"; currency: "валюта"; about2: "Ціни, графіки й дані про монети беруться з безплатного API CoinGecko і завантажуються, лише поки застосунок відкритий."
+    }
+    fr {
+      markets: "marchés"; watchlist: "suivis"; discover: "découvrir"; portfolio: "portefeuille"; settings: "paramètres"
+      website: "site web"; whitepaper: "livre blanc"; explorer: "explorateur"; curName: i => ["Dollar américain", "Euro", "Livre sterling", "Yen japonais", "Franc suisse", "Dollar canadien", "Dollar australien", "Yuan chinois", "Roupie indienne", "Won sud-coréen", "Réal brésilien", "Couronne suédoise", "Bitcoin", "Ether", "Satoshi"][i]
+      rank: r => " · rang ${r}"; last24: "dernières 24 heures"; last7: "7 derniers jours"; lastMonth: "dernier mois"; last3m: "3 derniers mois"
+      lastYear: "dernière année"; busyRest: "CoinGecko est saturé ; le reste revient dans une minute"; loadSome: "tout n'a pas pu être chargé"
+      loadingChart: "chargement du graphique…"; chartNA: "graphique indisponible"; change: "variation"; range24: "fourchette 24h"
+      market: "marché"; marketCap: "capitalisation"; fdv: "valeur entièrement diluée"; vol24: "volume 24h"; circ: "offre en circulation"
+      totalSupply: "offre totale"; maxSupply: "offre maximale"; athAtl: "plus haut et plus bas historiques"; high: d => "plus haut · ${d}"
+      low: d => "plus bas · ${d}"; converter: "convertisseur"; amount: "montant"; youHold: (a, s) => "portefeuille · tu détiens ${a} ${s}"
+      addTx: "ajouter une transaction"; buy: "achat"; sell: "vente"; price: "prix"; perCoin: "par jeton"; save: "enregistrer"
+      cancel: "annuler"; categories: "catégories"; about: "à propos"; less: "moins"; more: "plus"; data: "données : CoinGecko"
+      search: "chercher des cryptos"; allCG: "tout CoinGecko"; searching: "recherche…"; busyTry: "CoinGecko est saturé ; réessaie dans une minute"
+      searchFailed: "échec de la recherche"; notTop: "pas dans le top 250 ; appuie sur envoyer pour chercher dans tout CoinGecko"
+      pressSend: "appuie sur envoyer pour chercher dans tout CoinGecko"; btcDom: "dominance BTC"; ethDom: "dominance ETH"
+      rankSort: "rang"; volume: "volume"; loading: "chargement…"; busyPrices: "CoinGecko est saturé ; les prix reviennent dans une minute"
+      offline: "hors ligne"; tryAgain: "réessayer"; busyLast: "CoinGecko est saturé : voici les derniers prix"; offlineLast: "hors ligne : voici les derniers prix"
+      prev: "‹ préc."; next: "suiv. ›"; pageOf: (a, b, n) => "${a}–${b} sur ${n}"; tapStar: "touche ☆ à côté d'une crypto pour la suivre ici"
+      trending: "tendances sur CoinGecko"; noTrending: "impossible de charger les tendances"; gainers: "plus fortes hausses, 24h"
+      losers: "plus fortes baisses, 24h"; catsByCap: "catégories par capitalisation"; noCats: "impossible de charger les catégories"
+      portfolioEmpty: "ouvre une crypto et ajoute un achat ou une vente pour suivre ce que tu détiens"; value: "valeur"
+      pnl: "P&P"; holdings: "avoirs"; transactions: "transactions"; currency: "devise"; about2: "Les prix, graphiques et détails viennent de l'API gratuite de CoinGecko, récupérés seulement quand l'app est ouverte."
+    }
+    tr {
+      markets: "piyasalar"; watchlist: "izlenenler"; discover: "keşfet"; portfolio: "portföy"; settings: "ayarlar"; website: "web sitesi"
+      whitepaper: "whitepaper"; explorer: "gezgin"; curName: i => ["ABD Doları", "Euro", "İngiliz Sterlini", "Japon Yeni", "İsviçre Frangı", "Kanada Doları", "Avustralya Doları", "Çin Yuanı", "Hindistan Rupisi", "Güney Kore Wonu", "Brezilya Reali", "İsveç Kronu", "Bitcoin", "Ether", "Satoshi"][i]
+      rank: r => " · sıra ${r}"; last24: "son 24 saat"; last7: "son 7 gün"; lastMonth: "son ay"; last3m: "son 3 ay"; lastYear: "son yıl"
+      busyRest: "CoinGecko yoğun; gerisi bir dakikaya gelir"; loadSome: "her şey yüklenemedi"; loadingChart: "grafik yükleniyor…"
+      chartNA: "grafik kullanılamıyor"; change: "değişim"; range24: "24s aralık"; market: "piyasa"; marketCap: "piyasa değeri"
+      fdv: "tam seyreltilmiş değer"; vol24: "24s hacim"; circ: "dolaşımdaki arz"; totalSupply: "toplam arz"; maxSupply: "azami arz"
+      athAtl: "tüm zamanların en yüksek ve en düşüğü"; high: d => "en yüksek · ${d}"; low: d => "en düşük · ${d}"; converter: "çevirici"
+      amount: "miktar"; youHold: (a, s) => "portföy · elinde ${a} ${s} var"; addTx: "işlem ekle"; buy: "alış"; sell: "satış"
+      price: "fiyat"; perCoin: "coin başına"; save: "kaydet"; cancel: "iptal"; categories: "kategoriler"; about: "hakkında"
+      less: "daha az"; more: "daha fazla"; data: "veri: CoinGecko"; search: "coin ara"; allCG: "tüm CoinGecko"; searching: "aranıyor…"
+      busyTry: "CoinGecko yoğun; bir dakika sonra tekrar dene"; searchFailed: "arama başarısız"; notTop: "ilk 250'de yok; tüm CoinGecko'da aramak için gönder'e bas"
+      pressSend: "tüm CoinGecko'da aramak için gönder'e bas"; btcDom: "BTC hakimiyeti"; ethDom: "ETH hakimiyeti"; rankSort: "sıra"
+      volume: "hacim"; loading: "yükleniyor…"; busyPrices: "CoinGecko yoğun; fiyatlar bir dakikaya gelir"; offline: "çevrimdışı"
+      tryAgain: "tekrar dene"; busyLast: "CoinGecko yoğun: bunlar son fiyatlar"; offlineLast: "çevrimdışı: bunlar son fiyatlar"
+      prev: "‹ önceki"; next: "sonraki ›"; pageOf: (a, b, n) => "${a}–${b} / ${n}"; tapStar: "bir coin'i burada izlemek için yanındaki ☆'a dokun"
+      trending: "CoinGecko'da trend"; noTrending: "trend coin'ler yüklenemedi"; gainers: "en çok yükselenler, 24s"; losers: "en çok düşenler, 24s"
+      catsByCap: "piyasa değerine göre kategoriler"; noCats: "kategoriler yüklenemedi"; portfolioEmpty: "elindekileri takip etmek için bir coin aç ve alış ya da satış ekle"
+      value: "değer"; pnl: "K/Z"; holdings: "varlıklar"; transactions: "işlemler"; currency: "para birimi"; about2: "Fiyatlar, grafikler ve coin ayrıntıları CoinGecko'nun ücretsiz API'sinden, yalnızca uygulama açıkken alınır."
+    }
+    it {
+      markets: "mercati"; watchlist: "preferite"; discover: "scopri"; portfolio: "portafoglio"; settings: "impostazioni"
+      website: "sito web"; whitepaper: "whitepaper"; explorer: "explorer"; curName: i => ["Dollaro USA", "Euro", "Sterlina britannica", "Yen giapponese", "Franco svizzero", "Dollaro canadese", "Dollaro australiano", "Yuan cinese", "Rupia indiana", "Won sudcoreano", "Real brasiliano", "Corona svedese", "Bitcoin", "Ether", "Satoshi"][i]
+      rank: r => " · posizione ${r}"; last24: "ultime 24 ore"; last7: "ultimi 7 giorni"; lastMonth: "ultimo mese"; last3m: "ultimi 3 mesi"
+      lastYear: "ultimo anno"; busyRest: "CoinGecko è sovraccarico; il resto torna tra un minuto"; loadSome: "non è stato possibile caricare tutto"
+      loadingChart: "caricamento grafico…"; chartNA: "grafico non disponibile"; change: "variazione"; range24: "intervallo 24h"
+      market: "mercato"; marketCap: "capitalizzazione"; fdv: "valore completamente diluito"; vol24: "volume 24h"; circ: "offerta circolante"
+      totalSupply: "offerta totale"; maxSupply: "offerta massima"; athAtl: "massimo e minimo storici"; high: d => "massimo · ${d}"
+      low: d => "minimo · ${d}"; converter: "convertitore"; amount: "quantità"; youHold: (a, s) => "portafoglio · hai ${a} ${s}"
+      addTx: "aggiungi una transazione"; buy: "acquisto"; sell: "vendita"; price: "prezzo"; perCoin: "per moneta"; save: "salva"
+      cancel: "annulla"; categories: "categorie"; about: "info"; less: "meno"; more: "altro"; data: "dati: CoinGecko"
+      search: "cerca monete"; allCG: "tutto CoinGecko"; searching: "ricerca…"; busyTry: "CoinGecko è sovraccarico; riprova tra un minuto"
+      searchFailed: "ricerca non riuscita"; notTop: "non è nella top 250; premi invio per cercare in tutto CoinGecko"
+      pressSend: "premi invio per cercare in tutto CoinGecko"; btcDom: "dominanza BTC"; ethDom: "dominanza ETH"; rankSort: "posizione"
+      volume: "volume"; loading: "caricamento…"; busyPrices: "CoinGecko è sovraccarico; i prezzi tornano tra un minuto"
+      offline: "offline"; tryAgain: "riprova"; busyLast: "CoinGecko è sovraccarico: questi sono gli ultimi prezzi"; offlineLast: "offline: questi sono gli ultimi prezzi"
+      prev: "‹ prec."; next: "succ. ›"; pageOf: (a, b, n) => "${a}–${b} di ${n}"; tapStar: "tocca ☆ accanto a una moneta per seguirla qui"
+      trending: "di tendenza su CoinGecko"; noTrending: "impossibile caricare le tendenze"; gainers: "maggiori rialzi, 24h"
+      losers: "maggiori ribassi, 24h"; catsByCap: "categorie per capitalizzazione"; noCats: "impossibile caricare le categorie"
+      portfolioEmpty: "apri una moneta e aggiungi un acquisto o una vendita per seguire quello che hai"; value: "valore"
+      pnl: "P&P"; holdings: "posizioni"; transactions: "transazioni"; currency: "valuta"; about2: "Prezzi, grafici e dettagli delle monete vengono dall'API gratuita di CoinGecko, scaricati solo mentre l'app è aperta."
+    }
+  }
   // A coin's page and a search are a level of their own; Back returns to the tab.
-  title: openId != "" ? cName : view == "markets" ? "crypto market" : view == "watch" ? "watchlist" : view
+  title: openId != "" ? cName : view == "markets" ? "crypto market" : view == "watch" ? str.watchlist : view == "discover" ? str.discover : view == "portfolio" ? str.portfolio : str.settings
   back: openId != "" || len(typed) > 0
   onBack: { typed = openId != "" ? typed : ""; query = openId != "" ? query : ""; openId = ""; adding = false }
   icon: """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
@@ -86,11 +334,11 @@ app "crypto market" {
   let known = coins + (more != null && more.ok ? more.out : [])
 
   let curs = [
-    {code: "usd", sym: "$", name: "US Dollar"}, {code: "eur", sym: "€", name: "Euro"}, {code: "gbp", sym: "£", name: "British Pound"},
-    {code: "jpy", sym: "¥", name: "Japanese Yen"}, {code: "chf", sym: "CHF ", name: "Swiss Franc"}, {code: "cad", sym: "CA$", name: "Canadian Dollar"},
-    {code: "aud", sym: "A$", name: "Australian Dollar"}, {code: "cny", sym: "CN¥", name: "Chinese Yuan"}, {code: "inr", sym: "₹", name: "Indian Rupee"},
-    {code: "krw", sym: "₩", name: "South Korean Won"}, {code: "brl", sym: "R$", name: "Brazilian Real"}, {code: "sek", sym: "kr ", name: "Swedish Krona"},
-    {code: "btc", sym: "₿", name: "Bitcoin"}, {code: "eth", sym: "Ξ", name: "Ether"}, {code: "sats", sym: "", name: "Satoshi"}
+    {code: "usd", sym: "$", name: str.curName(0)}, {code: "eur", sym: "€", name: str.curName(1)}, {code: "gbp", sym: "£", name: str.curName(2)},
+    {code: "jpy", sym: "¥", name: str.curName(3)}, {code: "chf", sym: "CHF ", name: str.curName(4)}, {code: "cad", sym: "CA$", name: str.curName(5)},
+    {code: "aud", sym: "A$", name: str.curName(6)}, {code: "cny", sym: "CN¥", name: str.curName(7)}, {code: "inr", sym: "₹", name: str.curName(8)},
+    {code: "krw", sym: "₩", name: str.curName(9)}, {code: "brl", sym: "R$", name: str.curName(10)}, {code: "sek", sym: "kr ", name: str.curName(11)},
+    {code: "btc", sym: "₿", name: str.curName(12)}, {code: "eth", sym: "Ξ", name: str.curName(13)}, {code: "sats", sym: "", name: str.curName(14)}
   ]
   let csym = (curs.find(c => c.code == cur) ?? curs[0]).sym
 
@@ -128,9 +376,9 @@ app "crypto market" {
   let desc = trim(first(split(replace(cd.description.en ?? "", "\r\n", "\n"), "\n\n")) ?? "")
   let descText = join(matchAll(desc, '([^<>]+)(?:<[^>]*>)?').map(m => m[0]), "")
   let links = [
-    {label: "website", href: first((cd.links.homepage ?? []).filter(u => startsWith(u, "https://")))},
-    {label: "whitepaper", href: startsWith(cd.links.whitepaper ?? "", "https://") ? cd.links.whitepaper : null},
-    {label: "explorer", href: first((cd.links.blockchain_site ?? []).filter(u => startsWith(u, "https://")))},
+    {label: str.website, href: first((cd.links.homepage ?? []).filter(u => startsWith(u, "https://")))},
+    {label: str.whitepaper, href: startsWith(cd.links.whitepaper ?? "", "https://") ? cd.links.whitepaper : null},
+    {label: str.explorer, href: first((cd.links.blockchain_site ?? []).filter(u => startsWith(u, "https://")))},
     {label: "github", href: first((cd.links.repos_url.github ?? []).filter(u => startsWith(u, "https://")))},
     {label: "reddit", href: startsWith(cd.links.subreddit_url ?? "", "https://") ? cd.links.subreddit_url : null},
     {label: "X", href: len(cd.links.twitter_screen_name ?? "") > 0 ? "https://x.com/${cd.links.twitter_screen_name}" : null}
@@ -265,7 +513,7 @@ app "crypto market" {
             gap: 0
             weight: 1
             Amount { v: hp != null && hx >= 0 ? hp[1] / mul : cPrice; sz: 28; heavy: true; right: false; fill: width }
-            Text { text: "${cSym}${(row.market_cap_rank ?? cd.market_cap_rank) == null ? "" : " · rank " + (row.market_cap_rank ?? cd.market_cap_rank)}"; style: small; color: muted; maxLines: 1 }
+            Text { text: "${cSym}${(row.market_cap_rank ?? cd.market_cap_rank) == null ? "" : str.rank(row.market_cap_rank ?? cd.market_cap_rank)}"; style: small; color: muted; maxLines: 1 }
           }
           Text { text: starred ? "★" : "☆"; fontSize: 26; color: starred ? yellow : muted; width: 40; align: center; onTap: watch = starred ? watch.filter(w => w != openId) : watch + [openId] }
         }
@@ -273,7 +521,7 @@ app "crypto market" {
           gap: 10
           align: center
           Text {
-            text: hp != null && hx >= 0 ? fmtTime(hp[0] / 1000, range == 1 ? "HH:mm" : range <= 30 ? "d MMM HH:mm" : "d MMM yyyy") : range == 1 ? "last 24 hours" : range == 7 ? "last 7 days" : range == 30 ? "last month" : range == 90 ? "last 3 months" : "last year"
+            text: hp != null && hx >= 0 ? fmtTime(hp[0] / 1000, range == 1 ? "HH:mm" : range <= 30 ? "d MMM HH:mm" : "d MMM yyyy") : range == 1 ? str.last24 : range == 7 ? str.last7 : range == 30 ? str.lastMonth : range == 90 ? str.last3m : str.lastYear
             style: small
             color: muted
             weight: 1
@@ -281,7 +529,7 @@ app "crypto market" {
           Amount { v: hx >= 0 && hp != null ? (hp[1] / pts[0][1] - 1) * 100 : chg; kind: "chg"; sz: 14; width: 110 }
         }
         if (coin != null && !coin.ok) || (chart != null && !chart.ok) {
-          Text { text: (coin != null && coin.code == 429) || (chart != null && chart.code == 429) ? "CoinGecko is busy; the rest comes back in a minute" : "couldn't load everything"; style: small; color: yellow }
+          Text { text: (coin != null && coin.code == 429) || (chart != null && chart.code == 429) ? str.busyRest : str.loadSome; style: small; color: yellow }
         }
         Canvas {
           width: cw
@@ -300,7 +548,7 @@ app "crypto market" {
               circle(hi2 * width / (n - 1), 8 + (1 - (pts[hi2][1] - lo) / ys) * (height - 16), 4, fill: tone)
             }
           } else {
-            text(chart == null || chart.ok ? "loading chart…" : "chart unavailable", width / 2, height / 2, size: 13, align: center, color: muted)
+            text(chart == null || chart.ok ? str.loadingChart : str.chartNA, width / 2, height / 2, size: 13, align: center, color: muted)
           }
         }
         Row {
@@ -310,7 +558,7 @@ app "crypto market" {
           }
         }
 
-        Head { t: "change" }
+        Head { t: str.change }
         Row {
           gap: 4
           for p in [{l: "1h", v: row.price_change_percentage_1h_in_currency ?? get(md.price_change_percentage_1h_in_currency ?? {}, vs, null)}, {l: "24h", v: row.price_change_percentage_24h_in_currency ?? md.price_change_percentage_24h}, {l: "7d", v: row.price_change_percentage_7d_in_currency ?? md.price_change_percentage_7d}, {l: "30d", v: row.price_change_percentage_30d_in_currency ?? md.price_change_percentage_30d}, {l: "1y", v: row.price_change_percentage_1y_in_currency ?? md.price_change_percentage_1y}] {
@@ -329,7 +577,7 @@ app "crypto market" {
         let dayLo = row.low_24h ?? get(md.low_24h ?? {}, vs, null)
         let dayHi = row.high_24h ?? get(md.high_24h ?? {}, vs, null)
         if dayLo != null && dayHi != null {
-          Head { t: "24h range" }
+          Head { t: str.range24 }
           Box {
             height: 6
             fill: width
@@ -346,21 +594,21 @@ app "crypto market" {
           }
         }
 
-        Head { t: "market" }
+        Head { t: str.market }
         Column {
           gap: 6
-          Stat { label: "market cap"; v: row.market_cap ?? get(md.market_cap ?? {}, vs, null) }
-          Stat { label: "fully diluted value"; v: row.fully_diluted_valuation ?? get(md.fully_diluted_valuation ?? {}, vs, null) }
-          Stat { label: "24h volume"; v: row.total_volume ?? get(md.total_volume ?? {}, vs, null) }
-          Stat { label: "circulating supply"; v: row.circulating_supply ?? md.circulating_supply; kind: "supply"; sym: cSym }
-          Stat { label: "total supply"; v: row.total_supply ?? md.total_supply; kind: "supply"; sym: cSym }
-          Stat { label: "max supply"; v: row.max_supply ?? md.max_supply ?? 0; kind: "supply"; sym: cSym }
+          Stat { label: str.marketCap; v: row.market_cap ?? get(md.market_cap ?? {}, vs, null) }
+          Stat { label: str.fdv; v: row.fully_diluted_valuation ?? get(md.fully_diluted_valuation ?? {}, vs, null) }
+          Stat { label: str.vol24; v: row.total_volume ?? get(md.total_volume ?? {}, vs, null) }
+          Stat { label: str.circ; v: row.circulating_supply ?? md.circulating_supply; kind: "supply"; sym: cSym }
+          Stat { label: str.totalSupply; v: row.total_supply ?? md.total_supply; kind: "supply"; sym: cSym }
+          Stat { label: str.maxSupply; v: row.max_supply ?? md.max_supply ?? 0; kind: "supply"; sym: cSym }
         }
 
         let ath = row.ath ?? get(md.ath ?? {}, vs, null)
         let atl = row.atl ?? get(md.atl ?? {}, vs, null)
         if ath != null {
-          Head { t: "all-time high and low" }
+          Head { t: str.athAtl }
           Row {
             gap: 8
             Column {
@@ -369,7 +617,7 @@ app "crypto market" {
               padding: [12, 10]
               background: alpha(foreground, 0.05)
               radius: 8 * corners
-              Text { text: "high · ${sub(row.ath_date ?? get(md.ath_date ?? {}, vs, ""), 0, 10)}"; style: small; color: muted; maxLines: 1 }
+              Text { text: str.high(sub(row.ath_date ?? get(md.ath_date ?? {}, vs, ""), 0, 10)); style: small; color: muted; maxLines: 1 }
               Amount { v: ath; heavy: true; right: false; fill: width }
               Amount { v: row.ath_change_percentage ?? get(md.ath_change_percentage ?? {}, vs, null); kind: "chg"; sz: 12; right: false; fill: width }
             }
@@ -379,14 +627,14 @@ app "crypto market" {
               padding: [12, 10]
               background: alpha(foreground, 0.05)
               radius: 8 * corners
-              Text { text: "low · ${sub(row.atl_date ?? get(md.atl_date ?? {}, vs, ""), 0, 10)}"; style: small; color: muted; maxLines: 1 }
+              Text { text: str.low(sub(row.atl_date ?? get(md.atl_date ?? {}, vs, ""), 0, 10)); style: small; color: muted; maxLines: 1 }
               Amount { v: atl; heavy: true; right: false; fill: width }
               Amount { v: row.atl_change_percentage ?? get(md.atl_change_percentage ?? {}, vs, null); kind: "chg"; sz: 12; right: false; fill: width }
             }
           }
         }
 
-        Head { t: "converter" }
+        Head { t: str.converter }
         Column {
           gap: 6
           padding: [12, 10]
@@ -395,7 +643,7 @@ app "crypto market" {
           Row {
             gap: 8
             align: center
-            Input { text: convIn; placeholder: "amount"; weight: 1; onChange: convIn = value }
+            Input { text: convIn; placeholder: str.amount; weight: 1; onChange: convIn = value }
             Text { text: convFlip ? (cur == "sats" ? "sats" : upper(cur)) : cSym; width: 56; color: muted; maxLines: 1 }
             Text { text: "⇄"; fontSize: 18; color: accent; width: 28; align: center; onTap: convFlip = !convFlip }
           }
@@ -409,9 +657,9 @@ app "crypto market" {
           }
         }
 
-        Head { t: mine != 0 ? "portfolio · you hold ${match(fixed(mine, 8), '^(-?[0-9]+(?:[.][0-9]*[1-9])?)')[0]} ${cSym}" : "portfolio" }
+        Head { t: mine != 0 ? str.youHold(match(fixed(mine, 8), '^(-?[0-9]+(?:[.][0-9]*[1-9])?)')[0], cSym) : str.portfolio }
         if !adding {
-          Button { text: "add a transaction"; onTap: { adding = true; txSide = "buy"; txAmt = ""; txPrice = cPrice == null ? "" : str(cPrice * mul) } }
+          Button { text: str.addTx; onTap: { adding = true; txSide = "buy"; txAmt = ""; txPrice = cPrice == null ? "" : str(cPrice * mul) } }
         } else {
           Column {
             gap: 8
@@ -420,33 +668,33 @@ app "crypto market" {
             radius: 8 * corners
             Row {
               gap: 6
-              Text { text: "buy"; style: small; align: center; maxLines: 1; padding: [12, 6]; color: txSide == "buy" ? foreground : muted; background: txSide == "buy" ? alpha(foreground, 0.12) : null; border: 1; borderColor: txSide == "buy" ? alpha(foreground, 0.7) : alpha(muted, 0.4); weight: 1; onTap: txSide = "buy" }
-              Text { text: "sell"; style: small; align: center; maxLines: 1; padding: [12, 6]; color: txSide == "sell" ? foreground : muted; background: txSide == "sell" ? alpha(foreground, 0.12) : null; border: 1; borderColor: txSide == "sell" ? alpha(foreground, 0.7) : alpha(muted, 0.4); weight: 1; onTap: txSide = "sell" }
+              Text { text: str.buy; style: small; align: center; maxLines: 1; padding: [12, 6]; color: txSide == "buy" ? foreground : muted; background: txSide == "buy" ? alpha(foreground, 0.12) : null; border: 1; borderColor: txSide == "buy" ? alpha(foreground, 0.7) : alpha(muted, 0.4); weight: 1; onTap: txSide = "buy" }
+              Text { text: str.sell; style: small; align: center; maxLines: 1; padding: [12, 6]; color: txSide == "sell" ? foreground : muted; background: txSide == "sell" ? alpha(foreground, 0.12) : null; border: 1; borderColor: txSide == "sell" ? alpha(foreground, 0.7) : alpha(muted, 0.4); weight: 1; onTap: txSide = "sell" }
             }
             Row {
               gap: 8
               align: center
-              Text { text: "amount"; style: small; color: muted; width: 70 }
+              Text { text: str.amount; style: small; color: muted; width: 70 }
               Input { text: txAmt; placeholder: "0.5"; weight: 1; onChange: txAmt = value }
               Text { text: cSym; style: small; color: muted; width: 48; maxLines: 1 }
             }
             Row {
               gap: 8
               align: center
-              Text { text: "price"; style: small; color: muted; width: 70 }
-              Input { text: txPrice; placeholder: "per coin"; weight: 1; onChange: txPrice = value }
+              Text { text: str.price; style: small; color: muted; width: 70 }
+              Input { text: txPrice; placeholder: str.perCoin; weight: 1; onChange: txPrice = value }
               Text { text: cur == "sats" ? "sats" : upper(cur); style: small; color: muted; width: 48; maxLines: 1 }
             }
             Row {
               gap: 8
-              Button { text: "save"; color: accent; onTap: { txs = num(replace(txAmt, ",", "."), 0) > 0 && num(replace(txPrice, ",", "."), -1) >= 0 ? txs + [{id: openId, symbol: row.symbol ?? cd.symbol, name: cName, side: txSide, amount: num(replace(txAmt, ",", "."), 0), price: num(replace(txPrice, ",", "."), 0) / mul, vs: vs, time: now}] : txs; adding = num(replace(txAmt, ",", "."), 0) > 0 ? false : true } }
-              Button { text: "cancel"; color: muted; onTap: adding = false }
+              Button { text: str.save; color: accent; onTap: { txs = num(replace(txAmt, ",", "."), 0) > 0 && num(replace(txPrice, ",", "."), -1) >= 0 ? txs + [{id: openId, symbol: row.symbol ?? cd.symbol, name: cName, side: txSide, amount: num(replace(txAmt, ",", "."), 0), price: num(replace(txPrice, ",", "."), 0) / mul, vs: vs, time: now}] : txs; adding = num(replace(txAmt, ",", "."), 0) > 0 ? false : true } }
+              Button { text: str.cancel; color: muted; onTap: adding = false }
             }
           }
         }
 
         if cd != null && len(cd.categories ?? []) > 0 {
-          Head { t: "categories" }
+          Head { t: str.categories }
           Flow {
             gap: 6
             for c in cd.categories.filter(c => c != null).take(8) {
@@ -455,9 +703,9 @@ app "crypto market" {
           }
         }
         if len(descText) > 0 {
-          Head { t: "about" }
+          Head { t: str.about }
           Text { text: descText; style: small; maxLines: descOpen ? 60 : 5; onTap: descOpen = !descOpen }
-          Text { text: descOpen ? "less" : "more"; style: small; color: accent; onTap: descOpen = !descOpen }
+          Text { text: descOpen ? str.less : str.more; style: small; color: accent; onTap: descOpen = !descOpen }
         }
         if len(links) > 0 {
           Flow {
@@ -467,7 +715,7 @@ app "crypto market" {
             }
           }
         }
-        Text { text: "data: CoinGecko"; style: small; color: muted; align: center; onTap: url("https://www.coingecko.com/en/coins/${openId}") }
+        Text { text: str.data; style: small; color: muted; align: center; onTap: url("https://www.coingecko.com/en/coins/${openId}") }
 
       } else if view == "markets" {
         // ---------------------------------------------------------------- markets
@@ -476,7 +724,7 @@ app "crypto market" {
           align: center
           padding: [4, 0]
           Image { src: searchIcon; size: 20; tint: muted }
-          Input { text: typed; placeholder: "search coins"; weight: 1; onChange: { typed = value; query = len(value) == 0 ? "" : query }; onSubmit: query = value }
+          Input { text: typed; placeholder: str.search; weight: 1; onChange: { typed = value; query = len(value) == 0 ? "" : query }; onSubmit: query = value }
           if searching {
             Text { text: "✕"; color: muted; width: 28; align: center; onTap: { typed = ""; query = "" } }
           }
@@ -486,11 +734,11 @@ app "crypto market" {
             CoinRow { c: c }
           }
           if len(query) >= 2 {
-            Head { t: "all of CoinGecko" }
+            Head { t: str.allCG }
             if found == null {
-              Text { text: "searching…"; style: small; color: muted }
+              Text { text: str.searching; style: small; color: muted }
             } else if !found.ok {
-              Text { text: found.code == 429 ? "CoinGecko is busy; try again in a minute" : "search failed"; style: small; color: muted }
+              Text { text: found.code == 429 ? str.busyTry : str.searchFailed; style: small; color: muted }
             } else {
               for c in (found.out.coins ?? []).filter(c => !any(matches, m => m.id == c.id)).take(15) key c.id {
                 Row {
@@ -509,7 +757,7 @@ app "crypto market" {
               }
             }
           } else {
-            Text { text: len(matches) == 0 ? "not in the top 250; press send to search all of CoinGecko" : "press send to search all of CoinGecko"; style: small; color: muted; padding: [0, 6] }
+            Text { text: len(matches) == 0 ? str.notTop : str.pressSend; style: small; color: muted; padding: [0, 6] }
           }
         } else {
           if g != null {
@@ -521,7 +769,7 @@ app "crypto market" {
                 padding: [12, 10]
                 background: alpha(foreground, 0.05)
                 radius: 8 * corners
-                Text { text: "market cap"; style: small; color: muted }
+                Text { text: str.marketCap; style: small; color: muted }
                 Row {
                   gap: 6
                   align: center
@@ -534,7 +782,7 @@ app "crypto market" {
                 padding: [12, 10]
                 background: alpha(foreground, 0.05)
                 radius: 8 * corners
-                Text { text: "24h volume"; style: small; color: muted }
+                Text { text: str.vol24; style: small; color: muted }
                 Amount { v: vol24; kind: "money"; heavy: true; sz: 16; right: false; fill: width }
               }
               Column {
@@ -542,7 +790,7 @@ app "crypto market" {
                 padding: [12, 10]
                 background: alpha(foreground, 0.05)
                 radius: 8 * corners
-                Text { text: "BTC dominance"; style: small; color: muted }
+                Text { text: str.btcDom; style: small; color: muted }
                 Amount { v: g.market_cap_percentage.btc; kind: "pct"; heavy: true; sz: 16; right: false; fill: width }
               }
               Column {
@@ -550,25 +798,25 @@ app "crypto market" {
                 padding: [12, 10]
                 background: alpha(foreground, 0.05)
                 radius: 8 * corners
-                Text { text: "ETH dominance"; style: small; color: muted }
+                Text { text: str.ethDom; style: small; color: muted }
                 Amount { v: g.market_cap_percentage.eth; kind: "pct"; heavy: true; sz: 16; right: false; fill: width }
               }
             }
           }
           Row {
             gap: 6
-            for s in [{k: "rank", l: "rank"}, {k: "price", l: "price"}, {k: "24h", l: "24h"}, {k: "7d", l: "7d"}, {k: "volume", l: "volume"}] {
+            for s in [{k: "rank", l: str.rankSort}, {k: "price", l: str.price}, {k: "24h", l: "24h"}, {k: "7d", l: "7d"}, {k: "volume", l: str.volume}] {
               Text { text: sortKey == s.k ? s.l + (sortDir > 0 ? " ↓" : " ↑") : s.l; style: small; align: center; maxLines: 1; padding: [12, 6]; color: sortKey == s.k ? foreground : muted; background: sortKey == s.k ? alpha(foreground, 0.12) : null; border: 1; borderColor: sortKey == s.k ? alpha(foreground, 0.7) : alpha(muted, 0.4); weight: 1; onTap: { sortDir = sortKey == s.k ? -sortDir : 1; sortKey = s.k; page = 0 } }
             }
           }
           if len(coins) == 0 {
-            Text { text: p1 == null ? "loading…" : limited ? "CoinGecko is busy; prices come back in a minute" : "offline"; color: muted; padding: [0, 24]; align: center }
+            Text { text: p1 == null ? str.loading : limited ? str.busyPrices : str.offline; color: muted; padding: [0, 24]; align: center }
             if p1 != null {
-              Button { text: "try again"; onTap: refresh() }
+              Button { text: str.tryAgain; onTap: refresh() }
             }
           } else {
             if offline {
-              Text { text: limited ? "CoinGecko is busy: these are the last prices" : "offline: these are the last prices"; style: small; color: yellow }
+              Text { text: limited ? str.busyLast : str.offlineLast; style: small; color: yellow }
             }
             for c in shown key c.id {
               CoinRow { c: c }
@@ -577,9 +825,9 @@ app "crypto market" {
               Row {
                 gap: 8
                 align: center
-                Text { text: "‹ prev"; style: small; align: center; maxLines: 1; padding: [12, 6]; color: muted; border: 1; borderColor: alpha(muted, 0.4); width: 90; opacity: page > 0 ? 1 : 0.35; onTap: page = max(0, page - 1) }
-                Text { text: "${page * 25 + 1}–${min(len(sorted), page * 25 + 25)} of ${len(sorted)}"; style: small; color: muted; weight: 1; align: center }
-                Text { text: "next ›"; style: small; align: center; maxLines: 1; padding: [12, 6]; color: muted; border: 1; borderColor: alpha(muted, 0.4); width: 90; opacity: page < pages - 1 ? 1 : 0.35; onTap: page = min(pages - 1, page + 1) }
+                Text { text: str.prev; style: small; align: center; maxLines: 1; padding: [12, 6]; color: muted; border: 1; borderColor: alpha(muted, 0.4); width: 90; opacity: page > 0 ? 1 : 0.35; onTap: page = max(0, page - 1) }
+                Text { text: str.pageOf(page * 25 + 1, min(len(sorted), page * 25 + 25), len(sorted)); style: small; color: muted; weight: 1; align: center }
+                Text { text: str.next; style: small; align: center; maxLines: 1; padding: [12, 6]; color: muted; border: 1; borderColor: alpha(muted, 0.4); width: 90; opacity: page < pages - 1 ? 1 : 0.35; onTap: page = min(pages - 1, page + 1) }
               }
             }
           }
@@ -588,7 +836,7 @@ app "crypto market" {
       } else if view == "watch" {
         // ---------------------------------------------------------------- watchlist
         if len(watch) == 0 {
-          Text { text: "tap ☆ next to a coin to follow it here"; color: muted }
+          Text { text: str.tapStar; color: muted }
         }
         for id, i in watch key id {
           let c = known.find(k => k.id == id)
@@ -602,18 +850,18 @@ app "crypto market" {
               onTap: { openId = id; hx = -1 }
               Text { text: "★"; fontSize: 18; color: yellow; width: 22; align: center; onTap: watch = watch.filter(w => w != id) }
               Text { text: id; color: muted; weight: 1; maxLines: 1 }
-              Text { text: "loading…"; style: small; color: muted; width: 80; align: end }
+              Text { text: str.loading; style: small; color: muted; width: 80; align: end }
             }
           }
         }
 
       } else if view == "discover" {
         // ---------------------------------------------------------------- discover
-        Head { t: "trending on CoinGecko" }
+        Head { t: str.trending }
         if trend == null {
-          Text { text: "loading…"; style: small; color: muted }
+          Text { text: str.loading; style: small; color: muted }
         } else if !trend.ok {
-          Text { text: trend.code == 429 ? "CoinGecko is busy; try again in a minute" : "couldn't load trending coins"; style: small; color: muted }
+          Text { text: trend.code == 429 ? str.busyTry : str.noTrending; style: small; color: muted }
         } else {
           for t in (trend.out.coins ?? []).take(10) key t.item.id {
             Row {
@@ -633,16 +881,16 @@ app "crypto market" {
           }
         }
         if len(traded) > 0 {
-          Head { t: "biggest gainers, 24h" }
+          Head { t: str.gainers }
           for c in gainers key c.id {
             CoinRow { c: c }
           }
-          Head { t: "biggest losers, 24h" }
+          Head { t: str.losers }
           for c in losers key c.id {
             CoinRow { c: c }
           }
         }
-        Head { t: "categories by market cap" }
+        Head { t: str.catsByCap }
         if cats != null && cats.ok {
           for c in cats.out.filter(c => c.market_cap != null).take(30) key c.id {
             Row {
@@ -656,20 +904,20 @@ app "crypto market" {
             }
           }
         } else {
-          Text { text: cats == null ? "loading…" : "couldn't load categories"; style: small; color: muted }
+          Text { text: cats == null ? str.loading : str.noCats; style: small; color: muted }
         }
 
       } else if view == "portfolio" {
         // ---------------------------------------------------------------- portfolio
         if len(txs) == 0 {
-          Text { text: "open a coin and add a buy or a sell to track what you hold"; color: muted }
+          Text { text: str.portfolioEmpty; color: muted }
         } else {
           Column {
             gap: 4
             padding: [14, 12]
             background: alpha(foreground, 0.05)
             radius: 8 * corners
-            Text { text: "value"; style: small; color: muted }
+            Text { text: str.value; style: small; color: muted }
             Amount { v: total; sz: 28; heavy: true; right: false; fill: width }
             Row {
               gap: 6
@@ -678,7 +926,7 @@ app "crypto market" {
             }
             Row {
               gap: 6
-              Text { text: "P&L"; style: small; color: muted; width: 36 }
+              Text { text: str.pnl; style: small; color: muted; width: 36 }
               Amount { v: rt == null && any(txs, t => t.vs != vs) ? null : totalPnl; kind: "delta"; sz: 13; right: false; weight: 1; tint: totalPnl >= 0 ? green : red }
             }
           }
@@ -698,7 +946,7 @@ app "crypto market" {
               }
             }
           }
-          Head { t: "holdings" }
+          Head { t: str.holdings }
           for h, i in hold key h.id {
             Row {
               gap: 10
@@ -720,12 +968,12 @@ app "crypto market" {
               }
             }
           }
-          Head { t: "transactions" }
+          Head { t: str.transactions }
           for t, i in txs.reverse() key "${t.time}-${t.id}-${i}" {
             Row {
               gap: 8
               align: center
-              Text { text: t.side; style: small; color: t.side == "buy" ? green : red; width: 34 }
+              Text { text: t.side == "buy" ? str.buy : str.sell; style: small; color: t.side == "buy" ? green : red; width: 34 }
               Text { text: "${match(fixed(t.amount, 8), '^(-?[0-9]+(?:[.][0-9]*[1-9])?)')[0]} ${upper(t.symbol)}"; style: small; weight: 1; maxLines: 1 }
               Text { text: fmtTime(t.time, "d MMM yy"); style: small; color: muted; width: 70; align: end }
               Text { text: "✕"; color: muted; width: 28; align: center; onTap: txs = txs.filter(x => x.time != t.time || x.id != t.id) }
@@ -735,7 +983,7 @@ app "crypto market" {
 
       } else {
         // ---------------------------------------------------------------- settings
-        Head { t: "currency" }
+        Head { t: str.currency }
         for c in curs key c.code {
           Row {
             gap: 10
@@ -747,7 +995,7 @@ app "crypto market" {
             Text { text: cur == c.code ? "●" : ""; color: accent; width: 20 }
           }
         }
-        Text { text: "Prices, charts and coin details come from CoinGecko's free API, fetched only while the app is open."; style: small; color: muted; padding: [0, 12, 0, 0] }
+        Text { text: str.about2; style: small; color: muted; padding: [0, 12, 0, 0] }
         Text { text: "coingecko.com"; style: small; color: accent; onTap: url("https://www.coingecko.com") }
       }
     }
@@ -756,11 +1004,11 @@ app "crypto market" {
       Box { height: 1; fill: width; background: alpha(muted, 0.25) }
       Row {
         gap: 0
-        Tab { name: "markets"; label: "markets"; icon: marketsIcon }
-        Tab { name: "watch"; label: "watchlist"; icon: watchIcon }
-        Tab { name: "discover"; label: "discover"; icon: discoverIcon }
-        Tab { name: "portfolio"; label: "portfolio"; icon: portfolioIcon }
-        Tab { name: "settings"; label: "settings"; icon: settingsIcon }
+        Tab { name: "markets"; label: str.markets; icon: marketsIcon }
+        Tab { name: "watch"; label: str.watchlist; icon: watchIcon }
+        Tab { name: "discover"; label: str.discover; icon: discoverIcon }
+        Tab { name: "portfolio"; label: str.portfolio; icon: portfolioIcon }
+        Tab { name: "settings"; label: str.settings; icon: settingsIcon }
       }
     }
   }

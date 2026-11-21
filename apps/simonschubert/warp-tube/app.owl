@@ -12,7 +12,7 @@ app "warp tube" {
   // run that ended are still pictures, and the launcher parks the frame clock. A tile nobody is
   // playing costs no frames at all, in the drawer or left open.
 
-  meta { owl: 14; description: "A wireframe tunnel racer in your theme's colors: roll around a bending neon tube and fly through the gaps in the gates"; version: "1.1"; license: "MIT"; category: "games" }
+  meta { owl: 16; description: "A wireframe tunnel racer in your theme's colors: roll around a bending neon tube and fly through the gaps in the gates"; version: "1.2"; license: "MIT"; category: "games" }
 
   title: ""
   statusBar: false
@@ -37,6 +37,119 @@ app "warp tube" {
   state final = 0
   // a run shown still at this many seconds in, for the store's screens; -1 when playing
   state hold = -1
+
+  // The text a person reads. The game's name, WARP TUBE, stays as it is.
+  strings {
+    en {
+      tapStart: "TAP TO START"
+      hint: "drag left and right to roll round the tube"
+      best: n => "BEST ${n}"
+      // Under the score at the top left, small.
+      gateWord: n => n == 1 ? "gate" : "gates"
+      gameOver: "GAME OVER"
+      gates: n => "${n} gate${n == 1 ? "" : "s"}"
+      tapAgain: "TAP TO FLY AGAIN"
+    }
+    id {
+      tapStart: "KETUK UNTUK MULAI"
+      hint: "geser ke kiri dan kanan untuk berputar di tabung"
+      best: n => "TERBAIK ${n}"
+      gateWord: n => "gerbang"
+      gameOver: "PERMAINAN SELESAI"
+      gates: n => "${n} gerbang"
+      tapAgain: "KETUK UNTUK TERBANG LAGI"
+    }
+    es {
+      tapStart: "TOCA PARA EMPEZAR"
+      hint: "desliza a izquierda y derecha para girar por el tubo"
+      best: n => "RÉCORD ${n}"
+      gateWord: n => n == 1 ? "puerta" : "puertas"
+      gameOver: "FIN DEL JUEGO"
+      gates: n => n == 1 ? "1 puerta" : "${n} puertas"
+      tapAgain: "TOCA PARA VOLAR DE NUEVO"
+    }
+    pt {
+      tapStart: "TOQUE PARA COMEÇAR"
+      hint: "arraste para a esquerda e a direita para girar pelo tubo"
+      best: n => "RECORDE ${n}"
+      gateWord: n => n == 1 ? "portão" : "portões"
+      gameOver: "FIM DE JOGO"
+      gates: n => n == 1 ? "1 portão" : "${n} portões"
+      tapAgain: "TOQUE PARA VOAR DE NOVO"
+    }
+    de {
+      tapStart: "TIPPEN ZUM STARTEN"
+      hint: "zieh nach links und rechts, um durch die röhre zu rollen"
+      best: n => "REKORD ${n}"
+      gateWord: n => n == 1 ? "tor" : "tore"
+      gameOver: "SPIEL VORBEI"
+      gates: n => n == 1 ? "1 tor" : "${n} tore"
+      tapAgain: "TIPPEN FÜR NEUEN FLUG"
+    }
+    zh {
+      tapStart: "点击开始"
+      hint: "左右拖动，在管道里绕圈"
+      best: n => "最佳 ${n}"
+      gateWord: n => "道门"
+      gameOver: "游戏结束"
+      gates: n => "${n} 道门"
+      tapAgain: "点击再飞一次"
+    }
+    ru {
+      tapStart: "НАЖМИТЕ, ЧТОБЫ НАЧАТЬ"
+      hint: "ведите влево и вправо, чтобы вращаться по трубе"
+      best: n => "РЕКОРД ${n}"
+      gateWord: n => n % 10 == 1 && n % 100 != 11 ? "барьер" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "барьера" : "барьеров"
+      gameOver: "ИГРА ОКОНЧЕНА"
+      gates: n => n % 10 == 1 && n % 100 != 11 ? "${n} барьер" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "${n} барьера" : "${n} барьеров"
+      tapAgain: "НАЖМИТЕ, ЧТОБЫ ЛЕТЕТЬ СНОВА"
+    }
+    ja {
+      tapStart: "タップでスタート"
+      hint: "左右にドラッグしてチューブの中を回ります"
+      best: n => "ベスト ${n}"
+      gateWord: n => "ゲート"
+      gameOver: "ゲームオーバー"
+      gates: n => "${n} ゲート"
+      tapAgain: "タップでもう一度"
+    }
+    uk {
+      tapStart: "НАТИСНІТЬ, ЩОБ ПОЧАТИ"
+      hint: "ведіть ліворуч і праворуч, щоб обертатися трубою"
+      best: n => "РЕКОРД ${n}"
+      gateWord: n => n % 10 == 1 && n % 100 != 11 ? "бар’єр" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "бар’єри" : "бар’єрів"
+      gameOver: "ГРУ ЗАКІНЧЕНО"
+      gates: n => n % 10 == 1 && n % 100 != 11 ? "${n} бар’єр" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "${n} бар’єри" : "${n} бар’єрів"
+      tapAgain: "НАТИСНІТЬ, ЩОБ ЛЕТІТИ ЗНОВУ"
+    }
+    fr {
+      tapStart: "TOUCHE POUR COMMENCER"
+      hint: "glisse à gauche et à droite pour tourner dans le tube"
+      best: n => "RECORD ${n}"
+      gateWord: n => n <= 1 ? "porte" : "portes"
+      gameOver: "PARTIE TERMINÉE"
+      gates: n => n <= 1 ? "${n} porte" : "${n} portes"
+      tapAgain: "TOUCHE POUR REVOLER"
+    }
+    tr {
+      tapStart: "BAŞLAMAK İÇİN DOKUN"
+      hint: "tüpte dönmek için sola ve sağa sürükle"
+      best: n => "EN İYİ ${n}"
+      gateWord: n => "kapı"
+      gameOver: "OYUN BİTTİ"
+      gates: n => "${n} kapı"
+      tapAgain: "TEKRAR UÇMAK İÇİN DOKUN"
+    }
+    it {
+      tapStart: "TOCCA PER INIZIARE"
+      hint: "trascina a sinistra e a destra per girare nel tubo"
+      best: n => "RECORD ${n}"
+      gateWord: n => n == 1 ? "porta" : "porte"
+      gameOver: "PARTITA FINITA"
+      gates: n => n == 1 ? "1 porta" : "${n} porte"
+      tapAgain: "TOCCA PER VOLARE ANCORA"
+    }
+  }
 
   // ---- the tube, in units and seconds ------------------------------------------------------------
   // N segments around; the ship rides ZS ahead of the camera. It flies at V0, speeding up by ACC
@@ -301,18 +414,18 @@ app "warp tube" {
       let score = fresh ? 0 : max(0, ceil((d - D0) / GAP))
       if fresh {
         text("WARP TUBE", width / 2, top + height * 0.16, size: 38, bold: true, color: foreground, align: center)
-        text("TAP TO START", width / 2, top + height * 0.16 + 40, size: 15, color: accent, align: center)
-        text("drag left and right to roll round the tube", width / 2, height * 0.88, size: 14, color: muted, align: center)
-        if best > 0 { text("BEST ${best}", width / 2, height * 0.88 + 24, size: 15, bold: true, color: accent, align: center) }
+        text(str.tapStart, width / 2, top + height * 0.16 + 40, size: 15, color: accent, align: center)
+        text(str.hint, width / 2, height * 0.88, size: 14, color: muted, align: center)
+        if best > 0 { text(str.best(best), width / 2, height * 0.88 + 24, size: 15, bold: true, color: accent, align: center) }
       } else {
         text("${score}", 20, top + 30, size: 30, bold: true, color: foreground)
-        text(score == 1 ? "gate" : "gates", 20, top + 56, size: 12, color: muted)
-        text("BEST ${max(best, score)}", width - 20, top + 30, size: 14, bold: true, color: accent, align: end)
+        text(str.gateWord(score), 20, top + 56, size: 12, color: muted)
+        text(str.best(max(best, score)), width - 20, top + 30, size: 14, bold: true, color: accent, align: end)
         if dead {
           rect(0, height * 0.2 + top - 40, width, 130, fill: alpha(background, clamp(since * 3, 0, 0.75)))
-          text("GAME OVER", width / 2, height * 0.2 + top, size: 34, bold: true, color: magenta, align: center)
-          text("${score} gate${score == 1 ? "" : "s"}", width / 2, height * 0.2 + top + 38, size: 17, color: foreground, align: center)
-          if since > 0.8 { text("TAP TO FLY AGAIN", width / 2, height * 0.2 + top + 70, size: 15, color: accent, align: center) }
+          text(str.gameOver, width / 2, height * 0.2 + top, size: 34, bold: true, color: magenta, align: center)
+          text(str.gates(score), width / 2, height * 0.2 + top + 38, size: 17, color: foreground, align: center)
+          if since > 0.8 { text(str.tapAgain, width / 2, height * 0.2 + top + 70, size: 15, color: accent, align: center) }
         }
       }
     }

@@ -12,7 +12,7 @@ app "runeclash" {
   // died. Both sides go through the same code: the foe's turn is one action at a time, each picked
   // by `AIP` (a card to play) or `AIA` (an attack) once the last one has finished playing.
 
-  meta { owl: 23; description: "A collectible card game in pixel art: summon minions, cast spells, beat eight foes on the ladder, open packs and build your deck; single player and offline"; version: "1.1.0"; license: "MIT"; category: "games" }
+  meta { owl: 23; description: "A collectible card game in pixel art: summon minions, cast spells, beat eight foes on the ladder, open packs and build your deck; single player and offline"; version: "1.2"; license: "MIT"; category: "games" }
 
   title: ""
   statusBar: false
@@ -96,80 +96,1109 @@ app "runeclash" {
   state resQ = 0
   state aiQ = 0
 
+  // The text a person reads, in the pixel font and in capitals. The game's name, RUNECLASH, and the
+  // foes' names (GRUK, MIRA...) stay as they are.
+  strings {
+    en {
+      // The banner as a fight starts, with who goes first under it.
+      vs: n => "VS ${n}"
+      youFirst: "YOU GO FIRST"
+      foeFirst: n => "${n} GOES FIRST"
+      yourTurn: "YOUR TURN"
+      foeTurn: n => "${n}'S TURN"
+      // Float up from a hero or minion; foe names are given as they are (GRUK, MIRA...).
+      frozen: "FROZEN"
+      crystal: "+1 CRYSTAL"
+      mana: n => "+${n} MANA"
+      fatigue: "FATIGUE"
+      burned: c => "BURNED ${c}"
+      destroyed: "DESTROYED"
+      shield: "SHIELD"
+      // Buttons; the text shrinks to fit, but keep them about as long as the English.
+      play: "PLAY"
+      cont: "CONTINUE"
+      deck: "DECK"
+      packs: "PACKS"
+      auto: "AUTO"
+      done: "DONE"
+      openAll: "OPEN ALL"
+      buyPack: "BUY A PACK"
+      goldN: n => "${n} GOLD"
+      endTurn: "END TURN"
+      foe: "FOE"
+      plays: n => "${n} PLAYS"
+      deckN: n => "DECK ${n}"
+      deckOf: n => "DECK ${n}/20"
+      // The hint over your hand, size 6.
+      noMana: "NOT ENOUGH MANA"
+      boardFull: "YOUR BOARD IS FULL"
+      noAim: "NOTHING TO AIM AT"
+      pickTarget: "PICK A TARGET"
+      tapAgain: "TAP AGAIN TO PLAY"
+      tauntWay: "A TAUNT IS IN THE WAY"
+      pickAttack: "PICK WHAT TO ATTACK"
+      nothingLeft: "NOTHING LEFT TO DO"
+      // The title screen.
+      tagline: "A PIXEL CARD GAME"
+      soundOn: "SOUND ON"
+      soundOff: "SOUND OFF"
+      titleStats: (g, f, c, n) => "${g} GOLD   ${f}/8 FOES   ${c}/${n} CARDS"
+      // The ladder of foes.
+      ladder: "THE LADDER"
+      pickFoe: "PICK A FOE"
+      needs20: "YOUR DECK NEEDS 20 CARDS"
+      locked: "LOCKED"
+      foeLine: (el, hp) => "${el} · ${hp} HP"
+      beaten: "BEATEN"
+      fight: "FIGHT"
+      // The deck builder.
+      tapCardsBelow: "TAP CARDS BELOW TO ADD THEM"
+      notOwned: "NOT OWNED"
+      inDeck: (a, b) => "${a}/${b} IN DECK"
+      deckHelp: "TAP A CARD TO ADD IT, A ROW TO TAKE IT OUT"
+      // The pack shop.
+      cardPacks: "CARD PACKS"
+      packInfo: "5 CARDS, ONE RARE OR BETTER"
+      spareInfo: "SPARE COPIES TURN INTO GOLD"
+      spare: n => "SPARE +${n} GOLD"
+      newCard: "NEW!"
+      turnOver: "TAP A CARD TO TURN IT OVER"
+      // Card faces: on a spell's foot, tiny.
+      spell: "SPELL"
+      // The end of a fight.
+      victory: "VICTORY"
+      defeat: "DEFEAT"
+      isBeaten: n => "${n} IS BEATEN"
+      winsThisTime: n => "${n} WINS THIS TIME"
+      reward: n => "+${n} GOLD"
+      // Keywords, on a card's first text line.
+      kw: {tn: "TAUNT", ch: "CHARGE", sh: "SHIELD", po: "POISON", ls: "LIFESTEAL"}
+      // The six elements (neutral, fire, water, nature, light, shadow), and short forms for the deck builder's tabs.
+      elNames: ["NEUTRAL", "FIRE", "WATER", "NATURE", "LIGHT", "SHADOW"]
+      elShort: ["NEUT", "FIRE", "WATER", "WILD", "LIGHT", "DARK"]
+      // common, rare, epic, legendary, token
+      rarities: ["COMMON", "RARE", "EPIC", "LEGENDARY", "TOKEN"]
+      // The eight foes' titles, by ladder step.
+      foeTitles: ["GOBLIN WARBOSS", "FROST WITCH", "GROVE DRUID", "BONE KING", "HIGH PRIESTESS", "FIRE LORD", "ARCHMAGE", "DRAGON KING"]
+      // The 52 cards by id; names shrink to fit the card.
+      cardNames: ["SQUIRE", "FOOTMAN", "ARCHER", "TROLL", "BARD", "IRON KNIGHT", "OGRE", "ELDER DRAGON", "IMP", "EMBER", "HELLHOUND", "FIREBALL", "PHOENIX", "FLAME DJINN", "FLAMESTRIKE", "INFERNO DRAKE", "FROSTBOLT", "FROST NYMPH", "INSIGHT", "SHELLBACK", "WATER SPIRIT", "BLIZZARD", "KRAKEN", "TIDE QUEEN", "VIPER", "GROWTH", "WILD MIGHT", "BEAR", "HOWL", "SPIDER QUEEN", "OLD OAK", "GAIA", "ACOLYTE", "HOLY LIGHT", "BLESSING", "TEMPLAR", "RALLY", "JUDGMENT", "SERAPH", "SUN TITAN", "VAMPIRE BAT", "SOUL DRAIN", "GRAVE ROBBER", "SHADOW BOLT", "BONE LORD", "VAMPIRE", "PLAGUE", "THE LICH", "WOLF", "SPIDERLING", "SKELETON", "THE COIN"]
+      // What each card does, by id, in short lines (shrunk to fit past about 15 characters; at most 3).
+      cardText: [
+        [], [], ["BATTLECRY: DEAL", "1 DAMAGE"], [],
+        ["BATTLECRY:", "DRAW A CARD"], [], [], ["BATTLECRY: DEAL 2", "TO ENEMY MINIONS"],
+        [], ["DEAL 2 DAMAGE"], [], ["DEAL 6 DAMAGE"],
+        ["DEATHRATTLE: DEAL", "3 TO THE ENEMY HERO"], ["BATTLECRY: DEAL", "3 DAMAGE"], ["DEAL 4 DAMAGE", "TO ALL ENEMY", "MINIONS"], ["BATTLECRY: DEAL 3", "TO THE ENEMY HERO,", "1 TO ITS MINIONS"],
+        ["DEAL 3 DAMAGE", "TO AN ENEMY", "AND FREEZE IT"], ["BATTLECRY: FREEZE", "AN ENEMY MINION"], ["DRAW 2 CARDS"], [],
+        ["BATTLECRY:", "DRAW A CARD"], ["DEAL 2 TO ALL", "ENEMY MINIONS", "AND FREEZE THEM"], [], ["BATTLECRY: FREEZE", "ENEMY MINIONS", "AND DRAW A CARD"],
+        [], ["GAIN AN EMPTY", "MANA CRYSTAL"], ["GIVE A MINION", "+2/+2 AND TAUNT"], [],
+        ["SUMMON TWO", "2/2 WOLVES"], ["DEATHRATTLE: SUMMON", "TWO 1/1 POISONOUS", "SPIDERS"], [], ["BATTLECRY: GIVE", "YOUR OTHER MINIONS", "+2/+2"],
+        [], ["RESTORE 8 HEALTH", "TO YOUR HERO"], ["GIVE A MINION", "+1/+1 AND SHIELD"], [],
+        ["GIVE YOUR", "MINIONS +1/+1"], ["DESTROY AN", "ENEMY MINION"], [], ["BATTLECRY: RESTORE", "8 HEALTH TO", "YOUR HERO"],
+        [], ["DEAL 2 DAMAGE,", "RESTORE 2 HEALTH", "TO YOUR HERO"], ["DEATHRATTLE:", "DRAW A CARD"], ["DEAL 4 DAMAGE", "TO AN ENEMY", "MINION"],
+        ["DEATHRATTLE: SUMMON", "TWO 1/1 SKELETONS"], [], ["DEAL 3 DAMAGE", "TO ALL MINIONS"], ["BATTLECRY: DESTROY", "AN ENEMY MINION"],
+        [], [], [], ["GAIN 1 MANA", "THIS TURN ONLY"]
+      ]
+    }
+    id {
+      vs: n => "LAWAN ${n}"
+      youFirst: "KAMU DULUAN"
+      foeFirst: n => "${n} DULUAN"
+      yourTurn: "GILIRANMU"
+      foeTurn: n => "GILIRAN ${n}"
+      frozen: "BEKU"
+      crystal: "+1 KRISTAL"
+      mana: n => "+${n} MANA"
+      fatigue: "LELAH"
+      burned: c => "TERBAKAR: ${c}"
+      destroyed: "HANCUR"
+      shield: "PERISAI"
+      play: "MAIN"
+      cont: "LANJUT"
+      deck: "DEK"
+      packs: "PAKET"
+      auto: "OTOMATIS"
+      done: "SELESAI"
+      openAll: "BUKA SEMUA"
+      buyPack: "BELI PAKET"
+      goldN: n => "${n} EMAS"
+      endTurn: "AKHIRI GILIRAN"
+      foe: "LAWAN"
+      plays: n => "${n} MEMAINKAN"
+      deckN: n => "DEK ${n}"
+      deckOf: n => "DEK ${n}/20"
+      noMana: "MANA TIDAK CUKUP"
+      boardFull: "PAPANMU PENUH"
+      noAim: "TIDAK ADA SASARAN"
+      pickTarget: "PILIH SASARAN"
+      tapAgain: "KETUK LAGI UNTUK MAIN"
+      tauntWay: "ADA PROVOKASI MENGHALANGI"
+      pickAttack: "PILIH YANG DISERANG"
+      nothingLeft: "TIDAK ADA LAGI LANGKAH"
+      tagline: "GAME KARTU PIKSEL"
+      soundOn: "SUARA NYALA"
+      soundOff: "SUARA MATI"
+      titleStats: (g, f, c, n) => "${g} EMAS   ${f}/8 LAWAN   ${c}/${n} KARTU"
+      ladder: "TANGGA LAWAN"
+      pickFoe: "PILIH LAWAN"
+      needs20: "DEKMU BUTUH 20 KARTU"
+      locked: "TERKUNCI"
+      foeLine: (el, hp) => "${el} · ${hp} HP"
+      beaten: "DIKALAHKAN"
+      fight: "TANDING"
+      tapCardsBelow: "KETUK KARTU DI BAWAH UNTUK MENAMBAHKANNYA"
+      notOwned: "BELUM PUNYA"
+      inDeck: (a, b) => "${a}/${b} DI DEK"
+      deckHelp: "KETUK KARTU UNTUK MENAMBAH, BARIS UNTUK MENGELUARKAN"
+      cardPacks: "PAKET KARTU"
+      packInfo: "5 KARTU, SATU LANGKA ATAU LEBIH"
+      spareInfo: "SALINAN LEBIH JADI EMAS"
+      spare: n => "LEBIH +${n} EMAS"
+      newCard: "BARU!"
+      turnOver: "KETUK KARTU UNTUK MEMBALIKNYA"
+      spell: "MANTRA"
+      victory: "MENANG"
+      defeat: "KALAH"
+      isBeaten: n => "${n} DIKALAHKAN"
+      winsThisTime: n => "${n} MENANG KALI INI"
+      reward: n => "+${n} EMAS"
+      kw: {tn: "PROVOKASI", ch: "SERBU", sh: "PERISAI", po: "RACUN", ls: "CURI NYAWA"}
+      elNames: ["NETRAL", "API", "AIR", "ALAM", "CAHAYA", "BAYANGAN"]
+      elShort: ["NETRAL", "API", "AIR", "ALAM", "CAHAYA", "GELAP"]
+      rarities: ["BIASA", "LANGKA", "EPIK", "LEGENDARIS", "TOKEN"]
+      foeTitles: ["PANGLIMA GOBLIN", "PENYIHIR ES", "DRUID HUTAN", "RAJA TULANG", "PENDETA AGUNG", "PENGUASA API", "PENYIHIR AGUNG", "RAJA NAGA"]
+      cardNames: ["PENGAWAL", "PRAJURIT", "PEMANAH", "TROLL", "PENYAIR", "KESATRIA BESI", "RAKSASA", "NAGA TUA", "IMP", "BARA", "ANJING NERAKA", "BOLA API", "PHOENIX", "JIN API", "HANTAMAN API", "NAGA INFERNO", "PANAH ES", "PERI ES", "WAWASAN", "CANGKANG", "ROH AIR", "BADAI SALJU", "KRAKEN", "RATU PASANG", "ULAR BERBISA", "TUMBUH", "KEKUATAN LIAR", "BERUANG", "LOLONGAN", "RATU LABA-LABA", "EK TUA", "GAIA", "AKOLIT", "CAHAYA SUCI", "BERKAH", "TEMPLAR", "SERUAN", "PENGHAKIMAN", "SERAFIM", "TITAN MATAHARI", "KELELAWAR VAMPIR", "SERAP JIWA", "PERAMPOK MAKAM", "PANAH BAYANGAN", "PENGUASA TULANG", "VAMPIR", "WABAH", "SANG LICH", "SERIGALA", "ANAK LABA-LABA", "TENGKORAK", "SANG KOIN"]
+      cardText: [
+        [], [], ["PEKIK PERANG:", "1 KERUSAKAN"], [],
+        ["PEKIK PERANG:", "AMBIL 1 KARTU"], [], [], ["PEKIK PERANG: 2", "KE SEMUA MINION", "MUSUH"],
+        [], ["2 KERUSAKAN"], [], ["6 KERUSAKAN"],
+        ["NAPAS TERAKHIR: 3", "KE PAHLAWAN", "MUSUH"], ["PEKIK PERANG:", "3 KERUSAKAN"], ["4 KERUSAKAN KE", "SEMUA MINION", "MUSUH"], ["PEKIK PERANG: 3 KE", "PAHLAWAN MUSUH,", "1 KE MINIONNYA"],
+        ["3 KERUSAKAN KE", "MUSUH DAN", "MEMBEKUKANNYA"], ["PEKIK PERANG:", "BEKUKAN SATU", "MINION MUSUH"], ["AMBIL 2 KARTU"], [],
+        ["PEKIK PERANG:", "AMBIL 1 KARTU"], ["2 KE SEMUA", "MINION MUSUH", "DAN BEKUKAN"], [], ["PEKIK PERANG: BEKUKAN", "MINION MUSUH,", "AMBIL 1 KARTU"],
+        [], ["DAPAT SATU KRISTAL", "MANA KOSONG"], ["BERI SATU MINION", "+2/+2 DAN", "PROVOKASI"], [],
+        ["PANGGIL DUA", "SERIGALA 2/2"], ["NAPAS TERAKHIR:", "PANGGIL DUA LABA-", "LABA 1/1 BERACUN"], [], ["PEKIK PERANG:", "MINIONMU YANG LAIN", "DAPAT +2/+2"],
+        [], ["PULIHKAN 8 NYAWA", "PAHLAWANMU"], ["BERI SATU MINION", "+1/+1 DAN PERISAI"], [],
+        ["SEMUA MINIONMU", "DAPAT +1/+1"], ["HANCURKAN SATU", "MINION MUSUH"], [], ["PEKIK PERANG:", "PULIHKAN 8 NYAWA", "PAHLAWANMU"],
+        [], ["2 KERUSAKAN,", "PULIHKAN 2 NYAWA", "PAHLAWANMU"], ["NAPAS TERAKHIR:", "AMBIL 1 KARTU"], ["4 KERUSAKAN KE", "SATU MINION MUSUH"],
+        ["NAPAS TERAKHIR:", "PANGGIL DUA", "TENGKORAK 1/1"], [], ["3 KERUSAKAN KE", "SEMUA MINION"], ["PEKIK PERANG:", "HANCURKAN SATU", "MINION MUSUH"],
+        [], [], [], ["DAPAT 1 MANA", "GILIRAN INI SAJA"]
+      ]
+    }
+    es {
+      vs: n => "CONTRA ${n}"
+      youFirst: "EMPIEZAS TÚ"
+      foeFirst: n => "EMPIEZA ${n}"
+      yourTurn: "TU TURNO"
+      foeTurn: n => "TURNO DE ${n}"
+      frozen: "CONGELADO"
+      crystal: "+1 CRISTAL"
+      mana: n => "+${n} MANÁ"
+      fatigue: "FATIGA"
+      burned: c => "QUEMADA: ${c}"
+      destroyed: "DESTRUIDO"
+      shield: "ESCUDO"
+      play: "JUGAR"
+      cont: "CONTINUAR"
+      deck: "MAZO"
+      packs: "SOBRES"
+      auto: "AUTO"
+      done: "LISTO"
+      openAll: "ABRIR TODO"
+      buyPack: "COMPRAR SOBRE"
+      goldN: n => "${n} ORO"
+      endTurn: "FIN DE TURNO"
+      foe: "RIVAL"
+      plays: n => "${n} JUEGA"
+      deckN: n => "MAZO ${n}"
+      deckOf: n => "MAZO ${n}/20"
+      noMana: "NO TIENES MANÁ"
+      boardFull: "TU TABLERO ESTÁ LLENO"
+      noAim: "NO HAY OBJETIVO"
+      pickTarget: "ELIGE UN OBJETIVO"
+      tapAgain: "TOCA OTRA VEZ PARA JUGAR"
+      tauntWay: "UNA PROVOCACIÓN LO IMPIDE"
+      pickAttack: "ELIGE A QUIÉN ATACAR"
+      nothingLeft: "NO QUEDA NADA POR HACER"
+      tagline: "UN JUEGO DE CARTAS PIXELADO"
+      soundOn: "SONIDO SÍ"
+      soundOff: "SONIDO NO"
+      titleStats: (g, f, c, n) => "${g} ORO   ${f}/8 RIVALES   ${c}/${n} CARTAS"
+      ladder: "LA ESCALERA"
+      pickFoe: "ELIGE UN RIVAL"
+      needs20: "TU MAZO NECESITA 20 CARTAS"
+      locked: "BLOQUEADO"
+      foeLine: (el, hp) => "${el} · ${hp} PV"
+      beaten: "GANADO"
+      fight: "LUCHAR"
+      tapCardsBelow: "TOCA LAS CARTAS DE ABAJO PARA AÑADIRLAS"
+      notOwned: "NO LA TIENES"
+      inDeck: (a, b) => "${a}/${b} EN EL MAZO"
+      deckHelp: "TOCA UNA CARTA PARA AÑADIRLA, UNA FILA PARA QUITARLA"
+      cardPacks: "SOBRES DE CARTAS"
+      packInfo: "5 CARTAS, UNA RARA O MEJOR"
+      spareInfo: "LAS COPIAS SOBRANTES SE VUELVEN ORO"
+      spare: n => "SOBRANTE +${n} ORO"
+      newCard: "¡NUEVA!"
+      turnOver: "TOCA UNA CARTA PARA DARLE LA VUELTA"
+      spell: "HECHIZO"
+      victory: "VICTORIA"
+      defeat: "DERROTA"
+      isBeaten: n => "${n} HA CAÍDO"
+      winsThisTime: n => "${n} GANA ESTA VEZ"
+      reward: n => "+${n} ORO"
+      kw: {tn: "PROVOCAR", ch: "CARGAR", sh: "ESCUDO", po: "VENENO", ls: "ROBO DE VIDA"}
+      elNames: ["NEUTRAL", "FUEGO", "AGUA", "NATURALEZA", "LUZ", "SOMBRA"]
+      elShort: ["NEUT", "FUEGO", "AGUA", "NATUR", "LUZ", "SOMBRA"]
+      rarities: ["COMÚN", "RARA", "ÉPICA", "LEGENDARIA", "FICHA"]
+      foeTitles: ["JEFE DE GUERRA GOBLIN", "BRUJA DE ESCARCHA", "DRUIDA DEL BOSQUE", "REY DE HUESO", "SUMA SACERDOTISA", "SEÑOR DEL FUEGO", "ARCHIMAGO", "REY DRAGÓN"]
+      cardNames: ["ESCUDERO", "SOLDADO", "ARQUERO", "TROL", "BARDO", "CABALLERO DE HIERRO", "OGRO", "DRAGÓN ANCIANO", "DIABLILLO", "ASCUA", "SABUESO INFERNAL", "BOLA DE FUEGO", "FÉNIX", "DJINN DE LLAMAS", "LLAMARADA", "DRACO INFERNAL", "DESCARGA DE ESCARCHA", "NINFA DE ESCARCHA", "PERSPICACIA", "CAPARAZÓN", "ESPÍRITU DEL AGUA", "VENTISCA", "KRAKEN", "REINA DE LAS MAREAS", "VÍBORA", "CRECIMIENTO", "FUERZA SALVAJE", "OSO", "AULLIDO", "REINA ARAÑA", "ROBLE VIEJO", "GAIA", "ACÓLITO", "LUZ SAGRADA", "BENDICIÓN", "TEMPLARIO", "ARENGA", "JUICIO", "SERAFÍN", "TITÁN SOLAR", "MURCIÉLAGO VAMPIRO", "DRENAR ALMA", "LADRÓN DE TUMBAS", "DESCARGA SOMBRÍA", "SEÑOR DE HUESO", "VAMPIRO", "PLAGA", "EL LICHE", "LOBO", "ARAÑITA", "ESQUELETO", "LA MONEDA"]
+      cardText: [
+        [], [], ["GRITO DE BATALLA:", "1 DE DAÑO"], [],
+        ["GRITO DE BATALLA:", "ROBA UNA CARTA"], [], [], ["GRITO DE BATALLA:", "2 DE DAÑO A LOS", "ESBIRROS ENEMIGOS"],
+        [], ["2 DE DAÑO"], [], ["6 DE DAÑO"],
+        ["ÚLTIMO ALIENTO: 3", "DE DAÑO AL", "HÉROE ENEMIGO"], ["GRITO DE BATALLA:", "3 DE DAÑO"], ["4 DE DAÑO A TODOS", "LOS ESBIRROS", "ENEMIGOS"], ["GRITO DE BATALLA: 3", "AL HÉROE ENEMIGO,", "1 A SUS ESBIRROS"],
+        ["3 DE DAÑO A UN", "ENEMIGO Y", "LO CONGELA"], ["GRITO DE BATALLA:", "CONGELA A UN", "ESBIRRO ENEMIGO"], ["ROBA 2 CARTAS"], [],
+        ["GRITO DE BATALLA:", "ROBA UNA CARTA"], ["2 DE DAÑO A LOS", "ESBIRROS ENEMIGOS", "Y LOS CONGELA"], [], ["GRITO DE BATALLA:", "CONGELA ENEMIGOS", "Y ROBA UNA CARTA"],
+        [], ["GANA UN CRISTAL", "DE MANÁ VACÍO"], ["DA A UN ESBIRRO", "+2/+2 Y PROVOCAR"], [],
+        ["INVOCA DOS", "LOBOS DE 2/2"], ["ÚLTIMO ALIENTO:", "INVOCA DOS ARAÑAS", "1/1 CON VENENO"], [], ["GRITO DE BATALLA:", "+2/+2 A TUS", "OTROS ESBIRROS"],
+        [], ["RESTAURA 8 DE", "SALUD A TU HÉROE"], ["DA A UN ESBIRRO", "+1/+1 Y ESCUDO"], [],
+        ["DA A TUS", "ESBIRROS +1/+1"], ["DESTRUYE UN", "ESBIRRO ENEMIGO"], [], ["GRITO DE BATALLA:", "RESTAURA 8 DE", "SALUD A TU HÉROE"],
+        [], ["2 DE DAÑO,", "RESTAURA 2 DE", "SALUD A TU HÉROE"], ["ÚLTIMO ALIENTO:", "ROBA UNA CARTA"], ["4 DE DAÑO A UN", "ESBIRRO ENEMIGO"],
+        ["ÚLTIMO ALIENTO:", "INVOCA DOS", "ESQUELETOS 1/1"], [], ["3 DE DAÑO A", "TODOS LOS ESBIRROS"], ["GRITO DE BATALLA:", "DESTRUYE UN", "ESBIRRO ENEMIGO"],
+        [], [], [], ["GANA 1 DE MANÁ", "SOLO ESTE TURNO"]
+      ]
+    }
+    pt {
+      vs: n => "CONTRA ${n}"
+      youFirst: "VOCÊ COMEÇA"
+      foeFirst: n => "${n} COMEÇA"
+      yourTurn: "SUA VEZ"
+      foeTurn: n => "VEZ DE ${n}"
+      frozen: "CONGELADO"
+      crystal: "+1 CRISTAL"
+      mana: n => "+${n} MANA"
+      fatigue: "FADIGA"
+      burned: c => "QUEIMADA: ${c}"
+      destroyed: "DESTRUÍDO"
+      shield: "ESCUDO"
+      play: "JOGAR"
+      cont: "CONTINUAR"
+      deck: "DECK"
+      packs: "PACOTES"
+      auto: "AUTO"
+      done: "PRONTO"
+      openAll: "ABRIR TUDO"
+      buyPack: "COMPRAR PACOTE"
+      goldN: n => "${n} OURO"
+      endTurn: "FIM DO TURNO"
+      foe: "RIVAL"
+      plays: n => "${n} JOGA"
+      deckN: n => "DECK ${n}"
+      deckOf: n => "DECK ${n}/20"
+      noMana: "MANA INSUFICIENTE"
+      boardFull: "SEU CAMPO ESTÁ CHEIO"
+      noAim: "NADA PARA MIRAR"
+      pickTarget: "ESCOLHA UM ALVO"
+      tapAgain: "TOQUE DE NOVO PARA JOGAR"
+      tauntWay: "TEM UM PROVOCAR NO CAMINHO"
+      pickAttack: "ESCOLHA O QUE ATACAR"
+      nothingLeft: "NADA MAIS A FAZER"
+      tagline: "UM JOGO DE CARTAS EM PIXEL"
+      soundOn: "SOM LIGADO"
+      soundOff: "SOM DESLIGADO"
+      titleStats: (g, f, c, n) => "${g} OURO   ${f}/8 RIVAIS   ${c}/${n} CARTAS"
+      ladder: "A ESCADA"
+      pickFoe: "ESCOLHA UM RIVAL"
+      needs20: "SEU DECK PRECISA DE 20 CARTAS"
+      locked: "BLOQUEADO"
+      foeLine: (el, hp) => "${el} · ${hp} PV"
+      beaten: "VITÓRIA"
+      fight: "LUTAR"
+      tapCardsBelow: "TOQUE NAS CARTAS ABAIXO PARA ADICIONAR"
+      notOwned: "NÃO TEM"
+      inDeck: (a, b) => "${a}/${b} NO DECK"
+      deckHelp: "TOQUE NUMA CARTA PARA ADICIONAR, NUMA LINHA PARA TIRAR"
+      cardPacks: "PACOTES DE CARTAS"
+      packInfo: "5 CARTAS, UMA RARA OU MELHOR"
+      spareInfo: "CÓPIAS EXTRAS VIRAM OURO"
+      spare: n => "EXTRA +${n} OURO"
+      newCard: "NOVA!"
+      turnOver: "TOQUE NUMA CARTA PARA VIRAR"
+      spell: "FEITIÇO"
+      victory: "VITÓRIA"
+      defeat: "DERROTA"
+      isBeaten: n => "VOCÊ VENCEU ${n}"
+      winsThisTime: n => "${n} VENCE DESTA VEZ"
+      reward: n => "+${n} OURO"
+      kw: {tn: "PROVOCAR", ch: "INVESTIDA", sh: "ESCUDO", po: "VENENO", ls: "ROUBO DE VIDA"}
+      elNames: ["NEUTRO", "FOGO", "ÁGUA", "NATUREZA", "LUZ", "SOMBRA"]
+      elShort: ["NEUT", "FOGO", "ÁGUA", "NATUR", "LUZ", "SOMBRA"]
+      rarities: ["COMUM", "RARA", "ÉPICA", "LENDÁRIA", "FICHA"]
+      foeTitles: ["CHEFE GOBLIN", "BRUXA DO GELO", "DRUIDA DO BOSQUE", "REI DOS OSSOS", "SUMA SACERDOTISA", "SENHOR DO FOGO", "ARQUIMAGO", "REI DRAGÃO"]
+      cardNames: ["ESCUDEIRO", "SOLDADO", "ARQUEIRO", "TROLL", "BARDO", "CAVALEIRO DE FERRO", "OGRO", "DRAGÃO ANCIÃO", "DIABRETE", "BRASA", "CÃO INFERNAL", "BOLA DE FOGO", "FÊNIX", "DJINN DE CHAMAS", "GOLPE FLAMEJANTE", "DRACO INFERNAL", "SETA DE GELO", "NINFA DO GELO", "PERSPICÁCIA", "CASCUDO", "ESPÍRITO DA ÁGUA", "NEVASCA", "KRAKEN", "RAINHA DAS MARÉS", "VÍBORA", "CRESCIMENTO", "FORÇA SELVAGEM", "URSO", "UIVO", "RAINHA ARANHA", "CARVALHO VELHO", "GAIA", "ACÓLITO", "LUZ SAGRADA", "BÊNÇÃO", "TEMPLÁRIO", "REUNIR", "JULGAMENTO", "SERAFIM", "TITÃ SOLAR", "MORCEGO VAMPIRO", "DRENAR ALMA", "LADRÃO DE TÚMULOS", "SETA SOMBRIA", "SENHOR DOS OSSOS", "VAMPIRO", "PRAGA", "O LICH", "LOBO", "ARANHINHA", "ESQUELETO", "A MOEDA"]
+      cardText: [
+        [], [], ["GRITO DE GUERRA:", "1 DE DANO"], [],
+        ["GRITO DE GUERRA:", "COMPRE UMA CARTA"], [], [], ["GRITO DE GUERRA: 2", "DE DANO AOS", "LACAIOS INIMIGOS"],
+        [], ["2 DE DANO"], [], ["6 DE DANO"],
+        ["ÚLTIMO SUSPIRO: 3", "DE DANO AO", "HERÓI INIMIGO"], ["GRITO DE GUERRA:", "3 DE DANO"], ["4 DE DANO A", "TODOS OS LACAIOS", "INIMIGOS"], ["GRITO DE GUERRA: 3", "AO HERÓI INIMIGO,", "1 AOS LACAIOS DELE"],
+        ["3 DE DANO A UM", "INIMIGO E", "CONGELA-O"], ["GRITO DE GUERRA:", "CONGELA UM", "LACAIO INIMIGO"], ["COMPRE 2 CARTAS"], [],
+        ["GRITO DE GUERRA:", "COMPRE UMA CARTA"], ["2 DE DANO A TODOS", "OS LACAIOS INIMIGOS", "E CONGELA-OS"], [], ["GRITO DE GUERRA:", "CONGELA INIMIGOS E", "COMPRE UMA CARTA"],
+        [], ["GANHE UM CRISTAL", "DE MANA VAZIO"], ["DÊ A UM LACAIO", "+2/+2 E PROVOCAR"], [],
+        ["INVOQUE DOIS", "LOBOS 2/2"], ["ÚLTIMO SUSPIRO:", "INVOQUE DUAS", "ARANHAS 1/1 VENENO"], [], ["GRITO DE GUERRA:", "+2/+2 AOS SEUS", "OUTROS LACAIOS"],
+        [], ["RESTAURE 8 DE", "VIDA DO SEU HERÓI"], ["DÊ A UM LACAIO", "+1/+1 E ESCUDO"], [],
+        ["DÊ AOS SEUS", "LACAIOS +1/+1"], ["DESTRUA UM", "LACAIO INIMIGO"], [], ["GRITO DE GUERRA:", "RESTAURE 8 DE", "VIDA DO SEU HERÓI"],
+        [], ["2 DE DANO,", "RESTAURE 2 DE", "VIDA DO SEU HERÓI"], ["ÚLTIMO SUSPIRO:", "COMPRE UMA CARTA"], ["4 DE DANO A UM", "LACAIO INIMIGO"],
+        ["ÚLTIMO SUSPIRO:", "INVOQUE DOIS", "ESQUELETOS 1/1"], [], ["3 DE DANO A", "TODOS OS LACAIOS"], ["GRITO DE GUERRA:", "DESTRUA UM", "LACAIO INIMIGO"],
+        [], [], [], ["GANHE 1 DE MANA", "SÓ NESTE TURNO"]
+      ]
+    }
+    de {
+      vs: n => "GEGEN ${n}"
+      youFirst: "DU BEGINNST"
+      foeFirst: n => "${n} BEGINNT"
+      yourTurn: "DEIN ZUG"
+      foeTurn: n => "${n} IST DRAN"
+      frozen: "EINGEFROREN"
+      crystal: "+1 KRISTALL"
+      mana: n => "+${n} MANA"
+      fatigue: "ERSCHÖPFUNG"
+      burned: c => "VERBRANNT: ${c}"
+      destroyed: "ZERSTÖRT"
+      shield: "SCHILD"
+      play: "SPIELEN"
+      cont: "WEITER"
+      deck: "DECK"
+      packs: "PACKS"
+      auto: "AUTO"
+      done: "FERTIG"
+      openAll: "ALLE AUFDECKEN"
+      buyPack: "PACK KAUFEN"
+      goldN: n => "${n} GOLD"
+      endTurn: "ZUG BEENDEN"
+      foe: "GEGNER"
+      plays: n => "${n} SPIELT"
+      deckN: n => "DECK ${n}"
+      deckOf: n => "DECK ${n}/20"
+      noMana: "NICHT GENUG MANA"
+      boardFull: "DEIN FELD IST VOLL"
+      noAim: "KEIN ZIEL DA"
+      pickTarget: "WÄHLE EIN ZIEL"
+      tapAgain: "NOCHMAL TIPPEN ZUM SPIELEN"
+      tauntWay: "ERST DIE SPOTT-DIENER"
+      pickAttack: "WÄHLE, WAS DU ANGREIFST"
+      nothingLeft: "NICHTS MEHR ZU TUN"
+      tagline: "EIN PIXEL-KARTENSPIEL"
+      soundOn: "TON AN"
+      soundOff: "TON AUS"
+      titleStats: (g, f, c, n) => "${g} GOLD   ${f}/8 GEGNER   ${c}/${n} KARTEN"
+      ladder: "DIE LEITER"
+      pickFoe: "WÄHLE EINEN GEGNER"
+      needs20: "DEIN DECK BRAUCHT 20 KARTEN"
+      locked: "GESPERRT"
+      foeLine: (el, hp) => "${el} · ${hp} LP"
+      beaten: "BESIEGT"
+      fight: "KÄMPFEN"
+      tapCardsBelow: "TIPPE UNTEN KARTEN AN, UM SIE HINZUZUFÜGEN"
+      notOwned: "NICHT IM BESITZ"
+      inDeck: (a, b) => "${a}/${b} IM DECK"
+      deckHelp: "KARTE ANTIPPEN ZUM HINZUFÜGEN, ZEILE ZUM ENTFERNEN"
+      cardPacks: "KARTENPACKS"
+      packInfo: "5 KARTEN, EINE SELTEN ODER BESSER"
+      spareInfo: "DOPPELTE KARTEN WERDEN ZU GOLD"
+      spare: n => "DOPPELT +${n} GOLD"
+      newCard: "NEU!"
+      turnOver: "TIPPE EINE KARTE AN, UM SIE AUFZUDECKEN"
+      spell: "ZAUBER"
+      victory: "SIEG"
+      defeat: "NIEDERLAGE"
+      isBeaten: n => "${n} IST BESIEGT"
+      winsThisTime: n => "${n} GEWINNT DIESMAL"
+      reward: n => "+${n} GOLD"
+      kw: {tn: "SPOTT", ch: "ANSTURM", sh: "SCHILD", po: "GIFT", ls: "LEBENSRAUB"}
+      elNames: ["NEUTRAL", "FEUER", "WASSER", "NATUR", "LICHT", "SCHATTEN"]
+      elShort: ["NEUT", "FEUER", "WASSER", "NATUR", "LICHT", "DUNKEL"]
+      rarities: ["GEWÖHNLICH", "SELTEN", "EPISCH", "LEGENDÄR", "SPIELMARKE"]
+      foeTitles: ["GOBLIN-KRIEGSHERR", "FROSTHEXE", "HAINDRUIDE", "KNOCHENKÖNIG", "HOHEPRIESTERIN", "FEUERFÜRST", "ERZMAGIER", "DRACHENKÖNIG"]
+      cardNames: ["KNAPPE", "FUSSSOLDAT", "BOGENSCHÜTZE", "TROLL", "BARDE", "EISENRITTER", "OGER", "ALTER DRACHE", "WICHTEL", "GLUT", "HÖLLENHUND", "FEUERBALL", "PHÖNIX", "FLAMMENDSCHINN", "FLAMMENSCHLAG", "INFERNODRACHE", "FROSTBLITZ", "FROSTNYMPHE", "EINSICHT", "PANZERRÜCKEN", "WASSERGEIST", "BLIZZARD", "KRAKE", "GEZEITENKÖNIGIN", "VIPER", "WACHSTUM", "WILDE KRAFT", "BÄR", "GEHEUL", "SPINNENKÖNIGIN", "ALTE EICHE", "GAIA", "AKOLYTH", "HEILIGES LICHT", "SEGEN", "TEMPLER", "SAMMELN", "URTEIL", "SERAPH", "SONNENTITAN", "VAMPIRFLEDERMAUS", "SEELENSOG", "GRABRÄUBER", "SCHATTENBLITZ", "KNOCHENFÜRST", "VAMPIR", "SEUCHE", "DER LICH", "WOLF", "SPINNCHEN", "SKELETT", "DIE MÜNZE"]
+      cardText: [
+        [], [], ["KAMPFSCHREI:", "1 SCHADEN"], [],
+        ["KAMPFSCHREI:", "ZIEH EINE KARTE"], [], [], ["KAMPFSCHREI: 2", "SCHADEN AN FEIND-", "LICHE DIENER"],
+        [], ["2 SCHADEN"], [], ["6 SCHADEN"],
+        ["TODESRÖCHELN: 3", "SCHADEN AM", "FEINDL. HELDEN"], ["KAMPFSCHREI:", "3 SCHADEN"], ["4 SCHADEN AN", "ALLE FEINDLICHEN", "DIENER"], ["KAMPFSCHREI: 3 AM", "FEINDL. HELDEN,", "1 AN SEINE DIENER"],
+        ["3 SCHADEN AN", "EINEN FEIND, DER", "EINFRIERT"], ["KAMPFSCHREI: FRIER", "EINEN FEINDL.", "DIENER EIN"], ["ZIEH 2 KARTEN"], [],
+        ["KAMPFSCHREI:", "ZIEH EINE KARTE"], ["2 SCHADEN AN ALLE", "FEINDL. DIENER,", "DIE EINFRIEREN"], [], ["KAMPFSCHREI: FRIER", "FEINDL. DIENER EIN,", "ZIEH EINE KARTE"],
+        [], ["ERHALTE EINEN", "LEEREN", "MANAKRISTALL"], ["EIN DIENER", "ERHÄLT +2/+2", "UND SPOTT"], [],
+        ["RUFE ZWEI", "2/2 WÖLFE"], ["TODESRÖCHELN: RUFE", "ZWEI 1/1 GIFTIGE", "SPINNEN"], [], ["KAMPFSCHREI: DEINE", "ANDEREN DIENER", "ERHALTEN +2/+2"],
+        [], ["STELLT 8 LEBEN", "DEINES HELDEN", "WIEDER HER"], ["EIN DIENER", "ERHÄLT +1/+1", "UND SCHILD"], [],
+        ["DEINE DIENER", "ERHALTEN +1/+1"], ["ZERSTÖRE EINEN", "FEINDL. DIENER"], [], ["KAMPFSCHREI: STELLT", "8 LEBEN DEINES", "HELDEN WIEDER HER"],
+        [], ["2 SCHADEN, STELLT", "2 LEBEN DEINES", "HELDEN WIEDER HER"], ["TODESRÖCHELN:", "ZIEH EINE KARTE"], ["4 SCHADEN AN", "EINEN FEINDL.", "DIENER"],
+        ["TODESRÖCHELN: RUFE", "ZWEI 1/1 SKELETTE"], [], ["3 SCHADEN AN", "ALLE DIENER"], ["KAMPFSCHREI:", "ZERSTÖRE EINEN", "FEINDL. DIENER"],
+        [], [], [], ["ERHALTE 1 MANA", "NUR IN DIESEM ZUG"]
+      ]
+    }
+    zh {
+      vs: n => "对战 ${n}"
+      youFirst: "你先手"
+      foeFirst: n => "${n} 先手"
+      yourTurn: "你的回合"
+      foeTurn: n => "${n} 的回合"
+      frozen: "冻结"
+      crystal: "+1 水晶"
+      mana: n => "+${n} 法力"
+      fatigue: "疲劳"
+      burned: c => "烧毁：${c}"
+      destroyed: "消灭"
+      shield: "护盾"
+      play: "开始"
+      cont: "继续"
+      deck: "卡组"
+      packs: "卡包"
+      auto: "自动"
+      done: "完成"
+      openAll: "全部翻开"
+      buyPack: "购买卡包"
+      goldN: n => "${n} 金币"
+      endTurn: "结束回合"
+      foe: "对手"
+      plays: n => "${n} 打出"
+      deckN: n => "牌库 ${n}"
+      deckOf: n => "卡组 ${n}/20"
+      noMana: "法力不足"
+      boardFull: "你的战场已满"
+      noAim: "没有目标"
+      pickTarget: "选择目标"
+      tapAgain: "再点一次打出"
+      tauntWay: "有嘲讽挡着"
+      pickAttack: "选择攻击对象"
+      nothingLeft: "已无事可做"
+      tagline: "像素卡牌游戏"
+      soundOn: "声音 开"
+      soundOff: "声音 关"
+      titleStats: (g, f, c, n) => "${g} 金币   对手 ${f}/8   卡牌 ${c}/${n}"
+      ladder: "天梯"
+      pickFoe: "选择对手"
+      needs20: "你的卡组需要 20 张牌"
+      locked: "未解锁"
+      foeLine: (el, hp) => "${el} · ${hp} 生命"
+      beaten: "已击败"
+      fight: "挑战"
+      tapCardsBelow: "点击下方的卡牌加入卡组"
+      notOwned: "未拥有"
+      inDeck: (a, b) => "卡组中 ${a}/${b}"
+      deckHelp: "点卡牌加入，点一行移出"
+      cardPacks: "卡包"
+      packInfo: "5 张卡，至少一张稀有"
+      spareInfo: "多余的副本会变成金币"
+      spare: n => "多余 +${n} 金币"
+      newCard: "新！"
+      turnOver: "点击卡牌翻开"
+      spell: "法术"
+      victory: "胜利"
+      defeat: "失败"
+      isBeaten: n => "${n} 被击败了"
+      winsThisTime: n => "这次 ${n} 赢了"
+      reward: n => "+${n} 金币"
+      kw: {tn: "嘲讽", ch: "冲锋", sh: "护盾", po: "剧毒", ls: "吸血"}
+      elNames: ["中立", "火", "水", "自然", "光明", "暗影"]
+      elShort: ["中立", "火", "水", "自然", "光明", "暗影"]
+      rarities: ["普通", "稀有", "史诗", "传说", "衍生"]
+      foeTitles: ["地精督军", "冰霜女巫", "林地德鲁伊", "白骨之王", "大祭司", "火焰领主", "大法师", "龙王"]
+      cardNames: ["侍从", "步兵", "弓箭手", "巨魔", "吟游诗人", "钢铁骑士", "食人魔", "远古巨龙", "小鬼", "余烬", "地狱犬", "火球术", "凤凰", "火焰灯神", "烈焰风暴", "炼狱幼龙", "寒冰箭", "冰霜仙女", "洞察", "硬壳龟", "水之灵", "暴风雪", "海妖", "潮汐女王", "毒蛇", "生长", "野性之力", "熊", "嚎叫", "蜘蛛女王", "老橡树", "盖亚", "侍僧", "圣光术", "祝福", "圣殿骑士", "集结", "审判", "炽天使", "太阳泰坦", "吸血蝙蝠", "灵魂吸取", "盗墓贼", "暗影箭", "白骨领主", "吸血鬼", "瘟疫", "巫妖", "狼", "小蜘蛛", "骷髅", "幸运币"]
+      cardText: [
+        [], [], ["战吼：造成", "1 点伤害"], [],
+        ["战吼：", "抽一张牌"], [], [], ["战吼：对敌方随从", "造成 2 点伤害"],
+        [], ["造成 2 点伤害"], [], ["造成 6 点伤害"],
+        ["亡语：对敌方英雄", "造成 3 点伤害"], ["战吼：造成", "3 点伤害"], ["对所有敌方随从", "造成 4 点伤害"], ["战吼：对敌方英雄", "造成 3 点伤害，", "对其随从造成 1 点"],
+        ["对一个敌人造成", "3 点伤害并", "将其冻结"], ["战吼：冻结", "一个敌方随从"], ["抽两张牌"], [],
+        ["战吼：", "抽一张牌"], ["对所有敌方随从", "造成 2 点伤害", "并将其冻结"], [], ["战吼：冻结", "敌方随从，", "抽一张牌"],
+        [], ["获得一个", "空的法力水晶"], ["使一个随从获得", "+2/+2 和嘲讽"], [],
+        ["召唤两只", "2/2 的狼"], ["亡语：召唤两只", "1/1 的剧毒蜘蛛"], [], ["战吼：使你的", "其他随从获得", "+2/+2"],
+        [], ["为你的英雄", "恢复 8 点生命"], ["使一个随从获得", "+1/+1 和护盾"], [],
+        ["使你的随从", "获得 +1/+1"], ["消灭一个", "敌方随从"], [], ["战吼：为你的", "英雄恢复", "8 点生命"],
+        [], ["造成 2 点伤害，", "为你的英雄", "恢复 2 点生命"], ["亡语：", "抽一张牌"], ["对一个敌方随从", "造成 4 点伤害"],
+        ["亡语：召唤两个", "1/1 的骷髅"], [], ["对所有随从", "造成 3 点伤害"], ["战吼：消灭", "一个敌方随从"],
+        [], [], [], ["在本回合中", "获得 1 点法力"]
+      ]
+    }
+    ru {
+      vs: n => "ПРОТИВ ${n}"
+      youFirst: "ВЫ НАЧИНАЕТЕ"
+      foeFirst: n => "НАЧИНАЕТ ${n}"
+      yourTurn: "ВАШ ХОД"
+      foeTurn: n => "ХОД: ${n}"
+      frozen: "ЗАМОРОЖЕН"
+      crystal: "+1 КРИСТАЛЛ"
+      mana: n => "+${n} МАНЫ"
+      fatigue: "УСТАЛОСТЬ"
+      burned: c => "СГОРЕЛА: ${c}"
+      destroyed: "УНИЧТОЖЕН"
+      shield: "ЩИТ"
+      play: "ИГРАТЬ"
+      cont: "ДАЛЕЕ"
+      deck: "КОЛОДА"
+      packs: "НАБОРЫ"
+      auto: "АВТО"
+      done: "ГОТОВО"
+      openAll: "ОТКРЫТЬ ВСЕ"
+      buyPack: "КУПИТЬ НАБОР"
+      goldN: n => "${n} ЗОЛОТА"
+      endTurn: "КОНЕЦ ХОДА"
+      foe: "ВРАГ"
+      plays: n => "${n} ИГРАЕТ"
+      deckN: n => "КОЛОДА ${n}"
+      deckOf: n => "КОЛОДА ${n}/20"
+      noMana: "НЕ ХВАТАЕТ МАНЫ"
+      boardFull: "ВАШ СТОЛ ЗАПОЛНЕН"
+      noAim: "НЕТ ЦЕЛИ"
+      pickTarget: "ВЫБЕРИТЕ ЦЕЛЬ"
+      tapAgain: "НАЖМИТЕ ЕЩЁ РАЗ, ЧТОБЫ СЫГРАТЬ"
+      tauntWay: "МЕШАЕТ ПРОВОКАЦИЯ"
+      pickAttack: "ВЫБЕРИТЕ, КОГО АТАКОВАТЬ"
+      nothingLeft: "БОЛЬШЕ НЕЧЕГО ДЕЛАТЬ"
+      tagline: "ПИКСЕЛЬНАЯ КАРТОЧНАЯ ИГРА"
+      soundOn: "ЗВУК ВКЛ"
+      soundOff: "ЗВУК ВЫКЛ"
+      titleStats: (g, f, c, n) => "${g} ЗОЛОТА   ВРАГИ ${f}/8   КАРТЫ ${c}/${n}"
+      ladder: "ЛЕСТНИЦА"
+      pickFoe: "ВЫБЕРИТЕ ВРАГА"
+      needs20: "В КОЛОДЕ НУЖНО 20 КАРТ"
+      locked: "ЗАКРЫТО"
+      foeLine: (el, hp) => "${el} · ${hp} ОЗ"
+      beaten: "ПОБЕДА"
+      fight: "В БОЙ"
+      tapCardsBelow: "НАЖМИТЕ НА КАРТЫ НИЖЕ, ЧТОБЫ ДОБАВИТЬ"
+      notOwned: "НЕТ В КОЛЛЕКЦИИ"
+      inDeck: (a, b) => "В КОЛОДЕ ${a}/${b}"
+      deckHelp: "КАРТА — ДОБАВИТЬ, СТРОКА — УБРАТЬ"
+      cardPacks: "НАБОРЫ КАРТ"
+      packInfo: "5 КАРТ, ОДНА РЕДКАЯ ИЛИ ЛУЧШЕ"
+      spareInfo: "ЛИШНИЕ КОПИИ СТАНОВЯТСЯ ЗОЛОТОМ"
+      spare: n => "ЛИШНЯЯ +${n} ЗОЛОТА"
+      newCard: "НОВАЯ!"
+      turnOver: "НАЖМИТЕ НА КАРТУ, ЧТОБЫ ПЕРЕВЕРНУТЬ"
+      spell: "ЗАКЛИНАНИЕ"
+      victory: "ПОБЕДА"
+      defeat: "ПОРАЖЕНИЕ"
+      isBeaten: n => "ВЫ ОДОЛЕЛИ: ${n}"
+      winsThisTime: n => "${n} ВЫИГРЫВАЕТ НА ЭТОТ РАЗ"
+      reward: n => "+${n} ЗОЛОТА"
+      kw: {tn: "ПРОВОКАЦИЯ", ch: "РЫВОК", sh: "ЩИТ", po: "ЯД", ls: "ВАМПИРИЗМ"}
+      elNames: ["НЕЙТРАЛЬНЫЙ", "ОГОНЬ", "ВОДА", "ПРИРОДА", "СВЕТ", "ТЬМА"]
+      elShort: ["НЕЙТР", "ОГОНЬ", "ВОДА", "ПРИР", "СВЕТ", "ТЬМА"]
+      rarities: ["ОБЫЧНАЯ", "РЕДКАЯ", "ЭПИЧЕСКАЯ", "ЛЕГЕНДАРНАЯ", "ЖЕТОН"]
+      foeTitles: ["ГОБЛИН-ВОЕНАЧАЛЬНИК", "ЛЕДЯНАЯ ВЕДЬМА", "ДРУИД РОЩИ", "КОСТЯНОЙ КОРОЛЬ", "ВЕРХОВНАЯ ЖРИЦА", "ВЛАДЫКА ОГНЯ", "ВЕРХОВНЫЙ МАГ", "КОРОЛЬ ДРАКОНОВ"]
+      cardNames: ["ОРУЖЕНОСЕЦ", "ПЕХОТИНЕЦ", "ЛУЧНИК", "ТРОЛЛЬ", "БАРД", "ЖЕЛЕЗНЫЙ РЫЦАРЬ", "ОГР", "ДРЕВНИЙ ДРАКОН", "БЕС", "УГОЛЁК", "АДСКИЙ ПЁС", "ОГНЕННЫЙ ШАР", "ФЕНИКС", "ОГНЕННЫЙ ДЖИНН", "ОГНЕННЫЙ УДАР", "ИНФЕРНАЛЬНЫЙ ДРАКОН", "ЛЕДЯНАЯ СТРЕЛА", "ЛЕДЯНАЯ НИМФА", "ПРОЗРЕНИЕ", "ПАНЦИРНИК", "ДУХ ВОДЫ", "БУРАН", "КРАКЕН", "КОРОЛЕВА ПРИЛИВОВ", "ГАДЮКА", "РОСТ", "ДИКАЯ МОЩЬ", "МЕДВЕДЬ", "ВОЙ", "КОРОЛЕВА ПАУКОВ", "СТАРЫЙ ДУБ", "ГЕЯ", "ПОСЛУШНИК", "СВЯТОЙ СВЕТ", "БЛАГОСЛОВЕНИЕ", "ТАМПЛИЕР", "СБОР", "ПРАВОСУДИЕ", "СЕРАФИМ", "СОЛНЕЧНЫЙ ТИТАН", "ВАМПИР. МЫШЬ", "ВЫСАСЫВАНИЕ ДУШИ", "ГРАБИТЕЛЬ МОГИЛ", "СТРЕЛА ТЬМЫ", "КОСТЯНОЙ ЛОРД", "ВАМПИР", "ЧУМА", "ЛИЧ", "ВОЛК", "ПАУЧОК", "СКЕЛЕТ", "МОНЕТКА"]
+      cardText: [
+        [], [], ["БОЕВОЙ КЛИЧ:", "1 УРОНА"], [],
+        ["БОЕВОЙ КЛИЧ:", "ВЫ БЕРЁТЕ КАРТУ"], [], [], ["БОЕВОЙ КЛИЧ: 2", "УРОНА СУЩЕСТВАМ", "ПРОТИВНИКА"],
+        [], ["2 УРОНА"], [], ["6 УРОНА"],
+        ["ПРЕДСМЕРТНЫЙ ХРИП:", "3 УРОНА ГЕРОЮ", "ПРОТИВНИКА"], ["БОЕВОЙ КЛИЧ:", "3 УРОНА"], ["4 УРОНА ВСЕМ", "СУЩЕСТВАМ", "ПРОТИВНИКА"], ["БОЕВОЙ КЛИЧ: 3 ГЕРОЮ", "ПРОТИВНИКА, 1 ЕГО", "СУЩЕСТВАМ"],
+        ["3 УРОНА ВРАГУ", "И ЗАМОРАЖИВАЕТ", "ЕГО"], ["БОЕВОЙ КЛИЧ:", "ЗАМОРАЖИВАЕТ", "СУЩЕСТВО ВРАГА"], ["ВЫ БЕРЁТЕ 2 КАРТЫ"], [],
+        ["БОЕВОЙ КЛИЧ:", "ВЫ БЕРЁТЕ КАРТУ"], ["2 УРОНА ВСЕМ", "СУЩЕСТВАМ ВРАГА", "И ЗАМОРОЗКА"], [], ["БОЕВОЙ КЛИЧ: МОРОЗИТ", "СУЩЕСТВ ВРАГА,", "ВЫ БЕРЁТЕ КАРТУ"],
+        [], ["ДАЁТ ПУСТОЙ", "КРИСТАЛЛ МАНЫ"], ["СУЩЕСТВО ПОЛУЧАЕТ", "+2/+2 И", "ПРОВОКАЦИЮ"], [],
+        ["ПРИЗЫВАЕТ ДВУХ", "ВОЛКОВ 2/2"], ["ПРЕДСМЕРТНЫЙ ХРИП:", "ДВА ЯДОВИТЫХ", "ПАУКА 1/1"], [], ["БОЕВОЙ КЛИЧ: ВАШИ", "ДРУГИЕ СУЩЕСТВА", "ПОЛУЧАЮТ +2/+2"],
+        [], ["ВОССТАНАВЛИВАЕТ", "8 ЗДОРОВЬЯ", "ВАШЕМУ ГЕРОЮ"], ["СУЩЕСТВО ПОЛУЧАЕТ", "+1/+1 И ЩИТ"], [],
+        ["ВАШИ СУЩЕСТВА", "ПОЛУЧАЮТ +1/+1"], ["УНИЧТОЖАЕТ", "СУЩЕСТВО ВРАГА"], [], ["БОЕВОЙ КЛИЧ: +8", "ЗДОРОВЬЯ", "ВАШЕМУ ГЕРОЮ"],
+        [], ["2 УРОНА, +2", "ЗДОРОВЬЯ", "ВАШЕМУ ГЕРОЮ"], ["ПРЕДСМЕРТНЫЙ ХРИП:", "ВЫ БЕРЁТЕ КАРТУ"], ["4 УРОНА", "СУЩЕСТВУ ВРАГА"],
+        ["ПРЕДСМЕРТНЫЙ ХРИП:", "ДВА СКЕЛЕТА 1/1"], [], ["3 УРОНА", "ВСЕМ СУЩЕСТВАМ"], ["БОЕВОЙ КЛИЧ:", "УНИЧТОЖАЕТ", "СУЩЕСТВО ВРАГА"],
+        [], [], [], ["+1 МАНА", "ТОЛЬКО НА ЭТОТ ХОД"]
+      ]
+    }
+    ja {
+      vs: n => "VS ${n}"
+      youFirst: "あなたが先攻です"
+      foeFirst: n => "${n} が先攻です"
+      yourTurn: "あなたのターン"
+      foeTurn: n => "${n} のターン"
+      frozen: "凍結"
+      crystal: "+1 クリスタル"
+      mana: n => "+${n} マナ"
+      fatigue: "疲労"
+      burned: c => "焼失：${c}"
+      destroyed: "破壊"
+      shield: "シールド"
+      play: "プレイ"
+      cont: "続ける"
+      deck: "デッキ"
+      packs: "パック"
+      auto: "自動"
+      done: "完了"
+      openAll: "すべて開く"
+      buyPack: "パックを買う"
+      goldN: n => "${n} ゴールド"
+      endTurn: "ターン終了"
+      foe: "相手"
+      plays: n => "${n} がプレイ"
+      deckN: n => "山札 ${n}"
+      deckOf: n => "デッキ ${n}/20"
+      noMana: "マナが足りません"
+      boardFull: "場がいっぱいです"
+      noAim: "対象がありません"
+      pickTarget: "対象を選んでください"
+      tapAgain: "もう一度タップでプレイ"
+      tauntWay: "挑発が邪魔しています"
+      pickAttack: "攻撃先を選んでください"
+      nothingLeft: "やることはもうありません"
+      tagline: "ピクセルカードゲーム"
+      soundOn: "サウンド オン"
+      soundOff: "サウンド オフ"
+      titleStats: (g, f, c, n) => "${g} ゴールド   相手 ${f}/8   カード ${c}/${n}"
+      ladder: "ラダー"
+      pickFoe: "相手を選んでください"
+      needs20: "デッキには 20 枚必要です"
+      locked: "ロック中"
+      foeLine: (el, hp) => "${el} · HP ${hp}"
+      beaten: "撃破"
+      fight: "挑戦"
+      tapCardsBelow: "下のカードをタップして追加します"
+      notOwned: "未所持"
+      inDeck: (a, b) => "デッキに ${a}/${b}"
+      deckHelp: "カードをタップで追加、行をタップで外します"
+      cardPacks: "カードパック"
+      packInfo: "5 枚入り、1 枚はレア以上"
+      spareInfo: "余ったカードはゴールドになります"
+      spare: n => "余り +${n} ゴールド"
+      newCard: "NEW!"
+      turnOver: "カードをタップしてめくります"
+      spell: "呪文"
+      victory: "勝利"
+      defeat: "敗北"
+      isBeaten: n => "${n} を倒しました"
+      winsThisTime: n => "今回は ${n} の勝ちです"
+      reward: n => "+${n} ゴールド"
+      kw: {tn: "挑発", ch: "突撃", sh: "シールド", po: "猛毒", ls: "生命奪取"}
+      elNames: ["中立", "炎", "水", "自然", "光", "闇"]
+      elShort: ["中立", "炎", "水", "自然", "光", "闇"]
+      rarities: ["コモン", "レア", "エピック", "レジェンド", "トークン"]
+      foeTitles: ["ゴブリン軍団長", "氷の魔女", "森のドルイド", "骨の王", "大司祭", "炎の王", "大魔導師", "竜王"]
+      cardNames: ["従者", "歩兵", "弓兵", "トロル", "吟遊詩人", "鉄の騎士", "オーガ", "古竜", "インプ", "残り火", "ヘルハウンド", "火の玉", "フェニックス", "炎のジン", "フレイムストライク", "インフェルノドレイク", "フロストボルト", "氷のニンフ", "洞察", "甲羅亀", "水の精霊", "ブリザード", "クラーケン", "潮の女王", "毒蛇", "成長", "野生の力", "クマ", "遠吠え", "蜘蛛の女王", "老いた樫", "ガイア", "侍祭", "聖なる光", "祝福", "テンプル騎士", "鼓舞", "審判", "セラフ", "太陽の巨人", "吸血コウモリ", "魂吸い", "墓荒らし", "シャドウボルト", "骨の君主", "ヴァンパイア", "疫病", "リッチ", "オオカミ", "子蜘蛛", "スケルトン", "コイン"]
+      cardText: [
+        [], [], ["雄叫び：", "1 ダメージを与える"], [],
+        ["雄叫び：", "カードを1枚引く"], [], [], ["雄叫び：敵の", "ミニオン全てに", "2 ダメージ"],
+        [], ["2 ダメージを与える"], [], ["6 ダメージを与える"],
+        ["断末魔：敵の", "ヒーローに", "3 ダメージ"], ["雄叫び：", "3 ダメージを与える"], ["敵のミニオン", "全てに", "4 ダメージ"], ["雄叫び：敵ヒーローに", "3、そのミニオンに", "1 ダメージ"],
+        ["敵1体に", "3 ダメージを与え", "凍結させる"], ["雄叫び：敵の", "ミニオン1体を", "凍結させる"], ["カードを2枚引く"], [],
+        ["雄叫び：", "カードを1枚引く"], ["敵のミニオン全てに", "2 ダメージを与え", "凍結させる"], [], ["雄叫び：敵の", "ミニオンを凍結し", "カードを1枚引く"],
+        [], ["空のマナ", "クリスタルを", "1つ得る"], ["ミニオン1体に", "+2/+2 と", "挑発を付与"], [],
+        ["2/2 のオオカミを", "2体召喚"], ["断末魔：1/1 の", "猛毒の蜘蛛を", "2体召喚"], [], ["雄叫び：自分の", "他のミニオンに", "+2/+2"],
+        [], ["自分のヒーローの", "体力を8回復"], ["ミニオン1体に", "+1/+1 と", "シールドを付与"], [],
+        ["自分のミニオンに", "+1/+1"], ["敵のミニオン", "1体を破壊する"], [], ["雄叫び：自分の", "ヒーローの体力を", "8回復"],
+        [], ["2 ダメージを与え", "自分のヒーローの", "体力を2回復"], ["断末魔：", "カードを1枚引く"], ["敵のミニオン1体に", "4 ダメージ"],
+        ["断末魔：1/1 の", "スケルトンを2体召喚"], [], ["全てのミニオンに", "3 ダメージ"], ["雄叫び：敵の", "ミニオン1体を", "破壊する"],
+        [], [], [], ["このターンのみ", "マナを1得る"]
+      ]
+    }
+    uk {
+      vs: n => "ПРОТИ ${n}"
+      youFirst: "ВИ ПОЧИНАЄТЕ"
+      foeFirst: n => "ПОЧИНАЄ ${n}"
+      yourTurn: "ВАШ ХІД"
+      foeTurn: n => "ХІД: ${n}"
+      frozen: "ЗАМОРОЖЕНО"
+      crystal: "+1 КРИСТАЛ"
+      mana: n => "+${n} МАНИ"
+      fatigue: "ВТОМА"
+      burned: c => "ЗГОРІЛА: ${c}"
+      destroyed: "ЗНИЩЕНО"
+      shield: "ЩИТ"
+      play: "ГРАТИ"
+      cont: "ДАЛІ"
+      deck: "КОЛОДА"
+      packs: "НАБОРИ"
+      auto: "АВТО"
+      done: "ГОТОВО"
+      openAll: "ВІДКРИТИ ВСІ"
+      buyPack: "КУПИТИ НАБІР"
+      goldN: n => "${n} ЗОЛОТА"
+      endTurn: "КІНЕЦЬ ХОДУ"
+      foe: "ВОРОГ"
+      plays: n => "${n} ГРАЄ"
+      deckN: n => "КОЛОДА ${n}"
+      deckOf: n => "КОЛОДА ${n}/20"
+      noMana: "БРАКУЄ МАНИ"
+      boardFull: "ВАШЕ ПОЛЕ ЗАПОВНЕНЕ"
+      noAim: "НЕМАЄ ЦІЛІ"
+      pickTarget: "ВИБЕРІТЬ ЦІЛЬ"
+      tapAgain: "НАТИСНІТЬ ЩЕ РАЗ, ЩОБ ЗІГРАТИ"
+      tauntWay: "ЗАВАЖАЄ ПРОВОКАЦІЯ"
+      pickAttack: "ВИБЕРІТЬ, КОГО АТАКУВАТИ"
+      nothingLeft: "БІЛЬШЕ НІЧОГО РОБИТИ"
+      tagline: "ПІКСЕЛЬНА КАРТКОВА ГРА"
+      soundOn: "ЗВУК УВІМК"
+      soundOff: "ЗВУК ВИМК"
+      titleStats: (g, f, c, n) => "${g} ЗОЛОТА   ВОРОГИ ${f}/8   КАРТИ ${c}/${n}"
+      ladder: "ДРАБИНА"
+      pickFoe: "ВИБЕРІТЬ ВОРОГА"
+      needs20: "У КОЛОДІ МАЄ БУТИ 20 КАРТ"
+      locked: "ЗАКРИТО"
+      foeLine: (el, hp) => "${el} · ${hp} ОЗ"
+      beaten: "ПЕРЕМОГА"
+      fight: "У БІЙ"
+      tapCardsBelow: "НАТИСНІТЬ НА КАРТИ НИЖЧЕ, ЩОБ ДОДАТИ"
+      notOwned: "НЕМАЄ В КОЛЕКЦІЇ"
+      inDeck: (a, b) => "У КОЛОДІ ${a}/${b}"
+      deckHelp: "КАРТА — ДОДАТИ, РЯДОК — ПРИБРАТИ"
+      cardPacks: "НАБОРИ КАРТ"
+      packInfo: "5 КАРТ, ОДНА РІДКІСНА АБО КРАЩЕ"
+      spareInfo: "ЗАЙВІ КОПІЇ СТАЮТЬ ЗОЛОТОМ"
+      spare: n => "ЗАЙВА +${n} ЗОЛОТА"
+      newCard: "НОВА!"
+      turnOver: "НАТИСНІТЬ НА КАРТУ, ЩОБ ПЕРЕВЕРНУТИ"
+      spell: "ЗАКЛЯТТЯ"
+      victory: "ПЕРЕМОГА"
+      defeat: "ПОРАЗКА"
+      isBeaten: n => "ВИ ЗДОЛАЛИ: ${n}"
+      winsThisTime: n => "${n} ВИГРАЄ ЦЬОГО РАЗУ"
+      reward: n => "+${n} ЗОЛОТА"
+      kw: {tn: "ПРОВОКАЦІЯ", ch: "РИВОК", sh: "ЩИТ", po: "ОТРУТА", ls: "ВАМПІРИЗМ"}
+      elNames: ["НЕЙТРАЛЬНИЙ", "ВОГОНЬ", "ВОДА", "ПРИРОДА", "СВІТЛО", "ТЕМРЯВА"]
+      elShort: ["НЕЙТР", "ВОГОНЬ", "ВОДА", "ПРИР", "СВІТЛО", "ТЕМРЯВА"]
+      rarities: ["ЗВИЧАЙНА", "РІДКІСНА", "ЕПІЧНА", "ЛЕГЕНДАРНА", "ЖЕТОН"]
+      foeTitles: ["ГОБЛІН-ВОЄНАЧАЛЬНИК", "КРИЖАНА ВІДЬМА", "ДРУЇД ГАЮ", "КІСТЯНИЙ КОРОЛЬ", "ВЕРХОВНА ЖРИЦЯ", "ВОЛОДАР ВОГНЮ", "ВЕРХОВНИЙ МАГ", "КОРОЛЬ ДРАКОНІВ"]
+      cardNames: ["ЗБРОЄНОСЕЦЬ", "ПІХОТИНЕЦЬ", "ЛУЧНИК", "ТРОЛЬ", "БАРД", "ЗАЛІЗНИЙ ЛИЦАР", "ОГР", "ПРАДАВНІЙ ДРАКОН", "БІС", "ЖАРИНКА", "ПЕКЕЛЬНИЙ ПЕС", "ВОГНЯНА КУЛЯ", "ФЕНІКС", "ВОГНЯНИЙ ДЖИН", "ВОГНЯНИЙ УДАР", "ПЕКЕЛЬНИЙ ДРАКОН", "КРИЖАНА СТРІЛА", "КРИЖАНА НІМФА", "ПРОЗРІННЯ", "ПАНЦИРНИК", "ДУХ ВОДИ", "ХУРТОВИНА", "КРАКЕН", "КОРОЛЕВА ПРИПЛИВІВ", "ГАДЮКА", "РІСТ", "ДИКА МІЦЬ", "ВЕДМІДЬ", "ВИТТЯ", "КОРОЛЕВА ПАВУКІВ", "СТАРИЙ ДУБ", "ГЕЯ", "ПОСЛУШНИК", "СВЯТЕ СВІТЛО", "БЛАГОСЛОВЕННЯ", "ТАМПЛІЄР", "ЗБІР", "СУД", "СЕРАФИМ", "СОНЯЧНИЙ ТИТАН", "ВАМПІР. КАЖАН", "ВИСМОКТАТИ ДУШУ", "ГРАБІЖНИК МОГИЛ", "СТРІЛА ТІНІ", "КІСТЯНИЙ ЛОРД", "ВАМПІР", "ЧУМА", "ЛІЧ", "ВОВК", "ПАВУЧОК", "СКЕЛЕТ", "МОНЕТКА"]
+      cardText: [
+        [], [], ["БОЙОВИЙ КЛИЧ:", "1 ШКОДИ"], [],
+        ["БОЙОВИЙ КЛИЧ:", "ВИ БЕРЕТЕ КАРТУ"], [], [], ["БОЙОВИЙ КЛИЧ: 2", "ШКОДИ ІСТОТАМ", "СУПЕРНИКА"],
+        [], ["2 ШКОДИ"], [], ["6 ШКОДИ"],
+        ["ПЕРЕДСМЕРТНИЙ ХРИП:", "3 ШКОДИ ГЕРОЮ", "СУПЕРНИКА"], ["БОЙОВИЙ КЛИЧ:", "3 ШКОДИ"], ["4 ШКОДИ ВСІМ", "ІСТОТАМ", "СУПЕРНИКА"], ["БОЙОВИЙ КЛИЧ: 3 ГЕРОЮ", "СУПЕРНИКА, 1 ЙОГО", "ІСТОТАМ"],
+        ["3 ШКОДИ ВОРОГУ", "І ЗАМОРОЖУЄ", "ЙОГО"], ["БОЙОВИЙ КЛИЧ:", "ЗАМОРОЖУЄ", "ІСТОТУ ВОРОГА"], ["ВИ БЕРЕТЕ 2 КАРТИ"], [],
+        ["БОЙОВИЙ КЛИЧ:", "ВИ БЕРЕТЕ КАРТУ"], ["2 ШКОДИ ВСІМ", "ІСТОТАМ ВОРОГА", "І ЗАМОРОЗКА"], [], ["БОЙОВИЙ КЛИЧ: МОРОЗИТЬ", "ІСТОТ ВОРОГА,", "ВИ БЕРЕТЕ КАРТУ"],
+        [], ["ДАЄ ПОРОЖНІЙ", "КРИСТАЛ МАНИ"], ["ІСТОТА ОТРИМУЄ", "+2/+2 І", "ПРОВОКАЦІЮ"], [],
+        ["ПРИКЛИКАЄ ДВОХ", "ВОВКІВ 2/2"], ["ПЕРЕДСМЕРТНИЙ ХРИП:", "ДВА ОТРУЙНІ", "ПАВУКИ 1/1"], [], ["БОЙОВИЙ КЛИЧ: ВАШІ", "ІНШІ ІСТОТИ", "ОТРИМУЮТЬ +2/+2"],
+        [], ["ВІДНОВЛЮЄ", "8 ЗДОРОВ’Я", "ВАШОМУ ГЕРОЮ"], ["ІСТОТА ОТРИМУЄ", "+1/+1 І ЩИТ"], [],
+        ["ВАШІ ІСТОТИ", "ОТРИМУЮТЬ +1/+1"], ["ЗНИЩУЄ", "ІСТОТУ ВОРОГА"], [], ["БОЙОВИЙ КЛИЧ: +8", "ЗДОРОВ’Я", "ВАШОМУ ГЕРОЮ"],
+        [], ["2 ШКОДИ, +2", "ЗДОРОВ’Я", "ВАШОМУ ГЕРОЮ"], ["ПЕРЕДСМЕРТНИЙ ХРИП:", "ВИ БЕРЕТЕ КАРТУ"], ["4 ШКОДИ", "ІСТОТІ ВОРОГА"],
+        ["ПЕРЕДСМЕРТНИЙ ХРИП:", "ДВА СКЕЛЕТИ 1/1"], [], ["3 ШКОДИ", "ВСІМ ІСТОТАМ"], ["БОЙОВИЙ КЛИЧ:", "ЗНИЩУЄ", "ІСТОТУ ВОРОГА"],
+        [], [], [], ["+1 МАНА", "ЛИШЕ НА ЦЕЙ ХІД"]
+      ]
+    }
+    fr {
+      vs: n => "CONTRE ${n}"
+      youFirst: "TU COMMENCES"
+      foeFirst: n => "${n} COMMENCE"
+      yourTurn: "À TOI"
+      foeTurn: n => "AU TOUR DE ${n}"
+      frozen: "GELÉ"
+      crystal: "+1 CRISTAL"
+      mana: n => "+${n} MANA"
+      fatigue: "FATIGUE"
+      burned: c => "BRÛLÉE : ${c}"
+      destroyed: "DÉTRUIT"
+      shield: "BOUCLIER"
+      play: "JOUER"
+      cont: "CONTINUER"
+      deck: "DECK"
+      packs: "PAQUETS"
+      auto: "AUTO"
+      done: "OK"
+      openAll: "TOUT OUVRIR"
+      buyPack: "ACHETER UN PAQUET"
+      goldN: n => "${n} OR"
+      endTurn: "FIN DU TOUR"
+      foe: "ADVERSAIRE"
+      plays: n => "${n} JOUE"
+      deckN: n => "DECK ${n}"
+      deckOf: n => "DECK ${n}/20"
+      noMana: "PAS ASSEZ DE MANA"
+      boardFull: "TON PLATEAU EST PLEIN"
+      noAim: "AUCUNE CIBLE"
+      pickTarget: "CHOISIS UNE CIBLE"
+      tapAgain: "TOUCHE ENCORE POUR JOUER"
+      tauntWay: "UNE PROVOCATION BLOQUE"
+      pickAttack: "CHOISIS QUOI ATTAQUER"
+      nothingLeft: "PLUS RIEN À FAIRE"
+      tagline: "UN JEU DE CARTES EN PIXELS"
+      soundOn: "SON ACTIVÉ"
+      soundOff: "SON COUPÉ"
+      titleStats: (g, f, c, n) => "${g} OR   ${f}/8 ADVERSAIRES   ${c}/${n} CARTES"
+      ladder: "L’ÉCHELLE"
+      pickFoe: "CHOISIS UN ADVERSAIRE"
+      needs20: "TON DECK DOIT AVOIR 20 CARTES"
+      locked: "VERROUILLÉ"
+      foeLine: (el, hp) => "${el} · ${hp} PV"
+      beaten: "GAGNÉ"
+      fight: "COMBATTRE"
+      tapCardsBelow: "TOUCHE LES CARTES EN BAS POUR LES AJOUTER"
+      notOwned: "PAS ACQUISE"
+      inDeck: (a, b) => "${a}/${b} DANS LE DECK"
+      deckHelp: "TOUCHE UNE CARTE POUR L’AJOUTER, UNE LIGNE POUR L’ENLEVER"
+      cardPacks: "PAQUETS DE CARTES"
+      packInfo: "5 CARTES, DONT UNE RARE OU MIEUX"
+      spareInfo: "LES DOUBLES SE CHANGENT EN OR"
+      spare: n => "DOUBLE +${n} OR"
+      newCard: "NOUVEAU !"
+      turnOver: "TOUCHE UNE CARTE POUR LA RETOURNER"
+      spell: "SORT"
+      victory: "VICTOIRE"
+      defeat: "DÉFAITE"
+      isBeaten: n => "TU AS BATTU ${n}"
+      winsThisTime: n => "${n} GAGNE CETTE FOIS"
+      reward: n => "+${n} OR"
+      kw: {tn: "PROVOCATION", ch: "CHARGE", sh: "BOUCLIER", po: "TOXICITÉ", ls: "VOL DE VIE"}
+      elNames: ["NEUTRE", "FEU", "EAU", "NATURE", "LUMIÈRE", "OMBRE"]
+      elShort: ["NEUT", "FEU", "EAU", "NATURE", "LUMIÈRE", "OMBRE"]
+      rarities: ["COMMUNE", "RARE", "ÉPIQUE", "LÉGENDAIRE", "JETON"]
+      foeTitles: ["CHEF DE GUERRE GOBELIN", "SORCIÈRE DU GIVRE", "DRUIDE DU BOSQUET", "ROI DES OS", "GRANDE PRÊTRESSE", "SEIGNEUR DU FEU", "ARCHIMAGE", "ROI DRAGON"]
+      cardNames: ["ÉCUYER", "FANTASSIN", "ARCHER", "TROLL", "BARDE", "CHEVALIER DE FER", "OGRE", "DRAGON ANCIEN", "DIABLOTIN", "BRAISE", "CHIEN INFERNAL", "BOULE DE FEU", "PHÉNIX", "DJINN DES FLAMMES", "CHOC DE FLAMMES", "DRAKE INFERNAL", "ÉCLAIR DE GIVRE", "NYMPHE DU GIVRE", "INTUITION", "CARAPACE", "ESPRIT DE L’EAU", "BLIZZARD", "KRAKEN", "REINE DES MARÉES", "VIPÈRE", "CROISSANCE", "FORCE SAUVAGE", "OURS", "HURLEMENT", "REINE ARAIGNÉE", "VIEUX CHÊNE", "GAÏA", "ACOLYTE", "LUMIÈRE SACRÉE", "BÉNÉDICTION", "TEMPLIER", "RALLIEMENT", "JUGEMENT", "SÉRAPHIN", "TITAN SOLAIRE", "CHAUVE-SOURIS VAMPIRE", "DRAIN D’ÂME", "PILLEUR DE TOMBES", "TRAIT DE L’OMBRE", "SEIGNEUR DES OS", "VAMPIRE", "PESTE", "LA LICHE", "LOUP", "ARAIGNÉE", "SQUELETTE", "LA PIÈCE"]
+      cardText: [
+        [], [], ["CRI DE GUERRE :", "1 DÉGÂT"], [],
+        ["CRI DE GUERRE :", "PIOCHE UNE CARTE"], [], [], ["CRI DE GUERRE : 2", "DÉGÂTS AUX", "SERVITEURS ENNEMIS"],
+        [], ["2 DÉGÂTS"], [], ["6 DÉGÂTS"],
+        ["RÂLE D’AGONIE : 3", "DÉGÂTS AU", "HÉROS ENNEMI"], ["CRI DE GUERRE :", "3 DÉGÂTS"], ["4 DÉGÂTS À TOUS", "LES SERVITEURS", "ENNEMIS"], ["CRI DE GUERRE : 3", "AU HÉROS ENNEMI,", "1 À SES SERVITEURS"],
+        ["3 DÉGÂTS À UN", "ENNEMI ET", "LE GÈLE"], ["CRI DE GUERRE :", "GÈLE UN SERVITEUR", "ENNEMI"], ["PIOCHE 2 CARTES"], [],
+        ["CRI DE GUERRE :", "PIOCHE UNE CARTE"], ["2 DÉGÂTS AUX", "SERVITEURS ENNEMIS", "ET LES GÈLE"], [], ["CRI DE GUERRE : GÈLE", "LES ENNEMIS ET", "PIOCHE UNE CARTE"],
+        [], ["GAGNE UN CRISTAL", "DE MANA VIDE"], ["DONNE +2/+2 ET", "PROVOCATION À", "UN SERVITEUR"], [],
+        ["INVOQUE DEUX", "LOUPS 2/2"], ["RÂLE D’AGONIE :", "INVOQUE DEUX", "ARAIGNÉES 1/1 TOXIQUES"], [], ["CRI DE GUERRE :", "+2/+2 À TES", "AUTRES SERVITEURS"],
+        [], ["RENDS 8 PV", "À TON HÉROS"], ["DONNE +1/+1 ET", "BOUCLIER À", "UN SERVITEUR"], [],
+        ["DONNE +1/+1", "À TES SERVITEURS"], ["DÉTRUIS UN", "SERVITEUR ENNEMI"], [], ["CRI DE GUERRE :", "RENDS 8 PV", "À TON HÉROS"],
+        [], ["2 DÉGÂTS,", "RENDS 2 PV", "À TON HÉROS"], ["RÂLE D’AGONIE :", "PIOCHE UNE CARTE"], ["4 DÉGÂTS À UN", "SERVITEUR ENNEMI"],
+        ["RÂLE D’AGONIE :", "INVOQUE DEUX", "SQUELETTES 1/1"], [], ["3 DÉGÂTS À TOUS", "LES SERVITEURS"], ["CRI DE GUERRE :", "DÉTRUIS UN", "SERVITEUR ENNEMI"],
+        [], [], [], ["GAGNE 1 MANA", "CE TOUR SEULEMENT"]
+      ]
+    }
+    tr {
+      vs: n => "RAKİP: ${n}"
+      youFirst: "SEN BAŞLIYORSUN"
+      foeFirst: n => "${n} BAŞLIYOR"
+      yourTurn: "SIRA SENDE"
+      foeTurn: n => "SIRA: ${n}"
+      frozen: "DONDU"
+      crystal: "+1 KRİSTAL"
+      mana: n => "+${n} MANA"
+      fatigue: "YORGUNLUK"
+      burned: c => "YANDI: ${c}"
+      destroyed: "YOK EDİLDİ"
+      shield: "KALKAN"
+      play: "OYNA"
+      cont: "DEVAM"
+      deck: "DESTE"
+      packs: "PAKETLER"
+      auto: "OTO"
+      done: "TAMAM"
+      openAll: "HEPSİNİ AÇ"
+      buyPack: "PAKET AL"
+      goldN: n => "${n} ALTIN"
+      endTurn: "TURU BİTİR"
+      foe: "RAKİP"
+      plays: n => "${n} OYNUYOR"
+      deckN: n => "DESTE ${n}"
+      deckOf: n => "DESTE ${n}/20"
+      noMana: "MANA YETMİYOR"
+      boardFull: "ALANIN DOLU"
+      noAim: "HEDEF YOK"
+      pickTarget: "HEDEF SEÇ"
+      tapAgain: "OYNAMAK İÇİN TEKRAR DOKUN"
+      tauntWay: "ÖNCE ALAYCI YENİLMELİ"
+      pickAttack: "NEYE SALDIRACAĞINI SEÇ"
+      nothingLeft: "YAPACAK BİR ŞEY KALMADI"
+      tagline: "PİKSEL KART OYUNU"
+      soundOn: "SES AÇIK"
+      soundOff: "SES KAPALI"
+      titleStats: (g, f, c, n) => "${g} ALTIN   ${f}/8 RAKİP   ${c}/${n} KART"
+      ladder: "MERDİVEN"
+      pickFoe: "RAKİP SEÇ"
+      needs20: "DESTENDE 20 KART OLMALI"
+      locked: "KİLİTLİ"
+      foeLine: (el, hp) => "${el} · ${hp} CAN"
+      beaten: "YENİLDİ"
+      fight: "SAVAŞ"
+      tapCardsBelow: "EKLEMEK İÇİN AŞAĞIDAKİ KARTLARA DOKUN"
+      notOwned: "SENDE YOK"
+      inDeck: (a, b) => "${a}/${b} DESTEDE"
+      deckHelp: "EKLEMEK İÇİN KARTA, ÇIKARMAK İÇİN SATIRA DOKUN"
+      cardPacks: "KART PAKETLERİ"
+      packInfo: "5 KART, BİRİ NADİR VEYA DAHA İYİ"
+      spareInfo: "FAZLA KOPYALAR ALTINA DÖNÜŞÜR"
+      spare: n => "FAZLA +${n} ALTIN"
+      newCard: "YENİ!"
+      turnOver: "ÇEVİRMEK İÇİN BİR KARTA DOKUN"
+      spell: "BÜYÜ"
+      victory: "ZAFER"
+      defeat: "YENİLGİ"
+      isBeaten: n => "${n} YENİLDİ"
+      winsThisTime: n => "BU SEFER ${n} KAZANDI"
+      reward: n => "+${n} ALTIN"
+      kw: {tn: "ALAYCI", ch: "HÜCUM", sh: "KALKAN", po: "ZEHİR", ls: "CAN ÇALMA"}
+      elNames: ["NÖTR", "ATEŞ", "SU", "DOĞA", "IŞIK", "GÖLGE"]
+      elShort: ["NÖTR", "ATEŞ", "SU", "DOĞA", "IŞIK", "KARA"]
+      rarities: ["SIRADAN", "NADİR", "EPİK", "EFSANEVİ", "JETON"]
+      foeTitles: ["GOBLİN SAVAŞ BEYİ", "AYAZ CADISI", "KORU DRUİDİ", "KEMİK KRAL", "BAŞ RAHİBE", "ATEŞ LORDU", "BAŞBÜYÜCÜ", "EJDERHA KRAL"]
+      cardNames: ["SİLAHTAR", "PİYADE", "OKÇU", "TROL", "OZAN", "DEMİR ŞÖVALYE", "DEV", "KADİM EJDER", "İMP", "KOR", "CEHENNEM İTİ", "ATEŞ TOPU", "ANKA", "ALEV CİNİ", "ALEV DARBESİ", "CEHENNEM EJDERİ", "AYAZ OKU", "AYAZ PERİSİ", "SEZGİ", "KABUKSIRT", "SU RUHU", "TİPİ", "KRAKEN", "GELGİT KRALİÇESİ", "ENGEREK", "BÜYÜME", "VAHŞİ GÜÇ", "AYI", "ULUMA", "ÖRÜMCEK KRALİÇE", "YAŞLI MEŞE", "GAIA", "ÇIRAK", "KUTSAL IŞIK", "KUTSAMA", "TAPINAKÇI", "TOPLANMA", "YARGI", "SERAFİM", "GÜNEŞ TİTANI", "VAMPİR YARASA", "RUH EMME", "MEZAR SOYGUNCUSU", "GÖLGE OKU", "KEMİK EFENDİ", "VAMPİR", "VEBA", "LİCH", "KURT", "YAVRU ÖRÜMCEK", "İSKELET", "SİKKE"]
+      cardText: [
+        [], [], ["SAVAŞ NARASI:", "1 HASAR"], [],
+        ["SAVAŞ NARASI:", "BİR KART ÇEK"], [], [], ["SAVAŞ NARASI: DÜŞMAN", "MİNYONLARA", "2 HASAR"],
+        [], ["2 HASAR VER"], [], ["6 HASAR VER"],
+        ["ÖLÜM HIRILTISI:", "DÜŞMAN KAHRAMANA", "3 HASAR"], ["SAVAŞ NARASI:", "3 HASAR"], ["TÜM DÜŞMAN", "MİNYONLARA", "4 HASAR"], ["SAVAŞ NARASI: DÜŞMAN", "KAHRAMANA 3,", "MİNYONLARINA 1"],
+        ["BİR DÜŞMANA", "3 HASAR VER", "VE DONDUR"], ["SAVAŞ NARASI:", "BİR DÜŞMAN", "MİNYONU DONDUR"], ["2 KART ÇEK"], [],
+        ["SAVAŞ NARASI:", "BİR KART ÇEK"], ["TÜM DÜŞMAN", "MİNYONLARA 2 HASAR", "VE DONDUR"], [], ["SAVAŞ NARASI: DÜŞMAN", "MİNYONLARI DONDUR,", "BİR KART ÇEK"],
+        [], ["BOŞ BİR MANA", "KRİSTALİ KAZAN"], ["BİR MİNYONA", "+2/+2 VE ALAYCI", "VER"], [],
+        ["İKİ 2/2 KURT", "ÇAĞIR"], ["ÖLÜM HIRILTISI: İKİ", "1/1 ZEHİRLİ", "ÖRÜMCEK ÇAĞIR"], [], ["SAVAŞ NARASI:", "DİĞER MİNYONLARINA", "+2/+2 VER"],
+        [], ["KAHRAMANINA", "8 CAN KAZANDIR"], ["BİR MİNYONA", "+1/+1 VE KALKAN", "VER"], [],
+        ["MİNYONLARINA", "+1/+1 VER"], ["BİR DÜŞMAN", "MİNYONU YOK ET"], [], ["SAVAŞ NARASI:", "KAHRAMANINA", "8 CAN KAZANDIR"],
+        [], ["2 HASAR VER,", "KAHRAMANINA", "2 CAN KAZANDIR"], ["ÖLÜM HIRILTISI:", "BİR KART ÇEK"], ["BİR DÜŞMAN", "MİNYONA 4 HASAR"],
+        ["ÖLÜM HIRILTISI: İKİ", "1/1 İSKELET ÇAĞIR"], [], ["TÜM MİNYONLARA", "3 HASAR"], ["SAVAŞ NARASI:", "BİR DÜŞMAN", "MİNYONU YOK ET"],
+        [], [], [], ["1 MANA KAZAN,", "SADECE BU TUR"]
+      ]
+    }
+    it {
+      vs: n => "CONTRO ${n}"
+      youFirst: "INIZI TU"
+      foeFirst: n => "INIZIA ${n}"
+      yourTurn: "TOCCA A TE"
+      foeTurn: n => "TOCCA A ${n}"
+      frozen: "CONGELATO"
+      crystal: "+1 CRISTALLO"
+      mana: n => "+${n} MANA"
+      fatigue: "FATICA"
+      burned: c => "BRUCIATA: ${c}"
+      destroyed: "DISTRUTTO"
+      shield: "SCUDO"
+      play: "GIOCA"
+      cont: "CONTINUA"
+      deck: "MAZZO"
+      packs: "BUSTE"
+      auto: "AUTO"
+      done: "FATTO"
+      openAll: "APRI TUTTO"
+      buyPack: "COMPRA UNA BUSTA"
+      goldN: n => "${n} ORO"
+      endTurn: "FINE TURNO"
+      foe: "AVVERSARIO"
+      plays: n => "${n} GIOCA"
+      deckN: n => "MAZZO ${n}"
+      deckOf: n => "MAZZO ${n}/20"
+      noMana: "MANA INSUFFICIENTE"
+      boardFull: "IL TUO CAMPO È PIENO"
+      noAim: "NIENTE DA COLPIRE"
+      pickTarget: "SCEGLI UN BERSAGLIO"
+      tapAgain: "TOCCA ANCORA PER GIOCARE"
+      tauntWay: "C’È UNA PROVOCAZIONE"
+      pickAttack: "SCEGLI COSA ATTACCARE"
+      nothingLeft: "NIENT’ALTRO DA FARE"
+      tagline: "UN GIOCO DI CARTE IN PIXEL"
+      soundOn: "AUDIO SÌ"
+      soundOff: "AUDIO NO"
+      titleStats: (g, f, c, n) => "${g} ORO   ${f}/8 AVVERSARI   ${c}/${n} CARTE"
+      ladder: "LA SCALA"
+      pickFoe: "SCEGLI UN AVVERSARIO"
+      needs20: "IL TUO MAZZO VUOLE 20 CARTE"
+      locked: "BLOCCATO"
+      foeLine: (el, hp) => "${el} · ${hp} PS"
+      beaten: "VINTO"
+      fight: "SFIDA"
+      tapCardsBelow: "TOCCA LE CARTE QUI SOTTO PER AGGIUNGERLE"
+      notOwned: "NON POSSEDUTA"
+      inDeck: (a, b) => "${a}/${b} NEL MAZZO"
+      deckHelp: "TOCCA UNA CARTA PER AGGIUNGERLA, UNA RIGA PER TOGLIERLA"
+      cardPacks: "BUSTE DI CARTE"
+      packInfo: "5 CARTE, UNA RARA O MEGLIO"
+      spareInfo: "LE COPIE IN PIÙ DIVENTANO ORO"
+      spare: n => "IN PIÙ +${n} ORO"
+      newCard: "NUOVA!"
+      turnOver: "TOCCA UNA CARTA PER GIRARLA"
+      spell: "MAGIA"
+      victory: "VITTORIA"
+      defeat: "SCONFITTA"
+      isBeaten: n => "HAI BATTUTO ${n}"
+      winsThisTime: n => "${n} VINCE STAVOLTA"
+      reward: n => "+${n} ORO"
+      kw: {tn: "PROVOCAZIONE", ch: "CARICA", sh: "SCUDO", po: "VELENO", ls: "FURTO VITALE"}
+      elNames: ["NEUTRO", "FUOCO", "ACQUA", "NATURA", "LUCE", "OMBRA"]
+      elShort: ["NEUT", "FUOCO", "ACQUA", "NATURA", "LUCE", "OMBRA"]
+      rarities: ["COMUNE", "RARA", "EPICA", "LEGGENDARIA", "SEGNALINO"]
+      foeTitles: ["CAPOGUERRA GOBLIN", "STREGA DEL GELO", "DRUIDO DEL BOSCO", "RE DELLE OSSA", "SOMMA SACERDOTESSA", "SIGNORE DEL FUOCO", "ARCIMAGO", "RE DRAGO"]
+      cardNames: ["SCUDIERO", "FANTE", "ARCIERE", "TROLL", "BARDO", "CAVALIERE DI FERRO", "ORCO", "DRAGO ANZIANO", "IMP", "BRACE", "SEGUGIO INFERNALE", "PALLA DI FUOCO", "FENICE", "DJINN DELLE FIAMME", "COLPO DI FIAMMA", "DRACO INFERNALE", "DARDO DI GELO", "NINFA DEL GELO", "INTUIZIONE", "GUSCIOROCCIA", "SPIRITO DELL’ACQUA", "BUFERA", "KRAKEN", "REGINA DELLE MAREE", "VIPERA", "CRESCITA", "FORZA SELVAGGIA", "ORSO", "ULULATO", "REGINA RAGNO", "VECCHIA QUERCIA", "GAIA", "ACCOLITO", "LUCE SACRA", "BENEDIZIONE", "TEMPLARE", "ADUNATA", "GIUDIZIO", "SERAFINO", "TITANO SOLARE", "PIPISTRELLO VAMPIRO", "PROSCIUGA ANIMA", "PREDATORE DI TOMBE", "DARDO D’OMBRA", "SIGNORE DELLE OSSA", "VAMPIRO", "PESTILENZA", "IL LICH", "LUPO", "RAGNETTO", "SCHELETRO", "LA MONETA"]
+      cardText: [
+        [], [], ["GRIDO DI BATTAGLIA:", "1 DANNO"], [],
+        ["GRIDO DI BATTAGLIA:", "PESCA UNA CARTA"], [], [], ["GRIDO DI BATTAGLIA:", "2 DANNI AI", "SERVITORI NEMICI"],
+        [], ["2 DANNI"], [], ["6 DANNI"],
+        ["RANTOLO DI MORTE:", "3 DANNI ALL’EROE", "NEMICO"], ["GRIDO DI BATTAGLIA:", "3 DANNI"], ["4 DANNI A TUTTI", "I SERVITORI", "NEMICI"], ["GRIDO DI BATTAGLIA:", "3 ALL’EROE NEMICO,", "1 AI SUOI SERVITORI"],
+        ["3 DANNI A UN", "NEMICO E", "LO CONGELA"], ["GRIDO DI BATTAGLIA:", "CONGELA UN", "SERVITORE NEMICO"], ["PESCA 2 CARTE"], [],
+        ["GRIDO DI BATTAGLIA:", "PESCA UNA CARTA"], ["2 DANNI A TUTTI", "I SERVITORI NEMICI", "E LI CONGELA"], [], ["GRIDO DI BATTAGLIA:", "CONGELA I NEMICI E", "PESCA UNA CARTA"],
+        [], ["OTTIENI UN", "CRISTALLO DI", "MANA VUOTO"], ["DAI A UN SERVITORE", "+2/+2 E", "PROVOCAZIONE"], [],
+        ["EVOCA DUE", "LUPI 2/2"], ["RANTOLO DI MORTE:", "EVOCA DUE RAGNI", "1/1 VELENOSI"], [], ["GRIDO DI BATTAGLIA:", "+2/+2 AI TUOI", "ALTRI SERVITORI"],
+        [], ["RIPRISTINA 8 PS", "AL TUO EROE"], ["DAI A UN SERVITORE", "+1/+1 E SCUDO"], [],
+        ["DAI AI TUOI", "SERVITORI +1/+1"], ["DISTRUGGI UN", "SERVITORE NEMICO"], [], ["GRIDO DI BATTAGLIA:", "RIPRISTINA 8 PS", "AL TUO EROE"],
+        [], ["2 DANNI,", "RIPRISTINA 2 PS", "AL TUO EROE"], ["RANTOLO DI MORTE:", "PESCA UNA CARTA"], ["4 DANNI A UN", "SERVITORE NEMICO"],
+        ["RANTOLO DI MORTE:", "EVOCA DUE", "SCHELETRI 1/1"], [], ["3 DANNI A TUTTI", "I SERVITORI"], ["GRIDO DI BATTAGLIA:", "DISTRUGGI UN", "SERVITORE NEMICO"],
+        [], [], [], ["OTTIENI 1 MANA", "SOLO IN QUESTO TURNO"]
+      ]
+    }
+  }
+
   // ---- the cards ----------------------------------------------------------------------------------
   // el element (0 neutral, 1 fire, 2 water, 3 nature, 4 light, 5 shadow); t 0 minion, 1 spell; c cost;
   // r 0 common, 1 rare, 2 epic, 3 legendary, 4 token. tn taunt, ch charge, sh shield, po poison, ls
   // lifesteal. ef: what playing it does, aimed at a target of the kind tg names (any character, en an
   // enemy, em an enemy minion, fm a friendly minion); dr: what it does as it dies; x: its text.
   let CD = [
-    {n: "SQUIRE", el: 0, t: 0, c: 1, a: 1, h: 2, r: 0},
-    {n: "FOOTMAN", el: 0, t: 0, c: 2, a: 2, h: 3, r: 0},
-    {n: "ARCHER", el: 0, t: 0, c: 2, a: 2, h: 1, r: 0, tg: "any", ef: [{e: "dmg", n: 1}], x: ["BATTLECRY: DEAL", "1 DAMAGE"]},
-    {n: "TROLL", el: 0, t: 0, c: 3, a: 3, h: 4, r: 0},
-    {n: "BARD", el: 0, t: 0, c: 3, a: 2, h: 3, r: 0, ef: [{e: "draw", n: 1}], x: ["BATTLECRY:", "DRAW A CARD"]},
-    {n: "IRON KNIGHT", el: 0, t: 0, c: 4, a: 4, h: 3, r: 1, sh: true},
-    {n: "OGRE", el: 0, t: 0, c: 6, a: 6, h: 7, r: 0},
-    {n: "ELDER DRAGON", el: 0, t: 0, c: 8, a: 7, h: 7, r: 3, ef: [{e: "aoe", n: 2}], x: ["BATTLECRY: DEAL 2", "TO ENEMY MINIONS"]},
-    {n: "IMP", el: 1, t: 0, c: 1, a: 2, h: 1, r: 0},
-    {n: "EMBER", el: 1, t: 1, c: 1, r: 0, tg: "any", ef: [{e: "dmg", n: 2}], x: ["DEAL 2 DAMAGE"]},
-    {n: "HELLHOUND", el: 1, t: 0, c: 3, a: 3, h: 2, r: 0, ch: true},
-    {n: "FIREBALL", el: 1, t: 1, c: 4, r: 1, tg: "any", ef: [{e: "dmg", n: 6}], x: ["DEAL 6 DAMAGE"]},
-    {n: "PHOENIX", el: 1, t: 0, c: 4, a: 4, h: 3, r: 1, dr: [{e: "face", n: 3}], x: ["DEATHRATTLE: DEAL", "3 TO THE ENEMY HERO"]},
-    {n: "FLAME DJINN", el: 1, t: 0, c: 5, a: 4, h: 4, r: 0, tg: "any", ef: [{e: "dmg", n: 3}], x: ["BATTLECRY: DEAL", "3 DAMAGE"]},
-    {n: "FLAMESTRIKE", el: 1, t: 1, c: 6, r: 2, ef: [{e: "aoe", n: 4}], x: ["DEAL 4 DAMAGE", "TO ALL ENEMY", "MINIONS"]},
-    {n: "INFERNO DRAKE", el: 1, t: 0, c: 7, a: 6, h: 6, r: 3, pl: {X: "#e8504a", x: "#982a2e"}, ef: [{e: "face", n: 3}, {e: "aoe", n: 1}], x: ["BATTLECRY: DEAL 3", "TO THE ENEMY HERO,", "1 TO ITS MINIONS"]},
-    {n: "FROSTBOLT", el: 2, t: 1, c: 2, r: 0, tg: "en", ef: [{e: "dmg", n: 3}, {e: "frz"}], x: ["DEAL 3 DAMAGE", "TO AN ENEMY", "AND FREEZE IT"]},
-    {n: "FROST NYMPH", el: 2, t: 0, c: 2, a: 2, h: 2, r: 0, tg: "em", ef: [{e: "frz"}], x: ["BATTLECRY: FREEZE", "AN ENEMY MINION"]},
-    {n: "INSIGHT", el: 2, t: 1, c: 3, r: 0, ef: [{e: "draw", n: 2}], x: ["DRAW 2 CARDS"]},
-    {n: "SHELLBACK", el: 2, t: 0, c: 3, a: 2, h: 5, r: 0, tn: true},
-    {n: "WATER SPIRIT", el: 2, t: 0, c: 4, a: 3, h: 5, r: 1, ef: [{e: "draw", n: 1}], x: ["BATTLECRY:", "DRAW A CARD"]},
-    {n: "BLIZZARD", el: 2, t: 1, c: 6, r: 2, ef: [{e: "aoe", n: 2}, {e: "frzall"}], x: ["DEAL 2 TO ALL", "ENEMY MINIONS", "AND FREEZE THEM"]},
-    {n: "KRAKEN", el: 2, t: 0, c: 7, a: 6, h: 8, r: 1, tn: true},
-    {n: "TIDE QUEEN", el: 2, t: 0, c: 6, a: 4, h: 6, r: 3, ef: [{e: "frzall"}, {e: "draw", n: 1}], x: ["BATTLECRY: FREEZE", "ENEMY MINIONS", "AND DRAW A CARD"]},
-    {n: "VIPER", el: 3, t: 0, c: 2, a: 1, h: 2, r: 0, po: true},
-    {n: "GROWTH", el: 3, t: 1, c: 2, r: 0, ef: [{e: "ramp"}], x: ["GAIN AN EMPTY", "MANA CRYSTAL"]},
-    {n: "WILD MIGHT", el: 3, t: 1, c: 2, r: 0, tg: "fm", ef: [{e: "buff", a: 2, h: 2, kw: "tn"}], x: ["GIVE A MINION", "+2/+2 AND TAUNT"]},
-    {n: "BEAR", el: 3, t: 0, c: 3, a: 3, h: 3, r: 0, tn: true},
-    {n: "HOWL", el: 3, t: 1, c: 3, r: 0, ef: [{e: "sum", c: 48, n: 2}], x: ["SUMMON TWO", "2/2 WOLVES"]},
-    {n: "SPIDER QUEEN", el: 3, t: 0, c: 5, a: 3, h: 3, r: 2, po: true, dr: [{e: "sum", c: 49, n: 2}], x: ["DEATHRATTLE: SUMMON", "TWO 1/1 POISONOUS", "SPIDERS"]},
-    {n: "OLD OAK", el: 3, t: 0, c: 6, a: 5, h: 8, r: 1, tn: true},
-    {n: "GAIA", el: 3, t: 0, c: 8, a: 6, h: 6, r: 3, ef: [{e: "buffall", a: 2, h: 2}], x: ["BATTLECRY: GIVE", "YOUR OTHER MINIONS", "+2/+2"]},
-    {n: "ACOLYTE", el: 4, t: 0, c: 1, a: 1, h: 2, r: 0, sh: true},
-    {n: "HOLY LIGHT", el: 4, t: 1, c: 2, r: 0, ef: [{e: "heal", n: 8}], x: ["RESTORE 8 HEALTH", "TO YOUR HERO"]},
-    {n: "BLESSING", el: 4, t: 1, c: 1, r: 0, tg: "fm", ef: [{e: "buff", a: 1, h: 1, kw: "sh"}], x: ["GIVE A MINION", "+1/+1 AND SHIELD"]},
-    {n: "TEMPLAR", el: 4, t: 0, c: 3, a: 2, h: 2, r: 0, tn: true, sh: true},
-    {n: "RALLY", el: 4, t: 1, c: 3, r: 1, ef: [{e: "buffall", a: 1, h: 1}], x: ["GIVE YOUR", "MINIONS +1/+1"]},
-    {n: "JUDGMENT", el: 4, t: 1, c: 4, r: 1, tg: "em", ef: [{e: "kill"}], x: ["DESTROY AN", "ENEMY MINION"]},
-    {n: "SERAPH", el: 4, t: 0, c: 5, a: 4, h: 4, r: 2, sh: true, ls: true},
-    {n: "SUN TITAN", el: 4, t: 0, c: 8, a: 6, h: 8, r: 3, tn: true, sh: true, ef: [{e: "heal", n: 8}], x: ["BATTLECRY: RESTORE", "8 HEALTH TO", "YOUR HERO"]},
-    {n: "VAMPIRE BAT", el: 5, t: 0, c: 1, a: 1, h: 1, r: 0, ch: true, ls: true},
-    {n: "SOUL DRAIN", el: 5, t: 1, c: 2, r: 0, tg: "any", ef: [{e: "dmg", n: 2}, {e: "heal", n: 2}], x: ["DEAL 2 DAMAGE,", "RESTORE 2 HEALTH", "TO YOUR HERO"]},
-    {n: "GRAVE ROBBER", el: 5, t: 0, c: 3, a: 2, h: 3, r: 0, dr: [{e: "draw", n: 1}], x: ["DEATHRATTLE:", "DRAW A CARD"]},
-    {n: "SHADOW BOLT", el: 5, t: 1, c: 3, r: 0, tg: "em", ef: [{e: "dmg", n: 4}], x: ["DEAL 4 DAMAGE", "TO AN ENEMY", "MINION"]},
-    {n: "BONE LORD", el: 5, t: 0, c: 4, a: 3, h: 3, r: 1, dr: [{e: "sum", c: 50, n: 2}], x: ["DEATHRATTLE: SUMMON", "TWO 1/1 SKELETONS"]},
-    {n: "VAMPIRE", el: 5, t: 0, c: 4, a: 3, h: 4, r: 0, ls: true},
-    {n: "PLAGUE", el: 5, t: 1, c: 5, r: 2, ef: [{e: "aoeall", n: 3}], x: ["DEAL 3 DAMAGE", "TO ALL MINIONS"]},
-    {n: "THE LICH", el: 5, t: 0, c: 7, a: 5, h: 6, r: 3, tg: "em", ef: [{e: "kill"}], x: ["BATTLECRY: DESTROY", "AN ENEMY MINION"]},
-    {n: "WOLF", el: 3, t: 0, c: 2, a: 2, h: 2, r: 4},
-    {n: "SPIDERLING", el: 3, t: 0, c: 1, a: 1, h: 1, r: 4, po: true},
-    {n: "SKELETON", el: 5, t: 0, c: 1, a: 1, h: 1, r: 4},
-    {n: "THE COIN", el: 0, t: 1, c: 0, r: 4, ef: [{e: "gm", n: 1}], x: ["GAIN 1 MANA", "THIS TURN ONLY"]}
+    {n: str.cardNames[0], el: 0, t: 0, c: 1, a: 1, h: 2, r: 0},
+    {n: str.cardNames[1], el: 0, t: 0, c: 2, a: 2, h: 3, r: 0},
+    {n: str.cardNames[2], el: 0, t: 0, c: 2, a: 2, h: 1, r: 0, tg: "any", ef: [{e: "dmg", n: 1}], x: str.cardText[2]},
+    {n: str.cardNames[3], el: 0, t: 0, c: 3, a: 3, h: 4, r: 0},
+    {n: str.cardNames[4], el: 0, t: 0, c: 3, a: 2, h: 3, r: 0, ef: [{e: "draw", n: 1}], x: str.cardText[4]},
+    {n: str.cardNames[5], el: 0, t: 0, c: 4, a: 4, h: 3, r: 1, sh: true},
+    {n: str.cardNames[6], el: 0, t: 0, c: 6, a: 6, h: 7, r: 0},
+    {n: str.cardNames[7], el: 0, t: 0, c: 8, a: 7, h: 7, r: 3, ef: [{e: "aoe", n: 2}], x: str.cardText[7]},
+    {n: str.cardNames[8], el: 1, t: 0, c: 1, a: 2, h: 1, r: 0},
+    {n: str.cardNames[9], el: 1, t: 1, c: 1, r: 0, tg: "any", ef: [{e: "dmg", n: 2}], x: str.cardText[9]},
+    {n: str.cardNames[10], el: 1, t: 0, c: 3, a: 3, h: 2, r: 0, ch: true},
+    {n: str.cardNames[11], el: 1, t: 1, c: 4, r: 1, tg: "any", ef: [{e: "dmg", n: 6}], x: str.cardText[11]},
+    {n: str.cardNames[12], el: 1, t: 0, c: 4, a: 4, h: 3, r: 1, dr: [{e: "face", n: 3}], x: str.cardText[12]},
+    {n: str.cardNames[13], el: 1, t: 0, c: 5, a: 4, h: 4, r: 0, tg: "any", ef: [{e: "dmg", n: 3}], x: str.cardText[13]},
+    {n: str.cardNames[14], el: 1, t: 1, c: 6, r: 2, ef: [{e: "aoe", n: 4}], x: str.cardText[14]},
+    {n: str.cardNames[15], el: 1, t: 0, c: 7, a: 6, h: 6, r: 3, pl: {X: "#e8504a", x: "#982a2e"}, ef: [{e: "face", n: 3}, {e: "aoe", n: 1}], x: str.cardText[15]},
+    {n: str.cardNames[16], el: 2, t: 1, c: 2, r: 0, tg: "en", ef: [{e: "dmg", n: 3}, {e: "frz"}], x: str.cardText[16]},
+    {n: str.cardNames[17], el: 2, t: 0, c: 2, a: 2, h: 2, r: 0, tg: "em", ef: [{e: "frz"}], x: str.cardText[17]},
+    {n: str.cardNames[18], el: 2, t: 1, c: 3, r: 0, ef: [{e: "draw", n: 2}], x: str.cardText[18]},
+    {n: str.cardNames[19], el: 2, t: 0, c: 3, a: 2, h: 5, r: 0, tn: true},
+    {n: str.cardNames[20], el: 2, t: 0, c: 4, a: 3, h: 5, r: 1, ef: [{e: "draw", n: 1}], x: str.cardText[20]},
+    {n: str.cardNames[21], el: 2, t: 1, c: 6, r: 2, ef: [{e: "aoe", n: 2}, {e: "frzall"}], x: str.cardText[21]},
+    {n: str.cardNames[22], el: 2, t: 0, c: 7, a: 6, h: 8, r: 1, tn: true},
+    {n: str.cardNames[23], el: 2, t: 0, c: 6, a: 4, h: 6, r: 3, ef: [{e: "frzall"}, {e: "draw", n: 1}], x: str.cardText[23]},
+    {n: str.cardNames[24], el: 3, t: 0, c: 2, a: 1, h: 2, r: 0, po: true},
+    {n: str.cardNames[25], el: 3, t: 1, c: 2, r: 0, ef: [{e: "ramp"}], x: str.cardText[25]},
+    {n: str.cardNames[26], el: 3, t: 1, c: 2, r: 0, tg: "fm", ef: [{e: "buff", a: 2, h: 2, kw: "tn"}], x: str.cardText[26]},
+    {n: str.cardNames[27], el: 3, t: 0, c: 3, a: 3, h: 3, r: 0, tn: true},
+    {n: str.cardNames[28], el: 3, t: 1, c: 3, r: 0, ef: [{e: "sum", c: 48, n: 2}], x: str.cardText[28]},
+    {n: str.cardNames[29], el: 3, t: 0, c: 5, a: 3, h: 3, r: 2, po: true, dr: [{e: "sum", c: 49, n: 2}], x: str.cardText[29]},
+    {n: str.cardNames[30], el: 3, t: 0, c: 6, a: 5, h: 8, r: 1, tn: true},
+    {n: str.cardNames[31], el: 3, t: 0, c: 8, a: 6, h: 6, r: 3, ef: [{e: "buffall", a: 2, h: 2}], x: str.cardText[31]},
+    {n: str.cardNames[32], el: 4, t: 0, c: 1, a: 1, h: 2, r: 0, sh: true},
+    {n: str.cardNames[33], el: 4, t: 1, c: 2, r: 0, ef: [{e: "heal", n: 8}], x: str.cardText[33]},
+    {n: str.cardNames[34], el: 4, t: 1, c: 1, r: 0, tg: "fm", ef: [{e: "buff", a: 1, h: 1, kw: "sh"}], x: str.cardText[34]},
+    {n: str.cardNames[35], el: 4, t: 0, c: 3, a: 2, h: 2, r: 0, tn: true, sh: true},
+    {n: str.cardNames[36], el: 4, t: 1, c: 3, r: 1, ef: [{e: "buffall", a: 1, h: 1}], x: str.cardText[36]},
+    {n: str.cardNames[37], el: 4, t: 1, c: 4, r: 1, tg: "em", ef: [{e: "kill"}], x: str.cardText[37]},
+    {n: str.cardNames[38], el: 4, t: 0, c: 5, a: 4, h: 4, r: 2, sh: true, ls: true},
+    {n: str.cardNames[39], el: 4, t: 0, c: 8, a: 6, h: 8, r: 3, tn: true, sh: true, ef: [{e: "heal", n: 8}], x: str.cardText[39]},
+    {n: str.cardNames[40], el: 5, t: 0, c: 1, a: 1, h: 1, r: 0, ch: true, ls: true},
+    {n: str.cardNames[41], el: 5, t: 1, c: 2, r: 0, tg: "any", ef: [{e: "dmg", n: 2}, {e: "heal", n: 2}], x: str.cardText[41]},
+    {n: str.cardNames[42], el: 5, t: 0, c: 3, a: 2, h: 3, r: 0, dr: [{e: "draw", n: 1}], x: str.cardText[42]},
+    {n: str.cardNames[43], el: 5, t: 1, c: 3, r: 0, tg: "em", ef: [{e: "dmg", n: 4}], x: str.cardText[43]},
+    {n: str.cardNames[44], el: 5, t: 0, c: 4, a: 3, h: 3, r: 1, dr: [{e: "sum", c: 50, n: 2}], x: str.cardText[44]},
+    {n: str.cardNames[45], el: 5, t: 0, c: 4, a: 3, h: 4, r: 0, ls: true},
+    {n: str.cardNames[46], el: 5, t: 1, c: 5, r: 2, ef: [{e: "aoeall", n: 3}], x: str.cardText[46]},
+    {n: str.cardNames[47], el: 5, t: 0, c: 7, a: 5, h: 6, r: 3, tg: "em", ef: [{e: "kill"}], x: str.cardText[47]},
+    {n: str.cardNames[48], el: 3, t: 0, c: 2, a: 2, h: 2, r: 4},
+    {n: str.cardNames[49], el: 3, t: 0, c: 1, a: 1, h: 1, r: 4, po: true},
+    {n: str.cardNames[50], el: 5, t: 0, c: 1, a: 1, h: 1, r: 4},
+    {n: str.cardNames[51], el: 0, t: 1, c: 0, r: 4, ef: [{e: "gm", n: 1}], x: str.cardText[51]}
   ]
   // the 48 that can be collected, and by rarity for the packs
   let NCOL = 48
   let POOL = range(4).map(r => range(NCOL).filter(c => CD[c].r == r))
   // a card's text: its keywords, then what it does
-  let TXT = CD.map(C => [[C.tn ? "TAUNT" : "", C.ch ? "CHARGE" : "", C.sh ? "SHIELD" : "", C.po ? "POISON" : "", C.ls ? "LIFESTEAL" : ""].filter(z => z != "")].map(K => (len(K) > 0 ? [join(K, " ")] : []) + (C.x ?? []))[0])
+  let TXT = CD.map(C => [[C.tn ? str.kw.tn : "", C.ch ? str.kw.ch : "", C.sh ? str.kw.sh : "", C.po ? str.kw.po : "", C.ls ? str.kw.ls : ""].filter(z => z != "")].map(K => (len(K) > 0 ? [join(K, " ")] : []) + (C.x ?? []))[0])
   let EL = [
-    {n: "NEUTRAL", s: "NEUT", f: "#8a8698", d: "#46425a"},
-    {n: "FIRE", s: "FIRE", f: "#c8483a", d: "#6a1e1e"},
-    {n: "WATER", s: "WATER", f: "#3a78c8", d: "#1a3a6a"},
-    {n: "NATURE", s: "WILD", f: "#4a9a4a", d: "#1e4a26"},
-    {n: "LIGHT", s: "LIGHT", f: "#d0a040", d: "#6a4a18"},
-    {n: "SHADOW", s: "DARK", f: "#7a4ab0", d: "#341e5a"}
+    {n: str.elNames[0], s: str.elShort[0], f: "#8a8698", d: "#46425a"},
+    {n: str.elNames[1], s: str.elShort[1], f: "#c8483a", d: "#6a1e1e"},
+    {n: str.elNames[2], s: str.elShort[2], f: "#3a78c8", d: "#1a3a6a"},
+    {n: str.elNames[3], s: str.elShort[3], f: "#4a9a4a", d: "#1e4a26"},
+    {n: str.elNames[4], s: str.elShort[4], f: "#d0a040", d: "#6a4a18"},
+    {n: str.elNames[5], s: str.elShort[5], f: "#7a4ab0", d: "#341e5a"}
   ]
   let RIM = ["#c8c4d4", "#5ab4ff", "#d07aff", "#ffb02a", "#8a8698"]
-  let RN = ["COMMON", "RARE", "EPIC", "LEGENDARY", "TOKEN"]
+  let RN = str.rarities
   // what a spare copy from a pack pays back
   let SPARE = [5, 20, 50, 150, 0]
   let STARTER = [0, 0, 1, 1, 2, 2, 3, 3, 4, 6, 6, 8, 9, 16, 19, 24, 27, 32, 40, 43]
@@ -178,14 +1207,14 @@ app "runeclash" {
   // ---- the ladder ---------------------------------------------------------------------------------
   // hp the foe's health; sp its portrait; pl colours swapped in it; dk its deck
   let FOES = [
-    {n: "GRUK", t: "GOBLIN WARBOSS", hp: 18, el: 1, sp: 1, pl: {}, dk: [8, 8, 9, 9, 0, 0, 1, 1, 2, 2, 10, 10, 3, 3, 13, 4, 4, 6, 6, 11]},
-    {n: "MIRA", t: "FROST WITCH", hp: 20, el: 2, sp: 2, pl: {X: "#3a78c8", x: "#1a3a6a", Z: "#9ae0ff"}, dk: [16, 16, 17, 17, 18, 19, 19, 20, 20, 0, 0, 1, 1, 3, 3, 6, 6, 22, 4, 4]},
-    {n: "OAKHEART", t: "GROVE DRUID", hp: 22, el: 3, sp: 3, pl: {}, dk: [24, 24, 25, 25, 26, 26, 27, 27, 28, 28, 29, 30, 30, 1, 1, 3, 3, 2, 2, 6]},
-    {n: "MORGRIM", t: "BONE KING", hp: 24, el: 5, sp: 4, pl: {}, dk: [40, 40, 41, 41, 42, 42, 43, 43, 44, 44, 45, 45, 46, 1, 1, 3, 3, 6, 6, 5]},
-    {n: "SERAPHINE", t: "HIGH PRIESTESS", hp: 25, el: 4, sp: 5, pl: {}, dk: [32, 32, 33, 34, 34, 35, 35, 36, 37, 37, 38, 38, 39, 1, 1, 3, 3, 5, 5, 6]},
-    {n: "IGNAR", t: "FIRE LORD", hp: 26, el: 1, sp: 6, pl: {}, dk: [8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 15, 2, 2, 5, 5, 3, 3]},
-    {n: "ZORAL", t: "ARCHMAGE", hp: 28, el: 2, sp: 2, pl: {X: "#6a3aa8", x: "#3a1e6a", Z: "#f4f0e8"}, dk: [16, 16, 18, 18, 20, 20, 21, 23, 22, 19, 19, 11, 11, 9, 9, 17, 17, 7, 6, 6]},
-    {n: "VARGOTH", t: "DRAGON KING", hp: 30, el: 0, sp: 7, pl: {}, dk: [7, 15, 47, 39, 31, 11, 11, 43, 43, 37, 5, 5, 38, 27, 27, 35, 35, 16, 16, 29]}
+    {n: "GRUK", t: str.foeTitles[0], hp: 18, el: 1, sp: 1, pl: {}, dk: [8, 8, 9, 9, 0, 0, 1, 1, 2, 2, 10, 10, 3, 3, 13, 4, 4, 6, 6, 11]},
+    {n: "MIRA", t: str.foeTitles[1], hp: 20, el: 2, sp: 2, pl: {X: "#3a78c8", x: "#1a3a6a", Z: "#9ae0ff"}, dk: [16, 16, 17, 17, 18, 19, 19, 20, 20, 0, 0, 1, 1, 3, 3, 6, 6, 22, 4, 4]},
+    {n: "OAKHEART", t: str.foeTitles[2], hp: 22, el: 3, sp: 3, pl: {}, dk: [24, 24, 25, 25, 26, 26, 27, 27, 28, 28, 29, 30, 30, 1, 1, 3, 3, 2, 2, 6]},
+    {n: "MORGRIM", t: str.foeTitles[3], hp: 24, el: 5, sp: 4, pl: {}, dk: [40, 40, 41, 41, 42, 42, 43, 43, 44, 44, 45, 45, 46, 1, 1, 3, 3, 6, 6, 5]},
+    {n: "SERAPHINE", t: str.foeTitles[4], hp: 25, el: 4, sp: 5, pl: {}, dk: [32, 32, 33, 34, 34, 35, 35, 36, 37, 37, 38, 38, 39, 1, 1, 3, 3, 5, 5, 6]},
+    {n: "IGNAR", t: str.foeTitles[5], hp: 26, el: 1, sp: 6, pl: {}, dk: [8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 15, 2, 2, 5, 5, 3, 3]},
+    {n: "ZORAL", t: str.foeTitles[6], hp: 28, el: 2, sp: 2, pl: {X: "#6a3aa8", x: "#3a1e6a", Z: "#f4f0e8"}, dk: [16, 16, 18, 18, 20, 20, 21, 23, 22, 19, 19, 11, 11, 9, 9, 17, 17, 7, 6, 6]},
+    {n: "VARGOTH", t: str.foeTitles[7], hp: 30, el: 0, sp: 7, pl: {}, dk: [7, 15, 47, 39, 31, 11, 11, 43, 43, 37, 5, 5, 38, 27, 27, 35, 35, 16, 16, 29]}
   ]
   let OPEN = range(8).map(f => f == 0 || indexOf(beat, f - 1) >= 0 || indexOf(beat, f) >= 0)
 
@@ -305,7 +1334,7 @@ app "runeclash" {
     selM = -1
     insp = -1
     shown = -1
-    fx = [{k: "ban", s: "VS ${FOES[foe].n}", s2: first == 0 ? "YOU GO FIRST" : "${FOES[foe].n} GOES FIRST", c: "#ffe14a", t0: 0}]
+    fx = [{k: "ban", s: str.vs(FOES[foe].n), s2: first == 0 ? str.youFirst : str.foeFirst(FOES[foe].n), c: "#ffe14a", t0: 0}]
     fxT = 1.1
     busy = true
     rsv = true
@@ -320,7 +1349,7 @@ app "runeclash" {
       let mx = min(10, H.mx + 1)
       hr = set(hr, s, merge(H, {mx: mx, m: mx}))
       bd = set(bd, s, bd[s].map(m => merge(m, {at: m.fz ? 0 : 1, zz: false})))
-      fx = fx + [{k: "ban", s: s == 0 ? "YOUR TURN" : "${FOES[foe].n}'S TURN", s2: "", c: s == 0 ? "#ffe14a" : "#ff5a4a", t0: fxT}]
+      fx = fx + [{k: "ban", s: s == 0 ? str.yourTurn : str.foeTurn(FOES[foe].n), s2: "", c: s == 0 ? "#ffe14a" : "#ff5a4a", t0: fxT}]
       fxT = fxT + 0.75
       pend = [{e: "draw", s: s, n: 1}]
       resQ = resQ + 1
@@ -395,16 +1424,16 @@ app "runeclash" {
             : m.sh ? merge(G, {bd: set(G.bd, ts, set(G.bd[ts], ti, merge(m, {sh: false}))), fx: G.fx + [{k: "pop", t: p.t, t0: tz}]})
             : [p.po ? min(0, m.h - p.n) : m.h - p.n].map(nh => merge(G, {bd: set(G.bd, ts, set(G.bd[ts], ti, merge(m, {h: nh}))), fx: G.fx + [{k: "hit", t: p.t, n: p.n, d: m.h - nh, t0: tz}]}))[0])
       : p.op == "heal" ? [min(G.hr[ts].mh, G.hr[ts].hp + p.n)].map(nh => merge(G, {hr: set(G.hr, ts, merge(G.hr[ts], {hp: nh})), fx: G.fx + (nh > G.hr[ts].hp ? [{k: "heal", t: p.t, n: nh - G.hr[ts].hp, t0: tz}] : [])}))[0]
-      : p.op == "frz" ? (m == null || m.h <= 0 ? G : merge(G, {bd: set(G.bd, ts, set(G.bd[ts], ti, merge(m, {fz: true}))), fx: G.fx + [{k: "txt", t: p.t, s: "FROZEN", c: "#9ae0ff", t0: tz}]}))
+      : p.op == "frz" ? (m == null || m.h <= 0 ? G : merge(G, {bd: set(G.bd, ts, set(G.bd[ts], ti, merge(m, {fz: true}))), fx: G.fx + [{k: "txt", t: p.t, s: str.frozen, c: "#9ae0ff", t0: tz}]}))
       : p.op == "kill" ? (m == null || m.h <= 0 ? G : merge(G, {bd: set(G.bd, ts, set(G.bd[ts], ti, merge(m, {h: 0}))), fx: G.fx + [{k: "kill", t: p.t, d: m.h, t0: tz}]}))
       : p.op == "buff" ? (m == null || m.h <= 0 ? G : merge(G, {bd: set(G.bd, ts, set(G.bd[ts], ti, merge(m, {a: m.a + p.a, h: m.h + p.h, mh: m.mh + p.h, tn: m.tn || p.kw == "tn", sh: m.sh || p.kw == "sh"}))), fx: G.fx + [{k: "txt", t: p.t, s: "+${p.a}/+${p.h}", c: "#8aff7a", t0: tz}]}))
       : p.op == "used" ? merge(G, {bd: set(G.bd, ts, set(G.bd[ts], ti, merge(m, {at: m.at - 1})))})
-      : p.op == "ramp" ? merge(G, {hr: set(G.hr, p.s, merge(G.hr[p.s], {mx: min(10, G.hr[p.s].mx + 1)})), fx: G.fx + [{k: "txt", t: p.s * 10, s: "+1 CRYSTAL", c: "#5ab4ff", t0: tz}]})
-      : p.op == "gm" ? merge(G, {hr: set(G.hr, p.s, merge(G.hr[p.s], {m: G.hr[p.s].m + p.n})), fx: G.fx + [{k: "txt", t: p.s * 10, s: "+${p.n} MANA", c: "#5ab4ff", t0: tz}]})
+      : p.op == "ramp" ? merge(G, {hr: set(G.hr, p.s, merge(G.hr[p.s], {mx: min(10, G.hr[p.s].mx + 1)})), fx: G.fx + [{k: "txt", t: p.s * 10, s: str.crystal, c: "#5ab4ff", t0: tz}]})
+      : p.op == "gm" ? merge(G, {hr: set(G.hr, p.s, merge(G.hr[p.s], {m: G.hr[p.s].m + p.n})), fx: G.fx + [{k: "txt", t: p.s * 10, s: str.mana(p.n), c: "#5ab4ff", t0: tz}]})
       : p.op == "sum" ? reduce(range(p.n), (H, z) => len(H.bd[p.s].filter(q => q.h > 0)) >= 5 ? H : [CD[p.c]].map(C => merge(H, {bd: set(H.bd, p.s, H.bd[p.s] + [{c: p.c, a: C.a, h: C.h, mh: C.h, tn: C.tn ?? false, sh: C.sh ?? false, po: C.po ?? false, ls: C.ls ?? false, at: 0, zz: true, fz: false, u: H.u, dd: false}]), u: H.u + 1, fx: H.fx + [{k: "spawn", u: H.u, t0: tz + z * 0.15}]}))[0], G)
       : p.op == "draw" ? reduce(range(p.n), (H, z) => len(H.dk[p.s]) == 0
-            ? [H.hr[p.s].fat + 1].map(f => merge(H, {hr: set(H.hr, p.s, merge(H.hr[p.s], {fat: f, hp: H.hr[p.s].hp - f})), fx: H.fx + [{k: "hit", t: p.s * 10, n: f, d: f, t0: tz + z * 0.35}, {k: "txt", t: p.s * 10, s: "FATIGUE", c: "#ff8a5a", t0: tz + z * 0.35}]}))[0]
-            : len(H.hd[p.s]) >= 8 ? merge(H, {dk: set(H.dk, p.s, H.dk[p.s].drop(1)), fx: H.fx + [{k: "txt", t: p.s * 10, s: "BURNED ${CD[H.dk[p.s][0]].n}", c: "#ff8a5a", t0: tz + z * 0.35}]})
+            ? [H.hr[p.s].fat + 1].map(f => merge(H, {hr: set(H.hr, p.s, merge(H.hr[p.s], {fat: f, hp: H.hr[p.s].hp - f})), fx: H.fx + [{k: "hit", t: p.s * 10, n: f, d: f, t0: tz + z * 0.35}, {k: "txt", t: p.s * 10, s: str.fatigue, c: "#ff8a5a", t0: tz + z * 0.35}]}))[0]
+            : len(H.hd[p.s]) >= 8 ? merge(H, {dk: set(H.dk, p.s, H.dk[p.s].drop(1)), fx: H.fx + [{k: "txt", t: p.s * 10, s: str.burned(CD[H.dk[p.s][0]].n), c: "#ff8a5a", t0: tz + z * 0.35}]})
             : merge(H, {hd: set(H.hd, p.s, H.hd[p.s] + [H.dk[p.s][0]]), dk: set(H.dk, p.s, H.dk[p.s].drop(1))}), G)
       : G
     )[0])[0])[0])[0], {bd: bd, hd: hd, dk: dk, hr: hr, u: uid, fx: []})
@@ -1405,14 +2434,14 @@ app "runeclash" {
 
   // ---- what's on screen, for drawing and for taps -------------------------------------------------
   let G = mode == "game"
-  let BT = mode == "title" ? [{id: "play", x: SW / 2 - 120, y: SH * 0.62, w: 240, h: 56, l: live ? "CONTINUE" : "PLAY", p: "go"}, {id: "deck", x: SW / 2 - 120, y: SH * 0.62 + 68, w: 114, h: 48, l: "DECK", p: "blue"}, {id: "shop", x: SW / 2 + 6, y: SH * 0.62 + 68, w: 114, h: 48, l: "PACKS", p: "blue"}]
+  let BT = mode == "title" ? [{id: "play", x: SW / 2 - 120, y: SH * 0.62, w: 240, h: 56, l: live ? str.cont : str.play, p: "go"}, {id: "deck", x: SW / 2 - 120, y: SH * 0.62 + 68, w: 114, h: 48, l: str.deck, p: "blue"}, {id: "shop", x: SW / 2 + 6, y: SH * 0.62 + 68, w: 114, h: 48, l: str.packs, p: "blue"}]
     : mode == "ladder" ? [{id: "home", x: 10, y: TOP + 6, w: 46, h: 36, l: "<", p: "off"}]
-    : mode == "deck" ? [{id: "home", x: 10, y: TOP + 6, w: 46, h: 36, l: "<", p: "off"}, {id: "auto", x: SW - 96, y: TOP + 6, w: 86, h: 36, l: "AUTO", p: "blue"}]
-    : mode == "shop" ? (len(pack) > 0 ? [{id: all(pack, z => z.f) ? "done" : "flip", x: SW / 2 - 110, y: SH - INS - 70, w: 220, h: 54, l: all(pack, z => z.f) ? "DONE" : "OPEN ALL", p: "go"}] : [{id: "home", x: 10, y: TOP + 6, w: 46, h: 36, l: "<", p: "off"}, {id: "buy", x: SW / 2 - 120, y: SH * 0.64, w: 240, h: 58, l: "BUY A PACK", l2: "100 GOLD", p: gold >= 100 ? "go" : "off", dis: gold < 100}])
-    : G ? (over != 0 && !busy ? [{id: "fin", x: SW / 2 - 110, y: MID + 60, w: 220, h: 54, l: "CONTINUE", p: "go"}] : [{id: "menu", x: SW - 50, y: TOP, w: 42, h: 30, l: "", p: "off"}] + (myTurn ? [{id: "end", x: END.x, y: END.y, w: END.w, h: END.h, l: "END TURN", p: idle ? "green" : "go"}] : live && over == 0 && cur == 1 ? [{id: "wait", x: END.x, y: END.y, w: END.w, h: END.h, l: "FOE", p: "off", dis: true}] : []))
+    : mode == "deck" ? [{id: "home", x: 10, y: TOP + 6, w: 46, h: 36, l: "<", p: "off"}, {id: "auto", x: SW - 96, y: TOP + 6, w: 86, h: 36, l: str.auto, p: "blue"}]
+    : mode == "shop" ? (len(pack) > 0 ? [{id: all(pack, z => z.f) ? "done" : "flip", x: SW / 2 - 110, y: SH - INS - 70, w: 220, h: 54, l: all(pack, z => z.f) ? str.done : str.openAll, p: "go"}] : [{id: "home", x: 10, y: TOP + 6, w: 46, h: 36, l: "<", p: "off"}, {id: "buy", x: SW / 2 - 120, y: SH * 0.64, w: 240, h: 58, l: str.buyPack, l2: str.goldN(100), p: gold >= 100 ? "go" : "off", dis: gold < 100}])
+    : G ? (over != 0 && !busy ? [{id: "fin", x: SW / 2 - 110, y: MID + 60, w: 220, h: 54, l: str.cont, p: "go"}] : [{id: "menu", x: SW - 50, y: TOP, w: 42, h: 30, l: "", p: "off"}] + (myTurn ? [{id: "end", x: END.x, y: END.y, w: END.w, h: END.h, l: str.endTurn, p: idle ? "green" : "go"}] : live && over == 0 && cur == 1 ? [{id: "wait", x: END.x, y: END.y, w: END.w, h: END.h, l: str.foe, p: "off", dis: true}] : []))
     : []
   // the card looked at: one picked in the hand, a minion's, or what the foe is playing
-  let PV = !G || over != 0 ? null : shown >= 0 ? {c: shown, mn: null, lab: "${FOES[foe].n} PLAYS"} : selH >= 0 && selH < HN ? {c: hd[0][selH], mn: null, lab: ""} : selM >= 0 && selM < len(bd[0]) ? {c: bd[0][selM].c, mn: bd[0][selM], lab: ""} : insp >= 0 && floor(insp / 10) < 2 && insp % 10 > 0 && bd[floor(insp / 10)][insp % 10 - 1] != null ? {c: bd[floor(insp / 10)][insp % 10 - 1].c, mn: bd[floor(insp / 10)][insp % 10 - 1], lab: ""} : null
+  let PV = !G || over != 0 ? null : shown >= 0 ? {c: shown, mn: null, lab: str.plays(FOES[foe].n)} : selH >= 0 && selH < HN ? {c: hd[0][selH], mn: null, lab: ""} : selM >= 0 && selM < len(bd[0]) ? {c: bd[0][selM].c, mn: bd[0][selM], lab: ""} : insp >= 0 && floor(insp / 10) < 2 && insp % 10 > 0 && bd[floor(insp / 10)][insp % 10 - 1] != null ? {c: bd[floor(insp / 10)][insp % 10 - 1].c, mn: bd[floor(insp / 10)][insp % 10 - 1], lab: ""} : null
   // every card drawn: in the hand, looked at, in the deck builder, out of a pack, on the title
   let CARDS = G ? (live ? range(HN).sortBy(j => j == selH ? 1 : 0).map(j => {c: hd[0][j], x: HL[j].x, y: HL[j].y, s: CS, dim: myTurn && !CANP[j], glow: j == selH ? "#ffe14a" : myTurn && CANP[j] ? "#5aff6a" : ""}) : []) + (PV == null ? [] : [{c: PV.c, mn: PV.mn, x: PVX, y: PVY, s: PVS, dim: false, glow: ""}])
     : mode == "deck" ? GRID.map(g => {c: g.c, x: g.x, y: g.y, s: GS, dim: col[g.c] == 0, glow: INDK[g.c] > 0 ? "#ffd04a" : ""})
@@ -1575,7 +2604,7 @@ app "runeclash" {
             let e2 = (now - f.t0) / 0.9
             let hx = CEN[f.t].x
             let hy = CEN[f.t].y - 10 - e2 * 26
-            let lab = f.k == "kill" ? "DESTROYED" : f.k == "heal" ? "+${f.n}" : "-${f.n}"
+            let lab = f.k == "kill" ? str.destroyed : f.k == "heal" ? "+${f.n}" : "-${f.n}"
             let sz = f.k == "kill" ? 8 : 14
             layer(clamp((1 - e2) * 3, 0, 1)) {
               if f.k == "hit" {
@@ -1590,7 +2619,7 @@ app "runeclash" {
             let hx = CEN[f.t].x
             let hy = CEN[f.t].y
             circle(hx, hy, MW * 0.5 + e2 * 24, stroke: alpha("#ffe14a", 1 - e2), width: 4)
-            text("SHIELD", hx, hy - 16 - e2 * 16, size: 7, color: alpha("#ffe14a", 1 - e2), font: press, align: center)
+            text(str.shield, hx, hy - 16 - e2 * 16, size: 7, color: alpha("#ffe14a", 1 - e2), font: press, align: center)
           } else if f.k == "txt" && now >= f.t0 && now < f.t0 + 1.0 {
             let e2 = now - f.t0
             let hx = CEN[f.t].x
@@ -1779,7 +2808,7 @@ app "runeclash" {
           // the draw pile and, for the foe, its hand
           let lx = LS ? HXc - 34 : HXc - 46
           let ly = LS ? hy + 58 : hy - 6
-          text("DECK ${len(dk[s])}", lx, ly, size: 6, color: muted, font: press, align: LS ? "start" : "end")
+          text(str.deckN(len(dk[s])), lx, ly, size: 6, color: muted, font: press, align: LS ? "start" : "end")
           if s == 1 {
             let nh = len(hd[1])
             for k in range(nh) {
@@ -1793,9 +2822,9 @@ app "runeclash" {
           }
         }
         // a hint for what's picked
-        let hint = !myTurn ? "" : selC != null ? (!CANP[selH] ? (selC.c > hr[0].m ? "NOT ENOUGH MANA" : selC.t == 0 ? "YOUR BOARD IS FULL" : "NOTHING TO AIM AT") : len(VT) > 0 ? "PICK A TARGET" : "TAP AGAIN TO PLAY") : selM >= 0 ? (len(TN1) > 0 ? "A TAUNT IS IN THE WAY" : "PICK WHAT TO ATTACK") : idle ? "NOTHING LEFT TO DO" : ""
+        let hint = !myTurn ? "" : selC != null ? (!CANP[selH] ? (selC.c > hr[0].m ? str.noMana : selC.t == 0 ? str.boardFull : str.noAim) : len(VT) > 0 ? str.pickTarget : str.tapAgain) : selM >= 0 ? (len(TN1) > 0 ? str.tauntWay : str.pickAttack) : idle ? str.nothingLeft : ""
         if hint != "" {
-          text(hint, LS ? BCX : SW / 2, PBY - MH / 2 - 14, size: 6, color: hint == "PICK A TARGET" || hint == "PICK WHAT TO ATTACK" || hint == "TAP AGAIN TO PLAY" ? "#ffe14a" : "#ff9a7a", font: press, align: center)
+          text(hint, LS ? BCX : SW / 2, PBY - MH / 2 - 14, size: 6, color: hint == str.pickTarget || hint == str.pickAttack || hint == str.tapAgain ? "#ffe14a" : "#ff9a7a", font: press, align: center)
         }
         if PV != null && PV.lab != "" {
           text(PV.lab, PVX + 40 * PVS, PVY - 8, size: 7, color: "#ff8a6a", font: press, align: center)
@@ -1807,14 +2836,14 @@ app "runeclash" {
         let ty = SH * 0.14
         text("RUNECLASH", SW / 2 + 3, ty + 3, size: ls, color: INK, font: press, align: center)
         text("RUNECLASH", SW / 2, ty, size: ls, color: accent, font: press, align: center)
-        text("A PIXEL CARD GAME", SW / 2, ty + ls + 12, size: 7, color: muted, font: press, align: center)
-        text(snd ? "SOUND ON" : "SOUND OFF", SW - 14, TOP + 18, size: 7, color: snd ? accent : muted, font: press, align: end)
-        text("${gold} GOLD   ${len(beat)}/8 FOES   ${len(range(NCOL).filter(c => col[c] > 0))}/${NCOL} CARDS", SW / 2, SH * 0.62 - 20, size: 6, color: "#ffd04a", font: press, align: center)
+        text(str.tagline, SW / 2, ty + ls + 12, size: 7, color: muted, font: press, align: center)
+        text(snd ? str.soundOn : str.soundOff, SW - 14, TOP + 18, size: 7, color: snd ? accent : muted, font: press, align: end)
+        text(str.titleStats(gold, len(beat), len(range(NCOL).filter(c => col[c] > 0)), NCOL), SW / 2, SH * 0.62 - 20, size: 6, color: "#ffd04a", font: press, align: center)
       }
       // ---- the ladder ----
       if mode == "ladder" {
-        text("THE LADDER", SW / 2, TOP + 24, size: 11, color: accent, font: press, align: center)
-        text(len(deck) == 20 ? "PICK A FOE" : "YOUR DECK NEEDS 20 CARDS", SW / 2, TOP + 44, size: 6, color: len(deck) == 20 ? muted : "#ff8a6a", font: press, align: center)
+        text(str.ladder, SW / 2, TOP + 24, size: 11, color: accent, font: press, align: center)
+        text(len(deck) == 20 ? str.pickFoe : str.needs20, SW / 2, TOP + 44, size: 6, color: len(deck) == 20 ? muted : "#ff8a6a", font: press, align: center)
         for F, k in FOES {
           let y0 = LY + k * LH
           let op = OPEN[k]
@@ -1827,14 +2856,14 @@ app "runeclash" {
           }
           let tx = 30 + 16 * ps
           text(op ? F.n : "???", tx, y0 + LH * 0.32, size: 9, color: op ? foreground : muted, font: press)
-          text(op ? F.t : "LOCKED", tx, y0 + LH * 0.32 + 14, size: 6, color: muted, font: press)
-          text(op ? "${EL[F.el].n} · ${F.hp} HP" : "", tx, y0 + LH * 0.32 + 26, size: 5, color: EL[F.el].f, font: press)
-          text(won ? "BEATEN" : op ? "FIGHT" : "", SW - 22, y0 + (LH - 4) / 2, size: 7, color: won ? "#5ac85a" : "#ffd04a", font: press, align: end)
+          text(op ? F.t : str.locked, tx, y0 + LH * 0.32 + 14, size: 6, color: muted, font: press)
+          text(op ? str.foeLine(EL[F.el].n, F.hp) : "", tx, y0 + LH * 0.32 + 26, size: 5, color: EL[F.el].f, font: press)
+          text(won ? str.beaten : op ? str.fight : "", SW - 22, y0 + (LH - 4) / 2, size: 7, color: won ? "#5ac85a" : "#ffd04a", font: press, align: end)
         }
       }
       // ---- the deck builder ----
       if mode == "deck" {
-        text("DECK ${len(deck)}/20", 66, TOP + 24, size: 10, color: len(deck) == 20 ? accent : "#ff8a6a", font: press)
+        text(str.deckOf(len(deck)), 66, TOP + 24, size: 10, color: len(deck) == 20 ? accent : "#ff8a6a", font: press)
         for c, j in DKU {
           let dx = 10 + (j % 2) * (DLW + 10)
           let dy = DLY + floor(j / 2) * DLH
@@ -1845,7 +2874,7 @@ app "runeclash" {
           text(C.n, dx + 18, dy + (DLH - 3) / 2, size: min(6, (DLW - 44) / len(C.n)), color: "#ffffff", font: press)
           if INDK[c] > 1 { text("x${INDK[c]}", dx + DLW - 5, dy + (DLH - 3) / 2, size: 6, color: "#ffd04a", font: press, align: end) }
         }
-        if len(DKU) == 0 { text("TAP CARDS BELOW TO ADD THEM", SW / 2, DLY + 60, size: 6, color: muted, font: press, align: center) }
+        if len(DKU) == 0 { text(str.tapCardsBelow, SW / 2, DLY + 60, size: 6, color: muted, font: press, align: center) }
         for e, k in EL {
           let bx = 12 + k * TBW
           rect(bx + 2, TBY, TBW - 4, 30, radius: 4 * corners, fill: k == tab ? e.f : alpha(e.f, 0.25), stroke: k == tab ? "#ffffff" : alpha(foreground, 0.15), width: 1)
@@ -1853,14 +2882,14 @@ app "runeclash" {
         }
         for g in GRID {
           let own = col[g.c] ?? 0
-          text(own == 0 ? "NOT OWNED" : "${INDK[g.c]}/${min(own, MAXC[g.c])} IN DECK", g.x + 40 * GS, g.y + 112 * GS + 9, size: 5, color: own == 0 ? muted : INDK[g.c] > 0 ? "#ffd04a" : foreground, font: press, align: center)
+          text(own == 0 ? str.notOwned : str.inDeck(INDK[g.c], min(own, MAXC[g.c])), g.x + 40 * GS, g.y + 112 * GS + 9, size: 5, color: own == 0 ? muted : INDK[g.c] > 0 ? "#ffd04a" : foreground, font: press, align: center)
         }
-        text("TAP A CARD TO ADD IT, A ROW TO TAKE IT OUT", SW / 2, SH - INS - 8, size: 5, color: muted, font: press, align: center)
+        text(str.deckHelp, SW / 2, SH - INS - 8, size: 5, color: muted, font: press, align: center)
       }
       // ---- the packs ----
       if mode == "shop" {
-        text("CARD PACKS", SW / 2, TOP + 24, size: 11, color: accent, font: press, align: center)
-        text("${gold} GOLD", SW / 2, TOP + 44, size: 7, color: "#ffd04a", font: press, align: center)
+        text(str.cardPacks, SW / 2, TOP + 24, size: 11, color: accent, font: press, align: center)
+        text(str.goldN(gold), SW / 2, TOP + 44, size: 7, color: "#ffd04a", font: press, align: center)
         if len(pack) == 0 {
           // a pack, in foil
           let pw = min(150, SW * 0.4)
@@ -1875,16 +2904,16 @@ app "runeclash" {
           for k in range(6) { rect(px + 6 + k * (pw - 12) / 6, py + 6, 3, 8, fill: "#c8a0ff") }
           sprite(SP_RUNE, px + pw / 2 - 30, py + ph / 2 - 40, 6, palette: {o: INK, Y: "#ffd04a"})
           text("RUNECLASH", px + pw / 2, py + ph - 36, size: min(9, (pw - 16) / 9), color: "#ffffff", font: press, align: center)
-          text("5 CARDS, ONE RARE OR BETTER", SW / 2, py + ph + 24, size: 6, color: foreground, font: press, align: center)
-          text("SPARE COPIES TURN INTO GOLD", SW / 2, py + ph + 40, size: 5, color: muted, font: press, align: center)
+          text(str.packInfo, SW / 2, py + ph + 24, size: 6, color: foreground, font: press, align: center)
+          text(str.spareInfo, SW / 2, py + ph + 40, size: 5, color: muted, font: press, align: center)
         } else {
           for p, j in pack {
             if p.f {
               let C = CD[p.c]
-              text(p.g > 0 ? "SPARE +${p.g} GOLD" : p.nw ? "NEW!" : RN[C.r], PKC[j].x + 40 * PKS, PKC[j].y + 112 * PKS + 12, size: 5, color: p.g > 0 ? "#ffd04a" : p.nw ? "#8aff7a" : RIM[C.r], font: press, align: center)
+              text(p.g > 0 ? str.spare(p.g) : p.nw ? str.newCard : RN[C.r], PKC[j].x + 40 * PKS, PKC[j].y + 112 * PKS + 12, size: 5, color: p.g > 0 ? "#ffd04a" : p.nw ? "#8aff7a" : RIM[C.r], font: press, align: center)
             }
           }
-          text(all(pack, z => z.f) ? "" : "TAP A CARD TO TURN IT OVER", SW / 2, SH - INS - 84, size: 6, color: muted, font: press, align: center)
+          text(all(pack, z => z.f) ? "" : str.turnOver, SW / 2, SH - INS - 84, size: 6, color: muted, font: press, align: center)
         }
       }
       // ---- every card on screen ----
@@ -1928,7 +2957,7 @@ app "runeclash" {
                   text("${hv}", k.x + 71.5, k.y + 103.5, size: 8, color: M != null && M.h < M.mh ? "#ffe0a0" : "#ffffff", font: press, align: center)
                 } else {
                   rect(k.x + 26, k.y + 104, 28, 8, radius: 2, fill: INK)
-                  text("SPELL", k.x + 40, k.y + 108, size: 4, color: "#ffffff", font: press, align: center)
+                  text(str.spell, k.x + 40, k.y + 108, size: 4, color: "#ffffff", font: press, align: center)
                 }
               }
               if k.glow != "" { rect(k.x - 2, k.y - 2, 84, 116, radius: 6, stroke: k.glow, width: 2.5) }
@@ -1941,10 +2970,10 @@ app "runeclash" {
         let vic = over == 1
         rect(0, 0, SW, SH, fill: alpha(INK, 0.6))
         rect(18, MID - 90, SW - 36, 130, radius: 6 * corners, fill: vic ? "#2e5a2e" : "#5a1e26", stroke: INK, width: 3)
-        text(vic ? "VICTORY" : "DEFEAT", SW / 2 + 2, MID - 52, size: 18, color: INK, font: press, align: center)
-        text(vic ? "VICTORY" : "DEFEAT", SW / 2, MID - 54, size: 18, color: "#ffffff", font: press, align: center)
-        text(vic ? "${FOES[foe].n} IS BEATEN" : "${FOES[foe].n} WINS THIS TIME", SW / 2, MID - 18, size: 7, color: "#e8e4f4", font: press, align: center)
-        text("+${rwd} GOLD", SW / 2, MID + 10, size: 10, color: "#ffd04a", font: press, align: center)
+        text(vic ? str.victory : str.defeat, SW / 2 + 2, MID - 52, size: 18, color: INK, font: press, align: center)
+        text(vic ? str.victory : str.defeat, SW / 2, MID - 54, size: 18, color: "#ffffff", font: press, align: center)
+        text(vic ? str.isBeaten(FOES[foe].n) : str.winsThisTime(FOES[foe].n), SW / 2, MID - 18, size: 7, color: "#e8e4f4", font: press, align: center)
+        text(str.reward(rwd), SW / 2, MID + 10, size: 10, color: "#ffd04a", font: press, align: center)
       }
       // ---- the buttons ----
       for b in BT {

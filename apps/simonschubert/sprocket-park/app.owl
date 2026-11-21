@@ -10,7 +10,322 @@ app "sprocket park" {
   // walking about are worked out from the clock: each one picks a ride or a shop for every round of
   // 26 seconds and walks there along the paths and back.
 
-  meta { owl: 14; description: "An isometric theme park tycoon: lay paths, open shops and rides, and design your own roller coasters piece by piece, with drops, climbs and ratings"; version: "1.0"; license: "MIT"; category: "games" }
+  meta { owl: 16; description: "An isometric theme park tycoon: lay paths, open shops and rides, and design your own roller coasters piece by piece, with drops, climbs and ratings"; version: "1.1"; license: "MIT"; category: "games" }
+
+  strings {
+    en {
+      kd: i => ["Carousel", "Spinning Cups", "Big Wheel", "Swing Tower", "Burger Bar", "Lemonade", "Balloons", "Restrooms", "Tree", "Flowers", "Litter Bin", "Fountain"][i]
+      tab: i => ["Rides", "Shops", "Garden", "Paths", "Park"][i]
+      exc: i => ["low", "medium", "good", "great", "superb"][i]; int: i => ["gentle", "mild", "thrilling", "intense", "extreme"][i]
+      hungry: "I'm hungry"; thirsty: "I'm thirsty"; restroom: "I need a restroom"; litter: "These paths are covered in litter"
+      thrill: "I want something more thrilling"; steep: "The entry fee is steep"; pretty: "This park is really pretty"
+      notPaying: (p, n) => "I'm not paying ${p} for ${n}"; tooIntense: n => "${n} looks too intense"; amazing: n => "${n} was amazing!"; queueLong: n => "The queue for ${n} is too long"
+      stationGround: "The station needs clear, dry ground"; need8: "A coaster needs at least 8 pieces"; bringUp: "Bring the track up to the station"
+      comeDown: "Come down to height 1 first"; carryOn: "Carry on from the end of the track"; station3: "The station is 3 straight pieces"
+      taken: "That cell is taken"; raise: "Raise the track to cross water"
+      workshop: "Coaster workshop"; tapGround: "Tap clear ground for the station"; layMore: n => "Lay ${n} more straight station piece${n == 1 ? "" : "s"}"
+      tapStation: "Tap the station to open the ride"; tapNext: "Tap or drag next to the gold dot"; nextHeight: "Next piece height"
+      climbs: "Climbs go up 1 a piece, drops down 2"; aiming: h => "Aiming for ${h} · up 1 or down 2 a piece"; pieces: (n, s, x) => "${n} pieces · spent ${s} · next ${x}"
+      undo: "Undo piece"; confirm: "Tap to confirm"; scrap: "Scrap"; done: "Done"; stillBuilding: "Still being built. Pick Coaster to carry on."
+      ratings: (e, el, i, il) => "Excitement ${e} ${el} · Intensity ${i} ${il}"; topSpeed: (s, d, l) => "Top speed ${s} km/h · drop ${d} m · ${l} m long"
+      noPathStation: "No path reaches the station"; noPathIt: "No path reaches it"; closed: "Closed"
+      ridersMin: (r, q, c) => "${r} riders a minute · queue ${q} · ${c}/min"; customersMin: (r, c) => "${r} customers a minute · ${c}/min"
+      tooDear: "Guests think it's too dear"; payUpTo: p => "Guests pay up to ${p}"; binInfo: "Guests drop their litter in it"; gardenInfo: "Gardens raise the park's rating"
+      ticket: "Ticket price"; price: "Price"; worth: p => "worth up to ${p}"; tooDearL: "guests think it's too dear"
+      close: "Close"; open: "Open"; sell: c => "Sell +${c}"; coaster: "Coaster"; footpath: "Footpath"; fromCost: "from $150"; perCell: "$10 a cell"
+      hint: i => ["Rides go next to a path. Pick Coaster to design one.", "Shops sell to every guest in the park.", "Gardens raise the rating; bins keep litter down.", "Tap or drag on grass to lay path, tap a path to lift it."][i]
+      entryFee: "Entry fee"; tooSteep: "too steep for this park"; fair: "guests think it's fair"; handymen: "Handymen"; litterOn: n => "${n} litter on the paths"
+      thinking: "What the guests are thinking"; noGuests: "No guests yet. Build a ride by a path."; happy: "Everyone's happy."
+      noCash: "Not enough cash"; isOpen: n => "${n} is open!"; noRoom: "No room here"; layPath: "Lay a path to it from the gate"; hiring: "Hiring costs $300"
+      guests: "guests"; rating: "rating"; park: "Park"; pickRide: "Pick a ride below and tap the map"
+    }
+    id {
+      kd: i => ["Komidi Putar", "Cangkir Putar", "Bianglala", "Menara Ayun", "Kedai Burger", "Limun", "Balon", "Toilet", "Pohon", "Bunga", "Tempat Sampah", "Air Mancur"][i]
+      tab: i => ["Wahana", "Toko", "Kebun", "Jalan", "Taman"][i]
+      exc: i => ["rendah", "sedang", "bagus", "hebat", "luar biasa"][i]; int: i => ["santai", "ringan", "seru", "intens", "ekstrem"][i]
+      hungry: "Aku lapar"; thirsty: "Aku haus"; restroom: "Aku perlu toilet"; litter: "Jalannya penuh sampah"
+      thrill: "Aku mau yang lebih seru"; steep: "Tiket masuknya mahal"; pretty: "Taman ini indah sekali"
+      notPaying: (p, n) => "Aku nggak mau bayar ${p} untuk ${n}"; tooIntense: n => "${n} kelihatan terlalu ekstrem"; amazing: n => "${n} luar biasa!"; queueLong: n => "Antrean ${n} terlalu panjang"
+      stationGround: "Stasiun butuh tanah kosong yang kering"; need8: "Roller coaster butuh minimal 8 potong"; bringUp: "Bawa lintasan kembali ke stasiun"
+      comeDown: "Turun dulu ke tinggi 1"; carryOn: "Lanjutkan dari ujung lintasan"; station3: "Stasiun terdiri dari 3 potong lurus"
+      taken: "Petak itu sudah terpakai"; raise: "Naikkan lintasan untuk menyeberangi air"
+      workshop: "Bengkel roller coaster"; tapGround: "Ketuk tanah kosong untuk stasiun"; layMore: n => "Pasang ${n} potong stasiun lurus lagi"
+      tapStation: "Ketuk stasiun untuk membuka wahana"; tapNext: "Ketuk atau seret di samping titik emas"; nextHeight: "Tinggi potongan berikut"
+      climbs: "Naik 1 per potong, turun 2"; aiming: h => "Menuju ${h} · naik 1 atau turun 2 per potong"; pieces: (n, s, x) => "${n} potong · terpakai ${s} · berikut ${x}"
+      undo: "Batalkan"; confirm: "Konfirmasi"; scrap: "Bongkar"; done: "Selesai"; stillBuilding: "Masih dibangun. Pilih Roller Coaster untuk lanjut."
+      ratings: (e, el, i, il) => "Keseruan ${e} ${el} · Intensitas ${i} ${il}"; topSpeed: (s, d, l) => "Kecepatan ${s} km/j · turunan ${d} m · panjang ${l} m"
+      noPathStation: "Tidak ada jalan ke stasiun"; noPathIt: "Tidak ada jalan ke sini"; closed: "Tutup"
+      ridersMin: (r, q, c) => "${r} penumpang per menit · antre ${q} · ${c}/mnt"; customersMin: (r, c) => "${r} pembeli per menit · ${c}/mnt"
+      tooDear: "Menurut tamu terlalu mahal"; payUpTo: p => "Tamu mau bayar sampai ${p}"; binInfo: "Tamu membuang sampah di sini"; gardenInfo: "Kebun menaikkan rating taman"
+      ticket: "Harga tiket"; price: "Harga"; worth: p => "layak sampai ${p}"; tooDearL: "menurut tamu terlalu mahal"
+      close: "Tutup"; open: "Buka"; sell: c => "Jual +${c}"; coaster: "Roller Coaster"; footpath: "Jalan setapak"; fromCost: "mulai $150"; perCell: "$10 per petak"
+      hint: i => ["Wahana dipasang di samping jalan. Pilih Roller Coaster untuk merancang.", "Toko menjual ke semua tamu di taman.", "Kebun menaikkan rating; tempat sampah mengurangi sampah.", "Ketuk atau seret di rumput untuk membuat jalan, ketuk jalan untuk mengangkatnya."][i]
+      entryFee: "Tiket masuk"; tooSteep: "terlalu mahal untuk taman ini"; fair: "menurut tamu wajar"; handymen: "Petugas kebersihan"; litterOn: n => "${n} sampah di jalan"
+      thinking: "Apa yang dipikirkan tamu"; noGuests: "Belum ada tamu. Bangun wahana di samping jalan."; happy: "Semua senang."
+      noCash: "Uang tidak cukup"; isOpen: n => "${n} sudah buka!"; noRoom: "Tidak ada tempat di sini"; layPath: "Buat jalan ke sini dari gerbang"; hiring: "Merekrut butuh $300"
+      guests: "tamu"; rating: "rating"; park: "Taman"; pickRide: "Pilih wahana di bawah lalu ketuk peta"
+    }
+    es {
+      kd: i => ["Tiovivo", "Tazas Locas", "Noria", "Sillas Voladoras", "Hamburguesería", "Limonada", "Globos", "Aseos", "Árbol", "Flores", "Papelera", "Fuente"][i]
+      tab: i => ["Juegos", "Tiendas", "Jardín", "Caminos", "Parque"][i]
+      exc: i => ["baja", "media", "buena", "genial", "sublime"][i]; int: i => ["suave", "leve", "emocionante", "intensa", "extrema"][i]
+      hungry: "Tengo hambre"; thirsty: "Tengo sed"; restroom: "Necesito un baño"; litter: "Los caminos están llenos de basura"
+      thrill: "Quiero algo más emocionante"; steep: "La entrada es cara"; pretty: "Este parque es precioso"
+      notPaying: (p, n) => "No pienso pagar ${p} por ${n}"; tooIntense: n => "${n} me parece demasiado fuerte"; amazing: n => "¡${n} ha sido increíble!"; queueLong: n => "La cola de ${n} es demasiado larga"
+      stationGround: "La estación necesita suelo libre y seco"; need8: "Una montaña rusa necesita al menos 8 piezas"; bringUp: "Lleva la vía hasta la estación"
+      comeDown: "Baja primero a altura 1"; carryOn: "Sigue desde el final de la vía"; station3: "La estación son 3 piezas rectas"
+      taken: "Esa casilla está ocupada"; raise: "Sube la vía para cruzar el agua"
+      workshop: "Taller de montañas rusas"; tapGround: "Toca suelo libre para la estación"; layMore: n => n == 1 ? "Pon 1 pieza recta más de estación" : "Pon ${n} piezas rectas más de estación"
+      tapStation: "Toca la estación para abrir la atracción"; tapNext: "Toca o arrastra junto al punto dorado"; nextHeight: "Altura de la siguiente pieza"
+      climbs: "Sube 1 por pieza, baja 2"; aiming: h => "Hacia ${h} · sube 1 o baja 2 por pieza"; pieces: (n, s, x) => "${n} piezas · gastado ${s} · siguiente ${x}"
+      undo: "Deshacer"; confirm: "Confirmar"; scrap: "Desmontar"; done: "Listo"; stillBuilding: "Aún en obras. Elige Montaña rusa para seguir."
+      ratings: (e, el, i, il) => "Emoción ${e} ${el} · Intensidad ${i} ${il}"; topSpeed: (s, d, l) => "Velocidad máx. ${s} km/h · caída ${d} m · ${l} m de largo"
+      noPathStation: "Ningún camino llega a la estación"; noPathIt: "Ningún camino llega aquí"; closed: "Cerrado"
+      ridersMin: (r, q, c) => "${r} viajeros por minuto · cola ${q} · ${c}/min"; customersMin: (r, c) => "${r} clientes por minuto · ${c}/min"
+      tooDear: "A los visitantes les parece caro"; payUpTo: p => "Los visitantes pagan hasta ${p}"; binInfo: "Los visitantes tiran aquí su basura"; gardenInfo: "Los jardines suben la valoración del parque"
+      ticket: "Precio del viaje"; price: "Precio"; worth: p => "vale hasta ${p}"; tooDearL: "a los visitantes les parece caro"
+      close: "Cerrar"; open: "Abrir"; sell: c => "Vender +${c}"; coaster: "Montaña rusa"; footpath: "Camino"; fromCost: "desde $150"; perCell: "$10 la casilla"
+      hint: i => ["Las atracciones van junto a un camino. Elige Montaña rusa para diseñar una.", "Las tiendas venden a todos los visitantes.", "Los jardines suben la valoración; las papeleras reducen la basura.", "Toca o arrastra sobre la hierba para poner camino; toca un camino para quitarlo."][i]
+      entryFee: "Entrada"; tooSteep: "demasiado cara para este parque"; fair: "a los visitantes les parece justa"; handymen: "Barrenderos"; litterOn: n => "basura en los caminos: ${n}"
+      thinking: "Lo que piensan los visitantes"; noGuests: "Aún no hay visitantes. Construye una atracción junto a un camino."; happy: "Todos están contentos."
+      noCash: "No tienes bastante dinero"; isOpen: n => "¡${n} abre!"; noRoom: "No hay sitio aquí"; layPath: "Haz un camino hasta aquí desde la entrada"; hiring: "Contratar cuesta $300"
+      guests: "visitantes"; rating: "valoración"; park: "Parque"; pickRide: "Elige una atracción abajo y toca el mapa"
+    }
+    pt {
+      kd: i => ["Carrossel", "Xícaras Malucas", "Roda-Gigante", "Chapéu Mexicano", "Hamburgueria", "Limonada", "Balões", "Banheiros", "Árvore", "Flores", "Lixeira", "Fonte"][i]
+      tab: i => ["Brinquedos", "Lojas", "Jardim", "Caminhos", "Parque"][i]
+      exc: i => ["baixa", "média", "boa", "ótima", "incrível"][i]; int: i => ["suave", "leve", "emocionante", "intensa", "extrema"][i]
+      hungry: "Estou com fome"; thirsty: "Estou com sede"; restroom: "Preciso de um banheiro"; litter: "Os caminhos estão cheios de lixo"
+      thrill: "Quero algo mais radical"; steep: "A entrada está cara"; pretty: "Este parque é muito bonito"
+      notPaying: (p, n) => "Não vou pagar ${p} por ${n}"; tooIntense: n => "${n} parece intenso demais"; amazing: n => "${n} foi incrível!"; queueLong: n => "A fila de ${n} está longa demais"
+      stationGround: "A estação precisa de chão livre e seco"; need8: "Uma montanha-russa precisa de pelo menos 8 peças"; bringUp: "Leve o trilho até a estação"
+      comeDown: "Desça primeiro para a altura 1"; carryOn: "Continue a partir do fim do trilho"; station3: "A estação tem 3 peças retas"
+      taken: "Essa casa está ocupada"; raise: "Suba o trilho para cruzar a água"
+      workshop: "Oficina de montanha-russa"; tapGround: "Toque em chão livre para a estação"; layMore: n => n == 1 ? "Coloque mais 1 peça reta da estação" : "Coloque mais ${n} peças retas da estação"
+      tapStation: "Toque na estação para abrir o brinquedo"; tapNext: "Toque ou arraste ao lado do ponto dourado"; nextHeight: "Altura da próxima peça"
+      climbs: "Sobe 1 por peça, desce 2"; aiming: h => "Rumo a ${h} · sobe 1 ou desce 2 por peça"; pieces: (n, s, x) => "${n} peças · gasto ${s} · próxima ${x}"
+      undo: "Desfazer"; confirm: "Confirmar"; scrap: "Demolir"; done: "Pronto"; stillBuilding: "Ainda em obras. Escolha Montanha-russa para continuar."
+      ratings: (e, el, i, il) => "Emoção ${e} ${el} · Intensidade ${i} ${il}"; topSpeed: (s, d, l) => "Vel. máx. ${s} km/h · queda ${d} m · ${l} m de extensão"
+      noPathStation: "Nenhum caminho chega à estação"; noPathIt: "Nenhum caminho chega aqui"; closed: "Fechado"
+      ridersMin: (r, q, c) => "${r} passageiros por minuto · fila ${q} · ${c}/min"; customersMin: (r, c) => "${r} clientes por minuto · ${c}/min"
+      tooDear: "Os visitantes acham caro demais"; payUpTo: p => "Os visitantes pagam até ${p}"; binInfo: "Os visitantes jogam o lixo aqui"; gardenInfo: "Jardins aumentam a nota do parque"
+      ticket: "Preço do ingresso"; price: "Preço"; worth: p => "vale até ${p}"; tooDearL: "os visitantes acham caro demais"
+      close: "Fechar"; open: "Abrir"; sell: c => "Vender +${c}"; coaster: "Montanha-russa"; footpath: "Caminho"; fromCost: "a partir de $150"; perCell: "$10 por casa"
+      hint: i => ["Brinquedos ficam ao lado de um caminho. Escolha Montanha-russa para criar uma.", "Lojas vendem para todos os visitantes do parque.", "Jardins aumentam a nota; lixeiras reduzem o lixo.", "Toque ou arraste na grama para fazer caminho, toque num caminho para tirá-lo."][i]
+      entryFee: "Entrada"; tooSteep: "cara demais para este parque"; fair: "os visitantes acham justa"; handymen: "Faxineiros"; litterOn: n => "lixo nos caminhos: ${n}"
+      thinking: "O que os visitantes estão pensando"; noGuests: "Nenhum visitante ainda. Construa um brinquedo ao lado de um caminho."; happy: "Todos estão felizes."
+      noCash: "Dinheiro insuficiente"; isOpen: n => "${n} abriu!"; noRoom: "Não há espaço aqui"; layPath: "Faça um caminho até aqui desde a entrada"; hiring: "Contratar custa $300"
+      guests: "visitantes"; rating: "nota"; park: "Parque"; pickRide: "Escolha um brinquedo abaixo e toque no mapa"
+    }
+    de {
+      kd: i => ["Karussell", "Teetassen", "Riesenrad", "Kettenflieger", "Burgerbude", "Limonade", "Ballons", "Toiletten", "Baum", "Blumen", "Mülleimer", "Brunnen"][i]
+      tab: i => ["Bahnen", "Läden", "Garten", "Wege", "Park"][i]
+      exc: i => ["gering", "mittel", "gut", "toll", "grandios"][i]; int: i => ["sanft", "mild", "aufregend", "heftig", "extrem"][i]
+      hungry: "Ich hab Hunger"; thirsty: "Ich hab Durst"; restroom: "Ich muss aufs Klo"; litter: "Die Wege sind voller Müll"
+      thrill: "Ich will was Aufregenderes"; steep: "Der Eintritt ist happig"; pretty: "Der Park ist echt schön"
+      notPaying: (p, n) => "Ich zahl keine ${p} für ${n}"; tooIntense: n => "${n} sieht zu heftig aus"; amazing: n => "${n} war der Wahnsinn!"; queueLong: n => "Die Schlange bei ${n} ist zu lang"
+      stationGround: "Die Station braucht freien, trockenen Boden"; need8: "Eine Achterbahn braucht mindestens 8 Teile"; bringUp: "Führ die Strecke zurück zur Station"
+      comeDown: "Geh erst auf Höhe 1 runter"; carryOn: "Mach am Ende der Strecke weiter"; station3: "Die Station besteht aus 3 geraden Teilen"
+      taken: "Das Feld ist belegt"; raise: "Heb die Strecke an, um übers Wasser zu kommen"
+      workshop: "Achterbahn-Werkstatt"; tapGround: "Tipp auf freien Boden für die Station"; layMore: n => n == 1 ? "Leg noch 1 gerades Stationsteil" : "Leg noch ${n} gerade Stationsteile"
+      tapStation: "Tipp auf die Station, um die Bahn zu eröffnen"; tapNext: "Tipp oder zieh neben den goldenen Punkt"; nextHeight: "Höhe des nächsten Teils"
+      climbs: "Pro Teil 1 hoch oder 2 runter"; aiming: h => "Ziel ${h} · pro Teil 1 hoch oder 2 runter"; pieces: (n, s, x) => "${n} Teile · ausgegeben ${s} · nächstes ${x}"
+      undo: "Rückgängig"; confirm: "Bestätigen"; scrap: "Abreißen"; done: "Fertig"; stillBuilding: "Noch im Bau. Wähl Achterbahn, um weiterzubauen."
+      ratings: (e, el, i, il) => "Spaß ${e} ${el} · Intensität ${i} ${il}"; topSpeed: (s, d, l) => "Spitze ${s} km/h · Gefälle ${d} m · ${l} m lang"
+      noPathStation: "Kein Weg führt zur Station"; noPathIt: "Kein Weg führt hierher"; closed: "Geschlossen"
+      ridersMin: (r, q, c) => "${r} Fahrgäste pro Minute · Schlange ${q} · ${c}/min"; customersMin: (r, c) => "${r} Kunden pro Minute · ${c}/min"
+      tooDear: "Den Gästen ist es zu teuer"; payUpTo: p => "Gäste zahlen bis ${p}"; binInfo: "Die Gäste werfen ihren Müll hier rein"; gardenInfo: "Gärten heben die Bewertung des Parks"
+      ticket: "Fahrpreis"; price: "Preis"; worth: p => "wert bis ${p}"; tooDearL: "den gästen ist es zu teuer"
+      close: "Schließen"; open: "Öffnen"; sell: c => "Verkaufen +${c}"; coaster: "Achterbahn"; footpath: "Fußweg"; fromCost: "ab $150"; perCell: "$10 pro Feld"
+      hint: i => ["Bahnen kommen neben einen Weg. Wähl Achterbahn, um eine zu bauen.", "Läden verkaufen an jeden Gast im Park.", "Gärten heben die Bewertung, Mülleimer halten den Müll klein.", "Tipp oder zieh auf Gras für Wege, tipp auf einen Weg, um ihn zu entfernen."][i]
+      entryFee: "Eintritt"; tooSteep: "zu teuer für diesen park"; fair: "die gäste finden ihn fair"; handymen: "Hausmeister"; litterOn: n => "${n} müll auf den wegen"
+      thinking: "Was die Gäste denken"; noGuests: "Noch keine Gäste. Bau eine Bahn an einen Weg."; happy: "Alle sind zufrieden."
+      noCash: "Nicht genug Geld"; isOpen: n => "${n} ist eröffnet!"; noRoom: "Hier ist kein Platz"; layPath: "Bau einen Weg vom Tor hierher"; hiring: "Einstellen kostet $300"
+      guests: "gäste"; rating: "bewertung"; park: "Park"; pickRide: "Wähl unten eine Bahn und tipp auf die Karte"
+    }
+    zh {
+      kd: i => ["旋转木马", "旋转咖啡杯", "摩天轮", "旋转秋千", "汉堡店", "柠檬水", "气球", "洗手间", "树", "花", "垃圾桶", "喷泉"][i]
+      tab: i => ["游乐设施", "商店", "花园", "道路", "乐园"][i]
+      exc: i => ["低", "中", "好", "很好", "极佳"][i]; int: i => ["温和", "轻度", "刺激", "强烈", "极限"][i]
+      hungry: "我饿了"; thirsty: "我渴了"; restroom: "我要上洗手间"; litter: "路上到处是垃圾"
+      thrill: "我想玩更刺激的"; steep: "门票太贵了"; pretty: "这个乐园真漂亮"
+      notPaying: (p, n) => "我才不花 ${p} 玩${n}"; tooIntense: n => "${n}看起来太刺激了"; amazing: n => "${n}太棒了！"; queueLong: n => "${n}的队伍太长了"
+      stationGround: "车站需要空旷干燥的地面"; need8: "过山车至少需要 8 段轨道"; bringUp: "把轨道接回车站"
+      comeDown: "先降到高度 1"; carryOn: "从轨道末端继续"; station3: "车站是 3 段直轨"
+      taken: "这一格已被占用"; raise: "抬高轨道才能跨过水面"
+      workshop: "过山车工坊"; tapGround: "点击空地放置车站"; layMore: n => "再铺 ${n} 段直的车站轨道"
+      tapStation: "点击车站开放这个设施"; tapNext: "在金色圆点旁点击或拖动"; nextHeight: "下一段高度"
+      climbs: "每段上升 1 或下降 2"; aiming: h => "目标 ${h} · 每段上升 1 或下降 2"; pieces: (n, s, x) => "${n} 段 · 已花 ${s} · 下一段 ${x}"
+      undo: "撤销"; confirm: "确认"; scrap: "拆除"; done: "完成"; stillBuilding: "仍在建造中。选择过山车继续。"
+      ratings: (e, el, i, il) => "刺激度 ${e} ${el} · 强度 ${i} ${il}"; topSpeed: (s, d, l) => "最高 ${s} km/h · 落差 ${d} m · 全长 ${l} m"
+      noPathStation: "没有道路通往车站"; noPathIt: "没有道路通往这里"; closed: "已关闭"
+      ridersMin: (r, q, c) => "每分钟 ${r} 位乘客 · 排队 ${q} · ${c}/分钟"; customersMin: (r, c) => "每分钟 ${r} 位顾客 · ${c}/分钟"
+      tooDear: "游客觉得太贵"; payUpTo: p => "游客最多愿付 ${p}"; binInfo: "游客把垃圾丢在这里"; gardenInfo: "花园能提高乐园评分"
+      ticket: "票价"; price: "价格"; worth: p => "最多值 ${p}"; tooDearL: "游客觉得太贵"
+      close: "关闭"; open: "开放"; sell: c => "出售 +${c}"; coaster: "过山车"; footpath: "步道"; fromCost: "$150 起"; perCell: "每格 $10"
+      hint: i => ["设施要建在道路旁。选择过山车来设计一座。", "商店卖东西给园内每位游客。", "花园提高评分；垃圾桶减少垃圾。", "在草地上点击或拖动铺路，点击道路可移除。"][i]
+      entryFee: "门票"; tooSteep: "对这个乐园来说太贵"; fair: "游客觉得合理"; handymen: "清洁工"; litterOn: n => "路上有 ${n} 处垃圾"
+      thinking: "游客在想什么"; noGuests: "还没有游客。在道路旁建一个设施吧。"; happy: "大家都很开心。"
+      noCash: "钱不够"; isOpen: n => "${n}开放了！"; noRoom: "这里放不下"; layPath: "从大门铺一条路过来"; hiring: "雇人要 $300"
+      guests: "游客"; rating: "评分"; park: "乐园"; pickRide: "在下方选择设施，再点击地图"
+    }
+    ru {
+      kd: i => ["Карусель", "Чашки", "Обзорное колесо", "Качели-башня", "Бургерная", "Лимонад", "Шарики", "Туалеты", "Дерево", "Цветы", "Урна", "Фонтан"][i]
+      tab: i => ["Карусели", "Магазины", "Сад", "Дорожки", "Парк"][i]
+      exc: i => ["низкий", "средний", "хороший", "отличный", "супер"][i]; int: i => ["мягкая", "лёгкая", "бодрая", "сильная", "экстрим"][i]
+      hungry: "Я голоден"; thirsty: "Хочу пить"; restroom: "Мне нужен туалет"; litter: "Дорожки завалены мусором"
+      thrill: "Хочу чего-то поострее"; steep: "Вход слишком дорогой"; pretty: "Какой красивый парк"
+      notPaying: (p, n) => "Не буду платить ${p} за «${n}»"; tooIntense: n => "«${n}» выглядит слишком страшно"; amazing: n => "«${n}» — это было потрясающе!"; queueLong: n => "Очередь на «${n}» слишком длинная"
+      stationGround: "Станции нужна свободная сухая земля"; need8: "Горке нужно хотя бы 8 участков"; bringUp: "Доведите трассу до станции"
+      comeDown: "Сначала спуститесь до высоты 1"; carryOn: "Продолжайте с конца трассы"; station3: "Станция — это 3 прямых участка"
+      taken: "Клетка занята"; raise: "Поднимите трассу, чтобы пройти над водой"
+      workshop: "Мастерская горок"; tapGround: "Нажмите на свободную землю для станции"; layMore: n => n == 1 ? "Положите ещё 1 прямой участок станции" : "Положите ещё ${n} прямых участка станции"
+      tapStation: "Нажмите на станцию, чтобы открыть горку"; tapNext: "Нажмите или проведите рядом с золотой точкой"; nextHeight: "Высота следующего участка"
+      climbs: "Вверх на 1 или вниз на 2 за участок"; aiming: h => "Цель ${h} · вверх на 1 или вниз на 2"; pieces: (n, s, x) => "Участков: ${n} · потрачено ${s} · далее ${x}"
+      undo: "Отменить"; confirm: "Подтвердить"; scrap: "Снести"; done: "Готово"; stillBuilding: "Ещё строится. Выберите «Горка», чтобы продолжить."
+      ratings: (e, el, i, il) => "Азарт ${e} ${el} · Нагрузка ${i} ${il}"; topSpeed: (s, d, l) => "Макс. ${s} км/ч · спуск ${d} м · длина ${l} м"
+      noPathStation: "К станции не ведёт дорожка"; noPathIt: "Сюда не ведёт дорожка"; closed: "Закрыто"
+      ridersMin: (r, q, c) => "Катаются: ${r}/мин · очередь ${q} · ${c}/мин"; customersMin: (r, c) => "Покупатели: ${r}/мин · ${c}/мин"
+      tooDear: "Гости считают, что слишком дорого"; payUpTo: p => "Гости платят до ${p}"; binInfo: "Гости бросают сюда мусор"; gardenInfo: "Сады повышают рейтинг парка"
+      ticket: "Цена билета"; price: "Цена"; worth: p => "стоит до ${p}"; tooDearL: "гости считают, что слишком дорого"
+      close: "Закрыть"; open: "Открыть"; sell: c => "Продать +${c}"; coaster: "Горка"; footpath: "Дорожка"; fromCost: "от $150"; perCell: "$10 за клетку"
+      hint: i => ["Аттракционы ставятся у дорожки. Выберите «Горка», чтобы спроектировать её.", "Магазины продают всем гостям парка.", "Сады повышают рейтинг, урны уменьшают мусор.", "Нажмите или проведите по траве, чтобы проложить дорожку; нажмите на дорожку, чтобы убрать её."][i]
+      entryFee: "Вход"; tooSteep: "слишком дорого для этого парка"; fair: "гости считают цену честной"; handymen: "Уборщики"; litterOn: n => "мусора на дорожках: ${n}"
+      thinking: "О чём думают гости"; noGuests: "Гостей пока нет. Постройте аттракцион у дорожки."; happy: "Все довольны."
+      noCash: "Не хватает денег"; isOpen: n => "«${n}» работает!"; noRoom: "Здесь нет места"; layPath: "Проложите дорожку сюда от входа"; hiring: "Нанять стоит $300"
+      guests: "гости"; rating: "рейтинг"; park: "Парк"; pickRide: "Выберите аттракцион внизу и нажмите на карту"
+    }
+    ja {
+      kd: i => ["メリーゴーランド", "コーヒーカップ", "観覧車", "スイングタワー", "バーガー店", "レモネード", "風船", "トイレ", "木", "花", "ゴミ箱", "噴水"][i]
+      tab: i => ["乗り物", "ショップ", "庭園", "道", "パーク"][i]
+      exc: i => ["低い", "普通", "良い", "すごい", "最高"][i]; int: i => ["穏やか", "軽め", "スリル", "激しい", "過激"][i]
+      hungry: "お腹がすきました"; thirsty: "のどが渇きました"; restroom: "トイレに行きたいです"; litter: "道がゴミだらけです"
+      thrill: "もっとスリルのあるものに乗りたいです"; steep: "入場料が高いです"; pretty: "とてもきれいなパークです"
+      notPaying: (p, n) => "${n}に${p}は払えません"; tooIntense: n => "${n}は激しすぎそうです"; amazing: n => "${n}は最高でした！"; queueLong: n => "${n}の列が長すぎます"
+      stationGround: "駅には空いた乾いた土地が必要です"; need8: "コースターには8ピース以上必要です"; bringUp: "線路を駅まで戻してください"
+      comeDown: "先に高さ1まで下げてください"; carryOn: "線路の端から続けてください"; station3: "駅はまっすぐな3ピースです"
+      taken: "そのマスは使われています"; raise: "水を越えるには線路を上げてください"
+      workshop: "コースター工房"; tapGround: "空き地をタップして駅を置きます"; layMore: n => "駅のまっすぐなピースをあと${n}つ置いてください"
+      tapStation: "駅をタップして開業します"; tapNext: "金色の点の隣をタップかドラッグします"; nextHeight: "次のピースの高さ"
+      climbs: "1ピースごとに1上がるか2下がります"; aiming: h => "目標 ${h} · 1ピースごとに1上がるか2下がります"; pieces: (n, s, x) => "${n}ピース · 使用 ${s} · 次 ${x}"
+      undo: "取り消す"; confirm: "確定"; scrap: "撤去"; done: "完了"; stillBuilding: "建設中です。コースターを選ぶと続けられます。"
+      ratings: (e, el, i, il) => "興奮度 ${e} ${el} · 強度 ${i} ${il}"; topSpeed: (s, d, l) => "最高 ${s} km/h · 落差 ${d} m · 全長 ${l} m"
+      noPathStation: "駅まで道がつながっていません"; noPathIt: "道がつながっていません"; closed: "休止中"
+      ridersMin: (r, q, c) => "毎分${r}人が乗車 · 列 ${q} · ${c}/分"; customersMin: (r, c) => "毎分${r}人が購入 · ${c}/分"
+      tooDear: "お客さんは高すぎると思っています"; payUpTo: p => "お客さんは${p}まで払います"; binInfo: "お客さんがここにゴミを捨てます"; gardenInfo: "庭園はパークの評価を上げます"
+      ticket: "乗車料金"; price: "価格"; worth: p => "${p}までの価値"; tooDearL: "お客さんは高すぎると思っています"
+      close: "閉める"; open: "開ける"; sell: c => "売却 +${c}"; coaster: "コースター"; footpath: "歩道"; fromCost: "$150から"; perCell: "1マス $10"
+      hint: i => ["乗り物は道の隣に置きます。コースターを選ぶと設計できます。", "ショップはパーク内の全員に売ります。", "庭園は評価を上げ、ゴミ箱はゴミを減らします。", "芝生をタップかドラッグして道を敷き、道をタップすると撤去します。"][i]
+      entryFee: "入場料"; tooSteep: "このパークには高すぎます"; fair: "お客さんは妥当だと思っています"; handymen: "清掃員"; litterOn: n => "道のゴミ: ${n}"
+      thinking: "お客さんの声"; noGuests: "まだお客さんがいません。道の隣に乗り物を建てましょう。"; happy: "みんな満足しています。"
+      noCash: "お金が足りません"; isOpen: n => "${n}が開業しました！"; noRoom: "ここには置けません"; layPath: "ゲートからここまで道を敷いてください"; hiring: "雇うには$300かかります"
+      guests: "来場者"; rating: "評価"; park: "パーク"; pickRide: "下で乗り物を選んでマップをタップします"
+    }
+    uk {
+      kd: i => ["Карусель", "Чашки", "Оглядове колесо", "Гойдалка-вежа", "Бургерна", "Лимонад", "Кульки", "Туалети", "Дерево", "Квіти", "Смітник", "Фонтан"][i]
+      tab: i => ["Каруселі", "Крамниці", "Сад", "Доріжки", "Парк"][i]
+      exc: i => ["низький", "середній", "добрий", "чудовий", "супер"][i]; int: i => ["м'яка", "легка", "бадьора", "сильна", "екстрим"][i]
+      hungry: "Я голодний"; thirsty: "Хочу пити"; restroom: "Мені потрібен туалет"; litter: "Доріжки завалені сміттям"
+      thrill: "Хочу чогось гострішого"; steep: "Вхід надто дорогий"; pretty: "Який гарний парк"
+      notPaying: (p, n) => "Не платитиму ${p} за «${n}»"; tooIntense: n => "«${n}» виглядає надто страшно"; amazing: n => "«${n}» — це було неймовірно!"; queueLong: n => "Черга на «${n}» надто довга"
+      stationGround: "Станції потрібна вільна суха земля"; need8: "Гірці потрібно щонайменше 8 ділянок"; bringUp: "Доведіть трасу до станції"
+      comeDown: "Спершу спустіться до висоти 1"; carryOn: "Продовжуйте з кінця траси"; station3: "Станція — це 3 прямі ділянки"
+      taken: "Клітинка зайнята"; raise: "Підніміть трасу, щоб пройти над водою"
+      workshop: "Майстерня гірок"; tapGround: "Торкніться вільної землі для станції"; layMore: n => n == 1 ? "Покладіть ще 1 пряму ділянку станції" : "Покладіть ще ${n} прямі ділянки станції"
+      tapStation: "Торкніться станції, щоб відкрити гірку"; tapNext: "Торкніться або проведіть біля золотої точки"; nextHeight: "Висота наступної ділянки"
+      climbs: "Вгору на 1 або вниз на 2 за ділянку"; aiming: h => "Ціль ${h} · вгору на 1 або вниз на 2"; pieces: (n, s, x) => "Ділянок: ${n} · витрачено ${s} · далі ${x}"
+      undo: "Скасувати"; confirm: "Підтвердити"; scrap: "Знести"; done: "Готово"; stillBuilding: "Ще будується. Виберіть «Гірка», щоб продовжити."
+      ratings: (e, el, i, il) => "Азарт ${e} ${el} · Сила ${i} ${il}"; topSpeed: (s, d, l) => "Макс. ${s} км/год · спуск ${d} м · довжина ${l} м"
+      noPathStation: "До станції не веде доріжка"; noPathIt: "Сюди не веде доріжка"; closed: "Зачинено"
+      ridersMin: (r, q, c) => "Катаються: ${r}/хв · черга ${q} · ${c}/хв"; customersMin: (r, c) => "Покупці: ${r}/хв · ${c}/хв"
+      tooDear: "Гості вважають, що надто дорого"; payUpTo: p => "Гості платять до ${p}"; binInfo: "Гості кидають сюди сміття"; gardenInfo: "Сади підвищують рейтинг парку"
+      ticket: "Ціна квитка"; price: "Ціна"; worth: p => "варто до ${p}"; tooDearL: "гості вважають, що надто дорого"
+      close: "Зачинити"; open: "Відчинити"; sell: c => "Продати +${c}"; coaster: "Гірка"; footpath: "Доріжка"; fromCost: "від $150"; perCell: "$10 за клітинку"
+      hint: i => ["Атракціони ставлять біля доріжки. Виберіть «Гірка», щоб спроєктувати її.", "Крамниці продають усім гостям парку.", "Сади підвищують рейтинг, смітники зменшують сміття.", "Торкніться або проведіть по траві, щоб прокласти доріжку; торкніться доріжки, щоб прибрати її."][i]
+      entryFee: "Вхід"; tooSteep: "надто дорого для цього парку"; fair: "гості вважають ціну чесною"; handymen: "Прибиральники"; litterOn: n => "сміття на доріжках: ${n}"
+      thinking: "Про що думають гості"; noGuests: "Гостей ще немає. Збудуйте атракціон біля доріжки."; happy: "Усі задоволені."
+      noCash: "Бракує грошей"; isOpen: n => "«${n}» працює!"; noRoom: "Тут немає місця"; layPath: "Прокладіть доріжку сюди від входу"; hiring: "Найняти коштує $300"
+      guests: "гості"; rating: "рейтинг"; park: "Парк"; pickRide: "Виберіть атракціон унизу й торкніться мапи"
+    }
+    fr {
+      kd: i => ["Carrousel", "Tasses", "Grande Roue", "Chaises Volantes", "Burger", "Limonade", "Ballons", "Toilettes", "Arbre", "Fleurs", "Poubelle", "Fontaine"][i]
+      tab: i => ["Manèges", "Boutiques", "Jardin", "Allées", "Parc"][i]
+      exc: i => ["faible", "moyenne", "bonne", "super", "sublime"][i]; int: i => ["douce", "légère", "palpitante", "intense", "extrême"][i]
+      hungry: "J'ai faim"; thirsty: "J'ai soif"; restroom: "Il me faut des toilettes"; litter: "Les allées sont pleines de déchets"
+      thrill: "Je veux quelque chose de plus fort"; steep: "L'entrée est chère"; pretty: "Ce parc est vraiment joli"
+      notPaying: (p, n) => "Je ne paie pas ${p} pour ${n}"; tooIntense: n => "${n} a l'air trop intense"; amazing: n => "${n}, c'était génial !"; queueLong: n => "La file pour ${n} est trop longue"
+      stationGround: "La gare doit être sur un sol libre et sec"; need8: "Un grand huit demande au moins 8 pièces"; bringUp: "Ramène la voie jusqu'à la gare"
+      comeDown: "Redescends d'abord à la hauteur 1"; carryOn: "Continue depuis le bout de la voie"; station3: "La gare fait 3 pièces droites"
+      taken: "Cette case est prise"; raise: "Monte la voie pour passer l'eau"
+      workshop: "Atelier grand huit"; tapGround: "Touche un sol libre pour la gare"; layMore: n => n == 1 ? "Pose encore 1 pièce droite de gare" : "Pose encore ${n} pièces droites de gare"
+      tapStation: "Touche la gare pour ouvrir l'attraction"; tapNext: "Touche ou glisse à côté du point doré"; nextHeight: "Hauteur de la pièce suivante"
+      climbs: "Monte de 1 ou descend de 2 par pièce"; aiming: h => "Vers ${h} · monte de 1 ou descend de 2"; pieces: (n, s, x) => "${n} pièces · dépensé ${s} · suivante ${x}"
+      undo: "Annuler"; confirm: "Confirmer"; scrap: "Démolir"; done: "Terminé"; stillBuilding: "En construction. Choisis Grand huit pour continuer."
+      ratings: (e, el, i, il) => "Excitation ${e} ${el} · Intensité ${i} ${il}"; topSpeed: (s, d, l) => "Vitesse max ${s} km/h · chute ${d} m · ${l} m de long"
+      noPathStation: "Aucune allée ne mène à la gare"; noPathIt: "Aucune allée n'y mène"; closed: "Fermé"
+      ridersMin: (r, q, c) => "${r} passagers par minute · file ${q} · ${c}/min"; customersMin: (r, c) => "${r} clients par minute · ${c}/min"
+      tooDear: "Les visiteurs trouvent ça trop cher"; payUpTo: p => "Les visiteurs paient jusqu'à ${p}"; binInfo: "Les visiteurs y jettent leurs déchets"; gardenInfo: "Les jardins font monter la note du parc"
+      ticket: "Prix du ticket"; price: "Prix"; worth: p => "vaut jusqu'à ${p}"; tooDearL: "les visiteurs trouvent ça trop cher"
+      close: "Fermer"; open: "Ouvrir"; sell: c => "Vendre +${c}"; coaster: "Grand huit"; footpath: "Allée"; fromCost: "dès $150"; perCell: "$10 la case"
+      hint: i => ["Les manèges se posent au bord d'une allée. Choisis Grand huit pour en dessiner un.", "Les boutiques vendent à tous les visiteurs du parc.", "Les jardins font monter la note ; les poubelles limitent les déchets.", "Touche ou glisse sur l'herbe pour poser une allée, touche une allée pour l'enlever."][i]
+      entryFee: "Entrée"; tooSteep: "trop chère pour ce parc"; fair: "les visiteurs la trouvent juste"; handymen: "Agents d'entretien"; litterOn: n => "${n} déchets dans les allées"
+      thinking: "Ce que pensent les visiteurs"; noGuests: "Pas encore de visiteurs. Construis un manège au bord d'une allée."; happy: "Tout le monde est content."
+      noCash: "Pas assez d'argent"; isOpen: n => "${n} ouvre !"; noRoom: "Pas de place ici"; layPath: "Trace une allée jusqu'ici depuis l'entrée"; hiring: "Embaucher coûte $300"
+      guests: "visiteurs"; rating: "note"; park: "Parc"; pickRide: "Choisis un manège en bas et touche la carte"
+    }
+    tr {
+      kd: i => ["Atlıkarınca", "Dönen Fincanlar", "Dönme Dolap", "Salıncak Kulesi", "Burgerci", "Limonata", "Balonlar", "Tuvaletler", "Ağaç", "Çiçekler", "Çöp Kutusu", "Çeşme"][i]
+      tab: i => ["Oyuncaklar", "Dükkanlar", "Bahçe", "Yollar", "Park"][i]
+      exc: i => ["düşük", "orta", "iyi", "harika", "muhteşem"][i]; int: i => ["sakin", "hafif", "heyecanlı", "sert", "aşırı"][i]
+      hungry: "Acıktım"; thirsty: "Susadım"; restroom: "Tuvalete gitmem lazım"; litter: "Yollar çöp dolu"
+      thrill: "Daha heyecanlı bir şey istiyorum"; steep: "Giriş ücreti çok pahalı"; pretty: "Bu park çok güzel"
+      notPaying: (p, n) => "${n} için ${p} ödemem"; tooIntense: n => "${n} fazla sert görünüyor"; amazing: n => "${n} muhteşemdi!"; queueLong: n => "${n} kuyruğu çok uzun"
+      stationGround: "İstasyon için boş ve kuru zemin lazım"; need8: "Bir hız treni en az 8 parça ister"; bringUp: "Rayı istasyona kadar getir"
+      comeDown: "Önce 1 yüksekliğine in"; carryOn: "Rayın ucundan devam et"; station3: "İstasyon 3 düz parçadır"
+      taken: "O kare dolu"; raise: "Suyu geçmek için rayı yükselt"
+      workshop: "Hız treni atölyesi"; tapGround: "İstasyon için boş zemine dokun"; layMore: n => "${n} düz istasyon parçası daha koy"
+      tapStation: "Açmak için istasyona dokun"; tapNext: "Altın noktanın yanına dokun ya da sürükle"; nextHeight: "Sonraki parçanın yüksekliği"
+      climbs: "Parça başına 1 çık ya da 2 in"; aiming: h => "Hedef ${h} · parça başına 1 çık ya da 2 in"; pieces: (n, s, x) => "${n} parça · harcanan ${s} · sonraki ${x}"
+      undo: "Geri al"; confirm: "Onayla"; scrap: "Yık"; done: "Bitti"; stillBuilding: "Hâlâ yapımda. Devam etmek için Hız treni seç."
+      ratings: (e, el, i, il) => "Heyecan ${e} ${el} · Yoğunluk ${i} ${il}"; topSpeed: (s, d, l) => "Azami ${s} km/sa · düşüş ${d} m · ${l} m uzunluk"
+      noPathStation: "İstasyona giden yol yok"; noPathIt: "Buraya giden yol yok"; closed: "Kapalı"
+      ridersMin: (r, q, c) => "Dakikada ${r} binici · kuyruk ${q} · ${c}/dk"; customersMin: (r, c) => "Dakikada ${r} müşteri · ${c}/dk"
+      tooDear: "Ziyaretçiler çok pahalı buluyor"; payUpTo: p => "Ziyaretçiler en fazla ${p} öder"; binInfo: "Ziyaretçiler çöplerini buraya atar"; gardenInfo: "Bahçeler parkın puanını yükseltir"
+      ticket: "Bilet fiyatı"; price: "Fiyat"; worth: p => "en fazla ${p} eder"; tooDearL: "ziyaretçiler çok pahalı buluyor"
+      close: "Kapat"; open: "Aç"; sell: c => "Sat +${c}"; coaster: "Hız treni"; footpath: "Yaya yolu"; fromCost: "en az $150"; perCell: "kare başı $10"
+      hint: i => ["Oyuncaklar bir yolun yanına kurulur. Tasarlamak için Hız treni seç.", "Dükkanlar parktaki her ziyaretçiye satar.", "Bahçeler puanı yükseltir; çöp kutuları çöpü azaltır.", "Yol döşemek için çimene dokun ya da sürükle, kaldırmak için yola dokun."][i]
+      entryFee: "Giriş ücreti"; tooSteep: "bu park için çok pahalı"; fair: "ziyaretçiler makul buluyor"; handymen: "Temizlikçiler"; litterOn: n => "yollarda ${n} çöp"
+      thinking: "Ziyaretçiler ne düşünüyor"; noGuests: "Henüz ziyaretçi yok. Bir yolun yanına oyuncak kur."; happy: "Herkes mutlu."
+      noCash: "Yeterli paran yok"; isOpen: n => "${n} açıldı!"; noRoom: "Burada yer yok"; layPath: "Girişten buraya bir yol yap"; hiring: "İşe almak $300"
+      guests: "ziyaretçi"; rating: "puan"; park: "Park"; pickRide: "Aşağıdan bir oyuncak seç ve haritaya dokun"
+    }
+    it {
+      kd: i => ["Giostra", "Tazze Rotanti", "Ruota Panoramica", "Calcinculo", "Paninoteca", "Limonata", "Palloncini", "Bagni", "Albero", "Fiori", "Cestino", "Fontana"][i]
+      tab: i => ["Giostre", "Negozi", "Giardino", "Sentieri", "Parco"][i]
+      exc: i => ["bassa", "media", "buona", "ottima", "eccelsa"][i]; int: i => ["dolce", "lieve", "emozionante", "intensa", "estrema"][i]
+      hungry: "Ho fame"; thirsty: "Ho sete"; restroom: "Mi serve un bagno"; litter: "I sentieri sono pieni di rifiuti"
+      thrill: "Voglio qualcosa di più adrenalinico"; steep: "L'ingresso è caro"; pretty: "Questo parco è proprio bello"
+      notPaying: (p, n) => "Non pago ${p} per ${n}"; tooIntense: n => "${n} sembra troppo forte"; amazing: n => "${n}: fantastico!"; queueLong: n => "La coda per ${n} è troppo lunga"
+      stationGround: "La stazione vuole terreno libero e asciutto"; need8: "Un ottovolante vuole almeno 8 pezzi"; bringUp: "Riporta il binario alla stazione"
+      comeDown: "Scendi prima all'altezza 1"; carryOn: "Continua dalla fine del binario"; station3: "La stazione è di 3 pezzi dritti"
+      taken: "Quella casella è occupata"; raise: "Alza il binario per passare l'acqua"
+      workshop: "Officina ottovolanti"; tapGround: "Tocca terreno libero per la stazione"; layMore: n => n == 1 ? "Posa ancora 1 pezzo dritto di stazione" : "Posa ancora ${n} pezzi dritti di stazione"
+      tapStation: "Tocca la stazione per aprire la giostra"; tapNext: "Tocca o trascina accanto al punto dorato"; nextHeight: "Altezza del prossimo pezzo"
+      climbs: "Sale di 1 o scende di 2 per pezzo"; aiming: h => "Verso ${h} · sale di 1 o scende di 2"; pieces: (n, s, x) => "${n} pezzi · speso ${s} · prossimo ${x}"
+      undo: "Annulla"; confirm: "Conferma"; scrap: "Demolisci"; done: "Fatto"; stillBuilding: "Ancora in costruzione. Scegli Ottovolante per continuare."
+      ratings: (e, el, i, il) => "Emozione ${e} ${el} · Intensità ${i} ${il}"; topSpeed: (s, d, l) => "Velocità max ${s} km/h · discesa ${d} m · lungo ${l} m"
+      noPathStation: "Nessun sentiero porta alla stazione"; noPathIt: "Nessun sentiero ci arriva"; closed: "Chiuso"
+      ridersMin: (r, q, c) => "${r} passeggeri al minuto · coda ${q} · ${c}/min"; customersMin: (r, c) => "${r} clienti al minuto · ${c}/min"
+      tooDear: "Ai visitatori sembra troppo caro"; payUpTo: p => "I visitatori pagano fino a ${p}"; binInfo: "I visitatori ci buttano i rifiuti"; gardenInfo: "I giardini alzano il voto del parco"
+      ticket: "Prezzo del biglietto"; price: "Prezzo"; worth: p => "vale fino a ${p}"; tooDearL: "ai visitatori sembra troppo caro"
+      close: "Chiudi"; open: "Apri"; sell: c => "Vendi +${c}"; coaster: "Ottovolante"; footpath: "Sentiero"; fromCost: "da $150"; perCell: "$10 a casella"
+      hint: i => ["Le giostre vanno accanto a un sentiero. Scegli Ottovolante per progettarne uno.", "I negozi vendono a ogni visitatore del parco.", "I giardini alzano il voto; i cestini riducono i rifiuti.", "Tocca o trascina sull'erba per posare il sentiero, tocca un sentiero per toglierlo."][i]
+      entryFee: "Ingresso"; tooSteep: "troppo caro per questo parco"; fair: "ai visitatori sembra giusto"; handymen: "Addetti pulizie"; litterOn: n => "${n} rifiuti sui sentieri"
+      thinking: "Cosa pensano i visitatori"; noGuests: "Ancora nessun visitatore. Costruisci una giostra accanto a un sentiero."; happy: "Sono tutti contenti."
+      noCash: "Soldi insufficienti"; isOpen: n => "${n} apre!"; noRoom: "Qui non c'è spazio"; layPath: "Traccia un sentiero fin qui dall'ingresso"; hiring: "Assumere costa $300"
+      guests: "visitatori"; rating: "voto"; park: "Parco"; pickRide: "Scegli una giostra qui sotto e tocca la mappa"
+    }
+  }
 
   title: ""
   statusBar: false
@@ -61,21 +376,21 @@ app "sprocket park" {
   // ---- what there is to build ---------------------------------------------------------------------
   // t: 0 ride, 1 shop, 2 garden; w: 1 or 2 cells square
   let KD = [
-    {n: "Carousel", t: 0, w: 2, cost: 1200, p: 2, cap: 12, cyc: 20, exc: 2.8, int: 1.3, pull: 25, up: 0.06, c: "#f29a5c"},
-    {n: "Spinning Cups", t: 0, w: 2, cost: 1500, p: 2, cap: 12, cyc: 18, exc: 3.4, int: 5.2, pull: 25, up: 0.07, c: "#b58be6"},
-    {n: "Big Wheel", t: 0, w: 2, cost: 2000, p: 3, cap: 16, cyc: 28, exc: 3.6, int: 1.1, pull: 30, up: 0.08, c: "#7fc6e8"},
-    {n: "Swing Tower", t: 0, w: 2, cost: 2600, p: 3, cap: 12, cyc: 20, exc: 4.8, int: 4.4, pull: 35, up: 0.1, c: "#5cc7a3"},
-    {n: "Burger Bar", t: 1, w: 1, cost: 450, p: 3, fair: 3, s: 0, c: "#e0533d"},
-    {n: "Lemonade", t: 1, w: 1, cost: 300, p: 2, fair: 2, s: 1, c: "#f2cf3c"},
-    {n: "Balloons", t: 1, w: 1, cost: 350, p: 3, fair: 3, s: 2, c: "#e86fb0"},
-    {n: "Restrooms", t: 1, w: 1, cost: 400, p: 0, fair: 1, s: 3, c: "#4f8fd6"},
-    {n: "Tree", t: 2, w: 1, cost: 20, c: "#3d8b45"},
-    {n: "Flowers", t: 2, w: 1, cost: 15, c: "#e86fb0"},
-    {n: "Litter Bin", t: 2, w: 1, cost: 30, c: "#4c9b6a"},
-    {n: "Fountain", t: 2, w: 1, cost: 250, c: "#7fc6e8"}
+    {n: str.kd(0), t: 0, w: 2, cost: 1200, p: 2, cap: 12, cyc: 20, exc: 2.8, int: 1.3, pull: 25, up: 0.06, c: "#f29a5c"},
+    {n: str.kd(1), t: 0, w: 2, cost: 1500, p: 2, cap: 12, cyc: 18, exc: 3.4, int: 5.2, pull: 25, up: 0.07, c: "#b58be6"},
+    {n: str.kd(2), t: 0, w: 2, cost: 2000, p: 3, cap: 16, cyc: 28, exc: 3.6, int: 1.1, pull: 30, up: 0.08, c: "#7fc6e8"},
+    {n: str.kd(3), t: 0, w: 2, cost: 2600, p: 3, cap: 12, cyc: 20, exc: 4.8, int: 4.4, pull: 35, up: 0.1, c: "#5cc7a3"},
+    {n: str.kd(4), t: 1, w: 1, cost: 450, p: 3, fair: 3, s: 0, c: "#e0533d"},
+    {n: str.kd(5), t: 1, w: 1, cost: 300, p: 2, fair: 2, s: 1, c: "#f2cf3c"},
+    {n: str.kd(6), t: 1, w: 1, cost: 350, p: 3, fair: 3, s: 2, c: "#e86fb0"},
+    {n: str.kd(7), t: 1, w: 1, cost: 400, p: 0, fair: 1, s: 3, c: "#4f8fd6"},
+    {n: str.kd(8), t: 2, w: 1, cost: 20, c: "#3d8b45"},
+    {n: str.kd(9), t: 2, w: 1, cost: 15, c: "#e86fb0"},
+    {n: str.kd(10), t: 2, w: 1, cost: 30, c: "#4c9b6a"},
+    {n: str.kd(11), t: 2, w: 1, cost: 250, c: "#7fc6e8"}
   ]
   let TABK = [[0, 1, 2, 3, 20], [4, 5, 6, 7], [8, 9, 10, 11], [12], []]
-  let TABN = ["Rides", "Shops", "Garden", "Paths", "Park"]
+  let TABN = range(5).map(i => str.tab(i))
   let CN = ["Thunder Ridge", "Gravity Goose", "Comet Run", "Iron Kestrel", "The Whirlwind", "Copper Viper"]
   let COL = ["#e0533d", "#3fb6a8", "#f2b632", "#8c6bd6"]
   let SPEED = 3
@@ -173,8 +488,8 @@ app "sprocket park" {
 
   let pr = p => p == floor(p) ? "$${p}" : "$${fixed(p, 2)}"
   let cash = n => (n < 0 ? "-$" : "$") + fmtNum(abs(floor(n)))
-  let excL = v => v < 2 ? "low" : v < 4 ? "medium" : v < 6 ? "good" : v < 8 ? "great" : "superb"
-  let intL = v => v < 2 ? "gentle" : v < 4 ? "mild" : v < 6.5 ? "thrilling" : v < 9 ? "intense" : "extreme"
+  let excL = v => str.exc(v < 2 ? 0 : v < 4 ? 1 : v < 6 ? 2 : v < 8 ? 3 : 4)
+  let intL = v => str.int(v < 2 ? 0 : v < 4 ? 1 : v < 6.5 ? 2 : v < 9 ? 3 : 4)
   let hudCash = [coins].map(cash)[0]
   let hudRate = "${rate >= 0 ? "+" : "-"}${[abs(rate * 60)].map(cash)[0]}/min"
   let hudGuests = "${guests}"
@@ -183,17 +498,17 @@ app "sprocket park" {
   // what the guests are thinking, most common first
   let topInt = last(sort(R.filter(r => r.on).map(r => r.int))) ?? 0
   let thoughts = ([
-    [hasS[0] == 0 ? floor(guests * 0.3) : 0, "I'm hungry"],
-    [hasS[1] == 0 ? floor(guests * 0.35) : 0, "I'm thirsty"],
-    [hasS[3] == 0 ? floor(guests * 0.25) : 0, "I need a restroom"],
-    [litter > 8 ? floor(guests * litter / 80) : 0, "These paths are covered in litter"],
-    [nOn > 0 && topInt < 4 ? floor(guests * 0.3) : 0, "I want something more thrilling"],
-    [feeF < 1 ? floor(guests * (1 - feeF) * 0.5) + 1 : 0, "The entry fee is steep"],
-    [nScen >= 8 ? floor(guests * 0.2) : 0, "This park is really pretty"]
-  ] + range(len(R)).map(i => [R[i].on && !pok[i] ? floor(guests * 0.15) + 1 : 0, "I'm not paying ${[R[i].p].map(pr)[0]} for ${R[i].n}"])
-    + range(len(R)).map(i => [R[i].on && frac[i] < 0.7 ? floor(guests * (1 - frac[i]) * 0.3) : 0, "${R[i].n} looks too intense"])
-    + range(len(R)).map(i => [R[i].on && R[i].exc >= 5 && pok[i] ? floor(guests * 0.12 * frac[i]) : 0, "${R[i].n} was amazing!"])
-    + range(len(R)).map(i => [queue[i] >= 60 ? floor(guests * 0.1) : 0, "The queue for ${R[i].n} is too long"])
+    [hasS[0] == 0 ? floor(guests * 0.3) : 0, str.hungry],
+    [hasS[1] == 0 ? floor(guests * 0.35) : 0, str.thirsty],
+    [hasS[3] == 0 ? floor(guests * 0.25) : 0, str.restroom],
+    [litter > 8 ? floor(guests * litter / 80) : 0, str.litter],
+    [nOn > 0 && topInt < 4 ? floor(guests * 0.3) : 0, str.thrill],
+    [feeF < 1 ? floor(guests * (1 - feeF) * 0.5) + 1 : 0, str.steep],
+    [nScen >= 8 ? floor(guests * 0.2) : 0, str.pretty]
+  ] + range(len(R)).map(i => [R[i].on && !pok[i] ? floor(guests * 0.15) + 1 : 0, str.notPaying([R[i].p].map(pr)[0], R[i].n)])
+    + range(len(R)).map(i => [R[i].on && frac[i] < 0.7 ? floor(guests * (1 - frac[i]) * 0.3) : 0, str.tooIntense(R[i].n)])
+    + range(len(R)).map(i => [R[i].on && R[i].exc >= 5 && pok[i] ? floor(guests * 0.12 * frac[i]) : 0, str.amazing(R[i].n)])
+    + range(len(R)).map(i => [queue[i] >= 60 ? floor(guests * 0.1) : 0, str.queueLong(R[i].n)])
   ).filter(t => t[0] > 0).sortBy(t => -t[0])
 
   // ---- the screen, in dp ----------------------------------------------------------------------------
@@ -287,12 +602,12 @@ app "sprocket park" {
   let world = [ground, pathPrims] + dAll.map(e => e.j < 0 ? iprim[e.i] : cs[e.j].prims[e.k]) + [gate]
   let dia = c => [[c % 12, floor(c / 12), 0], [c % 12 + 1, floor(c / 12), 0], [c % 12 + 1, floor(c / 12) + 1, 0], [c % 12, floor(c / 12) + 1, 0], [c % 12, floor(c / 12), 0]].map(pj)
   // the coaster's next piece: where it can go, and how high
-  let cAct = c => bi < 0 ? (own[c] < 0 && !isP[c] && !isW[c] ? {a: 1, m: ""} : {a: 0, m: "The station needs clear, dry ground"})
-    : c == bt[0][0] && bn >= 2 ? (bn < 8 ? {a: 0, m: "A coaster needs at least 8 pieces"} : !any(nbs[c], n => n == bl[0]) ? {a: 0, m: "Bring the track up to the station"} : bl[1] > 1 ? {a: 0, m: "Come down to height 1 first"} : {a: 3, m: ""})
-    : !any(nbs[bl[0]], n => n == c) ? {a: 0, m: "Carry on from the end of the track"}
-    : bn == 2 && c - bt[1][0] != bt[1][0] - bt[0][0] ? {a: 0, m: "The station is 3 straight pieces"}
-    : own[c] >= 0 || isP[c] ? {a: 0, m: "That cell is taken"}
-    : isW[c] && nextZ < 1 ? {a: 0, m: "Raise the track to cross water"}
+  let cAct = c => bi < 0 ? (own[c] < 0 && !isP[c] && !isW[c] ? {a: 1, m: ""} : {a: 0, m: str.stationGround})
+    : c == bt[0][0] && bn >= 2 ? (bn < 8 ? {a: 0, m: str.need8} : !any(nbs[c], n => n == bl[0]) ? {a: 0, m: str.bringUp} : bl[1] > 1 ? {a: 0, m: str.comeDown} : {a: 3, m: ""})
+    : !any(nbs[bl[0]], n => n == c) ? {a: 0, m: str.carryOn}
+    : bn == 2 && c - bt[1][0] != bt[1][0] - bt[0][0] ? {a: 0, m: str.station3}
+    : own[c] >= 0 || isP[c] ? {a: 0, m: str.taken}
+    : isW[c] && nextZ < 1 ? {a: 0, m: str.raise}
     : {a: 2, m: ""}
   let overlay = tool == 20 ? (bi < 0 ? free.map(c => {c: [[c % 12 + 0.5, floor(c / 12) + 0.5, 0]].map(pj)[0], r: 0.05, f: "#ffffffaa"})
       : nbs[bl[0]].filter(c => [c].map(cAct)[0].a >= 2).map(c => {l: [c].map(dia)[0].map(v => [v[0], v[1] - ([c].map(cAct)[0].a == 3 ? 0 : nextZ) * HZ]), s: "#f2b632", w: 0.04})
@@ -350,21 +665,21 @@ app "sprocket park" {
       rect(LS ? MAPW : 0, LS ? 0 : MAPH, LS ? SW - MAPW : SW, LS ? SH : SH - MAPH, fill: UI.bg)
       rect(LS ? MAPW : 0, LS ? 0 : MAPH, LS ? 3 : SW, LS ? SH : 3, fill: UI.gold)
       if tool == 20 {
-        text("Coaster workshop", PX + 2, PY + 14, size: 17, color: UI.text, bold: true)
-        text(bi < 0 ? "Tap clear ground for the station" : bn < 3 ? "Lay ${3 - bn} more straight station piece${bn == 2 ? "" : "s"}" : any(nbs[bl[0]], n => n == bt[0][0]) && bn >= 8 && bl[1] <= 1 ? "Tap the station to open the ride" : "Tap or drag next to the gold dot", PX + 2, PY + 40, size: 13, color: UI.gold)
-        text("Next piece height", PX + 2, HRY, size: 14, color: UI.text)
+        text(str.workshop, PX + 2, PY + 14, size: 17, color: UI.text, bold: true)
+        text(bi < 0 ? str.tapGround : bn < 3 ? str.layMore(3 - bn) : any(nbs[bl[0]], n => n == bt[0][0]) && bn >= 8 && bl[1] <= 1 ? str.tapStation : str.tapNext, PX + 2, PY + 40, size: 13, color: UI.gold)
+        text(str.nextHeight, PX + 2, HRY, size: 14, color: UI.text)
         rect(SX1, HRY - 16, 40, 32, fill: UI.card2, radius: 6 * corners)
         rect(SX2, HRY - 16, 40, 32, fill: UI.card2, radius: 6 * corners)
         text("−", SX1 + 20, HRY, size: 20, color: UI.text, align: center, bold: true)
         text("+", SX2 + 20, HRY, size: 20, color: UI.text, align: center, bold: true)
         text("${bn < 3 ? 0 : nextZ}", (SX1 + SX2 + 40) / 2, HRY, size: 18, color: UI.gold, align: center, bold: true)
-        text(bn < 3 ? "Climbs go up 1 a piece, drops down 2" : "Aiming for ${bh} · up 1 or down 2 a piece", PX + 2, HRY + 30, size: 12, color: UI.dim)
+        text(bn < 3 ? str.climbs : str.aiming(bh), PX + 2, HRY + 30, size: 12, color: UI.dim)
         if bi >= 0 {
-          text("${bn} pieces · spent ${[coasters[bi].sp].map(cash)[0]} · next ${[pieceCost].map(cash)[0]}", PX + 2, HRY + 52, size: 12, color: UI.dim)
+          text(str.pieces(bn, [coasters[bi].sp].map(cash)[0], [pieceCost].map(cash)[0]), PX + 2, HRY + 52, size: 12, color: UI.dim)
         }
         for b in range(3) {
           rect(PX + b * (PW + 6) / 3, BY, (PW - 12) / 3, BH, fill: b == 1 ? (arm ? "#e0533d" : "#5a2a2f") : b == 2 ? UI.go : UI.card2, radius: 6 * corners)
-          text([bi >= 0 ? "Undo piece" : "—", arm ? "Tap to confirm" : "Scrap", "Done"][b], PX + b * (PW + 6) / 3 + (PW - 12) / 6, BY + BH / 2, size: 13, color: UI.text, align: center, bold: true)
+          text([bi >= 0 ? str.undo : "—", arm ? str.confirm : str.scrap, str.done][b], PX + b * (PW + 6) / 3 + (PW - 12) / 6, BY + BH / 2, size: 13, color: UI.text, align: center, bold: true)
         }
       } else if sel >= 0 {
         let co = sel >= 1000 ? coasters[sel - 1000] : null
@@ -375,25 +690,25 @@ app "sprocket park" {
         text(name, PX + 2, PY + 14, size: 17, color: UI.text, bold: true)
         text("✕", PX + PW - 14, PY + 14, size: 16, color: UI.dim, align: center)
         if co != null && !co.d {
-          text("Still being built. Pick Coaster to carry on.", PX + 2, PY + 40, size: 13, color: UI.dim)
+          text(str.stillBuilding, PX + 2, PY + 40, size: 13, color: UI.dim)
         } else if isR {
           let r = R[ri]
-          text("Excitement ${fixed(r.exc, 1)} ${[r.exc].map(excL)[0]} · Intensity ${fixed(r.int, 1)} ${[r.int].map(intL)[0]}", PX + 2, PY + 40, size: 13, color: UI.gold)
+          text(str.ratings(fixed(r.exc, 1), [r.exc].map(excL)[0], fixed(r.int, 1), [r.int].map(intL)[0]), PX + 2, PY + 40, size: 13, color: UI.gold)
           if co != null {
-            text("Top speed ${round(cs[sel - 1000].mx * 9)} km/h · drop ${cs[sel - 1000].drop * 2} m · ${cs[sel - 1000].n * 8} m long", PX + 2, PY + 62, size: 12, color: UI.dim)
+            text(str.topSpeed(round(cs[sel - 1000].mx * 9), cs[sel - 1000].drop * 2, cs[sel - 1000].n * 8), PX + 2, PY + 62, size: 12, color: UI.dim)
           }
-          text(!r.on ? (open ? "No path reaches ${co != null ? "the station" : "it"}" : "Closed") : "${round(riders[ri] * 60 * SPEED)} riders a minute · queue ${queue[ri]} · ${[riders[ri] * r.p * 60 * SPEED].map(cash)[0]}/min", PX + 2, PY + 84, size: 12, color: r.on ? UI.text : UI.warn)
+          text(!r.on ? (open ? (co != null ? str.noPathStation : str.noPathIt) : str.closed) : str.ridersMin(round(riders[ri] * 60 * SPEED), queue[ri], [riders[ri] * r.p * 60 * SPEED].map(cash)[0]), PX + 2, PY + 84, size: 12, color: r.on ? UI.text : UI.warn)
         } else if KD[it.k].t == 1 {
-          text(itemDoor[sel] < 0 ? "No path reaches it" : !it.o ? "Closed" : "${round(shopRate[sel] * 60 * SPEED)} customers a minute · ${[shopRate[sel] * it.p * 60 * SPEED].map(cash)[0]}/min", PX + 2, PY + 40, size: 12, color: itemDoor[sel] < 0 ? UI.warn : UI.text)
-          text(it.p > KD[it.k].fair * 2 + 0.5 ? "Guests think it's too dear" : "Guests pay up to ${[KD[it.k].fair * 2 + 0.5].map(pr)[0]}", PX + 2, PY + 62, size: 12, color: it.p > KD[it.k].fair * 2 + 0.5 ? UI.warn : UI.dim)
+          text(itemDoor[sel] < 0 ? str.noPathIt : !it.o ? str.closed : str.customersMin(round(shopRate[sel] * 60 * SPEED), [shopRate[sel] * it.p * 60 * SPEED].map(cash)[0]), PX + 2, PY + 40, size: 12, color: itemDoor[sel] < 0 ? UI.warn : UI.text)
+          text(it.p > KD[it.k].fair * 2 + 0.5 ? str.tooDear : str.payUpTo([KD[it.k].fair * 2 + 0.5].map(pr)[0]), PX + 2, PY + 62, size: 12, color: it.p > KD[it.k].fair * 2 + 0.5 ? UI.warn : UI.dim)
         } else {
-          text(it.k == 10 ? "Guests drop their litter in it" : "Gardens raise the park's rating", PX + 2, PY + 40, size: 13, color: UI.dim)
+          text(it.k == 10 ? str.binInfo : str.gardenInfo, PX + 2, PY + 40, size: 13, color: UI.dim)
         }
         if (co != null && co.d) || (it != null && KD[it.k].t < 2) {
           let p = co != null ? co.p : it.p
-          text(isR ? "Ticket price" : "Price", PX + 2, PRY, size: 14, color: UI.text)
+          text(isR ? str.ticket : str.price, PX + 2, PRY, size: 14, color: UI.text)
           if isR {
-            text(pok[ri] ? "worth up to ${[R[ri].val * 1.6 + 0.5].map(pr)[0]}" : "guests think it's too dear", PX + 2, PRY + 18, size: 11, color: pok[ri] ? UI.dim : UI.warn)
+            text(pok[ri] ? str.worth([R[ri].val * 1.6 + 0.5].map(pr)[0]) : str.tooDearL, PX + 2, PRY + 18, size: 11, color: pok[ri] ? UI.dim : UI.warn)
           }
           rect(SX1, PRY - 16, 40, 32, fill: UI.card2, radius: 6 * corners)
           rect(SX2, PRY - 16, 40, 32, fill: UI.card2, radius: 6 * corners)
@@ -401,11 +716,11 @@ app "sprocket park" {
           text("+", SX2 + 20, PRY, size: 20, color: UI.text, align: center, bold: true)
           text([p].map(pr)[0], (SX1 + SX2 + 40) / 2, PRY, size: 18, color: UI.gold, align: center, bold: true)
           rect(PX, BY, (PW - 6) / 2, BH, fill: UI.card2, radius: 6 * corners)
-          text(open ? "Close" : "Open", PX + (PW - 6) / 4, BY + BH / 2, size: 13, color: UI.text, align: center, bold: true)
+          text(open ? str.close : str.open, PX + (PW - 6) / 4, BY + BH / 2, size: 13, color: UI.text, align: center, bold: true)
         }
         let full = (co != null && !co.d) || (it != null && KD[it.k].t == 2)
         rect(full ? PX : PX + (PW + 6) / 2, BY, full ? PW : (PW - 6) / 2, BH, fill: arm ? "#e0533d" : "#5a2a2f", radius: 6 * corners)
-        text(arm ? "Tap to confirm" : "Sell +${[floor((co != null ? co.sp : it.sp) / (co != null && !co.d ? 1 : 2))].map(cash)[0]}", full ? PX + PW / 2 : PX + (PW + 6) / 2 + (PW - 6) / 4, BY + BH / 2, size: 13, color: UI.text, align: center, bold: true)
+        text(arm ? str.confirm : str.sell([floor((co != null ? co.sp : it.sp) / (co != null && !co.d ? 1 : 2))].map(cash)[0]), full ? PX + PW / 2 : PX + (PW + 6) / 2 + (PW - 6) / 4, BY + BH / 2, size: 13, color: UI.text, align: center, bold: true)
       } else {
         for t in range(5) {
           rect(PX + t * PW / 5 + 2, PY, PW / 5 - 4, TBH, fill: tab == t ? UI.gold : UI.card, radius: 6 * corners)
@@ -419,15 +734,15 @@ app "sprocket park" {
             rect(cx, cy, CW, CHh, fill: tool == k ? UI.card2 : UI.card, radius: 6 * corners)
             if tool == k { rect(cx + 1, cy + 1, CW - 2, CHh - 2, stroke: UI.gold, width: 2, radius: 6 * corners) }
             rect(cx + 10, cy + 12, 14, 14, fill: k == 20 ? "#e0533d" : k == 12 ? "#dfc99c" : KD[k].c, radius: 4)
-            text(k == 20 ? "Coaster" : k == 12 ? "Footpath" : KD[k].n, cx + 10, cy + 40, size: 12, color: UI.text, bold: true)
-            text(k == 20 ? "from $150" : k == 12 ? "$10 a cell" : [cost].map(cash)[0], cx + 30, cy + 19, size: 11, color: UI.gold)
+            text(k == 20 ? str.coaster : k == 12 ? str.footpath : KD[k].n, cx + 10, cy + 40, size: 12, color: UI.text, bold: true)
+            text(k == 20 ? str.fromCost : k == 12 ? str.perCell : [cost].map(cash)[0], cx + 30, cy + 19, size: 11, color: UI.gold)
           }
-          text(tab == 0 ? "Rides go next to a path. Pick Coaster to design one." : tab == 1 ? "Shops sell to every guest in the park." : tab == 2 ? "Gardens raise the rating; bins keep litter down." : "Tap or drag on grass to lay path, tap a path to lift it.", PX + 2, CY + (tab == 0 ? 2 : 1) * (CHh + 6) + 14, size: 12, color: UI.dim)
+          text(str.hint(tab), PX + 2, CY + (tab == 0 ? 2 : 1) * (CHh + 6) + 14, size: 12, color: UI.dim)
         } else {
-          text("Entry fee", PX + 2, FRY, size: 14, color: UI.text)
-          text(feeF < 1 ? "too steep for this park" : "guests think it's fair", PX + 2, FRY + 17, size: 11, color: feeF < 1 ? UI.warn : UI.dim)
-          text("Handymen", PX + 2, SRY, size: 14, color: UI.text)
-          text("${litter} litter on the paths", PX + 2, SRY + 17, size: 11, color: litter > 8 ? UI.warn : UI.dim)
+          text(str.entryFee, PX + 2, FRY, size: 14, color: UI.text)
+          text(feeF < 1 ? str.tooSteep : str.fair, PX + 2, FRY + 17, size: 11, color: feeF < 1 ? UI.warn : UI.dim)
+          text(str.handymen, PX + 2, SRY, size: 14, color: UI.text)
+          text(str.litterOn(litter), PX + 2, SRY + 17, size: 11, color: litter > 8 ? UI.warn : UI.dim)
           for row in [[FRY, "$${fee}"], [SRY, "${staff}"]] {
             rect(SX1, row[0] - 16, 40, 32, fill: UI.card2, radius: 6 * corners)
             rect(SX2, row[0] - 16, 40, 32, fill: UI.card2, radius: 6 * corners)
@@ -435,9 +750,9 @@ app "sprocket park" {
             text("+", SX2 + 20, row[0], size: 20, color: UI.text, align: center, bold: true)
             text(row[1], (SX1 + SX2 + 40) / 2, row[0], size: 16, color: UI.gold, align: center, bold: true)
           }
-          text("What the guests are thinking", PX + 2, SRY + 44, size: 11, color: UI.gold, bold: true)
+          text(str.thinking, PX + 2, SRY + 44, size: 11, color: UI.gold, bold: true)
           if len(thoughts) == 0 {
-            text(guests == 0 ? "No guests yet. Build a ride by a path." : "Everyone's happy.", PX + 2, SRY + 64, size: 12, color: UI.dim)
+            text(guests == 0 ? str.noGuests : str.happy, PX + 2, SRY + 64, size: 12, color: UI.dim)
           }
           for t, i in thoughts.take(max(0, floor((PY + PH - SRY - 56) / 19))) {
             text(t[1], PX + 2, SRY + 64 + i * 19, size: 12, color: UI.text)
@@ -476,7 +791,7 @@ app "sprocket park" {
             if tool == 20 {
               if inMap {
                 let a0 = [cell].map(cAct)[0]
-                let a = a0.a == 1 && coins < 150 || a0.a == 2 && coins < pieceCost ? {a: 0, m: "Not enough cash"} : a0
+                let a = a0.a == 1 && coins < 150 || a0.a == 2 && coins < pieceCost ? {a: 0, m: str.noCash} : a0
                 if a.a == 1 {
                   bank = coins - 150
                   since = tnow
@@ -488,7 +803,7 @@ app "sprocket park" {
                   coasters = set(coasters, bi, merge(coasters[bi], {t: bt + [[cell, nextZ]], sp: coasters[bi].sp + pieceCost}))
                 } else if a.a == 3 {
                   let b0 = bi
-                  msg = "${CN[coasters[b0].n % 6]} is open!"
+                  msg = str.isOpen(CN[coasters[b0].n % 6])
                   coasters = set(coasters, b0, merge(coasters[b0], {d: true, p: max(1, round((cs[b0].exc * 0.8 + 1.2) * 2) / 2)}))
                   msgT = time
                   tool = -1
@@ -513,7 +828,7 @@ app "sprocket park" {
                     since = tnow
                     paths = paths + [cell]
                   } else {
-                    msg = "Not enough cash"
+                    msg = str.noCash
                     msgT = time
                   }
                 }
@@ -524,17 +839,17 @@ app "sprocket park" {
               if !inMap {
                 sel = -1
               } else if len(fit) == 0 {
-                msg = "No room here"
+                msg = str.noRoom
                 msgT = time
               } else if coins < KD[tool].cost {
-                msg = "Not enough cash"
+                msg = str.noCash
                 msgT = time
               } else {
                 bank = coins - KD[tool].cost
                 since = tnow
                 items = items + [{c: fit[0], k: tool, p: KD[tool].p ?? 0, o: true, sp: KD[tool].cost}]
                 if KD[tool].t < 2 && ![[fit[0], tool]].map(q => any(flatten((KD[q[1]].w == 2 ? [q[0], q[0] + 1, q[0] + 12, q[0] + 13] : [q[0]]).map(c => nbs[c])), n => dist[n] >= 0))[0] {
-                  msg = "Lay a path to it from the gate"
+                  msg = str.layPath
                   msgT = time
                 }
                 haptic()
@@ -615,7 +930,7 @@ app "sprocket park" {
             fee = clamp(fee + d, 0, 50)
           } else if d != 0 && y >= SRY - 18 && y <= SRY + 18 {
             if d > 0 && coins < 300 {
-              msg = "Hiring costs $300"
+              msg = str.hiring
               msgT = time
             } else {
               bank = coins - (d > 0 ? 300 : 0)
@@ -783,18 +1098,18 @@ app "sprocket park" {
         text(hudCash, 14, TOP + 14, size: 17, color: coins < 0 ? UI.warn : UI.text, bold: true)
         text(hudRate, 14, TOP + 32, size: 11, color: rate >= 0 ? UI.dim : UI.warn)
         text(hudGuests, MAPW * 0.42, TOP + 14, size: 17, color: UI.text, bold: true, align: center)
-        text("guests", MAPW * 0.42, TOP + 32, size: 11, color: UI.dim, align: center)
+        text(str.guests, MAPW * 0.42, TOP + 32, size: 11, color: UI.dim, align: center)
         text(hudRating, MAPW * 0.62, TOP + 14, size: 17, color: rating < 400 ? UI.warn : rating < 600 ? UI.gold : "#79d48f", bold: true, align: center)
-        text("rating", MAPW * 0.62, TOP + 32, size: 11, color: UI.dim, align: center)
+        text(str.rating, MAPW * 0.62, TOP + 32, size: 11, color: UI.dim, align: center)
         rect(MAPW - 100, TOP + 8, 42, 30, fill: UI.card2, radius: 6 * corners)
         text(zoom == 1 ? "2×" : "1×", MAPW - 79, TOP + 23, size: 13, color: UI.text, align: center, bold: true)
         rect(MAPW - 52, TOP + 8, 42, 30, fill: tab == 4 && tool < 0 && sel < 0 ? UI.gold : UI.card2, radius: 6 * corners)
-        text("Park", MAPW - 31, TOP + 23, size: 12, color: tab == 4 && tool < 0 && sel < 0 ? UI.bg : UI.text, align: center, bold: true)
+        text(str.park, MAPW - 31, TOP + 23, size: 12, color: tab == 4 && tool < 0 && sel < 0 ? UI.bg : UI.text, align: center, bold: true)
 
         // ---- a word for a new park, and messages ----
         if len(items) == 0 && len(coasters) == 0 && tool < 0 && time % 1.6 < 1.2 {
           rect(CXm - 130, MAPH - 46, 260, 30, fill: "#14213acc", radius: 6 * corners)
-          text("Pick a ride below and tap the map", CXm, MAPH - 31, size: 12, color: UI.gold, align: center, bold: true)
+          text(str.pickRide, CXm, MAPH - 31, size: 12, color: UI.gold, align: center, bold: true)
         }
         if time - msgT < 2.4 && time >= msgT {
           rect(CXm - 150, HUDH + 10, 300, 32, fill: "#f7edd3", radius: 16 * corners)

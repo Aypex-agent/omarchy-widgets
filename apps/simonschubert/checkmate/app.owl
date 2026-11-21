@@ -13,7 +13,274 @@ app "checkmate" {
   // the solver is to move, and get harder down the list. Any last move that mates counts.
   // Pieces: Colin M.L. Burnett's set from Wikimedia Commons (BSD).
 
-  meta { owl: 23; description: "Mate in two or three: 60 chess puzzles, each unlike the others, from easy to hard, played out to the end against the best defence"; version: "1.1.2"; license: "MIT"; category: "games" }
+  meta { owl: 23; description: "Mate in two or three: 60 chess puzzles, each unlike the others, from easy to hard, played out to the end against the best defence"; version: "1.2"; license: "MIT"; category: "games" }
+
+  strings {
+    en {
+      inCheck: "Your king would be in check"
+      cantGo: "It can't move there"
+      answers: w => w ? "White answers…" : "Black answers…"
+      yourMove: "Your move"
+      findMate: "Find the mate"
+      checkmate: "Checkmate!"
+      notMate: "Not mate"
+      matesYou: w => w ? "White mates you" : "Black mates you"
+      stalemate: "Stalemate"
+      getsAway: w => w ? "White's king gets away" : "Black's king gets away"
+      noWayOut: "Your king had no way out"
+      cantMove: w => w ? "White can't move, and isn't in check" : "Black can't move, and isn't in check"
+      toMove: w => w ? "White to move" : "Black to move"
+      mateIn: n => n == 2 ? "and mate in two" : "and mate in three"
+      hint: "tap a piece, then its square"
+      prev: "‹ prev"
+      restart: "restart"
+      next: "next ›"
+      tally: (d, s, b) => "${d} solved · streak ${s} · best ${b}"
+      lichess: "on lichess ↗"
+    }
+    id {
+      inCheck: "Rajamu akan terkena skak"
+      cantGo: "Bidak itu tidak bisa ke sana"
+      answers: w => w ? "Putih menjawab…" : "Hitam menjawab…"
+      yourMove: "Giliranmu"
+      findMate: "Temukan matnya"
+      checkmate: "Skakmat!"
+      notMate: "Bukan mat"
+      matesYou: w => w ? "Putih men-skakmat kamu" : "Hitam men-skakmat kamu"
+      stalemate: "Pat"
+      getsAway: w => w ? "Raja putih lolos" : "Raja hitam lolos"
+      noWayOut: "Rajamu tidak punya jalan keluar"
+      cantMove: w => w ? "Putih tak bisa bergerak, dan tidak sedang diskak" : "Hitam tak bisa bergerak, dan tidak sedang diskak"
+      toMove: w => w ? "Putih jalan" : "Hitam jalan"
+      mateIn: n => n == 2 ? "dan mat dalam dua langkah" : "dan mat dalam tiga langkah"
+      hint: "ketuk bidak, lalu petaknya"
+      prev: "‹ sebelumnya"
+      restart: "ulangi"
+      next: "berikutnya ›"
+      tally: (d, s, b) => "${d} terpecahkan · beruntun ${s} · terbaik ${b}"
+      lichess: "di lichess ↗"
+    }
+    es {
+      inCheck: "Tu rey quedaría en jaque"
+      cantGo: "No puede ir ahí"
+      answers: w => w ? "Responden blancas…" : "Responden negras…"
+      yourMove: "Tu jugada"
+      findMate: "Encuentra el mate"
+      checkmate: "¡Jaque mate!"
+      notMate: "No es mate"
+      matesYou: w => w ? "Las blancas te dan mate" : "Las negras te dan mate"
+      stalemate: "Ahogado"
+      getsAway: w => w ? "El rey blanco escapa" : "El rey negro escapa"
+      noWayOut: "Tu rey no tenía escapatoria"
+      cantMove: w => w ? "Las blancas no pueden mover y no están en jaque" : "Las negras no pueden mover y no están en jaque"
+      toMove: w => w ? "Juegan blancas" : "Juegan negras"
+      mateIn: n => n == 2 ? "y mate en dos" : "y mate en tres"
+      hint: "toca una pieza y luego su casilla"
+      prev: "‹ anterior"
+      restart: "reiniciar"
+      next: "siguiente ›"
+      tally: (d, s, b) => "${d} resueltos · racha ${s} · récord ${b}"
+      lichess: "en lichess ↗"
+    }
+    pt {
+      inCheck: "Seu rei ficaria em xeque"
+      cantGo: "Não pode ir para lá"
+      answers: w => w ? "As brancas respondem…" : "As pretas respondem…"
+      yourMove: "Sua vez"
+      findMate: "Encontre o mate"
+      checkmate: "Xeque-mate!"
+      notMate: "Não é mate"
+      matesYou: w => w ? "As brancas dão mate em você" : "As pretas dão mate em você"
+      stalemate: "Afogamento"
+      getsAway: w => w ? "O rei branco escapa" : "O rei preto escapa"
+      noWayOut: "Seu rei não tinha saída"
+      cantMove: w => w ? "As brancas não podem mover e não estão em xeque" : "As pretas não podem mover e não estão em xeque"
+      toMove: w => w ? "Brancas jogam" : "Pretas jogam"
+      mateIn: n => n == 2 ? "e mate em dois" : "e mate em três"
+      hint: "toque numa peça e depois na casa"
+      prev: "‹ anterior"
+      restart: "reiniciar"
+      next: "próximo ›"
+      tally: (d, s, b) => "${d} resolvidos · sequência ${s} · recorde ${b}"
+      lichess: "no lichess ↗"
+    }
+    de {
+      inCheck: "Dein König stünde im Schach"
+      cantGo: "Da kann sie nicht hin"
+      answers: w => w ? "Weiß antwortet…" : "Schwarz antwortet…"
+      yourMove: "Dein Zug"
+      findMate: "Finde das Matt"
+      checkmate: "Schachmatt!"
+      notMate: "Kein Matt"
+      matesYou: w => w ? "Weiß setzt dich matt" : "Schwarz setzt dich matt"
+      stalemate: "Patt"
+      getsAway: w => w ? "Der weiße König entkommt" : "Der schwarze König entkommt"
+      noWayOut: "Dein König hatte keinen Ausweg"
+      cantMove: w => w ? "Weiß kann nicht ziehen und steht nicht im Schach" : "Schwarz kann nicht ziehen und steht nicht im Schach"
+      toMove: w => w ? "Weiß am Zug" : "Schwarz am Zug"
+      mateIn: n => n == 2 ? "und matt in zwei" : "und matt in drei"
+      hint: "tippe auf eine figur, dann auf ihr feld"
+      prev: "‹ zurück"
+      restart: "neu starten"
+      next: "weiter ›"
+      tally: (d, s, b) => "${d} gelöst · serie ${s} · rekord ${b}"
+      lichess: "auf lichess ↗"
+    }
+    zh {
+      inCheck: "你的王会被将军"
+      cantGo: "这步走不了"
+      answers: w => w ? "白方应对中…" : "黑方应对中…"
+      yourMove: "轮到你了"
+      findMate: "找出将杀"
+      checkmate: "将杀！"
+      notMate: "没有将杀"
+      matesYou: w => w ? "白方将杀了你" : "黑方将杀了你"
+      stalemate: "逼和"
+      getsAway: w => w ? "白王逃脱了" : "黑王逃脱了"
+      noWayOut: "你的王无路可逃"
+      cantMove: w => w ? "白方无棋可走，且未被将军" : "黑方无棋可走，且未被将军"
+      toMove: w => w ? "白方走棋" : "黑方走棋"
+      mateIn: n => n == 2 ? "两步将杀" : "三步将杀"
+      hint: "点一枚棋子，再点目标格"
+      prev: "‹ 上一题"
+      restart: "重来"
+      next: "下一题 ›"
+      tally: (d, s, b) => "已解 ${d} · 连胜 ${s} · 最佳 ${b}"
+      lichess: "在 lichess 查看 ↗"
+    }
+    ru {
+      inCheck: "Ваш король окажется под шахом"
+      cantGo: "Туда она не ходит"
+      answers: w => w ? "Белые отвечают…" : "Чёрные отвечают…"
+      yourMove: "Ваш ход"
+      findMate: "Найдите мат"
+      checkmate: "Мат!"
+      notMate: "Не мат"
+      matesYou: w => w ? "Белые ставят вам мат" : "Чёрные ставят вам мат"
+      stalemate: "Пат"
+      getsAway: w => w ? "Белый король уходит" : "Чёрный король уходит"
+      noWayOut: "Вашему королю было некуда уйти"
+      cantMove: w => w ? "Белым некуда ходить, и шаха нет" : "Чёрным некуда ходить, и шаха нет"
+      toMove: w => w ? "Ход белых" : "Ход чёрных"
+      mateIn: n => n == 2 ? "и мат в два хода" : "и мат в три хода"
+      hint: "нажмите на фигуру, затем на поле"
+      prev: "‹ назад"
+      restart: "заново"
+      next: "далее ›"
+      tally: (d, s, b) => "решено ${d} · серия ${s} · рекорд ${b}"
+      lichess: "на lichess ↗"
+    }
+    ja {
+      inCheck: "キングがチェックされてしまいます"
+      cantGo: "そこには動かせません"
+      answers: w => w ? "白が応じています…" : "黒が応じています…"
+      yourMove: "あなたの番です"
+      findMate: "メイトを見つけてください"
+      checkmate: "チェックメイト！"
+      notMate: "メイトではありません"
+      matesYou: w => w ? "白にメイトされました" : "黒にメイトされました"
+      stalemate: "ステイルメイト"
+      getsAway: w => w ? "白のキングが逃げました" : "黒のキングが逃げました"
+      noWayOut: "キングに逃げ場がありませんでした"
+      cantMove: w => w ? "白は動けず、チェックもされていません" : "黒は動けず、チェックもされていません"
+      toMove: w => w ? "白の手番です" : "黒の手番です"
+      mateIn: n => n == 2 ? "2手でメイト" : "3手でメイト"
+      hint: "駒をタップしてから、移動先をタップしてください"
+      prev: "‹ 前へ"
+      restart: "やり直す"
+      next: "次へ ›"
+      tally: (d, s, b) => "${d}問正解 · 連続${s} · 最高${b}"
+      lichess: "lichessで見る ↗"
+    }
+    uk {
+      inCheck: "Ваш король опиниться під шахом"
+      cantGo: "Туди вона не ходить"
+      answers: w => w ? "Білі відповідають…" : "Чорні відповідають…"
+      yourMove: "Ваш хід"
+      findMate: "Знайдіть мат"
+      checkmate: "Мат!"
+      notMate: "Не мат"
+      matesYou: w => w ? "Білі ставлять вам мат" : "Чорні ставлять вам мат"
+      stalemate: "Пат"
+      getsAway: w => w ? "Білий король тікає" : "Чорний король тікає"
+      noWayOut: "Вашому королю не було куди тікати"
+      cantMove: w => w ? "Білим нема куди ходити, і шаху немає" : "Чорним нема куди ходити, і шаху немає"
+      toMove: w => w ? "Хід білих" : "Хід чорних"
+      mateIn: n => n == 2 ? "і мат у два ходи" : "і мат у три ходи"
+      hint: "торкніться фігури, потім поля"
+      prev: "‹ назад"
+      restart: "заново"
+      next: "далі ›"
+      tally: (d, s, b) => "розв'язано ${d} · серія ${s} · рекорд ${b}"
+      lichess: "на lichess ↗"
+    }
+    fr {
+      inCheck: "Ton roi serait en échec"
+      cantGo: "Elle ne peut pas aller là"
+      answers: w => w ? "Les blancs répondent…" : "Les noirs répondent…"
+      yourMove: "À toi de jouer"
+      findMate: "Trouve le mat"
+      checkmate: "Échec et mat !"
+      notMate: "Pas mat"
+      matesYou: w => w ? "Les blancs te matent" : "Les noirs te matent"
+      stalemate: "Pat"
+      getsAway: w => w ? "Le roi blanc s'échappe" : "Le roi noir s'échappe"
+      noWayOut: "Ton roi n'avait aucune issue"
+      cantMove: w => w ? "Les blancs ne peuvent pas jouer et ne sont pas en échec" : "Les noirs ne peuvent pas jouer et ne sont pas en échec"
+      toMove: w => w ? "Les blancs jouent" : "Les noirs jouent"
+      mateIn: n => n == 2 ? "et mat en deux" : "et mat en trois"
+      hint: "touche une pièce, puis sa case"
+      prev: "‹ préc."
+      restart: "recommencer"
+      next: "suivant ›"
+      tally: (d, s, b) => "${d} résolus · série ${s} · record ${b}"
+      lichess: "sur lichess ↗"
+    }
+    tr {
+      inCheck: "Şahın şah altında kalır"
+      cantGo: "Oraya gidemez"
+      answers: w => w ? "Beyaz yanıt veriyor…" : "Siyah yanıt veriyor…"
+      yourMove: "Senin hamlen"
+      findMate: "Matı bul"
+      checkmate: "Şah mat!"
+      notMate: "Mat değil"
+      matesYou: w => w ? "Beyaz seni mat ediyor" : "Siyah seni mat ediyor"
+      stalemate: "Pat"
+      getsAway: w => w ? "Beyaz şah kaçıyor" : "Siyah şah kaçıyor"
+      noWayOut: "Şahının kaçacak yeri yoktu"
+      cantMove: w => w ? "Beyaz oynayamıyor ve şahta değil" : "Siyah oynayamıyor ve şahta değil"
+      toMove: w => w ? "Beyaz oynar" : "Siyah oynar"
+      mateIn: n => n == 2 ? "ve iki hamlede mat" : "ve üç hamlede mat"
+      hint: "bir taşa, sonra gideceği kareye dokun"
+      prev: "‹ önceki"
+      restart: "baştan"
+      next: "sonraki ›"
+      tally: (d, s, b) => "${d} çözüldü · seri ${s} · en iyi ${b}"
+      lichess: "lichess'te ↗"
+    }
+    it {
+      inCheck: "Il tuo re sarebbe sotto scacco"
+      cantGo: "Non può andare lì"
+      answers: w => w ? "Il bianco risponde…" : "Il nero risponde…"
+      yourMove: "Tocca a te"
+      findMate: "Trova il matto"
+      checkmate: "Scacco matto!"
+      notMate: "Non è matto"
+      matesYou: w => w ? "Il bianco ti dà matto" : "Il nero ti dà matto"
+      stalemate: "Stallo"
+      getsAway: w => w ? "Il re bianco scappa" : "Il re nero scappa"
+      noWayOut: "Il tuo re non aveva vie di fuga"
+      cantMove: w => w ? "Il bianco non può muovere e non è sotto scacco" : "Il nero non può muovere e non è sotto scacco"
+      toMove: w => w ? "Muove il bianco" : "Muove il nero"
+      mateIn: n => n == 2 ? "e matto in due" : "e matto in tre"
+      hint: "tocca un pezzo, poi la sua casa"
+      prev: "‹ prec."
+      restart: "ricomincia"
+      next: "succ. ›"
+      tally: (d, s, b) => "${d} risolti · serie ${s} · record ${b}"
+      lichess: "su lichess ↗"
+    }
+  }
 
   // The header below is the title: no title row.
   title: ""
@@ -314,7 +581,7 @@ app "checkmate" {
         let hit = indexOf(targets, i) < 0
         if !shape || hit {
           sel = -1
-          note = shape ? "Your king would be in check" : "It can't move there"
+          note = shape ? str.inCheck : str.cantGo
         } else {
           let u = AL[f] + AL[i]
           let promo = k == "p" && (floor(i / 8) == 0 || floor(i / 8) == 7)
@@ -345,13 +612,14 @@ app "checkmate" {
     }
   }
 
-  let other = wtm ? "Black" : "White"
-  let msg = pending != "" ? "${other} answers…" : note != "" ? note : uply > 0 ? "Your move" : "Find the mate"
+  // the other side is white
+  let ow = !wtm
+  let msg = pending != "" ? str.answers(ow) : note != "" ? note : uply > 0 ? str.yourMove : str.findMate
   let ink = note != "" ? yellow : foreground
   // the result card
   let tone = result == "mate" ? green : red
-  let verdict = result == "mate" ? "Checkmate!" : result == "miss" ? "Not mate" : result == "mated" ? "${other} mates you" : "Stalemate"
-  let why = result == "miss" ? "${other}'s king gets away" : result == "mated" ? "Your king had no way out" : result == "stalemate" ? "${other} can't move, and isn't in check" : ""
+  let verdict = result == "mate" ? str.checkmate : result == "miss" ? str.notMate : result == "mated" ? str.matesYou(ow) : str.stalemate
+  let why = result == "miss" ? str.getsAway(ow) : result == "mated" ? str.noWayOut : result == "stalemate" ? str.cantMove(ow) : ""
 
   // ---- the parts of the view, laid out by the screen's shape below ----------------------------------
   component Header() {
@@ -368,12 +636,12 @@ app "checkmate" {
     Column {
       padding: [16, 10, 16, 14]
       gap: 2
-      Text { text: "${wtm ? "White" : "Black"} to move"; style: huge; fontWeight: 300 }
+      Text { text: str.toMove(wtm); style: huge; fontWeight: 300 }
       // the moves to mate in, numbered: played ones filled, the one to play outlined in the accent
       Row {
         gap: 8
         align: center
-        Text { text: "and mate in ${N == 2 ? "two" : "three"}"; style: title; color: accent }
+        Text { text: str.mateIn(N); style: title; color: accent }
         Spacer { weight: 1 }
         for k in range(N) {
           Box {
@@ -423,7 +691,7 @@ app "checkmate" {
       gap: 6
       if result == "" {
         Text { text: msg; style: title; color: ink }
-        Text { text: "tap a piece, then its square"; style: body; color: muted }
+        Text { text: str.hint; style: body; color: muted }
       } else {
         Row {
           padding: 14
@@ -454,21 +722,21 @@ app "checkmate" {
     Row {
       padding: [10, 6]
       gap: 4
-      Button { text: "‹ prev"; color: idx > 0 ? foreground : muted; ripple: false; onTap: { again = 0; at = max(0, idx - 1) } }
+      Button { text: str.prev; color: idx > 0 ? foreground : muted; ripple: false; onTap: { again = 0; at = max(0, idx - 1) } }
       Spacer { weight: 1 }
       if uply > 0 {
-        Button { text: "restart"; color: result != "" && result != "mate" ? accent : foreground; ripple: false; onTap: again = again + 1 }
+        Button { text: str.restart; color: result != "" && result != "mate" ? accent : foreground; ripple: false; onTap: again = again + 1 }
       }
       Spacer { weight: 1 }
-      Button { text: "next ›"; color: result == "mate" ? accent : idx < len(PUZZLES) - 1 ? foreground : muted; ripple: false; onTap: { again = 0; at = min(len(PUZZLES) - 1, idx + 1) } }
+      Button { text: str.next; color: result == "mate" ? accent : idx < len(PUZZLES) - 1 ? foreground : muted; ripple: false; onTap: { again = 0; at = min(len(PUZZLES) - 1, idx + 1) } }
     }
   }
   component Footer() {
     Row {
       padding: [16, 4, 16, 10]
-      Text { text: "${len(done)} solved · streak ${streak} · best ${best}"; style: small; color: muted }
+      Text { text: str.tally(len(done), streak, best); style: small; color: muted }
       Spacer { weight: 1 }
-      Text { text: "on lichess ↗"; style: small; color: muted; ripple: false; onTap: url("https://lichess.org/training/${enc(pz[0])}") }
+      Text { text: str.lichess; style: small; color: muted; ripple: false; onTap: url("https://lichess.org/training/${enc(pz[0])}") }
     }
   }
 

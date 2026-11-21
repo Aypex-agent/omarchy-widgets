@@ -2,7 +2,7 @@ app "braincup" {
   meta {
     owl: 23
     description: "Train your math skills, memory and focus: thirteen brain games from the Braincup app, with levels, medals and best scores."
-    version: "1.0.2"
+    version: "1.1"
     license: "Apache-2.0"
     category: "games"
   }
@@ -36,6 +36,633 @@ app "braincup" {
 
   source now = clock every 1s
 
+  // The text a person reads. The app's name, Braincup, stays as it is; games, demoTitles, demoDescs
+  // and science are by game id.
+  strings {
+    en {
+      // The game list's sections.
+      logic: "logic"; perception: "perception"; math: "math"
+      // On the menu tiles in capitals (13 sp, one line on a tile about 150 dp wide), and the window's title.
+      games: {math: "Mental Calculation", chain: "Chain Calculation", fraction: "Fraction Calculation", value: "Value Comparison", missing: "Missing Operators", path: "Path Finder", sudoku: "Mini Sudoku", lights: "Lights Out", sliding: "Sliding Puzzle", hanoi: "Tower of Hanoi", bulls: "Bulls & Cows", color: "Color Confusion", schulte: "Schulte Table"}
+      // The page before a game: a heading over a demo that plays on its own, and what to do under it.
+      demoTitles: {math: "Carry the result forward", chain: "Mind the order of operations", fraction: "Multiply the fractions", value: "Pick the biggest value", missing: "Find the missing operators", path: "Follow the arrows", sudoku: "Fill in the missing numbers", lights: "Switch them all off", sliding: "Slide them into order", hanoi: "Move the stack", bulls: "Crack the secret code", color: "Answer the ink, not the word", schulte: "Tap them in order"}
+      demoDescs: {math: "Follow the mathematical expressions. Use the result as the base for the next calculation.", chain: "Follow the mathematical expressions.", fraction: "Solve the fractions.", value: "Select the expression with the highest value.", missing: "Select the operators to make the equation true. Operators are evaluated using standard mathematical precedence.", path: "Start on the orange tile and follow the arrows to the destination.", sudoku: "Fill the small grid so every row, column and block contains each number exactly once.", lights: "Turn off every light. Each tap toggles the cell and its four neighbours.", sliding: "Slide tiles into the empty space to put them in order.", hanoi: "Move the full stack to the right peg. Only one disk at a time, and never a larger disk on a smaller one.", bulls: "Guess the secret 4-digit number with unique digits. Bulls = correct digit in correct position. Cows = correct digit in wrong position.", color: "A color word appears in colored ink. Tap the color of the ink, not the color the word names.", schulte: "Tap the numbers in order: 1, 2, 3..."}
+      carries: n => "${n} carries over from the previous result."
+      // The demo captions, frame by frame ("" shows the game's demoDescs line).
+      sudokuCaps: ["", "Two 1s in the same row is not allowed.", "Two 1s in the same row is not allowed.", "", "This row holds 1 to 4.", "This column holds 1 to 4 too.", "This box holds 1 to 4 too.", ""]
+      colorCaps: ["The word says one color. The ink says another.", "Sometimes the two agree.", "Reading the word is the trap.", "The ink is always the answer."]
+      science: {color: {paradigm: "Stroop Task", summary: "A standard measure of inhibition: naming the color a word is printed in, while reading the word itself supplies a faster, competing answer."}, hanoi: {paradigm: "Tower of Hanoi", summary: "A standard measure of planning: the puzzle needs moves that undo progress before the goal can be reached."}}
+      scienceLine: p => "science · ${p}"
+      // Color Confusion's words, in capitals: red, green, blue, yellow.
+      colors: ["RED", "GREEN", "BLUE", "YELLOW"]
+      highestDemo: "Which has the highest value?"
+      goal: n => "goal ${n}"
+      // Under a digit of a Bulls & Cows guess, small, 52 dp wide.
+      roles: {bull: "bull", cow: "cow", miss: "miss"}
+      // Each 76 dp wide.
+      bulls: n => "${n} bull${n == 1 ? "" : "s"}"
+      cows: n => "${n} cow${n == 1 ? "" : "s"}"
+      best: s => "best ${s}"
+      start: "Start"
+      secs: n => "${n}s"
+      tries: n => "${n} tries"
+      level: n => "level ${n}"
+      // The bar over a run.
+      score: n => "score ${n}"
+      triesBar: n => "tries ${n}"
+      next: n => "next ${n}"
+      moves: n => "${n} moves"
+      wrongMath: (was, n) => "it was ${was}, start again from ${n}"
+      mathHint: "work it out, then keep the result in your head"
+      itWas: x => "it was ${x}"
+      highest: "which is the highest?"
+      cell: (x, y) => "column ${x}, row ${y}"
+      sudokuHint: "tap a cell, then a digit"
+      solved: n => "${n} solved"
+      lightsHint: "turn off every light"
+      slidingHint: "tap a tile next to the gap"
+      fewest: n => "fewest moves: ${n}"
+      bullsHint: "bulls: right digit, right place · cows: right digit, wrong place"
+      giveUp: "give up"; guess: "guess"
+      inkHint: "tap the color of the ink"
+      // The result page.
+      solvedIn: n => "solved in ${n} moves"
+      gaveUp: "gave up"
+      numberWas: x => "the number was ${x}"
+      onToLevel: n => "on to level ${n}"
+      newBest: "new best!"
+      noMedal: "no medal yet"
+      medals: {gold: "gold", silver: "silver", bronze: "bronze"}
+      // After the medal: what gold takes.
+      goldTime: n => "gold ≤ ${n}s"
+      goldTries: n => "gold ≤ ${n} tries"
+      goldLevel: n => "gold at level ${n}"
+      goldScore: n => "gold at ${n}"
+      menu: "menu"; nextLevel: "next level"; playAgain: "play again"
+    }
+    id {
+      logic: "logika"; perception: "persepsi"; math: "matematika"
+      games: {math: "Hitung Mental", chain: "Hitung Berantai", fraction: "Hitung Pecahan", value: "Bandingkan Nilai", missing: "Operator Hilang", path: "Cari Jalan", sudoku: "Sudoku Mini", lights: "Matikan Lampu", sliding: "Puzzle Geser", hanoi: "Menara Hanoi", bulls: "Banteng & Sapi", color: "Kacau Warna", schulte: "Tabel Schulte"}
+      demoTitles: {math: "Bawa hasilnya ke soal berikut", chain: "Perhatikan urutan operasi", fraction: "Kalikan pecahannya", value: "Pilih nilai terbesar", missing: "Temukan operator yang hilang", path: "Ikuti panahnya", sudoku: "Isi angka yang hilang", lights: "Matikan semuanya", sliding: "Geser hingga berurutan", hanoi: "Pindahkan tumpukannya", bulls: "Pecahkan kode rahasia", color: "Jawab tintanya, bukan katanya", schulte: "Ketuk secara berurutan"}
+      demoDescs: {math: "Ikuti ekspresi matematikanya. Pakai hasilnya sebagai dasar hitungan berikutnya.", chain: "Ikuti ekspresi matematikanya.", fraction: "Selesaikan pecahannya.", value: "Pilih ekspresi dengan nilai tertinggi.", missing: "Pilih operator agar persamaannya benar. Operator dihitung dengan urutan operasi matematika yang biasa.", path: "Mulai dari ubin oranye dan ikuti panah sampai tujuan.", sudoku: "Isi kotak kecil itu agar setiap baris, kolom, dan blok berisi tiap angka tepat satu kali.", lights: "Matikan semua lampu. Setiap ketukan membalik sel itu dan keempat tetangganya.", sliding: "Geser ubin ke ruang kosong hingga berurutan.", hanoi: "Pindahkan seluruh tumpukan ke tiang kanan. Satu cakram sekali pindah, dan cakram besar tidak boleh di atas yang kecil.", bulls: "Tebak angka rahasia 4 digit dengan digit berbeda. Banteng = digit benar di posisi benar. Sapi = digit benar di posisi salah.", color: "Sebuah kata warna muncul dengan tinta berwarna. Ketuk warna tintanya, bukan warna yang disebut kata itu.", schulte: "Ketuk angka secara berurutan: 1, 2, 3..."}
+      carries: n => "${n} dibawa dari hasil sebelumnya."
+      sudokuCaps: ["", "Dua angka 1 di baris yang sama tidak boleh.", "Dua angka 1 di baris yang sama tidak boleh.", "", "Baris ini berisi 1 sampai 4.", "Kolom ini juga berisi 1 sampai 4.", "Blok ini juga berisi 1 sampai 4.", ""]
+      colorCaps: ["Katanya menyebut satu warna. Tintanya warna lain.", "Kadang keduanya sama.", "Membaca katanya adalah jebakan.", "Tintanya selalu jawabannya."]
+      science: {color: {paradigm: "Tugas Stroop", summary: "Ukuran baku untuk inhibisi: menyebut warna tinta sebuah kata, sementara membaca kata itu sendiri memberi jawaban yang lebih cepat dan bersaing."}, hanoi: {paradigm: "Menara Hanoi", summary: "Ukuran baku untuk perencanaan: teka-teki ini butuh langkah yang membatalkan kemajuan sebelum tujuan bisa dicapai."}}
+      scienceLine: p => "sains · ${p}"
+      colors: ["MERAH", "HIJAU", "BIRU", "KUNING"]
+      highestDemo: "Mana yang nilainya tertinggi?"
+      goal: n => "target ${n}"
+      roles: {bull: "banteng", cow: "sapi", miss: "meleset"}
+      bulls: n => "${n} banteng"
+      cows: n => "${n} sapi"
+      best: s => "terbaik ${s}"
+      start: "Mulai"
+      secs: n => "${n} dtk"
+      tries: n => "${n} tebakan"
+      level: n => "level ${n}"
+      score: n => "skor ${n}"
+      triesBar: n => "tebakan ${n}"
+      next: n => "berikut ${n}"
+      moves: n => "${n} langkah"
+      wrongMath: (was, n) => "jawabannya ${was}, mulai lagi dari ${n}"
+      mathHint: "hitung, lalu ingat hasilnya"
+      itWas: x => "jawabannya ${x}"
+      highest: "mana yang tertinggi?"
+      cell: (x, y) => "kolom ${x}, baris ${y}"
+      sudokuHint: "ketuk sel, lalu angka"
+      solved: n => "${n} selesai"
+      lightsHint: "matikan semua lampu"
+      slidingHint: "ketuk ubin di sebelah ruang kosong"
+      fewest: n => "langkah tersedikit: ${n}"
+      bullsHint: "banteng: digit benar, posisi benar · sapi: digit benar, posisi salah"
+      giveUp: "menyerah"; guess: "tebak"
+      inkHint: "ketuk warna tintanya"
+      solvedIn: n => "selesai dalam ${n} langkah"
+      gaveUp: "menyerah"
+      numberWas: x => "angkanya ${x}"
+      onToLevel: n => "lanjut ke level ${n}"
+      newBest: "rekor baru!"
+      noMedal: "belum ada medali"
+      medals: {gold: "emas", silver: "perak", bronze: "perunggu"}
+      goldTime: n => "emas ≤ ${n} dtk"
+      goldTries: n => "emas ≤ ${n} tebakan"
+      goldLevel: n => "emas di level ${n}"
+      goldScore: n => "emas di ${n}"
+      menu: "menu"; nextLevel: "level berikutnya"; playAgain: "main lagi"
+    }
+    es {
+      logic: "lógica"; perception: "percepción"; math: "cálculo"
+      games: {math: "Cálculo mental", chain: "Cálculo en cadena", fraction: "Fracciones", value: "Comparar valores", missing: "Operadores ocultos", path: "Buscacaminos", sudoku: "Mini sudoku", lights: "Apaga las luces", sliding: "Puzle deslizante", hanoi: "Torre de Hanói", bulls: "Picas y fijas", color: "Lío de colores", schulte: "Tabla de Schulte"}
+      demoTitles: {math: "Arrastra el resultado", chain: "Ojo al orden de las operaciones", fraction: "Multiplica las fracciones", value: "Elige el valor más alto", missing: "Encuentra los operadores", path: "Sigue las flechas", sudoku: "Completa los números", lights: "Apágalas todas", sliding: "Ponlas en orden", hanoi: "Mueve la torre", bulls: "Descifra el código secreto", color: "Responde la tinta, no la palabra", schulte: "Tócalos en orden"}
+      demoDescs: {math: "Sigue las expresiones matemáticas. Usa el resultado como base para el siguiente cálculo.", chain: "Sigue las expresiones matemáticas.", fraction: "Resuelve las fracciones.", value: "Elige la expresión con el valor más alto.", missing: "Elige los operadores que hacen cierta la ecuación. Se evalúan con la precedencia matemática habitual.", path: "Empieza en la casilla naranja y sigue las flechas hasta el destino.", sudoku: "Rellena la pequeña cuadrícula para que cada fila, columna y bloque tenga cada número exactamente una vez.", lights: "Apaga todas las luces. Cada toque cambia la casilla y sus cuatro vecinas.", sliding: "Desliza las fichas al hueco vacío para ponerlas en orden.", hanoi: "Mueve toda la torre a la varilla derecha. Un disco cada vez, y nunca uno grande sobre uno pequeño.", bulls: "Adivina el número secreto de 4 cifras distintas. Fija = cifra correcta en su sitio. Pica = cifra correcta en otro sitio.", color: "Aparece el nombre de un color escrito en tinta de color. Toca el color de la tinta, no el que dice la palabra.", schulte: "Toca los números en orden: 1, 2, 3..."}
+      carries: n => "${n} viene del resultado anterior."
+      sudokuCaps: ["", "No puede haber dos 1 en la misma fila.", "No puede haber dos 1 en la misma fila.", "", "Esta fila tiene del 1 al 4.", "Esta columna también tiene del 1 al 4.", "Este bloque también tiene del 1 al 4.", ""]
+      colorCaps: ["La palabra dice un color. La tinta, otro.", "A veces coinciden.", "Leer la palabra es la trampa.", "La respuesta siempre es la tinta."]
+      science: {color: {paradigm: "Test de Stroop", summary: "Una medida clásica de la inhibición: nombrar el color de la tinta de una palabra, mientras leer la palabra da una respuesta más rápida que compite."}, hanoi: {paradigm: "Torre de Hanói", summary: "Una medida clásica de la planificación: el puzle exige movimientos que deshacen avances antes de llegar a la meta."}}
+      scienceLine: p => "ciencia · ${p}"
+      colors: ["ROJO", "VERDE", "AZUL", "AMARILLO"]
+      highestDemo: "¿Cuál tiene el valor más alto?"
+      goal: n => "meta ${n}"
+      roles: {bull: "fija", cow: "pica", miss: "nada"}
+      bulls: n => n == 1 ? "1 fija" : "${n} fijas"
+      cows: n => n == 1 ? "1 pica" : "${n} picas"
+      best: s => "récord ${s}"
+      start: "Empezar"
+      secs: n => "${n}s"
+      tries: n => n == 1 ? "1 intento" : "${n} intentos"
+      level: n => "nivel ${n}"
+      score: n => "puntos ${n}"
+      triesBar: n => "intentos ${n}"
+      next: n => "sigue ${n}"
+      moves: n => n == 1 ? "1 movimiento" : "${n} movimientos"
+      wrongMath: (was, n) => "era ${was}, empieza de nuevo desde ${n}"
+      mathHint: "calcúlalo y guarda el resultado en la cabeza"
+      itWas: x => "era ${x}"
+      highest: "¿cuál es el más alto?"
+      cell: (x, y) => "columna ${x}, fila ${y}"
+      sudokuHint: "toca una casilla y luego una cifra"
+      solved: n => n == 1 ? "1 resuelto" : "${n} resueltos"
+      lightsHint: "apaga todas las luces"
+      slidingHint: "toca una ficha junto al hueco"
+      fewest: n => "mínimo de movimientos: ${n}"
+      bullsHint: "fijas: cifra correcta en su sitio · picas: cifra correcta en otro sitio"
+      giveUp: "rendirse"; guess: "probar"
+      inkHint: "toca el color de la tinta"
+      solvedIn: n => n == 1 ? "resuelto en 1 movimiento" : "resuelto en ${n} movimientos"
+      gaveUp: "te rendiste"
+      numberWas: x => "el número era ${x}"
+      onToLevel: n => "al nivel ${n}"
+      newBest: "¡nuevo récord!"
+      noMedal: "aún sin medalla"
+      medals: {gold: "oro", silver: "plata", bronze: "bronce"}
+      goldTime: n => "oro ≤ ${n}s"
+      goldTries: n => "oro ≤ ${n} intentos"
+      goldLevel: n => "oro en el nivel ${n}"
+      goldScore: n => "oro con ${n}"
+      menu: "menú"; nextLevel: "siguiente nivel"; playAgain: "otra vez"
+    }
+    pt {
+      logic: "lógica"; perception: "percepção"; math: "cálculo"
+      games: {math: "Cálculo mental", chain: "Cálculo em cadeia", fraction: "Frações", value: "Comparar valores", missing: "Operadores ocultos", path: "Siga o caminho", sudoku: "Mini sudoku", lights: "Apague as luzes", sliding: "Quebra-cabeça", hanoi: "Torre de Hanói", bulls: "Touros e vacas", color: "Confusão de cores", schulte: "Tabela de Schulte"}
+      demoTitles: {math: "Leve o resultado adiante", chain: "Atenção à ordem das operações", fraction: "Multiplique as frações", value: "Escolha o maior valor", missing: "Encontre os operadores", path: "Siga as setas", sudoku: "Complete os números", lights: "Apague todas", sliding: "Deslize até ficar em ordem", hanoi: "Mova a pilha", bulls: "Decifre o código secreto", color: "Responda a tinta, não a palavra", schulte: "Toque em ordem"}
+      demoDescs: {math: "Siga as expressões matemáticas. Use o resultado como base para o próximo cálculo.", chain: "Siga as expressões matemáticas.", fraction: "Resolva as frações.", value: "Escolha a expressão com o maior valor.", missing: "Escolha os operadores que tornam a equação verdadeira. Eles seguem a precedência matemática padrão.", path: "Comece no quadrado laranja e siga as setas até o destino.", sudoku: "Preencha a pequena grade para que cada linha, coluna e bloco tenha cada número exatamente uma vez.", lights: "Apague todas as luzes. Cada toque inverte a casa e suas quatro vizinhas.", sliding: "Deslize as peças para o espaço vazio até ficarem em ordem.", hanoi: "Mova a pilha inteira para o pino da direita. Um disco por vez, e nunca um maior sobre um menor.", bulls: "Adivinhe o número secreto de 4 dígitos diferentes. Touro = dígito certo na posição certa. Vaca = dígito certo na posição errada.", color: "Uma palavra de cor aparece escrita em tinta colorida. Toque na cor da tinta, não na cor que a palavra diz.", schulte: "Toque nos números em ordem: 1, 2, 3..."}
+      carries: n => "${n} vem do resultado anterior."
+      sudokuCaps: ["", "Dois 1 na mesma linha não pode.", "Dois 1 na mesma linha não pode.", "", "Esta linha tem de 1 a 4.", "Esta coluna também tem de 1 a 4.", "Este bloco também tem de 1 a 4.", ""]
+      colorCaps: ["A palavra diz uma cor. A tinta, outra.", "Às vezes as duas combinam.", "Ler a palavra é a armadilha.", "A tinta é sempre a resposta."]
+      science: {color: {paradigm: "Teste de Stroop", summary: "Uma medida clássica de inibição: dizer a cor da tinta de uma palavra, enquanto ler a própria palavra dá uma resposta mais rápida que compete."}, hanoi: {paradigm: "Torre de Hanói", summary: "Uma medida clássica de planejamento: o quebra-cabeça exige jogadas que desfazem o progresso antes de chegar ao objetivo."}}
+      scienceLine: p => "ciência · ${p}"
+      colors: ["VERMELHO", "VERDE", "AZUL", "AMARELO"]
+      highestDemo: "Qual tem o maior valor?"
+      goal: n => "meta ${n}"
+      roles: {bull: "touro", cow: "vaca", miss: "nada"}
+      bulls: n => n == 1 ? "1 touro" : "${n} touros"
+      cows: n => n == 1 ? "1 vaca" : "${n} vacas"
+      best: s => "recorde ${s}"
+      start: "Começar"
+      secs: n => "${n}s"
+      tries: n => n == 1 ? "1 tentativa" : "${n} tentativas"
+      level: n => "nível ${n}"
+      score: n => "pontos ${n}"
+      triesBar: n => "tentativas ${n}"
+      next: n => "próximo ${n}"
+      moves: n => n == 1 ? "1 jogada" : "${n} jogadas"
+      wrongMath: (was, n) => "era ${was}, recomece a partir de ${n}"
+      mathHint: "faça a conta e guarde o resultado na cabeça"
+      itWas: x => "era ${x}"
+      highest: "qual é o maior?"
+      cell: (x, y) => "coluna ${x}, linha ${y}"
+      sudokuHint: "toque numa casa, depois num dígito"
+      solved: n => n == 1 ? "1 resolvido" : "${n} resolvidos"
+      lightsHint: "apague todas as luzes"
+      slidingHint: "toque numa peça ao lado do espaço"
+      fewest: n => "mínimo de jogadas: ${n}"
+      bullsHint: "touros: dígito certo, lugar certo · vacas: dígito certo, lugar errado"
+      giveUp: "desistir"; guess: "chutar"
+      inkHint: "toque na cor da tinta"
+      solvedIn: n => n == 1 ? "resolvido em 1 jogada" : "resolvido em ${n} jogadas"
+      gaveUp: "você desistiu"
+      numberWas: x => "o número era ${x}"
+      onToLevel: n => "rumo ao nível ${n}"
+      newBest: "novo recorde!"
+      noMedal: "ainda sem medalha"
+      medals: {gold: "ouro", silver: "prata", bronze: "bronze"}
+      goldTime: n => "ouro ≤ ${n}s"
+      goldTries: n => "ouro ≤ ${n} tentativas"
+      goldLevel: n => "ouro no nível ${n}"
+      goldScore: n => "ouro com ${n}"
+      menu: "menu"; nextLevel: "próximo nível"; playAgain: "jogar de novo"
+    }
+    de {
+      logic: "logik"; perception: "wahrnehmung"; math: "mathe"
+      games: {math: "Kopfrechnen", chain: "Kettenrechnen", fraction: "Bruchrechnen", value: "Wertevergleich", missing: "Fehlende Zeichen", path: "Pfadfinder", sudoku: "Mini-Sudoku", lights: "Lichter aus", sliding: "Schiebepuzzle", hanoi: "Türme von Hanoi", bulls: "Bullen & Kühe", color: "Farbchaos", schulte: "Schulte-Tabelle"}
+      demoTitles: {math: "Rechne mit dem Ergebnis weiter", chain: "Punkt vor Strich", fraction: "Multipliziere die Brüche", value: "Wähle den größten Wert", missing: "Finde die fehlenden Zeichen", path: "Folge den Pfeilen", sudoku: "Ergänze die fehlenden Zahlen", lights: "Mach alle aus", sliding: "Schieb sie in die richtige Reihenfolge", hanoi: "Versetze den Stapel", bulls: "Knack den Geheimcode", color: "Die Farbe zählt, nicht das Wort", schulte: "Tippe sie der Reihe nach an"}
+      demoDescs: {math: "Folge den Rechenausdrücken. Rechne mit dem Ergebnis die nächste Aufgabe.", chain: "Folge den Rechenausdrücken.", fraction: "Löse die Brüche.", value: "Wähle den Ausdruck mit dem größten Wert.", missing: "Wähle die Rechenzeichen, mit denen die Gleichung stimmt. Es gilt Punkt vor Strich.", path: "Starte auf dem orangen Feld und folge den Pfeilen bis zum Ziel.", sudoku: "Füll das kleine Gitter so, dass jede Zeile, Spalte und jeder Block jede Zahl genau einmal enthält.", lights: "Mach alle Lichter aus. Jedes Tippen schaltet das Feld und seine vier Nachbarn um.", sliding: "Schieb die Steine in die Lücke, bis sie der Reihe nach liegen.", hanoi: "Versetze den ganzen Stapel auf den rechten Stab. Immer nur eine Scheibe, und nie eine größere auf eine kleinere.", bulls: "Errate die geheime 4-stellige Zahl aus verschiedenen Ziffern. Bulle = richtige Ziffer an der richtigen Stelle. Kuh = richtige Ziffer an der falschen Stelle.", color: "Ein Farbwort erscheint in farbiger Schrift. Tippe auf die Farbe der Schrift, nicht auf die, die das Wort nennt.", schulte: "Tippe die Zahlen der Reihe nach an: 1, 2, 3..."}
+      carries: n => "${n} kommt aus dem letzten Ergebnis."
+      sudokuCaps: ["", "Zwei Einsen in derselben Zeile sind nicht erlaubt.", "Zwei Einsen in derselben Zeile sind nicht erlaubt.", "", "Diese Zeile enthält 1 bis 4.", "Diese Spalte enthält auch 1 bis 4.", "Dieser Block enthält auch 1 bis 4.", ""]
+      colorCaps: ["Das Wort sagt eine Farbe. Die Schrift hat eine andere.", "Manchmal passen beide zusammen.", "Das Wort zu lesen ist die Falle.", "Die Schriftfarbe ist immer die Antwort."]
+      science: {color: {paradigm: "Stroop-Test", summary: "Ein Standardmaß für Hemmung: die Farbe zu nennen, in der ein Wort gedruckt ist, während das Lesen des Worts eine schnellere, konkurrierende Antwort liefert."}, hanoi: {paradigm: "Türme von Hanoi", summary: "Ein Standardmaß für Planung: Das Rätsel verlangt Züge, die Fortschritt rückgängig machen, bevor das Ziel erreichbar ist."}}
+      scienceLine: p => "wissenschaft · ${p}"
+      colors: ["ROT", "GRÜN", "BLAU", "GELB"]
+      highestDemo: "Was hat den größten Wert?"
+      goal: n => "ziel ${n}"
+      roles: {bull: "bulle", cow: "kuh", miss: "niete"}
+      bulls: n => n == 1 ? "1 bulle" : "${n} bullen"
+      cows: n => n == 1 ? "1 kuh" : "${n} kühe"
+      best: s => "rekord ${s}"
+      start: "Start"
+      secs: n => "${n}s"
+      tries: n => n == 1 ? "1 versuch" : "${n} versuche"
+      level: n => "level ${n}"
+      score: n => "punkte ${n}"
+      triesBar: n => "versuche ${n}"
+      next: n => "nächste ${n}"
+      moves: n => n == 1 ? "1 zug" : "${n} züge"
+      wrongMath: (was, n) => "es war ${was}, fang bei ${n} neu an"
+      mathHint: "rechne es aus und merk dir das ergebnis"
+      itWas: x => "es war ${x}"
+      highest: "was ist am größten?"
+      cell: (x, y) => "spalte ${x}, zeile ${y}"
+      sudokuHint: "tippe ein feld, dann eine ziffer"
+      solved: n => "${n} gelöst"
+      lightsHint: "mach alle lichter aus"
+      slidingHint: "tippe einen stein neben der lücke"
+      fewest: n => "wenigste züge: ${n}"
+      bullsHint: "bullen: richtige ziffer, richtige stelle · kühe: richtige ziffer, falsche stelle"
+      giveUp: "aufgeben"; guess: "raten"
+      inkHint: "tippe auf die farbe der schrift"
+      solvedIn: n => n == 1 ? "gelöst in 1 zug" : "gelöst in ${n} zügen"
+      gaveUp: "aufgegeben"
+      numberWas: x => "die zahl war ${x}"
+      onToLevel: n => "weiter zu level ${n}"
+      newBest: "neuer rekord!"
+      noMedal: "noch keine medaille"
+      medals: {gold: "gold", silver: "silber", bronze: "bronze"}
+      goldTime: n => "gold ≤ ${n}s"
+      goldTries: n => "gold ≤ ${n} versuche"
+      goldLevel: n => "gold ab level ${n}"
+      goldScore: n => "gold ab ${n}"
+      menu: "menü"; nextLevel: "nächstes level"; playAgain: "nochmal"
+    }
+    zh {
+      logic: "逻辑"; perception: "感知"; math: "数学"
+      games: {math: "心算", chain: "连续计算", fraction: "分数计算", value: "比大小", missing: "缺失的运算符", path: "寻路", sudoku: "迷你数独", lights: "关灯", sliding: "数字华容道", hanoi: "汉诺塔", bulls: "猜数字", color: "颜色干扰", schulte: "舒尔特方格"}
+      demoTitles: {math: "沿用上一个结果", chain: "注意运算顺序", fraction: "分数相乘", value: "选出最大的值", missing: "找出缺失的运算符", path: "跟着箭头走", sudoku: "填上缺少的数字", lights: "把灯全部关掉", sliding: "把方块排好顺序", hanoi: "移动整座塔", bulls: "破解密码", color: "看墨色，不看字", schulte: "按顺序点击"}
+      demoDescs: {math: "跟着算式计算，用结果作为下一次计算的起点。", chain: "跟着算式计算。", fraction: "计算分数。", value: "选出值最大的算式。", missing: "选出让等式成立的运算符。运算按通常的先乘除后加减。", path: "从橙色方块出发，跟着箭头走到终点。", sudoku: "填满小方格，让每一行、每一列和每一宫中每个数字都恰好出现一次。", lights: "把所有灯关掉。每点一下，会切换这一格和它上下左右四格。", sliding: "把方块滑进空格，排成顺序。", hanoi: "把整座塔移到右边的柱子上。一次只能移动一个圆盘，大盘不能放在小盘上。", bulls: "猜出由不同数字组成的 4 位秘密数字。A = 数字和位置都对。B = 数字对，位置不对。", color: "一个颜色词用彩色墨水写出。点击墨水的颜色，而不是字所说的颜色。", schulte: "按顺序点击数字：1、2、3……"}
+      carries: n => "${n} 来自上一个结果。"
+      sudokuCaps: ["", "同一行不能有两个 1。", "同一行不能有两个 1。", "", "这一行有 1 到 4。", "这一列也有 1 到 4。", "这一宫也有 1 到 4。", ""]
+      colorCaps: ["字说的是一种颜色，墨水是另一种。", "有时两者一致。", "读字就是陷阱。", "答案永远是墨水的颜色。"]
+      science: {color: {paradigm: "斯特鲁普任务", summary: "衡量抑制能力的标准方法：说出字的墨水颜色，而读出字本身会给出一个更快、相互竞争的答案。"}, hanoi: {paradigm: "汉诺塔", summary: "衡量计划能力的标准方法：要达到目标，必须先走几步看似倒退的棋。"}}
+      scienceLine: p => "科学 · ${p}"
+      colors: ["红", "绿", "蓝", "黄"]
+      highestDemo: "哪个值最大？"
+      goal: n => "目标 ${n}"
+      roles: {bull: "A", cow: "B", miss: "无"}
+      bulls: n => "${n}A"
+      cows: n => "${n}B"
+      best: s => "最佳 ${s}"
+      start: "开始"
+      secs: n => "${n} 秒"
+      tries: n => "${n} 次"
+      level: n => "第 ${n} 关"
+      score: n => "得分 ${n}"
+      triesBar: n => "尝试 ${n}"
+      next: n => "下一个 ${n}"
+      moves: n => "${n} 步"
+      wrongMath: (was, n) => "应为 ${was}，从 ${n} 重新开始"
+      mathHint: "算出来，然后把结果记在心里"
+      itWas: x => "应为 ${x}"
+      highest: "哪个最大？"
+      cell: (x, y) => "第 ${x} 列，第 ${y} 行"
+      sudokuHint: "点一个格子，再点一个数字"
+      solved: n => "已解 ${n}"
+      lightsHint: "把所有灯关掉"
+      slidingHint: "点击空格旁的方块"
+      fewest: n => "最少步数：${n}"
+      bullsHint: "A：数字对，位置对 · B：数字对，位置不对"
+      giveUp: "放弃"; guess: "猜"
+      inkHint: "点击墨水的颜色"
+      solvedIn: n => "${n} 步完成"
+      gaveUp: "已放弃"
+      numberWas: x => "答案是 ${x}"
+      onToLevel: n => "前往第 ${n} 关"
+      newBest: "新纪录！"
+      noMedal: "还没有奖牌"
+      medals: {gold: "金牌", silver: "银牌", bronze: "铜牌"}
+      goldTime: n => "金牌 ≤ ${n} 秒"
+      goldTries: n => "金牌 ≤ ${n} 次"
+      goldLevel: n => "金牌：第 ${n} 关"
+      goldScore: n => "金牌：${n} 分"
+      menu: "菜单"; nextLevel: "下一关"; playAgain: "再玩一次"
+    }
+    ru {
+      logic: "логика"; perception: "восприятие"; math: "счёт"
+      games: {math: "Устный счёт", chain: "Цепочка", fraction: "Дроби", value: "Сравнение", missing: "Знаки действий", path: "Поиск пути", sudoku: "Мини-судоку", lights: "Выключи свет", sliding: "Пятнашки", hanoi: "Ханойская башня", bulls: "Быки и коровы", color: "Путаница цветов", schulte: "Таблица Шульте"}
+      demoTitles: {math: "Считайте дальше от результата", chain: "Помните о порядке действий", fraction: "Перемножьте дроби", value: "Выберите наибольшее", missing: "Найдите пропущенные знаки", path: "Следуйте за стрелками", sudoku: "Заполните пропуски", lights: "Выключите всё", sliding: "Расставьте по порядку", hanoi: "Перенесите башню", bulls: "Разгадайте секретный код", color: "Цвет чернил, а не слово", schulte: "Нажимайте по порядку"}
+      demoDescs: {math: "Следуйте за выражениями. Результат — основа для следующего действия.", chain: "Следуйте за выражениями.", fraction: "Решите дроби.", value: "Выберите выражение с наибольшим значением.", missing: "Выберите знаки, при которых равенство верно. Действия выполняются в обычном порядке.", path: "Начните с оранжевой клетки и идите по стрелкам до цели.", sudoku: "Заполните маленькую сетку, чтобы в каждой строке, столбце и блоке каждое число было ровно один раз.", lights: "Выключите все лампы. Каждое нажатие переключает клетку и четыре соседние.", sliding: "Двигайте плитки в пустую клетку, пока они не встанут по порядку.", hanoi: "Перенесите всю башню на правый стержень. По одному диску за раз, и никогда больший на меньший.", bulls: "Угадайте секретное 4-значное число из разных цифр. Бык = верная цифра на верном месте. Корова = верная цифра не на своём месте.", color: "Название цвета написано цветными чернилами. Нажмите на цвет чернил, а не на цвет, который назван словом.", schulte: "Нажимайте числа по порядку: 1, 2, 3..."}
+      carries: n => "${n} — результат прошлого шага."
+      sudokuCaps: ["", "Две единицы в одной строке нельзя.", "Две единицы в одной строке нельзя.", "", "В этой строке есть 1–4.", "В этом столбце тоже 1–4.", "В этом блоке тоже 1–4.", ""]
+      colorCaps: ["Слово называет один цвет, а чернила другого.", "Иногда они совпадают.", "Прочитать слово — это ловушка.", "Ответ всегда — цвет чернил."]
+      science: {color: {paradigm: "Тест Струпа", summary: "Стандартная мера торможения: назвать цвет, которым написано слово, когда само чтение слова даёт более быстрый конкурирующий ответ."}, hanoi: {paradigm: "Ханойская башня", summary: "Стандартная мера планирования: чтобы дойти до цели, нужны ходы, которые сначала отменяют достигнутое."}}
+      scienceLine: p => "наука · ${p}"
+      colors: ["КРАСНЫЙ", "ЗЕЛЁНЫЙ", "СИНИЙ", "ЖЁЛТЫЙ"]
+      highestDemo: "Что больше всего?"
+      goal: n => "цель ${n}"
+      roles: {bull: "бык", cow: "корова", miss: "мимо"}
+      bulls: n => n % 10 == 1 && n % 100 != 11 ? "${n} бык" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "${n} быка" : "${n} быков"
+      cows: n => n % 10 == 1 && n % 100 != 11 ? "${n} корова" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "${n} коровы" : "${n} коров"
+      best: s => "рекорд ${s}"
+      start: "Старт"
+      secs: n => "${n} с"
+      tries: n => n % 10 == 1 && n % 100 != 11 ? "${n} попытка" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "${n} попытки" : "${n} попыток"
+      level: n => "уровень ${n}"
+      score: n => "очки ${n}"
+      triesBar: n => "попытки ${n}"
+      next: n => "дальше ${n}"
+      moves: n => n % 10 == 1 && n % 100 != 11 ? "${n} ход" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "${n} хода" : "${n} ходов"
+      wrongMath: (was, n) => "было ${was}, начните снова с ${n}"
+      mathHint: "посчитайте и держите результат в голове"
+      itWas: x => "было ${x}"
+      highest: "что больше всего?"
+      cell: (x, y) => "столбец ${x}, строка ${y}"
+      sudokuHint: "нажмите клетку, затем цифру"
+      solved: n => "решено: ${n}"
+      lightsHint: "выключите все лампы"
+      slidingHint: "нажмите плитку рядом с пустой клеткой"
+      fewest: n => "минимум ходов: ${n}"
+      bullsHint: "быки: верная цифра на своём месте · коровы: верная цифра не на своём месте"
+      giveUp: "сдаться"; guess: "проверить"
+      inkHint: "нажмите на цвет чернил"
+      solvedIn: n => n % 10 == 1 && n % 100 != 11 ? "решено за ${n} ход" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "решено за ${n} хода" : "решено за ${n} ходов"
+      gaveUp: "сдались"
+      numberWas: x => "число было ${x}"
+      onToLevel: n => "дальше: уровень ${n}"
+      newBest: "новый рекорд!"
+      noMedal: "медали пока нет"
+      medals: {gold: "золото", silver: "серебро", bronze: "бронза"}
+      goldTime: n => "золото ≤ ${n} с"
+      goldTries: n => "золото ≤ ${n} попыток"
+      goldLevel: n => "золото на уровне ${n}"
+      goldScore: n => "золото от ${n}"
+      menu: "меню"; nextLevel: "следующий уровень"; playAgain: "ещё раз"
+    }
+    ja {
+      logic: "論理"; perception: "知覚"; math: "計算"
+      games: {math: "暗算", chain: "連続計算", fraction: "分数計算", value: "大きさ比べ", missing: "記号さがし", path: "道たどり", sudoku: "ミニ数独", lights: "ライツアウト", sliding: "スライドパズル", hanoi: "ハノイの塔", bulls: "ヒット＆ブロー", color: "色まどわし", schulte: "シュルテ表"}
+      demoTitles: {math: "答えを次へ引き継ぐ", chain: "計算の順序に注意", fraction: "分数をかけ算する", value: "いちばん大きい値を選ぶ", missing: "足りない記号を見つける", path: "矢印をたどる", sudoku: "空いた数字を埋める", lights: "全部消す", sliding: "順番に並べる", hanoi: "塔を動かす", bulls: "秘密の数を当てる", color: "文字ではなく色で答える", schulte: "順番にタップ"}
+      demoDescs: {math: "式をたどります。答えを次の計算の元にします。", chain: "式をたどります。", fraction: "分数を計算します。", value: "値がいちばん大きい式を選びます。", missing: "等式が成り立つ記号を選びます。計算は通常の順序（かけ算・わり算が先）です。", path: "オレンジのマスから矢印をたどってゴールを探します。", sudoku: "どの行・列・ブロックにも各数字がちょうど1回入るように小さなマスを埋めます。", lights: "すべてのライトを消します。タップするとそのマスと上下左右のマスが切り替わります。", sliding: "空いたマスにタイルをすべらせて順番に並べます。", hanoi: "塔を丸ごと右の棒へ移します。動かせる円盤は一度に1枚で、大きい円盤を小さい円盤の上には置けません。", bulls: "数字の重ならない4桁の秘密の数を当てます。ヒット = 数字も位置も正解。ブロー = 数字は正解で位置が違う。", color: "色の名前が色付きの文字で表示されます。文字が示す色ではなく、文字の色をタップします。", schulte: "数字を順番にタップします：1、2、3…"}
+      carries: n => "${n} は前の答えから引き継ぎます。"
+      sudokuCaps: ["", "同じ行に1が2つあってはいけません。", "同じ行に1が2つあってはいけません。", "", "この行には1から4が入ります。", "この列にも1から4が入ります。", "このブロックにも1から4が入ります。", ""]
+      colorCaps: ["文字はある色を示し、文字の色は別の色です。", "両方が同じこともあります。", "文字を読むのがわなです。", "答えはいつも文字の色です。"]
+      science: {color: {paradigm: "ストループ課題", summary: "抑制を測る標準的な方法です。文字の色を答える間、文字そのものを読むほうが速く、競合する答えになります。"}, hanoi: {paradigm: "ハノイの塔", summary: "計画を測る標準的な方法です。ゴールにたどり着くには、いったん進み具合を戻す手が必要です。"}}
+      scienceLine: p => "科学 · ${p}"
+      colors: ["赤", "緑", "青", "黄"]
+      highestDemo: "いちばん大きいのはどれ？"
+      goal: n => "目標 ${n}"
+      roles: {bull: "ヒット", cow: "ブロー", miss: "なし"}
+      bulls: n => "${n} ヒット"
+      cows: n => "${n} ブロー"
+      best: s => "ベスト ${s}"
+      start: "スタート"
+      secs: n => "${n}秒"
+      tries: n => "${n}回"
+      level: n => "レベル ${n}"
+      score: n => "スコア ${n}"
+      triesBar: n => "${n}回目"
+      next: n => "次 ${n}"
+      moves: n => "${n}手"
+      wrongMath: (was, n) => "正解は ${was}。${n} からやり直し"
+      mathHint: "計算して、答えを覚えておきます"
+      itWas: x => "正解は ${x}"
+      highest: "いちばん大きいのは？"
+      cell: (x, y) => "${x}列目、${y}行目"
+      sudokuHint: "マスをタップしてから数字をタップ"
+      solved: n => "${n}問クリア"
+      lightsHint: "ライトを全部消します"
+      slidingHint: "空きマスの隣のタイルをタップ"
+      fewest: n => "最少手数：${n}"
+      bullsHint: "ヒット：数字も位置も正解 · ブロー：数字は正解、位置が違う"
+      giveUp: "あきらめる"; guess: "予想"
+      inkHint: "文字の色をタップ"
+      solvedIn: n => "${n}手でクリア"
+      gaveUp: "ギブアップ"
+      numberWas: x => "正解は ${x}"
+      onToLevel: n => "次はレベル ${n}"
+      newBest: "新記録！"
+      noMedal: "メダルはまだありません"
+      medals: {gold: "金", silver: "銀", bronze: "銅"}
+      goldTime: n => "金 ≤ ${n}秒"
+      goldTries: n => "金 ≤ ${n}回"
+      goldLevel: n => "金はレベル ${n}"
+      goldScore: n => "金は ${n}"
+      menu: "メニュー"; nextLevel: "次のレベル"; playAgain: "もう一度"
+    }
+    uk {
+      logic: "логіка"; perception: "сприйняття"; math: "лічба"
+      games: {math: "Усна лічба", chain: "Ланцюжок", fraction: "Дроби", value: "Порівняння", missing: "Знаки дій", path: "Пошук шляху", sudoku: "Міні-судоку", lights: "Вимкни світло", sliding: "П’ятнашки", hanoi: "Ханойська вежа", bulls: "Бики і корови", color: "Плутанина кольорів", schulte: "Таблиця Шульте"}
+      demoTitles: {math: "Рахуйте далі від результату", chain: "Пам’ятайте про порядок дій", fraction: "Перемножте дроби", value: "Виберіть найбільше", missing: "Знайдіть пропущені знаки", path: "Ідіть за стрілками", sudoku: "Заповніть пропуски", lights: "Вимкніть усе", sliding: "Розставте по порядку", hanoi: "Перенесіть вежу", bulls: "Розгадайте секретний код", color: "Колір чорнила, а не слово", schulte: "Натискайте по порядку"}
+      demoDescs: {math: "Стежте за виразами. Результат — основа для наступної дії.", chain: "Стежте за виразами.", fraction: "Розв’яжіть дроби.", value: "Виберіть вираз із найбільшим значенням.", missing: "Виберіть знаки, за яких рівність правильна. Дії виконуються у звичайному порядку.", path: "Почніть з помаранчевої клітинки та йдіть за стрілками до цілі.", sudoku: "Заповніть маленьку сітку, щоб у кожному рядку, стовпці та блоці кожне число було рівно один раз.", lights: "Вимкніть усі лампи. Кожне натискання перемикає клітинку та чотири сусідні.", sliding: "Пересувайте плитки в порожню клітинку, доки вони не стануть по порядку.", hanoi: "Перенесіть усю вежу на правий стрижень. По одному диску за раз, і ніколи більший на менший.", bulls: "Вгадайте секретне 4-значне число з різних цифр. Бик = правильна цифра на правильному місці. Корова = правильна цифра не на своєму місці.", color: "Назву кольору написано кольоровим чорнилом. Натисніть на колір чорнила, а не на колір, який називає слово.", schulte: "Натискайте числа по порядку: 1, 2, 3..."}
+      carries: n => "${n} — результат попереднього кроку."
+      sudokuCaps: ["", "Дві одиниці в одному рядку не можна.", "Дві одиниці в одному рядку не можна.", "", "У цьому рядку є 1–4.", "У цьому стовпці теж 1–4.", "У цьому блоці теж 1–4.", ""]
+      colorCaps: ["Слово називає один колір, а чорнило інший.", "Іноді вони збігаються.", "Прочитати слово — це пастка.", "Відповідь завжди — колір чорнила."]
+      science: {color: {paradigm: "Тест Струпа", summary: "Стандартна міра гальмування: назвати колір, яким написано слово, коли саме читання слова дає швидшу конкурентну відповідь."}, hanoi: {paradigm: "Ханойська вежа", summary: "Стандартна міра планування: щоб дійти до мети, потрібні ходи, які спершу скасовують досягнуте."}}
+      scienceLine: p => "наука · ${p}"
+      colors: ["ЧЕРВОНИЙ", "ЗЕЛЕНИЙ", "СИНІЙ", "ЖОВТИЙ"]
+      highestDemo: "Що найбільше?"
+      goal: n => "ціль ${n}"
+      roles: {bull: "бик", cow: "корова", miss: "мимо"}
+      bulls: n => n % 10 == 1 && n % 100 != 11 ? "${n} бик" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "${n} бики" : "${n} биків"
+      cows: n => n % 10 == 1 && n % 100 != 11 ? "${n} корова" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "${n} корови" : "${n} корів"
+      best: s => "рекорд ${s}"
+      start: "Старт"
+      secs: n => "${n} с"
+      tries: n => n % 10 == 1 && n % 100 != 11 ? "${n} спроба" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "${n} спроби" : "${n} спроб"
+      level: n => "рівень ${n}"
+      score: n => "очки ${n}"
+      triesBar: n => "спроби ${n}"
+      next: n => "далі ${n}"
+      moves: n => n % 10 == 1 && n % 100 != 11 ? "${n} хід" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "${n} ходи" : "${n} ходів"
+      wrongMath: (was, n) => "було ${was}, почніть знову з ${n}"
+      mathHint: "порахуйте і тримайте результат у голові"
+      itWas: x => "було ${x}"
+      highest: "що найбільше?"
+      cell: (x, y) => "стовпець ${x}, рядок ${y}"
+      sudokuHint: "натисніть клітинку, потім цифру"
+      solved: n => "розв’язано: ${n}"
+      lightsHint: "вимкніть усі лампи"
+      slidingHint: "натисніть плитку біля порожньої клітинки"
+      fewest: n => "найменше ходів: ${n}"
+      bullsHint: "бики: правильна цифра на своєму місці · корови: правильна цифра не на своєму місці"
+      giveUp: "здатися"; guess: "перевірити"
+      inkHint: "натисніть на колір чорнила"
+      solvedIn: n => n % 10 == 1 && n % 100 != 11 ? "розв’язано за ${n} хід" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "розв’язано за ${n} ходи" : "розв’язано за ${n} ходів"
+      gaveUp: "ви здалися"
+      numberWas: x => "число було ${x}"
+      onToLevel: n => "далі: рівень ${n}"
+      newBest: "новий рекорд!"
+      noMedal: "медалі поки немає"
+      medals: {gold: "золото", silver: "срібло", bronze: "бронза"}
+      goldTime: n => "золото ≤ ${n} с"
+      goldTries: n => "золото ≤ ${n} спроб"
+      goldLevel: n => "золото на рівні ${n}"
+      goldScore: n => "золото від ${n}"
+      menu: "меню"; nextLevel: "наступний рівень"; playAgain: "ще раз"
+    }
+    fr {
+      logic: "logique"; perception: "perception"; math: "calcul"
+      games: {math: "Calcul mental", chain: "Calcul en chaîne", fraction: "Fractions", value: "Comparer", missing: "Opérateurs manquants", path: "Suis le chemin", sudoku: "Mini sudoku", lights: "Éteins tout", sliding: "Taquin", hanoi: "Tour de Hanoï", bulls: "Taureaux & vaches", color: "Confusion des couleurs", schulte: "Table de Schulte"}
+      demoTitles: {math: "Garde le résultat", chain: "Attention aux priorités", fraction: "Multiplie les fractions", value: "Choisis la plus grande valeur", missing: "Trouve les opérateurs manquants", path: "Suis les flèches", sudoku: "Complète les chiffres", lights: "Éteins-les toutes", sliding: "Remets-les dans l’ordre", hanoi: "Déplace la tour", bulls: "Trouve le code secret", color: "Réponds l’encre, pas le mot", schulte: "Touche-les dans l’ordre"}
+      demoDescs: {math: "Suis les expressions. Le résultat sert de base au calcul suivant.", chain: "Suis les expressions.", fraction: "Résous les fractions.", value: "Choisis l’expression qui a la plus grande valeur.", missing: "Choisis les opérateurs qui rendent l’égalité vraie. Les priorités de calcul habituelles s’appliquent.", path: "Pars de la case orange et suis les flèches jusqu’à l’arrivée.", sudoku: "Remplis la petite grille pour que chaque ligne, colonne et bloc contienne chaque chiffre une seule fois.", lights: "Éteins toutes les lumières. Chaque appui inverse la case et ses quatre voisines.", sliding: "Fais glisser les pièces dans la case vide pour les remettre dans l’ordre.", hanoi: "Déplace toute la tour sur la tige de droite. Un disque à la fois, et jamais un grand sur un petit.", bulls: "Devine le nombre secret à 4 chiffres tous différents. Taureau = bon chiffre à la bonne place. Vache = bon chiffre à la mauvaise place.", color: "Un nom de couleur s’affiche dans une encre colorée. Touche la couleur de l’encre, pas celle que dit le mot.", schulte: "Touche les nombres dans l’ordre : 1, 2, 3..."}
+      carries: n => "${n} vient du résultat précédent."
+      sudokuCaps: ["", "Deux 1 sur la même ligne, c’est interdit.", "Deux 1 sur la même ligne, c’est interdit.", "", "Cette ligne contient 1 à 4.", "Cette colonne aussi contient 1 à 4.", "Ce bloc aussi contient 1 à 4.", ""]
+      colorCaps: ["Le mot dit une couleur. L’encre en est une autre.", "Parfois les deux concordent.", "Lire le mot, c’est le piège.", "L’encre est toujours la réponse."]
+      science: {color: {paradigm: "Test de Stroop", summary: "Une mesure classique de l’inhibition : nommer la couleur de l’encre d’un mot, alors que lire le mot donne une réponse plus rapide et concurrente."}, hanoi: {paradigm: "Tour de Hanoï", summary: "Une mesure classique de la planification : le casse-tête demande des coups qui défont le progrès avant d’atteindre le but."}}
+      scienceLine: p => "science · ${p}"
+      colors: ["ROUGE", "VERT", "BLEU", "JAUNE"]
+      highestDemo: "Laquelle vaut le plus ?"
+      goal: n => "but ${n}"
+      roles: {bull: "taureau", cow: "vache", miss: "raté"}
+      bulls: n => n <= 1 ? "${n} taureau" : "${n} taureaux"
+      cows: n => n <= 1 ? "${n} vache" : "${n} vaches"
+      best: s => "record ${s}"
+      start: "Jouer"
+      secs: n => "${n} s"
+      tries: n => n <= 1 ? "${n} essai" : "${n} essais"
+      level: n => "niveau ${n}"
+      score: n => "score ${n}"
+      triesBar: n => "essais ${n}"
+      next: n => "suivant ${n}"
+      moves: n => n <= 1 ? "${n} coup" : "${n} coups"
+      wrongMath: (was, n) => "c’était ${was}, reprends à partir de ${n}"
+      mathHint: "calcule, puis garde le résultat en tête"
+      itWas: x => "c’était ${x}"
+      highest: "laquelle est la plus grande ?"
+      cell: (x, y) => "colonne ${x}, ligne ${y}"
+      sudokuHint: "touche une case, puis un chiffre"
+      solved: n => n <= 1 ? "${n} résolue" : "${n} résolues"
+      lightsHint: "éteins toutes les lumières"
+      slidingHint: "touche une pièce à côté de la case vide"
+      fewest: n => "moins de coups : ${n}"
+      bullsHint: "taureaux : bon chiffre, bonne place · vaches : bon chiffre, mauvaise place"
+      giveUp: "abandonner"; guess: "valider"
+      inkHint: "touche la couleur de l’encre"
+      solvedIn: n => n <= 1 ? "résolu en ${n} coup" : "résolu en ${n} coups"
+      gaveUp: "abandon"
+      numberWas: x => "le nombre était ${x}"
+      onToLevel: n => "au niveau ${n}"
+      newBest: "nouveau record !"
+      noMedal: "pas encore de médaille"
+      medals: {gold: "or", silver: "argent", bronze: "bronze"}
+      goldTime: n => "or ≤ ${n} s"
+      goldTries: n => "or ≤ ${n} essais"
+      goldLevel: n => "or au niveau ${n}"
+      goldScore: n => "or à ${n}"
+      menu: "menu"; nextLevel: "niveau suivant"; playAgain: "rejouer"
+    }
+    tr {
+      logic: "mantık"; perception: "algı"; math: "matematik"
+      games: {math: "Zihinden Hesap", chain: "Zincir Hesap", fraction: "Kesir Hesabı", value: "Değer Kıyasla", missing: "Eksik İşaretler", path: "Yol Bulucu", sudoku: "Mini Sudoku", lights: "Işıkları Söndür", sliding: "Kaydırmaca", hanoi: "Hanoi Kulesi", bulls: "Boğa & İnek", color: "Renk Karmaşası", schulte: "Schulte Tablosu"}
+      demoTitles: {math: "Sonucu taşı", chain: "İşlem sırasına dikkat", fraction: "Kesirleri çarp", value: "En büyük değeri seç", missing: "Eksik işaretleri bul", path: "Okları takip et", sudoku: "Eksik sayıları doldur", lights: "Hepsini söndür", sliding: "Sıraya diz", hanoi: "Kuleyi taşı", bulls: "Gizli kodu çöz", color: "Kelimeyi değil, mürekkebi söyle", schulte: "Sırayla dokun"}
+      demoDescs: {math: "İşlemleri takip et. Sonucu bir sonraki hesabın başlangıcı olarak kullan.", chain: "İşlemleri takip et.", fraction: "Kesirleri çöz.", value: "Değeri en büyük olan ifadeyi seç.", missing: "Eşitliği doğru yapan işaretleri seç. İşlemler olağan işlem önceliğiyle yapılır.", path: "Turuncu kareden başla ve okları hedefe kadar takip et.", sudoku: "Küçük tabloyu, her satır, sütun ve blokta her sayı tam bir kez olacak şekilde doldur.", lights: "Bütün ışıkları söndür. Her dokunuş o kareyi ve dört komşusunu değiştirir.", sliding: "Taşları boş yere kaydırarak sıraya diz.", hanoi: "Bütün kuleyi sağdaki çubuğa taşı. Bir seferde tek disk, büyük disk asla küçüğün üstüne konmaz.", bulls: "Rakamları farklı 4 basamaklı gizli sayıyı tahmin et. Boğa = doğru rakam, doğru yer. İnek = doğru rakam, yanlış yer.", color: "Bir renk adı renkli mürekkeple yazılır. Kelimenin söylediği renge değil, mürekkebin rengine dokun.", schulte: "Sayılara sırayla dokun: 1, 2, 3..."}
+      carries: n => "${n} önceki sonuçtan gelir."
+      sudokuCaps: ["", "Aynı satırda iki tane 1 olamaz.", "Aynı satırda iki tane 1 olamaz.", "", "Bu satırda 1'den 4'e kadar var.", "Bu sütunda da 1'den 4'e kadar var.", "Bu blokta da 1'den 4'e kadar var.", ""]
+      colorCaps: ["Kelime bir rengi söyler, mürekkep başka bir renktir.", "Bazen ikisi aynıdır.", "Kelimeyi okumak tuzaktır.", "Cevap her zaman mürekkeptir."]
+      science: {color: {paradigm: "Stroop Testi", summary: "Ketlemenin standart bir ölçüsü: bir kelimenin mürekkep rengini söylemek, oysa kelimeyi okumak daha hızlı ve rakip bir cevap verir."}, hanoi: {paradigm: "Hanoi Kulesi", summary: "Planlamanın standart bir ölçüsü: hedefe varmadan önce ilerlemeyi geri alan hamleler gerekir."}}
+      scienceLine: p => "bilim · ${p}"
+      colors: ["KIRMIZI", "YEŞİL", "MAVİ", "SARI"]
+      highestDemo: "Hangisinin değeri en büyük?"
+      goal: n => "hedef ${n}"
+      roles: {bull: "boğa", cow: "inek", miss: "yok"}
+      bulls: n => "${n} boğa"
+      cows: n => "${n} inek"
+      best: s => "en iyi ${s}"
+      start: "Başla"
+      secs: n => "${n} sn"
+      tries: n => "${n} deneme"
+      level: n => "seviye ${n}"
+      score: n => "puan ${n}"
+      triesBar: n => "deneme ${n}"
+      next: n => "sıradaki ${n}"
+      moves: n => "${n} hamle"
+      wrongMath: (was, n) => "${was} olacaktı, ${n} ile yeniden başla"
+      mathHint: "hesapla, sonra sonucu aklında tut"
+      itWas: x => "${x} olacaktı"
+      highest: "hangisi en büyük?"
+      cell: (x, y) => "sütun ${x}, satır ${y}"
+      sudokuHint: "bir kareye, sonra bir rakama dokun"
+      solved: n => "${n} çözüldü"
+      lightsHint: "bütün ışıkları söndür"
+      slidingHint: "boşluğun yanındaki taşa dokun"
+      fewest: n => "en az hamle: ${n}"
+      bullsHint: "boğa: doğru rakam, doğru yer · inek: doğru rakam, yanlış yer"
+      giveUp: "pes et"; guess: "tahmin et"
+      inkHint: "mürekkebin rengine dokun"
+      solvedIn: n => "${n} hamlede çözüldü"
+      gaveUp: "pes ettin"
+      numberWas: x => "sayı ${x} idi"
+      onToLevel: n => "sıradaki: seviye ${n}"
+      newBest: "yeni rekor!"
+      noMedal: "henüz madalya yok"
+      medals: {gold: "altın", silver: "gümüş", bronze: "bronz"}
+      goldTime: n => "altın ≤ ${n} sn"
+      goldTries: n => "altın ≤ ${n} deneme"
+      goldLevel: n => "altın: seviye ${n}"
+      goldScore: n => "altın: ${n}"
+      menu: "menü"; nextLevel: "sonraki seviye"; playAgain: "tekrar oyna"
+    }
+    it {
+      logic: "logica"; perception: "percezione"; math: "calcolo"
+      games: {math: "Calcolo mentale", chain: "Calcolo a catena", fraction: "Frazioni", value: "Confronta valori", missing: "Operatori mancanti", path: "Trova la strada", sudoku: "Mini sudoku", lights: "Spegni le luci", sliding: "Gioco del 15", hanoi: "Torre di Hanoi", bulls: "Tori e mucche", color: "Confusione colori", schulte: "Tabella di Schulte"}
+      demoTitles: {math: "Porta avanti il risultato", chain: "Attento all’ordine delle operazioni", fraction: "Moltiplica le frazioni", value: "Scegli il valore più alto", missing: "Trova gli operatori mancanti", path: "Segui le frecce", sudoku: "Completa i numeri", lights: "Spegnile tutte", sliding: "Rimettile in ordine", hanoi: "Sposta la torre", bulls: "Decifra il codice segreto", color: "Rispondi l’inchiostro, non la parola", schulte: "Toccali in ordine"}
+      demoDescs: {math: "Segui le espressioni. Usa il risultato come base per il calcolo successivo.", chain: "Segui le espressioni.", fraction: "Risolvi le frazioni.", value: "Scegli l’espressione con il valore più alto.", missing: "Scegli gli operatori che rendono vera l’uguaglianza. Vale la normale precedenza delle operazioni.", path: "Parti dalla casella arancione e segui le frecce fino all’arrivo.", sudoku: "Riempi la piccola griglia in modo che ogni riga, colonna e blocco contenga ogni numero una sola volta.", lights: "Spegni tutte le luci. Ogni tocco inverte la casella e le sue quattro vicine.", sliding: "Fai scorrere le tessere nello spazio vuoto per rimetterle in ordine.", hanoi: "Sposta tutta la torre sul paletto di destra. Un disco alla volta, e mai uno grande su uno piccolo.", bulls: "Indovina il numero segreto di 4 cifre tutte diverse. Toro = cifra giusta al posto giusto. Mucca = cifra giusta al posto sbagliato.", color: "Il nome di un colore appare scritto in inchiostro colorato. Tocca il colore dell’inchiostro, non quello che dice la parola.", schulte: "Tocca i numeri in ordine: 1, 2, 3..."}
+      carries: n => "${n} viene dal risultato precedente."
+      sudokuCaps: ["", "Due 1 nella stessa riga non sono ammessi.", "Due 1 nella stessa riga non sono ammessi.", "", "Questa riga contiene da 1 a 4.", "Anche questa colonna contiene da 1 a 4.", "Anche questo blocco contiene da 1 a 4.", ""]
+      colorCaps: ["La parola dice un colore. L’inchiostro un altro.", "A volte coincidono.", "Leggere la parola è la trappola.", "L’inchiostro è sempre la risposta."]
+      science: {color: {paradigm: "Test di Stroop", summary: "Una misura classica dell’inibizione: dire il colore dell’inchiostro di una parola, mentre leggerla dà una risposta più veloce e in competizione."}, hanoi: {paradigm: "Torre di Hanoi", summary: "Una misura classica della pianificazione: il rompicapo richiede mosse che annullano i progressi prima di arrivare all’obiettivo."}}
+      scienceLine: p => "scienza · ${p}"
+      colors: ["ROSSO", "VERDE", "BLU", "GIALLO"]
+      highestDemo: "Quale ha il valore più alto?"
+      goal: n => "obiettivo ${n}"
+      roles: {bull: "toro", cow: "mucca", miss: "niente"}
+      bulls: n => n == 1 ? "1 toro" : "${n} tori"
+      cows: n => n == 1 ? "1 mucca" : "${n} mucche"
+      best: s => "record ${s}"
+      start: "Inizia"
+      secs: n => "${n}s"
+      tries: n => n == 1 ? "1 tentativo" : "${n} tentativi"
+      level: n => "livello ${n}"
+      score: n => "punti ${n}"
+      triesBar: n => "tentativi ${n}"
+      next: n => "prossimo ${n}"
+      moves: n => n == 1 ? "1 mossa" : "${n} mosse"
+      wrongMath: (was, n) => "era ${was}, ricomincia da ${n}"
+      mathHint: "fai il calcolo e tieni a mente il risultato"
+      itWas: x => "era ${x}"
+      highest: "qual è il più alto?"
+      cell: (x, y) => "colonna ${x}, riga ${y}"
+      sudokuHint: "tocca una casella, poi una cifra"
+      solved: n => n == 1 ? "1 risolto" : "${n} risolti"
+      lightsHint: "spegni tutte le luci"
+      slidingHint: "tocca una tessera accanto allo spazio vuoto"
+      fewest: n => "mosse minime: ${n}"
+      bullsHint: "tori: cifra giusta, posto giusto · mucche: cifra giusta, posto sbagliato"
+      giveUp: "arrenditi"; guess: "prova"
+      inkHint: "tocca il colore dell’inchiostro"
+      solvedIn: n => n == 1 ? "risolto in 1 mossa" : "risolto in ${n} mosse"
+      gaveUp: "ti sei arreso"
+      numberWas: x => "il numero era ${x}"
+      onToLevel: n => "al livello ${n}"
+      newBest: "nuovo record!"
+      noMedal: "ancora nessuna medaglia"
+      medals: {gold: "oro", silver: "argento", bronze: "bronzo"}
+      goldTime: n => "oro ≤ ${n}s"
+      goldTries: n => "oro ≤ ${n} tentativi"
+      goldLevel: n => "oro al livello ${n}"
+      goldScore: n => "oro a ${n}"
+      menu: "menu"; nextLevel: "livello successivo"; playAgain: "gioca ancora"
+    }
+  }
+
   // The view: the game list, a run, or a run's result.
   state view = "menu"
   state game = "math"
@@ -66,25 +693,25 @@ app "braincup" {
   let s3 = (s2 * 16807) % M
   let s4 = (s3 * 16807) % M
 
-  let CATS = [["logic", "logic"], ["perception", "perception"], ["math", "math"]]
+  let CATS = [["logic", str.logic], ["perception", str.perception], ["math", str.math]]
   let GAMES = [
-    ["math", "Mental Calculation", "Follow the expressions; each result is the base for the next", "math", "timed", 18, 9, 0, blue],
-    ["chain", "Chain Calculation", "Solve longer and longer formulas", "math", "timed", 8, 4, 0, blue],
-    ["fraction", "Fraction Calculation", "Multiply two fractions to a whole number", "math", "timed", 14, 6, 0, blue],
-    ["value", "Value Comparison", "Pick the expression with the highest value", "math", "timed", 16, 6, 0, blue],
-    ["missing", "Missing Operators", "Find the operators that make the equation true", "math", "timed", 12, 6, 0, blue],
-    ["path", "Path Finder", "Follow the arrows from the marked start", "logic", "timed", 13, 7, 0, green],
-    ["sudoku", "Mini Sudoku", "Each row, column and block once per digit", "logic", "timed", 6, 3, 0, green],
-    ["lights", "Lights Out", "Turn off every light; a tap toggles its neighbours", "logic", "level", 10, 5, 0, green],
-    ["sliding", "Sliding Puzzle", "Slide the tiles into order", "logic", "level", 10, 5, 0, green],
-    ["hanoi", "Tower of Hanoi", "Move the stack to the right peg", "logic", "level", 4, 2, 0, green],
-    ["bulls", "Bulls & Cows", "Guess the secret 4-digit number", "logic", "tries", 3, 6, 12, green],
-    ["color", "Color Confusion", "Tap the color a word is printed in, not the color it names", "perception", "timed", 40, 25, 0, magenta],
-    ["schulte", "Schulte Table", "Tap 1 to 16 in order as fast as you can", "perception", "time", 8, 15, 0, magenta]
+    ["math", "math", "timed", 18, 9, 0, blue],
+    ["chain", "math", "timed", 8, 4, 0, blue],
+    ["fraction", "math", "timed", 14, 6, 0, blue],
+    ["value", "math", "timed", 16, 6, 0, blue],
+    ["missing", "math", "timed", 12, 6, 0, blue],
+    ["path", "logic", "timed", 13, 7, 0, green],
+    ["sudoku", "logic", "timed", 6, 3, 0, green],
+    ["lights", "logic", "level", 10, 5, 0, green],
+    ["sliding", "logic", "level", 10, 5, 0, green],
+    ["hanoi", "logic", "level", 4, 2, 0, green],
+    ["bulls", "logic", "tries", 3, 6, 12, green],
+    ["color", "perception", "timed", 40, 25, 0, magenta],
+    ["schulte", "perception", "time", 8, 15, 0, magenta]
   ].map(t => [scores.find(s => s.id == t[0]).best ?? 0].map(b => {
-    id: t[0], name: t[1], desc: t[2], cat: t[3], kind: t[4], gold: t[5], silver: t[6], tint: t[8], best: b,
-    medal: b == 0 ? "" : t[4] == "time" || t[4] == "tries" ? (b <= t[5] ? "gold" : b <= t[6] ? "silver" : t[7] == 0 || b <= t[7] ? "bronze" : "") : (b >= t[5] ? "gold" : b >= t[6] ? "silver" : "bronze"),
-    bestText: b == 0 ? "–" : t[4] == "time" ? "${b}s" : t[4] == "tries" ? "${b} tries" : t[4] == "level" ? "level ${b}" : "${b}"
+    id: t[0], name: get(str.games, t[0], t[0]), cat: t[1], kind: t[2], gold: t[3], silver: t[4], tint: t[6], best: b,
+    medal: b == 0 ? "" : t[2] == "time" || t[2] == "tries" ? (b <= t[3] ? "gold" : b <= t[4] ? "silver" : t[5] == 0 || b <= t[5] ? "bronze" : "") : (b >= t[3] ? "gold" : b >= t[4] ? "silver" : "bronze"),
+    bestText: b == 0 ? "–" : t[2] == "time" ? str.secs(b) : t[2] == "tries" ? str.tries(b) : t[2] == "level" ? str.level(b) : "${b}"
   })[0])
   let shown = GAMES.find(g => g.id == game)
   let kind = shown.kind
@@ -371,7 +998,7 @@ app "braincup" {
 
   // ---- Color confusion (Stroop): the ink never repeats twice in a row; 2 in 5 trials match.
   state prevInk = 0
-  let COLORS = [["RED", "#E5484D"], ["GREEN", "#46A758"], ["BLUE", "#3E7BFA"], ["YELLOW", "#F5C518"]]
+  let COLORS = [[str.colors[0], "#E5484D"], [str.colors[1], "#46A758"], [str.colors[2], "#3E7BFA"], [str.colors[3], "#F5C518"]]
   let inkI = (prevInk + 1 + s1 % 3) % 4
   let wordI = s2 % 5 < 2 ? inkI : (inkI + 1 + s3 % 3) % 4
 
@@ -391,26 +1018,26 @@ app "braincup" {
   state demoT = 0
   every 1s { demoT = view == "intro" ? demoT + 1 : 0 }
   let DEMOS = {
-    math: {title: "Carry the result forward", desc: "Follow the mathematical expressions. Use the result as the base for the next calculation.", n: 9},
-    chain: {title: "Mind the order of operations", desc: "Follow the mathematical expressions.", n: 4},
-    fraction: {title: "Multiply the fractions", desc: "Solve the fractions.", n: 7},
-    value: {title: "Pick the biggest value", desc: "Select the expression with the highest value.", n: 7},
-    missing: {title: "Find the missing operators", desc: "Select the operators to make the equation true. Operators are evaluated using standard mathematical precedence.", n: 5},
-    path: {title: "Follow the arrows", desc: "Start on the orange tile and follow the arrows to the destination.", n: 7},
-    sudoku: {title: "Fill in the missing numbers", desc: "Fill the small grid so every row, column and block contains each number exactly once.", n: 8},
-    lights: {title: "Switch them all off", desc: "Turn off every light. Each tap toggles the cell and its four neighbours.", n: 6},
-    sliding: {title: "Slide them into order", desc: "Slide tiles into the empty space to put them in order.", n: 5},
-    hanoi: {title: "Move the stack", desc: "Move the full stack to the right peg. Only one disk at a time, and never a larger disk on a smaller one.", n: 9},
-    bulls: {title: "Crack the secret code", desc: "Guess the secret 4-digit number with unique digits. Bulls = correct digit in correct position. Cows = correct digit in wrong position.", n: 6},
-    color: {title: "Answer the ink, not the word", desc: "A color word appears in colored ink. Tap the color of the ink, not the color the word names.", n: 8},
-    schulte: {title: "Tap them in order", desc: "Tap the numbers in order: 1, 2, 3...", n: 11}
+    math: {n: 9},
+    chain: {n: 4},
+    fraction: {n: 7},
+    value: {n: 7},
+    missing: {n: 5},
+    path: {n: 7},
+    sudoku: {n: 8},
+    lights: {n: 6},
+    sliding: {n: 5},
+    hanoi: {n: 9},
+    bulls: {n: 6},
+    color: {n: 8},
+    schulte: {n: 11}
   }
-  let demo = get(DEMOS, game, {title: "", desc: "", n: 1})
+  let demo = get(DEMOS, game, {n: 1})
   let dF = demoT % demo.n
   // The games that run a published cognitive task, with what it measures.
   let SCIENCE = {
-    color: {paradigm: "Stroop Task", summary: "A standard measure of inhibition: naming the color a word is printed in, while reading the word itself supplies a faster, competing answer.", cite: "Stroop, 1935; MacLeod, 1991"},
-    hanoi: {paradigm: "Tower of Hanoi", summary: "A standard measure of planning: the puzzle needs moves that undo progress before the goal can be reached.", cite: "Simon, 1975"}
+    color: {paradigm: str.science.color.paradigm, summary: str.science.color.summary, cite: "Stroop, 1935; MacLeod, 1991"},
+    hanoi: {paradigm: str.science.hanoi.paradigm, summary: str.science.hanoi.summary, cite: "Simon, 1975"}
   }
   let science = get(SCIENCE, game, null)
   // Each demo's frames.
@@ -420,7 +1047,7 @@ app "braincup" {
   let D_PATH_ARROWS = ["→", "↓", "→", "↓"]
   let D_SUDOKU = [1, 2, 3, 4, 3, 4, 1, 2, 2, 1, 4, 3, 4, 3, 2, 1]
   let D_SUDOKU_GROUP = dF == 4 ? [4, 5, 6, 7] : dF == 5 ? [1, 5, 9, 13] : dF == 6 ? [0, 1, 4, 5] : []
-  let D_SUDOKU_CAPTION = ["", "Two 1s in the same row is not allowed.", "Two 1s in the same row is not allowed.", "", "This row holds 1 to 4.", "This column holds 1 to 4 too.", "This box holds 1 to 4 too.", ""]
+  let D_SUDOKU_CAPTION = str.sudokuCaps
   let D_LIGHTS = [[[0, 2, 3, 4, 5, 6, 8], -1], [[0, 2, 3, 4, 5, 6, 8], 1], [[1, 3, 5, 6, 8], 7], [[1, 3, 4, 5, 7], 4], [[], -1], [[], -1]]
   let D_SLIDING = [[1, 0, 2, 4, 5, 3, 7, 8, 6], [1, 2, 0, 4, 5, 3, 7, 8, 6], [1, 2, 3, 4, 5, 0, 7, 8, 6], [1, 2, 3, 4, 5, 6, 7, 8, 0], [1, 2, 3, 4, 5, 6, 7, 8, 0]]
   // The three-disk stack solved in the fewest moves, and the peg each move lands on.
@@ -430,9 +1057,9 @@ app "braincup" {
   let D_BULLS = dF <= 2 ? {g: "1234", roles: dF == 0 ? ["", "", "", ""] : ["bull", "miss", "cow", "miss"], b: 1, c: 1} : {g: "1378", roles: dF == 3 ? ["", "", "", ""] : ["bull", "bull", "miss", "miss"], b: 2, c: 0}
   // word, ink, tapped, right, caption
   let D_COLOR = [[2, 0, -1, true, 0], [2, 0, 0, true, 0], [1, 1, -1, true, 1], [1, 1, 1, true, 1], [3, 2, -1, true, 0], [3, 2, 3, false, 2], [3, 2, 2, true, 3], [3, 2, 2, true, 3]]
-  let D_COLOR_CAPTION = ["The word says one color. The ink says another.", "Sometimes the two agree.", "Reading the word is the trap.", "The ink is always the answer."]
+  let D_COLOR_CAPTION = str.colorCaps
   let D_SCHULTE = [3, 7, 1, 8, 5, 9, 2, 6, 4]
-  let demoCaption = game == "math" && D_MATH[dF][3] != "" ? "${D_MATH[dF][3]} carries over from the previous result." : game == "sudoku" && D_SUDOKU_CAPTION[dF] != "" ? D_SUDOKU_CAPTION[dF] : game == "color" ? D_COLOR_CAPTION[D_COLOR[dF][4]] : demo.desc
+  let demoCaption = game == "math" && D_MATH[dF][3] != "" ? str.carries(D_MATH[dF][3]) : game == "sudoku" && D_SUDOKU_CAPTION[dF] != "" ? D_SUDOKU_CAPTION[dF] : game == "color" ? D_COLOR_CAPTION[D_COLOR[dF][4]] : get(str.demoDescs, game, "")
 
   // Icons, drawn thick and centred instead of font glyphs: an arrow (pointing up, turned for the
   // other directions), a check, a cross and a backspace key.
@@ -451,7 +1078,7 @@ app "braincup" {
     value: [{k: "key", x: 0, y: 0.06, w: 1, h: 0.32, f: "#ED7354", t: "3 + 8", c: "#FFFFFF", s: 0.14}, {k: "text", x: 0.5, y: 0.5, t: "vs", c: "#1D192B", s: 0.11}, {k: "key", x: 0, y: 0.62, w: 1, h: 0.32, f: "#ED7354", t: "5 + 4", c: "#FFFFFF", s: 0.14}],
     sudoku: [{k: "key", x: 0, y: 0, w: 1, h: 1, f: "#F3EDF7", t: "", c: "#FFFFFF", s: 0.14}, {k: "flat", x: 0.02, y: 0.02, w: 0.93, h: 0.93, f: "#8E8D92"}, {k: "flat", x: 0.035, y: 0.035, w: 0.445, h: 0.445, f: "#F3EDF7"}, {k: "text", x: 0.2575, y: 0.2575, t: "1", c: "#1D192B", s: 0.2}, {k: "flat", x: 0.495, y: 0.035, w: 0.445, h: 0.445, f: "#F3EDF7"}, {k: "text", x: 0.7175, y: 0.2575, t: "2", c: "#1D192B", s: 0.2}, {k: "flat", x: 0.035, y: 0.495, w: 0.445, h: 0.445, f: "#F3EDF7"}, {k: "text", x: 0.2575, y: 0.7175, t: "", c: "#1D192B", s: 0.2}, {k: "flat", x: 0.495, y: 0.495, w: 0.445, h: 0.445, f: "#F3EDF7"}, {k: "text", x: 0.7175, y: 0.7175, t: "4", c: "#1D192B", s: 0.2}],
     schulte: [{k: "key", x: 0, y: 0, w: 0.31, h: 0.31, f: "#F3EDF7", t: "3", c: "#1D192B", s: 0.15}, {k: "key", x: 0.345, y: 0, w: 0.31, h: 0.31, f: "#E7E0EC", t: "1", c: "#A39FA8", s: 0.15}, {k: "key", x: 0.69, y: 0, w: 0.31, h: 0.31, f: "#F3EDF7", t: "6", c: "#1D192B", s: 0.15}, {k: "key", x: 0, y: 0.345, w: 0.31, h: 0.31, f: "#E7E0EC", t: "2", c: "#A39FA8", s: 0.15}, {k: "key", x: 0.345, y: 0.345, w: 0.31, h: 0.31, f: "#F3EDF7", t: "9", c: "#1D192B", s: 0.15}, {k: "key", x: 0.69, y: 0.345, w: 0.31, h: 0.31, f: "#F3EDF7", t: "7", c: "#1D192B", s: 0.15}, {k: "key", x: 0, y: 0.69, w: 0.31, h: 0.31, f: "#F3EDF7", t: "5", c: "#1D192B", s: 0.15}, {k: "key", x: 0.345, y: 0.69, w: 0.31, h: 0.31, f: "#F3EDF7", t: "8", c: "#1D192B", s: 0.15}, {k: "key", x: 0.69, y: 0.69, w: 0.31, h: 0.31, f: "#F3EDF7", t: "4", c: "#1D192B", s: 0.15}],
-    color: [{k: "text", x: 0.5, y: 0.3, t: "GREEN", c: "#E74C3C", s: 0.21}, {k: "key", x: 0, y: 0.58, w: 0.22, h: 0.24, f: "#E74C3C", t: "", c: "#FFFFFF", s: 0.14}, {k: "key", x: 0.26, y: 0.58, w: 0.22, h: 0.24, f: "#2ECC71", t: "", c: "#FFFFFF", s: 0.14}, {k: "key", x: 0.52, y: 0.58, w: 0.22, h: 0.24, f: "#3498DB", t: "", c: "#FFFFFF", s: 0.14}, {k: "key", x: 0.78, y: 0.58, w: 0.22, h: 0.24, f: "#F1C40F", t: "", c: "#FFFFFF", s: 0.14}],
+    color: [{k: "text", x: 0.5, y: 0.3, t: str.colors[1], c: "#E74C3C", s: 0.21}, {k: "key", x: 0, y: 0.58, w: 0.22, h: 0.24, f: "#E74C3C", t: "", c: "#FFFFFF", s: 0.14}, {k: "key", x: 0.26, y: 0.58, w: 0.22, h: 0.24, f: "#2ECC71", t: "", c: "#FFFFFF", s: 0.14}, {k: "key", x: 0.52, y: 0.58, w: 0.22, h: 0.24, f: "#3498DB", t: "", c: "#FFFFFF", s: 0.14}, {k: "key", x: 0.78, y: 0.58, w: 0.22, h: 0.24, f: "#F1C40F", t: "", c: "#FFFFFF", s: 0.14}],
     lights: [{k: "key", x: 0, y: 0, w: 0.31, h: 0.31, f: "#424242", t: "", c: "#FFFFFF", s: 0.14}, {k: "key", x: 0.345, y: 0, w: 0.31, h: 0.31, f: "#FFC107", t: "", c: "#FFFFFF", s: 0.14}, {k: "key", x: 0.69, y: 0, w: 0.31, h: 0.31, f: "#424242", t: "", c: "#FFFFFF", s: 0.14}, {k: "key", x: 0, y: 0.345, w: 0.31, h: 0.31, f: "#FFC107", t: "", c: "#FFFFFF", s: 0.14}, {k: "key", x: 0.345, y: 0.345, w: 0.31, h: 0.31, f: "#FFC107", t: "", c: "#FFFFFF", s: 0.14}, {k: "key", x: 0.69, y: 0.345, w: 0.31, h: 0.31, f: "#FFC107", t: "", c: "#FFFFFF", s: 0.14}, {k: "key", x: 0, y: 0.69, w: 0.31, h: 0.31, f: "#424242", t: "", c: "#FFFFFF", s: 0.14}, {k: "key", x: 0.345, y: 0.69, w: 0.31, h: 0.31, f: "#FFC107", t: "", c: "#FFFFFF", s: 0.14}, {k: "key", x: 0.69, y: 0.69, w: 0.31, h: 0.31, f: "#424242", t: "", c: "#FFFFFF", s: 0.14}],
     sliding: [{k: "key", x: 0, y: 0, w: 0.31, h: 0.31, f: "#EADDFF", t: "1", c: "#21005D", s: 0.15}, {k: "key", x: 0.345, y: 0, w: 0.31, h: 0.31, f: "#EADDFF", t: "2", c: "#21005D", s: 0.15}, {k: "key", x: 0.69, y: 0, w: 0.31, h: 0.31, f: "#EADDFF", t: "3", c: "#21005D", s: 0.15}, {k: "key", x: 0, y: 0.345, w: 0.31, h: 0.31, f: "#EADDFF", t: "4", c: "#21005D", s: 0.15}, {k: "key", x: 0.345, y: 0.345, w: 0.31, h: 0.31, f: "#EAE5F7", t: "", c: "#FFFFFF", s: 0.14}, {k: "key", x: 0.69, y: 0.345, w: 0.31, h: 0.31, f: "#EADDFF", t: "5", c: "#21005D", s: 0.15}, {k: "key", x: 0, y: 0.69, w: 0.31, h: 0.31, f: "#EADDFF", t: "7", c: "#21005D", s: 0.15}, {k: "key", x: 0.345, y: 0.69, w: 0.31, h: 0.31, f: "#EADDFF", t: "8", c: "#21005D", s: 0.15}, {k: "key", x: 0.69, y: 0.69, w: 0.31, h: 0.31, f: "#EADDFF", t: "6", c: "#21005D", s: 0.15}],
     hanoi: [{k: "flat", x: 0, y: 0.21, w: 0.3067, h: 0.58, f: "#1C1B1F12"}, {k: "flat", x: 0.1313, y: 0.2818, w: 0.044, h: 0.4232, f: "#6B7280"}, {k: "flat", x: 0.02, y: 0.705, w: 0.2667, h: 0.05, f: "#4B5563"}, {k: "key", x: 0.02, y: 0.625, w: 0.2667, h: 0.08, f: "#F97316", t: "", c: "#FFFFFF", s: 0.14, d: 1.5}, {k: "key", x: 0.0422, y: 0.533, w: 0.2222, h: 0.08, f: "#FBBF24", t: "", c: "#FFFFFF", s: 0.14, d: 1.5}, {k: "key", x: 0.0644, y: 0.441, w: 0.1778, h: 0.08, f: "#34D399", t: "", c: "#FFFFFF", s: 0.14, d: 1.5}, {k: "flat", x: 0.3467, y: 0.21, w: 0.3067, h: 0.58, f: "#1C1B1F12"}, {k: "flat", x: 0.478, y: 0.2818, w: 0.044, h: 0.4232, f: "#6B7280"}, {k: "flat", x: 0.3667, y: 0.705, w: 0.2667, h: 0.05, f: "#4B5563"}, {k: "flat", x: 0.6933, y: 0.21, w: 0.3067, h: 0.58, f: "#1C1B1F12"}, {k: "flat", x: 0.8247, y: 0.2818, w: 0.044, h: 0.4232, f: "#6B7280"}, {k: "flat", x: 0.7133, y: 0.705, w: 0.2667, h: 0.05, f: "#4B5563"}, {k: "key", x: 0.78, y: 0.625, w: 0.1333, h: 0.08, f: "#60A5FA", t: "", c: "#FFFFFF", s: 0.14, d: 1.5}],
@@ -724,7 +1351,7 @@ app "braincup" {
         gap: 18
         align: center
         Spacer { height: 8 }
-        Text { text: demo.title; style: title; bold: true; align: center; fill: width }
+        Text { text: get(str.demoTitles, game, ""); style: title; bold: true; align: center; fill: width }
 
         if game == "math" {
           Row {
@@ -775,7 +1402,7 @@ app "braincup" {
           Column {
             gap: 10
             width: 260
-            Text { text: "Which has the highest value?"; style: small; color: muted; align: center; fill: width }
+            Text { text: str.highestDemo; style: small; color: muted; align: center; fill: width }
             for o, i in D_VALUE {
               PKey { label: i < dF - 1 ? "${o[0]} = ${o[1]}" : o[0]; h: 60; size: 26; face: dF >= 5 && i == 2 ? P_BULL : P_KEY }
             }
@@ -786,7 +1413,7 @@ app "braincup" {
           Column {
             gap: 12
             align: center
-            Text { text: "goal 5"; style: label; color: muted; align: center; fill: width }
+            Text { text: str.goal(5); style: label; color: muted; align: center; fill: width }
             Row {
               gap: 8
               align: center
@@ -916,11 +1543,11 @@ app "braincup" {
                   width: 52
                   align: center
                   PKey { label: sub(D_BULLS.g, i, i + 1); h: 56; size: 28; face: r == "bull" ? P_BULL : r == "cow" ? P_COW : r == "miss" ? P_MISS : P_KEY }
-                  Text { text: r == "" ? " " : r; style: small; align: center; fill: width; color: r == "bull" ? green : r == "cow" ? yellow : muted }
+                  Text { text: r == "" ? " " : get(str.roles, r, r); style: small; align: center; fill: width; color: r == "bull" ? green : r == "cow" ? yellow : muted }
                 }
               }
             }
-            Text { text: dF == 0 || dF == 3 ? " " : "${D_BULLS.b} bull${D_BULLS.b == 1 ? "" : "s"} · ${D_BULLS.c} cow${D_BULLS.c == 1 ? "" : "s"}"; style: body; align: center; fill: width }
+            Text { text: dF == 0 || dF == 3 ? " " : "${str.bulls(D_BULLS.b)} · ${str.cows(D_BULLS.c)}"; style: body; align: center; fill: width }
           }
         }
 
@@ -974,7 +1601,7 @@ app "braincup" {
             background: alpha(accent, 0.08)
             border: 1
             borderColor: alpha(accent, 0.3)
-            Text { text: "science · ${science.paradigm}"; style: label; color: accent }
+            Text { text: str.scienceLine(science.paradigm); style: label; color: accent }
             Text { text: science.summary; style: small }
             Text { text: science.cite; style: small; color: muted }
           }
@@ -987,7 +1614,7 @@ app "braincup" {
             justify: center
             fill: width
             Medal { kind: shown.medal; size: 14 }
-            Text { text: "best ${shown.bestText}"; style: small; color: muted; width: 140 }
+            Text { text: str.best(shown.bestText); style: small; color: muted; width: 140 }
           }
         }
       }
@@ -996,7 +1623,7 @@ app "braincup" {
         fill: width
         ripple: false
         onTap: { starting = true; haptic() }
-        PKey { label: "Start"; face: P_START; h: 58; size: 22; d: 4 }
+        PKey { label: str.start; face: P_START; h: 58; size: 22; d: 4 }
       }
     }
 
@@ -1005,12 +1632,12 @@ app "braincup" {
       Row {
         align: center
         Text {
-          text: kind == "timed" ? "score ${score}" : kind == "level" ? "level ${playLevel}" : kind == "tries" ? "tries ${len(bGuesses)}" : "next ${min(nextN, 16)}"
+          text: kind == "timed" ? str.score(score) : kind == "level" ? str.level(playLevel) : kind == "tries" ? str.triesBar(len(bGuesses)) : str.next(min(nextN, 16))
           style: title
           weight: 1
         }
         Text {
-          text: kind == "timed" ? "${left}s" : kind == "level" ? "${moves} moves" : kind == "time" ? "${now - startedAt}s" : ""
+          text: kind == "timed" ? str.secs(left) : kind == "level" ? str.moves(moves) : kind == "time" ? str.secs(now - startedAt) : ""
           style: title
           width: 140
           align: end
@@ -1029,7 +1656,7 @@ app "braincup" {
           gap: 16
           Text { text: showSeed ? "${num} ${SIGN[op]} ${operand}" : "${SIGN[op]} ${operand}"; fontSize: 44; bold: true; align: center; fill: width }
           Text { text: typed == "" ? "?" : typed; fontSize: 36; font: mono; align: center; fill: width; color: typed == "" ? muted : foreground }
-          Verdict { wrong: "it was ${was}, start again from ${num}"; hint: showSeed ? "work it out, then keep the result in your head" : "" }
+          Verdict { wrong: str.wrongMath(was, num); hint: showSeed ? str.mathHint : "" }
         }
       }
 
@@ -1040,7 +1667,7 @@ app "braincup" {
           gap: 16
           Text { text: cText; fontSize: cLen > 8 ? 26 : 34; bold: true; align: center; fill: width }
           Text { text: typed == "" ? "?" : typed; fontSize: 36; font: mono; align: center; fill: width; color: typed == "" ? muted : foreground }
-          Verdict { wrong: "it was ${was}" }
+          Verdict { wrong: str.itWas(was) }
         }
       }
 
@@ -1071,7 +1698,7 @@ app "braincup" {
             }
           }
           Text { text: typed == "" ? "?" : typed; fontSize: 36; font: mono; align: center; fill: width; color: typed == "" ? muted : foreground }
-          Verdict { wrong: "it was ${was}" }
+          Verdict { wrong: str.itWas(was) }
         }
       }
 
@@ -1106,7 +1733,7 @@ app "braincup" {
           weight: 1
           justify: center
           gap: 12
-          Text { text: "which is the highest?"; style: muted; align: center; fill: width }
+          Text { text: str.highest; style: muted; align: center; fill: width }
           for o in vOpts key o.i {
             Box {
               height: 76
@@ -1124,7 +1751,7 @@ app "braincup" {
               }
             }
           }
-          Verdict { wrong: "it was ${was}" }
+          Verdict { wrong: str.itWas(was) }
         }
       }
 
@@ -1194,7 +1821,7 @@ app "braincup" {
                 ripple: false
                 onTap: {
                   ok = i % 4 == pEnd.x && floor(i / 4) == pEnd.y
-                  was = "column ${pEnd.x + 1}, row ${pEnd.y + 1}"
+                  was = str.cell(pEnd.x + 1, pEnd.y + 1)
                   answered = answered + 1
                   score = score + (ok ? 1 : 0)
                   pRound = pRound + 1
@@ -1204,7 +1831,7 @@ app "braincup" {
               }
             }
           }
-          Verdict { wrong: "it was ${was}" }
+          Verdict { wrong: str.itWas(was) }
         }
       }
 
@@ -1240,7 +1867,7 @@ app "braincup" {
             justify: center
             fill: width
             if answered > 0 { Image { src: checkIcon; size: 18; tint: green } }
-            Text { text: answered == 0 ? "tap a cell, then a digit" : "${answered} solved"; style: small; color: answered == 0 ? muted : green; width: answered == 0 ? 220 : 90 }
+            Text { text: answered == 0 ? str.sudokuHint : str.solved(answered); style: small; color: answered == 0 ? muted : green; width: answered == 0 ? 220 : 90 }
           }
         }
         Grid {
@@ -1275,7 +1902,7 @@ app "braincup" {
               }
             }
           }
-          Text { text: "turn off every light"; style: small; color: muted; align: center; fill: width }
+          Text { text: str.lightsHint; style: small; color: muted; align: center; fill: width }
         }
       }
 
@@ -1306,7 +1933,7 @@ app "braincup" {
               }
             }
           }
-          Text { text: "tap a tile next to the gap"; style: small; color: muted; align: center; fill: width }
+          Text { text: str.slidingHint; style: small; color: muted; align: center; fill: width }
         }
       }
 
@@ -1349,7 +1976,7 @@ app "braincup" {
               }
             }
           }
-          Text { text: "fewest moves: ${pow(2, hDisks) - 1}"; style: small; color: muted; align: center; fill: width }
+          Text { text: str.fewest(pow(2, hDisks) - 1); style: small; color: muted; align: center; fill: width }
         }
       }
 
@@ -1358,14 +1985,14 @@ app "braincup" {
           weight: 1
           gap: 6
           scroll: true
-          Text { text: "bulls: right digit, right place · cows: right digit, wrong place"; style: small; color: muted }
+          Text { text: str.bullsHint; style: small; color: muted }
           for g, i in bGuesses {
             Row {
               align: center
               Text { text: "${i + 1}"; style: small; color: muted; width: 28 }
               Text { text: g.g; fontSize: 26; font: mono; bold: true; weight: 1 }
-              Text { text: "${g.b} bull${g.b == 1 ? "" : "s"}"; color: g.b > 0 ? green : muted; width: 76; align: end }
-              Text { text: "${g.c} cow${g.c == 1 ? "" : "s"}"; color: g.c > 0 ? yellow : muted; width: 76; align: end }
+              Text { text: str.bulls(g.b); color: g.b > 0 ? green : muted; width: 76; align: end }
+              Text { text: str.cows(g.c); color: g.c > 0 ? yellow : muted; width: 76; align: end }
             }
           }
         }
@@ -1383,7 +2010,7 @@ app "braincup" {
             align: center
             ripple: false
             onTap: { gaveUp = true; result = len(bGuesses); newBest = false; view = "done" }
-            PKey { label: "give up"; face: P_CARD; ink: P_INK; h: 48; size: 15 }
+            PKey { label: str.giveUp; face: P_CARD; ink: P_INK; h: 48; size: 15 }
           }
           Box {
             weight: 1
@@ -1398,7 +2025,7 @@ app "braincup" {
             weight: 2
             height: 48
             align: center
-            PKey { label: "guess"; face: len(bGuess) == 4 ? P_START : P_DIM; ink: len(bGuess) == 4 ? "#FFFFFF" : P_DIM_INK; h: 48; size: 20 }
+            PKey { label: str.guess; face: len(bGuess) == 4 ? P_START : P_DIM; ink: len(bGuess) == 4 ? "#FFFFFF" : P_DIM_INK; h: 48; size: 20 }
             ripple: false
             onTap: {
               bGuesses = len(bGuess) == 4 ? bGuesses + [{g: bGuess, b: bBulls, c: bCows}] : bGuesses
@@ -1414,7 +2041,7 @@ app "braincup" {
           weight: 1
           justify: center
           gap: 24
-          Text { text: "tap the color of the ink"; style: muted; align: center; fill: width }
+          Text { text: str.inkHint; style: muted; align: center; fill: width }
           Text { text: COLORS[wordI][0]; fontSize: 56; bold: true; align: center; fill: width; color: COLORS[inkI][1] }
           Verdict { wrong: "" }
         }
@@ -1473,9 +2100,9 @@ app "braincup" {
         justify: center
         align: center
         gap: 10
-        Text { text: kind == "level" ? "solved in ${moves} moves" : shown.name; style: muted; align: center; fill: width }
+        Text { text: kind == "level" ? str.solvedIn(moves) : shown.name; style: muted; align: center; fill: width }
         Text {
-          text: kind == "time" ? "${result}s" : kind == "level" ? "level ${result}" : kind == "tries" ? (gaveUp ? "gave up" : "${result} tries") : "${result}"
+          text: kind == "time" ? str.secs(result) : kind == "level" ? str.level(result) : kind == "tries" ? (gaveUp ? str.gaveUp : str.tries(result)) : "${result}"
           fontSize: kind == "timed" ? 72 : 48
           bold: true
           align: center
@@ -1483,7 +2110,7 @@ app "braincup" {
           color: shown.tint
         }
         Text {
-          text: gaveUp ? "the number was ${bSecret}" : newBest ? (kind == "level" ? "on to level ${playLevel}" : "new best!") : "best ${shown.bestText}"
+          text: gaveUp ? str.numberWas(bSecret) : newBest ? (kind == "level" ? str.onToLevel(playLevel) : str.newBest) : str.best(shown.bestText)
           style: title
           align: center
           fill: width
@@ -1492,7 +2119,7 @@ app "braincup" {
         Spacer { height: 6 }
         Medal { kind: shown.medal; size: 22 }
         Text {
-          text: (shown.medal == "" ? "no medal yet" : shown.medal) + " · gold " + (kind == "time" ? "≤ ${shown.gold}s" : kind == "tries" ? "≤ ${shown.gold} tries" : kind == "level" ? "at level ${shown.gold}" : "at ${shown.gold}")
+          text: (shown.medal == "" ? str.noMedal : get(str.medals, shown.medal, shown.medal)) + " · " + (kind == "time" ? str.goldTime(shown.gold) : kind == "tries" ? str.goldTries(shown.gold) : kind == "level" ? str.goldLevel(shown.gold) : str.goldScore(shown.gold))
           style: small
           color: muted
           align: center
@@ -1507,14 +2134,14 @@ app "braincup" {
           height: 56
           ripple: false
           onTap: view = "menu"
-          PKey { label: "menu"; face: P_CARD; ink: P_INK; size: 20; d: 4 }
+          PKey { label: str.menu; face: P_CARD; ink: P_INK; size: 20; d: 4 }
         }
         Box {
           weight: 1
           height: 56
           ripple: false
           onTap: { starting = true; haptic() }
-          PKey { label: kind == "level" ? "next level" : "play again"; face: P_START; size: 20; d: 4 }
+          PKey { label: kind == "level" ? str.nextLevel : str.playAgain; face: P_START; size: 20; d: 4 }
         }
       }
     }

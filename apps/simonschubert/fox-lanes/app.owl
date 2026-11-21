@@ -9,7 +9,155 @@ app "fox lanes" {
   // the fox's lane or pose: from those follows the moment it next hits something (`dieAt`), so a
   // frame only has to draw.
 
-  meta { owl: 14; description: "A swipe runner in pixel art: a fox dashes down a forest path at dusk, changing lanes, jumping logs and sliding under boughs, gathering acorns"; version: "1.1.0"; license: "MIT"; category: "games" }
+  meta { owl: 16; description: "A swipe runner in pixel art: a fox dashes down a forest path at dusk, changing lanes, jumping logs and sliding under boughs, gathering acorns"; version: "1.2"; license: "MIT"; category: "games" }
+  strings {
+    en {
+      tapToStart: "TAP TO START"
+      // Two lines under the title, 3 px pixel font across the screen.
+      help1: "SWIPE TO CHANGE LANES,"
+      help2: "UP TO JUMP, DOWN TO SLIDE"
+      best: n => "BEST ${n}"
+      soundOn: "SOUND ON"
+      soundOff: "SOUND OFF"
+      // Top right, the best score as five digits.
+      hi: n => "HI ${n}"
+      gameOver: "GAME OVER"
+      score: n => "SCORE ${n}"
+      tapAgain: "TAP TO RUN AGAIN"
+    }
+    id {
+      tapToStart: "KETUK UNTUK MULAI"
+      help1: "USAP UNTUK PINDAH JALUR,"
+      help2: "ATAS LOMPAT, BAWAH MELUNCUR"
+      best: n => "REKOR ${n}"
+      soundOn: "SUARA NYALA"
+      soundOff: "SUARA MATI"
+      hi: n => "TOP ${n}"
+      gameOver: "GAME OVER"
+      score: n => "SKOR ${n}"
+      tapAgain: "KETUK UNTUK LARI LAGI"
+    }
+    es {
+      tapToStart: "TOCA PARA EMPEZAR"
+      help1: "DESLIZA PARA CAMBIAR DE CARRIL,"
+      help2: "ARRIBA SALTAS, ABAJO TE DESLIZAS"
+      best: n => "RÉCORD ${n}"
+      soundOn: "SONIDO SÍ"
+      soundOff: "SONIDO NO"
+      hi: n => "MÁX ${n}"
+      gameOver: "FIN DEL JUEGO"
+      score: n => "PUNTOS ${n}"
+      tapAgain: "TOCA PARA CORRER OTRA VEZ"
+    }
+    pt {
+      tapToStart: "TOQUE PARA COMEÇAR"
+      help1: "DESLIZE PARA TROCAR DE FAIXA,"
+      help2: "PARA CIMA PULA, PARA BAIXO DESLIZA"
+      best: n => "RECORDE ${n}"
+      soundOn: "SOM LIGADO"
+      soundOff: "SOM DESLIGADO"
+      hi: n => "MÁX ${n}"
+      gameOver: "FIM DE JOGO"
+      score: n => "PONTOS ${n}"
+      tapAgain: "TOQUE PARA CORRER DE NOVO"
+    }
+    de {
+      tapToStart: "TIPPEN ZUM STARTEN"
+      help1: "WISCHEN WECHSELT DIE SPUR,"
+      help2: "HOCH SPRINGT, RUNTER RUTSCHT"
+      best: n => "REKORD ${n}"
+      soundOn: "TON AN"
+      soundOff: "TON AUS"
+      hi: n => "TOP ${n}"
+      gameOver: "SPIEL VORBEI"
+      score: n => "PUNKTE ${n}"
+      tapAgain: "TIPPEN FÜR NOCH EINEN LAUF"
+    }
+    zh {
+      tapToStart: "点击开始"
+      help1: "滑动切换跑道，"
+      help2: "上滑跳跃，下滑滑行"
+      best: n => "最佳 ${n}"
+      soundOn: "声音开"
+      soundOff: "声音关"
+      hi: n => "最高 ${n}"
+      gameOver: "游戏结束"
+      score: n => "得分 ${n}"
+      tapAgain: "点击再跑一次"
+    }
+    ru {
+      tapToStart: "НАЖМИТЕ, ЧТОБЫ НАЧАТЬ"
+      help1: "СВАЙП МЕНЯЕТ ПОЛОСУ,"
+      help2: "ВВЕРХ ПРЫЖОК, ВНИЗ ПОДКАТ"
+      best: n => "РЕКОРД ${n}"
+      soundOn: "ЗВУК ВКЛ"
+      soundOff: "ЗВУК ВЫКЛ"
+      hi: n => "МАКС ${n}"
+      gameOver: "ИГРА ОКОНЧЕНА"
+      score: n => "СЧЁТ ${n}"
+      tapAgain: "НАЖМИТЕ, ЧТОБЫ БЕЖАТЬ СНОВА"
+    }
+    ja {
+      tapToStart: "タップでスタート"
+      help1: "スワイプでレーン変更、"
+      help2: "上でジャンプ、下でスライディング"
+      best: n => "ベスト ${n}"
+      soundOn: "サウンド オン"
+      soundOff: "サウンド オフ"
+      hi: n => "HI ${n}"
+      gameOver: "ゲームオーバー"
+      score: n => "スコア ${n}"
+      tapAgain: "タップでもう一度"
+    }
+    uk {
+      tapToStart: "ТОРКНІТЬСЯ, ЩОБ ПОЧАТИ"
+      help1: "СВАЙП ЗМІНЮЄ СМУГУ,"
+      help2: "ВГОРУ СТРИБОК, ВНИЗ ПІДКАТ"
+      best: n => "РЕКОРД ${n}"
+      soundOn: "ЗВУК УВІМК"
+      soundOff: "ЗВУК ВИМК"
+      hi: n => "МАКС ${n}"
+      gameOver: "ГРУ ЗАКІНЧЕНО"
+      score: n => "РАХУНОК ${n}"
+      tapAgain: "ТОРКНІТЬСЯ, ЩОБ БІГТИ ЗНОВУ"
+    }
+    fr {
+      tapToStart: "TOUCHE POUR JOUER"
+      help1: "GLISSE POUR CHANGER DE VOIE,"
+      help2: "EN HAUT TU SAUTES, EN BAS TU GLISSES"
+      best: n => "RECORD ${n}"
+      soundOn: "SON ACTIVÉ"
+      soundOff: "SON COUPÉ"
+      hi: n => "MAX ${n}"
+      gameOver: "PARTIE TERMINÉE"
+      score: n => "SCORE ${n}"
+      tapAgain: "TOUCHE POUR REJOUER"
+    }
+    tr {
+      tapToStart: "BAŞLAMAK İÇİN DOKUN"
+      help1: "ŞERİT DEĞİŞTİRMEK İÇİN KAYDIR,"
+      help2: "YUKARI ZIPLA, AŞAĞI KAY"
+      best: n => "REKOR ${n}"
+      soundOn: "SES AÇIK"
+      soundOff: "SES KAPALI"
+      hi: n => "EN İYİ ${n}"
+      gameOver: "OYUN BİTTİ"
+      score: n => "SKOR ${n}"
+      tapAgain: "TEKRAR KOŞMAK İÇİN DOKUN"
+    }
+    it {
+      tapToStart: "TOCCA PER INIZIARE"
+      help1: "SCORRI PER CAMBIARE CORSIA,"
+      help2: "SU SALTI, GIÙ SCIVOLI"
+      best: n => "RECORD ${n}"
+      soundOn: "AUDIO SÌ"
+      soundOff: "AUDIO NO"
+      hi: n => "MAX ${n}"
+      gameOver: "FINE PARTITA"
+      score: n => "PUNTI ${n}"
+      tapAgain: "TOCCA PER CORRERE ANCORA"
+    }
+  }
 
   title: ""
   statusBar: false
@@ -1013,14 +1161,14 @@ app "fox lanes" {
     if fresh {
       text("FOX LANES", width / 2 + p, (HY * 0.42 + top / 2) * p + p, size: 9 * p, color: "#2a1838", font: press, align: center)
       text("FOX LANES", width / 2, (HY * 0.42 + top / 2) * p, size: 9 * p, color: "#ffc46b", font: press, align: center)
-      if time % 1.2 < 0.8 { text("TAP TO START", width / 2, (HY * 0.42 + top / 2 + 16) * p, size: 3.5 * p, color: "#fff0e0", font: press, align: center) }
-      text("SWIPE TO CHANGE LANES,", width / 2, (FY + 12) * p, size: 3 * p, color: "#f0d8c0", font: press, align: center)
-      text("UP TO JUMP, DOWN TO SLIDE", width / 2, (FY + 18) * p, size: 3 * p, color: "#f0d8c0", font: press, align: center)
-      if best > 0 { text("BEST ${best}", width / 2, (FY + 25) * p, size: 3 * p, color: "#ffc46b", font: press, align: center) }
-      text(snd ? "SOUND ON" : "SOUND OFF", width - 6 * p, (top + 8) * p, size: 3 * p, color: snd ? "#ffc46b" : "#a08898", font: press, align: end)
+      if time % 1.2 < 0.8 { text(str.tapToStart, width / 2, (HY * 0.42 + top / 2 + 16) * p, size: 3.5 * p, color: "#fff0e0", font: press, align: center) }
+      text(str.help1, width / 2, (FY + 12) * p, size: 3 * p, color: "#f0d8c0", font: press, align: center)
+      text(str.help2, width / 2, (FY + 18) * p, size: 3 * p, color: "#f0d8c0", font: press, align: center)
+      if best > 0 { text(str.best(best), width / 2, (FY + 25) * p, size: 3 * p, color: "#ffc46b", font: press, align: center) }
+      text(snd ? str.soundOn : str.soundOff, width - 6 * p, (top + 8) * p, size: 3 * p, color: snd ? "#ffc46b" : "#a08898", font: press, align: end)
     } else {
       text(pad(str(score), 5, "0"), 6 * p, (top + 8) * p, size: 4 * p, color: "#fff3e0", font: press)
-      text("HI ${pad(str(max(best, score)), 5, "0")}", width - 6 * p, (top + 8) * p, size: 4 * p, color: "#f0c0b0", font: press, align: end)
+      text(str.hi(pad(str(max(best, score)), 5, "0")), width - 6 * p, (top + 8) * p, size: 4 * p, color: "#f0c0b0", font: press, align: end)
       sprite(acornArt, 6 * p, (top + 13) * p, p, palette: pal)
       text("${nuts}", 14 * p, (top + 16.5) * p, size: 3.5 * p, color: "#ffd36a", font: press)
       // the power-ups at work, with the time they have left
@@ -1032,10 +1180,10 @@ app "fox lanes" {
         rect(17 * p, (py - 1) * p, 20 * clamp(pw[1], 0, 1) * p, 2 * p, fill: pw[2])
       }
       if dead {
-        text("GAME OVER", width / 2 + p, (HY * 0.45 + top / 2) * p + p, size: 7 * p, color: "#2a1838", font: press, align: center)
-        text("GAME OVER", width / 2, (HY * 0.45 + top / 2) * p, size: 7 * p, color: "#ff8a6a", font: press, align: center)
-        text("SCORE ${final > 0 ? final : score}", width / 2, (HY * 0.45 + top / 2 + 12) * p, size: 4 * p, color: "#fff3e0", font: press, align: center)
-        if since > 0.8 && time % 1.2 < 0.8 { text("TAP TO RUN AGAIN", width / 2, (HY * 0.45 + top / 2 + 24) * p, size: 3.5 * p, color: "#fff0e0", font: press, align: center) }
+        text(str.gameOver, width / 2 + p, (HY * 0.45 + top / 2) * p + p, size: 7 * p, color: "#2a1838", font: press, align: center)
+        text(str.gameOver, width / 2, (HY * 0.45 + top / 2) * p, size: 7 * p, color: "#ff8a6a", font: press, align: center)
+        text(str.score(final > 0 ? final : score), width / 2, (HY * 0.45 + top / 2 + 12) * p, size: 4 * p, color: "#fff3e0", font: press, align: center)
+        if since > 0.8 && time % 1.2 < 0.8 { text(str.tapAgain, width / 2, (HY * 0.45 + top / 2 + 24) * p, size: 3.5 * p, color: "#fff0e0", font: press, align: center) }
       }
     }
   }

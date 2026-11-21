@@ -10,7 +10,1464 @@ app "kart kingdom" {
   // and on every purchase, and a closed app earns for an hour at most. The karts' wear is added up
   // every 20 seconds from how busy each track was. Karts and guests are drawn from the clock.
 
-  meta { owl: 23; description: "A go-kart tycoon: build your own kart tracks cell by cell with ramps, bridges and crossings, buy karts, repair them, and grow your attraction"; version: "1.1"; license: "MIT"; category: "games" }
+  meta { owl: 23; description: "A go-kart tycoon: build your own kart tracks cell by cell with ramps, bridges and crossings, buy karts, repair them, and grow your attraction"; version: "1.2"; license: "MIT"; category: "games" }
+
+  // panel text at 11 to 14sp beside the steppers; the three buttons in a row are about 110dp wide,
+  // so their words stay short
+  strings {
+    en {
+      kd: i => ["Snack Bar", "Drinks", "Restrooms", "Helmet Shop", "Workshop", "Grandstand", "Tyre Wall", "Tree", "Flowers", "Litter Bin", "Fountain", "Flags"][i]
+      kc: i => ["Rookie", "Sport", "Pro"][i]
+      tab: i => ["Track", "Shops", "Garden", "Paths", "Park"][i]
+      trackName: i => ["Thunder Lane", "Apex Alley", "Rubber Ridge", "Hairpin Hollow", "Turbo Twist", "Pit Viper", "Grip Gully", "Skid Row"][i]
+      exc: i => ["low", "medium", "good", "great", "superb"][i]
+      diff: i => ["easy", "tricky", "hard", "wild", "brutal"][i]
+      hungry: "I'm hungry"
+      thirsty: "I'm thirsty"
+      restroom: "I need a restroom"
+      litterThought: "These paths are covered in litter"
+      wantTwists: "I want a track with more twists and bridges"
+      feeThought: "The entry fee is steep"
+      wantSeat: "I'd love a seat to watch the races"
+      pretty: "This place is really pretty"
+      notPaying: (p, t) => "I'm not paying ${p} for ${t}"
+      tooDangerous: t => "${t} looks too dangerous"
+      sawCrash: t => "I saw a nasty crash at ${t}"
+      halfBroken: t => "Half the karts at ${t} are broken"
+      amazing: t => "${t} was amazing!"
+      queueLong: t => "The queue for ${t} is too long"
+      buyLand: "Buy this land first (Park)"
+      startGround: "The start line needs clear, dry ground"
+      minPieces: "A track needs at least 10 pieces"
+      bringBack: "Bring the track back to the start line"
+      comeDown: "Come down to level 1 first"
+      carryOn: "Carry on from the end of the track"
+      startStraight: "The start is 3 straight pieces"
+      cellTaken: "That cell is taken"
+      bridgePath: "Raise the track to level 2 to bridge a path"
+      bridgeWater: "Raise the track to cross water"
+      bridgeTrack: "A bridge needs 2 levels over the track below"
+      builder: "Track builder"
+      tapStart: "Tap clear ground for the start line"
+      layMore: n => n == 1 ? "Lay 1 more straight start piece" : "Lay ${n} more straight start pieces"
+      tapOpen: "Tap the start line to open the track"
+      tapNext: "Tap or drag next to the gold dot"
+      nextLevel: "Next piece level"
+      rampsHint: "Ramps climb or drop 1 level a piece"
+      aiming: h => "Aiming for ${h} · 2 levels clear a track or path"
+      piecesLine: (n, spent, next) => "${n} pieces · spent ${spent} · next ${next}"
+      startKarts: "The start line comes with 2 rookie karts: $700"
+      undoPiece: "Undo piece"
+      tapConfirm: "Tap to confirm"
+      scrap: "Scrap"
+      done: "Done"
+      stillBuilt: "Still being built. Pick Track to carry on."
+      scrapFor: c => "Scrap +${c}"
+      excLine: (e, el, d, dl) => "Excitement ${e} ${el} · Difficulty ${d} ${dl}"
+      statsLine: (m, lap, top, cr) => "${m} m · lap ${lap} s · top ${top} km/h · ${cr} crossing${cr == 1 ? "" : "s"}"
+      allBroken: "All karts broken: repair them"
+      closed: "Closed"
+      noPathStart: "No path reaches the start line"
+      driversLine: (n, q, c) => "${n} drivers a minute · queue ${q} · ${c}/min"
+      ticket: "Ticket"
+      worth: p => "worth up to ${p}"
+      tooDear: "guests think it's too dear"
+      karts: k => "${k} karts"
+      runningLine: (n, c) => "${n} running · ${c} each"
+      condition: "Condition"
+      repair: c => "Repair ${c}"
+      likeNew: "Like new"
+      close: "Close"
+      open: "Open"
+      topKarts: "Top karts"
+      confirm: "Confirm"
+      sell: c => "Sell +${c}"
+      noPathIt: "No path reaches it"
+      customersLine: (n, c) => "${n} customers a minute · ${c}/min"
+      guestsTooDear: "Guests think it's too dear"
+      guestsPay: p => "Guests pay up to ${p}"
+      price: "Price"
+      mechHere: "Mechanics work from here, 3 to a workshop"
+      fansWatch: "Fans watch the races and tell their friends"
+      putBeside: "Put it beside a track for the fans to watch"
+      tyreHint: "Beside a corner, it keeps crashes harmless"
+      binHint: "Guests drop their litter in it"
+      decorHint: "Decorations raise the rating"
+      kartTrack: "Kart track"
+      footpath: "Footpath"
+      fromCost: "from $700"
+      perCell: "$10 a cell"
+      hintTrack: "Lay a track; tyre walls by its corners stop crashes."
+      hintShops: "Shops sell to every guest. They need a path."
+      hintGarden: "Gardens raise the rating; bins keep litter down."
+      hintPaths: "Tap or drag on grass to lay path, tap a path to lift it."
+      entryFee: "Entry fee"
+      feeSteep: "too steep for this place"
+      feeFair: "guests think it's fair"
+      mechanics: "Mechanics"
+      workshopFirst: "build a workshop first"
+      coverage: (p, k) => "${p}% of ${k} karts looked after"
+      handymen: "Handymen"
+      litterLine: n => "${n} litter on the paths"
+      land: "Land"
+      landWhole: s => "${s}×${s}, the whole plot"
+      landNext: (s, n) => "${s}×${s}, next ${n}×${n}"
+      allYours: "All yours"
+      buy: c => "Buy ${c}"
+      thinking: "What the guests are thinking"
+      noGuests: "No guests yet. Build a track by a path."
+      happy: "Everyone's happy."
+      perMin: c => "${c}/min"
+      guests: "guests"
+      rating: "rating"
+      pickTrack: "Pick Kart track below and tap the map"
+      notEnough: "Not enough cash"
+      isOpen: t => "${t} is open!"
+      pathsUnder: "Paths go under bridges of level 2 or more"
+      noRoom: "No room here"
+      layPath: "Lay a path to it from the gate"
+      bestKarts: "These are the best karts there are"
+      newKarts: k => "New ${k} karts!"
+      maxKarts: "12 karts is the most a track takes"
+      alreadyNew: "The karts are like new"
+      repaired: "Karts repaired"
+      needWorkshop: "Mechanics need a workshop"
+      threeMech: "Each workshop takes 3 mechanics"
+      hiring: "Hiring costs $300"
+      moreLand: s => "More land! Now ${s}×${s}"
+    }
+    id {
+      kd: i => ["Kedai Camilan", "Minuman", "Toilet", "Toko Helm", "Bengkel", "Tribun", "Dinding Ban", "Pohon", "Bunga", "Tempat Sampah", "Air Mancur", "Bendera"][i]
+      kc: i => ["Pemula", "Sport", "Pro"][i]
+      tab: i => ["Sirkuit", "Toko", "Hiasan", "Jalan", "Taman"][i]
+      trackName: i => ["Jalur Guntur", "Gang Apex", "Bukit Karet", "Lembah Tikungan", "Putaran Turbo", "Ular Pit", "Parit Cengkeram", "Jalan Selip"][i]
+      exc: i => ["rendah", "sedang", "bagus", "hebat", "luar biasa"][i]
+      diff: i => ["mudah", "rumit", "sulit", "liar", "brutal"][i]
+      hungry: "Aku lapar"
+      thirsty: "Aku haus"
+      restroom: "Aku perlu toilet"
+      litterThought: "Jalan ini penuh sampah"
+      wantTwists: "Aku mau sirkuit dengan lebih banyak tikungan dan jembatan"
+      feeThought: "Tiket masuknya mahal"
+      wantSeat: "Aku ingin kursi untuk menonton balapan"
+      pretty: "Tempat ini cantik sekali"
+      notPaying: (p, t) => "Aku tidak mau bayar ${p} untuk ${t}"
+      tooDangerous: t => "${t} kelihatan terlalu berbahaya"
+      sawCrash: t => "Aku lihat tabrakan parah di ${t}"
+      halfBroken: t => "Separuh kart di ${t} rusak"
+      amazing: t => "${t} keren sekali!"
+      queueLong: t => "Antrean ${t} terlalu panjang"
+      buyLand: "Beli lahan ini dulu (Taman)"
+      startGround: "Garis start perlu tanah kosong dan kering"
+      minPieces: "Sirkuit perlu minimal 10 potong"
+      bringBack: "Bawa sirkuit kembali ke garis start"
+      comeDown: "Turun dulu ke level 1"
+      carryOn: "Lanjutkan dari ujung sirkuit"
+      startStraight: "Start terdiri dari 3 potong lurus"
+      cellTaken: "Petak itu sudah terisi"
+      bridgePath: "Naikkan sirkuit ke level 2 untuk melintasi jalan"
+      bridgeWater: "Naikkan sirkuit untuk menyeberangi air"
+      bridgeTrack: "Jembatan perlu 2 level di atas sirkuit di bawahnya"
+      builder: "Pembuat sirkuit"
+      tapStart: "Ketuk tanah kosong untuk garis start"
+      layMore: n => "Pasang ${n} potong start lurus lagi"
+      tapOpen: "Ketuk garis start untuk membuka sirkuit"
+      tapNext: "Ketuk atau seret di samping titik emas"
+      nextLevel: "Level potong berikutnya"
+      rampsHint: "Tanjakan naik atau turun 1 level per potong"
+      aiming: h => "Target level ${h} · 2 level melewati sirkuit atau jalan"
+      piecesLine: (n, spent, next) => "${n} potong · terpakai ${spent} · berikutnya ${next}"
+      startKarts: "Garis start dapat 2 kart pemula: $700"
+      undoPiece: "Urungkan"
+      tapConfirm: "Ketuk lagi"
+      scrap: "Bongkar"
+      done: "Selesai"
+      stillBuilt: "Masih dibangun. Pilih Sirkuit untuk lanjut."
+      scrapFor: c => "Bongkar +${c}"
+      excLine: (e, el, d, dl) => "Keseruan ${e} ${el} · Kesulitan ${d} ${dl}"
+      statsLine: (m, lap, top, cr) => "${m} m · putaran ${lap} dtk · maks ${top} km/j · ${cr} persilangan"
+      allBroken: "Semua kart rusak: perbaiki"
+      closed: "Tutup"
+      noPathStart: "Tidak ada jalan ke garis start"
+      driversLine: (n, q, c) => "${n} pembalap per menit · antre ${q} · ${c}/mnt"
+      ticket: "Tiket"
+      worth: p => "bernilai sampai ${p}"
+      tooDear: "pengunjung merasa terlalu mahal"
+      karts: k => "Kart ${k}"
+      runningLine: (n, c) => "${n} jalan · ${c} per kart"
+      condition: "Kondisi"
+      repair: c => "Perbaiki ${c}"
+      likeNew: "Seperti baru"
+      close: "Tutup"
+      open: "Buka"
+      topKarts: "Kart terbaik"
+      confirm: "Konfirmasi"
+      sell: c => "Jual +${c}"
+      noPathIt: "Tidak ada jalan ke sini"
+      customersLine: (n, c) => "${n} pembeli per menit · ${c}/mnt"
+      guestsTooDear: "Pengunjung merasa terlalu mahal"
+      guestsPay: p => "Pengunjung mau bayar sampai ${p}"
+      price: "Harga"
+      mechHere: "Mekanik bekerja dari sini, 3 per bengkel"
+      fansWatch: "Penggemar menonton balapan dan bercerita ke temannya"
+      putBeside: "Taruh di samping sirkuit agar penggemar bisa menonton"
+      tyreHint: "Di samping tikungan, tabrakan jadi tidak berbahaya"
+      binHint: "Pengunjung membuang sampah ke sini"
+      decorHint: "Hiasan menaikkan peringkat"
+      kartTrack: "Sirkuit kart"
+      footpath: "Jalan setapak"
+      fromCost: "mulai $700"
+      perCell: "$10 per petak"
+      hintTrack: "Buat sirkuit; dinding ban di tikungan mencegah tabrakan."
+      hintShops: "Toko berjualan ke semua pengunjung. Perlu jalan."
+      hintGarden: "Hiasan menaikkan peringkat; tempat sampah mengurangi sampah."
+      hintPaths: "Ketuk atau seret di rumput untuk membuat jalan, ketuk jalan untuk mengangkatnya."
+      entryFee: "Tiket masuk"
+      feeSteep: "terlalu mahal untuk tempat ini"
+      feeFair: "pengunjung merasa wajar"
+      mechanics: "Mekanik"
+      workshopFirst: "bangun bengkel dulu"
+      coverage: (p, k) => "${p}% dari ${k} kart terawat"
+      handymen: "Petugas"
+      litterLine: n => "${n} sampah di jalan"
+      land: "Lahan"
+      landWhole: s => "${s}×${s}, seluruh lahan"
+      landNext: (s, n) => "${s}×${s}, berikutnya ${n}×${n}"
+      allYours: "Milikmu semua"
+      buy: c => "Beli ${c}"
+      thinking: "Apa kata pengunjung"
+      noGuests: "Belum ada pengunjung. Bangun sirkuit di dekat jalan."
+      happy: "Semua senang."
+      perMin: c => "${c}/mnt"
+      guests: "pengunjung"
+      rating: "peringkat"
+      pickTrack: "Pilih Sirkuit kart di bawah lalu ketuk peta"
+      notEnough: "Uang tidak cukup"
+      isOpen: t => "${t} dibuka!"
+      pathsUnder: "Jalan lewat di bawah jembatan level 2 ke atas"
+      noRoom: "Tidak ada tempat di sini"
+      layPath: "Buat jalan ke sini dari gerbang"
+      bestKarts: "Ini kart terbaik yang ada"
+      newKarts: k => "Kart ${k} baru!"
+      maxKarts: "Satu sirkuit maksimal 12 kart"
+      alreadyNew: "Kartnya seperti baru"
+      repaired: "Kart diperbaiki"
+      needWorkshop: "Mekanik perlu bengkel"
+      threeMech: "Tiap bengkel menampung 3 mekanik"
+      hiring: "Merekrut biaya $300"
+      moreLand: s => "Lahan bertambah! Sekarang ${s}×${s}"
+    }
+    es {
+      kd: i => ["Snack bar", "Bebidas", "Aseos", "Cascos", "Taller", "Tribuna", "Muro de ruedas", "Árbol", "Flores", "Papelera", "Fuente", "Banderas"][i]
+      kc: i => ["Novato", "Sport", "Pro"][i]
+      tab: i => ["Pista", "Tiendas", "Jardín", "Caminos", "Parque"][i]
+      trackName: i => ["Senda Trueno", "Callejón Ápex", "Loma de Goma", "Hoya Horquilla", "Giro Turbo", "Víbora de Boxes", "Barranco Agarre", "Calle Derrape"][i]
+      exc: i => ["baja", "media", "buena", "genial", "soberbia"][i]
+      diff: i => ["fácil", "delicada", "difícil", "salvaje", "brutal"][i]
+      hungry: "Tengo hambre"
+      thirsty: "Tengo sed"
+      restroom: "Necesito un baño"
+      litterThought: "Estos caminos están llenos de basura"
+      wantTwists: "Quiero una pista con más curvas y puentes"
+      feeThought: "La entrada es cara"
+      wantSeat: "Me encantaría un asiento para ver las carreras"
+      pretty: "Este sitio es precioso"
+      notPaying: (p, t) => "No pienso pagar ${p} por la pista ${t}"
+      tooDangerous: t => "La pista ${t} parece demasiado peligrosa"
+      sawCrash: t => "Vi un choque feo en la pista ${t}"
+      halfBroken: t => "La mitad de los karts de la pista ${t} están rotos"
+      amazing: t => "¡La pista ${t} ha sido increíble!"
+      queueLong: t => "La cola de la pista ${t} es demasiado larga"
+      buyLand: "Compra antes este terreno (Parque)"
+      startGround: "La salida necesita suelo libre y seco"
+      minPieces: "Una pista necesita al menos 10 piezas"
+      bringBack: "Lleva la pista de vuelta a la salida"
+      comeDown: "Baja primero al nivel 1"
+      carryOn: "Sigue desde el final de la pista"
+      startStraight: "La salida son 3 piezas rectas"
+      cellTaken: "Esa casilla está ocupada"
+      bridgePath: "Sube la pista al nivel 2 para pasar sobre un camino"
+      bridgeWater: "Sube la pista para cruzar el agua"
+      bridgeTrack: "Un puente necesita 2 niveles sobre la pista de abajo"
+      builder: "Constructor de pistas"
+      tapStart: "Toca suelo libre para la salida"
+      layMore: n => n == 1 ? "Pon 1 pieza recta de salida más" : "Pon ${n} piezas rectas de salida más"
+      tapOpen: "Toca la salida para abrir la pista"
+      tapNext: "Toca o arrastra junto al punto dorado"
+      nextLevel: "Nivel de la siguiente pieza"
+      rampsHint: "Las rampas suben o bajan 1 nivel por pieza"
+      aiming: h => "Objetivo: nivel ${h} · 2 niveles pasan sobre pista o camino"
+      piecesLine: (n, spent, next) => "${n} piezas · gastado ${spent} · siguiente ${next}"
+      startKarts: "La salida incluye 2 karts novato: $700"
+      undoPiece: "Deshacer"
+      tapConfirm: "¿Seguro?"
+      scrap: "Demoler"
+      done: "Listo"
+      stillBuilt: "Aún en obras. Elige Pista para seguir."
+      scrapFor: c => "Demoler +${c}"
+      excLine: (e, el, d, dl) => "Emoción ${e} ${el} · Dificultad ${d} ${dl}"
+      statsLine: (m, lap, top, cr) => "${m} m · vuelta ${lap} s · máx. ${top} km/h · ${cr} ${cr == 1 ? "cruce" : "cruces"}"
+      allBroken: "Todos los karts rotos: repáralos"
+      closed: "Cerrado"
+      noPathStart: "Ningún camino llega a la salida"
+      driversLine: (n, q, c) => "${n} pilotos por minuto · cola ${q} · ${c}/min"
+      ticket: "Entrada"
+      worth: p => "vale hasta ${p}"
+      tooDear: "demasiado cara para los visitantes"
+      karts: k => "Karts ${k}"
+      runningLine: (n, c) => "${n} en marcha · ${c} cada uno"
+      condition: "Estado"
+      repair: c => "Reparar ${c}"
+      likeNew: "Como nuevos"
+      close: "Cerrar"
+      open: "Abrir"
+      topKarts: "Los mejores"
+      confirm: "Confirmar"
+      sell: c => "Vender +${c}"
+      noPathIt: "Ningún camino llega aquí"
+      customersLine: (n, c) => "${n} clientes por minuto · ${c}/min"
+      guestsTooDear: "A los visitantes les parece caro"
+      guestsPay: p => "Los visitantes pagan hasta ${p}"
+      price: "Precio"
+      mechHere: "Los mecánicos trabajan desde aquí, 3 por taller"
+      fansWatch: "Los fans ven las carreras y se lo cuentan a sus amigos"
+      putBeside: "Ponla junto a una pista para que miren los fans"
+      tyreHint: "Junto a una curva, hace inofensivos los choques"
+      binHint: "Los visitantes tiran aquí su basura"
+      decorHint: "La decoración sube la valoración"
+      kartTrack: "Pista de karts"
+      footpath: "Camino"
+      fromCost: "desde $700"
+      perCell: "$10 por casilla"
+      hintTrack: "Traza una pista; las ruedas en las curvas evitan choques."
+      hintShops: "Las tiendas venden a todos. Necesitan un camino."
+      hintGarden: "Los jardines suben la valoración; las papeleras quitan basura."
+      hintPaths: "Toca o arrastra en la hierba para hacer camino, toca uno para quitarlo."
+      entryFee: "Entrada"
+      feeSteep: "demasiado cara para este sitio"
+      feeFair: "a los visitantes les parece justa"
+      mechanics: "Mecánicos"
+      workshopFirst: "construye antes un taller"
+      coverage: (p, k) => "${p}% de ${k} karts atendidos"
+      handymen: "Limpieza"
+      litterLine: n => "${n} de basura en los caminos"
+      land: "Terreno"
+      landWhole: s => "${s}×${s}, la parcela entera"
+      landNext: (s, n) => "${s}×${s}, siguiente ${n}×${n}"
+      allYours: "Todo tuyo"
+      buy: c => "Comprar ${c}"
+      thinking: "Qué piensan los visitantes"
+      noGuests: "Aún no hay visitantes. Haz una pista junto a un camino."
+      happy: "Todos están contentos."
+      perMin: c => "${c}/min"
+      guests: "visitantes"
+      rating: "valoración"
+      pickTrack: "Elige Pista de karts abajo y toca el mapa"
+      notEnough: "No tienes bastante dinero"
+      isOpen: t => "¡La pista ${t} está abierta!"
+      pathsUnder: "Los caminos pasan bajo puentes de nivel 2 o más"
+      noRoom: "Aquí no hay sitio"
+      layPath: "Haz un camino hasta aquí desde la entrada"
+      bestKarts: "Son los mejores karts que hay"
+      newKarts: k => "¡Nuevos karts ${k}!"
+      maxKarts: "Una pista admite 12 karts como mucho"
+      alreadyNew: "Los karts están como nuevos"
+      repaired: "Karts reparados"
+      needWorkshop: "Los mecánicos necesitan un taller"
+      threeMech: "Cada taller admite 3 mecánicos"
+      hiring: "Contratar cuesta $300"
+      moreLand: s => "¡Más terreno! Ahora ${s}×${s}"
+    }
+    pt {
+      kd: i => ["Lanchonete", "Bebidas", "Banheiros", "Capacetes", "Oficina", "Arquibancada", "Muro de pneus", "Árvore", "Flores", "Lixeira", "Fonte", "Bandeiras"][i]
+      kc: i => ["Novato", "Sport", "Pro"][i]
+      tab: i => ["Pista", "Lojas", "Jardim", "Caminhos", "Parque"][i]
+      trackName: i => ["Pista Trovão", "Beco do Ápice", "Serra da Borracha", "Vale do Grampo", "Giro Turbo", "Víbora do Box", "Ravina da Aderência", "Rua da Derrapagem"][i]
+      exc: i => ["baixa", "média", "boa", "ótima", "incrível"][i]
+      diff: i => ["fácil", "traiçoeira", "difícil", "selvagem", "brutal"][i]
+      hungry: "Estou com fome"
+      thirsty: "Estou com sede"
+      restroom: "Preciso de um banheiro"
+      litterThought: "Esses caminhos estão cheios de lixo"
+      wantTwists: "Quero uma pista com mais curvas e pontes"
+      feeThought: "A entrada está cara"
+      wantSeat: "Queria um lugar para ver as corridas"
+      pretty: "Este lugar é muito bonito"
+      notPaying: (p, t) => "Não vou pagar ${p} pela pista ${t}"
+      tooDangerous: t => "A pista ${t} parece perigosa demais"
+      sawCrash: t => "Vi um acidente feio na pista ${t}"
+      halfBroken: t => "Metade dos karts da pista ${t} está quebrada"
+      amazing: t => "A pista ${t} foi incrível!"
+      queueLong: t => "A fila da pista ${t} está longa demais"
+      buyLand: "Compre este terreno antes (Parque)"
+      startGround: "A largada precisa de chão livre e seco"
+      minPieces: "Uma pista precisa de pelo menos 10 peças"
+      bringBack: "Leve a pista de volta à largada"
+      comeDown: "Desça primeiro ao nível 1"
+      carryOn: "Continue do fim da pista"
+      startStraight: "A largada são 3 peças retas"
+      cellTaken: "Essa casa está ocupada"
+      bridgePath: "Suba a pista ao nível 2 para passar sobre um caminho"
+      bridgeWater: "Suba a pista para atravessar a água"
+      bridgeTrack: "Uma ponte precisa de 2 níveis sobre a pista de baixo"
+      builder: "Construtor de pistas"
+      tapStart: "Toque em chão livre para a largada"
+      layMore: n => n == 1 ? "Coloque mais 1 peça reta de largada" : "Coloque mais ${n} peças retas de largada"
+      tapOpen: "Toque na largada para abrir a pista"
+      tapNext: "Toque ou arraste ao lado do ponto dourado"
+      nextLevel: "Nível da próxima peça"
+      rampsHint: "Rampas sobem ou descem 1 nível por peça"
+      aiming: h => "Alvo: nível ${h} · 2 níveis passam sobre pista ou caminho"
+      piecesLine: (n, spent, next) => "${n} peças · gasto ${spent} · próxima ${next}"
+      startKarts: "A largada vem com 2 karts novato: $700"
+      undoPiece: "Desfazer"
+      tapConfirm: "Confirmar?"
+      scrap: "Demolir"
+      done: "Pronto"
+      stillBuilt: "Ainda em obras. Escolha Pista para continuar."
+      scrapFor: c => "Demolir +${c}"
+      excLine: (e, el, d, dl) => "Emoção ${e} ${el} · Dificuldade ${d} ${dl}"
+      statsLine: (m, lap, top, cr) => "${m} m · volta ${lap} s · máx. ${top} km/h · ${cr} ${cr == 1 ? "cruzamento" : "cruzamentos"}"
+      allBroken: "Todos os karts quebrados: conserte-os"
+      closed: "Fechado"
+      noPathStart: "Nenhum caminho chega à largada"
+      driversLine: (n, q, c) => "${n} pilotos por minuto · fila ${q} · ${c}/min"
+      ticket: "Ingresso"
+      worth: p => "vale até ${p}"
+      tooDear: "os visitantes acham caro demais"
+      karts: k => "Karts ${k}"
+      runningLine: (n, c) => "${n} rodando · ${c} cada"
+      condition: "Estado"
+      repair: c => "Consertar ${c}"
+      likeNew: "Como novos"
+      close: "Fechar"
+      open: "Abrir"
+      topKarts: "Os melhores"
+      confirm: "Confirmar"
+      sell: c => "Vender +${c}"
+      noPathIt: "Nenhum caminho chega aqui"
+      customersLine: (n, c) => "${n} clientes por minuto · ${c}/min"
+      guestsTooDear: "Os visitantes acham caro demais"
+      guestsPay: p => "Os visitantes pagam até ${p}"
+      price: "Preço"
+      mechHere: "Os mecânicos trabalham daqui, 3 por oficina"
+      fansWatch: "Os fãs assistem às corridas e contam aos amigos"
+      putBeside: "Coloque ao lado de uma pista para os fãs assistirem"
+      tyreHint: "Ao lado de uma curva, deixa os acidentes inofensivos"
+      binHint: "Os visitantes jogam o lixo aqui"
+      decorHint: "Decoração aumenta a avaliação"
+      kartTrack: "Pista de kart"
+      footpath: "Caminho"
+      fromCost: "a partir de $700"
+      perCell: "$10 por casa"
+      hintTrack: "Monte uma pista; pneus nas curvas evitam acidentes."
+      hintShops: "Lojas vendem a todos os visitantes. Precisam de um caminho."
+      hintGarden: "Jardins aumentam a avaliação; lixeiras reduzem o lixo."
+      hintPaths: "Toque ou arraste na grama para fazer caminho, toque num caminho para tirar."
+      entryFee: "Entrada"
+      feeSteep: "cara demais para este lugar"
+      feeFair: "os visitantes acham justa"
+      mechanics: "Mecânicos"
+      workshopFirst: "construa uma oficina antes"
+      coverage: (p, k) => "${p}% de ${k} karts cuidados"
+      handymen: "Faxineiros"
+      litterLine: n => "${n} de lixo nos caminhos"
+      land: "Terreno"
+      landWhole: s => "${s}×${s}, o terreno todo"
+      landNext: (s, n) => "${s}×${s}, próximo ${n}×${n}"
+      allYours: "É todo seu"
+      buy: c => "Comprar ${c}"
+      thinking: "O que os visitantes pensam"
+      noGuests: "Ainda sem visitantes. Faça uma pista junto a um caminho."
+      happy: "Todo mundo está feliz."
+      perMin: c => "${c}/min"
+      guests: "visitantes"
+      rating: "avaliação"
+      pickTrack: "Escolha Pista de kart abaixo e toque no mapa"
+      notEnough: "Dinheiro insuficiente"
+      isOpen: t => "A pista ${t} está aberta!"
+      pathsUnder: "Caminhos passam sob pontes de nível 2 ou mais"
+      noRoom: "Não há espaço aqui"
+      layPath: "Faça um caminho da entrada até aqui"
+      bestKarts: "Estes são os melhores karts que existem"
+      newKarts: k => "Novos karts ${k}!"
+      maxKarts: "Uma pista aceita no máximo 12 karts"
+      alreadyNew: "Os karts estão como novos"
+      repaired: "Karts consertados"
+      needWorkshop: "Os mecânicos precisam de uma oficina"
+      threeMech: "Cada oficina comporta 3 mecânicos"
+      hiring: "Contratar custa $300"
+      moreLand: s => "Mais terreno! Agora ${s}×${s}"
+    }
+    de {
+      kd: i => ["Imbiss", "Getränke", "Toiletten", "Helmladen", "Werkstatt", "Tribüne", "Reifenstapel", "Baum", "Blumen", "Mülleimer", "Brunnen", "Fahnen"][i]
+      kc: i => ["Einsteiger", "Sport", "Profi"][i]
+      tab: i => ["Strecke", "Läden", "Garten", "Wege", "Park"][i]
+      trackName: i => ["Donnerbahn", "Apex-Gasse", "Gummigrat", "Haarnadeltal", "Turbo-Twist", "Boxenviper", "Griffschlucht", "Schleuderweg"][i]
+      exc: i => ["niedrig", "mittel", "gut", "super", "grandios"][i]
+      diff: i => ["leicht", "knifflig", "schwer", "wild", "brutal"][i]
+      hungry: "Ich hab Hunger"
+      thirsty: "Ich hab Durst"
+      restroom: "Ich muss aufs Klo"
+      litterThought: "Die Wege sind voller Müll"
+      wantTwists: "Ich will eine Strecke mit mehr Kurven und Brücken"
+      feeThought: "Der Eintritt ist happig"
+      wantSeat: "Ich hätte gern einen Platz zum Zuschauen"
+      pretty: "Hier ist es richtig schön"
+      notPaying: (p, t) => "Ich zahle keine ${p} für ${t}"
+      tooDangerous: t => "${t} sieht zu gefährlich aus"
+      sawCrash: t => "Ich hab einen bösen Unfall auf ${t} gesehen"
+      halfBroken: t => "Die Hälfte der Karts auf ${t} ist kaputt"
+      amazing: t => "${t} war der Hammer!"
+      queueLong: t => "Die Schlange an ${t} ist zu lang"
+      buyLand: "Kauf erst dieses Land (Park)"
+      startGround: "Die Startlinie braucht freien, trockenen Boden"
+      minPieces: "Eine Strecke braucht mindestens 10 Teile"
+      bringBack: "Führ die Strecke zurück zur Startlinie"
+      comeDown: "Geh erst runter auf Ebene 1"
+      carryOn: "Mach am Ende der Strecke weiter"
+      startStraight: "Der Start sind 3 gerade Teile"
+      cellTaken: "Das Feld ist belegt"
+      bridgePath: "Heb die Strecke auf Ebene 2, um einen Weg zu überbrücken"
+      bridgeWater: "Heb die Strecke an, um Wasser zu überqueren"
+      bridgeTrack: "Eine Brücke braucht 2 Ebenen über der Strecke darunter"
+      builder: "Streckenbau"
+      tapStart: "Tipp auf freien Boden für die Startlinie"
+      layMore: n => n == 1 ? "Leg noch 1 gerades Startteil" : "Leg noch ${n} gerade Startteile"
+      tapOpen: "Tipp auf die Startlinie, um die Strecke zu eröffnen"
+      tapNext: "Tipp oder zieh neben den goldenen Punkt"
+      nextLevel: "Ebene des nächsten Teils"
+      rampsHint: "Rampen steigen oder fallen 1 Ebene pro Teil"
+      aiming: h => "Ziel: Ebene ${h} · 2 Ebenen führen über Strecke oder Weg"
+      piecesLine: (n, spent, next) => "${n} Teile · ausgegeben ${spent} · nächstes ${next}"
+      startKarts: "Zur Startlinie gehören 2 Einsteiger-Karts: $700"
+      undoPiece: "Teil zurück"
+      tapConfirm: "Sicher?"
+      scrap: "Abreißen"
+      done: "Fertig"
+      stillBuilt: "Noch im Bau. Wähl Strecke, um weiterzubauen."
+      scrapFor: c => "Abreißen +${c}"
+      excLine: (e, el, d, dl) => "Spannung ${e} ${el} · Schwierigkeit ${d} ${dl}"
+      statsLine: (m, lap, top, cr) => "${m} m · Runde ${lap} s · max. ${top} km/h · ${cr} ${cr == 1 ? "Kreuzung" : "Kreuzungen"}"
+      allBroken: "Alle Karts kaputt: repariere sie"
+      closed: "Geschlossen"
+      noPathStart: "Kein Weg führt zur Startlinie"
+      driversLine: (n, q, c) => "${n} Fahrer pro Minute · Schlange ${q} · ${c}/min"
+      ticket: "Ticket"
+      worth: p => "bis zu ${p} wert"
+      tooDear: "gäste finden es zu teuer"
+      karts: k => "${k}-Karts"
+      runningLine: (n, c) => "${n} fahrbereit · je ${c}"
+      condition: "Zustand"
+      repair: c => "Reparatur ${c}"
+      likeNew: "Wie neu"
+      close: "Schließen"
+      open: "Öffnen"
+      topKarts: "Top-Karts"
+      confirm: "Bestätigen"
+      sell: c => "Verkauf +${c}"
+      noPathIt: "Kein Weg führt dorthin"
+      customersLine: (n, c) => "${n} Kunden pro Minute · ${c}/min"
+      guestsTooDear: "Gäste finden es zu teuer"
+      guestsPay: p => "Gäste zahlen bis zu ${p}"
+      price: "Preis"
+      mechHere: "Mechaniker arbeiten von hier, 3 pro Werkstatt"
+      fansWatch: "Fans schauen die Rennen und erzählen es weiter"
+      putBeside: "Stell sie neben eine Strecke, damit Fans zuschauen"
+      tyreHint: "Neben einer Kurve macht er Unfälle harmlos"
+      binHint: "Gäste werfen ihren Müll hinein"
+      decorHint: "Deko hebt die Bewertung"
+      kartTrack: "Kartbahn"
+      footpath: "Fußweg"
+      fromCost: "ab $700"
+      perCell: "$10 pro Feld"
+      hintTrack: "Bau eine Strecke; Reifenstapel an Kurven verhindern Unfälle."
+      hintShops: "Läden verkaufen an jeden Gast. Sie brauchen einen Weg."
+      hintGarden: "Gärten heben die Bewertung; Mülleimer halten es sauber."
+      hintPaths: "Tipp oder zieh auf Gras für Wege, tipp einen Weg zum Entfernen."
+      entryFee: "Eintritt"
+      feeSteep: "zu happig für diesen park"
+      feeFair: "gäste finden ihn fair"
+      mechanics: "Mechaniker"
+      workshopFirst: "bau erst eine werkstatt"
+      coverage: (p, k) => "${p}% von ${k} karts versorgt"
+      handymen: "Hausmeister"
+      litterLine: n => "${n} müll auf den wegen"
+      land: "Land"
+      landWhole: s => "${s}×${s}, das ganze grundstück"
+      landNext: (s, n) => "${s}×${s}, als nächstes ${n}×${n}"
+      allYours: "Alles deins"
+      buy: c => "Kaufen ${c}"
+      thinking: "Was die Gäste denken"
+      noGuests: "Noch keine Gäste. Bau eine Strecke an einen Weg."
+      happy: "Alle sind zufrieden."
+      perMin: c => "${c}/min"
+      guests: "gäste"
+      rating: "bewertung"
+      pickTrack: "Wähl unten Kartbahn und tipp auf die Karte"
+      notEnough: "Nicht genug Geld"
+      isOpen: t => "${t} ist eröffnet!"
+      pathsUnder: "Wege gehen unter Brücken ab Ebene 2 durch"
+      noRoom: "Hier ist kein Platz"
+      layPath: "Leg einen Weg vom Tor dorthin"
+      bestKarts: "Bessere Karts gibt es nicht"
+      newKarts: k => "Neue ${k}-Karts!"
+      maxKarts: "Mehr als 12 Karts passen auf keine Strecke"
+      alreadyNew: "Die Karts sind wie neu"
+      repaired: "Karts repariert"
+      needWorkshop: "Mechaniker brauchen eine Werkstatt"
+      threeMech: "Jede Werkstatt nimmt 3 Mechaniker"
+      hiring: "Einstellen kostet $300"
+      moreLand: s => "Mehr Land! Jetzt ${s}×${s}"
+    }
+    zh {
+      kd: i => ["小吃店", "饮料", "洗手间", "头盔店", "维修站", "看台", "轮胎墙", "树", "花", "垃圾桶", "喷泉", "旗帜"][i]
+      kc: i => ["新手", "运动", "专业"][i]
+      tab: i => ["赛道", "商店", "花园", "小路", "乐园"][i]
+      trackName: i => ["雷霆赛道", "弯心小巷", "橡胶山脊", "发夹弯谷", "涡轮旋风", "维修区毒蛇", "抓地峡谷", "漂移大街"][i]
+      exc: i => ["低", "中", "好", "很好", "极佳"][i]
+      diff: i => ["简单", "棘手", "困难", "狂野", "残酷"][i]
+      hungry: "我饿了"
+      thirsty: "我渴了"
+      restroom: "我要上洗手间"
+      litterThought: "这些路上满是垃圾"
+      wantTwists: "我想要弯道和桥更多的赛道"
+      feeThought: "门票太贵了"
+      wantSeat: "真想有个座位看比赛"
+      pretty: "这里真漂亮"
+      notPaying: (p, t) => "我才不花 ${p} 玩${t}"
+      tooDangerous: t => "${t}看起来太危险了"
+      sawCrash: t => "我在${t}看到一场严重的撞车"
+      halfBroken: t => "${t}一半的卡丁车都坏了"
+      amazing: t => "${t}太棒了！"
+      queueLong: t => "${t}的队排得太长了"
+      buyLand: "先买下这块地（乐园）"
+      startGround: "起跑线需要空旷干燥的地面"
+      minPieces: "赛道至少需要 10 段"
+      bringBack: "把赛道接回起跑线"
+      comeDown: "先降到第 1 层"
+      carryOn: "从赛道末端继续"
+      startStraight: "起点是 3 段直道"
+      cellTaken: "这一格已被占用"
+      bridgePath: "把赛道升到第 2 层才能跨过小路"
+      bridgeWater: "升高赛道才能跨过水面"
+      bridgeTrack: "桥要比下方赛道高 2 层"
+      builder: "赛道建造"
+      tapStart: "点击空地放置起跑线"
+      layMore: n => "再铺 ${n} 段起点直道"
+      tapOpen: "点击起跑线开放赛道"
+      tapNext: "在金色圆点旁点击或拖动"
+      nextLevel: "下一段的高度"
+      rampsHint: "坡道每段升高或降低 1 层"
+      aiming: h => "目标第 ${h} 层 · 高 2 层可跨过赛道或小路"
+      piecesLine: (n, spent, next) => "${n} 段 · 已花 ${spent} · 下一段 ${next}"
+      startKarts: "起跑线附带 2 辆新手卡丁车：$700"
+      undoPiece: "撤销"
+      tapConfirm: "确定吗？"
+      scrap: "拆除"
+      done: "完成"
+      stillBuilt: "仍在建造中。选择赛道继续。"
+      scrapFor: c => "拆除 +${c}"
+      excLine: (e, el, d, dl) => "刺激度 ${e} ${el} · 难度 ${d} ${dl}"
+      statsLine: (m, lap, top, cr) => "${m} 米 · 单圈 ${lap} 秒 · 极速 ${top} km/h · ${cr} 处交叉"
+      allBroken: "卡丁车全坏了：请修理"
+      closed: "已关闭"
+      noPathStart: "没有小路通往起跑线"
+      driversLine: (n, q, c) => "每分钟 ${n} 位车手 · 排队 ${q} · ${c}/分"
+      ticket: "票价"
+      worth: p => "最多值 ${p}"
+      tooDear: "游客觉得太贵"
+      karts: k => "${k}卡丁车"
+      runningLine: (n, c) => "${n} 辆可用 · 每辆 ${c}"
+      condition: "车况"
+      repair: c => "修理 ${c}"
+      likeNew: "完好如新"
+      close: "关闭"
+      open: "开放"
+      topKarts: "顶级车型"
+      confirm: "确定"
+      sell: c => "出售 +${c}"
+      noPathIt: "没有小路通到这里"
+      customersLine: (n, c) => "每分钟 ${n} 位顾客 · ${c}/分"
+      guestsTooDear: "游客觉得太贵"
+      guestsPay: p => "游客最多愿付 ${p}"
+      price: "价格"
+      mechHere: "技师在这里工作，每个维修站 3 名"
+      fansWatch: "车迷观看比赛并告诉朋友"
+      putBeside: "放在赛道旁边，让车迷观看"
+      tyreHint: "放在弯道旁，让撞车变得无害"
+      binHint: "游客把垃圾扔进这里"
+      decorHint: "装饰能提高评分"
+      kartTrack: "卡丁车赛道"
+      footpath: "小路"
+      fromCost: "$700 起"
+      perCell: "每格 $10"
+      hintTrack: "铺设赛道;弯道旁的轮胎墙能防止撞车。"
+      hintShops: "商店卖给每位游客，需要小路相连。"
+      hintGarden: "花园提高评分;垃圾桶减少垃圾。"
+      hintPaths: "在草地上点击或拖动铺路，点击小路可移除。"
+      entryFee: "门票"
+      feeSteep: "对这里来说太贵了"
+      feeFair: "游客觉得合理"
+      mechanics: "技师"
+      workshopFirst: "先建一个维修站"
+      coverage: (p, k) => "${k} 辆卡丁车中 ${p}% 有人维护"
+      handymen: "清洁工"
+      litterLine: n => "路上有 ${n} 处垃圾"
+      land: "土地"
+      landWhole: s => "${s}×${s},整块地"
+      landNext: (s, n) => "${s}×${s},下一级 ${n}×${n}"
+      allYours: "全归你了"
+      buy: c => "购买 ${c}"
+      thinking: "游客在想什么"
+      noGuests: "还没有游客。在小路旁建一条赛道吧。"
+      happy: "大家都很开心。"
+      perMin: c => "${c}/分"
+      guests: "游客"
+      rating: "评分"
+      pickTrack: "在下方选择卡丁车赛道，然后点击地图"
+      notEnough: "钱不够"
+      isOpen: t => "${t}开放了！"
+      pathsUnder: "小路可从 2 层及以上的桥下穿过"
+      noRoom: "这里没有空间"
+      layPath: "从大门铺一条小路到这里"
+      bestKarts: "这已经是最好的卡丁车了"
+      newKarts: k => "新的${k}卡丁车！"
+      maxKarts: "一条赛道最多 12 辆卡丁车"
+      alreadyNew: "卡丁车完好如新"
+      repaired: "卡丁车已修好"
+      needWorkshop: "技师需要维修站"
+      threeMech: "每个维修站可容纳 3 名技师"
+      hiring: "雇佣费用 $300"
+      moreLand: s => "土地扩大了！现在是 ${s}×${s}"
+    }
+    ru {
+      kd: i => ["Закусочная", "Напитки", "Туалеты", "Шлемы", "Мастерская", "Трибуна", "Шинный барьер", "Дерево", "Цветы", "Урна", "Фонтан", "Флаги"][i]
+      kc: i => ["Базовые", "Спортивные", "Профи"][i]
+      tab: i => ["Трасса", "Магазины", "Сад", "Дорожки", "Парк"][i]
+      trackName: i => ["Громовая трасса", "Аллея апекса", "Резиновый хребет", "Шпилечная лощина", "Турбовираж", "Питовая гадюка", "Цепкий овраг", "Улица заносов"][i]
+      exc: i => ["низкий", "средний", "хороший", "отличный", "превосходный"][i]
+      diff: i => ["лёгкая", "хитрая", "трудная", "дикая", "зверская"][i]
+      hungry: "Хочу есть"
+      thirsty: "Хочу пить"
+      restroom: "Мне нужен туалет"
+      litterThought: "Дорожки завалены мусором"
+      wantTwists: "Хочу трассу с поворотами и мостами"
+      feeThought: "Вход слишком дорогой"
+      wantSeat: "Хочу место, чтобы смотреть гонки"
+      pretty: "Здесь очень красиво"
+      notPaying: (p, t) => "Не стану платить ${p} за «${t}»"
+      tooDangerous: t => "На «${t}» слишком опасно"
+      sawCrash: t => "На «${t}» была жуткая авария"
+      halfBroken: t => "Половина картов на «${t}» сломана"
+      amazing: t => "«${t}» — это было здорово!"
+      queueLong: t => "Очередь на «${t}» слишком длинная"
+      buyLand: "Сначала купите эту землю (Парк)"
+      startGround: "Для старта нужна свободная сухая земля"
+      minPieces: "В трассе должно быть не меньше 10 участков"
+      bringBack: "Приведите трассу обратно к старту"
+      comeDown: "Сначала спуститесь на уровень 1"
+      carryOn: "Продолжайте с конца трассы"
+      startStraight: "Старт — это 3 прямых участка"
+      cellTaken: "Эта клетка занята"
+      bridgePath: "Поднимите трассу на уровень 2, чтобы пройти над дорожкой"
+      bridgeWater: "Поднимите трассу, чтобы пересечь воду"
+      bridgeTrack: "Мосту нужно 2 уровня над трассой внизу"
+      builder: "Строитель трасс"
+      tapStart: "Нажмите на свободную землю для старта"
+      layMore: n => n == 1 ? "Положите ещё 1 прямой стартовый участок" : "Положите ещё ${n} прямых стартовых участка"
+      tapOpen: "Нажмите на старт, чтобы открыть трассу"
+      tapNext: "Нажмите или проведите рядом с золотой точкой"
+      nextLevel: "Уровень следующего участка"
+      rampsHint: "Рампы поднимаются или спускаются на 1 уровень за участок"
+      aiming: h => "Цель: уровень ${h} · 2 уровня проходят над трассой или дорожкой"
+      piecesLine: (n, spent, next) => "Участков: ${n} · потрачено ${spent} · следующий ${next}"
+      startKarts: "Со стартом идут 2 базовых карта: $700"
+      undoPiece: "Отменить"
+      tapConfirm: "Точно?"
+      scrap: "Снести"
+      done: "Готово"
+      stillBuilt: "Ещё строится. Выберите «Трасса», чтобы продолжить."
+      scrapFor: c => "Снести +${c}"
+      excLine: (e, el, d, dl) => "Азарт ${e} ${el} · Сложность ${d} ${dl}"
+      statsLine: (m, lap, top, cr) => "${m} м · круг ${lap} с · макс. ${top} км/ч · пересечений: ${cr}"
+      allBroken: "Все карты сломаны: почините их"
+      closed: "Закрыто"
+      noPathStart: "К старту не ведёт ни одна дорожка"
+      driversLine: (n, q, c) => "Гонщиков в минуту: ${n} · очередь ${q} · ${c}/мин"
+      ticket: "Билет"
+      worth: p => "стоит до ${p}"
+      tooDear: "гости считают, что дорого"
+      karts: k => "${k} карты"
+      runningLine: (n, c) => "на ходу: ${n} · ${c} за штуку"
+      condition: "Состояние"
+      repair: c => "Ремонт ${c}"
+      likeNew: "Как новые"
+      close: "Закрыть"
+      open: "Открыть"
+      topKarts: "Лучшие"
+      confirm: "Точно?"
+      sell: c => "Продать +${c}"
+      noPathIt: "Сюда не ведёт дорожка"
+      customersLine: (n, c) => "Покупателей в минуту: ${n} · ${c}/мин"
+      guestsTooDear: "Гости считают, что дорого"
+      guestsPay: p => "Гости платят до ${p}"
+      price: "Цена"
+      mechHere: "Отсюда работают механики, 3 на мастерскую"
+      fansWatch: "Фанаты смотрят гонки и зовут друзей"
+      putBeside: "Поставьте её у трассы, чтобы фанаты смотрели"
+      tyreHint: "У поворота делает аварии безопасными"
+      binHint: "Гости бросают сюда мусор"
+      decorHint: "Украшения поднимают рейтинг"
+      kartTrack: "Картодром"
+      footpath: "Дорожка"
+      fromCost: "от $700"
+      perCell: "$10 за клетку"
+      hintTrack: "Проложите трассу; шины у поворотов спасают от аварий."
+      hintShops: "Магазины продают всем гостям. Им нужна дорожка."
+      hintGarden: "Сады поднимают рейтинг; урны убирают мусор."
+      hintPaths: "Нажмите или проведите по траве, чтобы проложить дорожку, нажмите на неё, чтобы убрать."
+      entryFee: "Плата за вход"
+      feeSteep: "слишком дорого для этого места"
+      feeFair: "гости считают, что честно"
+      mechanics: "Механики"
+      workshopFirst: "сначала постройте мастерскую"
+      coverage: (p, k) => "обслужено ${p}% картов (всего ${k})"
+      handymen: "Уборщики"
+      litterLine: n => "мусора на дорожках: ${n}"
+      land: "Земля"
+      landWhole: s => "${s}×${s}, весь участок"
+      landNext: (s, n) => "${s}×${s}, дальше ${n}×${n}"
+      allYours: "Всё ваше"
+      buy: c => "Купить ${c}"
+      thinking: "О чём думают гости"
+      noGuests: "Гостей пока нет. Постройте трассу у дорожки."
+      happy: "Все довольны."
+      perMin: c => "${c}/мин"
+      guests: "гости"
+      rating: "рейтинг"
+      pickTrack: "Выберите «Картодром» внизу и нажмите на карту"
+      notEnough: "Не хватает денег"
+      isOpen: t => "Трасса «${t}» открыта!"
+      pathsUnder: "Дорожки проходят под мостами от уровня 2"
+      noRoom: "Здесь нет места"
+      layPath: "Проложите сюда дорожку от входа"
+      bestKarts: "Лучше картов не бывает"
+      newKarts: k => "Новые карты: ${k}!"
+      maxKarts: "На трассе не больше 12 картов"
+      alreadyNew: "Карты как новые"
+      repaired: "Карты отремонтированы"
+      needWorkshop: "Механикам нужна мастерская"
+      threeMech: "В каждой мастерской 3 механика"
+      hiring: "Наём стоит $300"
+      moreLand: s => "Больше земли! Теперь ${s}×${s}"
+    }
+    ja {
+      kd: i => ["軽食スタンド", "ドリンク", "トイレ", "ヘルメット店", "整備工場", "観客席", "タイヤバリア", "木", "花", "ゴミ箱", "噴水", "旗"][i]
+      kc: i => ["ルーキー", "スポーツ", "プロ"][i]
+      tab: i => ["コース", "店", "庭", "道", "パーク"][i]
+      trackName: i => ["サンダーレーン", "エイペックス小路", "ラバーリッジ", "ヘアピン谷", "ターボツイスト", "ピットバイパー", "グリップ渓谷", "スキッドロウ"][i]
+      exc: i => ["低い", "普通", "良い", "すごい", "最高"][i]
+      diff: i => ["易しい", "やや難", "難しい", "激しい", "過酷"][i]
+      hungry: "お腹がすきました"
+      thirsty: "のどが渇きました"
+      restroom: "トイレに行きたいです"
+      litterThought: "道がゴミだらけです"
+      wantTwists: "カーブや橋がもっと多いコースがいいです"
+      feeThought: "入場料が高いです"
+      wantSeat: "レースを見る席がほしいです"
+      pretty: "ここは本当にきれいです"
+      notPaying: (p, t) => "${t}に ${p} は払えません"
+      tooDangerous: t => "${t}は危なすぎます"
+      sawCrash: t => "${t}でひどい事故を見ました"
+      halfBroken: t => "${t}のカートの半分が壊れています"
+      amazing: t => "${t}は最高でした！"
+      queueLong: t => "${t}の列が長すぎます"
+      buyLand: "先にこの土地を買ってください（パーク）"
+      startGround: "スタートラインには空いた乾いた地面が必要です"
+      minPieces: "コースには 10 ピース以上必要です"
+      bringBack: "コースをスタートラインに戻してください"
+      comeDown: "先に高さ 1 まで下げてください"
+      carryOn: "コースの端から続けてください"
+      startStraight: "スタートは直線 3 ピースです"
+      cellTaken: "そのマスは使われています"
+      bridgePath: "道をまたぐにはコースを高さ 2 に上げてください"
+      bridgeWater: "水を渡るにはコースを上げてください"
+      bridgeTrack: "橋は下のコースより 2 段高くする必要があります"
+      builder: "コース作り"
+      tapStart: "空いた地面をタップしてスタートラインを置きます"
+      layMore: n => "直線のスタートピースをあと ${n} 個置きます"
+      tapOpen: "スタートラインをタップしてコースを開きます"
+      tapNext: "金色の点の隣をタップかドラッグします"
+      nextLevel: "次のピースの高さ"
+      rampsHint: "スロープは 1 ピースで 1 段上がるか下がります"
+      aiming: h => "目標の高さ ${h} · 2 段でコースや道をまたげます"
+      piecesLine: (n, spent, next) => "${n} ピース · 使用 ${spent} · 次 ${next}"
+      startKarts: "スタートラインにはルーキーカート 2 台付き：$700"
+      undoPiece: "取り消す"
+      tapConfirm: "本当に？"
+      scrap: "撤去"
+      done: "完了"
+      stillBuilt: "まだ建設中です。コースを選んで続けます。"
+      scrapFor: c => "撤去 +${c}"
+      excLine: (e, el, d, dl) => "興奮度 ${e} ${el} · 難易度 ${d} ${dl}"
+      statsLine: (m, lap, top, cr) => "${m} m · ラップ ${lap} 秒 · 最高 ${top} km/h · 交差 ${cr} か所"
+      allBroken: "カートが全部壊れています：修理してください"
+      closed: "休業中"
+      noPathStart: "スタートラインに通じる道がありません"
+      driversLine: (n, q, c) => "毎分 ${n} 人が走行 · 待ち ${q} · ${c}/分"
+      ticket: "料金"
+      worth: p => "${p} までの価値"
+      tooDear: "お客さんは高すぎると感じています"
+      karts: k => "${k}カート"
+      runningLine: (n, c) => "${n} 台稼働 · 1 台 ${c}"
+      condition: "状態"
+      repair: c => "修理 ${c}"
+      likeNew: "新品同様"
+      close: "閉める"
+      open: "開く"
+      topKarts: "最上位"
+      confirm: "確認"
+      sell: c => "売却 +${c}"
+      noPathIt: "ここに通じる道がありません"
+      customersLine: (n, c) => "毎分 ${n} 人のお客さん · ${c}/分"
+      guestsTooDear: "お客さんは高すぎると感じています"
+      guestsPay: p => "お客さんは ${p} まで払います"
+      price: "価格"
+      mechHere: "整備士はここから働きます。1 工場に 3 人"
+      fansWatch: "ファンがレースを見て友達に広めます"
+      putBeside: "ファンが見られるようにコースの隣に置きます"
+      tyreHint: "カーブの横に置くと事故が無害になります"
+      binHint: "お客さんがここにゴミを捨てます"
+      decorHint: "飾りで評価が上がります"
+      kartTrack: "カートコース"
+      footpath: "歩道"
+      fromCost: "$700 から"
+      perCell: "1 マス $10"
+      hintTrack: "コースを敷きます。カーブ横のタイヤバリアが事故を防ぎます。"
+      hintShops: "店はすべてのお客さんに売ります。道が必要です。"
+      hintGarden: "庭で評価が上がります。ゴミ箱でゴミが減ります。"
+      hintPaths: "草をタップかドラッグで道を敷き、道をタップで撤去します。"
+      entryFee: "入場料"
+      feeSteep: "ここには高すぎます"
+      feeFair: "お客さんは妥当だと感じています"
+      mechanics: "整備士"
+      workshopFirst: "先に整備工場を建ててください"
+      coverage: (p, k) => "${k} 台中 ${p}% を整備"
+      handymen: "清掃員"
+      litterLine: n => "道のゴミ ${n} 個"
+      land: "土地"
+      landWhole: s => "${s}×${s}、敷地全体"
+      landNext: (s, n) => "${s}×${s}、次は ${n}×${n}"
+      allYours: "すべて所有"
+      buy: c => "購入 ${c}"
+      thinking: "お客さんの声"
+      noGuests: "まだお客さんがいません。道のそばにコースを作りましょう。"
+      happy: "みんな満足しています。"
+      perMin: c => "${c}/分"
+      guests: "お客さん"
+      rating: "評価"
+      pickTrack: "下のカートコースを選んで地図をタップします"
+      notEnough: "お金が足りません"
+      isOpen: t => "${t}がオープンしました！"
+      pathsUnder: "道は高さ 2 以上の橋の下を通れます"
+      noRoom: "ここには置けません"
+      layPath: "入口からここまで道を敷いてください"
+      bestKarts: "これが最高のカートです"
+      newKarts: k => "新しい${k}カート！"
+      maxKarts: "1 コースにカートは 12 台までです"
+      alreadyNew: "カートは新品同様です"
+      repaired: "カートを修理しました"
+      needWorkshop: "整備士には整備工場が必要です"
+      threeMech: "整備工場 1 つにつき整備士 3 人です"
+      hiring: "雇うには $300 かかります"
+      moreLand: s => "土地が広がりました！ ${s}×${s} になりました"
+    }
+    uk {
+      kd: i => ["Закусочна", "Напої", "Вбиральні", "Шоломи", "Майстерня", "Трибуна", "Шинний бар'єр", "Дерево", "Квіти", "Смітник", "Фонтан", "Прапори"][i]
+      kc: i => ["Базові", "Спортивні", "Профі"][i]
+      tab: i => ["Траса", "Крамниці", "Сад", "Доріжки", "Парк"][i]
+      trackName: i => ["Громова траса", "Алея апексу", "Гумовий хребет", "Шпилькова балка", "Турбовіраж", "Пітова гадюка", "Чіпкий яр", "Вулиця заносів"][i]
+      exc: i => ["низький", "середній", "добрий", "чудовий", "неперевершений"][i]
+      diff: i => ["легка", "хитра", "важка", "дика", "жорстока"][i]
+      hungry: "Хочу їсти"
+      thirsty: "Хочу пити"
+      restroom: "Мені потрібна вбиральня"
+      litterThought: "Доріжки завалені сміттям"
+      wantTwists: "Хочу трасу з поворотами й мостами"
+      feeThought: "Вхід надто дорогий"
+      wantSeat: "Хочу місце, щоб дивитися перегони"
+      pretty: "Тут дуже гарно"
+      notPaying: (p, t) => "Не платитиму ${p} за «${t}»"
+      tooDangerous: t => "На «${t}» надто небезпечно"
+      sawCrash: t => "На «${t}» була жахлива аварія"
+      halfBroken: t => "Половина картів на «${t}» зламана"
+      amazing: t => "«${t}» — це було чудово!"
+      queueLong: t => "Черга на «${t}» надто довга"
+      buyLand: "Спершу купіть цю землю (Парк)"
+      startGround: "Для старту потрібна вільна суха земля"
+      minPieces: "Траса має мати щонайменше 10 відрізків"
+      bringBack: "Поверніть трасу до старту"
+      comeDown: "Спершу спустіться на рівень 1"
+      carryOn: "Продовжуйте з кінця траси"
+      startStraight: "Старт — це 3 прямі відрізки"
+      cellTaken: "Ця клітинка зайнята"
+      bridgePath: "Підніміть трасу на рівень 2, щоб пройти над доріжкою"
+      bridgeWater: "Підніміть трасу, щоб перетнути воду"
+      bridgeTrack: "Мосту потрібно 2 рівні над трасою внизу"
+      builder: "Будівник трас"
+      tapStart: "Торкніться вільної землі для старту"
+      layMore: n => n == 1 ? "Покладіть ще 1 прямий стартовий відрізок" : "Покладіть ще ${n} прямі стартові відрізки"
+      tapOpen: "Торкніться старту, щоб відкрити трасу"
+      tapNext: "Торкніться або проведіть біля золотої точки"
+      nextLevel: "Рівень наступного відрізка"
+      rampsHint: "Рампи піднімаються чи спускаються на 1 рівень за відрізок"
+      aiming: h => "Ціль: рівень ${h} · 2 рівні проходять над трасою чи доріжкою"
+      piecesLine: (n, spent, next) => "Відрізків: ${n} · витрачено ${spent} · наступний ${next}"
+      startKarts: "Разом зі стартом 2 базові карти: $700"
+      undoPiece: "Скасувати"
+      tapConfirm: "Точно?"
+      scrap: "Знести"
+      done: "Готово"
+      stillBuilt: "Ще будується. Виберіть «Траса», щоб продовжити."
+      scrapFor: c => "Знести +${c}"
+      excLine: (e, el, d, dl) => "Азарт ${e} ${el} · Складність ${d} ${dl}"
+      statsLine: (m, lap, top, cr) => "${m} м · коло ${lap} с · макс. ${top} км/год · перетинів: ${cr}"
+      allBroken: "Усі карти зламані: полагодьте їх"
+      closed: "Зачинено"
+      noPathStart: "До старту не веде жодна доріжка"
+      driversLine: (n, q, c) => "Гонщиків за хвилину: ${n} · черга ${q} · ${c}/хв"
+      ticket: "Квиток"
+      worth: p => "вартий до ${p}"
+      tooDear: "гості вважають, що дорого"
+      karts: k => "${k} карти"
+      runningLine: (n, c) => "на ходу: ${n} · ${c} за штуку"
+      condition: "Стан"
+      repair: c => "Ремонт ${c}"
+      likeNew: "Як нові"
+      close: "Зачинити"
+      open: "Відчинити"
+      topKarts: "Найкращі"
+      confirm: "Точно?"
+      sell: c => "Продати +${c}"
+      noPathIt: "Сюди не веде доріжка"
+      customersLine: (n, c) => "Покупців за хвилину: ${n} · ${c}/хв"
+      guestsTooDear: "Гості вважають, що дорого"
+      guestsPay: p => "Гості платять до ${p}"
+      price: "Ціна"
+      mechHere: "Звідси працюють механіки, 3 на майстерню"
+      fansWatch: "Фанати дивляться перегони й кличуть друзів"
+      putBeside: "Поставте її біля траси, щоб фанати дивилися"
+      tyreHint: "Біля повороту робить аварії безпечними"
+      binHint: "Гості кидають сюди сміття"
+      decorHint: "Прикраси піднімають рейтинг"
+      kartTrack: "Картодром"
+      footpath: "Доріжка"
+      fromCost: "від $700"
+      perCell: "$10 за клітинку"
+      hintTrack: "Прокладіть трасу; шини біля поворотів рятують від аварій."
+      hintShops: "Крамниці продають усім гостям. Їм потрібна доріжка."
+      hintGarden: "Сади піднімають рейтинг; смітники прибирають сміття."
+      hintPaths: "Торкніться або проведіть по траві, щоб прокласти доріжку, торкніться її, щоб прибрати."
+      entryFee: "Плата за вхід"
+      feeSteep: "надто дорого для цього місця"
+      feeFair: "гості вважають, що чесно"
+      mechanics: "Механіки"
+      workshopFirst: "спершу збудуйте майстерню"
+      coverage: (p, k) => "обслуговано ${p}% картів (усього ${k})"
+      handymen: "Прибиральники"
+      litterLine: n => "сміття на доріжках: ${n}"
+      land: "Земля"
+      landWhole: s => "${s}×${s}, уся ділянка"
+      landNext: (s, n) => "${s}×${s}, далі ${n}×${n}"
+      allYours: "Усе ваше"
+      buy: c => "Купити ${c}"
+      thinking: "Про що думають гості"
+      noGuests: "Гостей ще немає. Збудуйте трасу біля доріжки."
+      happy: "Усі задоволені."
+      perMin: c => "${c}/хв"
+      guests: "гості"
+      rating: "рейтинг"
+      pickTrack: "Виберіть «Картодром» унизу й торкніться мапи"
+      notEnough: "Бракує грошей"
+      isOpen: t => "Трасу «${t}» відкрито!"
+      pathsUnder: "Доріжки проходять під мостами від рівня 2"
+      noRoom: "Тут немає місця"
+      layPath: "Прокладіть сюди доріжку від входу"
+      bestKarts: "Кращих картів не буває"
+      newKarts: k => "Нові карти: ${k}!"
+      maxKarts: "На трасі не більше 12 картів"
+      alreadyNew: "Карти як нові"
+      repaired: "Карти відремонтовано"
+      needWorkshop: "Механікам потрібна майстерня"
+      threeMech: "У кожній майстерні 3 механіки"
+      hiring: "Найм коштує $300"
+      moreLand: s => "Більше землі! Тепер ${s}×${s}"
+    }
+    fr {
+      kd: i => ["Snack", "Boissons", "Toilettes", "Casques", "Atelier", "Tribune", "Mur de pneus", "Arbre", "Fleurs", "Poubelle", "Fontaine", "Drapeaux"][i]
+      kc: i => ["Débutant", "Sport", "Pro"][i]
+      tab: i => ["Piste", "Boutiques", "Jardin", "Allées", "Parc"][i]
+      trackName: i => ["Allée du Tonnerre", "Ruelle de l'Apex", "Crête de Gomme", "Vallon de l'Épingle", "Turbo Twist", "Vipère des Stands", "Ravin de l'Adhérence", "Rue du Dérapage"][i]
+      exc: i => ["faible", "moyen", "bon", "super", "superbe"][i]
+      diff: i => ["facile", "délicate", "difficile", "sauvage", "brutale"][i]
+      hungry: "J'ai faim"
+      thirsty: "J'ai soif"
+      restroom: "J'ai besoin des toilettes"
+      litterThought: "Ces allées sont couvertes de déchets"
+      wantTwists: "Je veux une piste avec plus de virages et de ponts"
+      feeThought: "L'entrée coûte cher"
+      wantSeat: "J'aimerais une place pour regarder les courses"
+      pretty: "Cet endroit est vraiment joli"
+      notPaying: (p, t) => "Je ne paie pas ${p} pour la piste ${t}"
+      tooDangerous: t => "La piste ${t} a l'air trop dangereuse"
+      sawCrash: t => "J'ai vu un sale accident sur la piste ${t}"
+      halfBroken: t => "La moitié des karts de la piste ${t} sont en panne"
+      amazing: t => "La piste ${t}, c'était génial !"
+      queueLong: t => "La file pour la piste ${t} est trop longue"
+      buyLand: "Achète d'abord ce terrain (Parc)"
+      startGround: "La ligne de départ a besoin d'un sol libre et sec"
+      minPieces: "Une piste a besoin d'au moins 10 pièces"
+      bringBack: "Ramène la piste à la ligne de départ"
+      comeDown: "Redescends d'abord au niveau 1"
+      carryOn: "Continue depuis le bout de la piste"
+      startStraight: "Le départ fait 3 pièces droites"
+      cellTaken: "Cette case est prise"
+      bridgePath: "Monte la piste au niveau 2 pour passer au-dessus d'une allée"
+      bridgeWater: "Monte la piste pour franchir l'eau"
+      bridgeTrack: "Un pont a besoin de 2 niveaux au-dessus de la piste dessous"
+      builder: "Constructeur de piste"
+      tapStart: "Touche un sol libre pour la ligne de départ"
+      layMore: n => n == 1 ? "Pose encore 1 pièce droite de départ" : "Pose encore ${n} pièces droites de départ"
+      tapOpen: "Touche la ligne de départ pour ouvrir la piste"
+      tapNext: "Touche ou glisse à côté du point doré"
+      nextLevel: "Niveau de la pièce suivante"
+      rampsHint: "Les rampes montent ou descendent d'1 niveau par pièce"
+      aiming: h => "Cible : niveau ${h} · 2 niveaux passent au-dessus d'une piste ou allée"
+      piecesLine: (n, spent, next) => "${n} pièces · dépensé ${spent} · suivante ${next}"
+      startKarts: "La ligne de départ vient avec 2 karts débutant : $700"
+      undoPiece: "Annuler"
+      tapConfirm: "Valider ?"
+      scrap: "Démolir"
+      done: "Terminé"
+      stillBuilt: "Encore en travaux. Choisis Piste pour continuer."
+      scrapFor: c => "Démolir +${c}"
+      excLine: (e, el, d, dl) => "Frisson ${e} ${el} · Difficulté ${d} ${dl}"
+      statsLine: (m, lap, top, cr) => "${m} m · tour ${lap} s · max ${top} km/h · ${cr} ${cr <= 1 ? "croisement" : "croisements"}"
+      allBroken: "Tous les karts en panne : répare-les"
+      closed: "Fermé"
+      noPathStart: "Aucune allée ne mène au départ"
+      driversLine: (n, q, c) => "${n} pilotes par minute · file ${q} · ${c}/min"
+      ticket: "Billet"
+      worth: p => "vaut jusqu'à ${p}"
+      tooDear: "trop cher pour les visiteurs"
+      karts: k => "Karts ${k}"
+      runningLine: (n, c) => "${n} en état · ${c} l'unité"
+      condition: "État"
+      repair: c => "Réparer ${c}"
+      likeNew: "Comme neufs"
+      close: "Fermer"
+      open: "Ouvrir"
+      topKarts: "Les meilleurs"
+      confirm: "Valider"
+      sell: c => "Vendre +${c}"
+      noPathIt: "Aucune allée n'y mène"
+      customersLine: (n, c) => "${n} clients par minute · ${c}/min"
+      guestsTooDear: "Les visiteurs trouvent ça trop cher"
+      guestsPay: p => "Les visiteurs paient jusqu'à ${p}"
+      price: "Prix"
+      mechHere: "Les mécaniciens partent d'ici, 3 par atelier"
+      fansWatch: "Les fans regardent les courses et en parlent à leurs amis"
+      putBeside: "Place-la près d'une piste pour que les fans regardent"
+      tyreHint: "Près d'un virage, il rend les accidents sans danger"
+      binHint: "Les visiteurs y jettent leurs déchets"
+      decorHint: "La déco augmente la note"
+      kartTrack: "Piste de karts"
+      footpath: "Allée"
+      fromCost: "dès $700"
+      perCell: "$10 la case"
+      hintTrack: "Trace une piste ; des pneus dans les virages évitent les accidents."
+      hintShops: "Les boutiques vendent à tous. Il leur faut une allée."
+      hintGarden: "Les jardins augmentent la note ; les poubelles limitent les déchets."
+      hintPaths: "Touche ou glisse sur l'herbe pour une allée, touche-en une pour l'enlever."
+      entryFee: "Entrée"
+      feeSteep: "trop chère pour cet endroit"
+      feeFair: "les visiteurs la trouvent juste"
+      mechanics: "Mécaniciens"
+      workshopFirst: "construis d'abord un atelier"
+      coverage: (p, k) => "${p}% des ${k} karts entretenus"
+      handymen: "Entretien"
+      litterLine: n => "${n} déchets dans les allées"
+      land: "Terrain"
+      landWhole: s => "${s}×${s}, tout le terrain"
+      landNext: (s, n) => "${s}×${s}, ensuite ${n}×${n}"
+      allYours: "Tout est à toi"
+      buy: c => "Acheter ${c}"
+      thinking: "Ce que pensent les visiteurs"
+      noGuests: "Pas encore de visiteurs. Construis une piste près d'une allée."
+      happy: "Tout le monde est content."
+      perMin: c => "${c}/min"
+      guests: "visiteurs"
+      rating: "note"
+      pickTrack: "Choisis Piste de karts en bas et touche la carte"
+      notEnough: "Pas assez d'argent"
+      isOpen: t => "La piste ${t} est ouverte !"
+      pathsUnder: "Les allées passent sous les ponts de niveau 2 ou plus"
+      noRoom: "Pas de place ici"
+      layPath: "Trace une allée jusqu'ici depuis l'entrée"
+      bestKarts: "Ce sont les meilleurs karts qui existent"
+      newKarts: k => "Nouveaux karts ${k} !"
+      maxKarts: "Une piste prend 12 karts au maximum"
+      alreadyNew: "Les karts sont comme neufs"
+      repaired: "Karts réparés"
+      needWorkshop: "Les mécaniciens ont besoin d'un atelier"
+      threeMech: "Chaque atelier prend 3 mécaniciens"
+      hiring: "Embaucher coûte $300"
+      moreLand: s => "Plus de terrain ! Maintenant ${s}×${s}"
+    }
+    tr {
+      kd: i => ["Büfe", "İçecekler", "Tuvaletler", "Kask Dükkânı", "Atölye", "Tribün", "Lastik Duvarı", "Ağaç", "Çiçekler", "Çöp Kutusu", "Çeşme", "Bayraklar"][i]
+      kc: i => ["Çaylak", "Spor", "Pro"][i]
+      tab: i => ["Pist", "Dükkânlar", "Bahçe", "Yollar", "Park"][i]
+      trackName: i => ["Gök Gürültüsü Yolu", "Apeks Sokağı", "Lastik Sırtı", "Firkete Vadisi", "Turbo Dönemeç", "Pit Engereği", "Tutunma Deresi", "Kayma Caddesi"][i]
+      exc: i => ["düşük", "orta", "iyi", "harika", "muhteşem"][i]
+      diff: i => ["kolay", "çetrefil", "zor", "çılgın", "acımasız"][i]
+      hungry: "Acıktım"
+      thirsty: "Susadım"
+      restroom: "Tuvalete gitmem lazım"
+      litterThought: "Bu yollar çöp dolu"
+      wantTwists: "Daha çok viraj ve köprü olan bir pist istiyorum"
+      feeThought: "Giriş ücreti çok pahalı"
+      wantSeat: "Yarışları izlemek için bir koltuk isterdim"
+      pretty: "Burası gerçekten çok güzel"
+      notPaying: (p, t) => "${t} için ${p} ödemem"
+      tooDangerous: t => "${t} çok tehlikeli görünüyor"
+      sawCrash: t => "${t} pistinde kötü bir kaza gördüm"
+      halfBroken: t => "${t} pistindeki kartların yarısı bozuk"
+      amazing: t => "${t} harikaydı!"
+      queueLong: t => "${t} kuyruğu çok uzun"
+      buyLand: "Önce bu araziyi satın al (Park)"
+      startGround: "Başlangıç çizgisi boş ve kuru zemin ister"
+      minPieces: "Bir pist en az 10 parça ister"
+      bringBack: "Pisti başlangıç çizgisine geri getir"
+      comeDown: "Önce 1. seviyeye in"
+      carryOn: "Pistin ucundan devam et"
+      startStraight: "Başlangıç 3 düz parçadır"
+      cellTaken: "O kare dolu"
+      bridgePath: "Bir yolun üstünden geçmek için pisti 2. seviyeye çıkar"
+      bridgeWater: "Suyu geçmek için pisti yükselt"
+      bridgeTrack: "Köprü, alttaki pistin 2 seviye üstünde olmalı"
+      builder: "Pist yapımı"
+      tapStart: "Başlangıç çizgisi için boş zemine dokun"
+      layMore: n => "${n} düz başlangıç parçası daha koy"
+      tapOpen: "Pisti açmak için başlangıç çizgisine dokun"
+      tapNext: "Altın noktanın yanına dokun ya da sürükle"
+      nextLevel: "Sonraki parçanın seviyesi"
+      rampsHint: "Rampalar parça başına 1 seviye çıkar ya da iner"
+      aiming: h => "Hedef ${h}. seviye · 2 seviye pistin ya da yolun üstünden geçer"
+      piecesLine: (n, spent, next) => "${n} parça · harcanan ${spent} · sonraki ${next}"
+      startKarts: "Başlangıç çizgisiyle 2 çaylak kart gelir: $700"
+      undoPiece: "Geri al"
+      tapConfirm: "Emin misin?"
+      scrap: "Yık"
+      done: "Bitti"
+      stillBuilt: "Hâlâ yapımda. Devam etmek için Pist'i seç."
+      scrapFor: c => "Yık +${c}"
+      excLine: (e, el, d, dl) => "Heyecan ${e} ${el} · Zorluk ${d} ${dl}"
+      statsLine: (m, lap, top, cr) => "${m} m · tur ${lap} sn · azami ${top} km/sa · ${cr} kesişme"
+      allBroken: "Tüm kartlar bozuk: onar"
+      closed: "Kapalı"
+      noPathStart: "Başlangıç çizgisine yol yok"
+      driversLine: (n, q, c) => "dakikada ${n} sürücü · kuyruk ${q} · ${c}/dk"
+      ticket: "Bilet"
+      worth: p => "en fazla ${p} eder"
+      tooDear: "ziyaretçilere göre çok pahalı"
+      karts: k => "${k} kartları"
+      runningLine: (n, c) => "${n} çalışıyor · tanesi ${c}"
+      condition: "Durum"
+      repair: c => "Onar ${c}"
+      likeNew: "Yeni gibi"
+      close: "Kapat"
+      open: "Aç"
+      topKarts: "En iyi kartlar"
+      confirm: "Onayla"
+      sell: c => "Sat +${c}"
+      noPathIt: "Buraya yol yok"
+      customersLine: (n, c) => "dakikada ${n} müşteri · ${c}/dk"
+      guestsTooDear: "Ziyaretçilere göre çok pahalı"
+      guestsPay: p => "Ziyaretçiler en fazla ${p} öder"
+      price: "Fiyat"
+      mechHere: "Tamirciler burada çalışır, atölye başına 3"
+      fansWatch: "Hayranlar yarışları izler ve arkadaşlarına anlatır"
+      putBeside: "Hayranlar izlesin diye bir pistin yanına koy"
+      tyreHint: "Bir virajın yanında kazaları zararsız kılar"
+      binHint: "Ziyaretçiler çöplerini buraya atar"
+      decorHint: "Süsler puanı yükseltir"
+      kartTrack: "Kart pisti"
+      footpath: "Yaya yolu"
+      fromCost: "$700'dan"
+      perCell: "kare başına $10"
+      hintTrack: "Bir pist yap; virajlardaki lastik duvarları kazaları önler."
+      hintShops: "Dükkânlar her ziyaretçiye satar. Yol gerekir."
+      hintGarden: "Bahçeler puanı yükseltir; çöp kutuları çöpü azaltır."
+      hintPaths: "Yol için çimene dokun ya da sürükle, kaldırmak için yola dokun."
+      entryFee: "Giriş ücreti"
+      feeSteep: "burası için çok pahalı"
+      feeFair: "ziyaretçilere göre makul"
+      mechanics: "Tamirciler"
+      workshopFirst: "önce bir atölye kur"
+      coverage: (p, k) => "${k} kartın %${p} kadarı bakımlı"
+      handymen: "Temizlikçiler"
+      litterLine: n => "yollarda ${n} çöp"
+      land: "Arazi"
+      landWhole: s => "${s}×${s}, arazinin tamamı"
+      landNext: (s, n) => "${s}×${s}, sonraki ${n}×${n}"
+      allYours: "Hepsi senin"
+      buy: c => "Al ${c}"
+      thinking: "Ziyaretçiler ne düşünüyor"
+      noGuests: "Henüz ziyaretçi yok. Bir yolun yanına pist yap."
+      happy: "Herkes mutlu."
+      perMin: c => "${c}/dk"
+      guests: "ziyaretçi"
+      rating: "puan"
+      pickTrack: "Aşağıdan Kart pisti'ni seç ve haritaya dokun"
+      notEnough: "Yeterli para yok"
+      isOpen: t => "${t} açıldı!"
+      pathsUnder: "Yollar 2. seviye ve üstü köprülerin altından geçer"
+      noRoom: "Burada yer yok"
+      layPath: "Girişten buraya bir yol yap"
+      bestKarts: "Bunlar var olan en iyi kartlar"
+      newKarts: k => "Yeni ${k} kartları!"
+      maxKarts: "Bir pist en fazla 12 kart alır"
+      alreadyNew: "Kartlar yeni gibi"
+      repaired: "Kartlar onarıldı"
+      needWorkshop: "Tamircilerin atölyeye ihtiyacı var"
+      threeMech: "Her atölye 3 tamirci alır"
+      hiring: "İşe almak $300"
+      moreLand: s => "Daha çok arazi! Artık ${s}×${s}"
+    }
+    it {
+      kd: i => ["Snack bar", "Bibite", "Bagni", "Caschi", "Officina", "Tribuna", "Muro di gomme", "Albero", "Fiori", "Cestino", "Fontana", "Bandiere"][i]
+      kc: i => ["Principiante", "Sport", "Pro"][i]
+      tab: i => ["Pista", "Negozi", "Giardino", "Sentieri", "Parco"][i]
+      trackName: i => ["Corsia del Tuono", "Vicolo Apex", "Cresta di Gomma", "Valle del Tornante", "Turbo Twist", "Vipera dei Box", "Gola dell'Aderenza", "Via della Sbandata"][i]
+      exc: i => ["bassa", "media", "buona", "ottima", "superba"][i]
+      diff: i => ["facile", "insidiosa", "difficile", "selvaggia", "brutale"][i]
+      hungry: "Ho fame"
+      thirsty: "Ho sete"
+      restroom: "Mi serve un bagno"
+      litterThought: "Questi sentieri sono pieni di rifiuti"
+      wantTwists: "Voglio una pista con più curve e ponti"
+      feeThought: "L'ingresso è caro"
+      wantSeat: "Vorrei un posto per guardare le gare"
+      pretty: "Questo posto è proprio bello"
+      notPaying: (p, t) => "Non pago ${p} per la pista ${t}"
+      tooDangerous: t => "La pista ${t} sembra troppo pericolosa"
+      sawCrash: t => "Ho visto un brutto incidente sulla pista ${t}"
+      halfBroken: t => "Metà dei kart della pista ${t} sono rotti"
+      amazing: t => "La pista ${t} è stata fantastica!"
+      queueLong: t => "La coda per la pista ${t} è troppo lunga"
+      buyLand: "Prima compra questo terreno (Parco)"
+      startGround: "La partenza ha bisogno di terreno libero e asciutto"
+      minPieces: "Una pista ha bisogno di almeno 10 pezzi"
+      bringBack: "Riporta la pista alla linea di partenza"
+      comeDown: "Prima scendi al livello 1"
+      carryOn: "Continua dalla fine della pista"
+      startStraight: "La partenza è di 3 pezzi dritti"
+      cellTaken: "Quella casella è occupata"
+      bridgePath: "Alza la pista al livello 2 per passare sopra un sentiero"
+      bridgeWater: "Alza la pista per attraversare l'acqua"
+      bridgeTrack: "Un ponte ha bisogno di 2 livelli sopra la pista sotto"
+      builder: "Costruttore di piste"
+      tapStart: "Tocca terreno libero per la partenza"
+      layMore: n => n == 1 ? "Posa ancora 1 pezzo dritto di partenza" : "Posa ancora ${n} pezzi dritti di partenza"
+      tapOpen: "Tocca la partenza per aprire la pista"
+      tapNext: "Tocca o trascina accanto al punto dorato"
+      nextLevel: "Livello del pezzo successivo"
+      rampsHint: "Le rampe salgono o scendono di 1 livello a pezzo"
+      aiming: h => "Obiettivo: livello ${h} · 2 livelli passano sopra pista o sentiero"
+      piecesLine: (n, spent, next) => "${n} pezzi · spesi ${spent} · prossimo ${next}"
+      startKarts: "La partenza include 2 kart principiante: $700"
+      undoPiece: "Annulla"
+      tapConfirm: "Confermi?"
+      scrap: "Demolisci"
+      done: "Fatto"
+      stillBuilt: "Ancora in costruzione. Scegli Pista per continuare."
+      scrapFor: c => "Demolisci +${c}"
+      excLine: (e, el, d, dl) => "Emozione ${e} ${el} · Difficoltà ${d} ${dl}"
+      statsLine: (m, lap, top, cr) => "${m} m · giro ${lap} s · max ${top} km/h · ${cr} ${cr == 1 ? "incrocio" : "incroci"}"
+      allBroken: "Tutti i kart rotti: riparali"
+      closed: "Chiuso"
+      noPathStart: "Nessun sentiero porta alla partenza"
+      driversLine: (n, q, c) => "${n} piloti al minuto · coda ${q} · ${c}/min"
+      ticket: "Biglietto"
+      worth: p => "vale fino a ${p}"
+      tooDear: "troppo caro per i visitatori"
+      karts: k => "Kart ${k}"
+      runningLine: (n, c) => "${n} in funzione · ${c} l'uno"
+      condition: "Stato"
+      repair: c => "Ripara ${c}"
+      likeNew: "Come nuovi"
+      close: "Chiudi"
+      open: "Apri"
+      topKarts: "I migliori"
+      confirm: "Conferma"
+      sell: c => "Vendi +${c}"
+      noPathIt: "Nessun sentiero ci arriva"
+      customersLine: (n, c) => "${n} clienti al minuto · ${c}/min"
+      guestsTooDear: "I visitatori lo trovano troppo caro"
+      guestsPay: p => "I visitatori pagano fino a ${p}"
+      price: "Prezzo"
+      mechHere: "I meccanici lavorano da qui, 3 per officina"
+      fansWatch: "I fan guardano le gare e lo dicono agli amici"
+      putBeside: "Mettila accanto a una pista perché i fan guardino"
+      tyreHint: "Accanto a una curva, rende innocui gli incidenti"
+      binHint: "I visitatori ci buttano i rifiuti"
+      decorHint: "Le decorazioni alzano la valutazione"
+      kartTrack: "Pista da kart"
+      footpath: "Sentiero"
+      fromCost: "da $700"
+      perCell: "$10 a casella"
+      hintTrack: "Traccia una pista; le gomme vicino alle curve evitano incidenti."
+      hintShops: "I negozi vendono a ogni visitatore. Serve un sentiero."
+      hintGarden: "I giardini alzano la valutazione; i cestini riducono i rifiuti."
+      hintPaths: "Tocca o trascina sull'erba per un sentiero, toccane uno per toglierlo."
+      entryFee: "Ingresso"
+      feeSteep: "troppo caro per questo posto"
+      feeFair: "i visitatori lo trovano giusto"
+      mechanics: "Meccanici"
+      workshopFirst: "prima costruisci un'officina"
+      coverage: (p, k) => "${p}% di ${k} kart curati"
+      handymen: "Addetti"
+      litterLine: n => "${n} rifiuti sui sentieri"
+      land: "Terreno"
+      landWhole: s => "${s}×${s}, tutto il terreno"
+      landNext: (s, n) => "${s}×${s}, poi ${n}×${n}"
+      allYours: "Tutto tuo"
+      buy: c => "Compra ${c}"
+      thinking: "Cosa pensano i visitatori"
+      noGuests: "Ancora nessun visitatore. Costruisci una pista vicino a un sentiero."
+      happy: "Sono tutti contenti."
+      perMin: c => "${c}/min"
+      guests: "visitatori"
+      rating: "valutazione"
+      pickTrack: "Scegli Pista da kart qui sotto e tocca la mappa"
+      notEnough: "Soldi insufficienti"
+      isOpen: t => "La pista ${t} è aperta!"
+      pathsUnder: "I sentieri passano sotto ponti di livello 2 o più"
+      noRoom: "Qui non c'è spazio"
+      layPath: "Traccia un sentiero fin qui dall'ingresso"
+      bestKarts: "Sono i migliori kart che esistano"
+      newKarts: k => "Nuovi kart ${k}!"
+      maxKarts: "Una pista prende al massimo 12 kart"
+      alreadyNew: "I kart sono come nuovi"
+      repaired: "Kart riparati"
+      needWorkshop: "I meccanici hanno bisogno di un'officina"
+      threeMech: "Ogni officina prende 3 meccanici"
+      hiring: "Assumere costa $300"
+      moreLand: s => "Più terreno! Ora ${s}×${s}"
+    }
+  }
 
   title: ""
   statusBar: false
@@ -84,27 +1541,25 @@ app "kart kingdom" {
   // ---- what there is to build ---------------------------------------------------------------------
   // t: 1 shop, 2 garden, 3 building; w: 1 or 2 cells square
   let KD = [
-    {n: "Snack Bar", t: 1, w: 1, cost: 450, p: 3, fair: 3, s: 0, c: "#e0533d"},
-    {n: "Drinks", t: 1, w: 1, cost: 300, p: 2, fair: 2, s: 1, c: "#3fb6a8"},
-    {n: "Restrooms", t: 1, w: 1, cost: 400, p: 0, fair: 1, s: 2, c: "#4f8fd6"},
-    {n: "Helmet Shop", t: 1, w: 1, cost: 600, p: 5, fair: 4, s: 3, c: "#f2b632"},
-    {n: "Workshop", t: 3, w: 2, cost: 2000, c: "#8a94a6"},
-    {n: "Grandstand", t: 3, w: 2, cost: 2500, c: "#c94f4f"},
-    {n: "Tyre Wall", t: 2, w: 1, cost: 40, c: "#26262b"},
-    {n: "Tree", t: 2, w: 1, cost: 20, c: "#3d8b45"},
-    {n: "Flowers", t: 2, w: 1, cost: 15, c: "#e86fb0"},
-    {n: "Litter Bin", t: 2, w: 1, cost: 30, c: "#4c9b6a"},
-    {n: "Fountain", t: 2, w: 1, cost: 250, c: "#7fc6e8"},
-    {n: "Flags", t: 2, w: 1, cost: 60, c: "#f2b632"}
+    {t: 1, w: 1, cost: 450, p: 3, fair: 3, s: 0, c: "#e0533d"},
+    {t: 1, w: 1, cost: 300, p: 2, fair: 2, s: 1, c: "#3fb6a8"},
+    {t: 1, w: 1, cost: 400, p: 0, fair: 1, s: 2, c: "#4f8fd6"},
+    {t: 1, w: 1, cost: 600, p: 5, fair: 4, s: 3, c: "#f2b632"},
+    {t: 3, w: 2, cost: 2000, c: "#8a94a6"},
+    {t: 3, w: 2, cost: 2500, c: "#c94f4f"},
+    {t: 2, w: 1, cost: 40, c: "#26262b"},
+    {t: 2, w: 1, cost: 20, c: "#3d8b45"},
+    {t: 2, w: 1, cost: 15, c: "#e86fb0"},
+    {t: 2, w: 1, cost: 30, c: "#4c9b6a"},
+    {t: 2, w: 1, cost: 250, c: "#7fc6e8"},
+    {t: 2, w: 1, cost: 60, c: "#f2b632"}
   ]
   let KC = [
-    {n: "Rookie", cost: 300, v: 1, fuel: 0.15},
-    {n: "Sport", cost: 800, v: 1.3, fuel: 0.25},
-    {n: "Pro", cost: 1800, v: 1.6, fuel: 0.2}
+    {cost: 300, v: 1, fuel: 0.15},
+    {cost: 800, v: 1.3, fuel: 0.25},
+    {cost: 1800, v: 1.6, fuel: 0.2}
   ]
   let TABK = [[20, 4, 5, 6], [0, 1, 2, 3], [7, 8, 9, 10, 11], [12], []]
-  let TABN = ["Track", "Shops", "Garden", "Paths", "Park"]
-  let TN = ["Thunder Lane", "Apex Alley", "Rubber Ridge", "Hairpin Hollow", "Turbo Twist", "Pit Viper", "Grip Gully", "Skid Row"]
   let KCOL = ["#e0533d", "#3fb6a8", "#f2b632", "#8c6bd6", "#4f8fd6", "#e86fb0", "#f7edd3", "#79d48f"]
   let LANDC = [0, 4000, 10000, 25000, 50000]
   let SPEED = 3
@@ -205,7 +1660,7 @@ app "kart kingdom" {
   let cov = kTot > 0 ? min(1, min(mech, mechMax) * 4 / kTot) : 1
   let kw = range(len(tracks)).map(j => tracks[j].k - round(tracks[j].k * clamp(((wear[j] ?? 0) - 40) / 60, 0, 1)))
   let doneJ = range(len(tracks)).filter(j => tracks[j].d)
-  let R = doneJ.map(j => {j: j, n: TN[tracks[j].n % 8], exc: ts[j].exc, diff: ts[j].diff, p: tracks[j].p, kw: kw[j], cyc: ts[j].lap * 2 + 8,
+  let R = doneJ.map(j => {j: j, n: str.trackName(tracks[j].n % 8), exc: ts[j].exc, diff: ts[j].diff, p: tracks[j].p, kw: kw[j], cyc: ts[j].lap * 2 + 8,
     on: tracks[j].o && trDoor[j] >= 0 && kw[j] > 0, pull: 20 + ts[j].exc * 8, val: ts[j].exc * 1.2 + 2 + tracks[j].cl * 1.5,
     risk: max(0, ts[j].diff - 3) * (1 - 0.6 * min(1, tyres[j] / max(1, ts[j].T / 2))), bf: tracks[j].k > 0 ? 1 - kw[j] / tracks[j].k : 0, fuel: KC[tracks[j].cl].fuel * (1 + ts[j].n / 30)})
   let trR = range(len(tracks)).map(j => indexOf(doneJ, j))
@@ -247,31 +1702,31 @@ app "kart kingdom" {
 
   let pr = p => p == floor(p) ? "$${p}" : "$${fixed(p, 2)}"
   let cash = n => (n < 0 ? "-$" : "$") + fmtNum(abs(floor(n)))
-  let excL = v => v < 2 ? "low" : v < 4 ? "medium" : v < 6 ? "good" : v < 8 ? "great" : "superb"
-  let difL = v => v < 2 ? "easy" : v < 4 ? "tricky" : v < 6 ? "hard" : v < 8 ? "wild" : "brutal"
+  let excL = v => str.exc(v < 2 ? 0 : v < 4 ? 1 : v < 6 ? 2 : v < 8 ? 3 : 4)
+  let difL = v => str.diff(v < 2 ? 0 : v < 4 ? 1 : v < 6 ? 2 : v < 8 ? 3 : 4)
   let repairC = j => floor((wear[j] ?? 0) * tracks[j].k * KC[tracks[j].cl].cost * 0.006)
   let hudCash = [coins].map(cash)[0]
-  let hudRate = "${rate >= 0 ? "+" : "-"}${[abs(rate * 60)].map(cash)[0]}/min"
+  let hudRate = "${rate >= 0 ? "+" : "-"}${str.perMin([abs(rate * 60)].map(cash)[0])}"
   let hudGuests = "${guests}"
   let hudRating = "${rating}"
 
   // what the guests are thinking, most common first
   let topExc = last(sort(R.filter(r => r.on).map(r => r.exc))) ?? 0
   let thoughts = ([
-    [hasS[0] == 0 ? floor(guests * 0.3) : 0, "I'm hungry"],
-    [hasS[1] == 0 ? floor(guests * 0.35) : 0, "I'm thirsty"],
-    [hasS[2] == 0 ? floor(guests * 0.25) : 0, "I need a restroom"],
-    [litter > 8 ? floor(guests * litter / 80) : 0, "These paths are covered in litter"],
-    [nOn > 0 && topExc < 3.5 ? floor(guests * 0.3) : 0, "I want a track with more twists and bridges"],
-    [feeF < 1 ? floor(guests * (1 - feeF) * 0.5) + 1 : 0, "The entry fee is steep"],
-    [nOn > 0 && gsOn == 0 ? floor(guests * 0.1) : 0, "I'd love a seat to watch the races"],
-    [nScen >= 8 ? floor(guests * 0.2) : 0, "This place is really pretty"]
-  ] + range(len(R)).map(i => [R[i].on && !pok[i] ? floor(guests * 0.15) + 1 : 0, "I'm not paying ${[R[i].p].map(pr)[0]} for ${R[i].n}"])
-    + range(len(R)).map(i => [R[i].on && frac[i] < 0.7 ? floor(guests * (1 - frac[i]) * 0.3) : 0, "${R[i].n} looks too dangerous"])
-    + range(len(R)).map(i => [R[i].on && R[i].risk > 1.5 ? floor(guests * 0.08 * R[i].risk) : 0, "I saw a nasty crash at ${R[i].n}"])
-    + range(len(R)).map(i => [R[i].bf > 0.2 ? floor(guests * R[i].bf * 0.5) + 1 : 0, "Half the karts at ${R[i].n} are broken"])
-    + range(len(R)).map(i => [R[i].on && R[i].exc >= 5 && pok[i] ? floor(guests * 0.12 * frac[i]) : 0, "${R[i].n} was amazing!"])
-    + range(len(R)).map(i => [queue[i] >= 60 ? floor(guests * 0.1) : 0, "The queue for ${R[i].n} is too long"])
+    [hasS[0] == 0 ? floor(guests * 0.3) : 0, str.hungry],
+    [hasS[1] == 0 ? floor(guests * 0.35) : 0, str.thirsty],
+    [hasS[2] == 0 ? floor(guests * 0.25) : 0, str.restroom],
+    [litter > 8 ? floor(guests * litter / 80) : 0, str.litterThought],
+    [nOn > 0 && topExc < 3.5 ? floor(guests * 0.3) : 0, str.wantTwists],
+    [feeF < 1 ? floor(guests * (1 - feeF) * 0.5) + 1 : 0, str.feeThought],
+    [nOn > 0 && gsOn == 0 ? floor(guests * 0.1) : 0, str.wantSeat],
+    [nScen >= 8 ? floor(guests * 0.2) : 0, str.pretty]
+  ] + range(len(R)).map(i => [R[i].on && !pok[i] ? floor(guests * 0.15) + 1 : 0, str.notPaying([R[i].p].map(pr)[0], R[i].n)])
+    + range(len(R)).map(i => [R[i].on && frac[i] < 0.7 ? floor(guests * (1 - frac[i]) * 0.3) : 0, str.tooDangerous(R[i].n)])
+    + range(len(R)).map(i => [R[i].on && R[i].risk > 1.5 ? floor(guests * 0.08 * R[i].risk) : 0, str.sawCrash(R[i].n)])
+    + range(len(R)).map(i => [R[i].bf > 0.2 ? floor(guests * R[i].bf * 0.5) + 1 : 0, str.halfBroken(R[i].n)])
+    + range(len(R)).map(i => [R[i].on && R[i].exc >= 5 && pok[i] ? floor(guests * 0.12 * frac[i]) : 0, str.amazing(R[i].n)])
+    + range(len(R)).map(i => [queue[i] >= 60 ? floor(guests * 0.1) : 0, str.queueLong(R[i].n)])
   ).filter(t => t[0] > 0).sortBy(t => -t[0])
 
   // ---- the screen, in dp ----------------------------------------------------------------------------
@@ -376,15 +1831,15 @@ app "kart kingdom" {
   let world = [ground, pathPrims] + dAll.map(e => e.P) + [gate]
   let dia = c => [[c % N, floor(c / N), 0], [c % N + 1, floor(c / N), 0], [c % N + 1, floor(c / N) + 1, 0], [c % N, floor(c / N) + 1, 0], [c % N, floor(c / N), 0]].map(pj)
   // the track's next piece: where it can go, and how high
-  let cAct = c => !isO[c] ? {a: 0, m: "Buy this land first (Park)"}
-    : bi < 0 ? (own[c] < 0 && !isP[c] && !isW[c] && len(lv[c]) == 0 ? {a: 1, m: ""} : {a: 0, m: "The start line needs clear, dry ground"})
-    : c == bt[0][0] && bn >= 2 ? (bn < 10 ? {a: 0, m: "A track needs at least 10 pieces"} : !any(nbs[c], n => n == bl[0]) ? {a: 0, m: "Bring the track back to the start line"} : bl[1] > 1 ? {a: 0, m: "Come down to level 1 first"} : {a: 3, m: ""})
-    : !any(nbs[bl[0]], n => n == c) ? {a: 0, m: "Carry on from the end of the track"}
-    : bn == 2 && c - bt[1][0] != bt[1][0] - bt[0][0] ? {a: 0, m: "The start is 3 straight pieces"}
-    : own[c] >= 0 ? {a: 0, m: "That cell is taken"}
-    : isP[c] && nextZ < 2 ? {a: 0, m: "Raise the track to level 2 to bridge a path"}
-    : isW[c] && nextZ < 1 ? {a: 0, m: "Raise the track to cross water"}
-    : any(lv[c], z => abs(z - nextZ) < 2) ? {a: 0, m: "A bridge needs 2 levels over the track below"}
+  let cAct = c => !isO[c] ? {a: 0, m: str.buyLand}
+    : bi < 0 ? (own[c] < 0 && !isP[c] && !isW[c] && len(lv[c]) == 0 ? {a: 1, m: ""} : {a: 0, m: str.startGround})
+    : c == bt[0][0] && bn >= 2 ? (bn < 10 ? {a: 0, m: str.minPieces} : !any(nbs[c], n => n == bl[0]) ? {a: 0, m: str.bringBack} : bl[1] > 1 ? {a: 0, m: str.comeDown} : {a: 3, m: ""})
+    : !any(nbs[bl[0]], n => n == c) ? {a: 0, m: str.carryOn}
+    : bn == 2 && c - bt[1][0] != bt[1][0] - bt[0][0] ? {a: 0, m: str.startStraight}
+    : own[c] >= 0 ? {a: 0, m: str.cellTaken}
+    : isP[c] && nextZ < 2 ? {a: 0, m: str.bridgePath}
+    : isW[c] && nextZ < 1 ? {a: 0, m: str.bridgeWater}
+    : any(lv[c], z => abs(z - nextZ) < 2) ? {a: 0, m: str.bridgeTrack}
     : {a: 2, m: ""}
   let overlay = tool == 20 ? (bi < 0 ? free.map(c => {c: [[c % N + 0.5, floor(c / N) + 0.5, 0]].map(pj)[0], r: 0.05, f: "#ffffffaa"})
       : nbs[bl[0]].filter(c => [c].map(cAct)[0].a >= 2).map(c => {l: [c].map(dia)[0].map(v => [v[0], v[1] - ([c].map(cAct)[0].a == 3 ? 0 : nextZ * LZ) * HZ]), s: "#f2b632", w: 0.04})
@@ -445,44 +1900,44 @@ app "kart kingdom" {
       rect(LS ? MAPW : 0, LS ? 0 : MAPH, LS ? SW - MAPW : SW, LS ? SH : SH - MAPH, fill: UI.bg)
       rect(LS ? MAPW : 0, LS ? 0 : MAPH, LS ? 3 : SW, LS ? SH : 3, fill: UI.gold)
       if tool == 20 {
-        text("Track builder", PX + 2, PY + 14, size: 17, color: UI.text, bold: true)
-        text(bi < 0 ? "Tap clear ground for the start line" : bn < 3 ? "Lay ${3 - bn} more straight start piece${bn == 2 ? "" : "s"}" : any(nbs[bl[0]], n => n == bt[0][0]) && bn >= 10 && bl[1] <= 1 ? "Tap the start line to open the track" : "Tap or drag next to the gold dot", PX + 2, PY + 40, size: 13, color: UI.gold)
-        text("Next piece level", PX + 2, HRY, size: 14, color: UI.text)
+        text(str.builder, PX + 2, PY + 14, size: 17, color: UI.text, bold: true)
+        text(bi < 0 ? str.tapStart : bn < 3 ? str.layMore(3 - bn) : any(nbs[bl[0]], n => n == bt[0][0]) && bn >= 10 && bl[1] <= 1 ? str.tapOpen : str.tapNext, PX + 2, PY + 40, size: 13, color: UI.gold)
+        text(str.nextLevel, PX + 2, HRY, size: 14, color: UI.text)
         rect(SX1, HRY - 16, 40, 32, fill: UI.card2, radius: 6 * corners)
         rect(SX2, HRY - 16, 40, 32, fill: UI.card2, radius: 6 * corners)
         text("−", SX1 + 20, HRY, size: 20, color: UI.text, align: center, bold: true)
         text("+", SX2 + 20, HRY, size: 20, color: UI.text, align: center, bold: true)
         text("${nextZ}", (SX1 + SX2 + 40) / 2, HRY, size: 18, color: UI.gold, align: center, bold: true)
-        text(bn < 3 ? "Ramps climb or drop 1 level a piece" : "Aiming for ${bh} · 2 levels clear a track or path", PX + 2, HRY + 30, size: 12, color: UI.dim)
+        text(bn < 3 ? str.rampsHint : str.aiming(bh), PX + 2, HRY + 30, size: 12, color: UI.dim)
         if bi >= 0 {
-          text("${bn} pieces · spent ${[tracks[bi].sp].map(cash)[0]} · next ${[pieceCost].map(cash)[0]}", PX + 2, HRY + 52, size: 12, color: UI.dim)
+          text(str.piecesLine(bn, [tracks[bi].sp].map(cash)[0], [pieceCost].map(cash)[0]), PX + 2, HRY + 52, size: 12, color: UI.dim)
         } else {
-          text("The start line comes with 2 rookie karts: $700", PX + 2, HRY + 52, size: 12, color: UI.dim)
+          text(str.startKarts, PX + 2, HRY + 52, size: 12, color: UI.dim)
         }
         for b in range(3) {
           rect(PX + b * (PW + 6) / 3, BY, (PW - 12) / 3, BH, fill: b == 1 ? (arm ? "#e0533d" : "#5a2a2f") : b == 2 ? UI.go : UI.card2, radius: 6 * corners)
-          text([bi >= 0 ? "Undo piece" : "—", arm ? "Tap to confirm" : "Scrap", "Done"][b], PX + b * (PW + 6) / 3 + (PW - 12) / 6, BY + BH / 2, size: 13, color: UI.text, align: center, bold: true)
+          text([bi >= 0 ? str.undoPiece : "—", arm ? str.tapConfirm : str.scrap, str.done][b], PX + b * (PW + 6) / 3 + (PW - 12) / 6, BY + BH / 2, size: 13, color: UI.text, align: center, bold: true)
         }
       } else if sel >= 1000 {
         let j = sel - 1000
         let co = tracks[j]
-        text(TN[co.n % 8], PX + 2, PY + 14, size: 17, color: UI.text, bold: true)
+        text(str.trackName(co.n % 8), PX + 2, PY + 14, size: 17, color: UI.text, bold: true)
         text("✕", PX + PW - 14, PY + 14, size: 16, color: UI.dim, align: center)
         if !co.d {
-          text("Still being built. Pick Track to carry on.", PX + 2, PY + 40, size: 13, color: UI.dim)
+          text(str.stillBuilt, PX + 2, PY + 40, size: 13, color: UI.dim)
           rect(PX, BY, PW, BH, fill: arm ? "#e0533d" : "#5a2a2f", radius: 6 * corners)
-          text(arm ? "Tap to confirm" : "Scrap +${[co.sp].map(cash)[0]}", PX + PW / 2, BY + BH / 2, size: 13, color: UI.text, align: center, bold: true)
+          text(arm ? str.tapConfirm : str.scrapFor([co.sp].map(cash)[0]), PX + PW / 2, BY + BH / 2, size: 13, color: UI.text, align: center, bold: true)
         } else {
           let r = R[ri]
           let S = ts[j]
           let w = wear[j] ?? 0
-          text("Excitement ${fixed(r.exc, 1)} ${[r.exc].map(excL)[0]} · Difficulty ${fixed(r.diff, 1)} ${[r.diff].map(difL)[0]}", PX + 2, PY + 38, size: 13, color: UI.gold)
-          text("${S.n * 20} m · lap ${fixed(S.lap * 2, 1)} s · top ${round(S.mx * 18)} km/h · ${S.cr} crossing${S.cr == 1 ? "" : "s"}", PX + 2, PY + 58, size: 12, color: UI.dim)
-          text(!r.on ? (r.kw == 0 ? "All karts broken: repair them" : !co.o ? "Closed" : "No path reaches the start line") : "${round(riders[ri] * 60 * SPEED)} drivers a minute · queue ${queue[ri]} · ${[riders[ri] * (r.p - r.fuel) * 60 * SPEED].map(cash)[0]}/min", PX + 2, PY + 78, size: 12, color: r.on ? UI.text : UI.warn)
-          text("Ticket", PX + 2, PRY - 6, size: 14, color: UI.text)
-          text(pok[ri] ? "worth up to ${[r.val * 1.6 + 0.5].map(pr)[0]}" : "guests think it's too dear", PX + 2, PRY + 12, size: 11, color: pok[ri] ? UI.dim : UI.warn)
-          text("${KC[co.cl].n} karts", PX + 2, KRY - 6, size: 14, color: UI.text)
-          text("${r.kw} running · ${[KC[co.cl].cost].map(cash)[0]} each", PX + 2, KRY + 12, size: 11, color: r.kw < co.k ? UI.warn : UI.dim)
+          text(str.excLine(fixed(r.exc, 1), [r.exc].map(excL)[0], fixed(r.diff, 1), [r.diff].map(difL)[0]), PX + 2, PY + 38, size: 13, color: UI.gold)
+          text(str.statsLine(S.n * 20, fixed(S.lap * 2, 1), round(S.mx * 18), S.cr), PX + 2, PY + 58, size: 12, color: UI.dim)
+          text(!r.on ? (r.kw == 0 ? str.allBroken : !co.o ? str.closed : str.noPathStart) : str.driversLine(round(riders[ri] * 60 * SPEED), queue[ri], [riders[ri] * (r.p - r.fuel) * 60 * SPEED].map(cash)[0]), PX + 2, PY + 78, size: 12, color: r.on ? UI.text : UI.warn)
+          text(str.ticket, PX + 2, PRY - 6, size: 14, color: UI.text)
+          text(pok[ri] ? str.worth([r.val * 1.6 + 0.5].map(pr)[0]) : str.tooDear, PX + 2, PRY + 12, size: 11, color: pok[ri] ? UI.dim : UI.warn)
+          text(str.karts(str.kc(co.cl)), PX + 2, KRY - 6, size: 14, color: UI.text)
+          text(str.runningLine(r.kw, [KC[co.cl].cost].map(cash)[0]), PX + 2, KRY + 12, size: 11, color: r.kw < co.k ? UI.warn : UI.dim)
           for row in [[PRY, [co.p].map(pr)[0]], [KRY, "${co.k}"]] {
             rect(SX1, row[0] - 16, 40, 32, fill: UI.card2, radius: 6 * corners)
             rect(SX2, row[0] - 16, 40, 32, fill: UI.card2, radius: 6 * corners)
@@ -490,44 +1945,44 @@ app "kart kingdom" {
             text("+", SX2 + 20, row[0], size: 20, color: UI.text, align: center, bold: true)
             text(row[1], (SX1 + SX2 + 40) / 2, row[0], size: 18, color: UI.gold, align: center, bold: true)
           }
-          text("Condition", PX + 2, CRY - 6, size: 14, color: UI.text)
+          text(str.condition, PX + 2, CRY - 6, size: 14, color: UI.text)
           rect(PX + 2, CRY + 8, SX1 - PX - 16, 6, fill: UI.card2, radius: 3)
           rect(PX + 2, CRY + 8, (SX1 - PX - 16) * (100 - w) / 100, 6, fill: w < 40 ? "#79d48f" : w < 70 ? UI.gold : UI.warn, radius: 3)
           text("${round(100 - w)}%", PX + 104, CRY - 6, size: 13, color: w < 40 ? UI.dim : UI.warn, bold: true)
           rect(SX1, CRY - 16, SX2 + 40 - SX1, 32, fill: w >= 1 ? UI.card2 : UI.card, radius: 6 * corners)
-          text(w >= 1 ? "Repair ${[[j].map(repairC)[0]].map(cash)[0]}" : "Like new", (SX1 + SX2 + 40) / 2, CRY, size: 13, color: w >= 1 ? UI.text : UI.dim, align: center, bold: true)
+          text(w >= 1 ? str.repair([[j].map(repairC)[0]].map(cash)[0]) : str.likeNew, (SX1 + SX2 + 40) / 2, CRY, size: 13, color: w >= 1 ? UI.text : UI.dim, align: center, bold: true)
           for b in range(3) {
             rect(PX + b * (PW + 6) / 3, BY, (PW - 12) / 3, BH, fill: b == 2 ? (arm ? "#e0533d" : "#5a2a2f") : UI.card2, radius: 6 * corners)
           }
-          text(co.o ? "Close" : "Open", PX + (PW - 12) / 6, BY + BH / 2, size: 13, color: UI.text, align: center, bold: true)
-          text(co.cl >= 2 ? "Top karts" : "${KC[co.cl + 1].n} ${[co.k * KC[co.cl + 1].cost - floor(co.k * KC[co.cl].cost / 2)].map(cash)[0]}", PX + (PW + 6) / 3 + (PW - 12) / 6, BY + BH / 2, size: 13, color: co.cl >= 2 ? UI.dim : UI.text, align: center, bold: true)
-          text(arm ? "Confirm" : "Sell +${[floor(co.sp / 2)].map(cash)[0]}", PX + 2 * (PW + 6) / 3 + (PW - 12) / 6, BY + BH / 2, size: 13, color: UI.text, align: center, bold: true)
+          text(co.o ? str.close : str.open, PX + (PW - 12) / 6, BY + BH / 2, size: 13, color: UI.text, align: center, bold: true)
+          text(co.cl >= 2 ? str.topKarts : "${str.kc(co.cl + 1)} ${[co.k * KC[co.cl + 1].cost - floor(co.k * KC[co.cl].cost / 2)].map(cash)[0]}", PX + (PW + 6) / 3 + (PW - 12) / 6, BY + BH / 2, size: 13, color: co.cl >= 2 ? UI.dim : UI.text, align: center, bold: true)
+          text(arm ? str.confirm : str.sell([floor(co.sp / 2)].map(cash)[0]), PX + 2 * (PW + 6) / 3 + (PW - 12) / 6, BY + BH / 2, size: 13, color: UI.text, align: center, bold: true)
         }
       } else if sel >= 0 {
         let it = items[sel]
         let isShop = KD[it.k].t == 1
-        text(KD[it.k].n, PX + 2, PY + 14, size: 17, color: UI.text, bold: true)
+        text(str.kd(it.k), PX + 2, PY + 14, size: 17, color: UI.text, bold: true)
         text("✕", PX + PW - 14, PY + 14, size: 16, color: UI.dim, align: center)
         if isShop {
-          text(itemDoor[sel] < 0 ? "No path reaches it" : !it.o ? "Closed" : "${round(shopRate[sel] * 60 * SPEED)} customers a minute · ${[shopRate[sel] * it.p * 60 * SPEED].map(cash)[0]}/min", PX + 2, PY + 40, size: 12, color: itemDoor[sel] < 0 ? UI.warn : UI.text)
-          text(it.p > KD[it.k].fair * 2 + 0.5 ? "Guests think it's too dear" : "Guests pay up to ${[KD[it.k].fair * 2 + 0.5].map(pr)[0]}", PX + 2, PY + 62, size: 12, color: it.p > KD[it.k].fair * 2 + 0.5 ? UI.warn : UI.dim)
-          text("Price", PX + 2, PRY, size: 14, color: UI.text)
+          text(itemDoor[sel] < 0 ? str.noPathIt : !it.o ? str.closed : str.customersLine(round(shopRate[sel] * 60 * SPEED), [shopRate[sel] * it.p * 60 * SPEED].map(cash)[0]), PX + 2, PY + 40, size: 12, color: itemDoor[sel] < 0 ? UI.warn : UI.text)
+          text(it.p > KD[it.k].fair * 2 + 0.5 ? str.guestsTooDear : str.guestsPay([KD[it.k].fair * 2 + 0.5].map(pr)[0]), PX + 2, PY + 62, size: 12, color: it.p > KD[it.k].fair * 2 + 0.5 ? UI.warn : UI.dim)
+          text(str.price, PX + 2, PRY, size: 14, color: UI.text)
           rect(SX1, PRY - 16, 40, 32, fill: UI.card2, radius: 6 * corners)
           rect(SX2, PRY - 16, 40, 32, fill: UI.card2, radius: 6 * corners)
           text("−", SX1 + 20, PRY, size: 20, color: UI.text, align: center, bold: true)
           text("+", SX2 + 20, PRY, size: 20, color: UI.text, align: center, bold: true)
           text([it.p].map(pr)[0], (SX1 + SX2 + 40) / 2, PRY, size: 18, color: UI.gold, align: center, bold: true)
           rect(PX, BY, (PW - 6) / 2, BH, fill: UI.card2, radius: 6 * corners)
-          text(it.o ? "Close" : "Open", PX + (PW - 6) / 4, BY + BH / 2, size: 13, color: UI.text, align: center, bold: true)
+          text(it.o ? str.close : str.open, PX + (PW - 6) / 4, BY + BH / 2, size: 13, color: UI.text, align: center, bold: true)
         } else {
-          text(it.k == 4 ? "Mechanics work from here, 3 to a workshop" : it.k == 5 ? (any(flatten([it].map(foot)[0].map(c => nbs[c])), c => len(lv[c]) > 0) ? "Fans watch the races and tell their friends" : "Put it beside a track for the fans to watch") : it.k == 6 ? "Beside a corner, it keeps crashes harmless" : it.k == 9 ? "Guests drop their litter in it" : "Decorations raise the rating", PX + 2, PY + 40, size: 13, color: UI.dim)
+          text(it.k == 4 ? str.mechHere : it.k == 5 ? (any(flatten([it].map(foot)[0].map(c => nbs[c])), c => len(lv[c]) > 0) ? str.fansWatch : str.putBeside) : it.k == 6 ? str.tyreHint : it.k == 9 ? str.binHint : str.decorHint, PX + 2, PY + 40, size: 13, color: UI.dim)
         }
         rect(isShop ? PX + (PW + 6) / 2 : PX, BY, isShop ? (PW - 6) / 2 : PW, BH, fill: arm ? "#e0533d" : "#5a2a2f", radius: 6 * corners)
-        text(arm ? "Tap to confirm" : "Sell +${[floor(it.sp / 2)].map(cash)[0]}", isShop ? PX + (PW + 6) / 2 + (PW - 6) / 4 : PX + PW / 2, BY + BH / 2, size: 13, color: UI.text, align: center, bold: true)
+        text(arm ? str.tapConfirm : str.sell([floor(it.sp / 2)].map(cash)[0]), isShop ? PX + (PW + 6) / 2 + (PW - 6) / 4 : PX + PW / 2, BY + BH / 2, size: 13, color: UI.text, align: center, bold: true)
       } else {
         for t in range(5) {
           rect(PX + t * PW / 5 + 2, PY, PW / 5 - 4, TBH, fill: tab == t ? UI.gold : UI.card, radius: 6 * corners)
-          text(TABN[t], PX + t * PW / 5 + PW / 10, PY + TBH / 2, size: 12, color: tab == t ? UI.bg : UI.text, align: center, bold: true)
+          text(str.tab(t), PX + t * PW / 5 + PW / 10, PY + TBH / 2, size: 12, color: tab == t ? UI.bg : UI.text, align: center, bold: true)
         }
         if tab < 4 {
           for k, j in TABK[tab] {
@@ -536,17 +1991,17 @@ app "kart kingdom" {
             rect(cx, cy, CW, CHh, fill: tool == k ? UI.card2 : UI.card, radius: 6 * corners)
             if tool == k { rect(cx + 1, cy + 1, CW - 2, CHh - 2, stroke: UI.gold, width: 2, radius: 6 * corners) }
             rect(cx + 10, cy + 12, 14, 14, fill: k == 20 ? "#474c57" : k == 12 ? "#dfc99c" : KD[k].c, radius: 4)
-            text(k == 20 ? "Kart track" : k == 12 ? "Footpath" : KD[k].n, cx + 10, cy + 40, size: 12, color: UI.text, bold: true)
-            text(k == 20 ? "from $700" : k == 12 ? "$10 a cell" : [KD[k].cost].map(cash)[0], cx + 30, cy + 19, size: 11, color: UI.gold)
+            text(k == 20 ? str.kartTrack : k == 12 ? str.footpath : str.kd(k), cx + 10, cy + 40, size: 12, color: UI.text, bold: true)
+            text(k == 20 ? str.fromCost : k == 12 ? str.perCell : [KD[k].cost].map(cash)[0], cx + 30, cy + 19, size: 11, color: UI.gold)
           }
-          text(tab == 0 ? "Lay a track; tyre walls by its corners stop crashes." : tab == 1 ? "Shops sell to every guest. They need a path." : tab == 2 ? "Gardens raise the rating; bins keep litter down." : "Tap or drag on grass to lay path, tap a path to lift it.", PX + 2, CY + (tab == 0 || tab == 2 ? 2 : 1) * (CHh + 6) + 14, size: 12, color: UI.dim)
+          text(tab == 0 ? str.hintTrack : tab == 1 ? str.hintShops : tab == 2 ? str.hintGarden : str.hintPaths, PX + 2, CY + (tab == 0 || tab == 2 ? 2 : 1) * (CHh + 6) + 14, size: 12, color: UI.dim)
         } else {
-          text("Entry fee", PX + 2, FRY - 6, size: 14, color: UI.text)
-          text(feeF < 1 ? "too steep for this place" : "guests think it's fair", PX + 2, FRY + 11, size: 11, color: feeF < 1 ? UI.warn : UI.dim)
-          text("Mechanics", PX + 2, MRY - 6, size: 14, color: UI.text)
-          text(mechMax == 0 ? "build a workshop first" : "${round(cov * 100)}% of ${kTot} karts looked after", PX + 2, MRY + 11, size: 11, color: cov < 0.6 && kTot > 0 ? UI.warn : UI.dim)
-          text("Handymen", PX + 2, SRY - 6, size: 14, color: UI.text)
-          text("${litter} litter on the paths", PX + 2, SRY + 11, size: 11, color: litter > 8 ? UI.warn : UI.dim)
+          text(str.entryFee, PX + 2, FRY - 6, size: 14, color: UI.text)
+          text(feeF < 1 ? str.feeSteep : str.feeFair, PX + 2, FRY + 11, size: 11, color: feeF < 1 ? UI.warn : UI.dim)
+          text(str.mechanics, PX + 2, MRY - 6, size: 14, color: UI.text)
+          text(mechMax == 0 ? str.workshopFirst : str.coverage(round(cov * 100), kTot), PX + 2, MRY + 11, size: 11, color: cov < 0.6 && kTot > 0 ? UI.warn : UI.dim)
+          text(str.handymen, PX + 2, SRY - 6, size: 14, color: UI.text)
+          text(str.litterLine(litter), PX + 2, SRY + 11, size: 11, color: litter > 8 ? UI.warn : UI.dim)
           for row in [[FRY, "$${fee}"], [MRY, "${mech}"], [SRY, "${staff}"]] {
             rect(SX1, row[0] - 16, 40, 32, fill: UI.card2, radius: 6 * corners)
             rect(SX2, row[0] - 16, 40, 32, fill: UI.card2, radius: 6 * corners)
@@ -554,13 +2009,13 @@ app "kart kingdom" {
             text("+", SX2 + 20, row[0], size: 20, color: UI.text, align: center, bold: true)
             text(row[1], (SX1 + SX2 + 40) / 2, row[0], size: 16, color: UI.gold, align: center, bold: true)
           }
-          text("Land", PX + 2, LRY - 6, size: 14, color: UI.text)
-          text(land >= 4 ? "${LS0}×${LS0}, the whole plot" : "${LS0}×${LS0}, next ${LS0 + 2}×${LS0 + 2}", PX + 2, LRY + 11, size: 11, color: UI.dim)
+          text(str.land, PX + 2, LRY - 6, size: 14, color: UI.text)
+          text(land >= 4 ? str.landWhole(LS0) : str.landNext(LS0, LS0 + 2), PX + 2, LRY + 11, size: 11, color: UI.dim)
           rect(SX1, LRY - 16, SX2 + 40 - SX1, 32, fill: land >= 4 ? UI.card : UI.go, radius: 6 * corners)
-          text(land >= 4 ? "All yours" : "Buy ${[LANDC[land + 1]].map(cash)[0]}", (SX1 + SX2 + 40) / 2, LRY, size: 13, color: land >= 4 ? UI.dim : UI.text, align: center, bold: true)
-          text("What the guests are thinking", PX + 2, LRY + 34, size: 11, color: UI.gold, bold: true)
+          text(land >= 4 ? str.allYours : str.buy([LANDC[land + 1]].map(cash)[0]), (SX1 + SX2 + 40) / 2, LRY, size: 13, color: land >= 4 ? UI.dim : UI.text, align: center, bold: true)
+          text(str.thinking, PX + 2, LRY + 34, size: 11, color: UI.gold, bold: true)
           if len(thoughts) == 0 {
-            text(guests == 0 ? "No guests yet. Build a track by a path." : "Everyone's happy.", PX + 2, LRY + 54, size: 12, color: UI.dim)
+            text(guests == 0 ? str.noGuests : str.happy, PX + 2, LRY + 54, size: 12, color: UI.dim)
           }
           for t, i in thoughts.take(max(0, floor((PY + PH - LRY - 44) / 19))) {
             text(t[1], PX + 2, LRY + 54 + i * 19, size: 12, color: UI.text)
@@ -578,13 +2033,13 @@ app "kart kingdom" {
       text(hudCash, 14, TOP + 14, size: 17, color: coins < 0 ? UI.warn : UI.text, bold: true)
       text(hudRate, 14, TOP + 32, size: 11, color: rate >= 0 ? UI.dim : UI.warn)
       text(hudGuests, MAPW * 0.42, TOP + 14, size: 17, color: UI.text, bold: true, align: center)
-      text("guests", MAPW * 0.42, TOP + 32, size: 11, color: UI.dim, align: center)
+      text(str.guests, MAPW * 0.42, TOP + 32, size: 11, color: UI.dim, align: center)
       text(hudRating, MAPW * 0.62, TOP + 14, size: 17, color: rating < 400 ? UI.warn : rating < 600 ? UI.gold : "#79d48f", bold: true, align: center)
-      text("rating", MAPW * 0.62, TOP + 32, size: 11, color: UI.dim, align: center)
+      text(str.rating, MAPW * 0.62, TOP + 32, size: 11, color: UI.dim, align: center)
       rect(MAPW - 100, TOP + 8, 42, 30, fill: UI.card2, radius: 6 * corners)
       text(zoom == 1 ? "2×" : "1×", MAPW - 79, TOP + 23, size: 13, color: UI.text, align: center, bold: true)
       rect(MAPW - 52, TOP + 8, 42, 30, fill: tab == 4 && tool < 0 && sel < 0 ? UI.gold : UI.card2, radius: 6 * corners)
-      text("Park", MAPW - 31, TOP + 23, size: 12, color: tab == 4 && tool < 0 && sel < 0 ? UI.bg : UI.text, align: center, bold: true)
+      text(str.tab(4), MAPW - 31, TOP + 23, size: 12, color: tab == 4 && tool < 0 && sel < 0 ? UI.bg : UI.text, align: center, bold: true)
     }
 
     // ---- what moves: karts, guests, and messages ----
@@ -617,7 +2072,7 @@ app "kart kingdom" {
             if tool == 20 {
               if inMap {
                 let a0 = [cell].map(cAct)[0]
-                let a = a0.a == 1 && coins < 700 || a0.a == 2 && coins < pieceCost ? {a: 0, m: "Not enough cash"} : a0
+                let a = a0.a == 1 && coins < 700 || a0.a == 2 && coins < pieceCost ? {a: 0, m: str.notEnough} : a0
                 if a.a == 1 {
                   bank = coins - 700
                   since = tnow
@@ -630,7 +2085,7 @@ app "kart kingdom" {
                   tracks = set(tracks, bi, merge(tracks[bi], {t: bt + [[cell, nextZ]], sp: tracks[bi].sp + pieceCost}))
                 } else if a.a == 3 {
                   let b0 = bi
-                  msg = "${TN[tracks[b0].n % 8]} is open!"
+                  msg = str.isOpen(str.trackName(tracks[b0].n % 8))
                   tracks = set(tracks, b0, merge(tracks[b0], {d: true, p: max(3, round(ts[b0].exc * 1.2 + 2))}))
                   msgT = time
                   tool = -1
@@ -650,7 +2105,7 @@ app "kart kingdom" {
                     paths = paths.filter(c => c != cell)
                   }
                 } else if !isO[cell] {
-                  msg = "Buy this land first (Park)"
+                  msg = str.buyLand
                   msgT = time
                 } else if own[cell] < 0 && !isW[cell] && all(lv[cell], z => z >= 2) {
                   if coins >= 10 {
@@ -658,11 +2113,11 @@ app "kart kingdom" {
                     since = tnow
                     paths = paths + [cell]
                   } else {
-                    msg = "Not enough cash"
+                    msg = str.notEnough
                     msgT = time
                   }
                 } else if len(lv[cell]) > 0 {
-                  msg = "Paths go under bridges of level 2 or more"
+                  msg = str.pathsUnder
                   msgT = time
                 }
               }
@@ -672,20 +2127,20 @@ app "kart kingdom" {
               if !inMap {
                 sel = -1
               } else if !isO[cell] {
-                msg = "Buy this land first (Park)"
+                msg = str.buyLand
                 msgT = time
               } else if len(fit) == 0 {
-                msg = "No room here"
+                msg = str.noRoom
                 msgT = time
               } else if coins < KD[tool].cost {
-                msg = "Not enough cash"
+                msg = str.notEnough
                 msgT = time
               } else {
                 bank = coins - KD[tool].cost
                 since = tnow
                 items = items + [{c: fit[0], k: tool, p: KD[tool].p ?? 0, o: true, sp: KD[tool].cost}]
                 if KD[tool].t == 1 && ![[fit[0], tool]].map(q => any(nbs[q[0]], n => dist[n] >= 0))[0] {
-                  msg = "Lay a path to it from the gate"
+                  msg = str.layPath
                   msgT = time
                 }
                 haptic("light")
@@ -755,17 +2210,17 @@ app "kart kingdom" {
               arm = false
               let up = co.cl >= 2 ? 0 : co.k * KC[co.cl + 1].cost - floor(co.k * KC[co.cl].cost / 2)
               if co.cl >= 2 {
-                msg = "These are the best karts there are"
+                msg = str.bestKarts
                 msgT = time
               } else if coins < up {
-                msg = "Not enough cash"
+                msg = str.notEnough
                 msgT = time
               } else {
                 bank = coins - up
                 since = tnow
                 tracks = set(tracks, j, merge(co, {cl: co.cl + 1, sp: co.sp + up}))
                 wear = set(range(len(tracks)).map(q => wear[q] ?? 0), j, 0)
-                msg = "New ${KC[co.cl + 1].n} karts!"
+                msg = str.newKarts(str.kc(co.cl + 1))
                 msgT = time
                 haptic()
               }
@@ -794,10 +2249,10 @@ app "kart kingdom" {
               tracks = set(tracks, j, merge(co, {k: co.k - 1, sp: co.sp - kc}))
             } else if x >= SX2 - 4 && x < SX2 + 44 {
               if co.k >= 12 {
-                msg = "12 karts is the most a track takes"
+                msg = str.maxKarts
                 msgT = time
               } else if coins < kc {
-                msg = "Not enough cash"
+                msg = str.notEnough
                 msgT = time
               } else {
                 bank = coins - kc
@@ -809,10 +2264,10 @@ app "kart kingdom" {
             arm = false
             let rc = [j].map(repairC)[0]
             if (wear[j] ?? 0) < 1 {
-              msg = "The karts are like new"
+              msg = str.alreadyNew
               msgT = time
             } else if coins < rc {
-              msg = "Not enough cash"
+              msg = str.notEnough
               msgT = time
             } else {
               let c0 = coins
@@ -821,7 +2276,7 @@ app "kart kingdom" {
               wsince = tnow
               bank = c0 - rc
               since = tnow
-              msg = "Karts repaired"
+              msg = str.repaired
               msgT = time
               haptic()
             }
@@ -869,10 +2324,10 @@ app "kart kingdom" {
             fee = clamp(fee + d, 0, 50)
           } else if d != 0 && y >= MRY - 18 && y <= MRY + 18 {
             if d > 0 && mech >= mechMax {
-              msg = mechMax == 0 ? "Mechanics need a workshop" : "Each workshop takes 3 mechanics"
+              msg = mechMax == 0 ? str.needWorkshop : str.threeMech
               msgT = time
             } else if d > 0 && coins < 300 {
-              msg = "Hiring costs $300"
+              msg = str.hiring
               msgT = time
             } else {
               bank = coins - (d > 0 ? 300 : 0)
@@ -881,7 +2336,7 @@ app "kart kingdom" {
             }
           } else if d != 0 && y >= SRY - 18 && y <= SRY + 18 {
             if d > 0 && coins < 300 {
-              msg = "Hiring costs $300"
+              msg = str.hiring
               msgT = time
             } else {
               bank = coins - (d > 0 ? 300 : 0)
@@ -890,7 +2345,7 @@ app "kart kingdom" {
             }
           } else if y >= LRY - 18 && y <= LRY + 18 && x >= SX1 && land < 4 {
             if coins < LANDC[land + 1] {
-              msg = "Not enough cash"
+              msg = str.notEnough
               msgT = time
             } else {
               bank = coins - LANDC[land + 1]
@@ -898,7 +2353,7 @@ app "kart kingdom" {
               land = land + 1
               panX = 0
               panY = 0
-              msg = "More land! Now ${LS0 + 2}×${LS0 + 2}"
+              msg = str.moreLand(LS0 + 2)
               msgT = time
               haptic()
             }
@@ -1017,7 +2472,7 @@ app "kart kingdom" {
         // ---- a word for a new attraction, and messages ----
         if len(tracks) == 0 && tool < 0 && time % 1.6 < 1.2 {
           rect(CXm - 140, MAPH - 46, 280, 30, fill: "#14213acc", radius: 6 * corners)
-          text("Pick Kart track below and tap the map", CXm, MAPH - 31, size: 12, color: UI.gold, align: center, bold: true)
+          text(str.pickTrack, CXm, MAPH - 31, size: 12, color: UI.gold, align: center, bold: true)
         }
         if time - msgT < 2.4 && time >= msgT {
           rect(CXm - 160, HUDH + 10, 320, 32, fill: "#f7edd3", radius: 16 * corners)

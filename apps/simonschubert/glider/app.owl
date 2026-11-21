@@ -1,5 +1,5 @@
 app "glider" {
-  meta { owl: 23; description: "A calm 3D glide: tilt to fly a paper glider over a valley, ride the warm air under the clouds and along the sea cliffs, and find rings and places"; version: "1.0"; license: "MIT"; category: "games" }
+  meta { owl: 23; description: "A calm 3D glide: tilt to fly a paper glider over a valley, ride the warm air under the clouds and along the sea cliffs, and find rings and places"; version: "1.1"; license: "MIT"; category: "games" }
   // How it works: the valley is a 96 x 96 heightmap made once by a script (its heights in quarter units and a
   // colour for every cell are the two big lists below), cut into 8 x 8 terrain() chunks, of which only those
   // near the camera and in front of it are drawn; the fog hides where they end. The ground's height under any
@@ -15,6 +15,560 @@ app "glider" {
   statusBar: false
   edge: true
   fps: mode == "fly" ? 60 : (modes.saver ? 15 : 30)
+  strings {
+    en {
+      lighthouse: "the lighthouse"
+      windmill: "the windmill"
+      castle: "the castle"
+      arch: "the sea arch"
+      hut: "the mountain hut"
+      church: "the village church"
+      balloon: "the balloon"
+      crop: "the crop circle"
+      wreck: "the shipwreck"
+      stones: "the stone circle"
+      whale: "the whale"
+      ufo: "the ufo"
+      m: a => "${a} m"
+      km: k => "${k} km"
+      ringOf: (k, n) => "ring ${k} of ${n}"
+      ofN: n => "of ${n}"
+      newRing: (k, n) => "new ring!  ${k} of ${n}"
+      plusRing: "+1 ring"
+      holdBoost: "hold for a boost"
+      higher: "higher"
+      lower: "lower"
+      secretNew: (k, n) => "a secret! ${k} of ${n} found"
+      secretOld: "a secret, found before"
+      placeNew: (k, n) => "a new place - ${k} of ${n} found"
+      found: (k, n) => "${k} of ${n} found"
+      steerTilt: "tilt to steer, lean forward to dive"
+      steerDrag: "drag to steer, down to climb"
+      launch: "tap to launch"
+      allDone: "every ring and place is yours. now fly the whole course in one go"
+      course: (r, p) => "fly the ring course round the valley: ${r} rings, ${p} places"
+      ringsCaught: (k, n) => "${k} of ${n} rings caught"
+      mostInOne: b => " · most in one flight ${b}"
+      secretsHide: n => "and ${n} secrets hide off the course"
+      secretsList: s => "secrets: ${s}"
+      help: "the tag at the top leads to the next ring. when it says higher, circle in the warm air under a cloud to climb. the cliffs hold you up too. rings give a burst of speed, and holding a finger down boosts"
+      bestFlight: k => "best flight ${k} km"
+      flightTime: (k, t) => "${k} km in ${t}"
+      ringsFlight: (n, k) => "${n} " + (n == 1 ? "ring" : "rings") + " this flight" + (k > 0 ? ", ${k} new" : "")
+      allCaught: n => "all ${n} rings caught"
+      inOneFlight: ", in one flight!"
+      saw: s => "saw ${s}"
+      placesFound: (k, n) => "${k} of ${n} places found"
+      flyAgain: "tap to fly again"
+      landed: l => l == "sea" ? "splashdown in the sea" : l == "lake" ? "splashdown in the lake" : l == "beach" ? "landed on the beach" : l == "field" ? "landed in a field" : l == "meadow" ? "landed in a meadow" : l == "forest" ? "landed in the treetops" : l == "snow" ? "landed in the snow" : l == "village" ? "landed on a roof" : "landed on the rocks"
+    }
+    id {
+      lighthouse: "mercusuar"
+      windmill: "kincir angin"
+      castle: "kastel"
+      arch: "gapura laut"
+      hut: "pondok gunung"
+      church: "gereja desa"
+      balloon: "balon udara"
+      crop: "lingkaran ladang"
+      wreck: "kapal karam"
+      stones: "lingkaran batu"
+      whale: "paus"
+      ufo: "ufo"
+      m: a => "${a} m"
+      km: k => "${k} km"
+      ringOf: (k, n) => "cincin ${k} dari ${n}"
+      ofN: n => "dari ${n}"
+      newRing: (k, n) => "cincin baru!  ${k} dari ${n}"
+      plusRing: "+1 cincin"
+      holdBoost: "tahan untuk melesat"
+      higher: "lebih tinggi"
+      lower: "lebih rendah"
+      secretNew: (k, n) => "rahasia! ${k} dari ${n} ditemukan"
+      secretOld: "rahasia, sudah ditemukan"
+      placeNew: (k, n) => "tempat baru - ${k} dari ${n} ditemukan"
+      found: (k, n) => "${k} dari ${n} ditemukan"
+      steerTilt: "miringkan untuk berbelok, condongkan ke depan untuk menukik"
+      steerDrag: "geser untuk berbelok, ke bawah untuk naik"
+      launch: "ketuk untuk meluncur"
+      allDone: "semua cincin dan tempat sudah kamu dapat. sekarang terbangi seluruh rute sekaligus"
+      course: (r, p) => "terbangi rute cincin keliling lembah: ${r} cincin, ${p} tempat"
+      ringsCaught: (k, n) => "${k} dari ${n} cincin didapat"
+      mostInOne: b => " · terbanyak sekali terbang ${b}"
+      secretsHide: n => "dan ${n} rahasia tersembunyi di luar rute"
+      secretsList: s => "rahasia: ${s}"
+      help: "label di atas menunjuk ke cincin berikutnya. saat tertulis lebih tinggi, berputarlah di udara hangat di bawah awan untuk naik. tebing juga menahanmu di udara. cincin memberi lonjakan kecepatan, dan menahan jari memberi dorongan"
+      bestFlight: k => "terbang terjauh ${k} km"
+      flightTime: (k, t) => "${k} km dalam ${t}"
+      ringsFlight: (n, k) => "${n} cincin di penerbangan ini" + (k > 0 ? ", ${k} baru" : "")
+      allCaught: n => "semua ${n} cincin didapat"
+      inOneFlight: ", dalam sekali terbang!"
+      saw: s => "terlihat: ${s}"
+      placesFound: (k, n) => "${k} dari ${n} tempat ditemukan"
+      flyAgain: "ketuk untuk terbang lagi"
+      landed: l => l == "sea" ? "mendarat di laut" : l == "lake" ? "mendarat di danau" : l == "beach" ? "mendarat di pantai" : l == "field" ? "mendarat di ladang" : l == "meadow" ? "mendarat di padang rumput" : l == "forest" ? "mendarat di pucuk pohon" : l == "snow" ? "mendarat di salju" : l == "village" ? "mendarat di atap" : "mendarat di bebatuan"
+    }
+    es {
+      lighthouse: "el faro"
+      windmill: "el molino"
+      castle: "el castillo"
+      arch: "el arco marino"
+      hut: "el refugio"
+      church: "la iglesia del pueblo"
+      balloon: "el globo"
+      crop: "el círculo en el trigo"
+      wreck: "el barco hundido"
+      stones: "el círculo de piedras"
+      whale: "la ballena"
+      ufo: "el ovni"
+      m: a => "${a} m"
+      km: k => "${k} km"
+      ringOf: (k, n) => "aro ${k} de ${n}"
+      ofN: n => "de ${n}"
+      newRing: (k, n) => "¡aro nuevo!  ${k} de ${n}"
+      plusRing: "+1 aro"
+      holdBoost: "mantén para acelerar"
+      higher: "más alto"
+      lower: "más bajo"
+      secretNew: (k, n) => "¡un secreto! ${k} de ${n} encontrados"
+      secretOld: "un secreto, ya encontrado"
+      placeNew: (k, n) => "un lugar nuevo - ${k} de ${n} encontrados"
+      found: (k, n) => "${k} de ${n} encontrados"
+      steerTilt: "inclina para girar, hacia delante para picar"
+      steerDrag: "arrastra para girar, abajo para subir"
+      launch: "toca para despegar"
+      allDone: "todos los aros y lugares son tuyos. ahora vuela todo el recorrido de una vez"
+      course: (r, p) => "vuela el recorrido de aros por el valle: ${r} aros, ${p} lugares"
+      ringsCaught: (k, n) => "${k} de ${n} aros atrapados"
+      mostInOne: b => " · récord en un vuelo ${b}"
+      secretsHide: n => "y ${n} secretos se esconden fuera del recorrido"
+      secretsList: s => "secretos: ${s}"
+      help: "la etiqueta de arriba lleva al siguiente aro. cuando dice más alto, gira en el aire cálido bajo una nube para subir. los acantilados también te sostienen. los aros dan un golpe de velocidad, y mantener un dedo pulsado acelera"
+      bestFlight: k => "mejor vuelo ${k} km"
+      flightTime: (k, t) => "${k} km en ${t}"
+      ringsFlight: (n, k) => (n == 1 ? "1 aro" : "${n} aros") + " en este vuelo" + (k > 0 ? (k == 1 ? ", 1 nuevo" : ", ${k} nuevos") : "")
+      allCaught: n => "los ${n} aros atrapados"
+      inOneFlight: ", ¡en un solo vuelo!"
+      saw: s => "viste ${s}"
+      placesFound: (k, n) => "${k} de ${n} lugares encontrados"
+      flyAgain: "toca para volar otra vez"
+      landed: l => l == "sea" ? "amerizaje en el mar" : l == "lake" ? "amerizaje en el lago" : l == "beach" ? "aterrizaje en la playa" : l == "field" ? "aterrizaje en un campo" : l == "meadow" ? "aterrizaje en un prado" : l == "forest" ? "aterrizaje en las copas" : l == "snow" ? "aterrizaje en la nieve" : l == "village" ? "aterrizaje en un tejado" : "aterrizaje en las rocas"
+    }
+    pt {
+      lighthouse: "o farol"
+      windmill: "o moinho"
+      castle: "o castelo"
+      arch: "o arco marinho"
+      hut: "o refúgio"
+      church: "a igreja da vila"
+      balloon: "o balão"
+      crop: "o agroglifo"
+      wreck: "o naufrágio"
+      stones: "o círculo de pedras"
+      whale: "a baleia"
+      ufo: "o óvni"
+      m: a => "${a} m"
+      km: k => "${k} km"
+      ringOf: (k, n) => "anel ${k} de ${n}"
+      ofN: n => "de ${n}"
+      newRing: (k, n) => "anel novo!  ${k} de ${n}"
+      plusRing: "+1 anel"
+      holdBoost: "segure para acelerar"
+      higher: "mais alto"
+      lower: "mais baixo"
+      secretNew: (k, n) => "um segredo! ${k} de ${n} achados"
+      secretOld: "um segredo, já achado"
+      placeNew: (k, n) => "um lugar novo - ${k} de ${n} achados"
+      found: (k, n) => "${k} de ${n} achados"
+      steerTilt: "incline para virar, para a frente para mergulhar"
+      steerDrag: "arraste para virar, para baixo para subir"
+      launch: "toque para decolar"
+      allDone: "todos os anéis e lugares são seus. agora voe o percurso todo de uma vez"
+      course: (r, p) => "voe o percurso de anéis pelo vale: ${r} anéis, ${p} lugares"
+      ringsCaught: (k, n) => "${k} de ${n} anéis pegos"
+      mostInOne: b => " · recorde num voo ${b}"
+      secretsHide: n => "e ${n} segredos se escondem fora do percurso"
+      secretsList: s => "segredos: ${s}"
+      help: "a etiqueta no alto leva ao próximo anel. quando ela disser mais alto, circule no ar quente sob uma nuvem para subir. os penhascos também te seguram. os anéis dão um impulso de velocidade, e segurar um dedo na tela acelera"
+      bestFlight: k => "melhor voo ${k} km"
+      flightTime: (k, t) => "${k} km em ${t}"
+      ringsFlight: (n, k) => (n == 1 ? "1 anel" : "${n} anéis") + " neste voo" + (k > 0 ? (k == 1 ? ", 1 novo" : ", ${k} novos") : "")
+      allCaught: n => "todos os ${n} anéis pegos"
+      inOneFlight: ", num só voo!"
+      saw: s => "você viu ${s}"
+      placesFound: (k, n) => "${k} de ${n} lugares achados"
+      flyAgain: "toque para voar de novo"
+      landed: l => l == "sea" ? "pouso no mar" : l == "lake" ? "pouso no lago" : l == "beach" ? "pouso na praia" : l == "field" ? "pouso num campo" : l == "meadow" ? "pouso num prado" : l == "forest" ? "pouso nas copas das árvores" : l == "snow" ? "pouso na neve" : l == "village" ? "pouso num telhado" : "pouso nas rochas"
+    }
+    de {
+      lighthouse: "der leuchtturm"
+      windmill: "die windmühle"
+      castle: "die burg"
+      arch: "das felsentor"
+      hut: "die berghütte"
+      church: "die dorfkirche"
+      balloon: "der ballon"
+      crop: "der kornkreis"
+      wreck: "das schiffswrack"
+      stones: "der steinkreis"
+      whale: "der wal"
+      ufo: "das ufo"
+      m: a => "${a} m"
+      km: k => "${k} km"
+      ringOf: (k, n) => "ring ${k} von ${n}"
+      ofN: n => "von ${n}"
+      newRing: (k, n) => "neuer ring!  ${k} von ${n}"
+      plusRing: "+1 ring"
+      holdBoost: "halten für schub"
+      higher: "höher"
+      lower: "tiefer"
+      secretNew: (k, n) => "ein geheimnis! ${k} von ${n} gefunden"
+      secretOld: "ein geheimnis, schon gefunden"
+      placeNew: (k, n) => "ein neuer ort - ${k} von ${n} gefunden"
+      found: (k, n) => "${k} von ${n} gefunden"
+      steerTilt: "kippen zum lenken, nach vorn zum abtauchen"
+      steerDrag: "ziehen zum lenken, nach unten zum steigen"
+      launch: "tippen zum starten"
+      allDone: "jeder ring und jeder ort gehört dir. jetzt flieg die ganze strecke in einem zug"
+      course: (r, p) => "flieg die ringstrecke durchs tal: ${r} ringe, ${p} orte"
+      ringsCaught: (k, n) => "${k} von ${n} ringen geschafft"
+      mostInOne: b => " · meiste in einem flug ${b}"
+      secretsHide: n => "und ${n} geheimnisse verstecken sich abseits der strecke"
+      secretsList: s => "geheimnisse: ${s}"
+      help: "das schild oben führt zum nächsten ring. steht dort höher, kreise in der warmen luft unter einer wolke, um zu steigen. die klippen tragen dich auch. ringe geben einen schub, und ein finger auf dem bildschirm gibt gas"
+      bestFlight: k => "bester flug ${k} km"
+      flightTime: (k, t) => "${k} km in ${t}"
+      ringsFlight: (n, k) => (n == 1 ? "1 ring" : "${n} ringe") + " in diesem flug" + (k > 0 ? ", ${k} neu" : "")
+      allCaught: n => "alle ${n} ringe geschafft"
+      inOneFlight: ", in einem flug!"
+      saw: s => "gesehen: ${s}"
+      placesFound: (k, n) => "${k} von ${n} orten gefunden"
+      flyAgain: "tippen, um nochmal zu fliegen"
+      landed: l => l == "sea" ? "wasserung im meer" : l == "lake" ? "wasserung im see" : l == "beach" ? "gelandet am strand" : l == "field" ? "gelandet auf einem feld" : l == "meadow" ? "gelandet auf einer wiese" : l == "forest" ? "gelandet in den baumkronen" : l == "snow" ? "gelandet im schnee" : l == "village" ? "gelandet auf einem dach" : "gelandet auf den felsen"
+    }
+    zh {
+      lighthouse: "灯塔"
+      windmill: "风车"
+      castle: "城堡"
+      arch: "海蚀拱"
+      hut: "山间小屋"
+      church: "村里的教堂"
+      balloon: "热气球"
+      crop: "麦田怪圈"
+      wreck: "沉船"
+      stones: "石阵"
+      whale: "鲸鱼"
+      ufo: "飞碟"
+      m: a => "${a} m"
+      km: k => "${k} km"
+      ringOf: (k, n) => "圆环 ${k}/${n}"
+      ofN: n => "共 ${n}"
+      newRing: (k, n) => "新圆环！ ${k}/${n}"
+      plusRing: "+1 圆环"
+      holdBoost: "按住加速"
+      higher: "更高"
+      lower: "更低"
+      secretNew: (k, n) => "一个秘密！已找到 ${k}/${n}"
+      secretOld: "一个秘密，之前找到过"
+      placeNew: (k, n) => "新地点 - 已找到 ${k}/${n}"
+      found: (k, n) => "已找到 ${k}/${n}"
+      steerTilt: "倾斜转向，前倾俯冲"
+      steerDrag: "拖动转向，向下爬升"
+      launch: "点按起飞"
+      allDone: "所有圆环和地点都已收入囊中。现在一口气飞完整条航线"
+      course: (r, p) => "沿山谷飞完圆环航线：${r} 个圆环，${p} 个地点"
+      ringsCaught: (k, n) => "已穿过 ${k}/${n} 个圆环"
+      mostInOne: b => " · 单次最多 ${b}"
+      secretsHide: n => "还有 ${n} 个秘密藏在航线之外"
+      secretsList: s => "秘密：${s}"
+      help: "顶部的标签指向下一个圆环。显示更高时，在云下的暖气流里盘旋爬升。悬崖边也能托住你。穿过圆环会加速，按住手指也能加速"
+      bestFlight: k => "最佳飞行 ${k} km"
+      flightTime: (k, t) => "${t} 飞了 ${k} km"
+      ringsFlight: (n, k) => "本次飞行 ${n} 个圆环" + (k > 0 ? "，${k} 个新的" : "")
+      allCaught: n => "${n} 个圆环全部穿过"
+      inOneFlight: "，一次飞完！"
+      saw: s => "看到了：${s}"
+      placesFound: (k, n) => "已找到 ${k}/${n} 个地点"
+      flyAgain: "点按再飞一次"
+      landed: l => l == "sea" ? "落入大海" : l == "lake" ? "落入湖中" : l == "beach" ? "降落在沙滩上" : l == "field" ? "降落在田野里" : l == "meadow" ? "降落在草地上" : l == "forest" ? "落在树梢上" : l == "snow" ? "降落在雪地里" : l == "village" ? "落在屋顶上" : "落在岩石上"
+    }
+    ru {
+      lighthouse: "маяк"
+      windmill: "мельница"
+      castle: "замок"
+      arch: "морская арка"
+      hut: "горная хижина"
+      church: "сельская церковь"
+      balloon: "воздушный шар"
+      crop: "круг на поле"
+      wreck: "затонувший корабль"
+      stones: "каменный круг"
+      whale: "кит"
+      ufo: "НЛО"
+      m: a => "${a} м"
+      km: k => "${k} км"
+      ringOf: (k, n) => "кольцо ${k} из ${n}"
+      ofN: n => "из ${n}"
+      newRing: (k, n) => "новое кольцо!  ${k} из ${n}"
+      plusRing: "+1 кольцо"
+      holdBoost: "удерживайте для ускорения"
+      higher: "выше"
+      lower: "ниже"
+      secretNew: (k, n) => "секрет! найдено ${k} из ${n}"
+      secretOld: "секрет, уже найден"
+      placeNew: (k, n) => "новое место - найдено ${k} из ${n}"
+      found: (k, n) => "найдено ${k} из ${n}"
+      steerTilt: "наклоняйте для поворота, вперёд — для пике"
+      steerDrag: "ведите пальцем для поворота, вниз — набор высоты"
+      launch: "нажмите для взлёта"
+      allDone: "все кольца и места ваши. теперь пролетите весь маршрут за один раз"
+      course: (r, p) => "пролетите по кольцам вокруг долины: ${r} колец, ${p} мест"
+      ringsCaught: (k, n) => "пройдено ${k} из ${n} колец"
+      mostInOne: b => " · рекорд за полёт ${b}"
+      secretsHide: n => "и ${n} секретов спрятаны в стороне от маршрута"
+      secretsList: s => "секреты: ${s}"
+      help: "ярлык вверху ведёт к следующему кольцу. если там написано выше, кружите в тёплом воздухе под облаком, чтобы набрать высоту. скалы тоже держат вас в воздухе. кольца дают рывок скорости, а палец, прижатый к экрану, ускоряет"
+      bestFlight: k => "лучший полёт ${k} км"
+      flightTime: (k, t) => "${k} км за ${t}"
+      ringsFlight: (n, k) => "${n} " + (n % 10 == 1 && n % 100 != 11 ? "кольцо" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "кольца" : "колец") + " за полёт" + (k > 0 ? ", ${k} " + (k % 10 == 1 && k % 100 != 11 ? "новое" : "новых") : "")
+      allCaught: n => "все ${n} колец пройдены"
+      inOneFlight: ", за один полёт!"
+      saw: s => "увидено: ${s}"
+      placesFound: (k, n) => "найдено ${k} из ${n} мест"
+      flyAgain: "нажмите, чтобы лететь снова"
+      landed: l => l == "sea" ? "приводнение в море" : l == "lake" ? "приводнение в озере" : l == "beach" ? "посадка на пляже" : l == "field" ? "посадка в поле" : l == "meadow" ? "посадка на лугу" : l == "forest" ? "посадка на верхушки деревьев" : l == "snow" ? "посадка в снегу" : l == "village" ? "посадка на крышу" : "посадка на скалы"
+    }
+    ja {
+      lighthouse: "灯台"
+      windmill: "風車"
+      castle: "お城"
+      arch: "海食アーチ"
+      hut: "山小屋"
+      church: "村の教会"
+      balloon: "気球"
+      crop: "ミステリーサークル"
+      wreck: "難破船"
+      stones: "ストーンサークル"
+      whale: "クジラ"
+      ufo: "UFO"
+      m: a => "${a} m"
+      km: k => "${k} km"
+      ringOf: (k, n) => "リング ${k}/${n}"
+      ofN: n => "/ ${n}"
+      newRing: (k, n) => "新しいリング！ ${k}/${n}"
+      plusRing: "+1 リング"
+      holdBoost: "長押しで加速"
+      higher: "もっと上"
+      lower: "もっと下"
+      secretNew: (k, n) => "秘密です！ ${k}/${n} 発見"
+      secretOld: "秘密です、発見済み"
+      placeNew: (k, n) => "新しい場所です - ${k}/${n} 発見"
+      found: (k, n) => "${k}/${n} 発見"
+      steerTilt: "傾けて操縦、前に傾けて急降下"
+      steerDrag: "ドラッグで操縦、下で上昇"
+      launch: "タップで発進"
+      allDone: "リングも場所もすべて制覇しました。今度はコース全体を一度に飛んでください"
+      course: (r, p) => "谷をめぐるリングのコースを飛びましょう：リング${r}個、場所${p}か所"
+      ringsCaught: (k, n) => "リング ${k}/${n} 通過"
+      mostInOne: b => " · 1回の最多 ${b}"
+      secretsHide: n => "コースの外に秘密が${n}つ隠れています"
+      secretsList: s => "秘密: ${s}"
+      help: "上の札が次のリングへ案内します。もっと上と出たら、雲の下の暖かい空気の中を旋回して上昇してください。崖沿いでも浮き上がれます。リングで一気に加速し、指で長押しするとブーストします"
+      bestFlight: k => "最長フライト ${k} km"
+      flightTime: (k, t) => "${t}で${k} km"
+      ringsFlight: (n, k) => "今回のフライトでリング${n}個" + (k > 0 ? "、新しく${k}個" : "")
+      allCaught: n => "リング${n}個すべて通過"
+      inOneFlight: "、1回のフライトで！"
+      saw: s => "見たもの：${s}"
+      placesFound: (k, n) => "場所 ${k}/${n} 発見"
+      flyAgain: "タップでもう一度飛ぶ"
+      landed: l => l == "sea" ? "海に着水" : l == "lake" ? "湖に着水" : l == "beach" ? "砂浜に着陸" : l == "field" ? "畑に着陸" : l == "meadow" ? "草原に着陸" : l == "forest" ? "木のてっぺんに着陸" : l == "snow" ? "雪の上に着陸" : l == "village" ? "屋根の上に着陸" : "岩場に着陸"
+    }
+    uk {
+      lighthouse: "маяк"
+      windmill: "вітряк"
+      castle: "замок"
+      arch: "морська арка"
+      hut: "гірська хатина"
+      church: "сільська церква"
+      balloon: "повітряна куля"
+      crop: "коло на полі"
+      wreck: "затонулий корабель"
+      stones: "кам'яне коло"
+      whale: "кит"
+      ufo: "НЛО"
+      m: a => "${a} м"
+      km: k => "${k} км"
+      ringOf: (k, n) => "кільце ${k} з ${n}"
+      ofN: n => "з ${n}"
+      newRing: (k, n) => "нове кільце!  ${k} з ${n}"
+      plusRing: "+1 кільце"
+      holdBoost: "утримуйте для прискорення"
+      higher: "вище"
+      lower: "нижче"
+      secretNew: (k, n) => "таємниця! знайдено ${k} з ${n}"
+      secretOld: "таємниця, вже знайдена"
+      placeNew: (k, n) => "нове місце - знайдено ${k} з ${n}"
+      found: (k, n) => "знайдено ${k} з ${n}"
+      steerTilt: "нахиляйте для повороту, вперед — для піке"
+      steerDrag: "ведіть пальцем для повороту, вниз — набір висоти"
+      launch: "торкніться для зльоту"
+      allDone: "усі кільця й місця ваші. тепер пролетіть увесь маршрут за один раз"
+      course: (r, p) => "пролетіть кільцями довкола долини: ${r} кілець, ${p} місць"
+      ringsCaught: (k, n) => "пройдено ${k} з ${n} кілець"
+      mostInOne: b => " · рекорд за політ ${b}"
+      secretsHide: n => "і ${n} таємниць сховано осторонь маршруту"
+      secretsList: s => "таємниці: ${s}"
+      help: "ярлик угорі веде до наступного кільця. якщо там написано вище, кружляйте в теплому повітрі під хмарою, щоб набрати висоту. скелі теж тримають вас у повітрі. кільця дають ривок швидкості, а палець, притиснутий до екрана, прискорює"
+      bestFlight: k => "найкращий політ ${k} км"
+      flightTime: (k, t) => "${k} км за ${t}"
+      ringsFlight: (n, k) => "${n} " + (n % 10 == 1 && n % 100 != 11 ? "кільце" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "кільця" : "кілець") + " за політ" + (k > 0 ? ", ${k} " + (k % 10 == 1 && k % 100 != 11 ? "нове" : "нових") : "")
+      allCaught: n => "усі ${n} кілець пройдено"
+      inOneFlight: ", за один політ!"
+      saw: s => "побачено: ${s}"
+      placesFound: (k, n) => "знайдено ${k} з ${n} місць"
+      flyAgain: "торкніться, щоб летіти знову"
+      landed: l => l == "sea" ? "приводнення в морі" : l == "lake" ? "приводнення в озері" : l == "beach" ? "посадка на пляжі" : l == "field" ? "посадка в полі" : l == "meadow" ? "посадка на луці" : l == "forest" ? "посадка на верхівки дерев" : l == "snow" ? "посадка в снігу" : l == "village" ? "посадка на дах" : "посадка на скелі"
+    }
+    fr {
+      lighthouse: "le phare"
+      windmill: "le moulin"
+      castle: "le château"
+      arch: "l'arche marine"
+      hut: "le refuge"
+      church: "l'église du village"
+      balloon: "la montgolfière"
+      crop: "le cercle de culture"
+      wreck: "l'épave"
+      stones: "le cercle de pierres"
+      whale: "la baleine"
+      ufo: "l'ovni"
+      m: a => "${a} m"
+      km: k => "${k} km"
+      ringOf: (k, n) => "anneau ${k} sur ${n}"
+      ofN: n => "sur ${n}"
+      newRing: (k, n) => "nouvel anneau !  ${k} sur ${n}"
+      plusRing: "+1 anneau"
+      holdBoost: "maintiens pour accélérer"
+      higher: "plus haut"
+      lower: "plus bas"
+      secretNew: (k, n) => "un secret ! ${k} sur ${n} trouvés"
+      secretOld: "un secret, déjà trouvé"
+      placeNew: (k, n) => "un nouveau lieu - ${k} sur ${n} trouvés"
+      found: (k, n) => "${k} sur ${n} trouvés"
+      steerTilt: "incline pour tourner, vers l'avant pour piquer"
+      steerDrag: "glisse pour tourner, vers le bas pour monter"
+      launch: "touche pour décoller"
+      allDone: "tous les anneaux et lieux sont à toi. maintenant, fais tout le parcours d'une traite"
+      course: (r, p) => "fais le parcours d'anneaux autour de la vallée : ${r} anneaux, ${p} lieux"
+      ringsCaught: (k, n) => "${k} anneaux sur ${n} passés"
+      mostInOne: b => " · record en un vol ${b}"
+      secretsHide: n => "et ${n} secrets se cachent hors du parcours"
+      secretsList: s => "secrets : ${s}"
+      help: "l'étiquette en haut mène au prochain anneau. quand elle dit plus haut, tourne dans l'air chaud sous un nuage pour monter. les falaises te portent aussi. les anneaux donnent un élan, et garder un doigt appuyé accélère"
+      bestFlight: k => "meilleur vol ${k} km"
+      flightTime: (k, t) => "${k} km en ${t}"
+      ringsFlight: (n, k) => (n <= 1 ? "${n} anneau" : "${n} anneaux") + " sur ce vol" + (k > 0 ? (k == 1 ? ", 1 nouveau" : ", ${k} nouveaux") : "")
+      allCaught: n => "les ${n} anneaux passés"
+      inOneFlight: ", en un seul vol !"
+      saw: s => "vu : ${s}"
+      placesFound: (k, n) => "${k} lieux sur ${n} trouvés"
+      flyAgain: "touche pour revoler"
+      landed: l => l == "sea" ? "amerrissage en mer" : l == "lake" ? "amerrissage sur le lac" : l == "beach" ? "atterri sur la plage" : l == "field" ? "atterri dans un champ" : l == "meadow" ? "atterri dans un pré" : l == "forest" ? "atterri dans les arbres" : l == "snow" ? "atterri dans la neige" : l == "village" ? "atterri sur un toit" : "atterri sur les rochers"
+    }
+    tr {
+      lighthouse: "deniz feneri"
+      windmill: "yel değirmeni"
+      castle: "kale"
+      arch: "deniz kemeri"
+      hut: "dağ evi"
+      church: "köy kilisesi"
+      balloon: "balon"
+      crop: "ekin çemberi"
+      wreck: "batık gemi"
+      stones: "taş çember"
+      whale: "balina"
+      ufo: "ufo"
+      m: a => "${a} m"
+      km: k => "${k} km"
+      ringOf: (k, n) => "halka ${k}/${n}"
+      ofN: n => "/ ${n}"
+      newRing: (k, n) => "yeni halka!  ${k}/${n}"
+      plusRing: "+1 halka"
+      holdBoost: "hızlanmak için basılı tut"
+      higher: "daha yüksek"
+      lower: "daha alçak"
+      secretNew: (k, n) => "bir sır! ${k}/${n} bulundu"
+      secretOld: "bir sır, daha önce bulundu"
+      placeNew: (k, n) => "yeni bir yer - ${k}/${n} bulundu"
+      found: (k, n) => "${k}/${n} bulundu"
+      steerTilt: "yön için eğ, dalış için öne eğ"
+      steerDrag: "yön için sürükle, tırmanmak için aşağı"
+      launch: "kalkış için dokun"
+      allDone: "tüm halkalar ve yerler senin. şimdi tüm parkuru tek seferde uç"
+      course: (r, p) => "vadinin çevresindeki halka parkurunu uç: ${r} halka, ${p} yer"
+      ringsCaught: (k, n) => "${k}/${n} halka geçildi"
+      mostInOne: b => " · tek uçuşta en çok ${b}"
+      secretsHide: n => "ve ${n} sır parkurun dışında saklı"
+      secretsList: s => "sırlar: ${s}"
+      help: "üstteki etiket seni sonraki halkaya götürür. daha yüksek yazınca, yükselmek için bir bulutun altındaki sıcak havada daire çiz. yamaçlar da seni taşır. halkalar hız patlaması verir, parmağını basılı tutmak da hızlandırır"
+      bestFlight: k => "en iyi uçuş ${k} km"
+      flightTime: (k, t) => "${t} içinde ${k} km"
+      ringsFlight: (n, k) => "bu uçuşta ${n} halka" + (k > 0 ? ", ${k} yeni" : "")
+      allCaught: n => "${n} halkanın hepsi geçildi"
+      inOneFlight: ", tek uçuşta!"
+      saw: s => "görülenler: ${s}"
+      placesFound: (k, n) => "${k}/${n} yer bulundu"
+      flyAgain: "tekrar uçmak için dokun"
+      landed: l => l == "sea" ? "denize iniş" : l == "lake" ? "göle iniş" : l == "beach" ? "kumsala iniş" : l == "field" ? "tarlaya iniş" : l == "meadow" ? "çayıra iniş" : l == "forest" ? "ağaç tepelerine iniş" : l == "snow" ? "karlara iniş" : l == "village" ? "bir çatıya iniş" : "kayalara iniş"
+    }
+    it {
+      lighthouse: "il faro"
+      windmill: "il mulino"
+      castle: "il castello"
+      arch: "l'arco marino"
+      hut: "il rifugio"
+      church: "la chiesa del paese"
+      balloon: "la mongolfiera"
+      crop: "il cerchio nel grano"
+      wreck: "il relitto"
+      stones: "il cerchio di pietre"
+      whale: "la balena"
+      ufo: "l'ufo"
+      m: a => "${a} m"
+      km: k => "${k} km"
+      ringOf: (k, n) => "anello ${k} di ${n}"
+      ofN: n => "di ${n}"
+      newRing: (k, n) => "nuovo anello!  ${k} di ${n}"
+      plusRing: "+1 anello"
+      holdBoost: "tieni premuto per accelerare"
+      higher: "più in alto"
+      lower: "più in basso"
+      secretNew: (k, n) => "un segreto! ${k} di ${n} trovati"
+      secretOld: "un segreto, già trovato"
+      placeNew: (k, n) => "un posto nuovo - ${k} di ${n} trovati"
+      found: (k, n) => "${k} di ${n} trovati"
+      steerTilt: "inclina per sterzare, in avanti per picchiare"
+      steerDrag: "trascina per sterzare, in basso per salire"
+      launch: "tocca per decollare"
+      allDone: "tutti gli anelli e i posti sono tuoi. ora vola tutto il percorso in una volta"
+      course: (r, p) => "vola il percorso ad anelli intorno alla valle: ${r} anelli, ${p} posti"
+      ringsCaught: (k, n) => "${k} di ${n} anelli presi"
+      mostInOne: b => " · record in un volo ${b}"
+      secretsHide: n => "e ${n} segreti si nascondono fuori dal percorso"
+      secretsList: s => "segreti: ${s}"
+      help: "l'etichetta in alto porta all'anello successivo. quando dice più in alto, gira nell'aria calda sotto una nuvola per salire. anche le scogliere ti tengono su. gli anelli danno uno scatto di velocità, e tenere un dito premuto accelera"
+      bestFlight: k => "volo migliore ${k} km"
+      flightTime: (k, t) => "${k} km in ${t}"
+      ringsFlight: (n, k) => (n == 1 ? "1 anello" : "${n} anelli") + " in questo volo" + (k > 0 ? (k == 1 ? ", 1 nuovo" : ", ${k} nuovi") : "")
+      allCaught: n => "tutti i ${n} anelli presi"
+      inOneFlight: ", in un solo volo!"
+      saw: s => "visti: ${s}"
+      placesFound: (k, n) => "${k} di ${n} posti trovati"
+      flyAgain: "tocca per volare ancora"
+      landed: l => l == "sea" ? "ammaraggio in mare" : l == "lake" ? "ammaraggio nel lago" : l == "beach" ? "atterrato sulla spiaggia" : l == "field" ? "atterrato in un campo" : l == "meadow" ? "atterrato in un prato" : l == "forest" ? "atterrato tra le cime degli alberi" : l == "snow" ? "atterrato sulla neve" : l == "village" ? "atterrato su un tetto" : "atterrato sugli scogli"
+    }
+  }
   source modes = android.modes
   source m = android.motion
   icon: """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
@@ -312,11 +866,11 @@ app "glider" {
   let CB = 118
   let THERMALS = [[-9.8, 90, 32, 2.9], [-15.5, 45, 30, 3.1], [-91.7, -10, 28, 3.3], [-90, 140, 26, 2.6], [90, 130, 28, 2.7], [29.5, -60, 30, 2.8], [-100.7, -55, 26, 3], [106.3, -40, 28, 3.2], [7.2, -150, 30, 3.4], [90, -155, 26, 3.6], [190, -100, 24, 3], [-170, -120, 24, 3]]
   let RINGS = [[-97.9, 35.8, 165.2, -90], [-18.5, 28.4, 160.8, -60], [-8.9, 75.5, 81.4, 85], [-66.6, 73.1, 84.4, -19], [-26.6, 73.5, 23.9, 43], [-89.4, 98.9, 0, -58], [-34.6, 97.5, -58.4, -43], [35, 98.9, -171.8, -49], [103.4, 101.6, -139.3, -123], [97.3, 98.5, -29.4, -179], [99.8, 93.4, 50.7, -179], [103.8, 89.7, 126.8, -130], [134.7, 68.1, 188.4, 130], [80, 4, 197.5, 90]]
-  let PLACES = [{id: "lighthouse", name: "the lighthouse", at: [140, 23, 164.1]}, {id: "windmill", name: "the windmill", at: [-47.9, 6.2, 100]}, {id: "castle", name: "the castle", at: [-96.7, 26.6, -10]}, {id: "arch", name: "the sea arch", at: [80, -3, 197.5]}, {id: "hut", name: "the mountain hut", at: [110, 29.8, -135]}, {id: "church", name: "the village church", at: [-25.1, 7, 45]}]
+  let PLACES = [{id: "lighthouse", name: str.lighthouse, at: [140, 23, 164.1]}, {id: "windmill", name: str.windmill, at: [-47.9, 6.2, 100]}, {id: "castle", name: str.castle, at: [-96.7, 26.6, -10]}, {id: "arch", name: str.arch, at: [80, -3, 197.5]}, {id: "hut", name: str.hut, at: [110, 29.8, -135]}, {id: "church", name: str.church, at: [-25.1, 7, 45]}]
   let VILLAGE_AT = [-20.1, 0, 50]
   let LAUNCH = [-142, 38, 161.4, -92]
   let NPLACES = len(PLACES) + 1
-  let SECRETS = [{id: "crop", name: "the crop circle", at: [37.5, 9, -47.5], r: 22, h: 110}, {id: "wreck", name: "the shipwreck", at: [35, 2.4, 190], r: 16, h: 30}, {id: "stones", name: "the stone circle", at: [-101, 24.2, -55], r: 16, h: 30}, {id: "whale", name: "the whale", at: [-150, -3, 200], r: 30, h: 40}, {id: "ufo", name: "the ufo", at: [-175, 108, -185], r: 22, h: 60}]
+  let SECRETS = [{id: "crop", name: str.crop, at: [37.5, 9, -47.5], r: 22, h: 110}, {id: "wreck", name: str.wreck, at: [35, 2.4, 190], r: 16, h: 30}, {id: "stones", name: str.stones, at: [-101, 24.2, -55], r: 16, h: 30}, {id: "whale", name: str.whale, at: [-150, -3, 200], r: 30, h: 40}, {id: "ufo", name: str.ufo, at: [-175, 108, -185], r: 22, h: 60}]
   let NS = len(SECRETS)
 
   let MAT = {white: #f3efe6, red: #c8463a, dark: #3a3f47, lamp: #ffe9a3, stone: #b9ae98, stone2: #a59a85, roof: #9c4a36, wood: #8a6040, flag: #d64a3a, chalk: #ece6d4, grass: #7fae55, bal1: #e2553f, bal2: #f2c14b, cloud: #ffffff, paper: #fbf8f0, fold: #d9d2c2, stripe: #e0624a, bird: #4b505a, wood2: #6e4a30, sail: #e9e2cc, whale: #3d5566, belly: #c9d3d8, metal: #aab4bf, metal2: #6f7a86, dome: #8fd6e8}
@@ -376,8 +930,8 @@ app "glider" {
 
   // The goal: every place in the valley. The tag points to the nearest one not found yet (once all are, the
   // nearest not seen on this flight).
-  let NAMES = PLACES.map(p => [p.id, p.name]) + [["balloon", "the balloon"]]
-  let ALLP = PLACES.map(p => {id: p.id, name: p.name, x: p.at[0], z: p.at[2]}) + [{id: "balloon", name: "the balloon", x: BAL[0], z: BAL[2]}]
+  let NAMES = PLACES.map(p => [p.id, p.name]) + [["balloon", str.balloon]]
+  let ALLP = PLACES.map(p => {id: p.id, name: p.name, x: p.at[0], z: p.at[2]}) + [{id: "balloon", name: str.balloon, x: BAL[0], z: BAL[2]}]
   // and the rings: the tag leads to the nearest ring or place not caught yet; once every one is, to what this
   // flight hasn't caught, for all of them in one flight
   let allDone = len(seen) >= NPLACES && len(ringsSeen) >= len(RINGS)
@@ -386,7 +940,7 @@ app "glider" {
   let nextRing = range(NR).find(k => !any(got, g => g == k))
   let todo = ALLP.filter(p => allDone ? !any(trip, t => t == p.id) : !any(seen, s => s == p.id))
   let next = nextRing != null
-    ? [RINGS[nextRing]].map(r => {x: r[0], z: r[2], y: r[1], name: "ring ${nextRing + 1} of ${NR}"})[0]
+    ? [RINGS[nextRing]].map(r => {x: r[0], z: r[2], y: r[1], name: str.ringOf(nextRing + 1, NR)})[0]
     : todo.sortBy(p => (p.x - px) * (p.x - px) + (p.z - pz) * (p.z - pz))[0]
   let nextRel = next == null ? 0 : ((deg(atan2(px - next.x, pz - next.z)) - camH) % 360 + 540) % 360 - 180
   let nextM = next == null ? 0 : round(dist([next.x, next.z], [px, pz]) * 0.4) * 10
@@ -465,7 +1019,7 @@ app "glider" {
         }
         // Places: close by and not far above; the arch only by flying under it, the balloon wherever it is.
         let placeHit = PLACES.filter(p => !any(trip, t => t == p.id) && (p.id == "arch" ? dist([p.at[0], 5, p.at[2]], [px, py, pz]) < 8 : dist([p.at[0], p.at[2]], [px, pz]) < 16 && py - p.at[1] < 30))
-          + (!any(trip, t => t == "balloon") && dist(BAL, [px, py, pz]) < 13 ? [{id: "balloon", name: "the balloon"}] : [])
+          + (!any(trip, t => t == "balloon") && dist(BAL, [px, py, pz]) < 13 ? [{id: "balloon", name: str.balloon}] : [])
         if len(placeHit) > 0 {
           trip = trip + placeHit.map(p => p.id)
           note = placeHit[0].name
@@ -489,7 +1043,7 @@ app "glider" {
         if ny <= ng + 0.3 {
           let cell = CQ[clamp(floor(pz / 5 + 48), 0, 95)][clamp(floor(px / 5 + 48), 0, 95)]
           let land = LANDS[cell]
-          landedOn = land == "sea" ? "splashdown in the sea" : land == "lake" ? "splashdown in the lake" : land == "beach" ? "landed on the beach" : land == "field" ? "landed in a field" : land == "meadow" ? "landed in a meadow" : land == "forest" ? "landed in the treetops" : land == "snow" ? "landed in the snow" : land == "village" ? "landed on a roof" : "landed on the rocks"
+          landedOn = str.landed(land)
           mode = "landed"
           landedAt = gt
           flights = flights + 1
@@ -643,8 +1197,8 @@ app "glider" {
         let alt = round(py * 4)
         let vs = round(vario * 4, 1)
         let vt = (vs >= 0 ? "+" : "") + fixed(vs, 1)
-        text("${alt} m", 19, TOP + 15, size: 21, font: HAND, color: alpha(INK, 0.55))
-        text("${alt} m", 18, TOP + 14, size: 21, font: HAND, color: PAPER)
+        text(str.m(alt), 19, TOP + 15, size: 21, font: HAND, color: alpha(INK, 0.55))
+        text(str.m(alt), 18, TOP + 14, size: 21, font: HAND, color: PAPER)
         text(vt, 19, TOP + 39, size: 17, font: HAND, color: alpha(INK, 0.55))
         text(vt, 18, TOP + 38, size: 17, font: HAND, color: vs >= 0 ? #c9f0b4 : #ffd0bd)
         // the rings caught, all flights together, on a tag that jumps at each catch; and a word over the glider
@@ -654,13 +1208,13 @@ app "glider" {
             rect(width - 96, TOP - 2, 84, 46, fill: PAPER)
             circle(width - 74, TOP + 21, 11, stroke: GOLD, width: 4.5)
             text("${len(ringsSeen)}", width - 44, TOP + 13, size: 22, font: HAND, color: INK, align: center)
-            text("of ${NR}", width - 44, TOP + 33, size: 13, font: HAND, color: alpha(INK, 0.6), align: center)
+            text(str.ofN(NR), width - 44, TOP + 33, size: 13, font: HAND, color: alpha(INK, 0.6), align: center)
           }
         }
         if gt - ringAt < 1.4 {
           let rp = gt - ringAt
           let ra = clamp(min(rp * 6, (1.4 - rp) * 3), 0, 1)
-          let rw = ringWasNew ? "new ring!  ${len(ringsSeen)} of ${NR}" : "+1 ring"
+          let rw = ringWasNew ? str.newRing(len(ringsSeen), NR) : str.plusRing
           text(rw, width / 2 + 1, height * 0.36 - rp * 40 + 1, size: 30, font: HAND, color: alpha(INK, 0.5 * ra), align: center)
           text(rw, width / 2, height * 0.36 - rp * 40, size: 30, font: HAND, color: alpha(ringWasNew ? GOLD : PAPER, ra), align: center)
         }
@@ -686,14 +1240,14 @@ app "glider" {
         line(gx - 12, gy, gx + 10, gy, stroke: ready ? PAPER : alpha(PAPER, 0.5), width: 2.5, cap: round)
         line(gx - 7, gy + 6, gx + 5, gy + 6, stroke: ready ? PAPER : alpha(PAPER, 0.5), width: 2.5, cap: round)
         if ready {
-          text("hold for a boost", gx + 1, gy + 41, size: 15, font: HAND, color: alpha(INK, 0.55), align: center)
-          text("hold for a boost", gx, gy + 40, size: 15, font: HAND, color: PAPER, align: center)
+          text(str.holdBoost, gx + 1, gy + 41, size: 15, font: HAND, color: alpha(INK, 0.55), align: center)
+          text(str.holdBoost, gx, gy + 40, size: 15, font: HAND, color: PAPER, align: center)
         }
         // the tag to the next place: an arrow turned the way to fly, its name and how far
         if next != null {
           let cx = width / 2
-          let nd = nextM >= 1000 ? "${fixed(nextM / 1000, 1)} km" : "${nextM} m"
-          let nh = next.y == null ? "" : (next.y > py + 6 ? " · higher" : (next.y < py - 6 ? " · lower" : ""))
+          let nd = nextM >= 1000 ? str.km(fixed(nextM / 1000, 1)) : str.m(nextM)
+          let nh = next.y == null ? "" : (next.y > py + 6 ? " · " + str.higher : (next.y < py - 6 ? " · " + str.lower : ""))
           rotate(-1.5, cx - 10, TOP + 20) {
             rect(cx - 92, TOP - 2, 166, 46, fill: PAPER)
             rotate(-nextRel, cx - 70, TOP + 21) {
@@ -717,7 +1271,7 @@ app "glider" {
             background: PAPER
             rotation: -2
             Text { text: note; font: HAND; fontSize: 28; color: INK; align: center }
-            Text { text: noteSecret ? (noteNew ? "a secret! ${len(secretsSeen)} of ${NS} found" : "a secret, found before") : (noteNew ? "a new place - ${len(seen)} of ${NPLACES} found" : "${len(seen)} of ${NPLACES} found"); font: HAND; fontSize: 15; color: alpha(INK, 0.7); align: center }
+            Text { text: noteSecret ? (noteNew ? str.secretNew(len(secretsSeen), NS) : str.secretOld) : (noteNew ? str.placeNew(len(seen), NPLACES) : str.found(len(seen), NPLACES)); font: HAND; fontSize: 15; color: alpha(INK, 0.7); align: center }
           }
         }
       }
@@ -736,7 +1290,7 @@ app "glider" {
           background: PAPER
           rotation: -3
           Text { text: "Glider"; font: HAND; fontSize: 64; color: INK; align: center }
-          Text { text: tilted ? "tilt to steer, lean forward to dive" : "drag to steer, down to climb"; font: HAND; fontSize: 17; color: alpha(INK, 0.75); align: center }
+          Text { text: tilted ? str.steerTilt : str.steerDrag; font: HAND; fontSize: 17; color: alpha(INK, 0.75); align: center }
         }
         Spacer { weight: 1 }
         Column {
@@ -746,8 +1300,8 @@ app "glider" {
           width: min(W - 56, 360)
           background: PAPER
           rotation: 1.5
-          Text { text: "tap to launch"; font: HAND; fontSize: 30; color: INK; align: center }
-          Text { text: allDone ? "every ring and place is yours. now fly the whole course in one go" : "fly the ring course round the valley: ${NR} rings, ${NPLACES} places"; font: HAND; fontSize: 19; color: INK; align: center }
+          Text { text: str.launch; font: HAND; fontSize: 30; color: INK; align: center }
+          Text { text: allDone ? str.allDone : str.course(NR, NPLACES); font: HAND; fontSize: 19; color: INK; align: center }
           Spacer { height: 2 }
           Canvas {
             width: NR * 19
@@ -761,7 +1315,7 @@ app "glider" {
               }
             }
           }
-          Text { text: "${len(ringsSeen)} of ${NR} rings caught" + (bestRings > 0 ? " · most in one flight ${bestRings}" : ""); font: HAND; fontSize: 15; color: alpha(INK, 0.7); align: center }
+          Text { text: str.ringsCaught(len(ringsSeen), NR) + (bestRings > 0 ? str.mostInOne(bestRings) : ""); font: HAND; fontSize: 15; color: alpha(INK, 0.7); align: center }
           Spacer { height: 4 }
           Flow {
             gap: 10
@@ -770,11 +1324,11 @@ app "glider" {
               Text { text: (any(seen, s => s == n[0]) ? "✓ " : "· ") + n[1]; font: HAND; fontSize: 15; color: any(seen, s => s == n[0]) ? #2f7a3b : alpha(INK, 0.55) }
             }
           }
-          Text { text: len(secretsSeen) == 0 ? "and ${NS} secrets hide off the course" : "secrets: " + join(SECRETS.map(p => any(secretsSeen, x => x == p.id) ? p.name : "?"), " · "); font: HAND; fontSize: 15; color: len(secretsSeen) > 0 ? #7a4fa0 : alpha(INK, 0.55); align: center }
+          Text { text: len(secretsSeen) == 0 ? str.secretsHide(NS) : str.secretsList(join(SECRETS.map(p => any(secretsSeen, x => x == p.id) ? p.name : "?"), " · ")); font: HAND; fontSize: 15; color: len(secretsSeen) > 0 ? #7a4fa0 : alpha(INK, 0.55); align: center }
           Spacer { height: 4 }
-          Text { text: "the tag at the top leads to the next ring. when it says higher, circle in the warm air under a cloud to climb. the cliffs hold you up too. rings give a burst of speed, and holding a finger down boosts"; font: HAND; fontSize: 14; color: alpha(INK, 0.7); align: center }
+          Text { text: str.help; font: HAND; fontSize: 14; color: alpha(INK, 0.7); align: center }
           if flights > 0 {
-            Text { text: "best flight ${fixed(bestKm, 1)} km"; font: HAND; fontSize: 14; color: alpha(INK, 0.6); align: center }
+            Text { text: str.bestFlight(fixed(bestKm, 1)); font: HAND; fontSize: 14; color: alpha(INK, 0.6); align: center }
           }
         }
       }
@@ -794,8 +1348,8 @@ app "glider" {
           background: PAPER
           rotation: -1.5
           Text { text: landedOn; font: HAND; fontSize: 34; color: INK; align: center }
-          Text { text: "${fixed(km, 1)} km in ${floor(aloft / 60)}:${pad(floor(aloft % 60), 2, "0")}"; font: HAND; fontSize: 22; color: INK; align: center }
-          Text { text: "${len(got)} " + (len(got) == 1 ? "ring" : "rings") + " this flight" + (ringNew > 0 ? ", ${ringNew} new" : ""); font: HAND; fontSize: 22; color: INK; align: center }
+          Text { text: str.flightTime(fixed(km, 1), "${floor(aloft / 60)}:${pad(floor(aloft % 60), 2, "0")}"); font: HAND; fontSize: 22; color: INK; align: center }
+          Text { text: str.ringsFlight(len(got), ringNew); font: HAND; fontSize: 22; color: INK; align: center }
           Canvas {
             width: NR * 19
             height: 22
@@ -808,13 +1362,13 @@ app "glider" {
               }
             }
           }
-          Text { text: len(ringsSeen) >= NR ? "all ${NR} rings caught" + (len(got) >= NR ? ", in one flight!" : " · most in one flight ${bestRings}") : "${len(ringsSeen)} of ${NR} rings caught"; font: HAND; fontSize: 16; color: alpha(INK, 0.7); align: center }
+          Text { text: len(ringsSeen) >= NR ? str.allCaught(NR) + (len(got) >= NR ? str.inOneFlight : str.mostInOne(bestRings)) : str.ringsCaught(len(ringsSeen), NR); font: HAND; fontSize: 16; color: alpha(INK, 0.7); align: center }
           if len(trip) > 0 {
-            Text { text: "saw " + join(trip.map(t => t == "balloon" ? "the balloon" : (PLACES + SECRETS).find(p => p.id == t).name), ", "); font: HAND; fontSize: 18; color: alpha(INK, 0.8); align: center }
+            Text { text: str.saw(join(trip.map(t => t == "balloon" ? str.balloon : (PLACES + SECRETS).find(p => p.id == t).name), ", ")); font: HAND; fontSize: 18; color: alpha(INK, 0.8); align: center }
           }
-          Text { text: "${len(seen)} of ${NPLACES} places found"; font: HAND; fontSize: 16; color: alpha(INK, 0.6); align: center }
+          Text { text: str.placesFound(len(seen), NPLACES); font: HAND; fontSize: 16; color: alpha(INK, 0.6); align: center }
           Spacer { height: 6 }
-          Text { text: "tap to fly again"; font: HAND; fontSize: 20; color: #c8463a; align: center }
+          Text { text: str.flyAgain; font: HAND; fontSize: 20; color: #c8463a; align: center }
         }
       }
     }

@@ -1,5 +1,165 @@
 app "snow peak" {
-  meta { owl: 22; description: "A downhill ski and snowboard game on endless mountains grown from a seed: tilt to carve past pines, an alpine village and a chairlift, dodge snowmen and snowcats, and fly off ramps"; version: "1.0"; license: "MIT"; category: "games" }
+  meta { owl: 22; description: "A downhill ski and snowboard game on endless mountains grown from a seed: tilt to carve past pines, an alpine village and a chairlift, dodge snowmen and snowcats, and fly off ramps"; version: "1.1"; license: "MIT"; category: "games" }
+  // SKI and BOARD sit on 64dp buttons: five letters at most. The run hint sits on a 300dp strip.
+  // The mountains' names (FROST PEAK) are place names and stay as they are.
+  strings {
+    en {
+      today: "TODAY"; seed: s => "SEED ${s}"; flurries: "FLURRIES"; best: m => "BEST ${m} M"; noRun: "NO RUN YET"
+      newMountain: "NEW MOUNTAIN"; todays: "TODAY'S"; ski: "SKI"; board: "BOARD"
+      hintTilt: "TILT TO CARVE - DODGE EVERYTHING - HIT THE RAMPS AND TAKE THE BLUE SHORTCUTS - HOW FAR CAN YOU GO?"
+      hintArrows: "NO TILT ON THIS PHONE: CARVE WITH THE ARROWS - DODGE EVERYTHING - HOW FAR CAN YOU GO?"
+      distance: "DISTANCE"; bestLabel: "BEST"; kmh: "KM/H"; meters: m => "${m} M"; go: "GO!"
+      runTilt: "TILT TO CARVE - ONE CRASH ENDS THE RUN"; runArrows: "ARROWS TO CARVE - ONE CRASH ENDS THE RUN"
+      bigAir: "BIG AIR"; wipeout: "WIPEOUT"; shortcut: "SHORTCUT"; boost: "BOOST"; secs: x => "${x} S"
+      newHigh: "NEW HIGH SCORE!"; highScore: m => "HIGH SCORE ${m} M"; nextRun: n => "NEXT RUN IN ${n}"
+      again: "AGAIN"; menu: "MENU"; ride: "RIDE"
+      zone: i => ["PINE FOREST", "BIRCH GLADE", "ICE FALLS", "ALPINE VILLAGE", "LIFT LINE"][i]
+      sky: i => ["BLUEBIRD", "GOLDEN HOUR", "SNOWFALL", "ALPENGLOW"][i]
+    }
+    id {
+      today: "HARI INI"; seed: s => "SEED ${s}"; flurries: "SALJU TIPIS"; best: m => "TERBAIK ${m} M"; noRun: "BELUM ADA LUNCURAN"
+      newMountain: "GUNUNG BARU"; todays: "HARI INI"; ski: "SKI"; board: "PAPAN"
+      hintTilt: "MIRINGKAN UNTUK BERBELOK - HINDARI SEMUANYA - LOMPATI RAMP DAN AMBIL JALAN PINTAS BIRU - SEBERAPA JAUH KAMU BISA?"
+      hintArrows: "PONSEL INI TAK BISA DIMIRINGKAN: BERBELOK DENGAN PANAH - HINDARI SEMUANYA - SEBERAPA JAUH KAMU BISA?"
+      distance: "JARAK"; bestLabel: "TERBAIK"; kmh: "KM/J"; meters: m => "${m} M"; go: "AYO!"
+      runTilt: "MIRINGKAN - SEKALI JATUH, SELESAI"; runArrows: "PAKAI PANAH - SEKALI JATUH, SELESAI"
+      bigAir: "LOMPATAN TINGGI"; wipeout: "JATUH"; shortcut: "JALAN PINTAS"; boost: "NGEBUT"; secs: x => "${x} D"
+      newHigh: "SKOR TERTINGGI BARU!"; highScore: m => "SKOR TERTINGGI ${m} M"; nextRun: n => "MULAI LAGI DALAM ${n}"
+      again: "LAGI"; menu: "MENU"; ride: "MELUNCUR"
+      zone: i => ["HUTAN PINUS", "HUTAN BIRCH", "AIR TERJUN ES", "DESA ALPEN", "JALUR LIFT"][i]
+      sky: i => ["CERAH", "JAM EMAS", "SALJU TURUN", "SENJA MERAH"][i]
+    }
+    es {
+      today: "HOY"; seed: s => "SEMILLA ${s}"; flurries: "NEVISCA"; best: m => "RÉCORD ${m} M"; noRun: "AÚN SIN BAJADAS"
+      newMountain: "NUEVA MONTAÑA"; todays: "LA DE HOY"; ski: "ESQUÍ"; board: "TABLA"
+      hintTilt: "INCLINA PARA GIRAR - ESQUIVA TODO - SALTA EN LAS RAMPAS Y TOMA LOS ATAJOS AZULES - ¿HASTA DÓNDE LLEGARÁS?"
+      hintArrows: "ESTE MÓVIL NO DETECTA INCLINACIÓN: GIRA CON LAS FLECHAS - ESQUIVA TODO - ¿HASTA DÓNDE LLEGARÁS?"
+      distance: "DISTANCIA"; bestLabel: "RÉCORD"; kmh: "KM/H"; meters: m => "${m} M"; go: "¡YA!"
+      runTilt: "INCLINA PARA GIRAR - UN CHOQUE Y SE ACABA"; runArrows: "FLECHAS PARA GIRAR - UN CHOQUE Y SE ACABA"
+      bigAir: "GRAN SALTO"; wipeout: "CAÍDA"; shortcut: "ATAJO"; boost: "TURBO"; secs: x => "${x} S"
+      newHigh: "¡NUEVO RÉCORD!"; highScore: m => "RÉCORD ${m} M"; nextRun: n => "OTRA BAJADA EN ${n}"
+      again: "OTRA VEZ"; menu: "MENÚ"; ride: "BAJAR"
+      zone: i => ["PINAR", "BOSQUE DE ABEDULES", "CASCADAS DE HIELO", "PUEBLO ALPINO", "TELESILLA"][i]
+      sky: i => ["DÍA RADIANTE", "HORA DORADA", "NEVADA", "ARREBOL ALPINO"][i]
+    }
+    pt {
+      today: "HOJE"; seed: s => "SEMENTE ${s}"; flurries: "FLOCOS"; best: m => "RECORDE ${m} M"; noRun: "NENHUMA DESCIDA AINDA"
+      newMountain: "NOVA MONTANHA"; todays: "A DE HOJE"; ski: "ESQUI"; board: "SNOW"
+      hintTilt: "INCLINE PARA CURVAR - DESVIE DE TUDO - PULE NAS RAMPAS E PEGUE OS ATALHOS AZUIS - ATÉ ONDE VOCÊ CHEGA?"
+      hintArrows: "ESTE CELULAR NÃO DETECTA INCLINAÇÃO: CURVE COM AS SETAS - DESVIE DE TUDO - ATÉ ONDE VOCÊ CHEGA?"
+      distance: "DISTÂNCIA"; bestLabel: "RECORDE"; kmh: "KM/H"; meters: m => "${m} M"; go: "VAI!"
+      runTilt: "INCLINE PARA CURVAR - UMA QUEDA E ACABOU"; runArrows: "SETAS PARA CURVAR - UMA QUEDA E ACABOU"
+      bigAir: "SALTÃO"; wipeout: "QUEDA"; shortcut: "ATALHO"; boost: "TURBO"; secs: x => "${x} S"
+      newHigh: "NOVO RECORDE!"; highScore: m => "RECORDE ${m} M"; nextRun: n => "PRÓXIMA DESCIDA EM ${n}"
+      again: "DE NOVO"; menu: "MENU"; ride: "DESCER"
+      zone: i => ["PINHEIRAL", "BOSQUE DE BÉTULAS", "CASCATAS DE GELO", "VILA ALPINA", "TELEFÉRICO"][i]
+      sky: i => ["CÉU LIMPO", "HORA DOURADA", "NEVANDO", "BRILHO ALPINO"][i]
+    }
+    de {
+      today: "HEUTE"; seed: s => "SEED ${s}"; flurries: "FLOCKEN"; best: m => "REKORD ${m} M"; noRun: "NOCH KEINE FAHRT"
+      newMountain: "NEUER BERG"; todays: "VON HEUTE"; ski: "SKI"; board: "BOARD"
+      hintTilt: "NEIGEN ZUM CARVEN - WEICH ALLEM AUS - NIMM DIE SCHANZEN UND DIE BLAUEN ABKÜRZUNGEN - WIE WEIT KOMMST DU?"
+      hintArrows: "DIESES HANDY KENNT KEIN NEIGEN: CARVE MIT DEN PFEILEN - WEICH ALLEM AUS - WIE WEIT KOMMST DU?"
+      distance: "STRECKE"; bestLabel: "REKORD"; kmh: "KM/H"; meters: m => "${m} M"; go: "LOS!"
+      runTilt: "NEIGEN ZUM CARVEN - EIN STURZ UND AUS"; runArrows: "PFEILE ZUM CARVEN - EIN STURZ UND AUS"
+      bigAir: "WEITER SPRUNG"; wipeout: "STURZ"; shortcut: "ABKÜRZUNG"; boost: "BOOST"; secs: x => "${x} S"
+      newHigh: "NEUER REKORD!"; highScore: m => "REKORD ${m} M"; nextRun: n => "NÄCHSTE FAHRT IN ${n}"
+      again: "NOCHMAL"; menu: "MENÜ"; ride: "FAHREN"
+      zone: i => ["KIEFERNWALD", "BIRKENHAIN", "EISFÄLLE", "ALPENDORF", "LIFTTRASSE"][i]
+      sky: i => ["KAISERWETTER", "GOLDENE STUNDE", "SCHNEEFALL", "ALPENGLÜHEN"][i]
+    }
+    zh {
+      today: "今日"; seed: s => "种子 ${s}"; flurries: "小雪"; best: m => "最佳 ${m} 米"; noRun: "还没有成绩"
+      newMountain: "新山峰"; todays: "今日山峰"; ski: "双板"; board: "单板"
+      hintTilt: "倾斜手机转弯 - 躲开一切 - 冲上跳台, 走蓝色捷径 - 你能滑多远?"
+      hintArrows: "这台手机无法感应倾斜: 用箭头转弯 - 躲开一切 - 你能滑多远?"
+      distance: "距离"; bestLabel: "最佳"; kmh: "KM/H"; meters: m => "${m} 米"; go: "出发!"
+      runTilt: "倾斜转弯 - 摔一次就结束"; runArrows: "箭头转弯 - 摔一次就结束"
+      bigAir: "大跳跃"; wipeout: "摔倒"; shortcut: "捷径"; boost: "加速"; secs: x => "${x} 秒"
+      newHigh: "新纪录!"; highScore: m => "最高纪录 ${m} 米"; nextRun: n => "${n} 秒后再来"
+      again: "再来"; menu: "菜单"; ride: "出发"
+      zone: i => ["松林", "桦树林", "冰瀑", "高山村庄", "缆车线"][i]
+      sky: i => ["晴空", "黄金时刻", "飘雪", "高山晚霞"][i]
+    }
+    ru {
+      today: "СЕГОДНЯ"; seed: s => "СИД ${s}"; flurries: "СНЕЖОК"; best: m => "РЕКОРД ${m} М"; noRun: "ЕЩЁ НЕ КАТАЛИСЬ"
+      newMountain: "НОВАЯ ГОРА"; todays: "СЕГОДНЯШНЯЯ"; ski: "ЛЫЖИ"; board: "БОРД"
+      hintTilt: "НАКЛОНЯЙТЕ ДЛЯ ПОВОРОТА - ОБЪЕЗЖАЙТЕ ВСЁ - ПРЫГАЙТЕ С ТРАМПЛИНОВ И СРЕЗАЙТЕ ПО СИНИМ ПУТЯМ - КАК ДАЛЕКО ВЫ ДОЕДЕТЕ?"
+      hintArrows: "НА ЭТОМ ТЕЛЕФОНЕ НЕТ НАКЛОНА: ПОВОРАЧИВАЙТЕ СТРЕЛКАМИ - ОБЪЕЗЖАЙТЕ ВСЁ - КАК ДАЛЕКО ВЫ ДОЕДЕТЕ?"
+      distance: "ДИСТАНЦИЯ"; bestLabel: "РЕКОРД"; kmh: "КМ/Ч"; meters: m => "${m} М"; go: "ВПЕРЁД!"
+      runTilt: "НАКЛОН - ОДНО ПАДЕНИЕ, И ВСЁ"; runArrows: "СТРЕЛКИ - ОДНО ПАДЕНИЕ, И ВСЁ"
+      bigAir: "ПРЫЖОК"; wipeout: "ПАДЕНИЕ"; shortcut: "СРЕЗКА"; boost: "УСКОРЕНИЕ"; secs: x => "${x} С"
+      newHigh: "НОВЫЙ РЕКОРД!"; highScore: m => "РЕКОРД ${m} М"; nextRun: n => "СЛЕДУЮЩИЙ СПУСК ЧЕРЕЗ ${n}"
+      again: "ЕЩЁ"; menu: "МЕНЮ"; ride: "ПОЕХАЛИ"
+      zone: i => ["СОСНОВЫЙ ЛЕС", "БЕРЁЗОВАЯ РОЩА", "ЛЕДОПАДЫ", "АЛЬПИЙСКАЯ ДЕРЕВНЯ", "ПОД ПОДЪЁМНИКОМ"][i]
+      sky: i => ["ЯСНО", "ЗОЛОТОЙ ЧАС", "СНЕГОПАД", "АЛЬПИЙСКАЯ ЗАРЯ"][i]
+    }
+    ja {
+      today: "今日"; seed: s => "シード ${s}"; flurries: "小雪"; best: m => "ベスト ${m} M"; noRun: "まだ記録はありません"
+      newMountain: "新しい山"; todays: "今日の山"; ski: "スキー"; board: "ボード"
+      hintTilt: "傾けてカービング - すべてをかわす - ジャンプ台を飛び、青い近道を通ろう - どこまで行けるでしょう?"
+      hintArrows: "この端末は傾きに対応していません: 矢印でカービング - すべてをかわす - どこまで行けるでしょう?"
+      distance: "距離"; bestLabel: "ベスト"; kmh: "KM/H"; meters: m => "${m} M"; go: "GO!"
+      runTilt: "傾けて曲がる - 転んだら終わり"; runArrows: "矢印で曲がる - 転んだら終わり"
+      bigAir: "ビッグエア"; wipeout: "転倒"; shortcut: "近道"; boost: "ブースト"; secs: x => "${x} 秒"
+      newHigh: "ハイスコア更新!"; highScore: m => "ハイスコア ${m} M"; nextRun: n => "次の滑走まで ${n}"
+      again: "もう一度"; menu: "メニュー"; ride: "滑る"
+      zone: i => ["松林", "白樺の森", "氷瀑", "山あいの村", "リフト沿い"][i]
+      sky: i => ["快晴", "ゴールデンアワー", "降雪", "山の夕映え"][i]
+    }
+    uk {
+      today: "СЬОГОДНІ"; seed: s => "СІД ${s}"; flurries: "СНІЖОК"; best: m => "РЕКОРД ${m} М"; noRun: "ЩЕ НЕ КАТАЛИСЯ"
+      newMountain: "НОВА ГОРА"; todays: "СЬОГОДНІШНЯ"; ski: "ЛИЖІ"; board: "БОРД"
+      hintTilt: "НАХИЛЯЙТЕ ДЛЯ ПОВОРОТУ - ОБ'ЇЖДЖАЙТЕ ВСЕ - СТРИБАЙТЕ З ТРАМПЛІНІВ І СРІЗАЙТЕ СИНІМИ ШЛЯХАМИ - ЯК ДАЛЕКО ВИ ЗАЇДЕТЕ?"
+      hintArrows: "НА ЦЬОМУ ТЕЛЕФОНІ НЕМАЄ НАХИЛУ: ПОВЕРТАЙТЕ СТРІЛКАМИ - ОБ'ЇЖДЖАЙТЕ ВСЕ - ЯК ДАЛЕКО ВИ ЗАЇДЕТЕ?"
+      distance: "ДИСТАНЦІЯ"; bestLabel: "РЕКОРД"; kmh: "КМ/ГОД"; meters: m => "${m} М"; go: "ВПЕРЕД!"
+      runTilt: "НАХИЛ - ОДНЕ ПАДІННЯ, І ВСЕ"; runArrows: "СТРІЛКИ - ОДНЕ ПАДІННЯ, І ВСЕ"
+      bigAir: "СТРИБОК"; wipeout: "ПАДІННЯ"; shortcut: "СРІЗКА"; boost: "ПРИСКОРЕННЯ"; secs: x => "${x} С"
+      newHigh: "НОВИЙ РЕКОРД!"; highScore: m => "РЕКОРД ${m} М"; nextRun: n => "НАСТУПНИЙ СПУСК ЧЕРЕЗ ${n}"
+      again: "ЩЕ"; menu: "МЕНЮ"; ride: "ПОЇХАЛИ"
+      zone: i => ["СОСНОВИЙ ЛІС", "БЕРЕЗОВИЙ ГАЙ", "КРИЖАНІ ВОДОСПАДИ", "АЛЬПІЙСЬКЕ СЕЛО", "ПІД ПІДЙОМНИКОМ"][i]
+      sky: i => ["ЯСНО", "ЗОЛОТА ГОДИНА", "СНІГОПАД", "АЛЬПІЙСЬКА ЗОРЯ"][i]
+    }
+    fr {
+      today: "AUJOURD'HUI"; seed: s => "GRAINE ${s}"; flurries: "FLOCONS"; best: m => "RECORD ${m} M"; noRun: "PAS ENCORE DE DESCENTE"
+      newMountain: "NOUVELLE MONTAGNE"; todays: "CELLE DU JOUR"; ski: "SKI"; board: "SURF"
+      hintTilt: "PENCHE POUR VIRER - ÉVITE TOUT - SAUTE SUR LES TREMPLINS ET PRENDS LES RACCOURCIS BLEUS - JUSQU'OÙ IRAS-TU ?"
+      hintArrows: "PAS D'INCLINAISON SUR CE TÉLÉPHONE : VIRE AVEC LES FLÈCHES - ÉVITE TOUT - JUSQU'OÙ IRAS-TU ?"
+      distance: "DISTANCE"; bestLabel: "RECORD"; kmh: "KM/H"; meters: m => "${m} M"; go: "PARTI !"
+      runTilt: "PENCHE POUR VIRER - UNE CHUTE, C'EST FINI"; runArrows: "FLÈCHES POUR VIRER - UNE CHUTE, C'EST FINI"
+      bigAir: "GROS SAUT"; wipeout: "CHUTE"; shortcut: "RACCOURCI"; boost: "TURBO"; secs: x => "${x} S"
+      newHigh: "NOUVEAU RECORD !"; highScore: m => "RECORD ${m} M"; nextRun: n => "PROCHAINE DESCENTE DANS ${n}"
+      again: "ENCORE"; menu: "MENU"; ride: "GLISSER"
+      zone: i => ["PINÈDE", "BOIS DE BOULEAUX", "CASCADES DE GLACE", "VILLAGE ALPIN", "SOUS LE TÉLÉSIÈGE"][i]
+      sky: i => ["GRAND BLEU", "HEURE DORÉE", "CHUTE DE NEIGE", "SOMMETS ROSES"][i]
+    }
+    tr {
+      today: "BUGÜN"; seed: s => "TOHUM ${s}"; flurries: "SERPİNTİ"; best: m => "REKOR ${m} M"; noRun: "HENÜZ İNİŞ YOK"
+      newMountain: "YENİ DAĞ"; todays: "GÜNÜN DAĞI"; ski: "KAYAK"; board: "TAHTA"
+      hintTilt: "DÖNMEK İÇİN EĞ - HER ŞEYDEN KAÇ - RAMPALARDAN ATLA VE MAVİ KESTİRMELERİ KULLAN - NE KADAR UZAĞA GİDEBİLİRSİN?"
+      hintArrows: "BU TELEFONDA EĞİM YOK: OKLARLA DÖN - HER ŞEYDEN KAÇ - NE KADAR UZAĞA GİDEBİLİRSİN?"
+      distance: "MESAFE"; bestLabel: "REKOR"; kmh: "KM/SA"; meters: m => "${m} M"; go: "BAŞLA!"
+      runTilt: "DÖNMEK İÇİN EĞ - TEK KAZA YETER"; runArrows: "OKLARLA DÖN - TEK KAZA YETER"
+      bigAir: "BÜYÜK SIÇRAYIŞ"; wipeout: "DÜŞÜŞ"; shortcut: "KESTİRME"; boost: "HIZ"; secs: x => "${x} SN"
+      newHigh: "YENİ REKOR!"; highScore: m => "REKOR ${m} M"; nextRun: n => "SONRAKİ İNİŞ ${n} SN SONRA"
+      again: "TEKRAR"; menu: "MENÜ"; ride: "KAY"
+      zone: i => ["ÇAM ORMANI", "HUŞ KORUSU", "BUZ ŞELALELERİ", "ALP KÖYÜ", "TELESİYEJ HATTI"][i]
+      sky: i => ["PIRIL PIRIL", "ALTIN SAAT", "KAR YAĞIŞI", "DAĞ KIZILLIĞI"][i]
+    }
+    it {
+      today: "OGGI"; seed: s => "SEME ${s}"; flurries: "NEVISCHIO"; best: m => "RECORD ${m} M"; noRun: "ANCORA NESSUNA DISCESA"
+      newMountain: "NUOVA MONTAGNA"; todays: "QUELLA DI OGGI"; ski: "SCI"; board: "SNOW"
+      hintTilt: "INCLINA PER CURVARE - SCHIVA TUTTO - SALTA DALLE RAMPE E PRENDI LE SCORCIATOIE BLU - FIN DOVE ARRIVI?"
+      hintArrows: "NIENTE INCLINAZIONE SU QUESTO TELEFONO: CURVA CON LE FRECCE - SCHIVA TUTTO - FIN DOVE ARRIVI?"
+      distance: "DISTANZA"; bestLabel: "RECORD"; kmh: "KM/H"; meters: m => "${m} M"; go: "VIA!"
+      runTilt: "INCLINA PER CURVARE - UNA CADUTA E FINISCE"; runArrows: "FRECCE PER CURVARE - UNA CADUTA E FINISCE"
+      bigAir: "GRAN SALTO"; wipeout: "CADUTA"; shortcut: "SCORCIATOIA"; boost: "TURBO"; secs: x => "${x} S"
+      newHigh: "NUOVO RECORD!"; highScore: m => "RECORD ${m} M"; nextRun: n => "PROSSIMA DISCESA TRA ${n}"
+      again: "ANCORA"; menu: "MENU"; ride: "SCENDI"
+      zone: i => ["PINETA", "BOSCO DI BETULLE", "CASCATE DI GHIACCIO", "VILLAGGIO ALPINO", "SOTTO LA SEGGIOVIA"][i]
+      sky: i => ["CIELO TERSO", "ORA D'ORO", "NEVICATA", "ENROSADIRA"][i]
+    }
+  }
   // How it works: a mountain is a seed. The seed sets how the run winds (two sine waves for the middle of the piste),
   // how wide it is, the light, the order of its places (forest, birch glade, ice falls, village, lift line) and where
   // everything in them stands, so the same seed is the same mountain.
@@ -497,8 +657,8 @@ app "snow peak" {
             vy = (s1 - g0) / dt
             landT = gt
             if gt - airT > 0.6 {
-              msg = "BIG AIR"
-              msg2 = fixed(gt - airT, 1) + " S"
+              msg = str.bigAir
+              msg2 = str.secs(fixed(gt - airT, 1))
               msgK = 3
               msgAt = gt
             }
@@ -536,14 +696,14 @@ app "snow peak" {
           air = false
           ay = (((-0.34 * pz + 5 * sin(pz / 120 + S.s4))) + pow(clamp(min(abs(px - (((S.a1 * sin(pz / S.p1 + S.s1) + S.a2 * sin(pz / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(pz / 160, 0, 1)))) - ((10.5 + 2.5 * sin(pz / 130 + S.s3))), abs(px - ([first(LANES.filter(s => (pz) >= s.zs && (pz) <= s.ze))].map(s => s == null ? 9999 : (((S.a1 * sin(pz / S.p1 + S.s1) + S.a2 * sin(pz / S.p2 + S.s2) - S.a1 * sin(S.s1) - S.a2 * sin(S.s2)) * clamp(pz / 160, 0, 1)) + s.sd * ((10.5 + 2.5 * sin(pz / 130 + S.s3)) + 6) * sin(3.1416 * ((pz) - s.zs) / 150)))[0])) - 2.4), 0, 26), 2) * 0.024 + 0.4 * sin(px * 0.23 + S.s5) * sin(pz * 0.11))
           vy = 0
-          msg = "WIPEOUT"
+          msg = str.wipeout
           msg2 = ""
           msgK = 1
           msgAt = gt
         }
         // Through a gate, every 400 m: how far.
         if pz >= nextCP * CPD {
-          msg = fmtNum(nextCP * CPD) + " M"
+          msg = str.meters(fmtNum(nextCP * CPD))
           msg2 = ""
           msgK = 2
           msgAt = gt
@@ -553,8 +713,8 @@ app "snow peak" {
         if (lane && abs(px - c0) > w0) != laneS {
           laneS = lane && abs(px - c0) > w0
           if laneS {
-            msg = "SHORTCUT"
-            msg2 = "BOOST"
+            msg = str.shortcut
+            msg2 = str.boost
             msgK = 3
             msgAt = gt
           }
@@ -562,7 +722,7 @@ app "snow peak" {
         // A zone's name as the rider comes into it.
         if pz > 0 && floor(floor(pz / CH) / 6) != zoneI {
           zoneI = floor(floor(pz / CH) / 6)
-          msg = ZNAMES[(((floor(pz / CH))) < 6 ? 0 : ZORD[floor(((floor(pz / CH))) / 6) % 5])]
+          msg = str.zone((((floor(pz / CH))) < 6 ? 0 : ZORD[floor(((floor(pz / CH))) / 6) % 5]))
           msg2 = ""
           msgK = 3
           msgAt = gt
@@ -642,11 +802,11 @@ app "snow peak" {
           align: center
           Text { text: NAME; weight: 1; maxLines: 1; font: PIX; fontSize: 17; color: white }
           if seed == DAY {
-            Text { text: "TODAY"; padding: [6, 3]; font: PIX; fontSize: 9; color: INK; background: GOLD }
+            Text { text: str.today; padding: [6, 3]; font: PIX; fontSize: 9; color: INK; background: GOLD }
           }
         }
-        Text { text: "SEED " + SEEDS + " - " + SKY.n + (SNOWING && !SKY.snow ? " - FLURRIES" : ""); font: PIX; fontSize: 9; maxLines: 1; color: alpha(white, 0.7) }
-        Text { text: BEST > 0 ? "BEST " + fmtNum(BEST) + " M" : "NO RUN YET"; font: PIX; fontSize: 11; color: BEST > 0 ? #9fe6a8 : alpha(white, 0.6) }
+        Text { text: str.seed(SEEDS) + " - " + str.sky(floor(hash(seed, 10) * 4) % 4) + (SNOWING && !SKY.snow ? " - " + str.flurries : ""); font: PIX; fontSize: 9; maxLines: 1; color: alpha(white, 0.7) }
+        Text { text: BEST > 0 ? str.best(fmtNum(BEST)) : str.noRun; font: PIX; fontSize: 11; color: BEST > 0 ? #9fe6a8 : alpha(white, 0.6) }
       }
       Spacer { fill: width; height: 5; background: alpha(black, 0.6) }
     }
@@ -659,14 +819,14 @@ app "snow peak" {
       Row {
         fill: width
         gap: 8
-        Column { gap: 0; weight: 1; onTap: seed = floor(random() * 100000); Block { label: "NEW MOUNTAIN"; bg: #3a3d45; ledge: #26282e; size: 11; pad: 11; fill: width } }
-        Column { gap: 0; weight: 1; onTap: seed = DAY; Block { label: "TODAY'S"; bg: seed == DAY ? GOLD : #3a3d45; ledge: seed == DAY ? #a8841a : #26282e; fg: seed == DAY ? INK : white; size: 11; pad: 11; fill: width } }
+        Column { gap: 0; weight: 1; onTap: seed = floor(random() * 100000); Block { label: str.newMountain; bg: #3a3d45; ledge: #26282e; size: 11; pad: 11; fill: width } }
+        Column { gap: 0; weight: 1; onTap: seed = DAY; Block { label: str.todays; bg: seed == DAY ? GOLD : #3a3d45; ledge: seed == DAY ? #a8841a : #26282e; fg: seed == DAY ? INK : white; size: 11; pad: 11; fill: width } }
       }
       Row {
         fill: width
         gap: 6
         align: center
-        for r in [["ski", "SKI"], ["board", "BOARD"]] {
+        for r in [["ski", str.ski], ["board", str.board]] {
           Column { gap: 0; width: 64; onTap: rider = r[0]; Block { label: r[1]; bg: rider == r[0] ? white : #3a3d45; ledge: rider == r[0] ? #9aa3b0 : #26282e; fg: rider == r[0] ? INK : white; size: 11; pad: 11; fill: width } }
         }
         Spacer { weight: 1 }
@@ -688,7 +848,7 @@ app "snow peak" {
   }
 
   component Hint() {
-    Text { text: tilted ? "TILT TO CARVE - DODGE EVERYTHING - HIT THE RAMPS AND TAKE THE BLUE SHORTCUTS - HOW FAR CAN YOU GO?" : "NO TILT ON THIS PHONE: CARVE WITH THE ARROWS - DODGE EVERYTHING - HOW FAR CAN YOU GO?"; font: PIX; fontSize: 9; color: white; align: center; fill: width; padding: [10, 8]; background: alpha(INK, 0.7) }
+    Text { text: tilted ? str.hintTilt : str.hintArrows; font: PIX; fontSize: 9; color: white; align: center; fill: width; padding: [10, 8]; background: alpha(INK, 0.7) }
   }
 
   Box {
@@ -799,12 +959,12 @@ app "snow peak" {
         let TOPY = PADT + 8
         rect(12, TOPY, 150, 66, fill: alpha(INK, 0.82))
         rect(12, TOPY + 66, 150, 5, fill: alpha(black, 0.55))
-        text("DISTANCE", 24, TOPY + 15, size: 10, font: PIX, color: alpha(white, 0.75))
-        text(fmtNum(dist) + " M", 24, TOPY + 44, size: 24, font: PIX, color: white)
+        text(str.distance, 24, TOPY + 15, size: 10, font: PIX, color: alpha(white, 0.75))
+        text(str.meters(fmtNum(dist)), 24, TOPY + 44, size: 24, font: PIX, color: white)
         rect(width - 152, TOPY, 140, 66, fill: alpha(INK, 0.82))
         rect(width - 152, TOPY + 66, 140, 5, fill: alpha(black, 0.55))
-        text("BEST", width - 24, TOPY + 15, size: 10, font: PIX, align: end, color: alpha(GOLD, 0.8))
-        text(fmtNum(BESTD) + " M", width - 24, TOPY + 44, size: 24, font: PIX, align: end, color: GOLD)
+        text(str.bestLabel, width - 24, TOPY + 15, size: 10, font: PIX, align: end, color: alpha(GOLD, 0.8))
+        text(str.meters(fmtNum(BESTD)), width - 24, TOPY + 44, size: 24, font: PIX, align: end, color: GOLD)
         if mode != "over" {
           // landscape: at the top on a block of its own, clear of the rider; portrait: on the snow under it
           if LAND {
@@ -812,18 +972,18 @@ app "snow peak" {
             rect(width / 2 - 56, TOPY + 66, 112, 5, fill: alpha(black, 0.55))
           }
           text(str(kmh), width / 2, LAND ? TOPY + 26 : height - 74, size: 32, font: PIX, align: center, color: LAND ? white : INK)
-          text("KM/H", width / 2, LAND ? TOPY + 52 : height - 46, size: 11, font: PIX, align: center, color: LAND ? alpha(white, 0.75) : alpha(INK, 0.75))
+          text(str.kmh, width / 2, LAND ? TOPY + 52 : height - 46, size: 11, font: PIX, align: center, color: LAND ? alpha(white, 0.75) : alpha(INK, 0.75))
         }
         if mode == "count" {
           let left3 = ceil(t0 - gt)
           text(left3 > 3 ? "" : str(left3), width / 2, height * 0.34, size: 80, font: PIX, align: center, color: left3 == 1 ? GOLD : INK)
         }
         if mode == "run" && gt - t0 < 0.9 {
-          text("GO!", width / 2, height * 0.34, size: 80, font: PIX, align: center, color: RED)
+          text(str.go, width / 2, height * 0.34, size: 80, font: PIX, align: center, color: RED)
         }
         if mode == "run" && gt - t0 > 0.9 && gt - t0 < 4.5 {
           rect(width / 2 - 150, height * 0.3 - 16, 300, 32, fill: alpha(INK, 0.8))
-          text(tilted ? "TILT TO CARVE - ONE CRASH ENDS THE RUN" : "ARROWS TO CARVE - ONE CRASH ENDS THE RUN", width / 2, height * 0.3, size: 11, font: PIX, align: center, color: white)
+          text(tilted ? str.runTilt : str.runArrows, width / 2, height * 0.3, size: 11, font: PIX, align: center, color: white)
         }
         if mode == "run" && gt - msgAt < 1.6 {
           let mw = max(160, len(msg) * 17 + 40)
@@ -887,20 +1047,20 @@ app "snow peak" {
             align: center
             padding: [20, 22]
             background: alpha(INK, 0.9)
-            Text { text: why; font: PIX; fontSize: 28; color: why == "WIPEOUT" ? #ff5a4a : GOLD; align: center }
+            Text { text: why == "WIPEOUT" ? str.wipeout : why; font: PIX; fontSize: 28; color: why == "WIPEOUT" ? #ff5a4a : GOLD; align: center }
             Text { text: NAME; font: PIX; fontSize: 12; color: alpha(white, 0.7); align: center }
             Spacer { size: 4 }
-            Text { text: "DISTANCE"; font: PIX; fontSize: 10; color: alpha(white, 0.6); align: center }
-            Text { text: fmtNum(score) + " M"; font: PIX; fontSize: 36; color: white; align: center }
-            Text { text: newBest ? "NEW HIGH SCORE!" : "HIGH SCORE " + fmtNum(BEST) + " M"; font: PIX; fontSize: 12; color: newBest ? #5cdc5a : GOLD; align: center }
+            Text { text: str.distance; font: PIX; fontSize: 10; color: alpha(white, 0.6); align: center }
+            Text { text: str.meters(fmtNum(score)); font: PIX; fontSize: 36; color: white; align: center }
+            Text { text: newBest ? str.newHigh : str.highScore(fmtNum(BEST)); font: PIX; fontSize: 12; color: newBest ? #5cdc5a : GOLD; align: center }
             Spacer { size: 4 }
-            Text { text: "NEXT RUN IN " + max(1, ceil(4 - (gt - overAt))); font: PIX; fontSize: 10; color: alpha(white, 0.6); align: center }
+            Text { text: str.nextRun(max(1, ceil(4 - (gt - overAt)))); font: PIX; fontSize: 10; color: alpha(white, 0.6); align: center }
             Spacer { width: 276 * clamp((gt - overAt) / 4, 0, 1); height: 4; background: RED }
             Spacer { size: 6 }
             Row {
               gap: 10
-              Column { gap: 0; width: 120; onTap: go = go + 1; Block { label: "AGAIN"; bg: RED; ledge: REDD; size: 13; pad: 11; fill: width } }
-              Column { gap: 0; width: 120; onTap: mode = "menu"; Block { label: "MENU"; bg: #5a5f6a; ledge: #33363d; size: 13; pad: 11; fill: width } }
+              Column { gap: 0; width: 120; onTap: go = go + 1; Block { label: str.again; bg: RED; ledge: REDD; size: 13; pad: 11; fill: width } }
+              Column { gap: 0; width: 120; onTap: mode = "menu"; Block { label: str.menu; bg: #5a5f6a; ledge: #33363d; size: 13; pad: 11; fill: width } }
             }
           }
           Spacer { width: 320; height: 6; background: alpha(black, 0.6) }
@@ -929,7 +1089,7 @@ app "snow peak" {
             Mountain {}
             Pickers {}
             Hint {}
-            Column { gap: 0; fill: width; onTap: go = go + 1; Block { label: "RIDE"; bg: RED; ledge: REDD; size: 24; pad: 12; fill: width } }
+            Column { gap: 0; fill: width; onTap: go = go + 1; Block { label: str.ride; bg: RED; ledge: REDD; size: 24; pad: 12; fill: width } }
           }
         }
       } else {
@@ -944,7 +1104,7 @@ app "snow peak" {
             Mountain {}
             Pickers {}
             Hint {}
-            Column { gap: 0; fill: width; onTap: go = go + 1; Block { label: "RIDE"; bg: RED; ledge: REDD; size: 26; pad: 14; fill: width } }
+            Column { gap: 0; fill: width; onTap: go = go + 1; Block { label: str.ride; bg: RED; ledge: REDD; size: 26; pad: 14; fill: width } }
           }
         }
       }

@@ -1,5 +1,578 @@
 app "voxel rally" {
-  meta { owl: 22; description: "A 3D voxel racer: tilt to steer, hold gas and brake, and race three rivals over eight tracks, from a sunny circuit to a night city, past a canyon, a glacier and a volcano"; version: "1.2"; license: "MIT"; category: "games" }
+  meta { owl: 22; description: "A 3D voxel racer: tilt to steer, hold gas and brake, and race three rivals over eight tracks, from a sunny circuit to a night city, past a canyon, a glacier and a volcano"; version: "1.3"; license: "MIT"; category: "games" }
+  strings {
+    en {
+      // The tracks by ENVS index; shown upper case.
+      tracks: ["Grand Circuit", "Pine Forest", "Red Canyon", "Frost Pass", "Night City", "Mesa Leap", "Glacier Slide", "Volcano Run"]
+      // Each track's tricks, for city, mesa, glacier and volcano.
+      feats: ["boost pads", "jumps", "ice, a jump", "jumps, boosts, tar"]
+      tiers: ["EASY", "MEDIUM", "HARD", "EXPERT"]
+      // Places, big in the race's corner block before "/4": three or four characters.
+      ord: ["1st", "2nd", "3rd", "4th"]
+      upg: ["ENGINE", "TURBO", "TIRES"]
+      groups: ["PAINT", "STRIPES", "SPOILER", "RIMS"]
+      paints: ["RED", "ORANGE", "LIME", "PURPLE", "WHITE", "BLACK", "PINK", "GOLD"]
+      rims: ["STOCK", "CHROME", "NEON", "GOLD"]
+      stripes: ["NONE", "HOOD", "TWIN"]
+      spoilers: ["NONE", "LIP", "WING", "GT WING"]
+      // After the coin count (the number of coins is the value).
+      coins: n => " COINS"
+      plusCoins: n => "+${n} COINS"
+      needCoins: n => "NEED ${n} MORE COINS"
+      podiumOn: n => "PODIUM ON ${n}"
+      best: t => "BEST ${t}"
+      noTime: "no time yet"
+      hintTilt: "TILT TO STEER - HOLD GAS AND BRAKE - 3 LAPS, 3 RIVALS"
+      hintArrows: "NO TILT ON THIS PHONE: STEER WITH THE ARROWS - 3 LAPS, 3 RIVALS"
+      race: "RACE"
+      raceOn: n => "RACE ${n}"
+      locked: "LOCKED"
+      garage: "GARAGE"
+      topKmh: k => "TOP ${k} KM/H"
+      topSpeed: k => "TOP SPEED ${k} KM/H"
+      pickUp: p => "PICK-UP +${p}%"
+      grip: p => "GRIP AND STEERING +${p}%"
+      max: "MAX"
+      // Under the colour swatch in use, 46 dp at 9 sp.
+      on: "ON"
+      tune: "TUNE"
+      style: "STYLE"
+      back: "BACK"
+      lap: (n, of) => "LAP ${n}/${of}"
+      kmh: "KM/H"
+      // Very big in the middle at the start.
+      go: "GO!"
+      finalLap: "FINAL LAP"
+      lapNo: n => "LAP ${n}"
+      lapLine: (n, t) => "LAP ${n}  ${t}"
+      // The pedals: brake 104 dp at 16 sp, gas 120 dp at 22 sp.
+      brake: "BRAKE"
+      gas: "GAS"
+      youWin: "YOU WIN!"
+      finished: o => "FINISHED ${o}"
+      newBest: "NEW BEST TIME!"
+      newTrack: n => "NEW TRACK: ${n}"
+      again: "AGAIN"
+      tracksButton: "TRACKS"
+    }
+    id {
+      tracks: ["Sirkuit Besar", "Hutan Pinus", "Ngarai Merah", "Celah Beku", "Kota Malam", "Lompatan Mesa", "Luncuran Gletser", "Jalur Vulkan"]
+      feats: ["papan boost", "lompatan", "es, satu lompatan", "lompatan, boost, aspal"]
+      tiers: ["MUDAH", "SEDANG", "SULIT", "AHLI"]
+      ord: ["#1", "#2", "#3", "#4"]
+      upg: ["MESIN", "TURBO", "BAN"]
+      groups: ["CAT", "STRIP", "SPOILER", "VELG"]
+      paints: ["MERAH", "ORANYE", "LIMAU", "UNGU", "PUTIH", "HITAM", "PINK", "EMAS"]
+      rims: ["STANDAR", "KROM", "NEON", "EMAS"]
+      stripes: ["TANPA", "KAP", "GANDA"]
+      spoilers: ["TANPA", "LIP", "SAYAP", "SAYAP GT"]
+      coins: n => " KOIN"
+      plusCoins: n => "+${n} KOIN"
+      needCoins: n => "BUTUH ${n} KOIN LAGI"
+      podiumOn: n => "PODIUM DI ${n}"
+      best: t => "TERBAIK ${t}"
+      noTime: "belum ada waktu"
+      hintTilt: "MIRINGKAN UNTUK SETIR - TAHAN GAS DAN REM - 3 LAP, 3 LAWAN"
+      hintArrows: "PONSEL INI TAK BISA MIRING: SETIR DENGAN PANAH - 3 LAP, 3 LAWAN"
+      race: "BALAP"
+      raceOn: n => "BALAP ${n}"
+      locked: "TERKUNCI"
+      garage: "GARASI"
+      topKmh: k => "MAKS ${k} KM/J"
+      topSpeed: k => "KECEPATAN MAKS ${k} KM/J"
+      pickUp: p => "AKSELERASI +${p}%"
+      grip: p => "CENGKERAMAN DAN SETIR +${p}%"
+      max: "MAKS"
+      on: "PAKAI"
+      tune: "TUNING"
+      style: "GAYA"
+      back: "KEMBALI"
+      lap: (n, of) => "LAP ${n}/${of}"
+      kmh: "KM/J"
+      go: "AYO!"
+      finalLap: "LAP TERAKHIR"
+      lapNo: n => "LAP ${n}"
+      lapLine: (n, t) => "LAP ${n}  ${t}"
+      brake: "REM"
+      gas: "GAS"
+      youWin: "KAMU MENANG!"
+      finished: o => "FINIS ${o}"
+      newBest: "REKOR BARU!"
+      newTrack: n => "TREK BARU: ${n}"
+      again: "LAGI"
+      tracksButton: "TREK"
+    }
+    es {
+      tracks: ["Gran Circuito", "Bosque de Pinos", "Cañón Rojo", "Paso Helado", "Ciudad Nocturna", "Salto de la Mesa", "Tobogán Glaciar", "Ruta del Volcán"]
+      feats: ["placas turbo", "saltos", "hielo, un salto", "saltos, turbos, brea"]
+      tiers: ["FÁCIL", "MEDIO", "DIFÍCIL", "EXPERTO"]
+      ord: ["1º", "2º", "3º", "4º"]
+      upg: ["MOTOR", "TURBO", "RUEDAS"]
+      groups: ["PINTURA", "FRANJAS", "ALERÓN", "LLANTAS"]
+      paints: ["ROJO", "NARANJA", "LIMA", "MORADO", "BLANCO", "NEGRO", "ROSA", "ORO"]
+      rims: ["SERIE", "CROMO", "NEÓN", "ORO"]
+      stripes: ["NADA", "CAPÓ", "DOBLE"]
+      spoilers: ["NADA", "LABIO", "ALA", "ALA GT"]
+      coins: n => n == 1 ? " MONEDA" : " MONEDAS"
+      plusCoins: n => n == 1 ? "+1 MONEDA" : "+${n} MONEDAS"
+      needCoins: n => n == 1 ? "TE FALTA 1 MONEDA" : "TE FALTAN ${n} MONEDAS"
+      podiumOn: n => "PODIO EN ${n}"
+      best: t => "MEJOR ${t}"
+      noTime: "aún sin tiempo"
+      hintTilt: "INCLINA PARA GIRAR - MANTÉN GAS Y FRENO - 3 VUELTAS, 3 RIVALES"
+      hintArrows: "ESTE MÓVIL NO SE INCLINA: GIRA CON LAS FLECHAS - 3 VUELTAS, 3 RIVALES"
+      race: "CORRER"
+      raceOn: n => "CORRER ${n}"
+      locked: "BLOQUEADA"
+      garage: "TALLER"
+      topKmh: k => "MÁX ${k} KM/H"
+      topSpeed: k => "VELOCIDAD MÁX ${k} KM/H"
+      pickUp: p => "ACELERACIÓN +${p}%"
+      grip: p => "AGARRE Y GIRO +${p}%"
+      max: "MÁX"
+      on: "PUESTA"
+      tune: "AJUSTE"
+      style: "ESTILO"
+      back: "VOLVER"
+      lap: (n, of) => "VUELTA ${n}/${of}"
+      kmh: "KM/H"
+      go: "¡YA!"
+      finalLap: "ÚLTIMA VUELTA"
+      lapNo: n => "VUELTA ${n}"
+      lapLine: (n, t) => "VUELTA ${n}  ${t}"
+      brake: "FRENO"
+      gas: "GAS"
+      youWin: "¡GANASTE!"
+      finished: o => "LLEGASTE ${o}"
+      newBest: "¡NUEVO RÉCORD!"
+      newTrack: n => "NUEVA PISTA: ${n}"
+      again: "OTRA VEZ"
+      tracksButton: "PISTAS"
+    }
+    pt {
+      tracks: ["Grande Circuito", "Floresta de Pinheiros", "Cânion Vermelho", "Passo Gelado", "Cidade Noturna", "Salto da Mesa", "Deslize Glacial", "Rota do Vulcão"]
+      feats: ["placas turbo", "saltos", "gelo, um salto", "saltos, turbos, piche"]
+      tiers: ["FÁCIL", "MÉDIO", "DIFÍCIL", "EXPERT"]
+      ord: ["1º", "2º", "3º", "4º"]
+      upg: ["MOTOR", "TURBO", "PNEUS"]
+      groups: ["PINTURA", "FAIXAS", "AEROFÓLIO", "RODAS"]
+      paints: ["VERMELHO", "LARANJA", "LIMA", "ROXO", "BRANCO", "PRETO", "ROSA", "OURO"]
+      rims: ["ORIGINAL", "CROMO", "NEON", "OURO"]
+      stripes: ["NENHUMA", "CAPÔ", "DUPLA"]
+      spoilers: ["NENHUM", "LIP", "ASA", "ASA GT"]
+      coins: n => n == 1 ? " MOEDA" : " MOEDAS"
+      plusCoins: n => n == 1 ? "+1 MOEDA" : "+${n} MOEDAS"
+      needCoins: n => n == 1 ? "FALTA 1 MOEDA" : "FALTAM ${n} MOEDAS"
+      podiumOn: n => "PÓDIO EM ${n}"
+      best: t => "MELHOR ${t}"
+      noTime: "sem tempo ainda"
+      hintTilt: "INCLINE PARA VIRAR - SEGURE GÁS E FREIO - 3 VOLTAS, 3 RIVAIS"
+      hintArrows: "ESTE CELULAR NÃO INCLINA: VIRE COM AS SETAS - 3 VOLTAS, 3 RIVAIS"
+      race: "CORRER"
+      raceOn: n => "CORRER ${n}"
+      locked: "BLOQUEADA"
+      garage: "GARAGEM"
+      topKmh: k => "MÁX ${k} KM/H"
+      topSpeed: k => "VEL. MÁX ${k} KM/H"
+      pickUp: p => "ARRANCADA +${p}%"
+      grip: p => "ADERÊNCIA E DIREÇÃO +${p}%"
+      max: "MÁX"
+      on: "ATIVO"
+      tune: "AJUSTE"
+      style: "ESTILO"
+      back: "VOLTAR"
+      lap: (n, of) => "VOLTA ${n}/${of}"
+      kmh: "KM/H"
+      go: "VAI!"
+      finalLap: "ÚLTIMA VOLTA"
+      lapNo: n => "VOLTA ${n}"
+      lapLine: (n, t) => "VOLTA ${n}  ${t}"
+      brake: "FREIO"
+      gas: "GÁS"
+      youWin: "VOCÊ VENCEU!"
+      finished: o => "FICOU EM ${o}"
+      newBest: "NOVO RECORDE!"
+      newTrack: n => "NOVA PISTA: ${n}"
+      again: "DE NOVO"
+      tracksButton: "PISTAS"
+    }
+    de {
+      tracks: ["Großer Kurs", "Kiefernwald", "Roter Canyon", "Frostpass", "Nachtstadt", "Mesa-Sprung", "Gletscherbahn", "Vulkanpiste"]
+      feats: ["boost-felder", "sprünge", "eis, ein sprung", "sprünge, boosts, teer"]
+      tiers: ["LEICHT", "MITTEL", "SCHWER", "EXPERTE"]
+      ord: ["1.", "2.", "3.", "4."]
+      upg: ["MOTOR", "TURBO", "REIFEN"]
+      groups: ["LACK", "STREIFEN", "SPOILER", "FELGEN"]
+      paints: ["ROT", "ORANGE", "LIMETTE", "LILA", "WEISS", "SCHWARZ", "PINK", "GOLD"]
+      rims: ["SERIE", "CHROM", "NEON", "GOLD"]
+      stripes: ["KEINE", "HAUBE", "DOPPELT"]
+      spoilers: ["KEINER", "LIPPE", "FLÜGEL", "GT-FLÜGEL"]
+      coins: n => n == 1 ? " MÜNZE" : " MÜNZEN"
+      plusCoins: n => n == 1 ? "+1 MÜNZE" : "+${n} MÜNZEN"
+      needCoins: n => n == 1 ? "DIR FEHLT 1 MÜNZE" : "DIR FEHLEN ${n} MÜNZEN"
+      podiumOn: n => "PODEST AUF ${n}"
+      best: t => "BESTZEIT ${t}"
+      noTime: "noch keine zeit"
+      hintTilt: "NEIGEN ZUM LENKEN - GAS UND BREMSE HALTEN - 3 RUNDEN, 3 GEGNER"
+      hintArrows: "KEIN NEIGEN AUF DIESEM HANDY: LENKE MIT DEN PFEILEN - 3 RUNDEN, 3 GEGNER"
+      race: "RENNEN"
+      raceOn: n => "RENNEN: ${n}"
+      locked: "GESPERRT"
+      garage: "GARAGE"
+      topKmh: k => "MAX ${k} KM/H"
+      topSpeed: k => "HÖCHSTTEMPO ${k} KM/H"
+      pickUp: p => "ANZUG +${p}%"
+      grip: p => "GRIP UND LENKUNG +${p}%"
+      max: "MAX"
+      on: "AN"
+      tune: "TUNING"
+      style: "LOOK"
+      back: "ZURÜCK"
+      lap: (n, of) => "RUNDE ${n}/${of}"
+      kmh: "KM/H"
+      go: "LOS!"
+      finalLap: "LETZTE RUNDE"
+      lapNo: n => "RUNDE ${n}"
+      lapLine: (n, t) => "RUNDE ${n}  ${t}"
+      brake: "BREMSE"
+      gas: "GAS"
+      youWin: "GEWONNEN!"
+      finished: o => "${o} PLATZ"
+      newBest: "NEUE BESTZEIT!"
+      newTrack: n => "NEUE STRECKE: ${n}"
+      again: "NOCHMAL"
+      tracksButton: "STRECKEN"
+    }
+    zh {
+      tracks: ["大赛道", "松林", "红峡谷", "霜冻山口", "夜之城", "台地飞跃", "冰川滑道", "火山之路"]
+      feats: ["加速带", "跳台", "冰面、一个跳台", "跳台、加速、焦油"]
+      tiers: ["简单", "中等", "困难", "专家"]
+      ord: ["第1", "第2", "第3", "第4"]
+      upg: ["引擎", "涡轮", "轮胎"]
+      groups: ["车漆", "条纹", "尾翼", "轮毂"]
+      paints: ["红", "橙", "青柠", "紫", "白", "黑", "粉", "金"]
+      rims: ["原厂", "镀铬", "霓虹", "金"]
+      stripes: ["无", "引擎盖", "双条"]
+      spoilers: ["无", "唇翼", "尾翼", "GT尾翼"]
+      coins: n => " 金币"
+      plusCoins: n => "+${n} 金币"
+      needCoins: n => "还差 ${n} 金币"
+      podiumOn: n => "在${n}登上领奖台"
+      best: t => "最佳 ${t}"
+      noTime: "还没有成绩"
+      hintTilt: "倾斜手机转向 - 按住油门和刹车 - 3圈，3个对手"
+      hintArrows: "这台手机不能倾斜：用箭头转向 - 3圈，3个对手"
+      race: "比赛"
+      raceOn: n => "比赛：${n}"
+      locked: "未解锁"
+      garage: "车库"
+      topKmh: k => "极速 ${k} KM/H"
+      topSpeed: k => "极速 ${k} KM/H"
+      pickUp: p => "加速 +${p}%"
+      grip: p => "抓地与转向 +${p}%"
+      max: "满级"
+      on: "使用中"
+      tune: "改装"
+      style: "外观"
+      back: "返回"
+      lap: (n, of) => "第${n}/${of}圈"
+      kmh: "KM/H"
+      go: "出发!"
+      finalLap: "最后一圈"
+      lapNo: n => "第${n}圈"
+      lapLine: (n, t) => "第${n}圈  ${t}"
+      brake: "刹车"
+      gas: "油门"
+      youWin: "你赢了!"
+      finished: o => "${o}名"
+      newBest: "新纪录!"
+      newTrack: n => "新赛道：${n}"
+      again: "再来"
+      tracksButton: "赛道"
+    }
+    ru {
+      tracks: ["Гранд-трасса", "Сосновый лес", "Красный каньон", "Морозный перевал", "Ночной город", "Прыжок с месы", "Ледниковый спуск", "Тропа вулкана"]
+      feats: ["ускорители", "трамплины", "лёд, трамплин", "трамплины, ускорители, смола"]
+      tiers: ["ЛЕГКО", "СРЕДНЕ", "СЛОЖНО", "ЭКСПЕРТ"]
+      ord: ["1-й", "2-й", "3-й", "4-й"]
+      upg: ["ДВИГАТЕЛЬ", "ТУРБО", "ШИНЫ"]
+      groups: ["ЦВЕТ", "ПОЛОСЫ", "СПОЙЛЕР", "ДИСКИ"]
+      paints: ["КРАСНЫЙ", "ОРАНЖЕВЫЙ", "ЛАЙМ", "ФИОЛЕТОВЫЙ", "БЕЛЫЙ", "ЧЁРНЫЙ", "РОЗОВЫЙ", "ЗОЛОТОЙ"]
+      rims: ["СТАНДАРТ", "ХРОМ", "НЕОН", "ЗОЛОТО"]
+      stripes: ["НЕТ", "КАПОТ", "ДВОЙНЫЕ"]
+      spoilers: ["НЕТ", "ГУБА", "КРЫЛО", "GT-КРЫЛО"]
+      coins: n => " " + (n % 10 == 1 && n % 100 != 11 ? "МОНЕТА" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "МОНЕТЫ" : "МОНЕТ")
+      plusCoins: n => "+${n} " + (n % 10 == 1 && n % 100 != 11 ? "МОНЕТА" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "МОНЕТЫ" : "МОНЕТ")
+      needCoins: n => "НЕ ХВАТАЕТ ${n} " + (n % 10 == 1 && n % 100 != 11 ? "МОНЕТЫ" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "МОНЕТ" : "МОНЕТ")
+      podiumOn: n => "ПОДИУМ: ${n}"
+      best: t => "РЕКОРД ${t}"
+      noTime: "времени пока нет"
+      hintTilt: "НАКЛОНЯЙТЕ, ЧТОБЫ РУЛИТЬ - ДЕРЖИТЕ ГАЗ И ТОРМОЗ - 3 КРУГА, 3 СОПЕРНИКА"
+      hintArrows: "НЕТ ДАТЧИКА НАКЛОНА: РУЛИТЕ СТРЕЛКАМИ - 3 КРУГА, 3 СОПЕРНИКА"
+      race: "ГОНКА"
+      raceOn: n => "ГОНКА: ${n}"
+      locked: "ЗАКРЫТО"
+      garage: "ГАРАЖ"
+      topKmh: k => "МАКС ${k} КМ/Ч"
+      topSpeed: k => "МАКС. СКОРОСТЬ ${k} КМ/Ч"
+      pickUp: p => "РАЗГОН +${p}%"
+      grip: p => "СЦЕПЛЕНИЕ И РУЛЬ +${p}%"
+      max: "МАКС"
+      on: "ВКЛ"
+      tune: "ТЮНИНГ"
+      style: "СТИЛЬ"
+      back: "НАЗАД"
+      lap: (n, of) => "КРУГ ${n}/${of}"
+      kmh: "КМ/Ч"
+      go: "СТАРТ!"
+      finalLap: "ПОСЛЕДНИЙ КРУГ"
+      lapNo: n => "КРУГ ${n}"
+      lapLine: (n, t) => "КРУГ ${n}  ${t}"
+      brake: "ТОРМОЗ"
+      gas: "ГАЗ"
+      youWin: "ПОБЕДА!"
+      finished: o => "ФИНИШ: ${o}"
+      newBest: "НОВЫЙ РЕКОРД!"
+      newTrack: n => "НОВАЯ ТРАССА: ${n}"
+      again: "ЕЩЁ РАЗ"
+      tracksButton: "ТРАССЫ"
+    }
+    ja {
+      tracks: ["グランドサーキット", "松の森", "レッドキャニオン", "フロスト峠", "ナイトシティ", "メサジャンプ", "氷河スライド", "火山ロード"]
+      feats: ["ブースト", "ジャンプ", "氷、ジャンプ1つ", "ジャンプ、ブースト、タール"]
+      tiers: ["かんたん", "ふつう", "むずかしい", "エキスパート"]
+      ord: ["1位", "2位", "3位", "4位"]
+      upg: ["エンジン", "ターボ", "タイヤ"]
+      groups: ["塗装", "ストライプ", "スポイラー", "ホイール"]
+      paints: ["レッド", "オレンジ", "ライム", "パープル", "ホワイト", "ブラック", "ピンク", "ゴールド"]
+      rims: ["ノーマル", "クローム", "ネオン", "ゴールド"]
+      stripes: ["なし", "フード", "ツイン"]
+      spoilers: ["なし", "リップ", "ウイング", "GTウイング"]
+      coins: n => " コイン"
+      plusCoins: n => "+${n} コイン"
+      needCoins: n => "コインがあと${n}枚必要です"
+      podiumOn: n => "${n}で表彰台"
+      best: t => "ベスト ${t}"
+      noTime: "まだ記録なし"
+      hintTilt: "傾けて操作 - アクセルとブレーキを長押し - 3周、ライバル3台"
+      hintArrows: "この端末は傾き非対応：矢印で操作 - 3周、ライバル3台"
+      race: "レース"
+      raceOn: n => "${n}でレース"
+      locked: "ロック中"
+      garage: "ガレージ"
+      topKmh: k => "最高 ${k} KM/H"
+      topSpeed: k => "最高速度 ${k} KM/H"
+      pickUp: p => "加速 +${p}%"
+      grip: p => "グリップと操作 +${p}%"
+      max: "MAX"
+      on: "使用中"
+      tune: "チューン"
+      style: "スタイル"
+      back: "戻る"
+      lap: (n, of) => "ラップ ${n}/${of}"
+      kmh: "KM/H"
+      go: "GO!"
+      finalLap: "ファイナルラップ"
+      lapNo: n => "ラップ ${n}"
+      lapLine: (n, t) => "ラップ ${n}  ${t}"
+      brake: "ブレーキ"
+      gas: "アクセル"
+      youWin: "優勝!"
+      finished: o => "${o}でゴール"
+      newBest: "ベスト更新!"
+      newTrack: n => "新コース：${n}"
+      again: "もう一度"
+      tracksButton: "コース"
+    }
+    uk {
+      tracks: ["Гранд-траса", "Сосновий ліс", "Червоний каньйон", "Морозний перевал", "Нічне місто", "Стрибок з мези", "Льодовиковий спуск", "Шлях вулкана"]
+      feats: ["прискорювачі", "трампліни", "лід, трамплін", "трампліни, прискорювачі, смола"]
+      tiers: ["ЛЕГКО", "СЕРЕДНЬО", "СКЛАДНО", "ЕКСПЕРТ"]
+      ord: ["1-й", "2-й", "3-й", "4-й"]
+      upg: ["ДВИГУН", "ТУРБО", "ШИНИ"]
+      groups: ["ФАРБА", "СМУГИ", "СПОЙЛЕР", "ДИСКИ"]
+      paints: ["ЧЕРВОНИЙ", "ПОМАРАНЧЕВИЙ", "ЛАЙМ", "ФІОЛЕТОВИЙ", "БІЛИЙ", "ЧОРНИЙ", "РОЖЕВИЙ", "ЗОЛОТИЙ"]
+      rims: ["СТАНДАРТ", "ХРОМ", "НЕОН", "ЗОЛОТО"]
+      stripes: ["НЕМАЄ", "КАПОТ", "ПОДВІЙНІ"]
+      spoilers: ["НЕМАЄ", "ГУБА", "КРИЛО", "GT-КРИЛО"]
+      coins: n => " " + (n % 10 == 1 && n % 100 != 11 ? "МОНЕТА" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "МОНЕТИ" : "МОНЕТ")
+      plusCoins: n => "+${n} " + (n % 10 == 1 && n % 100 != 11 ? "МОНЕТА" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "МОНЕТИ" : "МОНЕТ")
+      needCoins: n => "БРАКУЄ ${n} " + (n % 10 == 1 && n % 100 != 11 ? "МОНЕТИ" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "МОНЕТ" : "МОНЕТ")
+      podiumOn: n => "ПОДІУМ: ${n}"
+      best: t => "РЕКОРД ${t}"
+      noTime: "часу ще немає"
+      hintTilt: "НАХИЛЯЙТЕ, ЩОБ КЕРУВАТИ - ТРИМАЙТЕ ГАЗ І ГАЛЬМО - 3 КОЛА, 3 СУПЕРНИКИ"
+      hintArrows: "НЕМАЄ ДАТЧИКА НАХИЛУ: КЕРУЙТЕ СТРІЛКАМИ - 3 КОЛА, 3 СУПЕРНИКИ"
+      race: "ГОНКА"
+      raceOn: n => "ГОНКА: ${n}"
+      locked: "ЗАКРИТО"
+      garage: "ГАРАЖ"
+      topKmh: k => "МАКС ${k} КМ/ГОД"
+      topSpeed: k => "МАКС. ШВИДКІСТЬ ${k} КМ/ГОД"
+      pickUp: p => "РОЗГІН +${p}%"
+      grip: p => "ЗЧЕПЛЕННЯ І КЕРМО +${p}%"
+      max: "МАКС"
+      on: "УВІМК"
+      tune: "ТЮНІНГ"
+      style: "СТИЛЬ"
+      back: "НАЗАД"
+      lap: (n, of) => "КОЛО ${n}/${of}"
+      kmh: "КМ/ГОД"
+      go: "СТАРТ!"
+      finalLap: "ОСТАННЄ КОЛО"
+      lapNo: n => "КОЛО ${n}"
+      lapLine: (n, t) => "КОЛО ${n}  ${t}"
+      brake: "ГАЛЬМО"
+      gas: "ГАЗ"
+      youWin: "ПЕРЕМОГА!"
+      finished: o => "ФІНІШ: ${o}"
+      newBest: "НОВИЙ РЕКОРД!"
+      newTrack: n => "НОВА ТРАСА: ${n}"
+      again: "ЩЕ РАЗ"
+      tracksButton: "ТРАСИ"
+    }
+    fr {
+      tracks: ["Grand Circuit", "Forêt de Pins", "Canyon Rouge", "Col Gelé", "Ville de Nuit", "Saut de Mesa", "Glissade Glaciaire", "Route du Volcan"]
+      feats: ["zones boost", "sauts", "glace, un saut", "sauts, boosts, goudron"]
+      tiers: ["FACILE", "MOYEN", "DIFFICILE", "EXPERT"]
+      ord: ["1er", "2e", "3e", "4e"]
+      upg: ["MOTEUR", "TURBO", "PNEUS"]
+      groups: ["PEINTURE", "BANDES", "AILERON", "JANTES"]
+      paints: ["ROUGE", "ORANGE", "VERT", "VIOLET", "BLANC", "NOIR", "ROSE", "OR"]
+      rims: ["SÉRIE", "CHROME", "NÉON", "OR"]
+      stripes: ["AUCUNE", "CAPOT", "DOUBLE"]
+      spoilers: ["AUCUN", "LÈVRE", "AILE", "AILE GT"]
+      coins: n => n <= 1 ? " PIÈCE" : " PIÈCES"
+      plusCoins: n => n <= 1 ? "+${n} PIÈCE" : "+${n} PIÈCES"
+      needCoins: n => n <= 1 ? "IL TE MANQUE ${n} PIÈCE" : "IL TE MANQUE ${n} PIÈCES"
+      podiumOn: n => "PODIUM SUR ${n}"
+      best: t => "RECORD ${t}"
+      noTime: "pas encore de temps"
+      hintTilt: "INCLINE POUR TOURNER - TIENS GAZ ET FREIN - 3 TOURS, 3 RIVAUX"
+      hintArrows: "PAS D'INCLINAISON SUR CE TÉLÉPHONE : TOURNE AVEC LES FLÈCHES - 3 TOURS, 3 RIVAUX"
+      race: "COURIR"
+      raceOn: n => "COURIR : ${n}"
+      locked: "VERROUILLÉ"
+      garage: "GARAGE"
+      topKmh: k => "MAX ${k} KM/H"
+      topSpeed: k => "VITESSE MAX ${k} KM/H"
+      pickUp: p => "REPRISES +${p} %"
+      grip: p => "ADHÉRENCE ET DIRECTION +${p} %"
+      max: "MAX"
+      on: "ACTIF"
+      tune: "RÉGLAGES"
+      style: "STYLE"
+      back: "RETOUR"
+      lap: (n, of) => "TOUR ${n}/${of}"
+      kmh: "KM/H"
+      go: "GO !"
+      finalLap: "DERNIER TOUR"
+      lapNo: n => "TOUR ${n}"
+      lapLine: (n, t) => "TOUR ${n}  ${t}"
+      brake: "FREIN"
+      gas: "GAZ"
+      youWin: "GAGNÉ !"
+      finished: o => "${o} PLACE"
+      newBest: "NOUVEAU RECORD !"
+      newTrack: n => "NOUVEAU CIRCUIT : ${n}"
+      again: "ENCORE"
+      tracksButton: "CIRCUITS"
+    }
+    tr {
+      tracks: ["Büyük Pist", "Çam Ormanı", "Kızıl Kanyon", "Ayaz Geçidi", "Gece Şehri", "Mesa Atlayışı", "Buzul Kayağı", "Volkan Yolu"]
+      feats: ["hız pedleri", "atlamalar", "buz, bir atlama", "atlama, hız, katran"]
+      tiers: ["KOLAY", "ORTA", "ZOR", "UZMAN"]
+      ord: ["1.", "2.", "3.", "4."]
+      upg: ["MOTOR", "TURBO", "LASTİK"]
+      groups: ["BOYA", "ŞERİT", "SPOYLER", "JANT"]
+      paints: ["KIRMIZI", "TURUNCU", "YEŞİL", "MOR", "BEYAZ", "SİYAH", "PEMBE", "ALTIN"]
+      rims: ["STANDART", "KROM", "NEON", "ALTIN"]
+      stripes: ["YOK", "KAPUT", "ÇİFT"]
+      spoilers: ["YOK", "DUDAK", "KANAT", "GT KANAT"]
+      coins: n => " JETON"
+      plusCoins: n => "+${n} JETON"
+      needCoins: n => "${n} JETON DAHA GEREK"
+      podiumOn: n => "PODYUM: ${n}"
+      best: t => "EN İYİ ${t}"
+      noTime: "henüz süre yok"
+      hintTilt: "YÖN İÇİN EĞ - GAZ VE FRENİ BASILI TUT - 3 TUR, 3 RAKİP"
+      hintArrows: "BU TELEFON EĞMEYİ ALGILAMIYOR: OKLARLA YÖNLENDİR - 3 TUR, 3 RAKİP"
+      race: "YARIŞ"
+      raceOn: n => "YARIŞ: ${n}"
+      locked: "KİLİTLİ"
+      garage: "GARAJ"
+      topKmh: k => "MAKS ${k} KM/SA"
+      topSpeed: k => "AZAMİ HIZ ${k} KM/SA"
+      pickUp: p => "HIZLANMA +%${p}"
+      grip: p => "TUTUŞ VE DİREKSİYON +%${p}"
+      max: "MAKS"
+      on: "AÇIK"
+      tune: "AYAR"
+      style: "STİL"
+      back: "GERİ"
+      lap: (n, of) => "TUR ${n}/${of}"
+      kmh: "KM/SA"
+      go: "HADİ!"
+      finalLap: "SON TUR"
+      lapNo: n => "TUR ${n}"
+      lapLine: (n, t) => "TUR ${n}  ${t}"
+      brake: "FREN"
+      gas: "GAZ"
+      youWin: "KAZANDIN!"
+      finished: o => "${o} OLDUN"
+      newBest: "YENİ REKOR!"
+      newTrack: n => "YENİ PİST: ${n}"
+      again: "TEKRAR"
+      tracksButton: "PİSTLER"
+    }
+    it {
+      tracks: ["Gran Circuito", "Pineta", "Canyon Rosso", "Passo del Gelo", "Città Notturna", "Salto della Mesa", "Scivolo Glaciale", "Corsa sul Vulcano"]
+      feats: ["pedane boost", "salti", "ghiaccio, un salto", "salti, boost, catrame"]
+      tiers: ["FACILE", "MEDIO", "DIFFICILE", "ESPERTO"]
+      ord: ["1º", "2º", "3º", "4º"]
+      upg: ["MOTORE", "TURBO", "GOMME"]
+      groups: ["VERNICE", "STRISCE", "ALETTONE", "CERCHI"]
+      paints: ["ROSSO", "ARANCIO", "LIME", "VIOLA", "BIANCO", "NERO", "ROSA", "ORO"]
+      rims: ["SERIE", "CROMO", "NEON", "ORO"]
+      stripes: ["NESSUNA", "COFANO", "DOPPIE"]
+      spoilers: ["NESSUNO", "LIP", "ALA", "ALA GT"]
+      coins: n => n == 1 ? " MONETA" : " MONETE"
+      plusCoins: n => n == 1 ? "+1 MONETA" : "+${n} MONETE"
+      needCoins: n => n == 1 ? "TI SERVE ANCORA 1 MONETA" : "TI SERVONO ALTRE ${n} MONETE"
+      podiumOn: n => "PODIO SU ${n}"
+      best: t => "RECORD ${t}"
+      noTime: "ancora nessun tempo"
+      hintTilt: "INCLINA PER STERZARE - TIENI GAS E FRENO - 3 GIRI, 3 RIVALI"
+      hintArrows: "QUESTO TELEFONO NON SI INCLINA: STERZA CON LE FRECCE - 3 GIRI, 3 RIVALI"
+      race: "CORRI"
+      raceOn: n => "CORRI ${n}"
+      locked: "BLOCCATA"
+      garage: "GARAGE"
+      topKmh: k => "MAX ${k} KM/H"
+      topSpeed: k => "VELOCITÀ MAX ${k} KM/H"
+      pickUp: p => "SPUNTO +${p}%"
+      grip: p => "ADERENZA E STERZO +${p}%"
+      max: "MAX"
+      on: "ATTIVO"
+      tune: "ASSETTO"
+      style: "STILE"
+      back: "INDIETRO"
+      lap: (n, of) => "GIRO ${n}/${of}"
+      kmh: "KM/H"
+      go: "VIA!"
+      finalLap: "ULTIMO GIRO"
+      lapNo: n => "GIRO ${n}"
+      lapLine: (n, t) => "GIRO ${n}  ${t}"
+      brake: "FRENO"
+      gas: "GAS"
+      youWin: "HAI VINTO!"
+      finished: o => "${o} POSTO"
+      newBest: "NUOVO RECORD!"
+      newTrack: n => "NUOVA PISTA: ${n}"
+      again: "ANCORA"
+      tracksButton: "PISTE"
+    }
+  }
   // How it works: each track is a loop of 120 points round the middle of its world, from a radius that rises and
   // falls with a few sine waves (so it never crosses itself). The road, its curbs, the fences and the start line
   // are meshes built from those points once per track; the trees, rocks and mountains are boxes, put together into
@@ -110,14 +683,14 @@ app "voxel rally" {
   // The garage: tuning, five levels each at these prices, and the parts of the car's look (a part priced 0 is free).
   let PRIZE = [400, 250, 150, 80]
   let COST = [150, 300, 550, 900, 1400]
-  let UPG = [{id: "eng", n: "ENGINE"}, {id: "turbo", n: "TURBO"}, {id: "tires", n: "TIRES"}]
-  let PAINTS = [{n: "RED", c: #e8412f, d: #a82a1e, s: #f4f4f4, p: 0}, {n: "ORANGE", c: #f08a24, d: #b0601a, s: #f4f4f4, p: 100}, {n: "LIME", c: #8bd43a, d: #5e9a22, s: #1b1b1e, p: 100}, {n: "PURPLE", c: #8a4fe0, d: #5e32a8, s: #f4f4f4, p: 150}, {n: "WHITE", c: #eef0f4, d: #b8bcc6, s: #e8412f, p: 150}, {n: "BLACK", c: #2a2c32, d: #17181c, s: #ffd34a, p: 200}, {n: "PINK", c: #ff6fb0, d: #c24a84, s: #f4f4f4, p: 200}, {n: "GOLD", c: #e6b83a, d: #a8841a, s: #1b1b1e, p: 500}]
-  let RIMS = [{n: "STOCK", c: #4a4a50, p: 0}, {n: "CHROME", c: #d8dde6, p: 200}, {n: "NEON", c: #5cdc5a, p: 300}, {n: "GOLD", c: #f2c230, p: 400}]
+  let UPG = [{id: "eng", n: str.upg[0]}, {id: "turbo", n: str.upg[1]}, {id: "tires", n: str.upg[2]}]
+  let PAINTS = [{n: str.paints[0], c: #e8412f, d: #a82a1e, s: #f4f4f4, p: 0}, {n: str.paints[1], c: #f08a24, d: #b0601a, s: #f4f4f4, p: 100}, {n: str.paints[2], c: #8bd43a, d: #5e9a22, s: #1b1b1e, p: 100}, {n: str.paints[3], c: #8a4fe0, d: #5e32a8, s: #f4f4f4, p: 150}, {n: str.paints[4], c: #eef0f4, d: #b8bcc6, s: #e8412f, p: 150}, {n: str.paints[5], c: #2a2c32, d: #17181c, s: #ffd34a, p: 200}, {n: str.paints[6], c: #ff6fb0, d: #c24a84, s: #f4f4f4, p: 200}, {n: str.paints[7], c: #e6b83a, d: #a8841a, s: #1b1b1e, p: 500}]
+  let RIMS = [{n: str.rims[0], c: #4a4a50, p: 0}, {n: str.rims[1], c: #d8dde6, p: 200}, {n: str.rims[2], c: #5cdc5a, p: 300}, {n: str.rims[3], c: #f2c230, p: 400}]
   let STYLE = [
-    {k: "paint", n: "PAINT", opts: PAINTS},
-    {k: "stripe", n: "STRIPES", opts: [{n: "NONE", p: 0}, {n: "HOOD", p: 0}, {n: "TWIN", p: 200}]},
-    {k: "spoiler", n: "SPOILER", opts: [{n: "NONE", p: 0}, {n: "LIP", p: 0}, {n: "WING", p: 250}, {n: "GT WING", p: 450}]},
-    {k: "rim", n: "RIMS", opts: RIMS}
+    {k: "paint", n: str.groups[0], opts: PAINTS},
+    {k: "stripe", n: str.groups[1], opts: [{n: str.stripes[0], p: 0}, {n: str.stripes[1], p: 0}, {n: str.stripes[2], p: 200}]},
+    {k: "spoiler", n: str.groups[2], opts: [{n: str.spoilers[0], p: 0}, {n: str.spoilers[1], p: 0}, {n: str.spoilers[2], p: 250}, {n: str.spoilers[3], p: 450}]},
+    {k: "rim", n: str.groups[3], opts: RIMS}
   ]
   let PAINT = PAINTS[look.paint ?? 0]
   // What the tuning does: top speed, pick-up, and the tires' grip (on and off the road) and steering.
@@ -138,43 +711,43 @@ app "voxel rally" {
   // and slick patches (oil, ice, tar) at [point, lane]. `off` turns where the loop starts, so the start and the grid
   // are on a straight.
   let ENV0 = [
-    {id: "circuit", name: "Grand Circuit", sub: "asphalt, grippy", R: 130, sx: 1.35, a1: 0.18, p1: 0, a2: 0.1, p2: 1.2, a3: 0.05, p3: 0.4, hw: 7,
+    {id: "circuit", name: str.tracks[0], sub: "asphalt, grippy", R: 130, sx: 1.35, a1: 0.18, p1: 0, a2: 0.1, p2: 1.2, a3: 0.05, p3: 0.4, hw: 7,
       dust: #e4e6ea, sky: #8ec9ee, top: #3f8fd8, sun: #fff4c2, sunDir: [-0.7, 0.2, 0.68], far: #4f9a3f, g1: #5fb04a, g2: #57a544, road: #4a4d55, road2: #52555d, curb: [#e0393b, #f2f2f2], fence: [#e0393b, #f2f2f2], dash: true,
       gate: #2a2d35, gate2: #e0393b, grip: 0.0008, gripOff: 0.02, offTop: 0.55, lat: 34,
       kinds: ["tree", "tree", "tree", "bush", "bush", "tires", "rock"], m1: #4d8f45, m1t: #5aa04f, cap: #5aa04f, capK: 9, mh: 0.5, mesa: false,
       skyline: [#8a9bb8, #a7b4c8, #7d8ba6], skylineT: #c8d2e0},
-    {id: "forest", name: "Pine Forest", sub: "dirt, slides a bit", R: 140, sx: 1.1, a1: 0.12, p1: 0.8, a2: 0.18, p2: 2.1, a3: 0.08, p3: 1.0, hw: 6,
+    {id: "forest", name: str.tracks[1], sub: "dirt, slides a bit", R: 140, sx: 1.1, a1: 0.12, p1: 0.8, a2: 0.18, p2: 2.1, a3: 0.08, p3: 1.0, hw: 6,
       dust: #8b6a45, sky: #a9d3c0, top: #5d9c8c, sun: #fff0c8, sunDir: [0.62, 0.17, -0.76], far: #2f5a2b, g1: #3f7a35, g2: #3a7131, road: #8b6a45, road2: #84643f, curb: [#6e5236, #5d452c], fence: [#7a5a38, #6a4c2e], dash: false,
       gate: #6a4c2e, gate2: #3d8040, grip: 0.012, gripOff: 0.03, offTop: 0.55, lat: 28,
       kinds: ["pine", "pine", "pine", "pine", "pine", "rock", "bush", "mush"], m1: #3b5f45, m1t: #456c50, cap: #eef3f7, capK: 3, mh: 1.1, mesa: false},
-    {id: "desert", tier: 1, name: "Red Canyon", sub: "sand, fast and wide", R: 150, sx: 1.25, a1: 0.22, p1: 2.0, a2: 0.08, p2: 0.5, a3: 0.06, p3: 1.7, hw: 7,
+    {id: "desert", tier: 1, name: str.tracks[2], sub: "sand, fast and wide", R: 150, sx: 1.25, a1: 0.22, p1: 2.0, a2: 0.08, p2: 0.5, a3: 0.06, p3: 1.7, hw: 7,
       dust: #e8b47c, sky: #f4cf9a, top: #d8743e, sun: #fff2b8, sunDir: [0.78, 0.11, 0.6], far: #c9874f, g1: #e2a866, g2: #dba060, road: #b06a3e, road2: #a8643a, curb: [#7a3e22, #f0d9b0], fence: [#8a5a3a, #6a4428], dash: false,
       gate: #7a3e22, gate2: #f0d9b0, grip: 0.004, gripOff: 0.02, offTop: 0.6, lat: 30,
       kinds: ["cactus", "cactus", "cactus", "rock", "rock", "mesa", "scrub"], m1: #b45a32, m1t: #c7703f, cap: #c7703f, capK: 9, mh: 0.9, mesa: true},
-    {id: "snow", name: "Frost Pass", sub: "snow, slippery", R: 135, sx: 1, a1: 0.15, p1: 1.4, a2: 0.15, p2: 0.3, a3: 0.07, p3: 2.5, hw: 6.5,
+    {id: "snow", name: str.tracks[3], sub: "snow, slippery", R: 135, sx: 1, a1: 0.15, p1: 1.4, a2: 0.15, p2: 0.3, a3: 0.07, p3: 2.5, hw: 6.5,
       dust: #ffffff, sky: #dbe7f2, top: #8fb2d6, sun: #ffffff, sunDir: [-0.52, 0.26, -0.8], far: #e9f0f7, g1: #f3f7fb, g2: #e6eef6, road: #a9b9cb, road2: #b3c2d3, curb: [#d23a3a, #f4f7fb], fence: [#3a6fb0, #f4f7fb], dash: false,
       gate: #3a6fb0, gate2: #f4f7fb, grip: 0.09, gripOff: 0.15, offTop: 0.65, lat: 20,
       kinds: ["spine", "spine", "spine", "spine", "rock", "ice", "snowman"], m1: #8ea4b8, m1t: #9cb1c4, cap: #f4f8fc, capK: 2, mh: 1.2, mesa: false, tier: 1}
   ]
   let ENV1 = [
-    {id: "city", name: "Night City", sub: "neon streets", R: 135, sx: 1.15, a1: 0.06, p1: 0.3, a2: 0.05, p2: 1.0, a3: 0.04, p3: 0.2, a4: 0.16, p4: 0, off: 52, hw: 7,
+    {id: "city", name: str.tracks[4], sub: "neon streets", R: 135, sx: 1.15, a1: 0.06, p1: 0.3, a2: 0.05, p2: 1.0, a3: 0.04, p3: 0.2, a4: 0.16, p4: 0, off: 52, hw: 7,
       dust: #9aa0b5, sky: #1c2150, top: #060918, haze: #2b3062, cloud: #2a2f55, sun: #e8ecff, sunDir: [-0.45, 0.32, 0.83], far: #191c26, g1: #262a35, g2: #21252f, road: #3a3e4a, road2: #424654, curb: [#ff3fa4, #2a2d36], fence: [#3ce0ff, #1d2030], dash: true,
       gate: #1d2030, gate2: #ff3fa4, grip: 0.0015, gripOff: 0.03, offTop: 0.55, lat: 32,
       kinds: ["tower", "tower", "tower", "lamp", "lamp", "neon"], m1: #1b1f33, m1t: #262b45, cap: #262b45, capK: 9, mh: 0.35, mesa: false,
       skyline: [#2a2f55, #323866, #252a4c], skylineT: #ffd36a, cityC: [#22284a, #2a2f55, #1c2140], cityT: #ffd36a,
-      tier: 2, feat: "boost pads", boosts: [[84, -2.5], [6, -2.5], [30, 2.5], [38, -2.5]], oil: [[48, 0]]},
-    merge(ENV0[2], {id: "mesa", name: "Mesa Leap", sub: "over the canyon", R: 155, sx: 1.3, a1: 0.2, p1: 2.6, a2: 0.1, p2: 0.9, a3: 0.07, p3: 2.2, a4: 0.04, p4: 1.0, off: 24, lat: 32,
-      tier: 2, feat: "jumps", ramps: [108, 4, 34, 76], boosts: [[105, 0]]}),
-    merge(ENV0[3], {id: "glacier", name: "Glacier Slide", sub: "narrow and icy", R: 130, sx: 1.05, a1: 0.14, p1: 0.5, a2: 0.16, p2: 1.9, a3: 0.09, p3: 0.7, a4: 0.06, p4: 2.4, off: 92, hw: 5.5, grip: 0.12,
-      tier: 3, feat: "ice, a jump", slick: #bfe8ff, ramps: [12], boosts: [[6, 0]], oil: [[44, -1.5], [56, 1.5], [80, 0]]}),
-    {id: "volcano", name: "Volcano Run", sub: "lava fields", R: 145, sx: 1.2, a1: 0.16, p1: 1.6, a2: 0.12, p2: 0.2, a3: 0.1, p3: 1.3, a4: 0.08, p4: 0.4, off: 24, hw: 6.5,
+      tier: 2, feat: str.feats[0], boosts: [[84, -2.5], [6, -2.5], [30, 2.5], [38, -2.5]], oil: [[48, 0]]},
+    merge(ENV0[2], {id: "mesa", name: str.tracks[5], sub: "over the canyon", R: 155, sx: 1.3, a1: 0.2, p1: 2.6, a2: 0.1, p2: 0.9, a3: 0.07, p3: 2.2, a4: 0.04, p4: 1.0, off: 24, lat: 32,
+      tier: 2, feat: str.feats[1], ramps: [108, 4, 34, 76], boosts: [[105, 0]]}),
+    merge(ENV0[3], {id: "glacier", name: str.tracks[6], sub: "narrow and icy", R: 130, sx: 1.05, a1: 0.14, p1: 0.5, a2: 0.16, p2: 1.9, a3: 0.09, p3: 0.7, a4: 0.06, p4: 2.4, off: 92, hw: 5.5, grip: 0.12,
+      tier: 3, feat: str.feats[2], slick: #bfe8ff, ramps: [12], boosts: [[6, 0]], oil: [[44, -1.5], [56, 1.5], [80, 0]]}),
+    {id: "volcano", name: str.tracks[7], sub: "lava fields", R: 145, sx: 1.2, a1: 0.16, p1: 1.6, a2: 0.12, p2: 0.2, a3: 0.1, p3: 1.3, a4: 0.08, p4: 0.4, off: 24, hw: 6.5,
       dust: #6a5f5a, sky: #7a3420, top: #2a100c, haze: #8a4a34, cloud: #4a3a36, sun: #ffb070, sunDir: [0.6, 0.15, 0.75], far: #2a2422, g1: #2f2a28, g2: #292422, road: #232326, road2: #2a2a2e, curb: [#ff6a1a, #1b1b1e], fence: [#ff6a1a, #3a3432], dash: false,
       gate: #1b1b1e, gate2: #ff6a1a, grip: 0.004, gripOff: 0.03, offTop: 0.5, lat: 30,
       kinds: ["boulder", "boulder", "deadtree", "lava", "lava", "vent"], m1: #2a2422, m1t: #3a3230, cap: #ff7a2a, capK: 3, mh: 1.4, mesa: false,
-      tier: 3, feat: "jumps, boosts, tar", slick: #0d0d0f, ramps: [110, 16, 36], boosts: [[106, 2], [6, -2], [53, 0]], oil: [[74, -2], [84, 2], [26, 0]]}
+      tier: 3, feat: str.feats[3], slick: #0d0d0f, ramps: [110, 16, 36], boosts: [[106, 2], [6, -2], [53, 0]], oil: [[74, -2], [84, 2], [26, 0]]}
   ]
   let ENVS = (ENV0 + ENV1).map(e => merge({off: 0, tier: 0, feat: "", a4: 0, p4: 0, ramps: [], boosts: [], oil: [], slick: #15161a, haze: null, cloud: #f4f8fc, skyline: null, cityC: [#22284a], cityT: #ffd36a}, e))
-  let TIERS = ["EASY", "MEDIUM", "HARD", "EXPERT"]
+  let TIERS = str.tiers
   let TIERC = [#5cdc5a, #ffd34a, #ff8a2a, #ff4a5a]
   // which tracks are open: the first four always, the rest after a podium (top three) on the one before
   let OPEN = ENVS.map((e, i) => i < 4 || (podium[ENVS[i - 1].id] ?? 9) <= 3)
@@ -399,9 +972,9 @@ app "voxel rally" {
   let raceT = mode == "race" ? max(0, gt - t0) : (mode == "done" ? finT : 0)
   let lapNo = clamp(len(laps) + 1, 1, LAPS)
   let pos = mode == "done" ? place : 1 + count(rivals, r => r.s > prog)
-  let ord = ["1st", "2nd", "3rd", "4th"]
+  let ord = str.ord
   let tStr = [raceT].map(t => floor(t / 60) + ":" + pad(fixed(t % 60, 2), 5, "0"))[0]
-  let bestStr = best[E.id] == null ? "no time yet" : [best[E.id]].map(t => floor(t / 60) + ":" + pad(fixed(t % 60, 2), 5, "0"))[0]
+  let bestStr = best[E.id] == null ? str.noTime : [best[E.id]].map(t => floor(t / 60) + ":" + pad(fixed(t % 60, 2), 5, "0"))[0]
   let bestLapStr = bestLap[E.id] == null ? "" : [bestLap[E.id]].map(t => floor(t / 60) + ":" + pad(fixed(t % 60, 2), 5, "0"))[0]
   let kmh = round(spd * 4.2)
 
@@ -605,7 +1178,7 @@ app "voxel rally" {
     }
   }
 
-  component CoinBadge(label = " COINS", bg = alpha(INK, 0.82)) {
+  component CoinBadge(label = str.coins(coins), bg = alpha(INK, 0.82)) {
     Row {
       gap: 8
       align: center
@@ -639,7 +1212,7 @@ app "voxel rally" {
               }
               Text { text: TIERS[e.tier] + (e.feat == "" ? "" : " - " + upper(e.feat)); font: PIX; fontSize: 8; maxLines: 1; color: i == env ? alpha(INK, 0.8) : alpha(white, 0.7) }
             }
-            Text { text: !OPEN[i] ? "PODIUM ON " + upper(ENVS[i - 1].name) : (best[e.id] == null ? "-" : "BEST " + floor(best[e.id] / 60) + ":" + pad(fixed(best[e.id] % 60, 2), 5, "0")); font: PIX; fontSize: 8; maxLines: 1; color: i == env ? #1d4a2a : (OPEN[i] ? #9fe6a8 : #ffb0b0) }
+            Text { text: !OPEN[i] ? str.podiumOn(upper(ENVS[i - 1].name)) : (best[e.id] == null ? "-" : str.best(floor(best[e.id] / 60) + ":" + pad(fixed(best[e.id] % 60, 2), 5, "0"))); font: PIX; fontSize: 8; maxLines: 1; color: i == env ? #1d4a2a : (OPEN[i] ? #9fe6a8 : #ffb0b0) }
           }
           Spacer { fill: width; height: 4; background: i == env ? (OPEN[i] ? #a8841a : #6a6e78) : alpha(black, 0.6) }
         }
@@ -649,7 +1222,7 @@ app "voxel rally" {
 
 
   component Hint() {
-    Text { text: tilted ? "TILT TO STEER - HOLD GAS AND BRAKE - 3 LAPS, 3 RIVALS" : "NO TILT ON THIS PHONE: STEER WITH THE ARROWS - 3 LAPS, 3 RIVALS"; font: PIX; fontSize: 10; color: white; align: center; fill: width; padding: [10, 8]; background: alpha(INK, 0.7) }
+    Text { text: tilted ? str.hintTilt : str.hintArrows; font: PIX; fontSize: 10; color: white; align: center; fill: width; padding: [10, 8]; background: alpha(INK, 0.7) }
   }
 
   component MenuButtons() {
@@ -664,14 +1237,14 @@ app "voxel rally" {
             go = go + 1
           }
         }
-        Text { text: OPEN[env] ? "RACE" : "LOCKED"; fill: width; align: center; padding: [0, 14]; font: PIX; fontSize: 26; color: OPEN[env] ? white : alpha(white, 0.6); background: OPEN[env] ? #e8412f : #4a4d55 }
+        Text { text: OPEN[env] ? str.race : str.locked; fill: width; align: center; padding: [0, 14]; font: PIX; fontSize: 26; color: OPEN[env] ? white : alpha(white, 0.6); background: OPEN[env] ? #e8412f : #4a4d55 }
         Spacer { fill: width; height: 6; background: OPEN[env] ? #a82a1e : #33363d }
       }
       Column {
         gap: 0
         weight: 1
         onTap: mode = "garage"
-        Text { text: "GARAGE"; fill: width; align: center; padding: [0, 19]; font: PIX; fontSize: 16; color: INK; background: GOLD }
+        Text { text: str.garage; fill: width; align: center; padding: [0, 19]; font: PIX; fontSize: 16; color: INK; background: GOLD }
         Spacer { fill: width; height: 6; background: #a8841a }
       }
     }
@@ -682,7 +1255,7 @@ app "voxel rally" {
       fill: width
       justify: spaceBetween
       align: center
-      Text { text: "GARAGE"; font: PIX; fontSize: 26; color: white }
+      Text { text: str.garage; font: PIX; fontSize: 26; color: white }
       CoinBadge { label: ""; bg: #24262d }
     }
   }
@@ -702,7 +1275,7 @@ app "voxel rally" {
       scene(GCAM, light: [0.5, 1, 0.7], ambient: 0.55) {
         model(CARS[0], at: [0, 0.3, 0], turn: [0, gt * 28, 0])
       }
-      text("TOP " + round(PTOP * 4.2) + " KM/H", 16, height - 22, size: 11, font: PIX, color: alpha(white, 0.75))
+      text(str.topKmh(round(PTOP * 4.2)), 16, height - 22, size: 11, font: PIX, color: alpha(white, 0.75))
     }
   }
 
@@ -710,7 +1283,7 @@ app "voxel rally" {
     Row {
       fill: width
       gap: 10
-      for t in [["tune", "TUNE"], ["style", "STYLE"]] {
+      for t in [["tune", str.tune], ["style", str.style]] {
         Column {
           gap: 0
           weight: 1
@@ -741,7 +1314,7 @@ app "voxel rally" {
               weight: 1
               gap: 5
               Text { text: u.n; font: PIX; fontSize: 14; color: white }
-              Text { text: u.id == "eng" ? "TOP SPEED " + round(PTOP * 4.2) + " KM/H" : (u.id == "turbo" ? "PICK-UP +" + round(l * 15) + "%" : "GRIP AND STEERING +" + round(l * 20) + "%"); font: PIX; fontSize: 9; color: alpha(white, 0.65) }
+              Text { text: u.id == "eng" ? str.topSpeed(round(PTOP * 4.2)) : (u.id == "turbo" ? str.pickUp(round(l * 15)) : str.grip(round(l * 20))); font: PIX; fontSize: 9; color: alpha(white, 0.65) }
               Row {
                 gap: 4
                 for k in range(5) {
@@ -758,7 +1331,7 @@ app "voxel rally" {
                   lv = set(lv, u.id, l + 1)
                 } else {
                   if l < 5 {
-                    msg = "NEED " + (COST[l] - coins) + " MORE COINS"
+                    msg = str.needCoins(COST[l] - coins)
                     msgAt = gt
                   }
                 }
@@ -773,7 +1346,7 @@ app "voxel rally" {
                 if l < 5 {
                   Spacer { size: 10; background: GOLD }
                 }
-                Text { text: l >= 5 ? "MAX" : str(COST[l]); font: PIX; fontSize: 13; color: white }
+                Text { text: l >= 5 ? str.max : str(COST[l]); font: PIX; fontSize: 13; color: white }
               }
               Spacer { fill: width; height: 5; background: l >= 5 ? #2a2c32 : (coins >= COST[l] ? #1d7a31 : #33363d) }
             }
@@ -804,7 +1377,7 @@ app "voxel rally" {
                         owned = owned + [g.k + i]
                         look = set(look, g.k, i)
                       } else {
-                        msg = "NEED " + (o.p - coins) + " MORE COINS"
+                        msg = str.needCoins(o.p - coins)
                         msgAt = gt
                       }
                     }
@@ -816,7 +1389,7 @@ app "voxel rally" {
                       background: on ? white : #17181c
                       Spacer { size: 40; background: o.c }
                     }
-                    Text { text: have ? (on ? "ON" : "") : str(o.p); width: 46; align: center; padding: [0, 3]; font: PIX; fontSize: 9; color: have ? white : GOLD }
+                    Text { text: have ? (on ? str.on : "") : str(o.p); width: 46; align: center; padding: [0, 3]; font: PIX; fontSize: 9; color: have ? white : GOLD }
                   } else {
                     Text { text: have ? o.n : o.n + " " + o.p; padding: [10, 9]; font: PIX; fontSize: 11; color: on ? INK : (have ? white : GOLD); background: on ? white : #33363d }
                   }
@@ -843,7 +1416,7 @@ app "voxel rally" {
           gap: 0
           weight: 1
           onTap: mode = "menu"
-          Text { text: "BACK"; fill: width; align: center; padding: [0, 14]; font: PIX; fontSize: 16; color: white; background: #3a3d45 }
+          Text { text: str.back; fill: width; align: center; padding: [0, 14]; font: PIX; fontSize: 16; color: white; background: #3a3d45 }
           Spacer { fill: width; height: 6; background: #26282e }
         }
         Column {
@@ -854,7 +1427,7 @@ app "voxel rally" {
               go = go + 1
             }
           }
-          Text { text: OPEN[env] ? "RACE " + upper(E.name) : "LOCKED"; fill: width; align: center; padding: [0, 14]; font: PIX; fontSize: 16; color: OPEN[env] ? white : alpha(white, 0.6); background: OPEN[env] ? #e8412f : #4a4d55 }
+          Text { text: OPEN[env] ? str.raceOn(upper(E.name)) : str.locked; fill: width; align: center; padding: [0, 14]; font: PIX; fontSize: 16; color: OPEN[env] ? white : alpha(white, 0.6); background: OPEN[env] ? #e8412f : #4a4d55 }
           Spacer { fill: width; height: 6; background: OPEN[env] ? #a82a1e : #33363d }
         }
       }
@@ -964,7 +1537,7 @@ app "voxel rally" {
         rect(12, TOPY + 86, 140, 5, fill: alpha(black, 0.55))
         text(ord[pos - 1], 24, TOPY + 25, size: 26, font: PIX, color: pos == 1 ? GOLD : white)
         text("/4", 94, TOPY + 29, size: 13, font: PIX, color: alpha(white, 0.7))
-        text("LAP " + lapNo + "/" + LAPS, 24, TOPY + 54, size: 13, font: PIX, color: white)
+        text(str.lap(lapNo, LAPS), 24, TOPY + 54, size: 13, font: PIX, color: white)
         text(tStr, 24, TOPY + 73, size: 13, font: PIX, color: alpha(white, 0.8))
         rect(MX - 8, TOPY, MS * MAPW + 16, MS * MAPH + 16, fill: alpha(INK, 0.8))
         rect(MX - 8, TOPY + MS * MAPH + 16, MS * MAPW + 16, 5, fill: alpha(black, 0.55))
@@ -981,17 +1554,17 @@ app "voxel rally" {
             rect(width / 2 - 62, TOPY + 74, 124, 5, fill: alpha(black, 0.55))
           }
           text(str(kmh), width / 2, LAND ? TOPY + 26 : height - 80, size: 36, font: PIX, align: center, color: white)
-          text("KM/H", width / 2, LAND ? TOPY + 56 : height - 50, size: 12, font: PIX, align: center, color: alpha(white, 0.8))
+          text(str.kmh, width / 2, LAND ? TOPY + 56 : height - 50, size: 12, font: PIX, align: center, color: alpha(white, 0.8))
         }
         if mode == "count" {
           let left3 = ceil(t0 - gt)
           text(left3 > 3 ? "" : str(left3), width / 2, height * 0.36, size: 80, font: PIX, align: center, color: left3 == 1 ? GOLD : white)
         }
         if mode == "race" && gt - t0 < 0.9 {
-          text("GO!", width / 2, height * 0.36, size: 80, font: PIX, align: center, color: #5cdc5a)
+          text(str.go, width / 2, height * 0.36, size: 80, font: PIX, align: center, color: #5cdc5a)
         }
         if mode == "race" && gt - lapAt < 1.8 && len(laps) > 0 {
-          text(len(laps) == LAPS - 1 ? "FINAL LAP" : "LAP " + (len(laps) + 1), width / 2, height * 0.3, size: 30, font: PIX, align: center, color: white)
+          text(len(laps) == LAPS - 1 ? str.finalLap : str.lapNo(len(laps) + 1), width / 2, height * 0.3, size: 30, font: PIX, align: center, color: white)
           text([laps[len(laps) - 1]].map(t => floor(t / 60) + ":" + pad(fixed(t % 60, 2), 5, "0"))[0], width / 2, height * 0.3 + 34, size: 16, font: PIX, align: center, color: alpha(white, 0.9))
         }
       }
@@ -1015,7 +1588,7 @@ app "voxel rally" {
               onPress: brake = true
               onRelease: brake = false
               Spacer { height: brake ? 6 : 0 }
-              Text { text: "BRAKE"; width: 104; height: 88; align: center; padding: [0, 32]; font: PIX; fontSize: 16; color: white; background: brake ? #d8242a : alpha(INK, 0.82) }
+              Text { text: str.brake; width: 104; height: 88; align: center; padding: [0, 32]; font: PIX; fontSize: 16; color: white; background: brake ? #d8242a : alpha(INK, 0.82) }
               Spacer { width: 104; height: brake ? 0 : 6; background: brake ? transparent : alpha(black, 0.6) }
             }
             if !tilted {
@@ -1047,7 +1620,7 @@ app "voxel rally" {
               onPress: gas = true
               onRelease: gas = false
               Spacer { height: gas ? 6 : 0 }
-              Text { text: "GAS"; width: 120; height: 104; align: center; padding: [0, 38]; font: PIX; fontSize: 22; color: white; background: gas ? #2fae4a : alpha(INK, 0.82) }
+              Text { text: str.gas; width: 120; height: 104; align: center; padding: [0, 38]; font: PIX; fontSize: 22; color: white; background: gas ? #2fae4a : alpha(INK, 0.82) }
               Spacer { width: 120; height: gas ? 0 : 6; background: gas ? transparent : alpha(black, 0.6) }
             }
           }
@@ -1075,21 +1648,21 @@ app "voxel rally" {
             align: center
             padding: [20, 22]
             background: alpha(INK, 0.88)
-            Text { text: place == 1 ? "YOU WIN!" : "FINISHED " + upper(ord[place - 1]); font: PIX; fontSize: 26; color: place == 1 ? GOLD : white; align: center }
+            Text { text: place == 1 ? str.youWin : str.finished(upper(ord[place - 1])); font: PIX; fontSize: 26; color: place == 1 ? GOLD : white; align: center }
             Text { text: upper(E.name); font: PIX; fontSize: 12; color: alpha(white, 0.7); align: center }
             Text { text: tStr; font: PIX; fontSize: 32; color: white; align: center }
-            Text { text: newBest ? "NEW BEST TIME!" : "BEST " + bestStr; font: PIX; fontSize: 12; color: newBest ? #5cdc5a : alpha(white, 0.7); align: center }
+            Text { text: newBest ? str.newBest : str.best(bestStr); font: PIX; fontSize: 12; color: newBest ? #5cdc5a : alpha(white, 0.7); align: center }
             Row {
               gap: 8
               align: center
               Spacer { size: 14; background: GOLD }
-              Text { text: "+" + earned + " COINS"; font: PIX; fontSize: 16; color: GOLD }
+              Text { text: str.plusCoins(earned); font: PIX; fontSize: 16; color: GOLD }
             }
             if opened != "" {
-              Text { text: "NEW TRACK: " + upper(opened); font: PIX; fontSize: 13; color: #3ce0ff; align: center }
+              Text { text: str.newTrack(upper(opened)); font: PIX; fontSize: 13; color: #3ce0ff; align: center }
             }
             for t, i in laps {
-              Text { text: "LAP " + (i + 1) + "  " + floor(t / 60) + ":" + pad(fixed(t % 60, 2), 5, "0"); font: PIX; fontSize: 13; color: alpha(white, 0.85); align: center }
+              Text { text: str.lapLine(i + 1, floor(t / 60) + ":" + pad(fixed(t % 60, 2), 5, "0")); font: PIX; fontSize: 13; color: alpha(white, 0.85); align: center }
             }
             Spacer { size: 10 }
             Row {
@@ -1097,19 +1670,19 @@ app "voxel rally" {
               Column {
                 gap: 0
                 onTap: go = go + 1
-                Text { text: "AGAIN"; padding: [10, 12]; font: PIX; fontSize: 12; color: white; background: #2fae4a }
+                Text { text: str.again; padding: [10, 12]; font: PIX; fontSize: 12; color: white; background: #2fae4a }
                 Spacer { height: 5; background: #1d7a31 }
               }
               Column {
                 gap: 0
                 onTap: mode = "garage"
-                Text { text: "GARAGE"; padding: [10, 12]; font: PIX; fontSize: 12; color: INK; background: GOLD }
+                Text { text: str.garage; padding: [10, 12]; font: PIX; fontSize: 12; color: INK; background: GOLD }
                 Spacer { height: 5; background: #a8841a }
               }
               Column {
                 gap: 0
                 onTap: mode = "menu"
-                Text { text: "TRACKS"; padding: [10, 12]; font: PIX; fontSize: 12; color: white; background: #5a5f6a }
+                Text { text: str.tracksButton; padding: [10, 12]; font: PIX; fontSize: 12; color: white; background: #5a5f6a }
                 Spacer { height: 5; background: #33363d }
               }
             }

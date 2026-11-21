@@ -2,9 +2,187 @@ app "formula 1" {
   meta {
     owl: 23
     description: "Formula 1 on one screen: the race weekend and its sessions, the calendar, every result, the driver and team standings, and OpenF1 timing."
-    version: "1.2"
+    version: "1.3"
     license: "MIT"
     category: "sport"
+  }
+  strings {
+    en {
+      tab: i => ["now", "calendar", "standings", "timing"][i]; sess: i => ["practice 1", "practice 2", "practice 3", "sprint quali", "sprint", "qualifying", "race"][i]
+      days: n => "${n}d"; dayHours: h => "1d ${h}h"; now: "now"; laps: n => "${n} laps"; live: "live"; resultsOffline: "results offline"
+      loading: "loading…"; tryAgain: "try again"; seasonOver: "the season is over"; sessLive: s => "${s} live"; raceWeekend: "race weekend"
+      nextUp: r => "next up · round ${r}"; to: s => "to ${s}"; then: "then"; lastRace: "last race"; round: r => "round ${r}"
+      championship: "championship"; afterRound: r => "after round ${r}"; gap: n => "${n} points between first and second"
+      cityRound: (c, k, r) => "${c}, ${k} · round ${r}"; afterRace: "results come after the race"; noResults: "no results yet"
+      loadingResults: "loading results…"; drivers: "drivers"; teams: "teams"; loadingStandings: "loading the standings…"
+      wins: n => n == 1 ? "1 win" : "${n} wins"; teamWins: n => n == 0 ? "no wins" : n == 1 ? "1 win" : "${n} wins"; loadingSeason: "loading the season…"
+      busy: "OpenF1 is busy, trying again in a moment…"; f1Offline: "OpenF1 is offline"; loadingTiming: "loading the timing…"
+      air: (a, t) => "air ${a}° · track ${t}°"; rain: w => "rain · wind ${w} m/s"; dry: w => "dry · wind ${w} m/s"; isOn: s => "${s} is on"
+      opensAt: t => "OpenF1's timing for it opens to everyone at ${t}, half an hour after the session"; firstStarts: t => "the first session starts ${t}"
+      noTiming: "no timing for this session"; raceControl: "race control"; timingFrom: "timing from OpenF1 · openf1.org ↗"
+      savedOffline: t => "offline · saved ${t}"
+    }
+    id {
+      tab: i => ["kini", "kalender", "klasemen", "timing"][i]; sess: i => ["latihan 1", "latihan 2", "latihan 3", "kualifikasi sprint", "sprint", "kualifikasi", "balapan"][i]
+      days: n => "${n}h"; dayHours: h => "1h ${h}j"; now: "sekarang"; laps: n => "${n} lap"; live: "langsung"; resultsOffline: "hasil offline"
+      loading: "memuat…"; tryAgain: "coba lagi"; seasonOver: "musim sudah selesai"; sessLive: s => "${s} langsung"; raceWeekend: "akhir pekan balapan"
+      nextUp: r => "berikutnya · seri ${r}"; to: s => "menuju ${s}"; then: "lalu"; lastRace: "balapan terakhir"; round: r => "seri ${r}"
+      championship: "kejuaraan"; afterRound: r => "setelah seri ${r}"; gap: n => "selisih ${n} poin antara pertama dan kedua"
+      cityRound: (c, k, r) => "${c}, ${k} · seri ${r}"; afterRace: "hasil muncul setelah balapan"; noResults: "belum ada hasil"
+      loadingResults: "memuat hasil…"; drivers: "pembalap"; teams: "tim"; loadingStandings: "memuat klasemen…"; wins: n => "${n} menang"
+      teamWins: n => n == 0 ? "belum menang" : "${n} menang"; loadingSeason: "memuat musim…"; busy: "OpenF1 sedang sibuk, mencoba lagi sebentar…"
+      f1Offline: "OpenF1 sedang offline"; loadingTiming: "memuat timing…"; air: (a, t) => "udara ${a}° · lintasan ${t}°"
+      rain: w => "hujan · angin ${w} m/s"; dry: w => "kering · angin ${w} m/s"; isOn: s => "${s} sedang berlangsung"; opensAt: t => "timing OpenF1 untuk sesi ini terbuka untuk semua pukul ${t}, setengah jam setelah sesi"
+      firstStarts: t => "sesi pertama mulai ${t}"; noTiming: "tidak ada timing untuk sesi ini"; raceControl: "kontrol balapan"
+      timingFrom: "timing dari OpenF1 · openf1.org ↗"; savedOffline: t => "offline · disimpan ${t}"
+    }
+    es {
+      tab: i => ["ahora", "calendario", "clasificación", "tiempos"][i]; sess: i => ["libres 1", "libres 2", "libres 3", "clasif. sprint", "sprint", "clasificación", "carrera"][i]
+      days: n => "${n}d"; dayHours: h => "1d ${h}h"; now: "ya"; laps: n => n == 1 ? "1 vuelta" : "${n} vueltas"; live: "en directo"
+      resultsOffline: "resultados sin conexión"; loading: "cargando…"; tryAgain: "reintentar"; seasonOver: "la temporada ha terminado"
+      sessLive: s => "${s} en directo"; raceWeekend: "fin de semana de carrera"; nextUp: r => "próxima · ronda ${r}"; to: s => "para ${s}"
+      then: "luego"; lastRace: "última carrera"; round: r => "ronda ${r}"; championship: "campeonato"; afterRound: r => "tras la ronda ${r}"
+      gap: n => "${n} puntos entre el primero y el segundo"; cityRound: (c, k, r) => "${c}, ${k} · ronda ${r}"; afterRace: "los resultados llegan tras la carrera"
+      noResults: "aún no hay resultados"; loadingResults: "cargando resultados…"; drivers: "pilotos"; teams: "equipos"
+      loadingStandings: "cargando la clasificación…"; wins: n => n == 1 ? "1 victoria" : "${n} victorias"; teamWins: n => n == 0 ? "sin victorias" : n == 1 ? "1 victoria" : "${n} victorias"
+      loadingSeason: "cargando la temporada…"; busy: "OpenF1 está saturado, reintentando en un momento…"; f1Offline: "OpenF1 no responde"
+      loadingTiming: "cargando los tiempos…"; air: (a, t) => "aire ${a}° · pista ${t}°"; rain: w => "lluvia · viento ${w} m/s"
+      dry: w => "seco · viento ${w} m/s"; isOn: s => "${s} en curso"; opensAt: t => "los tiempos de OpenF1 se abren a todos a las ${t}, media hora después de la sesión"
+      firstStarts: t => "la primera sesión empieza ${t}"; noTiming: "no hay tiempos para esta sesión"; raceControl: "dirección de carrera"
+      timingFrom: "tiempos de OpenF1 · openf1.org ↗"; savedOffline: t => "sin conexión · guardado ${t}"
+    }
+    pt {
+      tab: i => ["agora", "calendário", "classificação", "tempos"][i]; sess: i => ["treino 1", "treino 2", "treino 3", "quali sprint", "sprint", "classificação", "corrida"][i]
+      days: n => "${n}d"; dayHours: h => "1d ${h}h"; now: "agora"; laps: n => n == 1 ? "1 volta" : "${n} voltas"; live: "ao vivo"
+      resultsOffline: "resultados offline"; loading: "carregando…"; tryAgain: "tentar de novo"; seasonOver: "a temporada acabou"
+      sessLive: s => "${s} ao vivo"; raceWeekend: "fim de semana de corrida"; nextUp: r => "próxima · etapa ${r}"; to: s => "para ${s}"
+      then: "depois"; lastRace: "última corrida"; round: r => "etapa ${r}"; championship: "campeonato"; afterRound: r => "após a etapa ${r}"
+      gap: n => "${n} pontos entre o primeiro e o segundo"; cityRound: (c, k, r) => "${c}, ${k} · etapa ${r}"; afterRace: "os resultados saem depois da corrida"
+      noResults: "ainda sem resultados"; loadingResults: "carregando resultados…"; drivers: "pilotos"; teams: "equipes"
+      loadingStandings: "carregando a classificação…"; wins: n => n == 1 ? "1 vitória" : "${n} vitórias"; teamWins: n => n == 0 ? "sem vitórias" : n == 1 ? "1 vitória" : "${n} vitórias"
+      loadingSeason: "carregando a temporada…"; busy: "o OpenF1 está ocupado, tentando de novo em instantes…"; f1Offline: "o OpenF1 está offline"
+      loadingTiming: "carregando os tempos…"; air: (a, t) => "ar ${a}° · pista ${t}°"; rain: w => "chuva · vento ${w} m/s"
+      dry: w => "seco · vento ${w} m/s"; isOn: s => "${s} em andamento"; opensAt: t => "os tempos do OpenF1 abrem para todos às ${t}, meia hora após a sessão"
+      firstStarts: t => "a primeira sessão começa ${t}"; noTiming: "sem tempos para esta sessão"; raceControl: "direção de prova"
+      timingFrom: "tempos do OpenF1 · openf1.org ↗"; savedOffline: t => "offline · salvo ${t}"
+    }
+    de {
+      tab: i => ["jetzt", "kalender", "wertung", "zeiten"][i]; sess: i => ["training 1", "training 2", "training 3", "sprint-quali", "sprint", "qualifying", "rennen"][i]
+      days: n => "${n}T"; dayHours: h => "1T ${h}h"; now: "jetzt"; laps: n => n == 1 ? "1 runde" : "${n} runden"; live: "live"
+      resultsOffline: "ergebnisse offline"; loading: "lädt…"; tryAgain: "nochmal"; seasonOver: "die saison ist vorbei"
+      sessLive: s => "${s} live"; raceWeekend: "rennwochenende"; nextUp: r => "als nächstes · lauf ${r}"; to: s => "bis ${s}"
+      then: "danach"; lastRace: "letztes rennen"; round: r => "lauf ${r}"; championship: "meisterschaft"; afterRound: r => "nach lauf ${r}"
+      gap: n => "${n} punkte zwischen platz eins und zwei"; cityRound: (c, k, r) => "${c}, ${k} · lauf ${r}"; afterRace: "ergebnisse gibt's nach dem rennen"
+      noResults: "noch keine ergebnisse"; loadingResults: "lade ergebnisse…"; drivers: "fahrer"; teams: "teams"; loadingStandings: "lade die wertung…"
+      wins: n => n == 1 ? "1 sieg" : "${n} siege"; teamWins: n => n == 0 ? "keine siege" : n == 1 ? "1 sieg" : "${n} siege"
+      loadingSeason: "lade die saison…"; busy: "OpenF1 ist ausgelastet, gleich nochmal…"; f1Offline: "OpenF1 ist offline"
+      loadingTiming: "lade die zeiten…"; air: (a, t) => "luft ${a}° · strecke ${t}°"; rain: w => "regen · wind ${w} m/s"
+      dry: w => "trocken · wind ${w} m/s"; isOn: s => "${s} läuft"; opensAt: t => "OpenF1s zeiten dafür sind ab ${t} für alle frei, eine halbe stunde nach der session"
+      firstStarts: t => "die erste session beginnt ${t}"; noTiming: "keine zeiten für diese session"; raceControl: "rennleitung"
+      timingFrom: "zeiten von OpenF1 · openf1.org ↗"; savedOffline: t => "offline · gespeichert ${t}"
+    }
+    zh {
+      tab: i => ["当前", "赛历", "积分榜", "计时"][i]; sess: i => ["一练", "二练", "三练", "冲刺排位", "冲刺赛", "排位赛", "正赛"][i]; days: n => "${n}天"
+      dayHours: h => "1天${h}小时"; now: "现在"; laps: n => "${n} 圈"; live: "进行中"; resultsOffline: "结果离线"; loading: "加载中…"
+      tryAgain: "重试"; seasonOver: "本赛季已结束"; sessLive: s => "${s}进行中"; raceWeekend: "比赛周末"; nextUp: r => "下一站 · 第 ${r} 站"
+      to: s => "距${s}"; then: "之后"; lastRace: "上一场"; round: r => "第 ${r} 站"; championship: "锦标赛"; afterRound: r => "第 ${r} 站后"
+      gap: n => "第一和第二相差 ${n} 分"; cityRound: (c, k, r) => "${c}，${k} · 第 ${r} 站"; afterRace: "比赛结束后公布结果"; noResults: "暂无结果"
+      loadingResults: "正在加载结果…"; drivers: "车手"; teams: "车队"; loadingStandings: "正在加载积分榜…"; wins: n => "${n} 胜"; teamWins: n => n == 0 ? "未胜" : "${n} 胜"
+      loadingSeason: "正在加载赛季…"; busy: "OpenF1 繁忙，稍后重试…"; f1Offline: "OpenF1 离线"; loadingTiming: "正在加载计时…"; air: (a, t) => "气温 ${a}° · 赛道 ${t}°"
+      rain: w => "有雨 · 风速 ${w} m/s"; dry: w => "干燥 · 风速 ${w} m/s"; isOn: s => "${s}进行中"; opensAt: t => "OpenF1 的计时将在 ${t} 向所有人开放，即赛段结束半小时后"
+      firstStarts: t => "第一节 ${t} 开始"; noTiming: "这一节没有计时"; raceControl: "赛事干事"; timingFrom: "计时来自 OpenF1 · openf1.org ↗"
+      savedOffline: t => "离线 · 保存于 ${t}"
+    }
+    ru {
+      tab: i => ["сейчас", "календарь", "зачёт", "хронометраж"][i]; sess: i => ["практика 1", "практика 2", "практика 3", "квал. спринта", "спринт", "квалификация", "гонка"][i]
+      days: n => "${n} д"; dayHours: h => "1 д ${h} ч"; now: "сейчас"; laps: n => "${n} " + (n % 10 == 1 && n % 100 != 11 ? "круг" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? "круга" : "кругов")
+      live: "в эфире"; resultsOffline: "результаты недоступны"; loading: "загрузка…"; tryAgain: "повторить"; seasonOver: "сезон завершён"
+      sessLive: s => "${s} в эфире"; raceWeekend: "гоночный уик-энд"; nextUp: r => "далее · этап ${r}"; to: s => "до: ${s}"
+      then: "потом"; lastRace: "последняя гонка"; round: r => "этап ${r}"; championship: "чемпионат"; afterRound: r => "после этапа ${r}"
+      gap: n => "разрыв между первым и вторым: ${n} очк."; cityRound: (c, k, r) => "${c}, ${k} · этап ${r}"; afterRace: "результаты появятся после гонки"
+      noResults: "результатов пока нет"; loadingResults: "загрузка результатов…"; drivers: "пилоты"; teams: "команды"
+      loadingStandings: "загрузка зачёта…"; wins: n => "${n} " + (n % 10 == 1 && n % 100 != 11 ? "победа" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? "победы" : "побед")
+      teamWins: n => n == 0 ? "нет побед" : ("${n} " + (n % 10 == 1 && n % 100 != 11 ? "победа" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? "победы" : "побед"))
+      loadingSeason: "загрузка сезона…"; busy: "OpenF1 перегружен, скоро попробуем снова…"; f1Offline: "OpenF1 недоступен"
+      loadingTiming: "загрузка хронометража…"; air: (a, t) => "воздух ${a}° · трасса ${t}°"; rain: w => "дождь · ветер ${w} м/с"
+      dry: w => "сухо · ветер ${w} м/с"; isOn: s => "идёт ${s}"; opensAt: t => "хронометраж OpenF1 откроется для всех в ${t}, через полчаса после сессии"
+      firstStarts: t => "первая сессия начнётся ${t}"; noTiming: "для этой сессии нет хронометража"; raceControl: "дирекция гонки"
+      timingFrom: "хронометраж OpenF1 · openf1.org ↗"; savedOffline: t => "нет сети · сохранено ${t}"
+    }
+    ja {
+      tab: i => ["今", "カレンダー", "ランキング", "タイム"][i]; sess: i => ["フリー走行1", "フリー走行2", "フリー走行3", "スプリント予選", "スプリント", "予選", "決勝"][i]
+      days: n => "${n}日"; dayHours: h => "1日${h}時間"; now: "まもなく"; laps: n => "${n}周"; live: "ライブ"; resultsOffline: "結果はオフラインです"
+      loading: "読み込み中…"; tryAgain: "再試行"; seasonOver: "今シーズンは終了しました"; sessLive: s => "${s} ライブ"; raceWeekend: "レースウィーク"
+      nextUp: r => "次 · 第${r}戦"; to: s => "${s}まで"; then: "その次"; lastRace: "前戦"; round: r => "第${r}戦"; championship: "チャンピオンシップ"
+      afterRound: r => "第${r}戦終了時点"; gap: n => "1位と2位の差は${n}ポイント"; cityRound: (c, k, r) => "${c}、${k} · 第${r}戦"; afterRace: "結果はレース後に出ます"
+      noResults: "まだ結果はありません"; loadingResults: "結果を読み込み中…"; drivers: "ドライバー"; teams: "チーム"; loadingStandings: "ランキングを読み込み中…"
+      wins: n => "${n}勝"; teamWins: n => n == 0 ? "未勝利" : "${n}勝"; loadingSeason: "シーズンを読み込み中…"; busy: "OpenF1が混み合っています。まもなく再試行します…"
+      f1Offline: "OpenF1はオフラインです"; loadingTiming: "タイムを読み込み中…"; air: (a, t) => "気温 ${a}° · 路面 ${t}°"; rain: w => "雨 · 風 ${w} m/s"
+      dry: w => "ドライ · 風 ${w} m/s"; isOn: s => "${s}が進行中です"; opensAt: t => "OpenF1のタイムはセッションの30分後、${t}に誰でも見られるようになります"
+      firstStarts: t => "最初のセッションは${t}に始まります"; noTiming: "このセッションのタイムはありません"; raceControl: "レースコントロール"; timingFrom: "タイム: OpenF1 · openf1.org ↗"
+      savedOffline: t => "オフライン · ${t}に保存"
+    }
+    uk {
+      tab: i => ["зараз", "календар", "залік", "хронометраж"][i]; sess: i => ["практика 1", "практика 2", "практика 3", "квал. спринту", "спринт", "кваліфікація", "гонка"][i]
+      days: n => "${n} д"; dayHours: h => "1 д ${h} год"; now: "зараз"; laps: n => "${n} " + (n % 10 == 1 && n % 100 != 11 ? "коло" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? "кола" : "кіл")
+      live: "наживо"; resultsOffline: "результати недоступні"; loading: "завантаження…"; tryAgain: "повторити"; seasonOver: "сезон завершено"
+      sessLive: s => "${s} наживо"; raceWeekend: "гоночний вікенд"; nextUp: r => "далі · етап ${r}"; to: s => "до: ${s}"
+      then: "потім"; lastRace: "остання гонка"; round: r => "етап ${r}"; championship: "чемпіонат"; afterRound: r => "після етапу ${r}"
+      gap: n => "різниця між першим і другим: ${n} оч."; cityRound: (c, k, r) => "${c}, ${k} · етап ${r}"; afterRace: "результати з'являться після гонки"
+      noResults: "результатів поки немає"; loadingResults: "завантаження результатів…"; drivers: "пілоти"; teams: "команди"
+      loadingStandings: "завантаження заліку…"; wins: n => "${n} " + (n % 10 == 1 && n % 100 != 11 ? "перемога" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? "перемоги" : "перемог")
+      teamWins: n => n == 0 ? "без перемог" : ("${n} " + (n % 10 == 1 && n % 100 != 11 ? "перемога" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? "перемоги" : "перемог"))
+      loadingSeason: "завантаження сезону…"; busy: "OpenF1 перевантажений, скоро спробуємо знову…"; f1Offline: "OpenF1 недоступний"
+      loadingTiming: "завантаження хронометражу…"; air: (a, t) => "повітря ${a}° · траса ${t}°"; rain: w => "дощ · вітер ${w} м/с"
+      dry: w => "сухо · вітер ${w} м/с"; isOn: s => "триває ${s}"; opensAt: t => "хронометраж OpenF1 відкриється для всіх о ${t}, через пів години після сесії"
+      firstStarts: t => "перша сесія почнеться ${t}"; noTiming: "для цієї сесії немає хронометражу"; raceControl: "дирекція гонки"
+      timingFrom: "хронометраж OpenF1 · openf1.org ↗"; savedOffline: t => "немає мережі · збережено ${t}"
+    }
+    fr {
+      tab: i => ["maintenant", "calendrier", "classement", "chrono"][i]; sess: i => ["essais 1", "essais 2", "essais 3", "qualif sprint", "sprint", "qualifications", "course"][i]
+      days: n => "${n}j"; dayHours: h => "1j ${h}h"; now: "maintenant"; laps: n => n <= 1 ? "${n} tour" : "${n} tours"
+      live: "en direct"; resultsOffline: "résultats hors ligne"; loading: "chargement…"; tryAgain: "réessayer"; seasonOver: "la saison est terminée"
+      sessLive: s => "${s} en direct"; raceWeekend: "week-end de course"; nextUp: r => "prochaine · manche ${r}"; to: s => "avant ${s}"
+      then: "ensuite"; lastRace: "dernière course"; round: r => "manche ${r}"; championship: "championnat"; afterRound: r => "après la manche ${r}"
+      gap: n => "${n} points entre le premier et le deuxième"; cityRound: (c, k, r) => "${c}, ${k} · manche ${r}"; afterRace: "les résultats arrivent après la course"
+      noResults: "pas encore de résultats"; loadingResults: "chargement des résultats…"; drivers: "pilotes"; teams: "écuries"
+      loadingStandings: "chargement du classement…"; wins: n => n <= 1 ? "${n} victoire" : "${n} victoires"; teamWins: n => n == 0 ? "aucune victoire" : n == 1 ? "1 victoire" : "${n} victoires"
+      loadingSeason: "chargement de la saison…"; busy: "OpenF1 est saturé, nouvel essai dans un instant…"; f1Offline: "OpenF1 est hors ligne"
+      loadingTiming: "chargement du chrono…"; air: (a, t) => "air ${a}° · piste ${t}°"; rain: w => "pluie · vent ${w} m/s"
+      dry: w => "sec · vent ${w} m/s"; isOn: s => "${s} en cours"; opensAt: t => "le chrono d'OpenF1 s'ouvre à tous à ${t}, une demi-heure après la séance"
+      firstStarts: t => "la première séance commence ${t}"; noTiming: "pas de chrono pour cette séance"; raceControl: "direction de course"
+      timingFrom: "chrono d'OpenF1 · openf1.org ↗"; savedOffline: t => "hors ligne · enregistré ${t}"
+    }
+    tr {
+      tab: i => ["şimdi", "takvim", "puan durumu", "zamanlama"][i]; sess: i => ["antrenman 1", "antrenman 2", "antrenman 3", "sprint sıralama", "sprint", "sıralama", "yarış"][i]
+      days: n => "${n}g"; dayHours: h => "1g ${h}s"; now: "şimdi"; laps: n => "${n} tur"; live: "canlı"; resultsOffline: "sonuçlar çevrimdışı"
+      loading: "yükleniyor…"; tryAgain: "tekrar dene"; seasonOver: "sezon bitti"; sessLive: s => "${s} canlı"; raceWeekend: "yarış haftası sonu"
+      nextUp: r => "sıradaki · ${r}. yarış"; to: s => "${s} için"; then: "sonra"; lastRace: "son yarış"; round: r => "${r}. yarış"
+      championship: "şampiyona"; afterRound: r => "${r}. yarıştan sonra"; gap: n => "birinci ile ikinci arasında ${n} puan"
+      cityRound: (c, k, r) => "${c}, ${k} · ${r}. yarış"; afterRace: "sonuçlar yarıştan sonra gelir"; noResults: "henüz sonuç yok"
+      loadingResults: "sonuçlar yükleniyor…"; drivers: "pilotlar"; teams: "takımlar"; loadingStandings: "puan durumu yükleniyor…"
+      wins: n => "${n} galibiyet"; teamWins: n => n == 0 ? "galibiyet yok" : "${n} galibiyet"; loadingSeason: "sezon yükleniyor…"
+      busy: "OpenF1 yoğun, birazdan tekrar deneniyor…"; f1Offline: "OpenF1 çevrimdışı"; loadingTiming: "zamanlama yükleniyor…"
+      air: (a, t) => "hava ${a}° · pist ${t}°"; rain: w => "yağmur · rüzgâr ${w} m/s"; dry: w => "kuru · rüzgâr ${w} m/s"
+      isOn: s => "${s} sürüyor"; opensAt: t => "OpenF1 zamanlaması seanstan yarım saat sonra, saat ${t} itibarıyla herkese açılır"
+      firstStarts: t => "ilk seans ${t} başlıyor"; noTiming: "bu seans için zamanlama yok"; raceControl: "yarış kontrol"
+      timingFrom: "zamanlama: OpenF1 · openf1.org ↗"; savedOffline: t => "çevrimdışı · kaydedildi ${t}"
+    }
+    it {
+      tab: i => ["ora", "calendario", "classifiche", "tempi"][i]; sess: i => ["libere 1", "libere 2", "libere 3", "quali sprint", "sprint", "qualifiche", "gara"][i]
+      days: n => "${n}g"; dayHours: h => "1g ${h}h"; now: "ora"; laps: n => n == 1 ? "1 giro" : "${n} giri"; live: "in diretta"
+      resultsOffline: "risultati offline"; loading: "caricamento…"; tryAgain: "riprova"; seasonOver: "la stagione è finita"
+      sessLive: s => "${s} in diretta"; raceWeekend: "weekend di gara"; nextUp: r => "prossima · tappa ${r}"; to: s => "a ${s}"
+      then: "poi"; lastRace: "ultima gara"; round: r => "tappa ${r}"; championship: "campionato"; afterRound: r => "dopo la tappa ${r}"
+      gap: n => "${n} punti tra primo e secondo"; cityRound: (c, k, r) => "${c}, ${k} · tappa ${r}"; afterRace: "i risultati arrivano dopo la gara"
+      noResults: "ancora nessun risultato"; loadingResults: "caricamento risultati…"; drivers: "piloti"; teams: "squadre"
+      loadingStandings: "caricamento classifica…"; wins: n => n == 1 ? "1 vittoria" : "${n} vittorie"; teamWins: n => n == 0 ? "nessuna vittoria" : n == 1 ? "1 vittoria" : "${n} vittorie"
+      loadingSeason: "caricamento stagione…"; busy: "OpenF1 è sovraccarico, riprovo tra un attimo…"; f1Offline: "OpenF1 è offline"
+      loadingTiming: "caricamento tempi…"; air: (a, t) => "aria ${a}° · pista ${t}°"; rain: w => "pioggia · vento ${w} m/s"
+      dry: w => "asciutto · vento ${w} m/s"; isOn: s => "${s} in corso"; opensAt: t => "i tempi di OpenF1 si aprono a tutti alle ${t}, mezz'ora dopo la sessione"
+      firstStarts: t => "la prima sessione inizia ${t}"; noTiming: "nessun tempo per questa sessione"; raceControl: "direzione gara"
+      timingFrom: "tempi da OpenF1 · openf1.org ↗"; savedOffline: t => "offline · salvato ${t}"
+    }
   }
   // The window's title names the race that's open; Back goes to where it was opened from.
   title: view == "race" && openRace != null ? openRace.full : "F1"
@@ -85,13 +263,16 @@ app "formula 1" {
     dates: fmtTime(r.sessions[0].t, "MMM") == fmtTime(r.t, "MMM") ? "${fmtTime(r.sessions[0].t, "d")}–${fmtTime(r.t, "d MMM")}" : "${fmtTime(r.sessions[0].t, "d MMM")} – ${fmtTime(r.t, "d MMM")}"
   }))
   let weekend = races.find(r => r.state != "done")
+  // the stored session names are ids; what shows is their name in the phone's language
+  let SESSN = ["practice 1", "practice 2", "practice 3", "sprint quali", "sprint", "qualifying", "race"]
+  let sessL = n => indexOf(SESSN, n) >= 0 ? str.sess(indexOf(SESSN, n)) : n
   let past = races.filter(r => r.state == "done")
   let latest = len(past) > 0 ? last(past) : null
   let later = weekend == null ? null : races.find(r => r.round > weekend.round)
   let nextSess = weekend == null || now == null ? null : weekend.sessions.find(s => now < s.t + s.dur)
   let liveSess = nextSess != null && now >= nextSess.t ? nextSess : null
   let secs = nextSess == null ? null : nextSess.t - now
-  let countdown = secs == null ? "" : secs >= 172800 ? "${floor(secs / 86400)}d" : secs >= 86400 ? "1d ${floor((secs % 86400) / 3600)}h" : secs > 0 ? fmtDuration(secs) : "now"
+  let countdown = secs == null ? "" : secs >= 172800 ? str.days(floor(secs / 86400)) : secs >= 86400 ? str.dayHours(floor((secs % 86400) / 3600)) : secs > 0 ? fmtDuration(secs) : str.now
 
   // The standings.
   let ds = drvStand != null && drvStand.ok ? drvStand.out.MRData.StandingsTable.StandingsLists[0] : null
@@ -211,7 +392,7 @@ app "formula 1" {
     value: isRace ? (p[0].position == 1 && p[0].duration != null ? fmtTime(p[0].duration, "H:mm:ss", "UTC") : p[0].gap_to_leader == null ? (p[0].dnf ? "dnf" : "") : num(p[0].gap_to_leader, -1) < 0 ? lower(str(p[0].gap_to_leader)) : "+${fixed(p[0].gap_to_leader, 3)}")
       : isQuali ? (p[2] == 0 ? "" : "${floor(p[0].duration[p[2] - 1] / 60)}:${pad(fixed(p[0].duration[p[2] - 1] % 60, 3), 6, "0")}")
       : (p[0].duration == null ? "" : "${floor(p[0].duration / 60)}:${pad(fixed(p[0].duration % 60, 3), 6, "0")}"),
-    extra: isRace ? (num(p[0].points, 0) > 0 ? "+${round(p[0].points)}" : "${p[0].number_of_laps ?? 0} laps") : isQuali ? (p[2] == 0 ? "" : "Q${p[2]}") : "${p[0].number_of_laps ?? 0} laps"
+    extra: isRace ? (num(p[0].points, 0) > 0 ? "+${round(p[0].points)}" : str.laps(p[0].number_of_laps ?? 0)) : isQuali ? (p[2] == 0 ? "" : "Q${p[2]}") : str.laps(p[0].number_of_laps ?? 0)
   })
   let messages = !rcOk ? [] : rc.out.filter(m => m.message != null && m.category != "Other").reverse().take(8).map(m => {
     key: "${m.date}${m.message}",
@@ -291,8 +472,8 @@ app "formula 1" {
           gap: 8
           align: center
           Box { width: 6; height: 6; radius: 3; background: on ? accent : gone ? alpha(muted, 0.4) : yellow }
-          Text { text: s.name; style: small; weight: 1; maxLines: 1; color: gone ? muted : foreground; bold: on }
-          Text { text: on ? "live" : fmtTime(s.t, "EEE HH:mm"); style: small; font: mono; color: on ? accent : muted; maxLines: 1 }
+          Text { text: [s.name].map(sessL)[0]; style: small; weight: 1; maxLines: 1; color: gone ? muted : foreground; bold: on }
+          Text { text: on ? str.live : fmtTime(s.t, "EEE HH:mm"); style: small; font: mono; color: on ? accent : muted; maxLines: 1 }
         }
       }
     }
@@ -313,7 +494,7 @@ app "formula 1" {
         height: 32
         Image { src: icon; size: 24; tint: on ? foreground : muted }
       }
-      Text { text: name; style: small; align: center; maxLines: 1; bold: on; color: on ? foreground : muted }
+      Text { text: str.tab(indexOf(["now", "calendar", "standings", "timing"], name)); style: small; align: center; maxLines: 1; bold: on; color: on ? foreground : muted }
     }
   }
 
@@ -332,9 +513,9 @@ app "formula 1" {
           Column {
             gap: 8
             Text { text: "formula 1"; style: muted }
-            Text { text: offline ? "results offline" : "loading…"; style: title; color: muted }
+            Text { text: offline ? str.resultsOffline : str.loading; style: title; color: muted }
             if offline {
-              Button { text: "try again"; onTap: refresh() }
+              Button { text: str.tryAgain; onTap: refresh() }
             }
           }
         } else {
@@ -345,7 +526,7 @@ app "formula 1" {
               Text { text: savedSeason; style: small; color: muted }
             }
             if weekend == null {
-              Text { text: "the season is over"; style: title }
+              Text { text: str.seasonOver; style: title }
             } else {
               Column {
                 gap: 8
@@ -358,7 +539,7 @@ app "formula 1" {
                 Row {
                   align: center
                   Text {
-                    text: liveSess != null ? "${liveSess.name} live" : weekend.state == "live" ? "race weekend" : "next up · round ${weekend.round}"
+                    text: liveSess != null ? str.sessLive([liveSess.name].map(sessL)[0]) : weekend.state == "live" ? str.raceWeekend : str.nextUp(weekend.round)
                     style: label
                     weight: 1
                     maxLines: 1
@@ -376,7 +557,7 @@ app "formula 1" {
                     align: bottom
                     gap: 8
                     Text { text: countdown; fontSize: 32; bold: true; maxLines: 1 }
-                    Text { text: "to ${nextSess.name}"; style: small; color: muted; padding: [0, 0, 0, 6]; maxLines: 1 }
+                    Text { text: str.to([nextSess.name].map(sessL)[0]); style: small; color: muted; padding: [0, 0, 0, 6]; maxLines: 1 }
                   }
                 }
                 Schedule { r: weekend }
@@ -387,7 +568,7 @@ app "formula 1" {
                   gap: 8
                   align: center
                   onTap: { from = "now"; view = "race"; raceRound = later.round; resKind = "race"; haptic() }
-                  Text { text: "then"; style: label; color: muted; width: 36 }
+                  Text { text: str.then; style: label; color: muted; width: 36 }
                   Flag { iso: later.iso }
                   Text { text: later.name; style: small; weight: 1; maxLines: 1 }
                   Text { text: later.dates; style: small; color: muted; maxLines: 1 }
@@ -401,8 +582,8 @@ app "formula 1" {
                 onTap: { from = "now"; view = "race"; raceRound = savedLast.round; resKind = "race"; haptic() }
                 Row {
                   align: center
-                  Text { text: "last race"; style: label; color: muted; weight: 1 }
-                  Text { text: "round ${savedLast.round}"; style: label; color: muted }
+                  Text { text: str.lastRace; style: label; color: muted; weight: 1 }
+                  Text { text: str.round(savedLast.round); style: label; color: muted }
                 }
                 Text { text: savedLast.name; style: body; maxLines: 1 }
                 for x in savedLast.top key x.key { Line { x: x } }
@@ -415,8 +596,8 @@ app "formula 1" {
                 onTap: { view = "standings"; table = "drivers"; openId = ""; haptic() }
                 Row {
                   align: center
-                  Text { text: "championship"; style: label; color: muted; weight: 1 }
-                  Text { text: standRound == "" ? "" : "after round ${standRound}"; style: label; color: muted }
+                  Text { text: str.championship; style: label; color: muted; weight: 1 }
+                  Text { text: standRound == "" ? "" : str.afterRound(standRound); style: label; color: muted }
                 }
                 for d in drivers.take(3) key d.id {
                   Row {
@@ -429,7 +610,7 @@ app "formula 1" {
                   }
                 }
                 if len(drivers) > 1 {
-                  Text { text: "${num(drivers[0].points, 0) - num(drivers[1].points, 0)} points between first and second"; style: label; color: muted; padding: [38, 0, 0, 0] }
+                  Text { text: str.gap(num(drivers[0].points, 0) - num(drivers[1].points, 0)); style: label; color: muted; padding: [38, 0, 0, 0] }
                 }
               }
             }
@@ -452,7 +633,7 @@ app "formula 1" {
                   Text { text: r.city; style: small; color: muted; maxLines: 1 }
                 }
                 if r.sprint {
-                  Text { text: "sprint"; style: label; color: orange; padding: [5, 1]; radius: 3 * corners; border: 1; borderColor: alpha(orange, 0.45) }
+                  Text { text: str.sess(4); style: label; color: orange; padding: [5, 1]; radius: 3 * corners; border: 1; borderColor: alpha(orange, 0.45) }
                 }
                 Text { text: r.dates; style: small; color: r.state == "done" ? muted : foreground; maxLines: 1 }
               }
@@ -471,27 +652,27 @@ app "formula 1" {
                   gap: 0
                   weight: 1
                   Text { text: r.circuit; style: small; maxLines: 1 }
-                  Text { text: "${r.city}, ${r.country} · round ${r.round}"; style: label; color: muted; maxLines: 1 }
+                  Text { text: str.cityRound(r.city, r.country, r.round); style: label; color: muted; maxLines: 1 }
                 }
                 Text { text: r.dates; style: small; color: muted }
               }
               Schedule { r: r }
               if r.state == "next" {
-                Text { text: "results come after the race"; style: small; color: muted }
+                Text { text: str.afterRace; style: small; color: muted }
               } else {
                 Flow {
                   gap: 6
                   for k in kinds key k {
-                    Box { onTap: { resKind = k; haptic("light") }; Pick { label: k; on: resKind == k } }
+                    Box { onTap: { resKind = k; haptic("light") }; Pick { label: [k].map(sessL)[0]; on: resKind == k } }
                   }
                 }
                 if resRows == null {
-                  Text { text: resFailed ? "results offline" : resEmpty ? "no results yet" : "loading results…"; style: small; color: muted }
+                  Text { text: resFailed ? str.resultsOffline : resEmpty ? str.noResults : str.loadingResults; style: small; color: muted }
                   if resFailed {
-                    Button { text: "try again"; onTap: refresh() }
+                    Button { text: str.tryAgain; onTap: refresh() }
                   }
                 } else if len(resRows) == 0 {
-                  Text { text: "no results yet"; style: small; color: muted }
+                  Text { text: str.noResults; style: small; color: muted }
                 } else {
                   Column {
                     gap: 6
@@ -505,14 +686,14 @@ app "formula 1" {
           if view == "standings" {
             Row {
               gap: 6
-              Box { onTap: { table = "drivers"; openId = ""; haptic("light") }; Pick { label: "drivers"; on: table == "drivers" } }
-              Box { onTap: { table = "teams"; openId = ""; haptic("light") }; Pick { label: "teams"; on: table == "teams" } }
+              Box { onTap: { table = "drivers"; openId = ""; haptic("light") }; Pick { label: str.drivers; on: table == "drivers" } }
+              Box { onTap: { table = "teams"; openId = ""; haptic("light") }; Pick { label: str.teams; on: table == "teams" } }
               Spacer { weight: 1 }
-              Text { text: standRound == "" ? "" : "after round ${standRound}"; style: label; color: muted }
+              Text { text: standRound == "" ? "" : str.afterRound(standRound); style: label; color: muted }
             }
             if table == "drivers" {
               if len(drivers) == 0 {
-                Text { text: "loading the standings…"; style: small; color: muted }
+                Text { text: str.loadingStandings; style: small; color: muted }
               }
               for d in drivers key d.id {
                 Column {
@@ -538,13 +719,13 @@ app "formula 1" {
                       align: end
                       Text { text: "${d.points}"; style: small; font: mono; bold: d.pos == "1" }
                       if d.wins > 0 {
-                        Text { text: d.wins == 1 ? "1 win" : "${d.wins} wins"; style: label; color: muted }
+                        Text { text: str.wins(d.wins); style: label; color: muted }
                       }
                     }
                   }
                   if openId == d.id {
                     if season == null {
-                      Text { text: drvRes != null && !drvRes.ok ? "results offline" : "loading the season…"; style: small; color: muted; padding: [30, 0, 0, 0] }
+                      Text { text: drvRes != null && !drvRes.ok ? str.resultsOffline : str.loadingSeason; style: small; color: muted; padding: [30, 0, 0, 0] }
                     } else {
                       for s in season key s.round {
                         Row {
@@ -563,7 +744,7 @@ app "formula 1" {
               }
             } else {
               if len(teams) == 0 {
-                Text { text: "loading the standings…"; style: small; color: muted }
+                Text { text: str.loadingStandings; style: small; color: muted }
               }
               for t in teams key t.id {
                 Column {
@@ -581,7 +762,7 @@ app "formula 1" {
                       gap: 0
                       weight: 1
                       Text { text: t.name; style: small; maxLines: 1 }
-                      Text { text: t.wins == 0 ? "no wins" : t.wins == 1 ? "1 win" : "${t.wins} wins"; style: label; color: muted; maxLines: 1 }
+                      Text { text: str.teamWins(t.wins); style: label; color: muted; maxLines: 1 }
                     }
                     Text { text: "${t.points}"; style: small; font: mono; bold: t.pos == "1" }
                   }
@@ -605,9 +786,9 @@ app "formula 1" {
 
           if view == "timing" {
             if len(sessions) == 0 {
-              Text { text: tBusy ? "OpenF1 is busy, trying again in a moment…" : tFailed ? "OpenF1 is offline" : "loading the timing…"; style: small; color: muted }
+              Text { text: tBusy ? str.busy : tFailed ? str.f1Offline : str.loadingTiming; style: small; color: muted }
               if tFailed {
-                Button { text: "try again"; onTap: refresh() }
+                Button { text: str.tryAgain; onTap: refresh() }
               }
             } else {
               Row {
@@ -622,8 +803,8 @@ app "formula 1" {
                   Column {
                     gap: 0
                     align: end
-                    Text { text: "air ${round(weather.air_temperature)}° · track ${round(weather.track_temperature)}°"; style: small; font: mono }
-                    Text { text: num(weather.rainfall, 0) > 0 ? "rain · wind ${fixed(weather.wind_speed, 1)} m/s" : "dry · wind ${fixed(weather.wind_speed, 1)} m/s"; style: label; color: muted }
+                    Text { text: str.air(round(weather.air_temperature), round(weather.track_temperature)); style: small; font: mono }
+                    Text { text: num(weather.rainfall, 0) > 0 ? str.rain(fixed(weather.wind_speed, 1)) : str.dry(fixed(weather.wind_speed, 1)); style: label; color: muted }
                   }
                 }
               }
@@ -635,8 +816,8 @@ app "formula 1" {
                   background: alpha(accent, 0.12)
                   border: 1
                   borderColor: alpha(accent, 0.5)
-                  Text { text: "${liveTiming.name} is on"; style: label; color: accent }
-                  Text { text: "OpenF1's timing for it opens to everyone at ${fmtTime(liveTiming.t1 + 1800, "HH:mm")}, half an hour after the session"; style: small; color: muted }
+                  Text { text: str.isOn(liveTiming.name); style: label; color: accent }
+                  Text { text: str.opensAt(fmtTime(liveTiming.t1 + 1800, "HH:mm")); style: small; color: muted }
                 }
               }
               Flow {
@@ -651,7 +832,7 @@ app "formula 1" {
                 }
               }
               if tSess == null {
-                Text { text: "the first session starts ${fmtTime(sessions[0].t0, "EEE HH:mm")}"; style: small; color: muted }
+                Text { text: str.firstStarts(fmtTime(sessions[0].t0, "EEE HH:mm")); style: small; color: muted }
               } else {
                 Row {
                   align: center
@@ -659,7 +840,7 @@ app "formula 1" {
                   Text { text: fmtTime(tSess.t0, "EEE d MMM HH:mm"); style: label; color: muted }
                 }
                 if timing == null {
-                  Text { text: tBusy ? "OpenF1 is busy, trying again in a moment…" : tFailed ? "OpenF1 is offline" : sres != null && sres.ok && len(sres.out ?? []) == 0 ? "no timing for this session" : "loading the timing…"; style: small; color: muted }
+                  Text { text: tBusy ? str.busy : tFailed ? str.f1Offline : sres != null && sres.ok && len(sres.out ?? []) == 0 ? str.noTiming : str.loadingTiming; style: small; color: muted }
                 } else {
                   Column {
                     gap: 6
@@ -669,7 +850,7 @@ app "formula 1" {
                 if len(messages) > 0 {
                   Column {
                     gap: 4
-                    Text { text: "race control"; style: label; color: muted; padding: [0, 6, 0, 0] }
+                    Text { text: str.raceControl; style: label; color: muted; padding: [0, 6, 0, 0] }
                     for m in messages key m.key {
                       Row {
                         gap: 8
@@ -688,12 +869,12 @@ app "formula 1" {
                   }
                 }
               }
-              Text { text: "timing from OpenF1 · openf1.org ↗"; style: label; color: accent; padding: [0, 4]; onTap: url("https://openf1.org") }
+              Text { text: str.timingFrom; style: label; color: accent; padding: [0, 4]; onTap: url("https://openf1.org") }
             }
           }
 
           if offline && savedAt > 0 {
-            Text { text: "offline · saved ${fmtTime(savedAt, "d MMM HH:mm")}"; style: label; color: muted }
+            Text { text: str.savedOffline(fmtTime(savedAt, "d MMM HH:mm")); style: label; color: muted }
           }
         }
       }

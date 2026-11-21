@@ -1,5 +1,5 @@
 app "harbour master" {
-  meta { owl: 23; description: "A busy 3D port from above: draw the courses that bring ships into their berths and send them back out to sea through two harbour mouths, without a collision"; version: "1.1"; license: "MIT"; category: "games" }
+  meta { owl: 23; description: "A busy 3D port from above: draw the courses that bring ships into their berths and send them back out to sea through two harbour mouths, without a collision"; version: "1.2"; license: "MIT"; category: "games" }
   // How it works. Ships come in from the open sea in three colours, through either of the breakwater's two mouths. A
   // finger drawn from a ship lays its course; drawn into a berth of its own colour (there are two of each), it docks.
   // The cranes unload it by themselves onto the train, then it backs out of the berth, empty, and waits for a course
@@ -21,6 +21,476 @@ app "harbour master" {
   statusBar: false
   edge: true
   fps: mode == "play" ? 60 : 30
+  strings {
+    en {
+      hintDrag: "DRAG FROM A SHIP TO A BERTH OF ITS COLOUR"
+      hintOut: "DRAG THE EMPTY SHIP OUT PAST THE BREAKWATER"
+      card1t: "BRING THE SHIPS IN"
+      card1a: "Drag from a ship to draw its course, in through either harbour mouth. End it in a berth of the ship's colour and it docks."
+      card1b: "Ships that touch sink. And watch the ring round each ship: if it runs out before it docks, you lose a lifebuoy."
+      card2t: "SEND THEM OUT"
+      card2a: "The cranes unload a docked ship by themselves. Then it backs out of its berth, empty and ready to go."
+      card2b: "Drag its course out through a harbour mouth to the open sea, clear of the ships coming in."
+      shipsOut: "SHIPS GOING OUT"
+      lifebuoyBack: "A LIFEBUOY BACK!"
+      busy: "THAT BERTH IS BUSY"
+      score: "SCORE"
+      best: "BEST"
+      welcome: "WELCOME, HARBOUR MASTER"
+      newAtPort: "NEW AT THE PORT"
+      gotIt: "GOT IT"
+      portClosed: "PORT CLOSED"
+      allGone: "ALL THREE LIFEBUOYS ARE GONE. THIS IS WHAT HAPPENED:"
+      carryOn: "CARRY ON"
+      scoreReset: "THE SCORE STARTS AGAIN FROM 0"
+      tagline: "BRING THEM IN · SEND THEM OUT · NEVER LET THEM TOUCH"
+      backToPort: "BACK TO THE PORT"
+      openPort: "OPEN THE PORT"
+      tapAgain: "TAP AGAIN: CLEAR THE PORT"
+      startOver: "START OVER"
+      newPort: "A NEW PORT"
+      soundOn: "SOUND ON"
+      soundOff: "SOUND OFF"
+      rule1: "SHIPS TO A BERTH OF THEIR COLOUR"
+      rule2: "EMPTY SHIPS: DRAW THEIR WAY OUT TO SEA"
+      rule3: "A CRASH, OR A SHIP WHOSE RING RUNS OUT BEFORE IT DOCKS, COSTS A LIFEBUOY"
+      rule4: "EVERY 8 SHIPS SENT OUT BRING ONE BACK"
+      waited: c => "THE ${["RED", "YELLOW", "BLUE"][c]} SHIP WAITED TOO LONG TO DOCK"
+      collided: (a, b) => "THE ${["RED", "YELLOW", "BLUE"][a]} AND ${["RED", "YELLOW", "BLUE"][b]} SHIPS COLLIDED"
+      collidedSame: c => "TWO ${["RED", "YELLOW", "BLUE"][c]} SHIPS COLLIDED"
+      dockAt: c => "${["RED", "YELLOW", "BLUE"][c]} SHIPS DOCK AT A ${["RED", "YELLOW", "BLUE"][c]} BERTH"
+      scoreBest: (s, b) => "SCORE ${s} · BEST ${b}"
+    }
+    id {
+      hintDrag: "GESER DARI KAPAL KE DERMAGA SEWARNA"
+      hintOut: "GESER KAPAL KOSONG KELUAR MELEWATI PEMECAH OMBAK"
+      card1t: "BAWA KAPAL MASUK"
+      card1a: "Geser dari kapal untuk menggambar rutenya, masuk lewat salah satu mulut pelabuhan. Akhiri di dermaga yang sewarna dengan kapalnya, dan kapal pun berlabuh."
+      card1b: "Kapal yang bersentuhan akan tenggelam. Perhatikan juga lingkaran di sekitar tiap kapal: kalau habis sebelum berlabuh, kamu kehilangan satu pelampung."
+      card2t: "KIRIM KELUAR"
+      card2a: "Derek membongkar kapal yang berlabuh dengan sendirinya. Lalu kapal mundur dari dermaga, kosong dan siap berangkat."
+      card2b: "Geser rutenya keluar lewat mulut pelabuhan ke laut lepas, jauh dari kapal yang masuk."
+      shipsOut: "KAPAL KELUAR"
+      lifebuoyBack: "PELAMPUNG KEMBALI!"
+      busy: "DERMAGA ITU SEDANG TERISI"
+      score: "SKOR"
+      best: "TERBAIK"
+      welcome: "SELAMAT DATANG, SYAHBANDAR"
+      newAtPort: "BARU DI PELABUHAN"
+      gotIt: "MENGERTI"
+      portClosed: "PELABUHAN DITUTUP"
+      allGone: "KETIGA PELAMPUNG SUDAH HABIS. INI YANG TERJADI:"
+      carryOn: "LANJUTKAN"
+      scoreReset: "SKOR DIMULAI LAGI DARI 0"
+      tagline: "BAWA MASUK · KIRIM KELUAR · JANGAN SAMPAI BERSENTUHAN"
+      backToPort: "KEMBALI KE PELABUHAN"
+      openPort: "BUKA PELABUHAN"
+      tapAgain: "KETUK LAGI: KOSONGKAN PELABUHAN"
+      startOver: "MULAI DARI AWAL"
+      newPort: "PELABUHAN BARU"
+      soundOn: "SUARA NYALA"
+      soundOff: "SUARA MATI"
+      rule1: "KAPAL KE DERMAGA SEWARNA"
+      rule2: "KAPAL KOSONG: GAMBAR JALAN KELUARNYA KE LAUT"
+      rule3: "TABRAKAN, ATAU KAPAL YANG LINGKARANNYA HABIS SEBELUM BERLABUH, MENGHABISKAN SATU PELAMPUNG"
+      rule4: "SETIAP 8 KAPAL YANG KELUAR MENGEMBALIKAN SATU"
+      waited: c => "KAPAL ${["MERAH", "KUNING", "BIRU"][c]} MENUNGGU TERLALU LAMA UNTUK BERLABUH"
+      collided: (a, b) => "KAPAL ${["MERAH", "KUNING", "BIRU"][a]} DAN ${["MERAH", "KUNING", "BIRU"][b]} BERTABRAKAN"
+      collidedSame: c => "DUA KAPAL ${["MERAH", "KUNING", "BIRU"][c]} BERTABRAKAN"
+      dockAt: c => "KAPAL ${["MERAH", "KUNING", "BIRU"][c]} BERLABUH DI DERMAGA ${["MERAH", "KUNING", "BIRU"][c]}"
+      scoreBest: (s, b) => "SKOR ${s} · TERBAIK ${b}"
+    }
+    es {
+      hintDrag: "ARRASTRA DE UN BARCO A UN MUELLE DE SU COLOR"
+      hintOut: "ARRASTRA EL BARCO VACÍO MÁS ALLÁ DEL ROMPEOLAS"
+      card1t: "TRAE LOS BARCOS"
+      card1a: "Arrastra desde un barco para trazar su rumbo, entrando por cualquiera de las bocas del puerto. Termínalo en un muelle de su color y atracará."
+      card1b: "Los barcos que se tocan se hunden. Y vigila el anillo de cada barco: si se acaba antes de atracar, pierdes un salvavidas."
+      card2t: "SÁCALOS"
+      card2a: "Las grúas descargan solas un barco atracado. Luego sale marcha atrás del muelle, vacío y listo para partir."
+      card2b: "Arrastra su rumbo por una boca del puerto hasta mar abierto, lejos de los barcos que entran."
+      shipsOut: "SALEN BARCOS"
+      lifebuoyBack: "¡UN SALVAVIDAS DE VUELTA!"
+      busy: "ESE MUELLE ESTÁ OCUPADO"
+      score: "PUNTOS"
+      best: "RÉCORD"
+      welcome: "BIENVENIDO, CAPITÁN DE PUERTO"
+      newAtPort: "NOVEDAD EN EL PUERTO"
+      gotIt: "ENTENDIDO"
+      portClosed: "PUERTO CERRADO"
+      allGone: "SE ACABARON LOS TRES SALVAVIDAS. ESTO FUE LO QUE PASÓ:"
+      carryOn: "SEGUIR"
+      scoreReset: "LOS PUNTOS EMPIEZAN DE NUEVO EN 0"
+      tagline: "TRÁELOS · SÁCALOS · QUE NUNCA SE TOQUEN"
+      backToPort: "VOLVER AL PUERTO"
+      openPort: "ABRIR EL PUERTO"
+      tapAgain: "TOCA OTRA VEZ: VACIAR EL PUERTO"
+      startOver: "EMPEZAR DE NUEVO"
+      newPort: "UN PUERTO NUEVO"
+      soundOn: "SONIDO SÍ"
+      soundOff: "SONIDO NO"
+      rule1: "BARCOS A UN MUELLE DE SU COLOR"
+      rule2: "BARCOS VACÍOS: TRAZA SU SALIDA AL MAR"
+      rule3: "UN CHOQUE, O UN BARCO CUYO ANILLO SE ACABA ANTES DE ATRACAR, CUESTA UN SALVAVIDAS"
+      rule4: "CADA 8 BARCOS QUE SALEN DEVUELVEN UNO"
+      waited: c => "EL BARCO ${["ROJO", "AMARILLO", "AZUL"][c]} ESPERÓ DEMASIADO PARA ATRACAR"
+      collided: (a, b) => "EL BARCO ${["ROJO", "AMARILLO", "AZUL"][a]} Y EL ${["ROJO", "AMARILLO", "AZUL"][b]} CHOCARON"
+      collidedSame: c => "DOS BARCOS ${["ROJOS", "AMARILLOS", "AZULES"][c]} CHOCARON"
+      dockAt: c => "LOS BARCOS ${["ROJOS", "AMARILLOS", "AZULES"][c]} ATRACAN EN UN MUELLE ${["ROJO", "AMARILLO", "AZUL"][c]}"
+      scoreBest: (s, b) => "PUNTOS ${s} · RÉCORD ${b}"
+    }
+    pt {
+      hintDrag: "ARRASTE DE UM NAVIO ATÉ UM CAIS DA SUA COR"
+      hintOut: "ARRASTE O NAVIO VAZIO PARA ALÉM DO QUEBRA-MAR"
+      card1t: "TRAGA OS NAVIOS"
+      card1a: "Arraste de um navio para traçar o rumo dele, entrando por qualquer uma das bocas do porto. Termine num cais da cor do navio e ele atraca."
+      card1b: "Navios que se tocam afundam. E fique de olho no anel de cada navio: se ele acabar antes de atracar, você perde uma boia."
+      card2t: "MANDE-OS PARA FORA"
+      card2a: "Os guindastes descarregam sozinhos um navio atracado. Depois ele sai de ré do cais, vazio e pronto para partir."
+      card2b: "Arraste o rumo dele por uma boca do porto até o mar aberto, longe dos navios que entram."
+      shipsOut: "NAVIOS SAINDO"
+      lifebuoyBack: "UMA BOIA DE VOLTA!"
+      busy: "ESSE CAIS ESTÁ OCUPADO"
+      score: "PONTOS"
+      best: "RECORDE"
+      welcome: "BEM-VINDO, CAPITÃO DO PORTO"
+      newAtPort: "NOVIDADE NO PORTO"
+      gotIt: "ENTENDI"
+      portClosed: "PORTO FECHADO"
+      allGone: "AS TRÊS BOIAS ACABARAM. FOI ISTO QUE ACONTECEU:"
+      carryOn: "CONTINUAR"
+      scoreReset: "OS PONTOS VOLTAM A 0"
+      tagline: "TRAGA-OS · MANDE-OS · NUNCA DEIXE QUE SE TOQUEM"
+      backToPort: "VOLTAR AO PORTO"
+      openPort: "ABRIR O PORTO"
+      tapAgain: "TOQUE DE NOVO: LIMPAR O PORTO"
+      startOver: "RECOMEÇAR"
+      newPort: "UM PORTO NOVO"
+      soundOn: "SOM LIGADO"
+      soundOff: "SOM DESLIGADO"
+      rule1: "NAVIOS A UM CAIS DA SUA COR"
+      rule2: "NAVIOS VAZIOS: TRACE A SAÍDA PARA O MAR"
+      rule3: "UMA BATIDA, OU UM NAVIO CUJO ANEL ACABA ANTES DE ATRACAR, CUSTA UMA BOIA"
+      rule4: "CADA 8 NAVIOS ENVIADOS DEVOLVEM UMA"
+      waited: c => "O NAVIO ${["VERMELHO", "AMARELO", "AZUL"][c]} ESPEROU DEMAIS PARA ATRACAR"
+      collided: (a, b) => "O NAVIO ${["VERMELHO", "AMARELO", "AZUL"][a]} E O ${["VERMELHO", "AMARELO", "AZUL"][b]} COLIDIRAM"
+      collidedSame: c => "DOIS NAVIOS ${["VERMELHOS", "AMARELOS", "AZUIS"][c]} COLIDIRAM"
+      dockAt: c => "NAVIOS ${["VERMELHOS", "AMARELOS", "AZUIS"][c]} ATRACAM NUM CAIS ${["VERMELHO", "AMARELO", "AZUL"][c]}"
+      scoreBest: (s, b) => "PONTOS ${s} · RECORDE ${b}"
+    }
+    de {
+      hintDrag: "ZIEH VON EINEM SCHIFF ZU EINEM LIEGEPLATZ SEINER FARBE"
+      hintOut: "ZIEH DAS LEERE SCHIFF HINAUS, HINTER DIE MOLE"
+      card1t: "HOL DIE SCHIFFE REIN"
+      card1a: "Zieh von einem Schiff aus, um seinen Kurs zu zeichnen, durch eine der beiden Hafeneinfahrten. Endet er an einem Liegeplatz in der Farbe des Schiffs, legt es an."
+      card1b: "Schiffe, die sich berühren, sinken. Und achte auf den Ring um jedes Schiff: läuft er ab, bevor es anlegt, verlierst du einen Rettungsring."
+      card2t: "SCHICK SIE RAUS"
+      card2a: "Die Kräne entladen ein angelegtes Schiff von selbst. Dann setzt es aus seinem Liegeplatz zurück, leer und bereit zur Abfahrt."
+      card2b: "Zieh seinen Kurs durch eine Hafeneinfahrt hinaus aufs offene Meer, weg von den Schiffen, die hereinkommen."
+      shipsOut: "SCHIFFE FAHREN AUS"
+      lifebuoyBack: "EIN RETTUNGSRING ZURÜCK!"
+      busy: "DER LIEGEPLATZ IST BELEGT"
+      score: "PUNKTE"
+      best: "REKORD"
+      welcome: "WILLKOMMEN, HAFENMEISTER"
+      newAtPort: "NEU IM HAFEN"
+      gotIt: "VERSTANDEN"
+      portClosed: "HAFEN GESCHLOSSEN"
+      allGone: "ALLE DREI RETTUNGSRINGE SIND WEG. DAS IST PASSIERT:"
+      carryOn: "WEITER"
+      scoreReset: "DIE PUNKTE STARTEN WIEDER BEI 0"
+      tagline: "HOL SIE REIN · SCHICK SIE RAUS · LASS SIE SICH NIE BERÜHREN"
+      backToPort: "ZURÜCK IN DEN HAFEN"
+      openPort: "HAFEN ÖFFNEN"
+      tapAgain: "NOCHMAL TIPPEN: HAFEN LEEREN"
+      startOver: "NEU ANFANGEN"
+      newPort: "EIN NEUER HAFEN"
+      soundOn: "TON AN"
+      soundOff: "TON AUS"
+      rule1: "SCHIFFE AN LIEGEPLÄTZE IHRER FARBE"
+      rule2: "LEERE SCHIFFE: ZEICHNE IHREN WEG HINAUS AUFS MEER"
+      rule3: "EIN ZUSAMMENSTOSS ODER EIN SCHIFF, DESSEN RING VOR DEM ANLEGEN ABLÄUFT, KOSTET EINEN RETTUNGSRING"
+      rule4: "JE 8 AUSGELAUFENE SCHIFFE BRINGEN EINEN ZURÜCK"
+      waited: c => "DAS ${["ROTE", "GELBE", "BLAUE"][c]} SCHIFF HAT ZU LANGE AUFS ANLEGEN GEWARTET"
+      collided: (a, b) => "DAS ${["ROTE", "GELBE", "BLAUE"][a]} UND DAS ${["ROTE", "GELBE", "BLAUE"][b]} SCHIFF SIND ZUSAMMENGESTOSSEN"
+      collidedSame: c => "ZWEI ${["ROTE", "GELBE", "BLAUE"][c]} SCHIFFE SIND ZUSAMMENGESTOSSEN"
+      dockAt: c => "${["ROTE", "GELBE", "BLAUE"][c]} SCHIFFE LEGEN AN EINEM ${["ROTEN", "GELBEN", "BLAUEN"][c]} LIEGEPLATZ AN"
+      scoreBest: (s, b) => "PUNKTE ${s} · REKORD ${b}"
+    }
+    zh {
+      hintDrag: "从船拖到同色的泊位"
+      hintOut: "把空船拖出防波堤外"
+      card1t: "引船入港"
+      card1a: "从船上拖动，画出航线，从任一港口入口进港。终点落在同色的泊位，船就会靠泊。"
+      card1b: "相碰的船会沉没。还要留意每艘船周围的圆环：靠泊前圆环耗尽，你就会失去一个救生圈。"
+      card2t: "送船出港"
+      card2a: "起重机会自动卸下靠泊船只的货物。然后船会倒出泊位，空船待发。"
+      card2b: "把它的航线从港口入口拖向外海，避开正在进港的船。"
+      shipsOut: "船只出港"
+      lifebuoyBack: "救生圈回来一个！"
+      busy: "那个泊位有船了"
+      score: "得分"
+      best: "最佳"
+      welcome: "欢迎你，港务长"
+      newAtPort: "港口新动态"
+      gotIt: "知道了"
+      portClosed: "港口关闭"
+      allGone: "三个救生圈都没了。经过如下："
+      carryOn: "继续"
+      scoreReset: "得分从 0 重新开始"
+      tagline: "引船入港 · 送船出港 · 绝不相碰"
+      backToPort: "回到港口"
+      openPort: "开放港口"
+      tapAgain: "再点一次：清空港口"
+      startOver: "重新开始"
+      newPort: "全新港口"
+      soundOn: "声音 开"
+      soundOff: "声音 关"
+      rule1: "船停到同色泊位"
+      rule2: "空船：画出驶向大海的航线"
+      rule3: "撞船，或船在靠泊前圆环耗尽，都会失去一个救生圈"
+      rule4: "每送出 8 艘船，就能拿回一个"
+      waited: c => "${["红", "黄", "蓝"][c]}色船等得太久，没能靠泊"
+      collided: (a, b) => "${["红", "黄", "蓝"][a]}色船和${["红", "黄", "蓝"][b]}色船相撞了"
+      collidedSame: c => "两艘${["红", "黄", "蓝"][c]}色船相撞了"
+      dockAt: c => "${["红", "黄", "蓝"][c]}色船要停靠${["红", "黄", "蓝"][c]}色泊位"
+      scoreBest: (s, b) => "得分 ${s} · 最佳 ${b}"
+    }
+    ru {
+      hintDrag: "ВЕДИТЕ ОТ КОРАБЛЯ К ПРИЧАЛУ ЕГО ЦВЕТА"
+      hintOut: "ВЫВЕДИТЕ ПУСТОЙ КОРАБЛЬ ЗА ВОЛНОРЕЗ"
+      card1t: "ВВОДИТЕ КОРАБЛИ"
+      card1a: "Ведите от корабля, чтобы проложить курс через любой из входов в гавань. Закончите его у причала того же цвета, и корабль пришвартуется."
+      card1b: "Корабли, которые соприкоснутся, тонут. И следите за кольцом вокруг каждого корабля: если оно истечёт до швартовки, вы потеряете спасательный круг."
+      card2t: "ВЫВОДИТЕ ИХ"
+      card2a: "Краны сами разгружают пришвартованный корабль. Потом он задним ходом выходит от причала, пустой и готовый к отплытию."
+      card2b: "Проложите курс через вход в гавань в открытое море, подальше от входящих кораблей."
+      shipsOut: "КОРАБЛИ ВЫХОДЯТ"
+      lifebuoyBack: "СПАСАТЕЛЬНЫЙ КРУГ ВЕРНУЛСЯ!"
+      busy: "ЭТОТ ПРИЧАЛ ЗАНЯТ"
+      score: "СЧЁТ"
+      best: "РЕКОРД"
+      welcome: "ДОБРО ПОЖАЛОВАТЬ, НАЧАЛЬНИК ПОРТА"
+      newAtPort: "НОВОЕ В ПОРТУ"
+      gotIt: "ПОНЯТНО"
+      portClosed: "ПОРТ ЗАКРЫТ"
+      allGone: "ВСЕ ТРИ СПАСАТЕЛЬНЫХ КРУГА ПОТЕРЯНЫ. ВОТ ЧТО СЛУЧИЛОСЬ:"
+      carryOn: "ПРОДОЛЖИТЬ"
+      scoreReset: "СЧЁТ НАЧНЁТСЯ С 0"
+      tagline: "ВВОДИТЕ · ВЫВОДИТЕ · НЕ ДАЙТЕ ИМ СТОЛКНУТЬСЯ"
+      backToPort: "НАЗАД В ПОРТ"
+      openPort: "ОТКРЫТЬ ПОРТ"
+      tapAgain: "НАЖМИТЕ ЕЩЁ РАЗ: ОЧИСТИТЬ ПОРТ"
+      startOver: "НАЧАТЬ ЗАНОВО"
+      newPort: "НОВЫЙ ПОРТ"
+      soundOn: "ЗВУК ВКЛ"
+      soundOff: "ЗВУК ВЫКЛ"
+      rule1: "КОРАБЛИ — К ПРИЧАЛУ СВОЕГО ЦВЕТА"
+      rule2: "ПУСТЫЕ КОРАБЛИ: ПРОЛОЖИТЕ ИМ ПУТЬ В МОРЕ"
+      rule3: "СТОЛКНОВЕНИЕ ИЛИ КОРАБЛЬ, ЧЬЁ КОЛЬЦО ИСТЕКЛО ДО ШВАРТОВКИ, СТОИТ СПАСАТЕЛЬНОГО КРУГА"
+      rule4: "КАЖДЫЕ 8 ВЫВЕДЕННЫХ КОРАБЛЕЙ ВОЗВРАЩАЮТ ОДИН"
+      waited: c => "${["КРАСНЫЙ", "ЖЁЛТЫЙ", "СИНИЙ"][c]} КОРАБЛЬ СЛИШКОМ ДОЛГО ЖДАЛ ПРИЧАЛА"
+      collided: (a, b) => "${["КРАСНЫЙ", "ЖЁЛТЫЙ", "СИНИЙ"][a]} И ${["КРАСНЫЙ", "ЖЁЛТЫЙ", "СИНИЙ"][b]} КОРАБЛИ СТОЛКНУЛИСЬ"
+      collidedSame: c => "ДВА ${["КРАСНЫХ", "ЖЁЛТЫХ", "СИНИХ"][c]} КОРАБЛЯ СТОЛКНУЛИСЬ"
+      dockAt: c => "${["КРАСНЫЕ", "ЖЁЛТЫЕ", "СИНИЕ"][c]} КОРАБЛИ ВСТАЮТ К ${["КРАСНОМУ", "ЖЁЛТОМУ", "СИНЕМУ"][c]} ПРИЧАЛУ"
+      scoreBest: (s, b) => "СЧЁТ ${s} · РЕКОРД ${b}"
+    }
+    ja {
+      hintDrag: "船から同じ色のバースまでドラッグ"
+      hintOut: "空の船を防波堤の外へドラッグ"
+      card1t: "船を入港させよう"
+      card1a: "船からドラッグして航路を描き、どちらかの港口から入れてください。船と同じ色のバースで終われば、船が着岸します。"
+      card1b: "触れ合った船は沈みます。各船のまわりのリングにも注意してください。着岸前にリングが尽きると、浮き輪をひとつ失います。"
+      card2t: "船を出港させよう"
+      card2a: "着岸した船はクレーンが自動で荷下ろしします。そのあと船はバースから後退し、空になって出港を待ちます。"
+      card2b: "港口から外海へ航路を描いてください。入ってくる船は避けてください。"
+      shipsOut: "船が出港します"
+      lifebuoyBack: "浮き輪がひとつ戻りました！"
+      busy: "そのバースは使用中です"
+      score: "スコア"
+      best: "ベスト"
+      welcome: "ようこそ、ハーバーマスター"
+      newAtPort: "港の新しいこと"
+      gotIt: "わかりました"
+      portClosed: "港は閉鎖"
+      allGone: "浮き輪が3つともなくなりました。起きたこと："
+      carryOn: "続ける"
+      scoreReset: "スコアは0からやり直しです"
+      tagline: "入れて · 出して · 決して触れさせない"
+      backToPort: "港に戻る"
+      openPort: "港を開く"
+      tapAgain: "もう一度タップ：港を空にする"
+      startOver: "最初から"
+      newPort: "新しい港"
+      soundOn: "サウンド オン"
+      soundOff: "サウンド オフ"
+      rule1: "船は同じ色のバースへ"
+      rule2: "空の船：海への航路を描く"
+      rule3: "衝突や、着岸前にリングが尽きた船は、浮き輪ひとつを失います"
+      rule4: "船を8隻出すごとに、ひとつ戻ります"
+      waited: c => "${["赤", "黄", "青"][c]}の船が着岸を待ちすぎました"
+      collided: (a, b) => "${["赤", "黄", "青"][a]}の船と${["赤", "黄", "青"][b]}の船が衝突しました"
+      collidedSame: c => "${["赤", "黄", "青"][c]}の船どうしが衝突しました"
+      dockAt: c => "${["赤", "黄", "青"][c]}の船は${["赤", "黄", "青"][c]}のバースに着けます"
+      scoreBest: (s, b) => "スコア ${s} · ベスト ${b}"
+    }
+    uk {
+      hintDrag: "ВЕДІТЬ ВІД КОРАБЛЯ ДО ПРИЧАЛУ ЙОГО КОЛЬОРУ"
+      hintOut: "ВИВЕДІТЬ ПОРОЖНІЙ КОРАБЕЛЬ ЗА ХВИЛЕРІЗ"
+      card1t: "ВВОДЬТЕ КОРАБЛІ"
+      card1a: "Ведіть від корабля, щоб прокласти курс через будь-який із входів у гавань. Завершіть його біля причалу того ж кольору, і корабель пришвартується."
+      card1b: "Кораблі, що торкнуться, тонуть. І стежте за кільцем навколо кожного корабля: якщо воно скінчиться до швартування, ви втратите рятувальний круг."
+      card2t: "ВИВОДЬТЕ ЇХ"
+      card2a: "Крани самі розвантажують пришвартований корабель. Потім він задки виходить від причалу, порожній і готовий вирушати."
+      card2b: "Прокладіть курс через вхід у гавань у відкрите море, подалі від кораблів, що заходять."
+      shipsOut: "КОРАБЛІ ВИХОДЯТЬ"
+      lifebuoyBack: "РЯТУВАЛЬНИЙ КРУГ ПОВЕРНУВСЯ!"
+      busy: "ЦЕЙ ПРИЧАЛ ЗАЙНЯТИЙ"
+      score: "РАХУНОК"
+      best: "РЕКОРД"
+      welcome: "ЛАСКАВО ПРОСИМО, НАЧАЛЬНИКУ ПОРТУ"
+      newAtPort: "НОВЕ В ПОРТУ"
+      gotIt: "ЗРОЗУМІЛО"
+      portClosed: "ПОРТ ЗАКРИТО"
+      allGone: "УСІ ТРИ РЯТУВАЛЬНІ КРУГИ ВТРАЧЕНО. ОСЬ ЩО СТАЛОСЯ:"
+      carryOn: "ПРОДОВЖИТИ"
+      scoreReset: "РАХУНОК ПОЧНЕТЬСЯ З 0"
+      tagline: "ВВОДЬТЕ · ВИВОДЬТЕ · НЕ ДАЙТЕ ЇМ ЗІТКНУТИСЯ"
+      backToPort: "НАЗАД У ПОРТ"
+      openPort: "ВІДКРИТИ ПОРТ"
+      tapAgain: "НАТИСНІТЬ ЩЕ РАЗ: ОЧИСТИТИ ПОРТ"
+      startOver: "ПОЧАТИ ЗНОВУ"
+      newPort: "НОВИЙ ПОРТ"
+      soundOn: "ЗВУК УВІМК"
+      soundOff: "ЗВУК ВИМК"
+      rule1: "КОРАБЛІ — ДО ПРИЧАЛУ СВОГО КОЛЬОРУ"
+      rule2: "ПОРОЖНІ КОРАБЛІ: ПРОКЛАДІТЬ ЇМ ШЛЯХ У МОРЕ"
+      rule3: "ЗІТКНЕННЯ АБО КОРАБЕЛЬ, ЧИЄ КІЛЬЦЕ СКІНЧИЛОСЯ ДО ШВАРТУВАННЯ, КОШТУЄ РЯТУВАЛЬНОГО КРУГА"
+      rule4: "КОЖНІ 8 ВИВЕДЕНИХ КОРАБЛІВ ПОВЕРТАЮТЬ ОДИН"
+      waited: c => "${["ЧЕРВОНИЙ", "ЖОВТИЙ", "СИНІЙ"][c]} КОРАБЕЛЬ ЗАНАДТО ДОВГО ЧЕКАВ ПРИЧАЛУ"
+      collided: (a, b) => "${["ЧЕРВОНИЙ", "ЖОВТИЙ", "СИНІЙ"][a]} І ${["ЧЕРВОНИЙ", "ЖОВТИЙ", "СИНІЙ"][b]} КОРАБЛІ ЗІТКНУЛИСЯ"
+      collidedSame: c => "ДВА ${["ЧЕРВОНІ", "ЖОВТІ", "СИНІ"][c]} КОРАБЛІ ЗІТКНУЛИСЯ"
+      dockAt: c => "${["ЧЕРВОНІ", "ЖОВТІ", "СИНІ"][c]} КОРАБЛІ СТАЮТЬ ДО ${["ЧЕРВОНОГО", "ЖОВТОГО", "СИНЬОГО"][c]} ПРИЧАЛУ"
+      scoreBest: (s, b) => "РАХУНОК ${s} · РЕКОРД ${b}"
+    }
+    fr {
+      hintDrag: "GLISSE D'UN NAVIRE À UN QUAI DE SA COULEUR"
+      hintOut: "GLISSE LE NAVIRE VIDE AU-DELÀ DE LA DIGUE"
+      card1t: "FAIS ENTRER LES NAVIRES"
+      card1a: "Glisse depuis un navire pour tracer sa route, par l'une ou l'autre entrée du port. Termine-la à un quai de sa couleur et il accoste."
+      card1b: "Les navires qui se touchent coulent. Et surveille l'anneau autour de chaque navire : s'il se vide avant qu'il accoste, tu perds une bouée."
+      card2t: "FAIS-LES SORTIR"
+      card2a: "Les grues déchargent toutes seules un navire à quai. Puis il recule hors de son quai, vide et prêt à partir."
+      card2b: "Trace sa route par une entrée du port jusqu'au large, à l'écart des navires qui arrivent."
+      shipsOut: "DES NAVIRES SORTENT"
+      lifebuoyBack: "UNE BOUÉE DE RETOUR !"
+      busy: "CE QUAI EST OCCUPÉ"
+      score: "SCORE"
+      best: "RECORD"
+      welcome: "BIENVENUE, CAPITAINE DE PORT"
+      newAtPort: "DU NOUVEAU AU PORT"
+      gotIt: "COMPRIS"
+      portClosed: "PORT FERMÉ"
+      allGone: "LES TROIS BOUÉES SONT PERDUES. VOICI CE QUI S'EST PASSÉ :"
+      carryOn: "CONTINUER"
+      scoreReset: "LE SCORE REPART DE 0"
+      tagline: "FAIS-LES ENTRER · SORTIR · SANS JAMAIS SE TOUCHER"
+      backToPort: "RETOUR AU PORT"
+      openPort: "OUVRIR LE PORT"
+      tapAgain: "TOUCHE ENCORE : VIDER LE PORT"
+      startOver: "RECOMMENCER"
+      newPort: "UN NOUVEAU PORT"
+      soundOn: "SON ACTIVÉ"
+      soundOff: "SON COUPÉ"
+      rule1: "LES NAVIRES À UN QUAI DE LEUR COULEUR"
+      rule2: "NAVIRES VIDES : TRACE LEUR SORTIE VERS LA MER"
+      rule3: "UNE COLLISION, OU UN NAVIRE DONT L'ANNEAU SE VIDE AVANT D'ACCOSTER, COÛTE UNE BOUÉE"
+      rule4: "CHAQUE FOIS QUE 8 NAVIRES SORTENT, UNE REVIENT"
+      waited: c => "LE NAVIRE ${["ROUGE", "JAUNE", "BLEU"][c]} A TROP ATTENDU POUR ACCOSTER"
+      collided: (a, b) => "LES NAVIRES ${["ROUGE", "JAUNE", "BLEU"][a]} ET ${["ROUGE", "JAUNE", "BLEU"][b]} SE SONT HEURTÉS"
+      collidedSame: c => "DEUX NAVIRES ${["ROUGES", "JAUNES", "BLEUS"][c]} SE SONT HEURTÉS"
+      dockAt: c => "LES NAVIRES ${["ROUGES", "JAUNES", "BLEUS"][c]} ACCOSTENT À UN QUAI ${["ROUGE", "JAUNE", "BLEU"][c]}"
+      scoreBest: (s, b) => "SCORE ${s} · RECORD ${b}"
+    }
+    tr {
+      hintDrag: "BİR GEMİDEN KENDİ RENGİNDEKİ RIHTIMA SÜRÜKLE"
+      hintOut: "BOŞ GEMİYİ DALGAKIRANIN DIŞINA SÜRÜKLE"
+      card1t: "GEMİLERİ İÇERİ AL"
+      card1a: "ROTASINI ÇİZMEK İÇİN BİR GEMİDEN SÜRÜKLE, LİMANIN İKİ AĞZINDAN BİRİNDEN İÇERİ. ROTAYI GEMİNİN RENGİNDEKİ BİR RIHTIMDA BİTİR, GEMİ YANAŞSIN."
+      card1b: "BİRBİRİNE DEĞEN GEMİLER BATAR. HER GEMİNİN ÇEVRESİNDEKİ HALKAYA DA DİKKAT ET: GEMİ YANAŞMADAN BİTERSE BİR CAN SİMİDİ KAYBEDERSİN."
+      card2t: "ONLARI DIŞARI GÖNDER"
+      card2a: "VİNÇLER YANAŞAN GEMİYİ KENDİLERİ BOŞALTIR. SONRA GEMİ RIHTIMDAN GERİ GERİ ÇIKAR, BOŞ VE YOLA HAZIR."
+      card2b: "ROTASINI LİMAN AĞZINDAN AÇIK DENİZE ÇİZ, GİREN GEMİLERDEN UZAK DUR."
+      shipsOut: "GEMİLER ÇIKIYOR"
+      lifebuoyBack: "BİR CAN SİMİDİ GERİ GELDİ!"
+      busy: "O RIHTIM DOLU"
+      score: "SKOR"
+      best: "EN İYİ"
+      welcome: "HOŞ GELDİN, LİMAN REİSİ"
+      newAtPort: "LİMANDA YENİ"
+      gotIt: "ANLADIM"
+      portClosed: "LİMAN KAPANDI"
+      allGone: "ÜÇ CAN SİMİDİ DE GİTTİ. OLANLAR ŞUNLAR:"
+      carryOn: "DEVAM ET"
+      scoreReset: "SKOR YENİDEN 0'DAN BAŞLAR"
+      tagline: "İÇERİ AL · DIŞARI GÖNDER · ASLA DEĞMESİNLER"
+      backToPort: "LİMANA DÖN"
+      openPort: "LİMANI AÇ"
+      tapAgain: "TEKRAR DOKUN: LİMANI BOŞALT"
+      startOver: "BAŞTAN BAŞLA"
+      newPort: "YENİ BİR LİMAN"
+      soundOn: "SES AÇIK"
+      soundOff: "SES KAPALI"
+      rule1: "GEMİLER KENDİ RENGİNDEKİ RIHTIMA"
+      rule2: "BOŞ GEMİLER: DENİZE ÇIKIŞ YOLUNU ÇİZ"
+      rule3: "BİR ÇARPIŞMA YA DA HALKASI YANAŞMADAN BİTEN BİR GEMİ, BİR CAN SİMİDİNE MAL OLUR"
+      rule4: "ÇIKAN HER 8 GEMİ BİR TANESİNİ GERİ GETİRİR"
+      waited: c => "${["KIRMIZI", "SARI", "MAVİ"][c]} GEMİ YANAŞMAK İÇİN ÇOK BEKLEDİ"
+      collided: (a, b) => "${["KIRMIZI", "SARI", "MAVİ"][a]} VE ${["KIRMIZI", "SARI", "MAVİ"][b]} GEMİLER ÇARPIŞTI"
+      collidedSame: c => "İKİ ${["KIRMIZI", "SARI", "MAVİ"][c]} GEMİ ÇARPIŞTI"
+      dockAt: c => "${["KIRMIZI", "SARI", "MAVİ"][c]} GEMİLER ${["KIRMIZI", "SARI", "MAVİ"][c]} RIHTIMA YANAŞIR"
+      scoreBest: (s, b) => "SKOR ${s} · EN İYİ ${b}"
+    }
+    it {
+      hintDrag: "TRASCINA DA UNA NAVE A UN ORMEGGIO DEL SUO COLORE"
+      hintOut: "TRASCINA LA NAVE VUOTA OLTRE IL FRANGIFLUTTI"
+      card1t: "FAI ENTRARE LE NAVI"
+      card1a: "Trascina da una nave per tracciarne la rotta, attraverso una delle due bocche del porto. Falla finire in un ormeggio del colore della nave e attraccherà."
+      card1b: "Le navi che si toccano affondano. E tieni d'occhio l'anello attorno a ogni nave: se si esaurisce prima che attracchi, perdi un salvagente."
+      card2t: "FALLE USCIRE"
+      card2a: "Le gru scaricano da sole una nave ormeggiata. Poi esce in retromarcia dall'ormeggio, vuota e pronta a partire."
+      card2b: "Trascina la sua rotta fuori da una bocca del porto verso il mare aperto, lontano dalle navi in arrivo."
+      shipsOut: "NAVI IN USCITA"
+      lifebuoyBack: "UN SALVAGENTE IN PIÙ!"
+      busy: "QUELL'ORMEGGIO È OCCUPATO"
+      score: "PUNTI"
+      best: "RECORD"
+      welcome: "BENVENUTO, CAPITANO DI PORTO"
+      newAtPort: "NOVITÀ IN PORTO"
+      gotIt: "CAPITO"
+      portClosed: "PORTO CHIUSO"
+      allGone: "TUTTI E TRE I SALVAGENTI SONO PERSI. ECCO COSA È SUCCESSO:"
+      carryOn: "CONTINUA"
+      scoreReset: "I PUNTI RIPARTONO DA 0"
+      tagline: "FALLE ENTRARE · USCIRE · SENZA MAI TOCCARSI"
+      backToPort: "TORNA AL PORTO"
+      openPort: "APRI IL PORTO"
+      tapAgain: "TOCCA ANCORA: SVUOTA IL PORTO"
+      startOver: "RICOMINCIA"
+      newPort: "UN PORTO NUOVO"
+      soundOn: "AUDIO SÌ"
+      soundOff: "AUDIO NO"
+      rule1: "NAVI A UN ORMEGGIO DEL LORO COLORE"
+      rule2: "NAVI VUOTE: TRACCIA LA LORO VIA VERSO IL MARE"
+      rule3: "UNO SCONTRO, O UNA NAVE IL CUI ANELLO FINISCE PRIMA DI ATTRACCARE, COSTA UN SALVAGENTE"
+      rule4: "OGNI 8 NAVI FATTE USCIRE NE RIPORTANO UNO"
+      waited: c => "LA NAVE ${["ROSSA", "GIALLA", "BLU"][c]} HA ASPETTATO TROPPO PER ATTRACCARE"
+      collided: (a, b) => "LA NAVE ${["ROSSA", "GIALLA", "BLU"][a]} E QUELLA ${["ROSSA", "GIALLA", "BLU"][b]} SI SONO SCONTRATE"
+      collidedSame: c => "DUE NAVI ${["ROSSE", "GIALLE", "BLU"][c]} SI SONO SCONTRATE"
+      dockAt: c => "LE NAVI ${["ROSSE", "GIALLE", "BLU"][c]} ATTRACCANO A UN ORMEGGIO ${["ROSSO", "GIALLO", "BLU"][c]}"
+      scoreBest: (s, b) => "PUNTI ${s} · RECORD ${b}"
+    }
+  }
   back: mode == "play"
   onBack: mode = "pause"
   icon: """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
@@ -114,7 +584,6 @@ app "harbour master" {
   let GX = [-2.7, 2.7]
   let BZ = 3.85
   let BC = [#e5484d, #f6bf26, #3d85f0]
-  let BN = ["RED", "YELLOW", "BLUE"]
   let KC = [#1fb5a5, #9a6bf0]
   let FOGC = #9aa3ab
   let RZ = 7.1
@@ -159,11 +628,11 @@ app "harbour master" {
   // ---- weather and the clock, for drawing --------------------------------------------------------------------------
   let PH = wt < 0 ? -1 : gt - wt - 15
   let WXA = wx == 0 ? 0 : clamp(min(PH % 55, 22 - PH % 55) / 2.5, 0, 1)
-  let HINT = mode != "play" || card > 0 ? "" : nShips == 0 ? "DRAG FROM A SHIP TO A BERTH OF ITS COLOUR" : nOut == 0 && any(ships, s => (s.st == 0 || s.st == 3 || s.st == 4) && s.out && len(s.p) == 0) ? "DRAG THE EMPTY SHIP OUT PAST THE BREAKWATER" : ""
+  let HINT = mode != "play" || card > 0 ? "" : nShips == 0 ? str.hintDrag : nOut == 0 && any(ships, s => (s.st == 0 || s.st == 3 || s.st == 4) && s.out && len(s.p) == 0) ? str.hintOut : ""
   // the cards: a title and what's new
   let CARDS = [
-    {t: "BRING THE SHIPS IN", a: "Drag from a ship to draw its course, in through either harbour mouth. End it in a berth of the ship's colour and it docks.", b: "Ships that touch sink. And watch the ring round each ship: if it runs out before it docks, you lose a lifebuoy."},
-    {t: "SEND THEM OUT", a: "The cranes unload a docked ship by themselves. Then it backs out of its berth, empty and ready to go.", b: "Drag its course out through a harbour mouth to the open sea, clear of the ships coming in."}]
+    {t: str.card1t, a: str.card1a, b: str.card1b},
+    {t: str.card2t, a: str.card2a, b: str.card2b}]
   // pairs of ships close enough to warn about, at least one of them moving
   let NEARP = mode != "play" ? [] : flatten(ships.map((a, i) => ships.drop(i + 1).filter(b => a.st != 2 && b.st != 2 && !a.sk && !b.sk && a.z > -19 && b.z > -19 && (a.st == 0 || b.st == 0 || a.st == 4 || b.st == 4) && !(a.au && b.au) && ((a.x) - (b.x)) * ((a.x) - (b.x)) + ((a.z) - (b.z)) * ((a.z) - (b.z)) < 3).map(b => [a.x, a.z, b.x, b.z])))
   // which ship's course is being drawn: shown thicker
@@ -197,7 +666,7 @@ app "harbour master" {
         lvl = nl
         if nl > taught { card = nl + 1 }
         if nl == 2 { wt = gt }
-        msg = ["", "SHIPS GOING OUT"][nl]
+        msg = ["", str.shipsOut][nl]
         msgT = gt
       }
       // no weather any more: a port saved during a storm clears
@@ -247,7 +716,7 @@ app "harbour master" {
         // every 8 ships sent out bring a lifebuoy back
         if strikes > 0 && floor((run + gone) / 8) > floor(run / 8) {
           strikes = strikes - 1
-          msg = "A LIFEBUOY BACK!"
+          msg = str.lifebuoyBack
           msgT = gt
           if snd { sound(SCHIME) }
         }
@@ -261,9 +730,9 @@ app "harbour master" {
         strikes = strikes + len(tired)
         lp = tired.map(q => [q.x, q.z])
         hold = 2.2
-        losses = (losses + tired.map(q => "THE ${BN[q.c]} SHIP WAITED TOO LONG TO DOCK")).take(3)
+        losses = (losses + tired.map(q => str.waited(q.c))).take(3)
         ships = ships.map(s => s.st == 0 && !s.out && gt - s.t0 > PAT ? merge(s, {st: 2, b: -1, p: s.z > -5 ? [[GX[s.x < 0 ? 0 : 1], -2.8], [GX[s.x < 0 ? 0 : 1], -5.1], [GX[s.x < 0 ? 0 : 1], -9], [GX[s.x < 0 ? 0 : 1] * 1.6, -24]] : [[s.x, -24]]}) : s)
-        msg = "THE ${BN[tired[0].c]} SHIP WAITED TOO LONG TO DOCK"
+        msg = str.waited(tired[0].c)
         msgT = gt
         haptic()
         if dg.k == 0 && any(tired, q => q.id == dg.id) { dg = {k: -1, fid: dg.fid} }
@@ -277,7 +746,7 @@ app "harbour master" {
         strikes = strikes + 1
         lp = [[avg(hit.map(q => q.x)), avg(hit.map(q => q.z))]]
         hold = 2.2
-        msg = len(hit) >= 2 && hit[0].c != hit[1].c ? "THE ${BN[hit[0].c]} AND ${BN[hit[1].c]} SHIPS COLLIDED" : "TWO ${BN[hit[0].c]} SHIPS COLLIDED"
+        msg = len(hit) >= 2 && hit[0].c != hit[1].c ? str.collided(hit[0].c, hit[1].c) : str.collidedSame(hit[0].c)
         losses = (losses + [msg]).take(3)
         msgT = gt
         haptic("strong")
@@ -526,12 +995,12 @@ app "harbour master" {
                 let bb = S.out ? null : first(range(6).filter(b => abs(W[0] - BX[b]) < 0.6 && W[1] > 1.7))
                 let free = bb != null && BCOL[bb] == S.c && !any(ships, o => o.id != S.id && o.b == bb && o.st != 2)
                 let sea = S.out && W[1] < -9.5
-                if bb != null && BCOL[bb] != S.c && (gt - msgT > 1.5 || msg != "${BN[S.c]} SHIPS DOCK AT A ${BN[S.c]} BERTH") {
-                  msg = "${BN[S.c]} SHIPS DOCK AT A ${BN[S.c]} BERTH"
+                if bb != null && BCOL[bb] != S.c && (gt - msgT > 1.5 || msg != str.dockAt(S.c)) {
+                  msg = str.dockAt(S.c)
                   msgT = gt
                 }
                 if bb != null && BCOL[bb] == S.c && !free && gt - msgT > 1.5 {
-                  msg = "THAT BERTH IS BUSY"
+                  msg = str.busy
                   msgT = gt
                 }
                 let pts = free ? [[BX[bb], clamp(W[1], 1.7, 2.8)], [BX[bb], BZ]] : sea ? [[W[0], W[1]], [W[0], -25]] : [[W[0], W[1]]]
@@ -562,7 +1031,7 @@ app "harbour master" {
               background: NAVY
               padding: [12, 5]
               Text { text: fmtNum(score); font: FONT; fontSize: 22; color: CRM; maxLines: 1 }
-              Text { text: "SCORE"; font: FONT; fontSize: 10; color: #8fb3c9 }
+              Text { text: str.score; font: FONT; fontSize: 10; color: #8fb3c9 }
             }
           }
           Column {
@@ -574,7 +1043,7 @@ app "harbour master" {
               background: NAVY
               padding: [12, 5]
               Text { text: fmtNum(best); font: FONT; fontSize: 22; color: CRM; maxLines: 1 }
-              Text { text: "BEST"; font: FONT; fontSize: 10; color: #8fb3c9 }
+              Text { text: str.best; font: FONT; fontSize: 10; color: #8fb3c9 }
             }
           }
           Spacer { weight: 1 }
@@ -638,7 +1107,7 @@ app "harbour master" {
             gap: LAND ? 7 : 12
             background: NAVY
             padding: LAND ? [20, 12] : [20, 18]
-            Text { text: card == 1 ? "WELCOME, HARBOUR MASTER" : "NEW AT THE PORT"; font: FONT; fontSize: 12; color: #8fb3c9 }
+            Text { text: card == 1 ? str.welcome : str.newAtPort; font: FONT; fontSize: 12; color: #8fb3c9 }
             Text { text: CARDS[card - 1].t; font: FONT; fontSize: 30; color: YEL }
             Canvas {
               fill: width
@@ -681,7 +1150,7 @@ app "harbour master" {
                 taught = max(taught, card - 1)
                 card = 0
               }
-              Text { text: "GOT IT"; font: FONT; fontSize: 20; color: NAVY; background: YEL; padding: [26, 10]; align: center; fill: width }
+              Text { text: str.gotIt; font: FONT; fontSize: 20; color: NAVY; background: YEL; padding: [26, 10]; align: center; fill: width }
             }
           }
         }
@@ -707,8 +1176,8 @@ app "harbour master" {
         gap: LAND ? 8 : 14
         padding: [20, TOP, 20, INS + 12]
         background: alpha(#1a0507, 0.6)
-        Text { text: "PORT CLOSED"; font: FONT; fontSize: LAND ? 36 : 44; color: CRM; align: center }
-        Text { text: "ALL THREE LIFEBUOYS ARE GONE. THIS IS WHAT HAPPENED:"; font: FONT; fontSize: 13; color: #f0b8b8; align: center }
+        Text { text: str.portClosed; font: FONT; fontSize: LAND ? 36 : 44; color: CRM; align: center }
+        Text { text: str.allGone; font: FONT; fontSize: 13; color: #f0b8b8; align: center }
         Column {
           gap: 0
           width: LAND ? 520 : SW - 40
@@ -733,7 +1202,7 @@ app "harbour master" {
             }
           }
         }
-        Text { text: "SCORE ${fmtNum(score)} · BEST ${fmtNum(best)}"; font: FONT; fontSize: 16; color: CRM; align: center }
+        Text { text: str.scoreBest(fmtNum(score), fmtNum(best)); font: FONT; fontSize: 16; color: CRM; align: center }
         Column {
           gap: 0
           width: LAND ? 420 : SW - 40
@@ -754,9 +1223,9 @@ app "harbour master" {
             dg = {k: -2}
             mode = "play"
           }
-          Text { text: "CARRY ON"; font: FONT; fontSize: 24; color: NAVY; background: YEL; padding: [34, 12]; align: center }
+          Text { text: str.carryOn; font: FONT; fontSize: 24; color: NAVY; background: YEL; padding: [34, 12]; align: center }
         }
-        Text { text: "THE SCORE STARTS AGAIN FROM 0"; font: FONT; fontSize: 12; color: #8fb3c9; align: center }
+        Text { text: str.scoreReset; font: FONT; fontSize: 12; color: #8fb3c9; align: center }
       }
     }
 
@@ -784,7 +1253,7 @@ app "harbour master" {
             Text { text: "MASTER"; font: FONT; fontSize: 54; color: YEL; align: center }
           }
         }
-        Text { text: "BRING THEM IN · SEND THEM OUT · NEVER LET THEM TOUCH"; font: FONT; fontSize: 12; color: CRM; align: center }
+        Text { text: str.tagline; font: FONT; fontSize: 12; color: CRM; align: center }
         Column {
           gap: 0
           width: LAND ? 420 : SW - 40
@@ -794,7 +1263,7 @@ app "harbour master" {
             mode = "play"
             sure = false
           }
-          Text { text: nShips > 0 ? "BACK TO THE PORT" : "OPEN THE PORT"; font: FONT; fontSize: 24; color: NAVY; background: YEL; padding: [34, 12]; align: center }
+          Text { text: nShips > 0 ? str.backToPort : str.openPort; font: FONT; fontSize: 24; color: NAVY; background: YEL; padding: [34, 12]; align: center }
         }
         if nShips > 0 {
           Column {
@@ -830,14 +1299,14 @@ app "harbour master" {
                 sure = true
               }
             }
-            Text { text: sure ? "TAP AGAIN: CLEAR THE PORT" : "START OVER"; font: FONT; fontSize: 18; color: sure ? YEL : CRM; background: NAVY; padding: [26, 9]; align: center }
+            Text { text: sure ? str.tapAgain : str.startOver; font: FONT; fontSize: 18; color: sure ? YEL : CRM; background: NAVY; padding: [26, 9]; align: center }
           }
         }
         Row {
           gap: 18
           align: center
-          Text { text: nShips > 0 ? "SCORE ${fmtNum(score)} · BEST ${fmtNum(best)}" : "A NEW PORT"; font: FONT; fontSize: 16; color: CRM }
-          Text { text: snd ? "SOUND ON" : "SOUND OFF"; font: FONT; fontSize: 16; color: snd ? YEL : #8fb3c9; padding: [6, 4]; onTap: snd = !snd }
+          Text { text: nShips > 0 ? str.scoreBest(fmtNum(score), fmtNum(best)) : str.newPort; font: FONT; fontSize: 16; color: CRM }
+          Text { text: snd ? str.soundOn : str.soundOff; font: FONT; fontSize: 16; color: snd ? YEL : #8fb3c9; padding: [6, 4]; onTap: snd = !snd }
         }
         Column {
           gap: LAND ? 3 : 6
@@ -846,25 +1315,25 @@ app "harbour master" {
             gap: 10
             align: center
             Canvas { width: 30; height: 16; rect(0, 3, 9, 10, fill: BC[0]); rect(10, 3, 9, 10, fill: BC[1]); rect(20, 3, 9, 10, fill: BC[2]) }
-            Text { text: "SHIPS TO A BERTH OF THEIR COLOUR"; font: FONT; fontSize: 12; color: CRM }
+            Text { text: str.rule1; font: FONT; fontSize: 12; color: CRM }
           }
           Row {
             gap: 10
             align: center
             Canvas { width: 30; height: 16; path([[4, 14], [15, 3], [26, 14]], stroke: CRM, width: 3.5, cap: round) }
-            Text { text: "EMPTY SHIPS: DRAW THEIR WAY OUT TO SEA"; font: FONT; fontSize: 12; color: CRM }
+            Text { text: str.rule2; font: FONT; fontSize: 12; color: CRM }
           }
           Row {
             gap: 10
             align: center
             Canvas { width: 30; height: 16; circle(8, 8, 6, stroke: #ff5a4e, width: 4); circle(22, 8, 6, stroke: #ff5a4e, width: 4) }
-            Text { text: "A CRASH, OR A SHIP WHOSE RING RUNS OUT BEFORE IT DOCKS, COSTS A LIFEBUOY"; font: FONT; fontSize: 12; color: CRM }
+            Text { text: str.rule3; font: FONT; fontSize: 12; color: CRM }
           }
           Row {
             gap: 10
             align: center
             Canvas { width: 30; height: 16; circle(15, 8, 6, stroke: #ff5a4e, width: 4) }
-            Text { text: "EVERY 8 SHIPS SENT OUT BRING ONE BACK"; font: FONT; fontSize: 12; color: CRM }
+            Text { text: str.rule4; font: FONT; fontSize: 12; color: CRM }
           }
         }
       }

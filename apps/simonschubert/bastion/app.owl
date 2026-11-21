@@ -8,7 +8,409 @@ app "bastion" {
   // is in, sliding the monsters between steps. Once a second, and whenever a tower is built,
   // upgraded or sold, the step that has been reached becomes the new `base`.
 
-  meta { owl: 14; description: "An endless pixel-art tower defense: build archers, cannons, frost spires and tesla coils along a winding road and upgrade them without end"; version: "1.2.0"; license: "MIT"; category: "games" }
+  meta { owl: 16; description: "An endless pixel-art tower defense: build archers, cannons, frost spires and tesla coils along a winding road and upgrade them without end"; version: "1.3"; license: "MIT"; category: "games" }
+  strings {
+    en {
+      // The towers' names, 6 px pixel font under each card.
+      towers: ["ARCHER", "CANNON", "FROST", "TESLA"]
+      // The banner across the field; one line at 14 px, keep it near the English length.
+      ogreWave: n => "OGRE WAVE ${n}"
+      batSwarm: n => "BAT SWARM ${n}"
+      wave: n => "WAVE ${n}"
+      clear: n => "CLEAR +${n}"
+      buildDefenses: "BUILD YOUR DEFENSES"
+      buildTower: "BUILD A TOWER"
+      lv: n => "LV ${n}"
+      newLook: "NEW LOOK NEXT"
+      waveIn: (n, s) => "WAVE ${n} IN ${s}"
+      waveLeft: (n, k) => "WAVE ${n}: ${k} LEFT"
+      soundOn: "SOUND ON"
+      soundOff: "SOUND OFF"
+      nextBoss: "NEXT: BOSS"
+      nextSwarm: "NEXT: SWARM"
+      next: "NEXT"
+      tapGrass: "TAP GRASS TO BUILD"
+      tapTower: "TAP A TOWER TO UPGRADE"
+      bestWave: n => "BEST WAVE ${n}"
+      tagline: "ENDLESS TOWER DEFENSE"
+      // Game over: two short lines at 13 px.
+      keep1: "THE KEEP"
+      keep2: "HAS FALLEN"
+      wavesHeld: "WAVES HELD"
+      best: n => "BEST ${n}"
+      newBest: "NEW BEST!"
+      tapToStart: "TAP TO START"
+      playAgain: "PLAY AGAIN"
+      // The next-wave button, 92 dp wide at 9 px: the countdown, or a call for the next wave now.
+      goIn: n => "GO ${n}"
+      callWave: "+WAVE"
+      upgrade: "UPGRADE"
+      sell: "SELL"
+    }
+    id {
+      towers: ["PEMANAH", "MERIAM", "ES", "TESLA"]
+      ogreWave: n => "SERBUAN OGRE ${n}"
+      batSwarm: n => "KELELAWAR ${n}"
+      wave: n => "GELOMBANG ${n}"
+      clear: n => "AMAN +${n}"
+      buildDefenses: "BANGUN PERTAHANAN"
+      buildTower: "BANGUN MENARA"
+      lv: n => "LV ${n}"
+      newLook: "TAMPILAN BARU"
+      waveIn: (n, s) => "GELOMBANG ${n} DALAM ${s}"
+      waveLeft: (n, k) => "GELOMBANG ${n}: SISA ${k}"
+      soundOn: "SUARA NYALA"
+      soundOff: "SUARA MATI"
+      nextBoss: "BERIKUT: BOS"
+      nextSwarm: "BERIKUT: KAWANAN"
+      next: "BERIKUT"
+      tapGrass: "KETUK RUMPUT UNTUK MEMBANGUN"
+      tapTower: "KETUK MENARA UNTUK UPGRADE"
+      bestWave: n => "REKOR GELOMBANG ${n}"
+      tagline: "TOWER DEFENSE TANPA AKHIR"
+      keep1: "BENTENG"
+      keep2: "TELAH RUNTUH"
+      wavesHeld: "GELOMBANG BERTAHAN"
+      best: n => "REKOR ${n}"
+      newBest: "REKOR BARU!"
+      tapToStart: "KETUK UNTUK MULAI"
+      playAgain: "MAIN LAGI"
+      goIn: n => "AYO ${n}"
+      callWave: "PANGGIL"
+      upgrade: "UPGRADE"
+      sell: "JUAL"
+    }
+    es {
+      towers: ["ARQUERO", "CAÑÓN", "HIELO", "TESLA"]
+      ogreWave: n => "OLEADA OGRO ${n}"
+      batSwarm: n => "MURCIÉLAGOS ${n}"
+      wave: n => "OLEADA ${n}"
+      clear: n => "LIMPIA +${n}"
+      buildDefenses: "PREPARA TUS DEFENSAS"
+      buildTower: "CONSTRUYE UNA TORRE"
+      lv: n => "NV ${n}"
+      newLook: "NUEVO ASPECTO"
+      waveIn: (n, s) => "OLEADA ${n} EN ${s}"
+      waveLeft: (n, k) => "OLEADA ${n}: QUEDAN ${k}"
+      soundOn: "SONIDO SÍ"
+      soundOff: "SONIDO NO"
+      nextBoss: "SIGUE: JEFE"
+      nextSwarm: "SIGUE: ENJAMBRE"
+      next: "SIGUE"
+      tapGrass: "TOCA LA HIERBA PARA CONSTRUIR"
+      tapTower: "TOCA UNA TORRE PARA MEJORARLA"
+      bestWave: n => "MEJOR OLEADA ${n}"
+      tagline: "TOWER DEFENSE SIN FIN"
+      keep1: "LA FORTALEZA"
+      keep2: "HA CAÍDO"
+      wavesHeld: "OLEADAS RESISTIDAS"
+      best: n => "RÉCORD ${n}"
+      newBest: "¡NUEVO RÉCORD!"
+      tapToStart: "TOCA PARA EMPEZAR"
+      playAgain: "OTRA VEZ"
+      goIn: n => "YA ${n}"
+      callWave: "+OLEADA"
+      upgrade: "MEJORAR"
+      sell: "VENDER"
+    }
+    pt {
+      towers: ["ARQUEIRO", "CANHÃO", "GELO", "TESLA"]
+      ogreWave: n => "ONDA OGRO ${n}"
+      batSwarm: n => "MORCEGOS ${n}"
+      wave: n => "ONDA ${n}"
+      clear: n => "LIMPO +${n}"
+      buildDefenses: "MONTE SUAS DEFESAS"
+      buildTower: "CONSTRUA UMA TORRE"
+      lv: n => "NV ${n}"
+      newLook: "NOVO VISUAL"
+      waveIn: (n, s) => "ONDA ${n} EM ${s}"
+      waveLeft: (n, k) => "ONDA ${n}: FALTAM ${k}"
+      soundOn: "SOM LIGADO"
+      soundOff: "SOM DESLIGADO"
+      nextBoss: "PRÓXIMA: CHEFE"
+      nextSwarm: "PRÓXIMA: ENXAME"
+      next: "PRÓXIMA"
+      tapGrass: "TOQUE NA GRAMA PARA CONSTRUIR"
+      tapTower: "TOQUE NUMA TORRE PARA MELHORAR"
+      bestWave: n => "MELHOR ONDA ${n}"
+      tagline: "TOWER DEFENSE SEM FIM"
+      keep1: "A FORTALEZA"
+      keep2: "CAIU"
+      wavesHeld: "ONDAS AGUENTADAS"
+      best: n => "RECORDE ${n}"
+      newBest: "NOVO RECORDE!"
+      tapToStart: "TOQUE PARA COMEÇAR"
+      playAgain: "JOGAR DE NOVO"
+      goIn: n => "JÁ ${n}"
+      callWave: "+ONDA"
+      upgrade: "MELHORAR"
+      sell: "VENDER"
+    }
+    de {
+      towers: ["SCHÜTZE", "KANONE", "FROST", "TESLA"]
+      ogreWave: n => "OGERWELLE ${n}"
+      batSwarm: n => "FLEDERMÄUSE ${n}"
+      wave: n => "WELLE ${n}"
+      clear: n => "GESCHAFFT +${n}"
+      buildDefenses: "BAU DEINE ABWEHR"
+      buildTower: "BAU EINEN TURM"
+      lv: n => "LV ${n}"
+      newLook: "BALD NEUER LOOK"
+      waveIn: (n, s) => "WELLE ${n} IN ${s}"
+      waveLeft: (n, k) => "WELLE ${n}: NOCH ${k}"
+      soundOn: "TON AN"
+      soundOff: "TON AUS"
+      nextBoss: "NÄCHSTE: BOSS"
+      nextSwarm: "NÄCHSTE: SCHWARM"
+      next: "NÄCHSTE"
+      tapGrass: "TIPP AUFS GRAS ZUM BAUEN"
+      tapTower: "TIPP EINEN TURM ZUM AUFRÜSTEN"
+      bestWave: n => "BESTE WELLE ${n}"
+      tagline: "ENDLOSES TOWER DEFENSE"
+      keep1: "DIE BURG"
+      keep2: "IST GEFALLEN"
+      wavesHeld: "WELLEN GEHALTEN"
+      best: n => "REKORD ${n}"
+      newBest: "NEUER REKORD!"
+      tapToStart: "TIPPEN ZUM STARTEN"
+      playAgain: "NOCHMAL"
+      goIn: n => "LOS ${n}"
+      callWave: "+WELLE"
+      upgrade: "AUFRÜSTEN"
+      sell: "VERKAUFEN"
+    }
+    zh {
+      towers: ["弓箭", "火炮", "冰霜", "电塔"]
+      ogreWave: n => "食人魔来袭 ${n}"
+      batSwarm: n => "蝙蝠群 ${n}"
+      wave: n => "第 ${n} 波"
+      clear: n => "清场 +${n}"
+      buildDefenses: "布置你的防线"
+      buildTower: "建造防御塔"
+      lv: n => "LV ${n}"
+      newLook: "下级换新外观"
+      waveIn: (n, s) => "第 ${n} 波 ${s} 秒后"
+      waveLeft: (n, k) => "第 ${n} 波：剩 ${k}"
+      soundOn: "声音开"
+      soundOff: "声音关"
+      nextBoss: "下一波：首领"
+      nextSwarm: "下一波：蝙蝠群"
+      next: "下一波"
+      tapGrass: "点草地建造"
+      tapTower: "点防御塔升级"
+      bestWave: n => "最高波数 ${n}"
+      tagline: "无尽塔防"
+      keep1: "城堡"
+      keep2: "已陷落"
+      wavesHeld: "守住的波数"
+      best: n => "最高 ${n}"
+      newBest: "新纪录!"
+      tapToStart: "点击开始"
+      playAgain: "再玩一次"
+      goIn: n => "出发 ${n}"
+      callWave: "+下一波"
+      upgrade: "升级"
+      sell: "出售"
+    }
+    ru {
+      towers: ["ЛУЧНИК", "ПУШКА", "МОРОЗ", "ТЕСЛА"]
+      ogreWave: n => "ВОЛНА ОГРОВ ${n}"
+      batSwarm: n => "СТАЯ МЫШЕЙ ${n}"
+      wave: n => "ВОЛНА ${n}"
+      clear: n => "ЧИСТО +${n}"
+      buildDefenses: "ГОТОВЬТЕ ОБОРОНУ"
+      buildTower: "ПОСТРОЙТЕ БАШНЮ"
+      lv: n => "УР ${n}"
+      newLook: "ДАЛЕЕ НОВЫЙ ВИД"
+      waveIn: (n, s) => "ВОЛНА ${n} ЧЕРЕЗ ${s}"
+      waveLeft: (n, k) => "ВОЛНА ${n}: ОСТАЛОСЬ ${k}"
+      soundOn: "ЗВУК ВКЛ"
+      soundOff: "ЗВУК ВЫКЛ"
+      nextBoss: "ДАЛЕЕ: БОСС"
+      nextSwarm: "ДАЛЕЕ: СТАЯ"
+      next: "ДАЛЕЕ"
+      tapGrass: "НАЖМИТЕ НА ТРАВУ, ЧТОБЫ СТРОИТЬ"
+      tapTower: "НАЖМИТЕ НА БАШНЮ ДЛЯ УЛУЧШЕНИЯ"
+      bestWave: n => "ЛУЧШАЯ ВОЛНА ${n}"
+      tagline: "БЕСКОНЕЧНАЯ ОБОРОНА БАШНЯМИ"
+      keep1: "КРЕПОСТЬ"
+      keep2: "ПАЛА"
+      wavesHeld: "ВОЛН ВЫДЕРЖАНО"
+      best: n => "РЕКОРД ${n}"
+      newBest: "НОВЫЙ РЕКОРД!"
+      tapToStart: "НАЖМИТЕ, ЧТОБЫ НАЧАТЬ"
+      playAgain: "ЕЩЁ РАЗ"
+      goIn: n => "ВПЕРЁД ${n}"
+      callWave: "+ВОЛНА"
+      upgrade: "УЛУЧШИТЬ"
+      sell: "ПРОДАТЬ"
+    }
+    ja {
+      towers: ["弓兵", "大砲", "フロスト", "テスラ"]
+      ogreWave: n => "オーガ襲来 ${n}"
+      batSwarm: n => "コウモリ群 ${n}"
+      wave: n => "ウェーブ ${n}"
+      clear: n => "クリア +${n}"
+      buildDefenses: "防衛を固めよう"
+      buildTower: "タワーを建てる"
+      lv: n => "LV ${n}"
+      newLook: "次で見た目が変化"
+      waveIn: (n, s) => "ウェーブ ${n} まで ${s}"
+      waveLeft: (n, k) => "ウェーブ ${n}：残り ${k}"
+      soundOn: "サウンド オン"
+      soundOff: "サウンド オフ"
+      nextBoss: "次：ボス"
+      nextSwarm: "次：大群"
+      next: "次"
+      tapGrass: "草地をタップで建設"
+      tapTower: "タワーをタップで強化"
+      bestWave: n => "最高ウェーブ ${n}"
+      tagline: "エンドレス・タワーディフェンス"
+      keep1: "城は"
+      keep2: "陥落した"
+      wavesHeld: "防いだウェーブ"
+      best: n => "ベスト ${n}"
+      newBest: "ベスト更新!"
+      tapToStart: "タップでスタート"
+      playAgain: "もう一度"
+      goIn: n => "GO ${n}"
+      callWave: "+ウェーブ"
+      upgrade: "強化"
+      sell: "売却"
+    }
+    uk {
+      towers: ["ЛУЧНИК", "ГАРМАТА", "МОРОЗ", "ТЕСЛА"]
+      ogreWave: n => "ХВИЛЯ ОГРІВ ${n}"
+      batSwarm: n => "ЗГРАЯ КАЖАНІВ ${n}"
+      wave: n => "ХВИЛЯ ${n}"
+      clear: n => "ЧИСТО +${n}"
+      buildDefenses: "ГОТУЙТЕ ОБОРОНУ"
+      buildTower: "ЗБУДУЙТЕ ВЕЖУ"
+      lv: n => "РІВ ${n}"
+      newLook: "ДАЛІ НОВИЙ ВИГЛЯД"
+      waveIn: (n, s) => "ХВИЛЯ ${n} ЧЕРЕЗ ${s}"
+      waveLeft: (n, k) => "ХВИЛЯ ${n}: ЛИШИЛОСЬ ${k}"
+      soundOn: "ЗВУК УВІМК"
+      soundOff: "ЗВУК ВИМК"
+      nextBoss: "ДАЛІ: БОС"
+      nextSwarm: "ДАЛІ: ЗГРАЯ"
+      next: "ДАЛІ"
+      tapGrass: "ТОРКНІТЬСЯ ТРАВИ, ЩОБ БУДУВАТИ"
+      tapTower: "ТОРКНІТЬСЯ ВЕЖІ, ЩОБ ПОКРАЩИТИ"
+      bestWave: n => "НАЙКРАЩА ХВИЛЯ ${n}"
+      tagline: "НЕСКІНЧЕННА ОБОРОНА ВЕЖАМИ"
+      keep1: "ФОРТЕЦЯ"
+      keep2: "ВПАЛА"
+      wavesHeld: "ХВИЛЬ ВИТРИМАНО"
+      best: n => "РЕКОРД ${n}"
+      newBest: "НОВИЙ РЕКОРД!"
+      tapToStart: "ТОРКНІТЬСЯ, ЩОБ ПОЧАТИ"
+      playAgain: "ЩЕ РАЗ"
+      goIn: n => "ВПЕРЕД ${n}"
+      callWave: "+ХВИЛЯ"
+      upgrade: "ПОКРАЩИТИ"
+      sell: "ПРОДАТИ"
+    }
+    fr {
+      towers: ["ARCHER", "CANON", "GIVRE", "TESLA"]
+      ogreWave: n => "VAGUE D'OGRES ${n}"
+      batSwarm: n => "NUÉE ${n}"
+      wave: n => "VAGUE ${n}"
+      clear: n => "NETTOYÉ +${n}"
+      buildDefenses: "PRÉPARE TES DÉFENSES"
+      buildTower: "CONSTRUIS UNE TOUR"
+      lv: n => "NIV ${n}"
+      newLook: "NOUVEAU LOOK APRÈS"
+      waveIn: (n, s) => "VAGUE ${n} DANS ${s}"
+      waveLeft: (n, k) => "VAGUE ${n} : ${k} RESTANTS"
+      soundOn: "SON ACTIVÉ"
+      soundOff: "SON COUPÉ"
+      nextBoss: "ENSUITE : BOSS"
+      nextSwarm: "ENSUITE : NUÉE"
+      next: "ENSUITE"
+      tapGrass: "TOUCHE L'HERBE POUR CONSTRUIRE"
+      tapTower: "TOUCHE UNE TOUR POUR L'AMÉLIORER"
+      bestWave: n => "MEILLEURE VAGUE ${n}"
+      tagline: "TOWER DEFENSE SANS FIN"
+      keep1: "LE DONJON"
+      keep2: "EST TOMBÉ"
+      wavesHeld: "VAGUES TENUES"
+      best: n => "RECORD ${n}"
+      newBest: "NOUVEAU RECORD !"
+      tapToStart: "TOUCHE POUR JOUER"
+      playAgain: "REJOUER"
+      goIn: n => "GO ${n}"
+      callWave: "+VAGUE"
+      upgrade: "AMÉLIORER"
+      sell: "VENDRE"
+    }
+    tr {
+      towers: ["OKÇU", "TOP", "AYAZ", "TESLA"]
+      ogreWave: n => "DEV DALGASI ${n}"
+      batSwarm: n => "YARASA SÜRÜSÜ ${n}"
+      wave: n => "DALGA ${n}"
+      clear: n => "TEMİZ +${n}"
+      buildDefenses: "SAVUNMANI KUR"
+      buildTower: "KULE İNŞA ET"
+      lv: n => "SV ${n}"
+      newLook: "SONRA YENİ GÖRÜNÜM"
+      waveIn: (n, s) => "DALGA ${n}: ${s} SN"
+      waveLeft: (n, k) => "DALGA ${n}: ${k} KALDI"
+      soundOn: "SES AÇIK"
+      soundOff: "SES KAPALI"
+      nextBoss: "SIRADA: BOSS"
+      nextSwarm: "SIRADA: SÜRÜ"
+      next: "SIRADA"
+      tapGrass: "İNŞA İÇİN ÇİMENE DOKUN"
+      tapTower: "GELİŞTİRMEK İÇİN KULEYE DOKUN"
+      bestWave: n => "EN İYİ DALGA ${n}"
+      tagline: "SONSUZ KULE SAVUNMASI"
+      keep1: "KALE"
+      keep2: "DÜŞTÜ"
+      wavesHeld: "DAYANILAN DALGA"
+      best: n => "REKOR ${n}"
+      newBest: "YENİ REKOR!"
+      tapToStart: "BAŞLAMAK İÇİN DOKUN"
+      playAgain: "TEKRAR OYNA"
+      goIn: n => "BAŞLA ${n}"
+      callWave: "+DALGA"
+      upgrade: "GELİŞTİR"
+      sell: "SAT"
+    }
+    it {
+      towers: ["ARCIERE", "CANNONE", "GELO", "TESLA"]
+      ogreWave: n => "ONDATA ORCHI ${n}"
+      batSwarm: n => "PIPISTRELLI ${n}"
+      wave: n => "ONDATA ${n}"
+      clear: n => "LIBERO +${n}"
+      buildDefenses: "PREPARA LE DIFESE"
+      buildTower: "COSTRUISCI UNA TORRE"
+      lv: n => "LV ${n}"
+      newLook: "NUOVO LOOK DOPO"
+      waveIn: (n, s) => "ONDATA ${n} TRA ${s}"
+      waveLeft: (n, k) => "ONDATA ${n}: NE RESTANO ${k}"
+      soundOn: "AUDIO SÌ"
+      soundOff: "AUDIO NO"
+      nextBoss: "PROSSIMA: BOSS"
+      nextSwarm: "PROSSIMA: SCIAME"
+      next: "PROSSIMA"
+      tapGrass: "TOCCA L'ERBA PER COSTRUIRE"
+      tapTower: "TOCCA UNA TORRE PER POTENZIARLA"
+      bestWave: n => "ONDATA RECORD ${n}"
+      tagline: "TOWER DEFENSE INFINITO"
+      keep1: "LA FORTEZZA"
+      keep2: "È CADUTA"
+      wavesHeld: "ONDATE RESPINTE"
+      best: n => "RECORD ${n}"
+      newBest: "NUOVO RECORD!"
+      tapToStart: "TOCCA PER INIZIARE"
+      playAgain: "RIGIOCA"
+      goIn: n => "VIA ${n}"
+      callWave: "+ONDATA"
+      upgrade: "POTENZIA"
+      sell: "VENDI"
+    }
+  }
 
   title: ""
   statusBar: false
@@ -72,6 +474,8 @@ app "bastion" {
   state overT = 0
   // a banner across the field, and when it went up
   state msg = ""
+  // the banner's kind, for its colour: "OGRE", "BAT", "CLEAR" or ""
+  state msgK = ""
   state msgT = -99
   // where a finger is down, so the button under it shows pressed
   state downAt = [-1, -1]
@@ -134,10 +538,10 @@ app "bastion" {
   // ---- towers and monsters ----------------------------------------------------------------------
   // range and splash in cells, rate in shots a second
   let KD = [
-    {n: "ARCHER", cost: 50, dmg: 7, rate: 1.5, rng: 2.4, sp: 0},
-    {n: "CANNON", cost: 100, dmg: 18, rate: 0.5, rng: 2.1, sp: 0.9},
-    {n: "FROST", cost: 80, dmg: 3, rate: 1, rng: 1.8, sp: 0},
-    {n: "TESLA", cost: 150, dmg: 12, rate: 0.8, rng: 2.2, sp: 0}
+    {n: str.towers[0], cost: 50, dmg: 7, rate: 1.5, rng: 2.4, sp: 0},
+    {n: str.towers[1], cost: 100, dmg: 18, rate: 0.5, rng: 2.1, sp: 0.9},
+    {n: str.towers[2], cost: 80, dmg: 3, rate: 1, rng: 1.8, sp: 0},
+    {n: str.towers[3], cost: 150, dmg: 12, rate: 0.8, rng: 2.2, sp: 0}
   ]
   // slime, bat, knight, ogre; speed in cells a second
   let ED = [
@@ -222,13 +626,15 @@ app "bastion" {
         base = merge(hS, {es: hS.es + hnew, nid: hS.nid + hcnt})
         wave = hn
         nextAt = 0
-        msg = hboss ? "OGRE WAVE ${hn}" : hswarm ? "BAT SWARM ${hn}" : "WAVE ${hn}"
+        msg = hboss ? str.ogreWave(hn) : hswarm ? str.batSwarm(hn) : str.wave(hn)
+        msgK = hboss ? "OGRE" : hswarm ? "BAT" : ""
         msgT = time
         if snd { sound(S_WAVE) }
       } else if nextAt == 0 && len(hS.es) == 0 && wave > 0 {
         base = merge(hS, {gold: hS.gold + 15 + 3 * wave})
         nextAt = hS.t + 8
-        msg = "CLEAR +${15 + 3 * wave}"
+        msg = str.clear(15 + 3 * wave)
+        msgK = "CLEAR"
         msgT = time
         if snd { sound(hLeak ? S_LEAK : S_COIN) }
       } else {
@@ -762,7 +1168,7 @@ app "bastion" {
         let mt = time - msgT
         let ma = min(1, mt * 4, (2.2 - mt) * 3)
         let my = FY + FHt * 0.42 - (1 - min(1, mt * 5)) * 16
-        let rc = RIB[split(msg, " ")[0]] ?? ["#4a7ad8", "#24407a"]
+        let rc = RIB[msgK] ?? ["#4a7ad8", "#24407a"]
         let rw = min(FW - 24, len(msg) * 15 + 48)
         layer(ma) {
           path([[FX + FW / 2 - rw / 2 - 18, my - 8], [FX + FW / 2 - rw / 2 + 8, my - 8], [FX + FW / 2 - rw / 2 + 8, my + 20], [FX + FW / 2 - rw / 2 - 18, my + 20], [FX + FW / 2 - rw / 2 - 10, my + 6]], closed: true, fill: rc[1], stroke: INK, width: 2)
@@ -790,7 +1196,8 @@ app "bastion" {
           nextAt = 20
           sel = -1
           ev = time
-          msg = "BUILD YOUR DEFENSES"
+          msg = str.buildDefenses
+          msgK = ""
           msgT = time
           mode = "play"
         } else if mode == "play" {
@@ -874,7 +1281,7 @@ app "bastion" {
       let lw = 34 + len("${lives}") * 10
       let lx = 10 + gw + 6
       let wx = lx + lw + 6
-      let wl = wx + 16 + len("WAVE ${wave}") * 8 <= SW - 162 ? "WAVE ${wave}" : "${wave}"
+      let wl = wx + 16 + len(str.wave(wave)) * 8 <= SW - 162 ? str.wave(wave) : "${wave}"
       // the title screen has neither
       if mode != "title" {
         for c in [[10, gw], [lx, lw], [wx, 16 + len(wl) * 8]] {
@@ -890,7 +1297,7 @@ app "bastion" {
         rect(PX, PY, PW, PH, radius: 12, fill: linear(0, PY, 0, PY + PH, [mix(surface, foreground, 0.05), surface]), stroke: alpha(foreground, 0.16), width: 1.5)
         rect(PX + 10, PY + 2, PW - 20, 1.5, radius: 1, fill: alpha(foreground, 0.12))
         if playing && sel >= 0 && selT < 0 {
-          text("BUILD A TOWER", PX + 12, PY + 14, size: 8, color: foreground, font: press)
+          text(str.buildTower, PX + 12, PY + 14, size: 8, color: foreground, font: press)
           for k in range(4) {
             let cx = PX + 8 + k % CC * (CWd + 6)
             let cy = CY + floor(k / CC) * (CH + 6)
@@ -931,10 +1338,10 @@ app "bastion" {
           }
           let ix = PX + 20 + pw
           text(KD[t.k].n, ix, PY + 16, size: 9, color: foreground, font: press)
-          let lt = "LV ${t.l}"
+          let lt = str.lv(t.l)
           rect(ix - 2, PY + 26, len(lt) * 7 + 10, 13, radius: 6.5, fill: TIERS[tier].R, stroke: INK, width: 1)
           text(lt, ix + 3, PY + 33, size: 7, color: "#ffffff", font: press)
-          if ntier > tier { text("NEW LOOK NEXT", ix + len(lt) * 7 + 14, PY + 33, size: 5, color: tierGlow[ntier], font: press) }
+          if ntier > tier { text(str.newLook, ix + len(lt) * 7 + 14, PY + 33, size: 5, color: tierGlow[ntier], font: press) }
           // each stat now, and after the upgrade
           let nd = t.dmg * 1.45
           let nr = KD[t.k].rng + min(1.5, 0.1 * t.l)
@@ -952,7 +1359,7 @@ app "bastion" {
             if row[1] != row[0] { text("> ${row[1]}", ix + 18 + len(row[0]) * 7, yy + 1, size: 7, color: "#6fe05a", font: press) }
           }
         } else if playing {
-          text(nextAt > 0 ? "WAVE ${wave + 1} IN ${max(0, ceil(nextAt - F0.t))}" : "WAVE ${wave}: ${len(F0.es)} LEFT", PX + PW / 2, PY + 18, size: 10, color: foreground, font: press, align: center)
+          text(nextAt > 0 ? str.waveIn(wave + 1, max(0, ceil(nextAt - F0.t))) : str.waveLeft(wave, len(F0.es)), PX + PW / 2, PY + 18, size: 10, color: foreground, font: press, align: center)
           if nextAt > 0 {
             rect(PX + PW / 2 - 70, PY + 30, 140, 6, radius: 3, fill: alpha(foreground, 0.12))
             rect(PX + PW / 2 - 70, PY + 30, 140 * clamp(1 - (nextAt - F0.t) / (wave == 0 ? 20 : 8), 0, 1), 6, radius: 3, fill: accent)
@@ -961,8 +1368,8 @@ app "bastion" {
           let nw = wave + 1
           let kinds = nw % 10 == 0 ? [3, 1] : nw % 5 == 0 ? [1] : nw >= 7 ? [0, 2, 1] : nw >= 3 ? [0, 2] : [0]
           let ks = min(3, (PH - 106) / 17, PW / 90)
-          text(snd ? "SOUND ON" : "SOUND OFF", SNX, SNY, size: 6, color: snd ? accent : muted, font: press, align: LS ? "center" : "end")
-          text(nw % 10 == 0 ? "NEXT: BOSS" : nw % 5 == 0 ? "NEXT: SWARM" : "NEXT", PX + PW / 2, PY + 46, size: 6, color: nw % 5 == 0 ? "#ff7a6a" : muted, font: press, align: center)
+          text(snd ? str.soundOn : str.soundOff, SNX, SNY, size: 6, color: snd ? accent : muted, font: press, align: LS ? "center" : "end")
+          text(nw % 10 == 0 ? str.nextBoss : nw % 5 == 0 ? str.nextSwarm : str.next, PX + PW / 2, PY + 46, size: 6, color: nw % 5 == 0 ? "#ff7a6a" : muted, font: press, align: center)
           for k, i in kinds {
             let sz = enemySize[k]
             let ex = PX + PW / 2 + (i - (len(kinds) - 1) / 2) * 24 * ks
@@ -975,14 +1382,14 @@ app "bastion" {
             }
           }
           if LS {
-            text("TAP GRASS TO BUILD", PX + PW / 2, PY + PH - 48, size: 6, color: muted, font: press, align: center)
-            text("TAP A TOWER TO UPGRADE", PX + PW / 2, PY + PH - 36, size: 6, color: muted, font: press, align: center)
+            text(str.tapGrass, PX + PW / 2, PY + PH - 48, size: 6, color: muted, font: press, align: center)
+            text(str.tapTower, PX + PW / 2, PY + PH - 36, size: 6, color: muted, font: press, align: center)
           } else {
-            text("TAP GRASS TO BUILD · TAP A TOWER TO UPGRADE", PX + PW / 2, PY + PH - 34, size: 6, color: muted, font: press, align: center)
+            text(str.tapGrass + " · " + str.tapTower, PX + PW / 2, PY + PH - 34, size: 6, color: muted, font: press, align: center)
           }
           if best > 0 {
-            sprite(trophyIcon, PX + PW / 2 - len("BEST WAVE ${best}") * 3.5 - 16, PY + PH - 23, 1.2, palette: ICONPAL)
-            text("BEST WAVE ${best}", PX + PW / 2 + 7, PY + PH - 17, size: 7, color: accent, font: press, align: center)
+            sprite(trophyIcon, PX + PW / 2 - len(str.bestWave(best)) * 3.5 - 16, PY + PH - 23, 1.2, palette: ICONPAL)
+            text(str.bestWave(best), PX + PW / 2 + 7, PY + PH - 17, size: 7, color: accent, font: press, align: center)
           }
         }
       }
@@ -1011,7 +1418,7 @@ app "bastion" {
         let rw = min(SW - 40, 260)
         rect(SW / 2 - rw / 2, ty + 26, rw, 22, radius: 3, fill: "#c8323c", stroke: INK, width: 2)
         rect(SW / 2 - rw / 2 + 3, ty + 29, rw - 6, 2, fill: alpha("#ffffff", 0.3))
-        text("ENDLESS TOWER DEFENSE", SW / 2, ty + 37, size: 8, color: "#ffffff", font: press, align: center)
+        text(str.tagline, SW / 2, ty + 37, size: 8, color: "#ffffff", font: press, align: center)
         // the four towers on a patch of ground
         let iw = min(SW - 48, 290)
         rect(SW / 2 - iw / 2, ty + 120, iw, 18, radius: 9, fill: "#5a3a22", stroke: INK, width: 2)
@@ -1031,8 +1438,8 @@ app "bastion" {
         let by = ty + 168
         let bh = 48
         if best > 0 {
-          sprite(trophyIcon, SW / 2 - len("BEST WAVE ${best}") * 4 - 18, by + bh + 22, 1.5, palette: ICONPAL)
-          text("BEST WAVE ${best}", SW / 2 + 8, by + bh + 29, size: 8, color: foreground, font: press, align: center)
+          sprite(trophyIcon, SW / 2 - len(str.bestWave(best)) * 4 - 18, by + bh + 22, 1.5, palette: ICONPAL)
+          text(str.bestWave(best), SW / 2 + 8, by + bh + 29, size: 8, color: foreground, font: press, align: center)
         }
       } else if mode == "over" {
         let oa = clamp((time - overT) * 2.5, 0, 1)
@@ -1046,22 +1453,22 @@ app "bastion" {
         rect(cx, cy, cw, chh, radius: 14, fill: linear(0, cy, 0, cy + chh, [mix(surface, foreground, 0.06), surface]), stroke: INK, width: 2)
         rect(cx - 10, cy + 14, cw + 20, 50, radius: 4, fill: "#c8323c", stroke: INK, width: 2)
         rect(cx - 7, cy + 17, cw + 14, 3, radius: 1.5, fill: alpha("#ffffff", 0.3))
-        text("THE KEEP", SW / 2 + 2, cy + 30, size: 13, color: INK, font: press, align: center)
-        text("THE KEEP", SW / 2, cy + 28, size: 13, color: "#ffffff", font: press, align: center)
-        text("HAS FALLEN", SW / 2 + 2, cy + 50, size: 13, color: INK, font: press, align: center)
-        text("HAS FALLEN", SW / 2, cy + 48, size: 13, color: "#ffffff", font: press, align: center)
+        text(str.keep1, SW / 2 + 2, cy + 30, size: 13, color: INK, font: press, align: center)
+        text(str.keep1, SW / 2, cy + 28, size: 13, color: "#ffffff", font: press, align: center)
+        text(str.keep2, SW / 2 + 2, cy + 50, size: 13, color: INK, font: press, align: center)
+        text(str.keep2, SW / 2, cy + 48, size: 13, color: "#ffffff", font: press, align: center)
         // the waves held, counting up
         let shown = min(wave, floor(max(0, time - overT) * 12))
-        text("WAVES HELD", SW / 2, cy + 86, size: 7, color: muted, font: press, align: center)
+        text(str.wavesHeld, SW / 2, cy + 86, size: 7, color: muted, font: press, align: center)
         text("${time < overT ? wave : shown}", SW / 2 + 2, cy + 114, size: 26, color: INK, font: press, align: center)
         text("${time < overT ? wave : shown}", SW / 2, cy + 112, size: 26, color: GOLD, font: press, align: center)
-        sprite(trophyIcon, SW / 2 - len("BEST ${best}") * 4 - 16, cy + 138, 1.4, palette: ICONPAL)
-        text("BEST ${best}", SW / 2 + 8, cy + 145, size: 8, color: foreground, font: press, align: center)
-        if wave >= best && wave > 0 && time % 0.8 < 0.55 { text("NEW BEST!", SW / 2, cy + 162, size: 7, color: "#6fe05a", font: press, align: center) }
+        sprite(trophyIcon, SW / 2 - len(str.best(best)) * 4 - 16, cy + 138, 1.4, palette: ICONPAL)
+        text(str.best(best), SW / 2 + 8, cy + 145, size: 8, color: foreground, font: press, align: center)
+        if wave >= best && wave > 0 && time % 0.8 < 0.55 { text(str.newBest, SW / 2, cy + 162, size: 7, color: "#6fe05a", font: press, align: center) }
       }
 
       // the sound switch, top right of the title and the end
-      if mode != "play" { text(snd ? "SOUND ON" : "SOUND OFF", SW - 14, TOP + 20, size: 7, color: snd ? accent : muted, font: press, align: end) }
+      if mode != "play" { text(snd ? str.soundOn : str.soundOff, SW - 14, TOP + 20, size: 7, color: snd ? accent : muted, font: press, align: end) }
       // ---- the buttons, over everything: each is [x, y, width, height, colours], and sinks a pixel while pressed ----
       let tTy = FY + FHt * (LS ? 0.15 : 0.26)
       let oCw = min(SW - 40, 320)
@@ -1097,21 +1504,21 @@ app "bastion" {
       // and what's on them, centred on each face
       if mode == "title" {
         let cy = btns[0][1] + btns[0][3] / 2 - BP + bd[0]
-        text("TAP TO START", SW / 2 + 2, cy + 2, size: 11, color: INK, font: press, align: center)
-        text("TAP TO START", SW / 2, cy, size: 11, color: "#ffffff", font: press, align: center)
+        text(str.tapToStart, SW / 2 + 2, cy + 2, size: 11, color: INK, font: press, align: center)
+        text(str.tapToStart, SW / 2, cy, size: 11, color: "#ffffff", font: press, align: center)
         sprite(arrowRIcon, btns[0][0] - 30 + abs(sin(time * 5)) * 6, cy - 11, 3, palette: merge(ICONPAL, {Z: GOLD}))
         sprite(arrowLIcon, btns[0][0] + btns[0][2] + 12 - abs(sin(time * 5)) * 6, cy - 11, 3, palette: merge(ICONPAL, {Z: GOLD}))
       } else if mode == "over" && len(btns) > 0 {
         let cy = btns[0][1] + btns[0][3] / 2 - BP + bd[0]
-        text("PLAY AGAIN", SW / 2 + 2, cy + 2, size: 10, color: INK, font: press, align: center)
-        text("PLAY AGAIN", SW / 2, cy, size: 10, color: "#ffffff", font: press, align: center)
+        text(str.playAgain, SW / 2 + 2, cy + 2, size: 10, color: INK, font: press, align: center)
+        text(str.playAgain, SW / 2, cy, size: 10, color: "#ffffff", font: press, align: center)
       } else if playing {
         // speed: one arrow or two
         let sy = TOP + 6 + 15 - BP + bd[0]
         for k in range(speed) { sprite(arrowRIcon, SW - 134 + (speed == 2 ? k * 9 - 13 : -6), sy - 7, 2, palette: ICONPAL) }
         // the next wave: its countdown, or a call for it now
         let wy = TOP + 6 + 15 - BP + bd[1]
-        let wt = nextAt > 0 ? "GO ${max(0, ceil(nextAt - F0.t))}" : "+WAVE"
+        let wt = nextAt > 0 ? str.goIn(max(0, ceil(nextAt - F0.t))) : str.callWave
         if nextAt > 0 {
           rect(SW - 103, wy + 7, 86 * clamp((nextAt - F0.t) / (wave == 0 ? 20 : 8), 0, 1), BP, fill: BTN.go[0])
         }
@@ -1121,15 +1528,15 @@ app "bastion" {
         if selT >= 0 {
           let t = tw[selT]
           let uy = UY + BH / 2 - BP + bd[2]
-          text("UPGRADE", BX + BW / 2 + 2, uy - 6, size: 8, color: INK, font: press, align: center)
-          text("UPGRADE", BX + BW / 2, uy - 8, size: 8, color: can ? "#ffffff" : "#c8c4d8", font: press, align: center)
+          text(str.upgrade, BX + BW / 2 + 2, uy - 6, size: 8, color: INK, font: press, align: center)
+          text(str.upgrade, BX + BW / 2, uy - 8, size: 8, color: can ? "#ffffff" : "#c8c4d8", font: press, align: center)
           let us = fmtNum(t.up, {compact: t.up >= 100000})
           sprite(can ? coinIcon : greyCoinIcon, BX + BW / 2 - len(us) * 4 - 12, uy + 1, 1.4, palette: ICONPAL)
           text(us, BX + BW / 2 + 7, uy + 7, size: 8, color: INK, font: press, align: center)
           text(us, BX + BW / 2 + 5, uy + 5, size: 8, color: can ? "#ffffff" : "#ffb0a0", font: press, align: center)
           let sy2 = SY + BH / 2 - BP + bd[3]
-          text("SELL", BX + BW / 2 + 2, sy2 - 6, size: 8, color: INK, font: press, align: center)
-          text("SELL", BX + BW / 2, sy2 - 8, size: 8, color: "#ffffff", font: press, align: center)
+          text(str.sell, BX + BW / 2 + 2, sy2 - 6, size: 8, color: INK, font: press, align: center)
+          text(str.sell, BX + BW / 2, sy2 - 8, size: 8, color: "#ffffff", font: press, align: center)
           let ss = "+${fmtNum(t.sell, {compact: t.sell >= 100000})}"
           sprite(coinIcon, BX + BW / 2 - len(ss) * 4 - 12, sy2 + 1, 1.4, palette: ICONPAL)
           text(ss, BX + BW / 2 + 7, sy2 + 7, size: 8, color: INK, font: press, align: center)

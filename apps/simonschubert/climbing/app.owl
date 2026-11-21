@@ -2,9 +2,193 @@ app "ifsc" {
   meta {
     owl: 23
     description: "The World Climbing Series on one screen: the next event, results from every stop, and the boulder, lead and speed cup."
-    version: "2.2"
+    version: "2.3"
     license: "MIT"
     category: "sport"
+  }
+
+  // "then" sits in 36dp and an event's state in 42dp: short words there.
+  strings {
+    en {
+      loading: "loading…"; offline: "results offline"; tryAgain: "try again"; noEvents: "no events this season"
+      liveNow: "live now"; nextUp: "next up"; lastEvent: "last event"; then: "then"; latest: "latest"
+      loadingResults: "loading results…"; waiting: "waiting for the first results"; noResults: "no results yet"
+      live: "live"; upcoming: "upcoming"; finished: "finished"; stLive: "live"; stNext: "next"
+      noPublished: "no results published yet"; top8: "top 8"; athletes: n => "${n} athletes"
+      fullResults: "full results ↗"; noCup: "no cup standings yet"; loadingCup: "loading the standings…"; profile: "profile ↗"
+      savedOffline: t => "offline · saved ${t}"; now: "now"; tabEvents: "events"; tabCup: "cup"
+      days: n => "${n}d"; dayHours: h => "1d ${h}h"
+      kind: k => k; gender: g => g; cat: (k, g) => trim("${k} ${g}")
+      mon: m => ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m]
+      day: (d, m) => "${d} ${m}"; span: (d1, d2, m) => "${d1}–${d2} ${m}"; span2: (d1, m1, d2, m2) => "${d1} ${m1} – ${d2} ${m2}"
+    }
+    id {
+      loading: "memuat…"; offline: "hasil offline"; tryAgain: "coba lagi"; noEvents: "tidak ada acara musim ini"
+      liveNow: "sedang live"; nextUp: "berikutnya"; lastEvent: "acara terakhir"; then: "lalu"; latest: "terbaru"
+      loadingResults: "memuat hasil…"; waiting: "menunggu hasil pertama"; noResults: "belum ada hasil"
+      live: "live"; upcoming: "mendatang"; finished: "selesai"; stLive: "live"; stNext: "nanti"
+      noPublished: "belum ada hasil yang terbit"; top8: "8 besar"; athletes: n => "${n} atlet"
+      fullResults: "hasil lengkap ↗"; noCup: "belum ada klasemen piala"; loadingCup: "memuat klasemen…"; profile: "profil ↗"
+      savedOffline: t => "offline · disimpan ${t}"; now: "sekarang"; tabEvents: "acara"; tabCup: "piala"
+      days: n => "${n}h"; dayHours: h => "1h ${h}j"
+      kind: k => {combined: "kombinasi", relay: "estafet", other: "lainnya"}[k] ?? k
+      gender: g => {men: "putra", women: "putri", mixed: "campuran"}[g] ?? g
+      cat: (k, g) => trim("${k} ${g}")
+      mon: m => ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"][m]
+      day: (d, m) => "${d} ${m}"; span: (d1, d2, m) => "${d1}–${d2} ${m}"; span2: (d1, m1, d2, m2) => "${d1} ${m1} – ${d2} ${m2}"
+    }
+    es {
+      loading: "cargando…"; offline: "resultados sin conexión"; tryAgain: "reintentar"; noEvents: "no hay eventos esta temporada"
+      liveNow: "en directo"; nextUp: "próximo"; lastEvent: "último evento"; then: "luego"; latest: "último"
+      loadingResults: "cargando resultados…"; waiting: "esperando los primeros resultados"; noResults: "aún sin resultados"
+      live: "en directo"; upcoming: "próximo"; finished: "terminado"; stLive: "ahora"; stNext: "pronto"
+      noPublished: "aún no hay resultados publicados"; top8: "top 8"; athletes: n => n == 1 ? "1 atleta" : "${n} atletas"
+      fullResults: "resultados completos ↗"; noCup: "aún no hay clasificación"; loadingCup: "cargando la clasificación…"; profile: "perfil ↗"
+      savedOffline: t => "sin conexión · guardado ${t}"; now: "ahora"; tabEvents: "eventos"; tabCup: "copa"
+      days: n => "${n}d"; dayHours: h => "1d ${h}h"
+      kind: k => {boulder: "búlder", lead: "dificultad", speed: "velocidad", combined: "combinada", relay: "relevos", other: "otra"}[k] ?? k
+      gender: g => {men: "masculino", women: "femenino", mixed: "mixto"}[g] ?? g
+      cat: (k, g) => trim("${k} ${g}")
+      mon: m => ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sept", "oct", "nov", "dic"][m]
+      day: (d, m) => "${d} ${m}"; span: (d1, d2, m) => "${d1}–${d2} ${m}"; span2: (d1, m1, d2, m2) => "${d1} ${m1} – ${d2} ${m2}"
+    }
+    pt {
+      loading: "carregando…"; offline: "resultados offline"; tryAgain: "tentar de novo"; noEvents: "nenhum evento nesta temporada"
+      liveNow: "ao vivo agora"; nextUp: "a seguir"; lastEvent: "último evento"; then: "após"; latest: "mais recente"
+      loadingResults: "carregando resultados…"; waiting: "aguardando os primeiros resultados"; noResults: "ainda sem resultados"
+      live: "ao vivo"; upcoming: "em breve"; finished: "encerrado"; stLive: "agora"; stNext: "logo"
+      noPublished: "nenhum resultado publicado ainda"; top8: "top 8"; athletes: n => n == 1 ? "1 atleta" : "${n} atletas"
+      fullResults: "resultados completos ↗"; noCup: "ainda sem classificação"; loadingCup: "carregando a classificação…"; profile: "perfil ↗"
+      savedOffline: t => "offline · salvo ${t}"; now: "agora"; tabEvents: "eventos"; tabCup: "copa"
+      days: n => "${n}d"; dayHours: h => "1d ${h}h"
+      kind: k => {lead: "dificuldade", speed: "velocidade", combined: "combinado", relay: "revezamento", other: "outro"}[k] ?? k
+      gender: g => {men: "masculino", women: "feminino", mixed: "misto"}[g] ?? g
+      cat: (k, g) => trim("${k} ${g}")
+      mon: m => ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"][m]
+      day: (d, m) => "${d} ${m}"; span: (d1, d2, m) => "${d1}–${d2} ${m}"; span2: (d1, m1, d2, m2) => "${d1} ${m1} – ${d2} ${m2}"
+    }
+    de {
+      loading: "lädt…"; offline: "ergebnisse offline"; tryAgain: "nochmal versuchen"; noEvents: "keine events in dieser saison"
+      liveNow: "jetzt live"; nextUp: "als nächstes"; lastEvent: "letztes event"; then: "dann"; latest: "zuletzt"
+      loadingResults: "lade ergebnisse…"; waiting: "warte auf die ersten ergebnisse"; noResults: "noch keine ergebnisse"
+      live: "live"; upcoming: "demnächst"; finished: "beendet"; stLive: "live"; stNext: "bald"
+      noPublished: "noch keine ergebnisse veröffentlicht"; top8: "top 8"; athletes: n => n == 1 ? "1 athlet" : "${n} athleten"
+      fullResults: "alle ergebnisse ↗"; noCup: "noch keine cup-wertung"; loadingCup: "lade die wertung…"; profile: "profil ↗"
+      savedOffline: t => "offline · gespeichert ${t}"; now: "jetzt"; tabEvents: "events"; tabCup: "cup"
+      days: n => "${n}t"; dayHours: h => "1t ${h}h"
+      kind: k => {combined: "kombination", relay: "staffel", other: "andere"}[k] ?? k
+      gender: g => {men: "männer", women: "frauen", mixed: "mixed"}[g] ?? g
+      cat: (k, g) => trim("${k} ${g}")
+      mon: m => ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"][m]
+      day: (d, m) => "${d}. ${m}"; span: (d1, d2, m) => "${d1}.–${d2}. ${m}"; span2: (d1, m1, d2, m2) => "${d1}. ${m1} – ${d2}. ${m2}"
+    }
+    zh {
+      loading: "加载中…"; offline: "成绩无法加载"; tryAgain: "重试"; noEvents: "本赛季没有赛事"
+      liveNow: "正在进行"; nextUp: "下一站"; lastEvent: "上一站"; then: "之后"; latest: "最近"
+      loadingResults: "正在加载成绩…"; waiting: "等待首批成绩"; noResults: "暂无成绩"
+      live: "进行中"; upcoming: "即将开始"; finished: "已结束"; stLive: "进行中"; stNext: "即将"
+      noPublished: "尚未公布成绩"; top8: "前8名"; athletes: n => "${n}名运动员"
+      fullResults: "完整成绩 ↗"; noCup: "暂无积分榜"; loadingCup: "正在加载积分榜…"; profile: "资料 ↗"
+      savedOffline: t => "离线 · 保存于 ${t}"; now: "现在"; tabEvents: "赛事"; tabCup: "排名"
+      days: n => "${n}天"; dayHours: h => "1天${h}小时"
+      kind: k => {boulder: "攀石", lead: "难度", speed: "速度", combined: "全能", relay: "接力", other: "其他"}[k] ?? k
+      gender: g => {men: "男子", women: "女子", mixed: "混合"}[g] ?? g
+      cat: (k, g) => "${g}${k}"
+      mon: m => "${m + 1}月"
+      day: (d, m) => "${m}${d}日"; span: (d1, d2, m) => "${m}${d1}–${d2}日"; span2: (d1, m1, d2, m2) => "${m1}${d1}日 – ${m2}${d2}日"
+    }
+    ru {
+      loading: "загрузка…"; offline: "результаты недоступны"; tryAgain: "повторить"; noEvents: "в этом сезоне нет этапов"
+      liveNow: "идёт сейчас"; nextUp: "следующий"; lastEvent: "прошлый этап"; then: "далее"; latest: "последний"
+      loadingResults: "загрузка результатов…"; waiting: "ждём первых результатов"; noResults: "результатов пока нет"
+      live: "идёт"; upcoming: "скоро"; finished: "завершён"; stLive: "идёт"; stNext: "скоро"
+      noPublished: "результаты ещё не опубликованы"; top8: "топ-8"
+      athletes: n => n % 10 == 1 && n % 100 != 11 ? "${n} спортсмен" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "${n} спортсмена" : "${n} спортсменов"
+      fullResults: "все результаты ↗"; noCup: "зачёта кубка пока нет"; loadingCup: "загрузка зачёта…"; profile: "профиль ↗"
+      savedOffline: t => "офлайн · сохранено ${t}"; now: "сейчас"; tabEvents: "этапы"; tabCup: "кубок"
+      days: n => "${n}д"; dayHours: h => "1д ${h}ч"
+      kind: k => {boulder: "боулдеринг", lead: "трудность", speed: "скорость", combined: "многоборье", relay: "эстафета", other: "другое"}[k] ?? k
+      gender: g => {men: "мужчины", women: "женщины", mixed: "микст"}[g] ?? g
+      cat: (k, g) => trim("${k} ${g}")
+      mon: m => ["янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"][m]
+      day: (d, m) => "${d} ${m}"; span: (d1, d2, m) => "${d1}–${d2} ${m}"; span2: (d1, m1, d2, m2) => "${d1} ${m1} – ${d2} ${m2}"
+    }
+    ja {
+      loading: "読み込み中…"; offline: "結果を読み込めません"; tryAgain: "再試行"; noEvents: "今シーズンの大会はありません"
+      liveNow: "開催中"; nextUp: "次の大会"; lastEvent: "前回の大会"; then: "次"; latest: "最新"
+      loadingResults: "結果を読み込み中…"; waiting: "最初の結果を待っています"; noResults: "まだ結果はありません"
+      live: "開催中"; upcoming: "開催予定"; finished: "終了"; stLive: "開催中"; stNext: "予定"
+      noPublished: "結果はまだ発表されていません"; top8: "トップ8"; athletes: n => "${n}人の選手"
+      fullResults: "全結果 ↗"; noCup: "まだランキングはありません"; loadingCup: "ランキングを読み込み中…"; profile: "プロフィール ↗"
+      savedOffline: t => "オフライン · ${t}に保存"; now: "今"; tabEvents: "大会"; tabCup: "ランキング"
+      days: n => "${n}日"; dayHours: h => "1日${h}時間"
+      kind: k => {boulder: "ボルダー", lead: "リード", speed: "スピード", combined: "複合", relay: "リレー", other: "その他"}[k] ?? k
+      gender: g => {men: "男子", women: "女子", mixed: "混合"}[g] ?? g
+      cat: (k, g) => "${g}${k}"
+      mon: m => "${m + 1}月"
+      day: (d, m) => "${m}${d}日"; span: (d1, d2, m) => "${m}${d1}–${d2}日"; span2: (d1, m1, d2, m2) => "${m1}${d1}日 – ${m2}${d2}日"
+    }
+    uk {
+      loading: "завантаження…"; offline: "результати недоступні"; tryAgain: "повторити"; noEvents: "цього сезону немає етапів"
+      liveNow: "триває зараз"; nextUp: "наступний"; lastEvent: "минулий етап"; then: "далі"; latest: "останній"
+      loadingResults: "завантаження результатів…"; waiting: "чекаємо перших результатів"; noResults: "результатів ще немає"
+      live: "триває"; upcoming: "незабаром"; finished: "завершено"; stLive: "триває"; stNext: "скоро"
+      noPublished: "результати ще не опубліковано"; top8: "топ-8"
+      athletes: n => n % 10 == 1 && n % 100 != 11 ? "${n} спортсмен" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "${n} спортсмени" : "${n} спортсменів"
+      fullResults: "усі результати ↗"; noCup: "заліку кубка ще немає"; loadingCup: "завантаження заліку…"; profile: "профіль ↗"
+      savedOffline: t => "офлайн · збережено ${t}"; now: "зараз"; tabEvents: "етапи"; tabCup: "кубок"
+      days: n => "${n}д"; dayHours: h => "1д ${h}год"
+      kind: k => {boulder: "боулдеринг", lead: "трудність", speed: "швидкість", combined: "багатоборство", relay: "естафета", other: "інше"}[k] ?? k
+      gender: g => {men: "чоловіки", women: "жінки", mixed: "мікст"}[g] ?? g
+      cat: (k, g) => trim("${k} ${g}")
+      mon: m => ["січ", "лют", "бер", "кві", "тра", "чер", "лип", "сер", "вер", "жов", "лис", "гру"][m]
+      day: (d, m) => "${d} ${m}"; span: (d1, d2, m) => "${d1}–${d2} ${m}"; span2: (d1, m1, d2, m2) => "${d1} ${m1} – ${d2} ${m2}"
+    }
+    fr {
+      loading: "chargement…"; offline: "résultats hors ligne"; tryAgain: "réessayer"; noEvents: "aucune étape cette saison"
+      liveNow: "en direct"; nextUp: "à suivre"; lastEvent: "dernière étape"; then: "puis"; latest: "dernière"
+      loadingResults: "chargement des résultats…"; waiting: "en attente des premiers résultats"; noResults: "pas encore de résultats"
+      live: "en direct"; upcoming: "à venir"; finished: "terminée"; stLive: "direct"; stNext: "bientôt"
+      noPublished: "aucun résultat publié pour l'instant"; top8: "top 8"; athletes: n => n <= 1 ? "${n} athlète" : "${n} athlètes"
+      fullResults: "tous les résultats ↗"; noCup: "pas encore de classement"; loadingCup: "chargement du classement…"; profile: "profil ↗"
+      savedOffline: t => "hors ligne · enregistré ${t}"; now: "maintenant"; tabEvents: "étapes"; tabCup: "coupe"
+      days: n => "${n}j"; dayHours: h => "1j ${h}h"
+      kind: k => {boulder: "bloc", lead: "difficulté", speed: "vitesse", combined: "combiné", relay: "relais", other: "autre"}[k] ?? k
+      gender: g => {men: "hommes", women: "femmes", mixed: "mixte"}[g] ?? g
+      cat: (k, g) => trim("${k} ${g}")
+      mon: m => ["janv", "févr", "mars", "avr", "mai", "juin", "juil", "août", "sept", "oct", "nov", "déc"][m]
+      day: (d, m) => "${d} ${m}"; span: (d1, d2, m) => "${d1}–${d2} ${m}"; span2: (d1, m1, d2, m2) => "${d1} ${m1} – ${d2} ${m2}"
+    }
+    tr {
+      loading: "yükleniyor…"; offline: "sonuçlar çevrimdışı"; tryAgain: "tekrar dene"; noEvents: "bu sezon etkinlik yok"
+      liveNow: "şu an canlı"; nextUp: "sıradaki"; lastEvent: "son etkinlik"; then: "sonra"; latest: "en son"
+      loadingResults: "sonuçlar yükleniyor…"; waiting: "ilk sonuçlar bekleniyor"; noResults: "henüz sonuç yok"
+      live: "canlı"; upcoming: "yaklaşan"; finished: "bitti"; stLive: "canlı"; stNext: "yakında"
+      noPublished: "henüz sonuç yayımlanmadı"; top8: "ilk 8"; athletes: n => "${n} sporcu"
+      fullResults: "tüm sonuçlar ↗"; noCup: "henüz kupa sıralaması yok"; loadingCup: "sıralama yükleniyor…"; profile: "profil ↗"
+      savedOffline: t => "çevrimdışı · kaydedildi ${t}"; now: "şimdi"; tabEvents: "etkinlikler"; tabCup: "kupa"
+      days: n => "${n}g"; dayHours: h => "1g ${h}sa"
+      kind: k => {lead: "zorluk", speed: "hız", combined: "kombine", relay: "bayrak", other: "diğer"}[k] ?? k
+      gender: g => {men: "erkekler", women: "kadınlar", mixed: "karma"}[g] ?? g
+      cat: (k, g) => trim("${k} ${g}")
+      mon: m => ["Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"][m]
+      day: (d, m) => "${d} ${m}"; span: (d1, d2, m) => "${d1}–${d2} ${m}"; span2: (d1, m1, d2, m2) => "${d1} ${m1} – ${d2} ${m2}"
+    }
+    it {
+      loading: "caricamento…"; offline: "risultati offline"; tryAgain: "riprova"; noEvents: "nessuna tappa in questa stagione"
+      liveNow: "ora in diretta"; nextUp: "prossima"; lastEvent: "ultima tappa"; then: "poi"; latest: "ultima"
+      loadingResults: "caricamento risultati…"; waiting: "in attesa dei primi risultati"; noResults: "ancora nessun risultato"
+      live: "in diretta"; upcoming: "in arrivo"; finished: "conclusa"; stLive: "live"; stNext: "presto"
+      noPublished: "nessun risultato pubblicato"; top8: "top 8"; athletes: n => n == 1 ? "1 atleta" : "${n} atleti"
+      fullResults: "tutti i risultati ↗"; noCup: "ancora nessuna classifica"; loadingCup: "caricamento classifica…"; profile: "profilo ↗"
+      savedOffline: t => "offline · salvato ${t}"; now: "ora"; tabEvents: "tappe"; tabCup: "coppa"
+      days: n => "${n}g"; dayHours: h => "1g ${h}h"
+      kind: k => {lead: "difficoltà", speed: "velocità", combined: "combinata", relay: "staffetta", other: "altro"}[k] ?? k
+      gender: g => {men: "maschile", women: "femminile", mixed: "misto"}[g] ?? g
+      cat: (k, g) => trim("${k} ${g}")
+      mon: m => ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"][m]
+      day: (d, m) => "${d} ${m}"; span: (d1, d2, m) => "${d1}–${d2} ${m}"; span2: (d1, m1, d2, m2) => "${d1} ${m1} – ${d2} ${m2}"
+    }
   }
   // The window's title names the event that's open; Back goes to where it was opened from.
   title: view == "event" && shownEvent != null ? shownEvent.name : "IFSC"
@@ -55,7 +239,6 @@ app "ifsc" {
 
   let KINDS = ["boulder", "lead", "speed", "combined", "relay", "other"]
   let GENDERS = ["men", "women", "mixed", ""]
-  let MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
   let STAMP = '^(\d+)-(\d+)-(\d+) (\d+):(\d+):(\d+)'
   let DAY = '^(\d+)-(\d+)-(\d+)'
 
@@ -67,7 +250,7 @@ app "ifsc" {
     name: trim(match(replace(replace(replace(q[4].event, "World Climbing Series ", ""), "IFSC Climbing World Cup ", ""), "IFSC World Cup ", ""), '^(.*?)(?: \d{4})?$')[0]),
     start: [q[0]].map(p => (365 * (p[1] <= 2 ? p[0] - 1 : p[0]) + floor((p[1] <= 2 ? p[0] - 1 : p[0]) / 4) - floor((p[1] <= 2 ? p[0] - 1 : p[0]) / 100) + floor((p[1] <= 2 ? p[0] - 1 : p[0]) / 400) + floor((153 * (p[1] <= 2 ? p[1] + 9 : p[1] - 3) + 2) / 5) + p[2] - 719469) * 86400 + p[3] * 3600 + p[4] * 60 + p[5])[0],
     end: [q[1]].map(p => (365 * (p[1] <= 2 ? p[0] - 1 : p[0]) + floor((p[1] <= 2 ? p[0] - 1 : p[0]) / 4) - floor((p[1] <= 2 ? p[0] - 1 : p[0]) / 100) + floor((p[1] <= 2 ? p[0] - 1 : p[0]) / 400) + floor((153 * (p[1] <= 2 ? p[1] + 9 : p[1] - 3) + 2) / 5) + p[2] - 719469) * 86400 + p[3] * 3600 + p[4] * 60 + p[5])[0],
-    dates: q[2][1] == q[3][1] ? (q[2][2] == q[3][2] ? "${q[2][2]} ${MONTHS[q[2][1] - 1]}" : "${q[2][2]}–${q[3][2]} ${MONTHS[q[2][1] - 1]}") : "${q[2][2]} ${MONTHS[q[2][1] - 1]} – ${q[3][2]} ${MONTHS[q[3][1] - 1]}",
+    dates: q[2][1] == q[3][1] ? (q[2][2] == q[3][2] ? str.day(q[2][2], str.mon(q[2][1] - 1)) : str.span(q[2][2], q[3][2], str.mon(q[2][1] - 1))) : str.span2(q[2][2], str.mon(q[2][1] - 1), q[3][2], str.mon(q[3][1] - 1)),
     cats: (q[4].d_cats ?? []).map(c => {
       id: c.id,
       name: c.name,
@@ -96,7 +279,7 @@ app "ifsc" {
   let hero = liveEv ?? upcoming ?? latest
   let later = hero == null ? null : first(events.filter(e => e.state == "next" && e.id != hero.id))
   let secs = hero == null || now == null ? null : hero.start - now
-  let countdown = secs == null ? "" : secs >= 172800 ? "${floor(secs / 86400)}d" : secs >= 86400 ? "1d ${floor((secs % 86400) / 3600)}h" : secs > 0 ? fmtDuration(secs) : "now"
+  let countdown = secs == null ? "" : secs >= 172800 ? str.days(floor(secs / 86400)) : secs >= 86400 ? str.dayHours(floor((secs % 86400) / 3600)) : secs > 0 ? fmtDuration(secs) : str.now
 
   // The event whose results load: the one open, else the live one, else the last one.
   let shownEvent = events.find(e => e.id == eventId) ?? hero
@@ -119,7 +302,7 @@ app "ifsc" {
   let block = focus == null ? null : {id: focus.id, cats: matched.map(t => {
     id: t[0].id,
     kind: t[0].kind,
-    label: trim("${t[0].kind} ${t[0].gender}"),
+    label: str.cat(str.kind(t[0].kind), str.gender(t[0].gender)),
     round: lower(last((t[1].out.category_rounds ?? []).filter(r => r.status != null && r.status != "pending")).name ?? ""),
     top: (t[1].out.ranking ?? []).take(8).map(a => {
       key: "${a.rank}-${a.athlete_id ?? a.name}",
@@ -164,10 +347,10 @@ app "ifsc" {
 
   component Chip(kind) {
     Text {
-      text: kind
+      text: str.kind(kind)
       style: label
       align: center
-      width: len(kind) * 8 + 14
+      width: len(str.kind(kind)) * 8 + 14
       maxLines: 1
       padding: [0, 2]
       radius: 3 * corners
@@ -239,7 +422,7 @@ app "ifsc" {
   }
 
   // A tab of the bottom bar: an icon in a pill when it's the one open, and its name.
-  component Tab(name, icon) {
+  component Tab(name, icon, label) {
     Column {
       weight: 1
       align: center
@@ -252,7 +435,7 @@ app "ifsc" {
         height: 32
         Image { src: icon; size: 24; tint: view == name || (name == "events" && view == "event" && from == "events") ? foreground : muted }
       }
-      Text { text: name; style: small; align: center; maxLines: 1; bold: view == name; color: view == name || (name == "events" && view == "event" && from == "events") ? foreground : muted }
+      Text { text: label; style: small; align: center; maxLines: 1; bold: view == name; color: view == name || (name == "events" && view == "event" && from == "events") ? foreground : muted }
     }
   }
 
@@ -269,9 +452,9 @@ app "ifsc" {
         Column {
           gap: 8
           Text { text: "world climbing series"; style: muted }
-          Text { text: offline || (season != null && !season.ok) ? "results offline" : "loading…"; style: title; color: muted }
+          Text { text: offline || (season != null && !season.ok) ? str.offline : str.loading; style: title; color: muted }
           if offline || (season != null && !season.ok) {
-            Button { text: "try again"; onTap: refresh() }
+            Button { text: str.tryAgain; onTap: refresh() }
           }
         }
       } else {
@@ -282,7 +465,7 @@ app "ifsc" {
             Text { text: savedSeason; style: small; color: muted; width: 48; align: end }
           }
           if hero == null {
-            Text { text: "no events this season"; style: small; color: muted }
+            Text { text: str.noEvents; style: small; color: muted }
           } else {
             Column {
               gap: 6
@@ -293,7 +476,7 @@ app "ifsc" {
               borderColor: hero.state == "live" ? alpha(accent, 0.55) : alpha(muted, 0.35)
               onTap: { from = "now"; view = "event"; eventId = hero.id; catId = 0; haptic() }
               Text {
-                text: hero.state == "live" ? "live now" : hero.state == "next" ? "next up" : "last event"
+                text: hero.state == "live" ? str.liveNow : hero.state == "next" ? str.nextUp : str.lastEvent
                 style: label
                 color: hero.state == "done" ? muted : accent
               }
@@ -313,7 +496,7 @@ app "ifsc" {
                 gap: 8
                 align: center
                 onTap: { from = "now"; view = "event"; eventId = later.id; catId = 0; haptic() }
-                Text { text: "then"; style: label; color: muted; width: 36 }
+                Text { text: str.then; style: label; color: muted; width: 36 }
                 Text { text: later.name; style: small; weight: 1; maxLines: 1 }
                 Text { text: later.dates; style: small; color: muted; width: 110; align: end; maxLines: 1 }
               }
@@ -322,7 +505,7 @@ app "ifsc" {
             let shownBlock = focus == null ? null : blocks.find(b => b.id == focus.id)
             if hero.state == "live" {
               if shownBlock == null {
-                Text { text: failed ? "results offline" : pending ? "loading results…" : "waiting for the first results"; style: small; color: muted }
+                Text { text: failed ? str.offline : pending ? str.loadingResults : str.waiting; style: small; color: muted }
               } else {
                 for c in shownBlock.cats key c.id { Category { c: c } }
               }
@@ -333,13 +516,13 @@ app "ifsc" {
                 Column {
                   gap: 0
                   weight: 1
-                  Text { text: "latest"; style: label; color: muted }
+                  Text { text: str.latest; style: label; color: muted }
                   Text { text: latest.name; style: body; maxLines: 1 }
                 }
                 Text { text: latest.dates; style: small; color: muted; width: 110; align: end; maxLines: 1 }
               }
               if shownBlock == null {
-                Text { text: failed ? "results offline" : pending ? "loading results…" : "no results yet"; style: small; color: muted }
+                Text { text: failed ? str.offline : pending ? str.loadingResults : str.noResults; style: small; color: muted }
               } else {
                 for c in shownBlock.cats key c.id { Category { c: c; count: 3 } }
               }
@@ -367,7 +550,7 @@ app "ifsc" {
                 Text { text: e.dates; style: small; color: muted; maxLines: 1 }
               }
               if e.state != "done" {
-                Text { text: e.state; style: small; width: 42; align: end; color: e.state == "live" ? accent : yellow }
+                Text { text: e.state == "live" ? str.stLive : str.stNext; style: small; width: 42; align: end; color: e.state == "live" ? accent : yellow }
               }
             }
           }
@@ -384,7 +567,7 @@ app "ifsc" {
               align: center
               Text { text: ev.dates; style: small; color: muted; weight: 1; maxLines: 1 }
               Text {
-                text: ev.state == "live" ? "live" : ev.state == "next" ? "upcoming" : "finished"
+                text: ev.state == "live" ? str.live : ev.state == "next" ? str.upcoming : str.finished
                 style: small
                 width: 84
                 align: end
@@ -396,7 +579,7 @@ app "ifsc" {
               for k in ev.kinds key k { Chip { kind: k } }
             }
             if shown == null {
-              Text { text: ev.state != "next" && failed ? "results offline" : ev.state != "next" && pending ? "loading results…" : ev.state == "live" ? "waiting for the first results" : "no results published yet"; style: small; color: muted }
+              Text { text: ev.state != "next" && failed ? str.offline : ev.state != "next" && pending ? str.loadingResults : ev.state == "live" ? str.waiting : str.noPublished; style: small; color: muted }
             } else {
               Flow {
                 gap: 6
@@ -406,7 +589,7 @@ app "ifsc" {
               }
               Row {
                 align: center
-                Text { text: len(shown.top) >= 8 ? "top 8" : "${len(shown.top)} athletes"; style: label; color: muted; weight: 1 }
+                Text { text: len(shown.top) >= 8 ? str.top8 : str.athletes(len(shown.top)); style: label; color: muted; weight: 1 }
                 Text { text: shown.round; style: small; color: muted; width: 88; align: end; maxLines: 1 }
               }
               Column {
@@ -414,7 +597,7 @@ app "ifsc" {
                 for a in shown.top key a.key { Athlete { a: a } }
               }
             }
-            Text { text: "full results ↗"; color: accent; padding: [0, 6]; onTap: url("https://ifsc.results.info/event/${ev.id}") }
+            Text { text: str.fullResults; color: accent; padding: [0, 6]; onTap: url("https://ifsc.results.info/event/${ev.id}") }
           }
         }
 
@@ -422,11 +605,11 @@ app "ifsc" {
           Flow {
             gap: 6
             for k in RANKS key k {
-              Box { onTap: { rankKey = k; openId = 0; haptic("light") }; Pick { label: k; on: rankKey == k } }
+              Box { onTap: { rankKey = k; openId = 0; haptic("light") }; Pick { label: str.cat(str.kind(split(k, " ")[0]), str.gender(split(k, " ")[1])); on: rankKey == k } }
             }
           }
           if cup == null {
-            Text { text: len(cupCats) == 0 && lg != null ? "no cup standings yet" : "loading the standings…"; style: small; color: muted }
+            Text { text: len(cupCats) == 0 && lg != null ? str.noCup : str.loadingCup; style: small; color: muted }
           } else {
             for a in cup.top key a.key {
               Column {
@@ -447,7 +630,7 @@ app "ifsc" {
                     }
                   }
                   if a.id != 0 {
-                    Text { text: "profile ↗"; color: accent; padding: [0, 4]; onTap: url("https://ifsc.results.info/athlete/${a.id}") }
+                    Text { text: str.profile; color: accent; padding: [0, 4]; onTap: url("https://ifsc.results.info/athlete/${a.id}") }
                   }
                 }
               }
@@ -456,7 +639,7 @@ app "ifsc" {
         }
 
         if offline && savedAt > 0 {
-          Text { text: "offline · saved ${fmtTime(savedAt, "d MMM HH:mm")}"; style: label; color: muted }
+          Text { text: str.savedOffline(fmtTime(savedAt, "d MMM HH:mm")); style: label; color: muted }
         }
       }
     }
@@ -464,9 +647,9 @@ app "ifsc" {
     Box { height: 1; fill: width; background: alpha(muted, 0.25) }
     Row {
       gap: 0
-      Tab { name: "now"; icon: nowIcon }
-      Tab { name: "events"; icon: eventsIcon }
-      Tab { name: "cup"; icon: cupIcon }
+      Tab { name: "now"; icon: nowIcon; label: str.now }
+      Tab { name: "events"; icon: eventsIcon; label: str.tabEvents }
+      Tab { name: "cup"; icon: cupIcon; label: str.tabCup }
     }
   }
 }

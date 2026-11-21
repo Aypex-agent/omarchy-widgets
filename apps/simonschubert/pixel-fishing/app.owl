@@ -13,7 +13,229 @@ app "pixel fishing" {
   // fight is right then (on the next frame, as a touch's own time can be off the frame clock), and
   // so does the end of a film while the fight goes on. When the fish runs is fixed by `fseed`.
 
-  meta { owl: 14; description: "Pixel art fishing: cast, wait for the bite and reel in against the line's tension; five places from a pond to the open sea, 30 fish to log, rods, reels and lures to buy, by day and night"; version: "1.1.0"; license: "MIT"; category: "games" }
+  meta { owl: 16; description: "Pixel art fishing: cast, wait for the bite and reel in against the line's tension; five places from a pond to the open sea, 30 fish to log, rods, reels and lures to buy, by day and night"; version: "1.2"; license: "MIT"; category: "games" }
+
+  // The screen is 96 units wide: a message (size 5) fits about 18 letters, the fight labels
+  // (TENSION, LINE, FISH) about 9, the buttons (MAP, SHOP, LOG, BACK) about 9, and "NEXT: ..." in the
+  // shop about 23.
+  strings {
+    en {
+      tooSoon: "TOO SOON!"; missed: "MISSED IT"; snapped: "LINE SNAPPED!"; gotAway: "IT GOT AWAY"
+      tension: "TENSION"; line: "LINE"; fishLbl: "FISH"
+      running: "IT'S RUNNING! EASE OFF"; getReady: "GET READY TO EASE OFF"; reeling: "REELING IN..."; holdReel: "HOLD TO REEL IN"
+      holdSwing: "HOLD TO SWING, LET GO TO CAST"; map: "MAP"; shop: "SHOP"; log: "LOG"; letGoCast: "LET GO TO CAST"; far: "FAR"
+      tapNow: "TAP NOW!"; waitBite: "WAIT FOR THE BITE..."; reelIn: "REEL IN"
+      legend: "LEGEND!"; newFish: "NEW FISH!"; newRecord: "NEW RECORD!"; caught: "CAUGHT!"; cm: n => "${n} CM"; tapOn: "TAP TO FISH ON"
+      tagline: "CAST, HOOK AND REEL"; inLog: n => "${n}/30 FISH IN THE LOG"; tapFish: "TAP TO FISH"; soundOn: "SOUND ON"; soundOff: "SOUND OFF"
+      back: "BACK"; nFish: n => "${n}/6 FISH"; gearN: n => "GEAR ${n}+"; here: "HERE"; go: "GO"
+      farWater: "THE FAR WATER HOLDS THE BIGGEST FISH"; nightRain: "SOME ONLY BITE AT NIGHT OR IN THE RAIN"
+      next: x => "NEXT: ${x}"; bestThere: "THE BEST THERE IS"; tip1: "TENSION SNAPS A WEAK LINE;"; tip2: "A SLOW REEL LETS THE FISH RUN"
+      byDay: "BY DAY"; atNight: "AT NIGHT"; inSnow: "IN SNOW"; inRain: "IN RAIN"; farOut: "FAR OUT"
+      bestCaught: (b, c) => "BEST ${b} CM - CAUGHT ${c}"; notYet: "NOT CAUGHT YET"; legendTag: "LEGEND"; size: (a, b) => "${a}-${b} CM"
+      spot: i => ["WILLOW POND", "RUSHING RIVER", "ROCKY COAST", "OPEN SEA", "FROZEN LAKE"][i]
+      fish: i => ["BLUEGILL", "PERCH", "CARP", "CATFISH", "PIKE", "OLD WHISKERS", "CHUB", "TROUT", "GRAYLING", "SALMON", "STURGEON", "RIVER KING", "MACKEREL", "SEA BASS", "FLOUNDER", "CONGER EEL", "RED SNAPPER", "TIDEBREAKER", "MAHI-MAHI", "TUNA", "BARRACUDA", "ANGLERFISH", "SWORDFISH", "OLD GNASHER", "ARCTIC CHAR", "WHITEFISH", "LAKE TROUT", "BURBOT", "GHOST PIKE", "FROST MONARCH"][i]
+      gear: (i, l) => [["BAMBOO ROD", "FIBER ROD", "CARBON ROD", "PRO ROD", "LEGEND ROD"], ["OLD REEL", "SPIN REEL", "BAIT REEL", "SURF REEL", "TROPHY REEL"], ["WORM", "SPINNER", "JIG", "GLOW LURE", "GOLD LURE"]][i][l]
+      gearDesc: i => ["STRONGER LINE", "REELS IN FASTER", "BITES SOONER, RARER FISH"][i]
+    }
+    id {
+      tooSoon: "TERLALU CEPAT!"; missed: "MELESET"; snapped: "TALI PUTUS!"; gotAway: "IKANNYA LEPAS"
+      tension: "TEGANGAN"; line: "TALI"; fishLbl: "IKAN"
+      running: "IKANNYA LARI! KENDURKAN"; getReady: "SIAP-SIAP MENGENDURKAN"; reeling: "MENGGULUNG..."; holdReel: "TAHAN UNTUK MENGGULUNG"
+      holdSwing: "TAHAN UNTUK AYUN, LEPAS UNTUK LEMPAR"; map: "PETA"; shop: "TOKO"; log: "CATATAN"; letGoCast: "LEPAS UNTUK MELEMPAR"; far: "JAUH"
+      tapNow: "KETUK SEKARANG!"; waitBite: "TUNGGU GIGITAN..."; reelIn: "TARIK"
+      legend: "LEGENDA!"; newFish: "IKAN BARU!"; newRecord: "REKOR BARU!"; caught: "DAPAT!"; cm: n => "${n} CM"; tapOn: "KETUK UNTUK LANJUT"
+      tagline: "LEMPAR, KAIT, DAN TARIK"; inLog: n => "${n}/30 IKAN DI CATATAN"; tapFish: "KETUK UNTUK MEMANCING"; soundOn: "SUARA NYALA"; soundOff: "SUARA MATI"
+      back: "KEMBALI"; nFish: n => "${n}/6 IKAN"; gearN: n => "ALAT ${n}+"; here: "DI SINI"; go: "PERGI"
+      farWater: "AIR YANG JAUH PUNYA IKAN TERBESAR"; nightRain: "ADA YANG HANYA MAKAN MALAM ATAU SAAT HUJAN"
+      next: x => "LALU: ${x}"; bestThere: "YANG TERBAIK"; tip1: "TEGANGAN MEMUTUS TALI LEMAH;"; tip2: "GULUNGAN LAMBAT MEMBIARKAN IKAN LARI"
+      byDay: "SIANG"; atNight: "MALAM"; inSnow: "SAAT SALJU"; inRain: "SAAT HUJAN"; farOut: "JAUH"
+      bestCaught: (b, c) => "TERBAIK ${b} CM - DAPAT ${c}"; notYet: "BELUM TERTANGKAP"; legendTag: "LEGENDA"; size: (a, b) => "${a}-${b} CM"
+      spot: i => ["KOLAM WILLOW", "SUNGAI DERAS", "PANTAI KARANG", "LAUT LEPAS", "DANAU BEKU"][i]
+      fish: i => ["BLUEGILL", "PERCH", "IKAN MAS", "LELE", "IKAN TOMBAK", "SI KUMIS TUA", "CHUB", "TRAUT", "GRAYLING", "SALMON", "STURGEON", "RAJA SUNGAI", "KEMBUNG", "KAKAP PUTIH", "IKAN SEBELAH", "SIDAT LAUT", "KAKAP MERAH", "PEMECAH OMBAK", "LEMADANG", "TUNA", "BARAKUDA", "ANGLERFISH", "IKAN TODAK", "SI TARING TUA", "CHAR ARKTIK", "WHITEFISH", "TRAUT DANAU", "BURBOT", "TOMBAK HANTU", "RAJA BEKU"][i]
+      gear: (i, l) => [["JORAN BAMBU", "JORAN SERAT", "JORAN KARBON", "JORAN PRO", "JORAN LEGENDA"], ["REEL TUA", "REEL SPIN", "REEL UMPAN", "REEL PANTAI", "REEL TROFI"], ["CACING", "SPINNER", "JIG", "UMPAN NYALA", "UMPAN EMAS"]][i][l]
+      gearDesc: i => ["TALI LEBIH KUAT", "MENGGULUNG LEBIH CEPAT", "CEPAT DIMAKAN, IKAN LEBIH LANGKA"][i]
+    }
+    es {
+      tooSoon: "¡MUY PRONTO!"; missed: "FALLASTE"; snapped: "¡SEDAL ROTO!"; gotAway: "SE ESCAPÓ"
+      tension: "TENSIÓN"; line: "SEDAL"; fishLbl: "PEZ"
+      running: "¡SE ESCAPA! AFLOJA"; getReady: "PREPÁRATE PARA AFLOJAR"; reeling: "RECOGIENDO..."; holdReel: "MANTÉN PARA RECOGER"
+      holdSwing: "MANTÉN PARA CARGAR, SUELTA PARA LANZAR"; map: "MAPA"; shop: "TIENDA"; log: "REGISTRO"; letGoCast: "SUELTA PARA LANZAR"; far: "LEJOS"
+      tapNow: "¡TOCA YA!"; waitBite: "ESPERA LA PICADA..."; reelIn: "RECOGER"
+      legend: "¡LEYENDA!"; newFish: "¡PEZ NUEVO!"; newRecord: "¡NUEVO RÉCORD!"; caught: "¡ATRAPADO!"; cm: n => "${n} CM"; tapOn: "TOCA PARA SEGUIR"
+      tagline: "LANZA, ENGANCHA Y RECOGE"; inLog: n => "${n}/30 PECES EN EL REGISTRO"; tapFish: "TOCA PARA PESCAR"; soundOn: "SONIDO: SÍ"; soundOff: "SONIDO: NO"
+      back: "ATRÁS"; nFish: n => "${n}/6 PECES"; gearN: n => "EQUIPO ${n}+"; here: "AQUÍ"; go: "IR"
+      farWater: "EN AGUAS LEJANAS ESTÁN LOS MAYORES"; nightRain: "ALGUNOS SOLO PICAN DE NOCHE O CON LLUVIA"
+      next: x => "PRÓXIMO: ${x}"; bestThere: "LO MEJOR QUE HAY"; tip1: "LA TENSIÓN ROMPE UN SEDAL DÉBIL;"; tip2: "UN CARRETE LENTO DEJA HUIR AL PEZ"
+      byDay: "DE DÍA"; atNight: "DE NOCHE"; inSnow: "CON NIEVE"; inRain: "CON LLUVIA"; farOut: "LEJOS"
+      bestCaught: (b, c) => "RÉCORD ${b} CM - PESCADOS ${c}"; notYet: "AÚN NO PESCADO"; legendTag: "LEYENDA"; size: (a, b) => "${a}-${b} CM"
+      spot: i => ["ESTANQUE DEL SAUCE", "RÍO BRAVO", "COSTA ROCOSA", "MAR ABIERTO", "LAGO HELADO"][i]
+      fish: i => ["MOJARRA AZUL", "PERCA", "CARPA", "BAGRE", "LUCIO", "VIEJO BIGOTES", "CACHO", "TRUCHA", "TÍMALO", "SALMÓN", "ESTURIÓN", "REY DEL RÍO", "CABALLA", "LUBINA", "PLATIJA", "CONGRIO", "PARGO ROJO", "ROMPEOLAS", "DORADO", "ATÚN", "BARRACUDA", "RAPE", "PEZ ESPADA", "VIEJO COLMILLOS", "SALVELINO", "CORÉGONO", "TRUCHA DE LAGO", "LOTA", "LUCIO FANTASMA", "MONARCA DE HIELO"][i]
+      gear: (i, l) => [["CAÑA DE BAMBÚ", "CAÑA DE FIBRA", "CAÑA CARBONO", "CAÑA PRO", "CAÑA LEYENDA"], ["CARRETE VIEJO", "CARRETE SPIN", "CARRETE CEBO", "CARRETE SURF", "CARRETE TROFEO"], ["GUSANO", "CUCHARILLA", "JIG", "CEBO LUMINOSO", "CEBO DE ORO"]][i][l]
+      gearDesc: i => ["SEDAL MÁS FUERTE", "RECOGE MÁS RÁPIDO", "PICAN ANTES, PECES MÁS RAROS"][i]
+    }
+    pt {
+      tooSoon: "CEDO DEMAIS!"; missed: "ERROU"; snapped: "LINHA ROMPEU!"; gotAway: "ESCAPOU"
+      tension: "TENSÃO"; line: "LINHA"; fishLbl: "PEIXE"
+      running: "ELE ESTÁ FUGINDO! SOLTE"; getReady: "PREPARE-SE PARA SOLTAR"; reeling: "RECOLHENDO..."; holdReel: "SEGURE PARA RECOLHER"
+      holdSwing: "SEGURE PARA BALANÇAR, SOLTE PARA LANÇAR"; map: "MAPA"; shop: "LOJA"; log: "DIÁRIO"; letGoCast: "SOLTE PARA LANÇAR"; far: "LONGE"
+      tapNow: "TOQUE JÁ!"; waitBite: "ESPERE A MORDIDA..."; reelIn: "RECOLHER"
+      legend: "LENDA!"; newFish: "PEIXE NOVO!"; newRecord: "NOVO RECORDE!"; caught: "PEGOU!"; cm: n => "${n} CM"; tapOn: "TOQUE PARA CONTINUAR"
+      tagline: "LANCE, FISGUE E RECOLHA"; inLog: n => "${n}/30 PEIXES NO DIÁRIO"; tapFish: "TOQUE PARA PESCAR"; soundOn: "SOM LIGADO"; soundOff: "SOM DESLIGADO"
+      back: "VOLTAR"; nFish: n => "${n}/6 PEIXES"; gearN: n => "EQUIP. ${n}+"; here: "AQUI"; go: "IR"
+      farWater: "ÁGUAS DISTANTES TÊM OS MAIORES PEIXES"; nightRain: "ALGUNS SÓ MORDEM À NOITE OU NA CHUVA"
+      next: x => "PRÓX.: ${x}"; bestThere: "O MELHOR QUE EXISTE"; tip1: "A TENSÃO ROMPE UMA LINHA FRACA;"; tip2: "UM MOLINETE LENTO DEIXA O PEIXE FUGIR"
+      byDay: "DE DIA"; atNight: "À NOITE"; inSnow: "NA NEVE"; inRain: "NA CHUVA"; farOut: "LONGE"
+      bestCaught: (b, c) => "RECORDE ${b} CM - PEGOS ${c}"; notYet: "AINDA NÃO PESCADO"; legendTag: "LENDA"; size: (a, b) => "${a}-${b} CM"
+      spot: i => ["LAGO DO SALGUEIRO", "RIO AGITADO", "COSTA ROCHOSA", "MAR ABERTO", "LAGO CONGELADO"][i]
+      fish: i => ["PEIXE-SOL", "PERCA", "CARPA", "BAGRE", "LÚCIO", "VELHO BIGODES", "ESCALO", "TRUTA", "TÍMALO", "SALMÃO", "ESTURJÃO", "REI DO RIO", "CAVALA", "ROBALO", "LINGUADO", "CONGRO", "PARGO", "QUEBRA-ONDAS", "DOURADO", "ATUM", "BARRACUDA", "PEIXE-PESCADOR", "PEIXE-ESPADA", "VELHO DENTUÇO", "SALVELINO", "COREGONO", "TRUTA DO LAGO", "LOTA", "LÚCIO FANTASMA", "MONARCA DO GELO"][i]
+      gear: (i, l) => [["VARA DE BAMBU", "VARA DE FIBRA", "VARA CARBONO", "VARA PRO", "VARA LENDÁRIA"], ["MOLINETE VELHO", "MOLINETE SPIN", "CARRETILHA", "MOLINETE SURF", "MOLINETE TROFÉU"], ["MINHOCA", "SPINNER", "JIG", "ISCA BRILHANTE", "ISCA DOURADA"]][i][l]
+      gearDesc: i => ["LINHA MAIS FORTE", "RECOLHE MAIS RÁPIDO", "MORDIDAS ANTES, PEIXES MAIS RAROS"][i]
+    }
+    de {
+      tooSoon: "ZU FRÜH!"; missed: "VERPASST"; snapped: "SCHNUR GERISSEN!"; gotAway: "ER IST WEG"
+      tension: "SPANNUNG"; line: "SCHNUR"; fishLbl: "FISCH"
+      running: "ER ZIEHT AB! NACHLASSEN"; getReady: "GLEICH NACHLASSEN"; reeling: "HOLE EIN..."; holdReel: "HALTEN ZUM EINHOLEN"
+      holdSwing: "HALTEN: AUSHOLEN, LOSLASSEN: WERFEN"; map: "KARTE"; shop: "LADEN"; log: "LOGBUCH"; letGoCast: "LOSLASSEN ZUM WERFEN"; far: "WEIT"
+      tapNow: "JETZT TIPPEN!"; waitBite: "WARTE AUF DEN BISS..."; reelIn: "EINHOLEN"
+      legend: "LEGENDE!"; newFish: "NEUER FISCH!"; newRecord: "NEUER REKORD!"; caught: "GEFANGEN!"; cm: n => "${n} CM"; tapOn: "TIPPEN ZUM WEITERANGELN"
+      tagline: "WERFEN, ANHAUEN, EINHOLEN"; inLog: n => "${n}/30 FISCHE IM LOGBUCH"; tapFish: "TIPPEN ZUM ANGELN"; soundOn: "TON AN"; soundOff: "TON AUS"
+      back: "ZURÜCK"; nFish: n => "${n}/6 FISCHE"; gearN: n => "AUSRÜSTUNG ${n}+"; here: "HIER"; go: "HIN"
+      farWater: "IM FERNEN WASSER SIND DIE GRÖSSTEN"; nightRain: "MANCHE BEISSEN NUR NACHTS ODER BEI REGEN"
+      next: x => "NÄCHSTE: ${x}"; bestThere: "DAS BESTE, WAS ES GIBT"; tip1: "SPANNUNG REISST SCHWACHE SCHNUR;"; tip2: "LANGSAMES EINHOLEN LÄSST DEN FISCH ZIEHEN"
+      byDay: "TAGSÜBER"; atNight: "NACHTS"; inSnow: "BEI SCHNEE"; inRain: "BEI REGEN"; farOut: "WEIT DRAUSSEN"
+      bestCaught: (b, c) => "REKORD ${b} CM - GEFANGEN ${c}"; notYet: "NOCH NICHT GEFANGEN"; legendTag: "LEGENDE"; size: (a, b) => "${a}-${b} CM"
+      spot: i => ["WEIDENTEICH", "WILDER FLUSS", "FELSENKÜSTE", "OFFENES MEER", "GEFRORENER SEE"][i]
+      fish: i => ["SONNENBARSCH", "BARSCH", "KARPFEN", "WELS", "HECHT", "ALTER BART", "DÖBEL", "FORELLE", "ÄSCHE", "LACHS", "STÖR", "FLUSSKÖNIG", "MAKRELE", "WOLFSBARSCH", "FLUNDER", "MEERAAL", "SCHNAPPER", "WELLENBRECHER", "GOLDMAKRELE", "THUNFISCH", "BARRAKUDA", "ANGLERFISCH", "SCHWERTFISCH", "ALTER BEISSER", "SAIBLING", "RENKE", "SEEFORELLE", "QUAPPE", "GEISTERHECHT", "FROSTMONARCH"][i]
+      gear: (i, l) => [["BAMBUSRUTE", "FASERRUTE", "CARBONRUTE", "PROFIRUTE", "LEGENDENRUTE"], ["ALTE ROLLE", "SPINNROLLE", "KÖDERROLLE", "SURFROLLE", "TROPHÄENROLLE"], ["WURM", "SPINNER", "JIG", "LEUCHTKÖDER", "GOLDKÖDER"]][i][l]
+      gearDesc: i => ["STÄRKERE SCHNUR", "HOLT SCHNELLER EIN", "BEISSEN FRÜHER, SELTENERE FISCHE"][i]
+    }
+    zh {
+      tooSoon: "太早了!"; missed: "错过了"; snapped: "线断了!"; gotAway: "鱼跑了"
+      tension: "张力"; line: "鱼线"; fishLbl: "鱼"
+      running: "鱼在逃! 放松"; getReady: "准备放松"; reeling: "收线中..."; holdReel: "按住收线"
+      holdSwing: "按住蓄力, 松手抛竿"; map: "地图"; shop: "商店"; log: "图鉴"; letGoCast: "松手抛竿"; far: "远"
+      tapNow: "快点!"; waitBite: "等鱼咬钩..."; reelIn: "收线"
+      legend: "传说!"; newFish: "新鱼!"; newRecord: "新纪录!"; caught: "钓到了!"; cm: n => "${n} 厘米"; tapOn: "点击继续钓鱼"
+      tagline: "抛竿, 钩住, 收线"; inLog: n => "图鉴已收录 ${n}/30"; tapFish: "点击钓鱼"; soundOn: "声音开"; soundOff: "声音关"
+      back: "返回"; nFish: n => "${n}/6 条鱼"; gearN: n => "装备 ${n}+"; here: "当前"; go: "前往"
+      farWater: "远处水域有最大的鱼"; nightRain: "有些鱼只在夜里或雨中咬钩"
+      next: x => "下一级: ${x}"; bestThere: "已是最好"; tip1: "张力过大会拉断弱线;"; tip2: "收线太慢鱼会逃走"
+      byDay: "白天"; atNight: "夜间"; inSnow: "雪中"; inRain: "雨中"; farOut: "远处"
+      bestCaught: (b, c) => "最大 ${b} 厘米 - 钓到 ${c} 次"; notYet: "尚未钓到"; legendTag: "传说"; size: (a, b) => "${a}-${b} 厘米"
+      spot: i => ["柳树池塘", "湍急河流", "岩石海岸", "开阔海域", "冰封湖泊"][i]
+      fish: i => ["蓝鳃太阳鱼", "河鲈", "鲤鱼", "鲶鱼", "狗鱼", "老胡子", "雅罗鱼", "鳟鱼", "茴鱼", "鲑鱼", "鲟鱼", "河之王", "鲭鱼", "海鲈", "比目鱼", "康吉鳗", "红鲷鱼", "破浪者", "鬼头刀", "金枪鱼", "梭子鱼", "鮟鱇鱼", "剑鱼", "老獠牙", "北极红点鲑", "白鲑", "湖鳟", "江鳕", "幽灵狗鱼", "霜之君王"][i]
+      gear: (i, l) => [["竹竿", "纤维竿", "碳素竿", "专业竿", "传奇竿"], ["旧渔轮", "纺车轮", "水滴轮", "冲浪轮", "奖杯轮"], ["蚯蚓", "旋转亮片", "铅头钩", "夜光饵", "金饵"]][i][l]
+      gearDesc: i => ["鱼线更结实", "收线更快", "咬钩更快, 鱼更稀有"][i]
+    }
+    ru {
+      tooSoon: "РАНОВАТО!"; missed: "ПРОМАХ"; snapped: "ЛЕСКА ПОРВАНА!"; gotAway: "СОРВАЛАСЬ"
+      tension: "НАТЯГ"; line: "ЛЕСКА"; fishLbl: "РЫБА"
+      running: "УХОДИТ! ОТПУСТИТЕ"; getReady: "ГОТОВЬТЕСЬ ОТПУСТИТЬ"; reeling: "ПОДМАТЫВАЮ..."; holdReel: "ДЕРЖИТЕ, ЧТОБЫ ТЯНУТЬ"
+      holdSwing: "ДЕРЖИТЕ - ЗАМАХ, ОТПУСТИТЕ - ЗАБРОС"; map: "КАРТА"; shop: "МАГАЗИН"; log: "ЖУРНАЛ"; letGoCast: "ОТПУСТИТЕ ДЛЯ ЗАБРОСА"; far: "ДАЛЕКО"
+      tapNow: "ЖМИТЕ!"; waitBite: "ЖДИТЕ ПОКЛЁВКИ..."; reelIn: "СМОТАТЬ"
+      legend: "ЛЕГЕНДА!"; newFish: "НОВАЯ РЫБА!"; newRecord: "НОВЫЙ РЕКОРД!"; caught: "ПОЙМАНА!"; cm: n => "${n} СМ"; tapOn: "НАЖМИТЕ, ЧТОБЫ ПРОДОЛЖИТЬ"
+      tagline: "ЗАБРОС, ПОДСЕЧКА, ВЫВАЖИВАНИЕ"; inLog: n => "${n}/30 РЫБ В ЖУРНАЛЕ"; tapFish: "НАЖМИТЕ, ЧТОБЫ ЛОВИТЬ"; soundOn: "ЗВУК ВКЛ"; soundOff: "ЗВУК ВЫКЛ"
+      back: "НАЗАД"; nFish: n => "РЫБ: ${n}/6"; gearN: n => "СНАСТИ ${n}+"; here: "ЗДЕСЬ"; go: "ЕХАТЬ"
+      farWater: "В ДАЛЬНИХ ВОДАХ - САМАЯ КРУПНАЯ РЫБА"; nightRain: "НЕКОТОРЫЕ КЛЮЮТ ЛИШЬ НОЧЬЮ ИЛИ В ДОЖДЬ"
+      next: x => "ДАЛЕЕ: ${x}"; bestThere: "ЛУЧШЕ НЕ БЫВАЕТ"; tip1: "НАТЯГ РВЁТ СЛАБУЮ ЛЕСКУ;"; tip2: "МЕДЛЕННАЯ КАТУШКА ДАЁТ РЫБЕ УЙТИ"
+      byDay: "ДНЁМ"; atNight: "НОЧЬЮ"; inSnow: "В СНЕГ"; inRain: "В ДОЖДЬ"; farOut: "ДАЛЕКО"
+      bestCaught: (b, c) => "РЕКОРД ${b} СМ - ПОЙМАНО ${c}"; notYet: "ЕЩЁ НЕ ПОЙМАНА"; legendTag: "ЛЕГЕНДА"; size: (a, b) => "${a}-${b} СМ"
+      spot: i => ["ИВОВЫЙ ПРУД", "БУРНАЯ РЕКА", "СКАЛИСТЫЙ БЕРЕГ", "ОТКРЫТОЕ МОРЕ", "ЗАМЁРЗШЕЕ ОЗЕРО"][i]
+      fish: i => ["СОЛНЕЧНЫЙ ОКУНЬ", "ОКУНЬ", "КАРП", "СОМ", "ЩУКА", "СТАРЫЙ УСАЧ", "ГОЛАВЛЬ", "ФОРЕЛЬ", "ХАРИУС", "ЛОСОСЬ", "ОСЁТР", "РЕЧНОЙ КОРОЛЬ", "СКУМБРИЯ", "СИБАС", "КАМБАЛА", "МОРСКОЙ УГОРЬ", "КРАСНЫЙ ЛУЦИАН", "ВОЛНОЛОМ", "ДОРАДО", "ТУНЕЦ", "БАРРАКУДА", "УДИЛЬЩИК", "МЕЧ-РЫБА", "СТАРЫЙ КЛЫК", "ГОЛЕЦ", "СИГ", "ОЗЁРНАЯ ФОРЕЛЬ", "НАЛИМ", "ЩУКА-ПРИЗРАК", "ЛЕДЯНОЙ МОНАРХ"][i]
+      gear: (i, l) => [["БАМБУК-УДОЧКА", "ФИБЕР-УДОЧКА", "КАРБОН-УДОЧКА", "ПРО-УДОЧКА", "УДОЧКА ЛЕГЕНД"], ["СТАРАЯ КАТУШКА", "СПИН-КАТУШКА", "БЕЙТ-КАТУШКА", "СЁРФ-КАТУШКА", "КАТУШКА-ТРОФЕЙ"], ["ЧЕРВЬ", "ВЕРТУШКА", "ДЖИГ", "НЕОН-ПРИМАНКА", "ЗОЛОТАЯ БЛЕСНА"]][i][l]
+      gearDesc: i => ["ЛЕСКА ПРОЧНЕЕ", "СМАТЫВАЕТ БЫСТРЕЕ", "КЛЮЁТ РАНЬШЕ, РЫБА РЕДЧЕ"][i]
+    }
+    ja {
+      tooSoon: "早すぎ!"; missed: "のがした"; snapped: "糸が切れた!"; gotAway: "逃げられた"
+      tension: "テンション"; line: "ライン"; fishLbl: "魚"
+      running: "走った! ゆるめて"; getReady: "ゆるめる準備を"; reeling: "巻き取り中..."; holdReel: "長押しで巻き取る"
+      holdSwing: "長押しで振りかぶり、離して投げる"; map: "地図"; shop: "ショップ"; log: "図鑑"; letGoCast: "離して投げる"; far: "遠く"
+      tapNow: "今タップ!"; waitBite: "アタリを待つ..."; reelIn: "巻き取る"
+      legend: "伝説!"; newFish: "新しい魚!"; newRecord: "新記録!"; caught: "釣れた!"; cm: n => "${n} CM"; tapOn: "タップで続ける"
+      tagline: "投げて、掛けて、巻き取る"; inLog: n => "図鑑 ${n}/30 匹"; tapFish: "タップで釣る"; soundOn: "サウンド ON"; soundOff: "サウンド OFF"
+      back: "戻る"; nFish: n => "${n}/6 匹"; gearN: n => "装備 ${n}+"; here: "ここ"; go: "行く"
+      farWater: "遠くの水域に一番大きな魚がいます"; nightRain: "夜や雨の日にしか釣れない魚もいます"
+      next: x => "次: ${x}"; bestThere: "これが最高です"; tip1: "強い張りは弱い糸を切ります。"; tip2: "巻きが遅いと魚に走られます"
+      byDay: "昼"; atNight: "夜"; inSnow: "雪の日"; inRain: "雨の日"; farOut: "遠く"
+      bestCaught: (b, c) => "最大 ${b} CM - ${c} 匹"; notYet: "まだ釣っていません"; legendTag: "伝説"; size: (a, b) => "${a}-${b} CM"
+      spot: i => ["柳の池", "急流の川", "岩の海岸", "外洋", "凍った湖"][i]
+      fish: i => ["ブルーギル", "パーチ", "コイ", "ナマズ", "パイク", "ヒゲじいさん", "チャブ", "マス", "グレイリング", "サケ", "チョウザメ", "川の王", "サバ", "スズキ", "ヒラメ", "アナゴ", "フエダイ", "波砕き", "シイラ", "マグロ", "バラクーダ", "アンコウ", "メカジキ", "牙じいさん", "イワナ", "ホワイトフィッシュ", "レイクトラウト", "カワメンタイ", "ゴーストパイク", "氷の帝王"][i]
+      gear: (i, l) => [["竹竿", "グラス竿", "カーボン竿", "プロ竿", "伝説の竿"], ["古いリール", "スピニングリール", "ベイトリール", "サーフリール", "トロフィーリール"], ["ミミズ", "スピナー", "ジグ", "夜光ルアー", "金のルアー"]][i][l]
+      gearDesc: i => ["糸が強くなる", "巻き取りが速くなる", "早く食いつき、珍しい魚も"][i]
+    }
+    uk {
+      tooSoon: "ЗАРАНО!"; missed: "ПРОМАХ"; snapped: "ВОЛОСІНЬ ПОРВАНО!"; gotAway: "ЗІРВАЛАСЯ"
+      tension: "НАТЯГ"; line: "ВОЛОСІНЬ"; fishLbl: "РИБА"
+      running: "ТІКАЄ! ВІДПУСТІТЬ"; getReady: "ГОТУЙТЕСЯ ВІДПУСТИТИ"; reeling: "ПІДМОТУЮ..."; holdReel: "ТРИМАЙТЕ, ЩОБ ТЯГНУТИ"
+      holdSwing: "ТРИМАЙТЕ - ЗАМАХ, ВІДПУСТІТЬ - ЗАКИД"; map: "МАПА"; shop: "КРАМНИЦЯ"; log: "ЖУРНАЛ"; letGoCast: "ВІДПУСТІТЬ ДЛЯ ЗАКИДУ"; far: "ДАЛЕКО"
+      tapNow: "ТИСНІТЬ!"; waitBite: "ЧЕКАЙТЕ КЛЮВАННЯ..."; reelIn: "ЗМОТАТИ"
+      legend: "ЛЕГЕНДА!"; newFish: "НОВА РИБА!"; newRecord: "НОВИЙ РЕКОРД!"; caught: "ПІЙМАНО!"; cm: n => "${n} СМ"; tapOn: "ТОРКНІТЬСЯ, ЩОБ ПРОДОВЖИТИ"
+      tagline: "ЗАКИД, ПІДСІЧКА, ВИВАЖУВАННЯ"; inLog: n => "${n}/30 РИБ У ЖУРНАЛІ"; tapFish: "ТОРКНІТЬСЯ, ЩОБ ЛОВИТИ"; soundOn: "ЗВУК УВІМК"; soundOff: "ЗВУК ВИМК"
+      back: "НАЗАД"; nFish: n => "РИБ: ${n}/6"; gearN: n => "СНАСТІ ${n}+"; here: "ТУТ"; go: "ЇХАТИ"
+      farWater: "У ДАЛЕКИХ ВОДАХ - НАЙБІЛЬША РИБА"; nightRain: "ДЕЯКІ КЛЮЮТЬ ЛИШЕ ВНОЧІ АБО В ДОЩ"
+      next: x => "ДАЛІ: ${x}"; bestThere: "КРАЩЕ НЕ БУВАЄ"; tip1: "НАТЯГ РВЕ СЛАБКУ ВОЛОСІНЬ;"; tip2: "ПОВІЛЬНА КОТУШКА ДАЄ РИБІ ПІТИ"
+      byDay: "ВДЕНЬ"; atNight: "ВНОЧІ"; inSnow: "У СНІГ"; inRain: "У ДОЩ"; farOut: "ДАЛЕКО"
+      bestCaught: (b, c) => "РЕКОРД ${b} СМ - ПІЙМАНО ${c}"; notYet: "ЩЕ НЕ ПІЙМАНО"; legendTag: "ЛЕГЕНДА"; size: (a, b) => "${a}-${b} СМ"
+      spot: i => ["ВЕРБОВИЙ СТАВОК", "БУРХЛИВА РІКА", "СКЕЛЯСТИЙ БЕРЕГ", "ВІДКРИТЕ МОРЕ", "ЗАМЕРЗЛЕ ОЗЕРО"][i]
+      fish: i => ["СОНЯЧНИЙ ОКУНЬ", "ОКУНЬ", "КОРОП", "СОМ", "ЩУКА", "СТАРИЙ ВУСАНЬ", "ГОЛОВЕНЬ", "ФОРЕЛЬ", "ХАРИУС", "ЛОСОСЬ", "ОСЕТЕР", "РІЧКОВИЙ КОРОЛЬ", "СКУМБРІЯ", "СИБАС", "КАМБАЛА", "МОРСЬКИЙ ВУГОР", "ЧЕРВОНИЙ ЛУЦІАН", "ХВИЛЕЛАМ", "ДОРАДО", "ТУНЕЦЬ", "БАРАКУДА", "ВУДИЛЬНИК", "РИБА-МЕЧ", "СТАРИЙ ЗУБАНЬ", "ГОЛЕЦЬ", "СИГ", "ОЗЕРНА ФОРЕЛЬ", "МИНЬ", "ЩУКА-ПРИВИД", "КРИЖАНИЙ МОНАРХ"][i]
+      gear: (i, l) => [["БАМБУК-ВУДКА", "ФІБЕР-ВУДКА", "КАРБОН-ВУДКА", "ПРО-ВУДКА", "ВУДКА ЛЕГЕНД"], ["СТАРА КОТУШКА", "СПІН-КОТУШКА", "БЕЙТ-КОТУШКА", "СЕРФ-КОТУШКА", "КОТУШКА-ТРОФЕЙ"], ["ХРОБАК", "ВЕРТУШКА", "ДЖИГ", "НЕОН-ПРИМАНКА", "ЗОЛОТА БЛЕШНЯ"]][i][l]
+      gearDesc: i => ["ВОЛОСІНЬ МІЦНІША", "ЗМОТУЄ ШВИДШЕ", "КЛЮЄ РАНІШЕ, РИБА РІДКІСНІША"][i]
+    }
+    fr {
+      tooSoon: "TROP TÔT !"; missed: "RATÉ"; snapped: "LIGNE CASSÉE !"; gotAway: "IL S'EST ENFUI"
+      tension: "TENSION"; line: "LIGNE"; fishLbl: "POISSON"
+      running: "IL FILE ! RELÂCHE"; getReady: "PRÉPARE-TOI À RELÂCHER"; reeling: "MOULINAGE..."; holdReel: "MAINTIENS POUR MOULINER"
+      holdSwing: "MAINTIENS POUR ARMER, LÂCHE POUR LANCER"; map: "CARTE"; shop: "BOUTIQUE"; log: "CARNET"; letGoCast: "LÂCHE POUR LANCER"; far: "LOIN"
+      tapNow: "TOUCHE !"; waitBite: "ATTENDS LA TOUCHE..."; reelIn: "REMONTER"
+      legend: "LÉGENDE !"; newFish: "NOUVEAU POISSON !"; newRecord: "NOUVEAU RECORD !"; caught: "ATTRAPÉ !"; cm: n => "${n} CM"; tapOn: "TOUCHE POUR CONTINUER"
+      tagline: "LANCE, FERRE ET MOULINE"; inLog: n => "${n}/30 POISSONS AU CARNET"; tapFish: "TOUCHE POUR PÊCHER"; soundOn: "SON ACTIF"; soundOff: "SON COUPÉ"
+      back: "RETOUR"; nFish: n => "${n}/6 POISSONS"; gearN: n => "MATÉRIEL ${n}+"; here: "ICI"; go: "Y ALLER"
+      farWater: "LES EAUX LOINTAINES ONT LES PLUS GROS"; nightRain: "CERTAINS NE MORDENT QUE LA NUIT OU S'IL PLEUT"
+      next: x => "PUIS : ${x}"; bestThere: "LE MEILLEUR QUI SOIT"; tip1: "LA TENSION CASSE UNE LIGNE FAIBLE ;"; tip2: "UN MOULINET LENT LAISSE FILER LE POISSON"
+      byDay: "LE JOUR"; atNight: "LA NUIT"; inSnow: "SOUS LA NEIGE"; inRain: "SOUS LA PLUIE"; farOut: "AU LARGE"
+      bestCaught: (b, c) => "RECORD ${b} CM - PRIS ${c}"; notYet: "PAS ENCORE PRIS"; legendTag: "LÉGENDE"; size: (a, b) => "${a}-${b} CM"
+      spot: i => ["ÉTANG DES SAULES", "RIVIÈRE VIVE", "CÔTE ROCHEUSE", "HAUTE MER", "LAC GELÉ"][i]
+      fish: i => ["CRAPET ARLEQUIN", "PERCHE", "CARPE", "SILURE", "BROCHET", "VIEILLES MOUSTACHES", "CHEVESNE", "TRUITE", "OMBRE", "SAUMON", "ESTURGEON", "ROI DU FLEUVE", "MAQUEREAU", "BAR", "FLET", "CONGRE", "VIVANEAU", "BRISE-LAMES", "CORYPHÈNE", "THON", "BARRACUDA", "BAUDROIE", "ESPADON", "VIEUX CROCS", "OMBLE ARCTIQUE", "CORÉGONE", "TRUITE DE LAC", "LOTTE", "BROCHET FANTÔME", "MONARQUE DU GIVRE"][i]
+      gear: (i, l) => [["CANNE BAMBOU", "CANNE FIBRE", "CANNE CARBONE", "CANNE PRO", "CANNE LÉGENDE"], ["VIEUX MOULINET", "MOULINET SPIN", "MOULINET CAST", "MOULINET SURF", "MOULINET TROPHÉE"], ["VER", "CUILLER", "JIG", "LEURRE LUMINEUX", "LEURRE DORÉ"]][i][l]
+      gearDesc: i => ["LIGNE PLUS SOLIDE", "RAMÈNE PLUS VITE", "TOUCHES PLUS TÔT, POISSONS PLUS RARES"][i]
+    }
+    tr {
+      tooSoon: "ÇOK ERKEN!"; missed: "KAÇIRDIN"; snapped: "MİSİNA KOPTU!"; gotAway: "KAÇTI"
+      tension: "GERİLİM"; line: "MİSİNA"; fishLbl: "BALIK"
+      running: "KAÇIYOR! GEVŞET"; getReady: "GEVŞETMEYE HAZIRLAN"; reeling: "SARILIYOR..."; holdReel: "SARMAK İÇİN BASILI TUT"
+      holdSwing: "SALLAMAK İÇİN TUT, ATMAK İÇİN BIRAK"; map: "HARİTA"; shop: "DÜKKAN"; log: "KAYIT"; letGoCast: "ATMAK İÇİN BIRAK"; far: "UZAK"
+      tapNow: "ŞİMDİ DOKUN!"; waitBite: "VURUŞU BEKLE..."; reelIn: "SAR"
+      legend: "EFSANE!"; newFish: "YENİ BALIK!"; newRecord: "YENİ REKOR!"; caught: "YAKALADIN!"; cm: n => "${n} CM"; tapOn: "DEVAM İÇİN DOKUN"
+      tagline: "AT, TAK VE SAR"; inLog: n => "KAYITTA ${n}/30 BALIK"; tapFish: "BALIK İÇİN DOKUN"; soundOn: "SES AÇIK"; soundOff: "SES KAPALI"
+      back: "GERİ"; nFish: n => "${n}/6 BALIK"; gearN: n => "EKİPMAN ${n}+"; here: "BURADA"; go: "GİT"
+      farWater: "EN BÜYÜK BALIKLAR UZAK SULARDA"; nightRain: "BAZILARI SADECE GECE YA DA YAĞMURDA VURUR"
+      next: x => "SONRAKİ: ${x}"; bestThere: "BUNDAN İYİSİ YOK"; tip1: "GERİLİM ZAYIF MİSİNAYI KOPARIR;"; tip2: "YAVAŞ SARMAK BALIĞI KAÇIRIR"
+      byDay: "GÜNDÜZ"; atNight: "GECE"; inSnow: "KARDA"; inRain: "YAĞMURDA"; farOut: "AÇIKTA"
+      bestCaught: (b, c) => "REKOR ${b} CM - ${c} KEZ"; notYet: "HENÜZ YAKALANMADI"; legendTag: "EFSANE"; size: (a, b) => "${a}-${b} CM"
+      spot: i => ["SÖĞÜT GÖLETİ", "COŞKUN NEHİR", "KAYALIK KIYI", "AÇIK DENİZ", "DONMUŞ GÖL"][i]
+      fish: i => ["MAVİ SOLUNGAÇ", "PERKA", "SAZAN", "YAYIN", "TURNA", "YAŞLI BIYIK", "TATLISU KEFALİ", "ALABALIK", "GÖLGE BALIĞI", "SOMON", "MERSİN", "NEHİR KRALI", "USKUMRU", "LEVREK", "PİSİ", "MİĞRİ", "KIRMIZI MERCAN", "DALGAKIRAN", "LAMBUKA", "TON BALIĞI", "BARAKUDA", "FENER BALIĞI", "KILIÇ BALIĞI", "YAŞLI DİŞLEK", "ARKTİK ALABALIĞI", "AK BALIK", "GÖL ALABALIĞI", "GELİNCİK BALIĞI", "HAYALET TURNA", "AYAZ HÜKÜMDARI"][i]
+      gear: (i, l) => [["BAMBU KAMIŞ", "FİBER KAMIŞ", "KARBON KAMIŞ", "PRO KAMIŞ", "EFSANE KAMIŞ"], ["ESKİ MAKİNE", "SPİN MAKİNE", "YEM MAKİNESİ", "SÖRF MAKİNESİ", "KUPA MAKİNESİ"], ["SOLUCAN", "KAŞIK", "JİG", "IŞIKLI YEM", "ALTIN YEM"]][i][l]
+      gearDesc: i => ["DAHA SAĞLAM MİSİNA", "DAHA HIZLI SARAR", "ERKEN VURUŞ, DAHA NADİR BALIK"][i]
+    }
+    it {
+      tooSoon: "TROPPO PRESTO!"; missed: "MANCATO"; snapped: "LENZA SPEZZATA!"; gotAway: "È SCAPPATO"
+      tension: "TENSIONE"; line: "LENZA"; fishLbl: "PESCE"
+      running: "SCAPPA! MOLLA"; getReady: "PREPARATI A MOLLARE"; reeling: "RECUPERO..."; holdReel: "TIENI PREMUTO PER RECUPERARE"
+      holdSwing: "TIENI PER CARICARE, MOLLA PER LANCIARE"; map: "MAPPA"; shop: "NEGOZIO"; log: "DIARIO"; letGoCast: "RILASCIA PER LANCIARE"; far: "LONTANO"
+      tapNow: "TOCCA ORA!"; waitBite: "ASPETTA CHE ABBOCCHI..."; reelIn: "RECUPERA"
+      legend: "LEGGENDA!"; newFish: "NUOVO PESCE!"; newRecord: "NUOVO RECORD!"; caught: "PRESO!"; cm: n => "${n} CM"; tapOn: "TOCCA PER CONTINUARE"
+      tagline: "LANCIA, FERRA E RECUPERA"; inLog: n => "${n}/30 PESCI NEL DIARIO"; tapFish: "TOCCA PER PESCARE"; soundOn: "AUDIO SÌ"; soundOff: "AUDIO NO"
+      back: "INDIETRO"; nFish: n => "${n}/6 PESCI"; gearN: n => "ATTREZZATURA ${n}+"; here: "QUI"; go: "VAI"
+      farWater: "LE ACQUE LONTANE HANNO I PESCI PIÙ GROSSI"; nightRain: "ALCUNI ABBOCCANO SOLO DI NOTTE O SE PIOVE"
+      next: x => "POI: ${x}"; bestThere: "IL MEGLIO CHE C'È"; tip1: "LA TENSIONE SPEZZA UNA LENZA DEBOLE;"; tip2: "UN MULINELLO LENTO FA SCAPPARE IL PESCE"
+      byDay: "DI GIORNO"; atNight: "DI NOTTE"; inSnow: "CON LA NEVE"; inRain: "CON LA PIOGGIA"; farOut: "AL LARGO"
+      bestCaught: (b, c) => "RECORD ${b} CM - PRESI ${c}"; notYet: "NON ANCORA PRESO"; legendTag: "LEGGENDA"; size: (a, b) => "${a}-${b} CM"
+      spot: i => ["STAGNO DEI SALICI", "FIUME IMPETUOSO", "COSTA ROCCIOSA", "MARE APERTO", "LAGO GHIACCIATO"][i]
+      fish: i => ["PERSICO SOLE", "PERSICO", "CARPA", "PESCE GATTO", "LUCCIO", "VECCHIO BAFFONE", "CAVEDANO", "TROTA", "TEMOLO", "SALMONE", "STORIONE", "RE DEL FIUME", "SGOMBRO", "SPIGOLA", "PASSERA", "GRONGO", "LUTIANO ROSSO", "FRANGIONDE", "LAMPUGA", "TONNO", "BARRACUDA", "RANA PESCATRICE", "PESCE SPADA", "VECCHIA ZANNA", "SALMERINO ARTICO", "CORREGONE", "TROTA DI LAGO", "BOTTATRICE", "LUCCIO FANTASMA", "MONARCA DEL GELO"][i]
+      gear: (i, l) => [["CANNA DI BAMBÙ", "CANNA IN FIBRA", "CANNA CARBONIO", "CANNA PRO", "CANNA LEGGENDA"], ["MULINELLO VECCHIO", "MULINELLO SPIN", "MULINELLO CAST", "MULINELLO SURF", "MULINELLO TROFEO"], ["VERME", "CUCCHIAINO", "JIG", "ESCA LUMINOSA", "ESCA D'ORO"]][i][l]
+      gearDesc: i => ["LENZA PIÙ FORTE", "RECUPERA PIÙ IN FRETTA", "ABBOCCANO PRIMA, PESCI PIÙ RARI"][i]
+    }
+  }
 
   title: ""
   statusBar: false
@@ -273,7 +495,7 @@ app "pixel fishing" {
       if snd { sound(S_REEL) }
       haptic()
     } else if phase == "wait" && time < biteAt && time > castT + 0.8 {
-      msg = "TOO SOON!"
+      msg = str.tooSoon
       msgT = time
       biteAt = time + 2.5 + random() * 3
     }
@@ -284,7 +506,7 @@ app "pixel fishing" {
     haptic()
   }
   when phase == "wait" && time > biteAt + 1 {
-    msg = "MISSED IT"
+    msg = str.missed
     msgT = time
     biteAt = time + 2 + random() * 4
   }
@@ -328,7 +550,7 @@ app "pixel fishing" {
       if snd { sound(card.nw || card.rec || F.boss ? S_TADA : S_COIN) }
       haptic()
     } else {
-      msg = fin.out == 1 ? "LINE SNAPPED!" : "IT GOT AWAY"
+      msg = fin.out == 1 ? str.snapped : str.gotAway
       msgT = time
       if snd { sound(fin.out == 1 ? S_SNAP : S_SPLASH) }
       phase = "idle"
@@ -671,50 +893,50 @@ app "pixel fishing" {
 
             // ---- the panel: the tension, the line out, and the fish's strength ----
             let tc = T > 0.85 ? "#ff5a4a" : T > 0.6 ? "#ffd84a" : "#7ad87a"
-            text("TENSION", 4, 152, size: 2.6, color: "#8a9ab8", font: press)
+            text(str.tension, 4, 152, size: 2.6, color: "#8a9ab8", font: press)
             rect(30, 150, 62, 4, radius: 1, fill: "#22304a")
             rect(30, 150, 62 * clamp(T, 0, 1), 4, radius: 1, fill: T > 0.85 && tt % 0.2 < 0.1 ? "#ffffff" : tc)
             rect(30 + 62 * 0.85, 149.4, 0.5, 5.2, fill: alpha("#ff5a4a", 0.8))
-            text("LINE", 4, 159, size: 2.6, color: "#8a9ab8", font: press)
+            text(str.line, 4, 159, size: 2.6, color: "#8a9ab8", font: press)
             rect(30, 157, 62, 4, radius: 1, fill: "#22304a")
             rect(30, 157, 62 * clamp(cur.d, 0, 1), 4, radius: 1, fill: cur.d > 0.8 ? "#ff8a4a" : "#5aa8e8")
-            text("FISH", 4, 166, size: 2.6, color: "#8a9ab8", font: press)
+            text(str.fishLbl, 4, 166, size: 2.6, color: "#8a9ab8", font: press)
             rect(30, 164, 62, 4, radius: 1, fill: "#22304a")
             rect(30, 164, 62 * cur.m, 4, radius: 1, fill: "#c87ae8")
-            text(cur.ds == 1 ? "IT'S RUNNING! EASE OFF" : warn ? "GET READY TO EASE OFF" : cur.h ? "REELING IN..." : "HOLD TO REEL IN", 48, 174, size: 2.4, color: cur.ds == 1 || warn ? "#ff8a7a" : CREAM, font: press, align: center)
+            text(cur.ds == 1 ? str.running : warn ? str.getReady : cur.h ? str.reeling : str.holdReel, 48, 174, size: 2.4, color: cur.ds == 1 || warn ? "#ff8a7a" : CREAM, font: press, align: center)
           }
 
           // ---- the top bar ----
           circle(5, BY + 5, 2.4, fill: GOLD)
           circle(5, BY + 5, 1.4, fill: "#d8a020")
           text(fmtNum(coins), 9.5, BY + 5.2, size: 3, color: CREAM, font: press)
-          text(SP.n, 60, BY + 5.2, size: 2.2, color: "#a8b8d0", font: press, align: center)
+          text(str.spot(spot), 60, BY + 5.2, size: 2.2, color: "#a8b8d0", font: press, align: center)
           let clk = now == null ? "" : fmtTime(now, "HH:mm")
           text(clk, 93, BY + 5.2, size: 2.2, color: "#a8b8d0", font: press, align: end)
 
           // ---- the panel, outside the fight ----
           if mode == "play" && phase == "idle" {
-            text("HOLD TO SWING, LET GO TO CAST", 48, 153, size: 2.2, color: alpha(CREAM, 0.6 + 0.4 * sin(tt * 200)), font: press, align: center)
-            for b, j in ["MAP", "SHOP", "LOG"] {
+            text(str.holdSwing, 48, 153, size: 2.2, color: alpha(CREAM, 0.6 + 0.4 * sin(tt * 200)), font: press, align: center)
+            for b, j in [str.map, str.shop, str.log] {
               rect(4 + j * 30, 160, 28, 13, radius: 1.5, fill: "#22304a")
               rect(4 + j * 30, 160, 28, 1, fill: "#3a4c6a")
               text(b, 18 + j * 30, 167, size: 3, color: CREAM, font: press, align: center)
             }
           } else if mode == "play" && phase == "aim" {
-            text("LET GO TO CAST", 48, 153, size: 2.6, color: CREAM, font: press, align: center)
+            text(str.letGoCast, 48, 153, size: 2.6, color: CREAM, font: press, align: center)
             rect(10, 159, 76, 6, radius: 1.5, fill: "#22304a")
             rect(10, 159, 76 * sw, 6, radius: 1.5, fill: mix("#7ad87a", "#ff8a4a", sw))
             rect(10 + 76 * 0.55, 158, 0.6, 8, fill: alpha(CREAM, 0.7))
-            text("FAR", 10 + 76 * 0.78, 170, size: 2.2, color: "#8a9ab8", font: press, align: center)
+            text(str.far, 10 + 76 * 0.78, 170, size: 2.2, color: "#8a9ab8", font: press, align: center)
           } else if mode == "play" && phase == "wait" {
             let bit = tt >= biteAt && tt <= biteAt + 1
-            text(bit ? "TAP NOW!" : "WAIT FOR THE BITE...", 48, 153, size: bit ? 4 : 2.6, color: bit ? GOLD : CREAM, font: press, align: center)
+            text(bit ? str.tapNow : str.waitBite, 48, 153, size: bit ? 4 : 2.6, color: bit ? GOLD : CREAM, font: press, align: center)
             rect(31, 160, 34, 13, radius: 1.5, fill: "#22304a")
-            text("REEL IN", 48, 167, size: 2.6, color: "#a8b8d0", font: press, align: center)
+            text(str.reelIn, 48, 167, size: 2.6, color: "#a8b8d0", font: press, align: center)
           }
           if mode == "play" && tt < msgT + 1.6 {
             text(msg, 48.4, 100.4, size: 5, color: INK, font: press, align: center)
-            text(msg, 48, 100, size: 5, color: msg == "TOO SOON!" || msg == "MISSED IT" ? GOLD : "#ff8a7a", font: press, align: center)
+            text(msg, 48, 100, size: 5, color: msg == str.tooSoon || msg == str.missed ? GOLD : "#ff8a7a", font: press, align: center)
           }
 
           // ---- the catch ----
@@ -724,13 +946,13 @@ app "pixel fishing" {
             rect(0 - EL, 0 - ET, 96 + 2 * EL, 180 + ET + EB, fill: alpha(INK, 0.55))
             rect(6, 34, 84, 100, radius: 3, fill: "#1a2438")
             rect(6, 34, 84, 100, radius: 3, stroke: f.boss ? GOLD : "#3a4c6a", width: 1)
-            text(f.boss ? "LEGEND!" : card.nw ? "NEW FISH!" : card.rec ? "NEW RECORD!" : "CAUGHT!", 48, 43, size: 4, color: f.boss || card.nw || card.rec ? GOLD : "#7ad87a", font: press, align: center)
+            text(f.boss ? str.legend : card.nw ? str.newFish : card.rec ? str.newRecord : str.caught, 48, 43, size: 4, color: f.boss || card.nw || card.rec ? GOLD : "#7ad87a", font: press, align: center)
             let bob = sin(tt * 180) * 1.2
             sprite(TPL[f.t], 48 - TW[f.t] * px / 2, 70 - TH[f.t] * px / 2 + bob, px, palette: {o: OUT, d: f.c[0], b: f.c[1], l: f.c[2], f: f.c[3], s: f.c[4], e: "#f8f8f8"})
-            text(f.n, 48, 94, size: 3.6, color: CREAM, font: press, align: center)
-            text("${card.sz} CM", 48, 104, size: 3, color: "#a8b8d0", font: press, align: center)
+            text(str.fish(card.fi), 48, 94, size: 3.6, color: CREAM, font: press, align: center)
+            text(str.cm(card.sz), 48, 104, size: 3, color: "#a8b8d0", font: press, align: center)
             text("+${fmtNum(card.pr)} G", 48, 114, size: 3.6, color: GOLD, font: press, align: center)
-            if cardOk && tt % 1.2 < 0.85 { text("TAP TO FISH ON", 48, 126, size: 2.4, color: "#8a9ab8", font: press, align: center) }
+            if cardOk && tt % 1.2 < 0.85 { text(str.tapOn, 48, 126, size: 2.4, color: "#8a9ab8", font: press, align: center) }
           }
 
           // ---- the title ----
@@ -741,11 +963,11 @@ app "pixel fishing" {
             text("PIXEL", 48, TYc - 7, size: 10, color: CREAM, font: press, align: center)
             text("FISHING", 48.8, TYc + 7.8, size: 10, color: INK, font: press, align: center)
             text("FISHING", 48, TYc + 7, size: 10, color: "#7ad0f0", font: press, align: center)
-            text("CAST, HOOK AND REEL", 48, TYc + 19, size: 2.6, color: "#c8d8e8", font: press, align: center)
+            text(str.tagline, 48, TYc + 19, size: 2.6, color: "#c8d8e8", font: press, align: center)
             let caught = count(got, n => n > 0)
-            if caught > 0 { text("${caught}/30 FISH IN THE LOG", 48, TYc + 27, size: 2.4, color: GOLD, font: press, align: center) }
-            if tt % 1.2 < 0.85 { text("TAP TO FISH", 48, 162, size: 4, color: CREAM, font: press, align: center) }
-            text(snd ? "SOUND ON" : "SOUND OFF", 48, 172, size: 2.4, color: snd ? GOLD : "#8a9ab8", font: press, align: center)
+            if caught > 0 { text(str.inLog(caught), 48, TYc + 27, size: 2.4, color: GOLD, font: press, align: center) }
+            if tt % 1.2 < 0.85 { text(str.tapFish, 48, 162, size: 4, color: CREAM, font: press, align: center) }
+            text(snd ? str.soundOn : str.soundOff, 48, 172, size: 2.4, color: snd ? GOLD : "#8a9ab8", font: press, align: center)
           }
         }
       }
@@ -851,9 +1073,9 @@ app "pixel fishing" {
         translate(OX, MY) {
           scale(q, q, 0, 0) {
             rect(0 - EL, 0 - MY / q - 1, 96 + 2 * EL, SH / q + 2, fill: "#0e1626")
-            text(upper(mode), 4, 8, size: 5, color: CREAM, font: press)
+            text(mode == "map" ? str.map : mode == "shop" ? str.shop : str.log, 4, 8, size: 5, color: CREAM, font: press)
             rect(66, 3, 27, 10, radius: 1.5, fill: "#22304a")
-            text("BACK", 79.5, 8.2, size: 2.8, color: CREAM, font: press, align: center)
+            text(str.back, 79.5, 8.2, size: 2.8, color: CREAM, font: press, align: center)
             circle(5, 18, 2, fill: GOLD)
             text("${fmtNum(coins)} G", 9, 18.2, size: 2.8, color: GOLD, font: press)
 
@@ -867,38 +1089,38 @@ app "pixel fishing" {
                 if here { rect(3, y0, 90, 21, radius: 2, stroke: "#5aa8e8", width: 0.6) }
                 rect(6, y0 + 3, 15, 15, radius: 1.5, fill: linear(0, y0 + 3, 0, y0 + 18, s.w))
                 rect(6, y0 + 3, 15, 4, radius: 1.5, fill: i == 4 ? "#e8f0f6" : i == 3 ? "#4a9ae0" : "#5a8a5a")
-                text(s.n, 25, y0 + 7, size: 2.8, color: owned[i] == 1 ? CREAM : "#8a9ab8", font: press)
-                text(owned[i] == 1 ? "${n}/6 FISH" : "GEAR ${i + 1}+", 25, y0 + 15, size: 2.2, color: "#8a9ab8", font: press)
-                text(here ? "HERE" : owned[i] == 1 ? "GO" : "${fmtNum(s.c)} G", 90, y0 + 15, size: 2.4, color: here ? "#5aa8e8" : owned[i] == 1 ? "#7ad87a" : can ? GOLD : "#ff7a6a", font: press, align: end)
+                text(str.spot(i), 25, y0 + 7, size: 2.8, color: owned[i] == 1 ? CREAM : "#8a9ab8", font: press)
+                text(owned[i] == 1 ? str.nFish(n) : str.gearN(i + 1), 25, y0 + 15, size: 2.2, color: "#8a9ab8", font: press)
+                text(here ? str.here : owned[i] == 1 ? str.go : "${fmtNum(s.c)} G", 90, y0 + 15, size: 2.4, color: here ? "#5aa8e8" : owned[i] == 1 ? "#7ad87a" : can ? GOLD : "#ff7a6a", font: press, align: end)
               }
-              text("THE FAR WATER HOLDS THE BIGGEST FISH", 48, 150, size: 2, color: "#6a7a98", font: press, align: center)
-              text("SOME ONLY BITE AT NIGHT OR IN THE RAIN", 48, 156, size: 2, color: "#6a7a98", font: press, align: center)
+              text(str.farWater, 48, 150, size: 2, color: "#6a7a98", font: press, align: center)
+              text(str.nightRain, 48, 156, size: 2, color: "#6a7a98", font: press, align: center)
             } else if mode == "shop" {
               rect(62, 14.5, 31, 7.5, radius: 1.5, fill: "#22304a")
-              text(snd ? "SOUND ON" : "SOUND OFF", 77.5, 18.4, size: 2.2, color: snd ? CREAM : "#6a7a98", font: press, align: center)
+              text(snd ? str.soundOn : str.soundOff, 77.5, 18.4, size: 2.2, color: snd ? CREAM : "#6a7a98", font: press, align: center)
               for g, i in GEAR {
                 let y0 = 24 + i * 44
                 let lv = LV[i]
                 rect(3, y0, 90, 40, radius: 2, fill: "#182234")
-                text(g.n[lv], 7, y0 + 7, size: 3.2, color: CREAM, font: press)
+                text(str.gear(i, lv), 7, y0 + 7, size: 3.2, color: CREAM, font: press)
                 for k in range(5) { rect(7 + k * 6, y0 + 12, 5, 2.4, radius: 0.6, fill: k <= lv ? "#7ad87a" : "#2a3a52") }
-                text(g.d, 7, y0 + 19, size: 2.2, color: "#8a9ab8", font: press)
+                text(str.gearDesc(i), 7, y0 + 19, size: 2.2, color: "#8a9ab8", font: press)
                 if lv < 4 {
                   let c = g.c[lv + 1]
-                  text("NEXT: ${g.n[lv + 1]}", 7, y0 + 29, size: 2.2, color: "#a8b8d0", font: press)
+                  text(str.next(str.gear(i, lv + 1)), 7, y0 + 29, size: 2.2, color: "#a8b8d0", font: press)
                   rect(58, y0 + 24, 32, 12, radius: 1.5, fill: coins >= c ? "#2a6a3a" : "#3a2a34")
                   text("${fmtNum(c)} G", 74, y0 + 30.2, size: 2.6, color: coins >= c ? CREAM : "#ff7a6a", font: press, align: center)
                 } else {
-                  text("THE BEST THERE IS", 7, y0 + 29, size: 2.2, color: GOLD, font: press)
+                  text(str.bestThere, 7, y0 + 29, size: 2.2, color: GOLD, font: press)
                 }
               }
-              text("TENSION SNAPS A WEAK LINE;", 48, 160, size: 2, color: "#6a7a98", font: press, align: center)
-              text("A SLOW REEL LETS THE FISH RUN", 48, 166, size: 2, color: "#6a7a98", font: press, align: center)
+              text(str.tip1, 48, 160, size: 2, color: "#6a7a98", font: press, align: center)
+              text(str.tip2, 48, 166, size: 2, color: "#6a7a98", font: press, align: center)
             } else {
               text("${count(got, n => n > 0)}/30", 92, 18.2, size: 2.8, color: CREAM, font: press, align: end)
               for s, i in SPOTS {
                 let y0 = 22 + i * 24
-                text(s.n, 4, y0 + 3, size: 2.2, color: owned[i] == 1 ? "#a8b8d0" : "#4a5a78", font: press)
+                text(str.spot(i), 4, y0 + 3, size: 2.2, color: owned[i] == 1 ? "#a8b8d0" : "#4a5a78", font: press)
                 for j in range(6) {
                   let k = i * 6 + j
                   let f = FISH[k]
@@ -914,11 +1136,11 @@ app "pixel fishing" {
               let f = FISH[sel]
               let has = got[sel] > 0
               rect(3, 144, 90, 30, radius: 2, fill: "#182234")
-              text(has ? f.n : "???", 7, 150, size: 3, color: has ? CREAM : "#6a7a98", font: press)
-              let when = [f.tod == 1 ? "BY DAY" : f.tod == 2 ? "AT NIGHT" : "", f.wet ? spot == 4 || f.sp == 4 ? "IN SNOW" : "IN RAIN" : "", f.far ? "FAR OUT" : ""].filter(w => w != "")
-              text("${SPOTS[f.sp].n}${len(when) > 0 ? " - " + join(when, ", ") : ""}", 7, 157, size: 1.9, color: "#8a9ab8", font: press)
-              text(has ? "BEST ${best[sel]} CM - CAUGHT ${got[sel]}" : "NOT CAUGHT YET", 7, 164, size: 2.2, color: has ? "#a8b8d0" : "#6a7a98", font: press)
-              text(f.boss ? "LEGEND" : "${f.z[0]}-${f.z[1]} CM", 89, 150, size: 2, color: f.boss ? GOLD : "#6a7a98", font: press, align: end)
+              text(has ? str.fish(sel) : "???", 7, 150, size: 3, color: has ? CREAM : "#6a7a98", font: press)
+              let when = [f.tod == 1 ? str.byDay : f.tod == 2 ? str.atNight : "", f.wet ? spot == 4 || f.sp == 4 ? str.inSnow : str.inRain : "", f.far ? str.farOut : ""].filter(w => w != "")
+              text("${str.spot(f.sp)}${len(when) > 0 ? " - " + join(when, ", ") : ""}", 7, 157, size: 1.9, color: "#8a9ab8", font: press)
+              text(has ? str.bestCaught(best[sel], got[sel]) : str.notYet, 7, 164, size: 2.2, color: has ? "#a8b8d0" : "#6a7a98", font: press)
+              text(f.boss ? str.legendTag : str.size(f.z[0], f.z[1]), 89, 150, size: 2, color: f.boss ? GOLD : "#6a7a98", font: press, align: end)
             }
           }
         }

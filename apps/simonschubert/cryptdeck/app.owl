@@ -13,12 +13,1466 @@ app "cryptdeck" {
   // `drawQ` draws `drawN` cards, `endQ` plays the enemies' turn, `winQ` hands out the spoils and
   // `gainQ` gives the relic `gainR`.
 
-  meta { owl: 23; description: "A pixel-art deckbuilder roguelite: climb a three-act crypt, pick your path on a branching map, collect relics and beat the bosses, with a card collection that grows every run; taps only"; version: "1.1.1"; license: "MIT"; category: "games" }
+  meta { owl: 23; description: "A pixel-art deckbuilder roguelite: climb a three-act crypt, pick your path on a branching map, collect relics and beat the bosses, with a card collection that grows every run; taps only"; version: "1.2"; license: "MIT"; category: "games" }
 
   title: ""
   statusBar: false
   edge: true
   icon: """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" shape-rendering="crispEdges"><defs><clipPath id="t"><rect width="256" height="256" rx="56"/></clipPath></defs><g clip-path="url(#t)"><rect width="256" height="256" fill="#24202e"/><rect x="0" y="176" width="256" height="80" fill="#2e2a3a"/></g><rect x="40" y="36" width="120" height="168" rx="10" fill="#14121c" transform="rotate(-10 100 120)"/><rect x="48" y="44" width="104" height="152" rx="6" fill="#3a62a8" transform="rotate(-10 100 120)"/><rect x="96" y="40" width="124" height="172" rx="10" fill="#14121c"/><rect x="104" y="48" width="108" height="156" rx="6" fill="#ffd04a"/><rect x="110" y="54" width="96" height="144" rx="4" fill="#a83a3a"/><rect x="118" y="62" width="80" height="62" fill="#6a2026"/><rect x="116" y="134" width="84" height="56" rx="3" fill="#efe4c8"/><rect x="128" y="146" width="60" height="8" fill="#14121c"/><rect x="136" y="164" width="44" height="8" fill="#14121c"/><path fill="#14121c" d="M178 66h12v6h-6v6h-6v6h-6v6h-6v6h-6v6h-6v6h-6v6h6v6h-6v-6h-6v6h-6v-6h6v-6h6v-6h6v-6h6v-6h6v-6h6v-6h6v-6h6z"/><path fill="#eef2fa" d="M178 72h6v6h-6v6h-6v6h-6v6h-6v6h-6v6h-6v-6h6v-6h6v-6h6v-6h6v-6h6z"/><path fill="#c08a30" d="M136 114h6v6h-6zM130 120h6v6h-6z"/><circle cx="110" cy="56" r="18" fill="#14121c"/><circle cx="110" cy="56" r="14" fill="#ffd04a"/><rect x="106" y="48" width="8" height="16" fill="#14121c"/></svg>"""
+
+  strings {
+    en {
+      // Everything is upper case, in a pixel font. A card's name sits in a 54 px strip and shrinks to fit,
+      // so keep names short (15 letters at most); its rules lines shrink to fit 104 px too.
+      cards: ["STRIKE", "DEFEND", "BASH", "CLEAVE", "TWIN STRIKE", "IRON WAVE", "POMMEL STRIKE", "SHRUG IT OFF", "ANGER", "CLOTHESLINE", "THUNDERCLAP", "BODY SLAM", "WAR CRY", "HEMOKINESIS", "UPPERCUT", "INFLAME", "METALLICIZE", "SEEING RED", "ENTRENCH", "FLAME BARRIER", "HEAVY BLADE", "SHOCKWAVE", "BATTLE TRANCE", "CARNAGE", "DEMON FORM", "BLUDGEON", "IMPERVIOUS", "OFFERING", "BARRICADE", "LIMIT BREAK", "THORN CAGE", "SLIMED", "SOUL REND", "EXECUTE", "BLOOD OATH", "SPECTRAL BLADES", "CRYPT LANTERN", "MIRROR WARD"]
+      // Relics: a name and what it does (one line, at most about 40 letters).
+      relicN: ["BURNING BLOOD", "ANCHOR", "BAG OF MARBLES", "LANTERN", "VAJRA", "ORICHALCUM", "BLOOD VIAL", "SHURIKEN", "HAPPY FLOWER", "BRONZE SCALES", "GOLDEN IDOL", "MEAL TICKET", "STRAWBERRY", "ICE CREAM", "HORN CLEAT", "PUZZLE BOX", "PREP BAG", "PILLOW", "HOURGLASS", "PEAR", "ETERNAL FLAME", "OLD TOME", "BLACK BLOOD"]
+      relicD: ["HEAL 6 AFTER A FIGHT", "10 BLOCK ON TURN 1", "ENEMIES START VULNERABLE", "+1 ENERGY ON TURN 1", "START FIGHTS WITH 1 STRENGTH", "NO BLOCK AT TURN END: GAIN 6", "HEAL 2 AS A FIGHT STARTS", "EVERY 3RD ATTACK IN A TURN: +1 STR", "+1 ENERGY EVERY 3RD TURN", "ATTACKERS TAKE 3 DAMAGE", "25% MORE GOLD FROM FIGHTS", "HEAL 15 ON ENTERING A SHOP", "+7 MAX HP", "UNUSED ENERGY CARRIES OVER", "14 BLOCK ON TURN 2", "FIRST HP LOST IN A FIGHT: DRAW 3", "DRAW 2 MORE ON TURN 1", "RESTING HEALS 15 MORE", "3 DAMAGE TO ALL EACH TURN", "+10 MAX HP", "+1 ENERGY EVERY TURN", "DRAW 1 MORE EVERY TURN", "HEAL 12 MORE AFTER A FIGHT"]
+      foes: ["SLIME", "RAT", "CULTIST", "JAW WORM", "SKELETON", "BAT", "SHROOM", "DARK KNIGHT", "GOLEM", "THE LICH", "THE WYRM", "THE EYE"]
+      acts: ["THE CRYPT", "THE CATACOMBS", "THE ABYSS"]
+      // The strange rooms: a name, two lines of what's there (about 22 letters each), and the two choices.
+      evN: ["SHRINE", "FOUNTAIN", "GAMBLER", "FORGE"]
+      evT: [["A STONE SHRINE HUMS", "WITH A FAINT LIGHT."], ["CLEAR WATER BUBBLES", "UP OUT OF THE ROCK."], ["A HOODED FIGURE", "SHUFFLES A DECK."], ["AN ABANDONED ANVIL", "STILL GLOWS RED."]]
+      evA: ["PRAY: LOSE 7 HP FOR A RELIC", "DRINK", "PAY 50 GOLD FOR A RARE CARD", "UPGRADE A CARD"]
+      evB: ["LEAVE IT BE", "BATHE: REMOVE A CARD", "WALK AWAY", "SEARCH THE ASHES: 35 GOLD"]
+      drinkHeal: n => "DRINK: HEAL ${n} HP"
+      shrineGives: name => "THE SHRINE GIVES: ${name}"
+      shrineGold: "THE SHRINE GIVES 50 GOLD"
+      refreshed: "YOU FEEL REFRESHED"
+      youWin: name => "YOU WIN ${name}"
+      find35: "YOU FIND 35 GOLD"
+      // Banners across the fight, big; the second line small.
+      elite: "ELITE"
+      battle: "BATTLE"
+      bossOfAct: n => "BOSS OF ACT ${n}"
+      foesN: n => "${n} FOES"
+      yourTurn: "YOUR TURN"
+      turnN: n => "TURN ${n}"
+      enemyTurn: "ENEMY TURN"
+      // Words floating up over a fighter.
+      plusStr: n => "+${n} STR"
+      ritual: n => "RITUAL ${n}"
+      vulnerable: "VULNERABLE"
+      weak: "WEAK"
+      slimed: n => "+${n} SLIMED"
+      blocked: "BLOCKED"
+      plusEnergy: n => "+${n} ENERGY"
+      plusHp: n => "+${n} HP"
+      // Buttons; their text shrinks to fit.
+      upgrade: "UPGRADE"
+      remove: "REMOVE"
+      newRun: "NEW RUN"
+      cont: "CONTINUE"
+      deck: "DECK"
+      nCards: n => "${n} CARDS"
+      pack: "PACK"
+      toOpen: n => "${n} TO OPEN"
+      tomorrow: "NEXT ONE TOMORROW"
+      done: "DONE"
+      needs10: "A DECK NEEDS 10 CARDS"
+      collect: "COLLECT"
+      endTurn: "END TURN"
+      skip: "SKIP"
+      removeOne: "REMOVE ONE"
+      instead: "INSTEAD"
+      onToAct: n => "ON TO ACT ${n}"
+      rest: "REST"
+      healHp: n => "HEAL ${n} HP"
+      smith: "SMITH"
+      upgradeCard: "UPGRADE A CARD"
+      nothingUp: "NOTHING TO UPGRADE"
+      leave: "LEAVE"
+      soldOut: "SOLD OUT"
+      nGold: n => "${n} GOLD"
+      title: "TITLE"
+      // The map.
+      actLine: (n, name) => "ACT ${n} · ${name}"
+      actN: n => "ACT ${n}"
+      pickRoom: "PICK THE NEXT ROOM"
+      tagline: "A DECKBUILDING CRAWL"
+      // Under the draw and discard piles, tiny.
+      draw: "DRAW"
+      discard: "DISCARD"
+      noEnergy: "NOT ENOUGH ENERGY"
+      tapEnemy: "TAP AN ENEMY"
+      tapAgain: "TAP THE CARD AGAIN TO PLAY"
+      victory: "VICTORY"
+      plusGold: n => "+${n} GOLD"
+      plusPack: "+1 CARD PACK"
+      takeCard: "TAKE A CARD"
+      bossRelic: "CHOOSE A BOSS RELIC"
+      wayDown: "THE WAY DOWN OPENS"
+      campfire: "CAMPFIRE"
+      restHere: "REST HERE, OR SHARPEN A CARD"
+      treasure: "TREASURE"
+      merchant: "MERCHANT"
+      sold: "SOLD"
+      victoryBang: "VICTORY!"
+      youDied: "YOU DIED"
+      cleared: "THE CRYPT IS CLEARED"
+      actFloor: (a, f) => "ACT ${a}, FLOOR ${f}"
+      runStats: (cards, relics, gold) => "${cards} CARDS · ${relics} RELICS · ${gold} GOLD"
+      runsWon: n => "RUNS WON: ${n}"
+      best: (a, f) => "BEST: ACT ${a}, FLOOR ${f}"
+      packOf: "A PACK OF CARDS"
+      joinColl: "THEY JOIN YOUR COLLECTION"
+      newBang: "NEW!"
+      // Building the deck: a title and two lines of help, tiny.
+      yourDeck: "YOUR DECK"
+      buildHelp1: "WHAT A NEW RUN STARTS WITH. CARDS FROM"
+      buildHelp2: "RUNS AND PACKS LAND HERE. TAP A NAME TO SEE IT"
+      removeCard: "REMOVE A CARD"
+      drawPile: n => "DRAW PILE (${n})"
+      discPile: n => "DISCARD PILE (${n})"
+      deckOf: n => "YOUR DECK (${n})"
+      nothingHere: "NOTHING HERE"
+      upgraded: "UPGRADED"
+      tapBack: "TAP ANYWHERE TO GO BACK"
+      // A card's rules, a line each; some take two lines (a list of two).
+      dmgBlockN: n => "DMG = BLOCK ${n}"
+      dmgBlock: "DMG = BLOCK"
+      dmg: (n, times, all) => "DMG ${n}${times > 1 ? " x${times}" : ""}${all ? " ALL" : ""}"
+      strCounts: n => "STR COUNTS x${n}"
+      blockN: n => "BLOCK ${n}"
+      doubleBlock: "DOUBLE BLOCK"
+      vulnN: (n, all) => "VULNERABLE ${n}${all ? " ALL" : ""}"
+      weakN: (n, all) => "WEAK ${n}${all ? " ALL" : ""}"
+      strength: n => "+${n} STRENGTH"
+      doubleStr: "DOUBLE STRENGTH"
+      strEachTurn: n => "+${n} STR EACH TURN"
+      blockEachTurn: n => ["${n} BLOCK EACH", "TURN'S END"]
+      thorns: n => "THORNS ${n}"
+      thornsTurn: n => "THORNS ${n} THIS TURN"
+      keepBlock: ["BLOCK NO LONGER", "WEARS OFF"]
+      loseHp: n => "LOSE ${n} HP"
+      drawN: n => "DRAW ${n}"
+      copyLine: ["A COPY GOES TO", "YOUR DISCARD"]
+      exeLine: ["DOUBLE ON FOES", "BELOW HALF HP"]
+      drainLine: ["HEAL THE DAMAGE", "THAT GETS THROUGH"]
+      clogs: "CLOGS YOUR HAND"
+      exhaust: "EXHAUST"
+    }
+    id {
+      cards: ["SERANG", "BERTAHAN", "HANTAM", "BELAH", "SERANG GANDA", "OMBAK BESI", "PUKULAN GAGANG", "ABAIKAN", "AMARAH", "JEMURAN", "GELEDEK", "BANTING BADAN", "TERIAK PERANG", "HEMOKINESIS", "UPERKAT", "MEMBARA", "LOGAMISASI", "MATA MERAH", "BENTENGI", "DINDING API", "PEDANG BERAT", "GELOMBANG KEJUT", "TRANS PERANG", "PEMBANTAIAN", "WUJUD IBLIS", "GADA", "KEBAL", "PERSEMBAHAN", "BARIKADE", "LAMPAUI BATAS", "KANDANG DURI", "BERLENDIR", "KOYAK JIWA", "EKSEKUSI", "SUMPAH DARAH", "PEDANG HANTU", "LENTERA KRIPTA", "PERISAI CERMIN"]
+      relicN: ["DARAH MEMBARA", "JANGKAR", "KANTONG KELERENG", "LENTERA", "VAJRA", "ORIKALKUM", "BOTOL DARAH", "SHURIKEN", "BUNGA CERIA", "SISIK PERUNGGU", "BERHALA EMAS", "KUPON MAKAN", "STROBERI", "ES KRIM", "KAIT TANDUK", "KOTAK TEKA-TEKI", "TAS BEKAL", "BANTAL", "JAM PASIR", "PIR", "API ABADI", "KITAB TUA", "DARAH HITAM"]
+      relicD: ["PULIH 6 SETELAH BERTARUNG", "10 BLOK DI GILIRAN 1", "MUSUH MULAI RENTAN", "+1 ENERGI DI GILIRAN 1", "MULAI BERTARUNG DENGAN 1 KEKUATAN", "TANPA BLOK DI AKHIR GILIRAN: +6", "PULIH 2 SAAT PERTARUNGAN MULAI", "TIAP SERANGAN KE-3 SEGILIRAN: +1 KEK", "+1 ENERGI TIAP 3 GILIRAN", "PENYERANG KENA 3 KERUSAKAN", "25% EMAS LEBIH DARI PERTARUNGAN", "PULIH 15 SAAT MASUK TOKO", "+7 HP MAKS", "SISA ENERGI DISIMPAN", "14 BLOK DI GILIRAN 2", "HP PERTAMA HILANG: AMBIL 3", "AMBIL 2 LAGI DI GILIRAN 1", "ISTIRAHAT PULIH 15 LEBIH", "3 KERUSAKAN KE SEMUA TIAP GILIRAN", "+10 HP MAKS", "+1 ENERGI TIAP GILIRAN", "AMBIL 1 LAGI TIAP GILIRAN", "PULIH 12 LEBIH SETELAH BERTARUNG"]
+      foes: ["LENDIR", "TIKUS", "PEMUJA", "CACING RAHANG", "TENGKORAK", "KELELAWAR", "JAMUR", "KESATRIA GELAP", "GOLEM", "SANG LICH", "SANG NAGA", "SANG MATA"]
+      acts: ["KRIPTA", "KATAKOMBE", "JURANG"]
+      evN: ["KUIL", "MATA AIR", "PENJUDI", "TEMPA"]
+      evT: [["KUIL BATU BERDENGUNG", "DENGAN CAHAYA REDUP."], ["AIR JERNIH MENGGELEGAK", "DARI DALAM BATU."], ["SOSOK BERTUDUNG", "MENGOCOK KARTU."], ["LANDASAN TEMPA TERBENGKALAI", "MASIH MENYALA MERAH."]]
+      evA: ["BERDOA: -7 HP DEMI RELIK", "MINUM", "BAYAR 50 EMAS DEMI KARTU LANGKA", "TINGKATKAN KARTU"]
+      evB: ["BIARKAN SAJA", "MANDI: BUANG SATU KARTU", "PERGI", "CARI DI ABU: 35 EMAS"]
+      drinkHeal: n => "MINUM: PULIH ${n} HP"
+      shrineGives: name => "KUIL MEMBERI: ${name}"
+      shrineGold: "KUIL MEMBERI 50 EMAS"
+      refreshed: "KAMU MERASA SEGAR"
+      youWin: name => "KAMU MENDAPAT ${name}"
+      find35: "KAMU MENEMUKAN 35 EMAS"
+      elite: "ELITE"
+      battle: "PERTARUNGAN"
+      bossOfAct: n => "BOS BABAK ${n}"
+      foesN: n => "${n} MUSUH"
+      yourTurn: "GILIRANMU"
+      turnN: n => "GILIRAN ${n}"
+      enemyTurn: "GILIRAN MUSUH"
+      plusStr: n => "+${n} KEK"
+      ritual: n => "RITUAL ${n}"
+      vulnerable: "RENTAN"
+      weak: "LEMAH"
+      slimed: n => "+${n} BERLENDIR"
+      blocked: "DIBLOK"
+      plusEnergy: n => "+${n} ENERGI"
+      plusHp: n => "+${n} HP"
+      upgrade: "TINGKATKAN"
+      remove: "BUANG"
+      newRun: "PETUALANGAN BARU"
+      cont: "LANJUTKAN"
+      deck: "DEK"
+      nCards: n => "${n} KARTU"
+      pack: "PAKET"
+      toOpen: n => "${n} BISA DIBUKA"
+      tomorrow: "BERIKUTNYA BESOK"
+      done: "SELESAI"
+      needs10: "DEK BUTUH 10 KARTU"
+      collect: "AMBIL"
+      endTurn: "AKHIRI GILIRAN"
+      skip: "LEWATI"
+      removeOne: "BUANG SATU"
+      instead: "SEBAGAI GANTINYA"
+      onToAct: n => "KE BABAK ${n}"
+      rest: "ISTIRAHAT"
+      healHp: n => "PULIH ${n} HP"
+      smith: "TEMPA"
+      upgradeCard: "TINGKATKAN KARTU"
+      nothingUp: "TAK ADA YANG BISA DITINGKATKAN"
+      leave: "PERGI"
+      soldOut: "HABIS"
+      nGold: n => "${n} EMAS"
+      title: "JUDUL"
+      actLine: (n, name) => "BABAK ${n} · ${name}"
+      actN: n => "BABAK ${n}"
+      pickRoom: "PILIH RUANG BERIKUTNYA"
+      tagline: "PETUALANGAN DEK KARTU"
+      draw: "AMBIL"
+      discard: "BUANGAN"
+      noEnergy: "ENERGI TIDAK CUKUP"
+      tapEnemy: "KETUK MUSUH"
+      tapAgain: "KETUK KARTU LAGI UNTUK MEMAINKAN"
+      victory: "MENANG"
+      plusGold: n => "+${n} EMAS"
+      plusPack: "+1 PAKET KARTU"
+      takeCard: "AMBIL SATU KARTU"
+      bossRelic: "PILIH RELIK BOS"
+      wayDown: "JALAN TURUN TERBUKA"
+      campfire: "API UNGGUN"
+      restHere: "ISTIRAHAT DI SINI, ATAU ASAH KARTU"
+      treasure: "HARTA"
+      merchant: "PEDAGANG"
+      sold: "TERJUAL"
+      victoryBang: "MENANG!"
+      youDied: "KAMU TEWAS"
+      cleared: "KRIPTA SUDAH BERSIH"
+      actFloor: (a, f) => "BABAK ${a}, LANTAI ${f}"
+      runStats: (cards, relics, gold) => "${cards} KARTU · ${relics} RELIK · ${gold} EMAS"
+      runsWon: n => "MENANG: ${n} KALI"
+      best: (a, f) => "TERBAIK: BABAK ${a}, LANTAI ${f}"
+      packOf: "SEPAKET KARTU"
+      joinColl: "MASUK KE KOLEKSIMU"
+      newBang: "BARU!"
+      yourDeck: "DEKMU"
+      buildHelp1: "INI AWAL TIAP PETUALANGAN BARU. KARTU DARI"
+      buildHelp2: "PETUALANGAN DAN PAKET MASUK KE SINI. KETUK NAMA UNTUK MELIHAT"
+      removeCard: "BUANG SATU KARTU"
+      drawPile: n => "TUMPUKAN AMBIL (${n})"
+      discPile: n => "TUMPUKAN BUANG (${n})"
+      deckOf: n => "DEKMU (${n})"
+      nothingHere: "TIDAK ADA APA-APA"
+      upgraded: "DITINGKATKAN"
+      tapBack: "KETUK DI MANA SAJA UNTUK KEMBALI"
+      dmgBlockN: n => "RUSAK = BLOK ${n}"
+      dmgBlock: "RUSAK = BLOK"
+      dmg: (n, times, all) => "RUSAK ${n}${times > 1 ? " x${times}" : ""}${all ? " SEMUA" : ""}"
+      strCounts: n => "KEK DIHITUNG x${n}"
+      blockN: n => "BLOK ${n}"
+      doubleBlock: "BLOK GANDA"
+      vulnN: (n, all) => "RENTAN ${n}${all ? " SEMUA" : ""}"
+      weakN: (n, all) => "LEMAH ${n}${all ? " SEMUA" : ""}"
+      strength: n => "+${n} KEKUATAN"
+      doubleStr: "KEKUATAN GANDA"
+      strEachTurn: n => "+${n} KEK TIAP GILIRAN"
+      blockEachTurn: n => ["${n} BLOK TIAP", "AKHIR GILIRAN"]
+      thorns: n => "DURI ${n}"
+      thornsTurn: n => "DURI ${n} GILIRAN INI"
+      keepBlock: ["BLOK TIDAK", "HILANG LAGI"]
+      loseHp: n => "KEHILANGAN ${n} HP"
+      drawN: n => "AMBIL ${n}"
+      copyLine: ["SALINANNYA MASUK", "KE BUANGANMU"]
+      exeLine: ["GANDA PADA MUSUH", "DI BAWAH SETENGAH HP"]
+      drainLine: ["PULIHKAN KERUSAKAN", "YANG TEMBUS"]
+      clogs: "MENYUMBAT TANGANMU"
+      exhaust: "HABIS PAKAI"
+    }
+    es {
+      cards: ["GOLPE", "DEFENSA", "MACHAQUE", "HENDIDURA", "GOLPE DOBLE", "OLA DE HIERRO", "POMAZO", "SACUDIRSE", "IRA", "PLANCHA", "TRUENO", "PLACAJE", "GRITO DE GUERRA", "HEMOQUINESIS", "GANCHO", "INFLAMAR", "METALIZAR", "VER ROJO", "ATRINCHERAR", "BARRERA DE LLAMAS", "HOJA PESADA", "ONDA DE CHOQUE", "TRANCE BÉLICO", "MATANZA", "FORMA DEMONIACA", "MAZAZO", "IMPENETRABLE", "OFRENDA", "BARRICADA", "SIN LÍMITES", "JAULA DE ESPINAS", "BABOSO", "DESGARRO", "EJECUTAR", "PACTO DE SANGRE", "HOJAS ESPECTRALES", "FAROL DE CRIPTA", "GUARDA ESPEJO"]
+      relicN: ["SANGRE ARDIENTE", "ANCLA", "BOLSA DE CANICAS", "FAROL", "VAJRA", "ORICALCO", "VIAL DE SANGRE", "SHURIKEN", "FLOR FELIZ", "ESCAMAS DE BRONCE", "ÍDOLO DORADO", "VALE DE COMIDA", "FRESA", "HELADO", "CORNAMUSA", "CAJA ENIGMA", "BOLSA DE VIAJE", "ALMOHADA", "RELOJ DE ARENA", "PERA", "LLAMA ETERNA", "TOMO ANTIGUO", "SANGRE NEGRA"]
+      relicD: ["CURA 6 TRAS UN COMBATE", "10 DE BLOQUEO EN EL TURNO 1", "LOS ENEMIGOS EMPIEZAN VULNERABLES", "+1 ENERGÍA EN EL TURNO 1", "EMPIEZA LOS COMBATES CON 1 FUERZA", "SIN BLOQUEO AL FINAL DEL TURNO: +6", "CURA 2 AL EMPEZAR UN COMBATE", "CADA 3.ER ATAQUE DEL TURNO: +1 FUE", "+1 ENERGÍA CADA 3 TURNOS", "LOS ATACANTES RECIBEN 3 DE DAÑO", "25% MÁS ORO DE LOS COMBATES", "CURA 15 AL ENTRAR EN UNA TIENDA", "+7 PV MÁX.", "LA ENERGÍA SOBRANTE SE GUARDA", "14 DE BLOQUEO EN EL TURNO 2", "PRIMEROS PV PERDIDOS: ROBA 3", "ROBA 2 MÁS EN EL TURNO 1", "DESCANSAR CURA 15 MÁS", "3 DE DAÑO A TODOS CADA TURNO", "+10 PV MÁX.", "+1 ENERGÍA CADA TURNO", "ROBA 1 MÁS CADA TURNO", "CURA 12 MÁS TRAS UN COMBATE"]
+      foes: ["LIMO", "RATA", "SECTARIO", "GUSANO MANDÍBULA", "ESQUELETO", "MURCIÉLAGO", "SETA", "CABALLERO OSCURO", "GÓLEM", "EL LICHE", "LA SIERPE", "EL OJO"]
+      acts: ["LA CRIPTA", "LAS CATACUMBAS", "EL ABISMO"]
+      evN: ["SANTUARIO", "FUENTE", "JUGADOR", "FORJA"]
+      evT: [["UN SANTUARIO DE PIEDRA", "ZUMBA CON LUZ TENUE."], ["AGUA CLARA BROTA", "DE LA ROCA."], ["UNA FIGURA ENCAPUCHADA", "BARAJA UN MAZO."], ["UN YUNQUE ABANDONADO", "AÚN BRILLA ROJO."]]
+      evA: ["REZAR: PIERDE 7 PV POR UNA RELIQUIA", "BEBER", "PAGA 50 DE ORO POR UNA CARTA RARA", "MEJORAR UNA CARTA"]
+      evB: ["DEJARLO EN PAZ", "BAÑARSE: QUITAR UNA CARTA", "MARCHARSE", "BUSCAR EN LAS CENIZAS: 35 DE ORO"]
+      drinkHeal: n => "BEBER: CURA ${n} PV"
+      shrineGives: name => "EL SANTUARIO TE DA: ${name}"
+      shrineGold: "EL SANTUARIO TE DA 50 DE ORO"
+      refreshed: "TE SIENTES RENOVADO"
+      youWin: name => "GANAS ${name}"
+      find35: "ENCUENTRAS 35 DE ORO"
+      elite: "ÉLITE"
+      battle: "COMBATE"
+      bossOfAct: n => "JEFE DEL ACTO ${n}"
+      foesN: n => "${n} ENEMIGOS"
+      yourTurn: "TU TURNO"
+      turnN: n => "TURNO ${n}"
+      enemyTurn: "TURNO ENEMIGO"
+      plusStr: n => "+${n} FUE"
+      ritual: n => "RITUAL ${n}"
+      vulnerable: "VULNERABLE"
+      weak: "DÉBIL"
+      slimed: n => "+${n} BABOSO"
+      blocked: "BLOQUEADO"
+      plusEnergy: n => "+${n} ENERGÍA"
+      plusHp: n => "+${n} PV"
+      upgrade: "MEJORAR"
+      remove: "QUITAR"
+      newRun: "NUEVA PARTIDA"
+      cont: "CONTINUAR"
+      deck: "MAZO"
+      nCards: n => "${n} CARTAS"
+      pack: "SOBRE"
+      toOpen: n => "${n} POR ABRIR"
+      tomorrow: "EL PRÓXIMO MAÑANA"
+      done: "LISTO"
+      needs10: "UN MAZO NECESITA 10 CARTAS"
+      collect: "RECOGER"
+      endTurn: "FIN DEL TURNO"
+      skip: "SALTAR"
+      removeOne: "QUITAR UNA"
+      instead: "EN SU LUGAR"
+      onToAct: n => "AL ACTO ${n}"
+      rest: "DESCANSAR"
+      healHp: n => "CURA ${n} PV"
+      smith: "FORJAR"
+      upgradeCard: "MEJORAR UNA CARTA"
+      nothingUp: "NADA QUE MEJORAR"
+      leave: "SALIR"
+      soldOut: "AGOTADO"
+      nGold: n => "${n} DE ORO"
+      title: "INICIO"
+      actLine: (n, name) => "ACTO ${n} · ${name}"
+      actN: n => "ACTO ${n}"
+      pickRoom: "ELIGE LA SIGUIENTE SALA"
+      tagline: "UN DUNGEON DE CARTAS"
+      draw: "ROBAR"
+      discard: "DESCARTE"
+      noEnergy: "NO HAY ENERGÍA SUFICIENTE"
+      tapEnemy: "TOCA UN ENEMIGO"
+      tapAgain: "TOCA LA CARTA OTRA VEZ PARA JUGARLA"
+      victory: "VICTORIA"
+      plusGold: n => "+${n} DE ORO"
+      plusPack: "+1 SOBRE DE CARTAS"
+      takeCard: "ELIGE UNA CARTA"
+      bossRelic: "ELIGE UNA RELIQUIA DE JEFE"
+      wayDown: "EL CAMINO HACIA ABAJO SE ABRE"
+      campfire: "HOGUERA"
+      restHere: "DESCANSA AQUÍ O AFILA UNA CARTA"
+      treasure: "TESORO"
+      merchant: "MERCADER"
+      sold: "VENDIDO"
+      victoryBang: "¡VICTORIA!"
+      youDied: "HAS MUERTO"
+      cleared: "LA CRIPTA ESTÁ LIMPIA"
+      actFloor: (a, f) => "ACTO ${a}, PISO ${f}"
+      runStats: (cards, relics, gold) => "${cards} CARTAS · ${relics} RELIQUIAS · ${gold} DE ORO"
+      runsWon: n => "PARTIDAS GANADAS: ${n}"
+      best: (a, f) => "RÉCORD: ACTO ${a}, PISO ${f}"
+      packOf: "UN SOBRE DE CARTAS"
+      joinColl: "SE UNEN A TU COLECCIÓN"
+      newBang: "¡NUEVA!"
+      yourDeck: "TU MAZO"
+      buildHelp1: "CON ESTO EMPIEZA UNA PARTIDA. LAS CARTAS DE"
+      buildHelp2: "PARTIDAS Y SOBRES LLEGAN AQUÍ. TOCA UN NOMBRE PARA VERLA"
+      removeCard: "QUITAR UNA CARTA"
+      drawPile: n => "MAZO DE ROBO (${n})"
+      discPile: n => "DESCARTES (${n})"
+      deckOf: n => "TU MAZO (${n})"
+      nothingHere: "NO HAY NADA"
+      upgraded: "MEJORADA"
+      tapBack: "TOCA DONDE SEA PARA VOLVER"
+      dmgBlockN: n => "DAÑO = BLOQUEO ${n}"
+      dmgBlock: "DAÑO = BLOQUEO"
+      dmg: (n, times, all) => "DAÑO ${n}${times > 1 ? " x${times}" : ""}${all ? " A TODOS" : ""}"
+      strCounts: n => "FUE CUENTA x${n}"
+      blockN: n => "BLOQUEO ${n}"
+      doubleBlock: "DUPLICA EL BLOQUEO"
+      vulnN: (n, all) => "VULNERABLE ${n}${all ? " A TODOS" : ""}"
+      weakN: (n, all) => "DÉBIL ${n}${all ? " A TODOS" : ""}"
+      strength: n => "+${n} FUERZA"
+      doubleStr: "DUPLICA LA FUERZA"
+      strEachTurn: n => "+${n} FUE CADA TURNO"
+      blockEachTurn: n => ["${n} DE BLOQUEO AL", "FINAL DE CADA TURNO"]
+      thorns: n => "ESPINAS ${n}"
+      thornsTurn: n => "ESPINAS ${n} ESTE TURNO"
+      keepBlock: ["EL BLOQUEO YA", "NO SE PIERDE"]
+      loseHp: n => "PIERDE ${n} PV"
+      drawN: n => "ROBA ${n}"
+      copyLine: ["UNA COPIA VA A", "TU DESCARTE"]
+      exeLine: ["DOBLE A ENEMIGOS", "BAJO MEDIA VIDA"]
+      drainLine: ["CURA EL DAÑO", "QUE ATRAVIESA"]
+      clogs: "ATASCA TU MANO"
+      exhaust: "AGOTAR"
+    }
+    pt {
+      cards: ["GOLPE", "DEFESA", "PANCADA", "FENDER", "GOLPE DUPLO", "ONDA DE FERRO", "GOLPE DE POMO", "SACUDIR", "RAIVA", "VARAL", "TROVOADA", "PANCADA CORPORAL", "GRITO DE GUERRA", "HEMOCINESE", "GANCHO", "INFLAMAR", "METALIZAR", "VER VERMELHO", "ENTRINCHEIRAR", "BARREIRA DE FOGO", "LÂMINA PESADA", "ONDA DE CHOQUE", "TRANSE DE BATALHA", "CARNIFICINA", "FORMA DEMÔNIO", "PORRETE", "IMPENETRÁVEL", "OFERENDA", "BARRICADA", "SEM LIMITES", "JAULA DE ESPINHOS", "GOSMENTO", "RASGA-ALMA", "EXECUTAR", "PACTO DE SANGUE", "LÂMINAS ESPECTRAIS", "LAMPIÃO DA CRIPTA", "GUARDA ESPELHO"]
+      relicN: ["SANGUE ARDENTE", "ÂNCORA", "SACO DE BOLINHAS", "LAMPIÃO", "VAJRA", "ORICALCO", "FRASCO DE SANGUE", "SHURIKEN", "FLOR FELIZ", "ESCAMAS DE BRONZE", "ÍDOLO DOURADO", "VALE-REFEIÇÃO", "MORANGO", "SORVETE", "CUNHO DE CHIFRE", "CAIXA ENIGMA", "BOLSA DE PREPARO", "TRAVESSEIRO", "AMPULHETA", "PERA", "CHAMA ETERNA", "TOMO ANTIGO", "SANGUE NEGRO"]
+      relicD: ["CURA 6 APÓS UMA LUTA", "10 DE BLOQUEIO NO TURNO 1", "INIMIGOS COMEÇAM VULNERÁVEIS", "+1 ENERGIA NO TURNO 1", "COMECE AS LUTAS COM 1 DE FORÇA", "SEM BLOQUEIO NO FIM DO TURNO: +6", "CURA 2 AO COMEÇAR UMA LUTA", "A CADA 3º ATAQUE NO TURNO: +1 FOR", "+1 ENERGIA A CADA 3 TURNOS", "QUEM ATACA SOFRE 3 DE DANO", "25% MAIS OURO DAS LUTAS", "CURA 15 AO ENTRAR NUMA LOJA", "+7 PV MÁX.", "A ENERGIA QUE SOBRA FICA", "14 DE BLOQUEIO NO TURNO 2", "PRIMEIROS PV PERDIDOS: COMPRE 3", "COMPRE 2 A MAIS NO TURNO 1", "DESCANSAR CURA 15 A MAIS", "3 DE DANO EM TODOS POR TURNO", "+10 PV MÁX.", "+1 ENERGIA TODO TURNO", "COMPRE 1 A MAIS TODO TURNO", "CURA 12 A MAIS APÓS UMA LUTA"]
+      foes: ["GOSMA", "RATO", "CULTISTA", "VERME MANDÍBULA", "ESQUELETO", "MORCEGO", "COGUMELO", "CAVALEIRO SOMBRIO", "GOLEM", "O LICH", "A SERPE", "O OLHO"]
+      acts: ["A CRIPTA", "AS CATACUMBAS", "O ABISMO"]
+      evN: ["SANTUÁRIO", "FONTE", "APOSTADOR", "FORJA"]
+      evT: [["UM SANTUÁRIO DE PEDRA", "ZUMBE COM LUZ FRACA."], ["ÁGUA LIMPA BORBULHA", "DE DENTRO DA ROCHA."], ["UMA FIGURA DE CAPUZ", "EMBARALHA UM BARALHO."], ["UMA BIGORNA ABANDONADA", "AINDA BRILHA VERMELHA."]]
+      evA: ["REZAR: PERCA 7 PV POR UMA RELÍQUIA", "BEBER", "PAGUE 50 DE OURO POR UMA CARTA RARA", "MELHORAR UMA CARTA"]
+      evB: ["DEIXAR QUIETO", "BANHAR-SE: REMOVER UMA CARTA", "IR EMBORA", "VASCULHAR AS CINZAS: 35 DE OURO"]
+      drinkHeal: n => "BEBER: CURA ${n} PV"
+      shrineGives: name => "O SANTUÁRIO DÁ: ${name}"
+      shrineGold: "O SANTUÁRIO DÁ 50 DE OURO"
+      refreshed: "VOCÊ SE SENTE RENOVADO"
+      youWin: name => "VOCÊ GANHA ${name}"
+      find35: "VOCÊ ACHA 35 DE OURO"
+      elite: "ELITE"
+      battle: "LUTA"
+      bossOfAct: n => "CHEFE DO ATO ${n}"
+      foesN: n => "${n} INIMIGOS"
+      yourTurn: "SEU TURNO"
+      turnN: n => "TURNO ${n}"
+      enemyTurn: "TURNO INIMIGO"
+      plusStr: n => "+${n} FOR"
+      ritual: n => "RITUAL ${n}"
+      vulnerable: "VULNERÁVEL"
+      weak: "FRACO"
+      slimed: n => "+${n} GOSMENTO"
+      blocked: "BLOQUEADO"
+      plusEnergy: n => "+${n} ENERGIA"
+      plusHp: n => "+${n} PV"
+      upgrade: "MELHORAR"
+      remove: "REMOVER"
+      newRun: "NOVA JORNADA"
+      cont: "CONTINUAR"
+      deck: "BARALHO"
+      nCards: n => "${n} CARTAS"
+      pack: "PACOTE"
+      toOpen: n => "${n} PARA ABRIR"
+      tomorrow: "O PRÓXIMO AMANHÃ"
+      done: "PRONTO"
+      needs10: "UM BARALHO PRECISA DE 10 CARTAS"
+      collect: "PEGAR"
+      endTurn: "FIM DO TURNO"
+      skip: "PULAR"
+      removeOne: "REMOVER UMA"
+      instead: "NO LUGAR"
+      onToAct: n => "PARA O ATO ${n}"
+      rest: "DESCANSAR"
+      healHp: n => "CURA ${n} PV"
+      smith: "FORJAR"
+      upgradeCard: "MELHORAR UMA CARTA"
+      nothingUp: "NADA PARA MELHORAR"
+      leave: "SAIR"
+      soldOut: "ESGOTADO"
+      nGold: n => "${n} DE OURO"
+      title: "INÍCIO"
+      actLine: (n, name) => "ATO ${n} · ${name}"
+      actN: n => "ATO ${n}"
+      pickRoom: "ESCOLHA A PRÓXIMA SALA"
+      tagline: "UMA MASMORRA DE CARTAS"
+      draw: "COMPRA"
+      discard: "DESCARTE"
+      noEnergy: "ENERGIA INSUFICIENTE"
+      tapEnemy: "TOQUE NUM INIMIGO"
+      tapAgain: "TOQUE NA CARTA DE NOVO PARA JOGAR"
+      victory: "VITÓRIA"
+      plusGold: n => "+${n} DE OURO"
+      plusPack: "+1 PACOTE DE CARTAS"
+      takeCard: "PEGUE UMA CARTA"
+      bossRelic: "ESCOLHA UMA RELÍQUIA DE CHEFE"
+      wayDown: "O CAMINHO PARA BAIXO SE ABRE"
+      campfire: "FOGUEIRA"
+      restHere: "DESCANSE AQUI OU AFIE UMA CARTA"
+      treasure: "TESOURO"
+      merchant: "MERCADOR"
+      sold: "VENDIDO"
+      victoryBang: "VITÓRIA!"
+      youDied: "VOCÊ MORREU"
+      cleared: "A CRIPTA FOI LIMPA"
+      actFloor: (a, f) => "ATO ${a}, ANDAR ${f}"
+      runStats: (cards, relics, gold) => "${cards} CARTAS · ${relics} RELÍQUIAS · ${gold} DE OURO"
+      runsWon: n => "JORNADAS VENCIDAS: ${n}"
+      best: (a, f) => "RECORDE: ATO ${a}, ANDAR ${f}"
+      packOf: "UM PACOTE DE CARTAS"
+      joinColl: "ELAS ENTRAM NA SUA COLEÇÃO"
+      newBang: "NOVA!"
+      yourDeck: "SEU BARALHO"
+      buildHelp1: "COM ISSO COMEÇA UMA JORNADA. CARTAS DE"
+      buildHelp2: "JORNADAS E PACOTES VÊM PARA CÁ. TOQUE NUM NOME PARA VER"
+      removeCard: "REMOVER UMA CARTA"
+      drawPile: n => "PILHA DE COMPRA (${n})"
+      discPile: n => "DESCARTE (${n})"
+      deckOf: n => "SEU BARALHO (${n})"
+      nothingHere: "NADA AQUI"
+      upgraded: "MELHORADA"
+      tapBack: "TOQUE EM QUALQUER LUGAR PARA VOLTAR"
+      dmgBlockN: n => "DANO = BLOQUEIO ${n}"
+      dmgBlock: "DANO = BLOQUEIO"
+      dmg: (n, times, all) => "DANO ${n}${times > 1 ? " x${times}" : ""}${all ? " EM TODOS" : ""}"
+      strCounts: n => "FOR CONTA x${n}"
+      blockN: n => "BLOQUEIO ${n}"
+      doubleBlock: "DOBRA O BLOQUEIO"
+      vulnN: (n, all) => "VULNERÁVEL ${n}${all ? " EM TODOS" : ""}"
+      weakN: (n, all) => "FRACO ${n}${all ? " EM TODOS" : ""}"
+      strength: n => "+${n} FORÇA"
+      doubleStr: "DOBRA A FORÇA"
+      strEachTurn: n => "+${n} FOR TODO TURNO"
+      blockEachTurn: n => ["${n} DE BLOQUEIO NO", "FIM DE CADA TURNO"]
+      thorns: n => "ESPINHOS ${n}"
+      thornsTurn: n => "ESPINHOS ${n} NESTE TURNO"
+      keepBlock: ["O BLOQUEIO NÃO", "SOME MAIS"]
+      loseHp: n => "PERCA ${n} PV"
+      drawN: n => "COMPRE ${n}"
+      copyLine: ["UMA CÓPIA VAI", "PARA O DESCARTE"]
+      exeLine: ["DOBRO EM INIMIGOS", "ABAIXO DE MEIO PV"]
+      drainLine: ["CURA O DANO", "QUE PASSA"]
+      clogs: "ENTOPE SUA MÃO"
+      exhaust: "EXAURIR"
+    }
+    de {
+      cards: ["SCHLAG", "ABWEHR", "HIEB", "SPALTEN", "DOPPELSCHLAG", "EISENWELLE", "KNAUFSCHLAG", "ABSCHÜTTELN", "ZORN", "WÄSCHELEINE", "DONNERSCHLAG", "BODYSLAM", "KRIEGSSCHREI", "BLUTKRAFT", "AUFWÄRTSHAKEN", "ENTFLAMMEN", "METALLHAUT", "ROT SEHEN", "EINGRABEN", "FLAMMENWALL", "SCHWERE KLINGE", "SCHOCKWELLE", "KAMPFTRANCE", "GEMETZEL", "DÄMONENGESTALT", "KEULE", "UNVERWUNDBAR", "OPFERGABE", "BARRIKADE", "GRENZBRUCH", "DORNENKÄFIG", "VERSCHLEIMT", "SEELENRISS", "HINRICHTEN", "BLUTSCHWUR", "GEISTERKLINGEN", "GRUFTLATERNE", "SPIEGELSCHILD"]
+      relicN: ["BRENNENDES BLUT", "ANKER", "MURMELBEUTEL", "LATERNE", "VAJRA", "ORICHALCUM", "BLUTFLÄSCHCHEN", "SHURIKEN", "FROHE BLUME", "BRONZESCHUPPEN", "GOLDENES IDOL", "ESSENSMARKE", "ERDBEERE", "EISCREME", "HORNKLAMPE", "RÄTSELBOX", "PROVIANTTASCHE", "KISSEN", "SANDUHR", "BIRNE", "EWIGE FLAMME", "ALTER FOLIANT", "SCHWARZES BLUT"]
+      relicD: ["NACH EINEM KAMPF 6 HEILEN", "10 BLOCK IN ZUG 1", "GEGNER STARTEN VERWUNDBAR", "+1 ENERGIE IN ZUG 1", "KÄMPFE MIT 1 STÄRKE BEGINNEN", "KEIN BLOCK AM ZUGENDE: +6", "BEI KAMPFBEGINN 2 HEILEN", "JEDER 3. ANGRIFF IM ZUG: +1 STÄ", "+1 ENERGIE JEDEN 3. ZUG", "ANGREIFER NEHMEN 3 SCHADEN", "25 % MEHR GOLD AUS KÄMPFEN", "IM LADEN 15 HEILEN", "+7 MAX. LP", "ÜBRIGE ENERGIE BLEIBT", "14 BLOCK IN ZUG 2", "ERSTE LP IM KAMPF VERLOREN: 3 ZIEHEN", "IN ZUG 1 2 MEHR ZIEHEN", "RASTEN HEILT 15 MEHR", "JEDEN ZUG 3 SCHADEN AN ALLE", "+10 MAX. LP", "+1 ENERGIE JEDEN ZUG", "JEDEN ZUG 1 MEHR ZIEHEN", "NACH EINEM KAMPF 12 MEHR HEILEN"]
+      foes: ["SCHLEIM", "RATTE", "KULTIST", "KIEFERWURM", "SKELETT", "FLEDERMAUS", "PILZ", "DUNKLER RITTER", "GOLEM", "DER LICH", "DER LINDWURM", "DAS AUGE"]
+      acts: ["DIE GRUFT", "DIE KATAKOMBEN", "DER ABGRUND"]
+      evN: ["SCHREIN", "QUELLE", "SPIELER", "SCHMIEDE"]
+      evT: [["EIN STEINSCHREIN SUMMT", "MIT SCHWACHEM LICHT."], ["KLARES WASSER SPRUDELT", "AUS DEM FELS."], ["EINE GESTALT IN KUTTE", "MISCHT EIN DECK."], ["EIN VERLASSENER AMBOSS", "GLÜHT NOCH ROT."]]
+      evA: ["BETEN: 7 LP FÜR EIN RELIKT", "TRINKEN", "50 GOLD FÜR EINE SELTENE KARTE", "EINE KARTE VERBESSERN"]
+      evB: ["IN RUHE LASSEN", "BADEN: EINE KARTE ENTFERNEN", "WEITERGEHEN", "IN DER ASCHE SUCHEN: 35 GOLD"]
+      drinkHeal: n => "TRINKEN: ${n} LP HEILEN"
+      shrineGives: name => "DER SCHREIN GIBT: ${name}"
+      shrineGold: "DER SCHREIN GIBT 50 GOLD"
+      refreshed: "DU FÜHLST DICH ERFRISCHT"
+      youWin: name => "DU GEWINNST ${name}"
+      find35: "DU FINDEST 35 GOLD"
+      elite: "ELITE"
+      battle: "KAMPF"
+      bossOfAct: n => "BOSS VON AKT ${n}"
+      foesN: n => "${n} GEGNER"
+      yourTurn: "DEIN ZUG"
+      turnN: n => "ZUG ${n}"
+      enemyTurn: "GEGNERZUG"
+      plusStr: n => "+${n} STÄ"
+      ritual: n => "RITUAL ${n}"
+      vulnerable: "VERWUNDBAR"
+      weak: "SCHWACH"
+      slimed: n => "+${n} VERSCHLEIMT"
+      blocked: "GEBLOCKT"
+      plusEnergy: n => "+${n} ENERGIE"
+      plusHp: n => "+${n} LP"
+      upgrade: "VERBESSERN"
+      remove: "ENTFERNEN"
+      newRun: "NEUER LAUF"
+      cont: "WEITER"
+      deck: "DECK"
+      nCards: n => "${n} KARTEN"
+      pack: "PACK"
+      toOpen: n => "${n} ZU ÖFFNEN"
+      tomorrow: "NÄCHSTES MORGEN"
+      done: "FERTIG"
+      needs10: "EIN DECK BRAUCHT 10 KARTEN"
+      collect: "EINSAMMELN"
+      endTurn: "ZUG BEENDEN"
+      skip: "ÜBERSPRINGEN"
+      removeOne: "EINE ENTFERNEN"
+      instead: "STATTDESSEN"
+      onToAct: n => "WEITER ZU AKT ${n}"
+      rest: "RASTEN"
+      healHp: n => "${n} LP HEILEN"
+      smith: "SCHMIEDEN"
+      upgradeCard: "EINE KARTE VERBESSERN"
+      nothingUp: "NICHTS ZU VERBESSERN"
+      leave: "GEHEN"
+      soldOut: "AUSVERKAUFT"
+      nGold: n => "${n} GOLD"
+      title: "TITEL"
+      actLine: (n, name) => "AKT ${n} · ${name}"
+      actN: n => "AKT ${n}"
+      pickRoom: "WÄHL DEN NÄCHSTEN RAUM"
+      tagline: "EIN DECKBAU-DUNGEON"
+      draw: "ZIEHEN"
+      discard: "ABLAGE"
+      noEnergy: "NICHT GENUG ENERGIE"
+      tapEnemy: "TIPP AUF EINEN GEGNER"
+      tapAgain: "TIPP DIE KARTE NOCHMAL ZUM SPIELEN"
+      victory: "SIEG"
+      plusGold: n => "+${n} GOLD"
+      plusPack: "+1 KARTENPACK"
+      takeCard: "NIMM EINE KARTE"
+      bossRelic: "WÄHL EIN BOSSRELIKT"
+      wayDown: "DER WEG NACH UNTEN ÖFFNET SICH"
+      campfire: "LAGERFEUER"
+      restHere: "RASTE HIER ODER SCHÄRFE EINE KARTE"
+      treasure: "SCHATZ"
+      merchant: "HÄNDLER"
+      sold: "VERKAUFT"
+      victoryBang: "SIEG!"
+      youDied: "DU BIST TOT"
+      cleared: "DIE GRUFT IST BEFREIT"
+      actFloor: (a, f) => "AKT ${a}, EBENE ${f}"
+      runStats: (cards, relics, gold) => "${cards} KARTEN · ${relics} RELIKTE · ${gold} GOLD"
+      runsWon: n => "GEWONNENE LÄUFE: ${n}"
+      best: (a, f) => "REKORD: AKT ${a}, EBENE ${f}"
+      packOf: "EIN KARTENPACK"
+      joinColl: "SIE KOMMEN IN DEINE SAMMLUNG"
+      newBang: "NEU!"
+      yourDeck: "DEIN DECK"
+      buildHelp1: "DAMIT STARTET EIN NEUER LAUF. KARTEN AUS"
+      buildHelp2: "LÄUFEN UND PACKS LANDEN HIER. TIPP EINEN NAMEN AN"
+      removeCard: "EINE KARTE ENTFERNEN"
+      drawPile: n => "NACHZIEHSTAPEL (${n})"
+      discPile: n => "ABLAGESTAPEL (${n})"
+      deckOf: n => "DEIN DECK (${n})"
+      nothingHere: "HIER IST NICHTS"
+      upgraded: "VERBESSERT"
+      tapBack: "TIPP IRGENDWO, UM ZURÜCKZUGEHEN"
+      dmgBlockN: n => "SCHADEN = BLOCK ${n}"
+      dmgBlock: "SCHADEN = BLOCK"
+      dmg: (n, times, all) => "SCHADEN ${n}${times > 1 ? " x${times}" : ""}${all ? " ALLE" : ""}"
+      strCounts: n => "STÄ ZÄHLT x${n}"
+      blockN: n => "BLOCK ${n}"
+      doubleBlock: "BLOCK VERDOPPELN"
+      vulnN: (n, all) => "VERWUNDBAR ${n}${all ? " ALLE" : ""}"
+      weakN: (n, all) => "SCHWACH ${n}${all ? " ALLE" : ""}"
+      strength: n => "+${n} STÄRKE"
+      doubleStr: "STÄRKE VERDOPPELN"
+      strEachTurn: n => "+${n} STÄ JEDEN ZUG"
+      blockEachTurn: n => ["${n} BLOCK AM ENDE", "JEDES ZUGS"]
+      thorns: n => "DORNEN ${n}"
+      thornsTurn: n => "DORNEN ${n} DIESEN ZUG"
+      keepBlock: ["BLOCK VERFÄLLT", "NICHT MEHR"]
+      loseHp: n => "${n} LP VERLIEREN"
+      drawN: n => "${n} ZIEHEN"
+      copyLine: ["EINE KOPIE KOMMT", "AUF DEINE ABLAGE"]
+      exeLine: ["DOPPELT GEGEN GEGNER", "UNTER HALBEN LP"]
+      drainLine: ["HEILT DEN SCHADEN,", "DER DURCHKOMMT"]
+      clogs: "VERSTOPFT DIE HAND"
+      exhaust: "VERBRAUCHEN"
+    }
+    zh {
+      cards: ["打击", "防御", "重击", "顺劈", "双重打击", "铁斩波", "剑柄打击", "耸肩无视", "愤怒", "金刚臂", "雷霆一击", "全身撞击", "战吼", "御血术", "上勾拳", "燃烧", "金属化", "见红", "固守", "火焰屏障", "重刃", "震荡波", "战斗专注", "残杀", "恶魔形态", "痛击", "岿然不动", "祭品", "壁垒", "突破极限", "荆棘笼", "黏液", "裂魂", "处决", "血之誓约", "幽灵之刃", "墓穴提灯", "镜之护卫"]
+      relicN: ["燃烧之血", "船锚", "弹珠袋", "提灯", "金刚杵", "山铜", "血瓶", "手里剑", "快乐花", "青铜鳞片", "黄金神像", "餐券", "草莓", "冰淇淋", "角制系绳栓", "谜之盒", "准备背包", "枕头", "沙漏", "梨", "永恒之火", "古老典籍", "黑色之血"]
+      relicD: ["战斗后回复 6", "第 1 回合 10 格挡", "敌人开局易伤", "第 1 回合 +1 能量", "战斗开始时 1 力量", "回合结束无格挡：获得 6", "战斗开始时回复 2", "每回合第 3 次攻击：+1 力量", "每 3 回合 +1 能量", "攻击者受到 3 伤害", "战斗金币多 25%", "进入商店回复 15", "+7 最大生命", "未用完的能量保留", "第 2 回合 14 格挡", "战斗中首次掉血：抽 3 张", "第 1 回合多抽 2 张", "休息多回复 15", "每回合对所有敌人造成 3 伤害", "+10 最大生命", "每回合 +1 能量", "每回合多抽 1 张", "战斗后多回复 12"]
+      foes: ["史莱姆", "老鼠", "邪教徒", "颚虫", "骷髅", "蝙蝠", "蘑菇", "黑暗骑士", "魔像", "巫妖", "巨龙", "魔眼"]
+      acts: ["墓穴", "地下墓窟", "深渊"]
+      evN: ["神龛", "泉水", "赌徒", "铁匠铺"]
+      evT: [["一座石头神龛", "发出微弱的光。"], ["清水从岩石中", "汩汩涌出。"], ["一个戴兜帽的人", "正在洗牌。"], ["一块废弃的铁砧", "仍然烧得通红。"]]
+      evA: ["祈祷：失去 7 生命换遗物", "喝水", "付 50 金币换稀有卡", "升级一张卡"]
+      evB: ["不去管它", "沐浴：移除一张卡", "离开", "翻找灰烬：35 金币"]
+      drinkHeal: n => "喝水：回复 ${n} 生命"
+      shrineGives: name => "神龛赐予：${name}"
+      shrineGold: "神龛赐予 50 金币"
+      refreshed: "你感到神清气爽"
+      youWin: name => "你赢得了${name}"
+      find35: "你找到 35 金币"
+      elite: "精英"
+      battle: "战斗"
+      bossOfAct: n => "第 ${n} 幕首领"
+      foesN: n => "${n} 个敌人"
+      yourTurn: "你的回合"
+      turnN: n => "第 ${n} 回合"
+      enemyTurn: "敌人回合"
+      plusStr: n => "+${n} 力量"
+      ritual: n => "仪式 ${n}"
+      vulnerable: "易伤"
+      weak: "虚弱"
+      slimed: n => "+${n} 黏液"
+      blocked: "格挡"
+      plusEnergy: n => "+${n} 能量"
+      plusHp: n => "+${n} 生命"
+      upgrade: "升级"
+      remove: "移除"
+      newRun: "新冒险"
+      cont: "继续"
+      deck: "卡组"
+      nCards: n => "${n} 张卡"
+      pack: "卡包"
+      toOpen: n => "${n} 个待开"
+      tomorrow: "明天再来"
+      done: "完成"
+      needs10: "卡组需要 10 张卡"
+      collect: "收下"
+      endTurn: "结束回合"
+      skip: "跳过"
+      removeOne: "移除一张"
+      instead: "作为替代"
+      onToAct: n => "前往第 ${n} 幕"
+      rest: "休息"
+      healHp: n => "回复 ${n} 生命"
+      smith: "锻造"
+      upgradeCard: "升级一张卡"
+      nothingUp: "没有可升级的卡"
+      leave: "离开"
+      soldOut: "售罄"
+      nGold: n => "${n} 金币"
+      title: "标题"
+      actLine: (n, name) => "第 ${n} 幕 · ${name}"
+      actN: n => "第 ${n} 幕"
+      pickRoom: "选择下一个房间"
+      tagline: "卡组构筑地牢"
+      draw: "抽牌"
+      discard: "弃牌"
+      noEnergy: "能量不足"
+      tapEnemy: "点按一个敌人"
+      tapAgain: "再次点按卡牌打出"
+      victory: "胜利"
+      plusGold: n => "+${n} 金币"
+      plusPack: "+1 卡包"
+      takeCard: "选一张卡"
+      bossRelic: "选择一件首领遗物"
+      wayDown: "向下的路打开了"
+      campfire: "营火"
+      restHere: "在这里休息，或磨利一张卡"
+      treasure: "宝藏"
+      merchant: "商人"
+      sold: "已售"
+      victoryBang: "胜利！"
+      youDied: "你死了"
+      cleared: "墓穴已肃清"
+      actFloor: (a, f) => "第 ${a} 幕，第 ${f} 层"
+      runStats: (cards, relics, gold) => "${cards} 张卡 · ${relics} 件遗物 · ${gold} 金币"
+      runsWon: n => "通关次数：${n}"
+      best: (a, f) => "最佳：第 ${a} 幕，第 ${f} 层"
+      packOf: "一包卡牌"
+      joinColl: "它们加入了你的收藏"
+      newBang: "新！"
+      yourDeck: "你的卡组"
+      buildHelp1: "新冒险从这套卡组开始。冒险和卡包中"
+      buildHelp2: "得到的卡会出现在这里。点按名字查看"
+      removeCard: "移除一张卡"
+      drawPile: n => "抽牌堆（${n}）"
+      discPile: n => "弃牌堆（${n}）"
+      deckOf: n => "你的卡组（${n}）"
+      nothingHere: "这里什么都没有"
+      upgraded: "已升级"
+      tapBack: "点按任意处返回"
+      dmgBlockN: n => "伤害 = 格挡 ${n}"
+      dmgBlock: "伤害 = 格挡"
+      dmg: (n, times, all) => "${all ? "全体" : ""}伤害 ${n}${times > 1 ? " x${times}" : ""}"
+      strCounts: n => "力量计 ${n} 倍"
+      blockN: n => "格挡 ${n}"
+      doubleBlock: "格挡翻倍"
+      vulnN: (n, all) => "${all ? "全体" : ""}易伤 ${n}"
+      weakN: (n, all) => "${all ? "全体" : ""}虚弱 ${n}"
+      strength: n => "+${n} 力量"
+      doubleStr: "力量翻倍"
+      strEachTurn: n => "每回合 +${n} 力量"
+      blockEachTurn: n => ["每回合结束时", "获得 ${n} 格挡"]
+      thorns: n => "荆棘 ${n}"
+      thornsTurn: n => "本回合荆棘 ${n}"
+      keepBlock: ["格挡不再", "消失"]
+      loseHp: n => "失去 ${n} 生命"
+      drawN: n => "抽 ${n} 张"
+      copyLine: ["复制一张", "放入弃牌堆"]
+      exeLine: ["对生命低于一半", "的敌人双倍"]
+      drainLine: ["回复穿透", "格挡的伤害"]
+      clogs: "堵塞手牌"
+      exhaust: "消耗"
+    }
+    ru {
+      cards: ["УДАР", "ЗАЩИТА", "ВЗБУЧКА", "РАССЕЧЬ", "ДВОЙНОЙ УДАР", "ЖЕЛЕЗНАЯ ВОЛНА", "УДАР НАВЕРШИЕМ", "ОТМАХНУТЬСЯ", "ГНЕВ", "ЛАРИАТ", "РАСКАТ ГРОМА", "БРОСОК ТЕЛОМ", "БОЕВОЙ КЛИЧ", "ГЕМОКИНЕЗ", "АПЕРКОТ", "ВОСПЛАМЕНИТЬ", "ОКОВАТЬСЯ", "ЯРОСТЬ", "ОКОПАТЬСЯ", "ОГНЕННЫЙ ЗАСЛОН", "ТЯЖЁЛЫЙ КЛИНОК", "УДАРНАЯ ВОЛНА", "БОЕВОЙ ТРАНС", "БОЙНЯ", "ОБЛИК ДЕМОНА", "ДУБИНА", "НЕУЯЗВИМОСТЬ", "ПОДНОШЕНИЕ", "БАРРИКАДА", "ЗА ПРЕДЕЛОМ", "КЛЕТЬ ШИПОВ", "СЛИЗЬ", "РАЗРЫВ ДУШИ", "КАЗНЬ", "КРОВНАЯ КЛЯТВА", "КЛИНКИ ДУХОВ", "ФОНАРЬ СКЛЕПА", "ЗЕРКАЛЬНЫЙ ЩИТ"]
+      relicN: ["ГОРЯЩАЯ КРОВЬ", "ЯКОРЬ", "МЕШОК ШАРИКОВ", "ФОНАРЬ", "ВАДЖРА", "ОРИХАЛК", "ФЛАКОН КРОВИ", "СЮРИКЕН", "ВЕСЁЛЫЙ ЦВЕТОК", "БРОНЗОВАЯ ЧЕШУЯ", "ЗОЛОТОЙ ИДОЛ", "ТАЛОН НА ОБЕД", "КЛУБНИКА", "МОРОЖЕНОЕ", "РОГОВАЯ УТКА", "ШКАТУЛКА-ЗАГАДКА", "ПОХОДНАЯ СУМКА", "ПОДУШКА", "ПЕСОЧНЫЕ ЧАСЫ", "ГРУША", "ВЕЧНОЕ ПЛАМЯ", "СТАРЫЙ ФОЛИАНТ", "ЧЁРНАЯ КРОВЬ"]
+      relicD: ["ЛЕЧИТ 6 ПОСЛЕ БОЯ", "10 БЛОКА НА 1 ХОДУ", "ВРАГИ НАЧИНАЮТ УЯЗВИМЫМИ", "+1 ЭНЕРГИЯ НА 1 ХОДУ", "БОЙ НАЧИНАЕТСЯ С 1 СИЛЫ", "НЕТ БЛОКА В КОНЦЕ ХОДА: +6", "ЛЕЧИТ 2 В НАЧАЛЕ БОЯ", "КАЖДАЯ 3-Я АТАКА ЗА ХОД: +1 СИЛ", "+1 ЭНЕРГИЯ КАЖДЫЙ 3-Й ХОД", "АТАКУЮЩИЕ ПОЛУЧАЮТ 3 УРОНА", "НА 25% БОЛЬШЕ ЗОЛОТА ЗА БОИ", "ЛЕЧИТ 15 ПРИ ВХОДЕ В ЛАВКУ", "+7 МАКС. ОЗ", "НЕИЗРАСХОДОВАННАЯ ЭНЕРГИЯ ОСТАЁТСЯ", "14 БЛОКА НА 2 ХОДУ", "ПЕРВАЯ ПОТЕРЯ ОЗ В БОЮ: ВЗЯТЬ 3", "ВЗЯТЬ НА 2 БОЛЬШЕ НА 1 ХОДУ", "ОТДЫХ ЛЕЧИТ НА 15 БОЛЬШЕ", "3 УРОНА ВСЕМ КАЖДЫЙ ХОД", "+10 МАКС. ОЗ", "+1 ЭНЕРГИЯ КАЖДЫЙ ХОД", "ВЗЯТЬ НА 1 БОЛЬШЕ КАЖДЫЙ ХОД", "ЛЕЧИТ НА 12 БОЛЬШЕ ПОСЛЕ БОЯ"]
+      foes: ["СЛИЗЕНЬ", "КРЫСА", "КУЛЬТИСТ", "ЧЕЛЮСТНОЙ ЧЕРВЬ", "СКЕЛЕТ", "ЛЕТУЧАЯ МЫШЬ", "ГРИБ", "ТЁМНЫЙ РЫЦАРЬ", "ГОЛЕМ", "ЛИЧ", "ЗМИЙ", "ОКО"]
+      acts: ["СКЛЕП", "КАТАКОМБЫ", "БЕЗДНА"]
+      evN: ["СВЯТИЛИЩЕ", "ИСТОЧНИК", "ИГРОК", "КУЗНЯ"]
+      evT: [["КАМЕННОЕ СВЯТИЛИЩЕ", "ГУДИТ ТУСКЛЫМ СВЕТОМ."], ["ЧИСТАЯ ВОДА БЬЁТ", "ИЗ СКАЛЫ."], ["ФИГУРА В КАПЮШОНЕ", "ТАСУЕТ КОЛОДУ."], ["БРОШЕННАЯ НАКОВАЛЬНЯ", "ВСЁ ЕЩЁ ПЫШЕТ ЖАРОМ."]]
+      evA: ["МОЛИТЬСЯ: -7 ОЗ ЗА РЕЛИКВИЮ", "ВЫПИТЬ", "50 ЗОЛОТА ЗА РЕДКУЮ КАРТУ", "УЛУЧШИТЬ КАРТУ"]
+      evB: ["НЕ ТРОГАТЬ", "ОМЫТЬСЯ: УБРАТЬ КАРТУ", "УЙТИ", "ПОРЫТЬСЯ В ПЕПЛЕ: 35 ЗОЛОТА"]
+      drinkHeal: n => "ВЫПИТЬ: ЛЕЧИТ ${n} ОЗ"
+      shrineGives: name => "СВЯТИЛИЩЕ ДАЁТ: ${name}"
+      shrineGold: "СВЯТИЛИЩЕ ДАЁТ 50 ЗОЛОТА"
+      refreshed: "ВЫ ПОЛНЫ СИЛ"
+      youWin: name => "ВЫ ПОЛУЧАЕТЕ ${name}"
+      find35: "ВЫ НАХОДИТЕ 35 ЗОЛОТА"
+      elite: "ЭЛИТА"
+      battle: "БОЙ"
+      bossOfAct: n => "БОСС АКТА ${n}"
+      foesN: n => "ВРАГОВ: ${n}"
+      yourTurn: "ВАШ ХОД"
+      turnN: n => "ХОД ${n}"
+      enemyTurn: "ХОД ВРАГОВ"
+      plusStr: n => "+${n} СИЛ"
+      ritual: n => "РИТУАЛ ${n}"
+      vulnerable: "УЯЗВИМОСТЬ"
+      weak: "СЛАБОСТЬ"
+      slimed: n => "+${n} СЛИЗЬ"
+      blocked: "БЛОК"
+      plusEnergy: n => "+${n} ЭНЕРГИИ"
+      plusHp: n => "+${n} ОЗ"
+      upgrade: "УЛУЧШИТЬ"
+      remove: "УБРАТЬ"
+      newRun: "НОВЫЙ ЗАБЕГ"
+      cont: "ДАЛЬШЕ"
+      deck: "КОЛОДА"
+      nCards: n => "КАРТ: ${n}"
+      pack: "НАБОР"
+      toOpen: n => "ОТКРЫТЬ: ${n}"
+      tomorrow: "СЛЕДУЮЩИЙ ЗАВТРА"
+      done: "ГОТОВО"
+      needs10: "В КОЛОДЕ НУЖНО 10 КАРТ"
+      collect: "ЗАБРАТЬ"
+      endTurn: "КОНЕЦ ХОДА"
+      skip: "ПРОПУСТИТЬ"
+      removeOne: "УБРАТЬ ОДНУ"
+      instead: "ВМЕСТО ЭТОГО"
+      onToAct: n => "К АКТУ ${n}"
+      rest: "ОТДЫХ"
+      healHp: n => "ЛЕЧИТ ${n} ОЗ"
+      smith: "КОВАТЬ"
+      upgradeCard: "УЛУЧШИТЬ КАРТУ"
+      nothingUp: "НЕЧЕГО УЛУЧШАТЬ"
+      leave: "УЙТИ"
+      soldOut: "РАСПРОДАНО"
+      nGold: n => "${n} ЗОЛОТА"
+      title: "МЕНЮ"
+      actLine: (n, name) => "АКТ ${n} · ${name}"
+      actN: n => "АКТ ${n}"
+      pickRoom: "ВЫБЕРИТЕ СЛЕДУЮЩУЮ КОМНАТУ"
+      tagline: "КАРТОЧНОЕ ПОДЗЕМЕЛЬЕ"
+      draw: "ДОБОР"
+      discard: "СБРОС"
+      noEnergy: "НЕ ХВАТАЕТ ЭНЕРГИИ"
+      tapEnemy: "НАЖМИТЕ НА ВРАГА"
+      tapAgain: "НАЖМИТЕ НА КАРТУ ЕЩЁ РАЗ, ЧТОБЫ СЫГРАТЬ"
+      victory: "ПОБЕДА"
+      plusGold: n => "+${n} ЗОЛОТА"
+      plusPack: "+1 НАБОР КАРТ"
+      takeCard: "ВОЗЬМИТЕ КАРТУ"
+      bossRelic: "ВЫБЕРИТЕ РЕЛИКВИЮ БОССА"
+      wayDown: "ПУТЬ ВНИЗ ОТКРЫТ"
+      campfire: "КОСТЁР"
+      restHere: "ОТДОХНИТЕ ИЛИ ЗАТОЧИТЕ КАРТУ"
+      treasure: "СОКРОВИЩЕ"
+      merchant: "ТОРГОВЕЦ"
+      sold: "ПРОДАНО"
+      victoryBang: "ПОБЕДА!"
+      youDied: "ВЫ ПОГИБЛИ"
+      cleared: "СКЛЕП ОЧИЩЕН"
+      actFloor: (a, f) => "АКТ ${a}, ЭТАЖ ${f}"
+      runStats: (cards, relics, gold) => "КАРТ ${cards} · РЕЛИКВИЙ ${relics} · ЗОЛОТА ${gold}"
+      runsWon: n => "ПОБЕД: ${n}"
+      best: (a, f) => "РЕКОРД: АКТ ${a}, ЭТАЖ ${f}"
+      packOf: "НАБОР КАРТ"
+      joinColl: "ОНИ ПОПАДАЮТ В ВАШУ КОЛЛЕКЦИЮ"
+      newBang: "НОВАЯ!"
+      yourDeck: "ВАША КОЛОДА"
+      buildHelp1: "С НЕЁ НАЧИНАЕТСЯ НОВЫЙ ЗАБЕГ. КАРТЫ ИЗ"
+      buildHelp2: "ЗАБЕГОВ И НАБОРОВ ПОПАДАЮТ СЮДА. НАЖМИТЕ НА НАЗВАНИЕ"
+      removeCard: "УБРАТЬ КАРТУ"
+      drawPile: n => "ДОБОР (${n})"
+      discPile: n => "СБРОС (${n})"
+      deckOf: n => "ВАША КОЛОДА (${n})"
+      nothingHere: "ЗДЕСЬ ПУСТО"
+      upgraded: "УЛУЧШЕНА"
+      tapBack: "НАЖМИТЕ В ЛЮБОМ МЕСТЕ, ЧТОБЫ ВЕРНУТЬСЯ"
+      dmgBlockN: n => "УРОН = БЛОК ${n}"
+      dmgBlock: "УРОН = БЛОК"
+      dmg: (n, times, all) => "УРОН ${n}${times > 1 ? " x${times}" : ""}${all ? " ВСЕМ" : ""}"
+      strCounts: n => "СИЛА x${n}"
+      blockN: n => "БЛОК ${n}"
+      doubleBlock: "УДВОИТЬ БЛОК"
+      vulnN: (n, all) => "УЯЗВИМОСТЬ ${n}${all ? " ВСЕМ" : ""}"
+      weakN: (n, all) => "СЛАБОСТЬ ${n}${all ? " ВСЕМ" : ""}"
+      strength: n => "+${n} СИЛЫ"
+      doubleStr: "УДВОИТЬ СИЛУ"
+      strEachTurn: n => "+${n} СИЛ КАЖДЫЙ ХОД"
+      blockEachTurn: n => ["${n} БЛОКА В КОНЦЕ", "КАЖДОГО ХОДА"]
+      thorns: n => "ШИПЫ ${n}"
+      thornsTurn: n => "ШИПЫ ${n} НА ЭТОТ ХОД"
+      keepBlock: ["БЛОК БОЛЬШЕ", "НЕ СГОРАЕТ"]
+      loseHp: n => "ПОТЕРЯТЬ ${n} ОЗ"
+      drawN: n => "ВЗЯТЬ ${n}"
+      copyLine: ["КОПИЯ УХОДИТ", "В ВАШ СБРОС"]
+      exeLine: ["ВДВОЕ ПО ВРАГАМ", "С ОЗ НИЖЕ ПОЛОВИНЫ"]
+      drainLine: ["ЛЕЧИТ УРОН,", "ПРОШЕДШИЙ СКВОЗЬ БЛОК"]
+      clogs: "ЗАСОРЯЕТ РУКУ"
+      exhaust: "СЖЕЧЬ"
+    }
+    ja {
+      cards: ["ストライク", "防御", "強打", "なぎ払い", "ツインストライク", "アイアンウェーブ", "柄打ち", "受け流し", "怒り", "ラリアット", "サンダークラップ", "ボディスラム", "雄叫び", "血液操作", "アッパーカット", "発火", "金属化", "激昂", "塹壕", "炎の障壁", "ヘビーブレード", "衝撃波", "バトルトランス", "大虐殺", "悪魔化", "棍棒", "不動", "供物", "バリケード", "リミットブレイク", "茨の檻", "粘液", "魂裂き", "処刑", "血の誓い", "霊刃", "墓所のランタン", "鏡の守り"]
+      relicN: ["燃える血", "錨", "ビー玉袋", "ランタン", "金剛杵", "オリハルコン", "血の小瓶", "手裏剣", "ハッピーフラワー", "青銅の鱗", "黄金の偶像", "食券", "イチゴ", "アイスクリーム", "角の索留め", "パズルボックス", "準備袋", "枕", "砂時計", "洋ナシ", "永遠の炎", "古の書", "黒い血"]
+      relicD: ["戦闘後に6回復", "1ターン目にブロック10", "敵は弱体状態で始まる", "1ターン目にエネルギー+1", "戦闘開始時に筋力1", "ターン終了時ブロック0なら6得る", "戦闘開始時に2回復", "1ターン3回目の攻撃ごとに筋力+1", "3ターンごとにエネルギー+1", "攻撃してきた敵に3ダメージ", "戦闘の金貨が25%増える", "ショップに入ると15回復", "最大HP+7", "余ったエネルギーを持ち越す", "2ターン目にブロック14", "戦闘で初めてHPを失うと3枚引く", "1ターン目に2枚多く引く", "休憩の回復が15増える", "毎ターン全体に3ダメージ", "最大HP+10", "毎ターンエネルギー+1", "毎ターン1枚多く引く", "戦闘後に12多く回復"]
+      foes: ["スライム", "ネズミ", "狂信者", "アゴムシ", "スケルトン", "コウモリ", "キノコ", "暗黒騎士", "ゴーレム", "リッチ", "ワーム", "魔眼"]
+      acts: ["地下墓所", "カタコンベ", "奈落"]
+      evN: ["祠", "泉", "賭博師", "鍛冶場"]
+      evT: [["石の祠が", "かすかな光でうなる。"], ["澄んだ水が", "岩からわき出ている。"], ["フードの人物が", "カードを切っている。"], ["打ち捨てられた金床が", "まだ赤く光っている。"]]
+      evA: ["祈る：HP7でレリック", "飲む", "金貨50でレアカード", "カードを強化"]
+      evB: ["そっとしておく", "身を清める：カードを1枚除去", "立ち去る", "灰を探る：金貨35"]
+      drinkHeal: n => "飲む：HP${n}回復"
+      shrineGives: name => "祠の恵み：${name}"
+      shrineGold: "祠から金貨50"
+      refreshed: "元気が戻った"
+      youWin: name => "${name}を手に入れた"
+      find35: "金貨35を見つけた"
+      elite: "エリート"
+      battle: "バトル"
+      bossOfAct: n => "第${n}幕のボス"
+      foesN: n => "敵${n}体"
+      yourTurn: "あなたのターン"
+      turnN: n => "ターン${n}"
+      enemyTurn: "敵のターン"
+      plusStr: n => "筋力+${n}"
+      ritual: n => "儀式${n}"
+      vulnerable: "弱体"
+      weak: "脱力"
+      slimed: n => "粘液+${n}"
+      blocked: "ブロック"
+      plusEnergy: n => "エネルギー+${n}"
+      plusHp: n => "HP+${n}"
+      upgrade: "強化"
+      remove: "除去"
+      newRun: "新しい冒険"
+      cont: "続ける"
+      deck: "デッキ"
+      nCards: n => "${n}枚"
+      pack: "パック"
+      toOpen: n => "未開封${n}"
+      tomorrow: "次は明日"
+      done: "完了"
+      needs10: "デッキには10枚必要です"
+      collect: "受け取る"
+      endTurn: "ターン終了"
+      skip: "スキップ"
+      removeOne: "1枚除去"
+      instead: "代わりに"
+      onToAct: n => "第${n}幕へ"
+      rest: "休憩"
+      healHp: n => "HP${n}回復"
+      smith: "鍛える"
+      upgradeCard: "カードを強化"
+      nothingUp: "強化できるカードなし"
+      leave: "出る"
+      soldOut: "売り切れ"
+      nGold: n => "金貨${n}"
+      title: "タイトル"
+      actLine: (n, name) => "第${n}幕 · ${name}"
+      actN: n => "第${n}幕"
+      pickRoom: "次の部屋を選んでください"
+      tagline: "デッキ構築ダンジョン"
+      draw: "山札"
+      discard: "捨て札"
+      noEnergy: "エネルギーが足りません"
+      tapEnemy: "敵をタップ"
+      tapAgain: "もう一度タップで使用"
+      victory: "勝利"
+      plusGold: n => "金貨+${n}"
+      plusPack: "カードパック+1"
+      takeCard: "カードを1枚選ぶ"
+      bossRelic: "ボスレリックを選ぶ"
+      wayDown: "下への道が開いた"
+      campfire: "焚き火"
+      restHere: "ここで休むか、カードを磨く"
+      treasure: "宝物"
+      merchant: "商人"
+      sold: "売約済み"
+      victoryBang: "勝利！"
+      youDied: "力尽きた"
+      cleared: "地下墓所を制覇した"
+      actFloor: (a, f) => "第${a}幕 ${f}階"
+      runStats: (cards, relics, gold) => "カード${cards} · レリック${relics} · 金貨${gold}"
+      runsWon: n => "クリア回数：${n}"
+      best: (a, f) => "最高記録：第${a}幕 ${f}階"
+      packOf: "カードパック"
+      joinColl: "コレクションに加わります"
+      newBang: "NEW!"
+      yourDeck: "あなたのデッキ"
+      buildHelp1: "新しい冒険はこのデッキで始まります。冒険とパックの"
+      buildHelp2: "カードはここに入ります。名前をタップで表示"
+      removeCard: "カードを除去"
+      drawPile: n => "山札（${n}）"
+      discPile: n => "捨て札（${n}）"
+      deckOf: n => "あなたのデッキ（${n}）"
+      nothingHere: "何もありません"
+      upgraded: "強化済み"
+      tapBack: "どこかをタップで戻る"
+      dmgBlockN: n => "ダメージ=ブロック${n}"
+      dmgBlock: "ダメージ=ブロック"
+      dmg: (n, times, all) => "${all ? "全体に" : ""}ダメージ${n}${times > 1 ? " x${times}" : ""}"
+      strCounts: n => "筋力${n}倍"
+      blockN: n => "ブロック${n}"
+      doubleBlock: "ブロック2倍"
+      vulnN: (n, all) => "${all ? "全体に" : ""}弱体${n}"
+      weakN: (n, all) => "${all ? "全体に" : ""}脱力${n}"
+      strength: n => "筋力+${n}"
+      doubleStr: "筋力2倍"
+      strEachTurn: n => "毎ターン筋力+${n}"
+      blockEachTurn: n => ["毎ターン終了時", "ブロック${n}"]
+      thorns: n => "トゲ${n}"
+      thornsTurn: n => "このターンだけトゲ${n}"
+      keepBlock: ["ブロックが", "消えなくなる"]
+      loseHp: n => "HPを${n}失う"
+      drawN: n => "${n}枚引く"
+      copyLine: ["コピーが", "捨て札に入る"]
+      exeLine: ["HP半分以下の", "敵に2倍"]
+      drainLine: ["通ったダメージ", "だけ回復"]
+      clogs: "手札を詰まらせる"
+      exhaust: "廃棄"
+    }
+    uk {
+      cards: ["УДАР", "ЗАХИСТ", "ГУПАННЯ", "РОЗСІКТИ", "ПОДВІЙНИЙ УДАР", "ЗАЛІЗНА ХВИЛЯ", "УДАР РУКІВ'ЯМ", "ВІДМАХНУТИСЯ", "ГНІВ", "ЛАРІАТ", "ГРІМ", "КИДОК ТІЛОМ", "БОЙОВИЙ КЛИЧ", "ГЕМОКІНЕЗ", "АПЕРКОТ", "СПАЛАХНУТИ", "ОКУТИСЯ", "ЛЮТЬ", "ОКОПАТИСЯ", "ВОГНЯНИЙ БАР'ЄР", "ВАЖКИЙ КЛИНОК", "УДАРНА ХВИЛЯ", "БОЙОВИЙ ТРАНС", "РІЗАНИНА", "ПОДОБА ДЕМОНА", "ДРЮК", "НЕЗЛАМНІСТЬ", "ПОЖЕРТВА", "БАРИКАДА", "ПОНАД МЕЖУ", "КЛІТЬ ШИПІВ", "СЛИЗ", "РОЗРИВ ДУШІ", "СТРАТА", "КРОВНА КЛЯТВА", "КЛИНКИ ДУХІВ", "ЛІХТАР СКЛЕПУ", "ДЗЕРКАЛЬНИЙ ЩИТ"]
+      relicN: ["ПАЛАЮЧА КРОВ", "ЯКІР", "МІШЕЧОК КУЛЬОК", "ЛІХТАР", "ВАДЖРА", "ОРИХАЛК", "ФЛАКОН КРОВІ", "СЮРИКЕН", "ВЕСЕЛА КВІТКА", "БРОНЗОВА ЛУСКА", "ЗОЛОТИЙ ІДОЛ", "ТАЛОН НА ОБІД", "ПОЛУНИЦЯ", "МОРОЗИВО", "РОГОВА УТКА", "СКРИНЬКА-ЗАГАДКА", "ПОХІДНА СУМКА", "ПОДУШКА", "ПІСОЧНИЙ ГОДИННИК", "ГРУША", "ВІЧНЕ ПОЛУМ'Я", "СТАРИЙ ФОЛІАНТ", "ЧОРНА КРОВ"]
+      relicD: ["ЛІКУЄ 6 ПІСЛЯ БОЮ", "10 БЛОКУ НА 1 ХОДІ", "ВОРОГИ ПОЧИНАЮТЬ ВРАЗЛИВИМИ", "+1 ЕНЕРГІЯ НА 1 ХОДІ", "БІЙ ПОЧИНАЄТЬСЯ З 1 СИЛИ", "НЕМАЄ БЛОКУ НАПРИКІНЦІ ХОДУ: +6", "ЛІКУЄ 2 НА ПОЧАТКУ БОЮ", "КОЖНА 3-Я АТАКА ЗА ХІД: +1 СИЛ", "+1 ЕНЕРГІЯ КОЖЕН 3-Й ХІД", "НАПАДНИКИ ОТРИМУЮТЬ 3 ШКОДИ", "НА 25% БІЛЬШЕ ЗОЛОТА ЗА БОЇ", "ЛІКУЄ 15 ПРИ ВХОДІ В КРАМНИЦЮ", "+7 МАКС. ОЗ", "НЕВИТРАЧЕНА ЕНЕРГІЯ ЛИШАЄТЬСЯ", "14 БЛОКУ НА 2 ХОДІ", "ПЕРША ВТРАТА ОЗ У БОЮ: ВЗЯТИ 3", "ВЗЯТИ НА 2 БІЛЬШЕ НА 1 ХОДІ", "ВІДПОЧИНОК ЛІКУЄ НА 15 БІЛЬШЕ", "3 ШКОДИ ВСІМ ЩОХОДУ", "+10 МАКС. ОЗ", "+1 ЕНЕРГІЯ ЩОХОДУ", "ВЗЯТИ НА 1 БІЛЬШЕ ЩОХОДУ", "ЛІКУЄ НА 12 БІЛЬШЕ ПІСЛЯ БОЮ"]
+      foes: ["СЛИЗЕНЬ", "ЩУР", "КУЛЬТИСТ", "ЩЕЛЕПНИЙ ЧЕРВ", "СКЕЛЕТ", "КАЖАН", "ГРИБ", "ТЕМНИЙ ЛИЦАР", "ГОЛЕМ", "ЛІЧ", "ЗМІЙ", "ОКО"]
+      acts: ["СКЛЕП", "КАТАКОМБИ", "БЕЗОДНЯ"]
+      evN: ["СВЯТИЛИЩЕ", "ДЖЕРЕЛО", "ГРАВЕЦЬ", "КУЗНЯ"]
+      evT: [["КАМ'ЯНЕ СВЯТИЛИЩЕ", "ГУДЕ ТЬМЯНИМ СВІТЛОМ."], ["ЧИСТА ВОДА Б'Є", "ЗІ СКЕЛІ."], ["ПОСТАТЬ У КАПЮШОНІ", "ТАСУЄ КОЛОДУ."], ["ПОКИНУТЕ КОВАДЛО", "ЩЕ ПАШІЄ ЖАРОМ."]]
+      evA: ["МОЛИТИСЯ: -7 ОЗ ЗА РЕЛІКВІЮ", "ВИПИТИ", "50 ЗОЛОТА ЗА РІДКІСНУ КАРТУ", "ПОКРАЩИТИ КАРТУ"]
+      evB: ["НЕ ЧІПАТИ", "ОМИТИСЯ: ПРИБРАТИ КАРТУ", "ПІТИ", "ПОРИТИСЯ В ПОПЕЛІ: 35 ЗОЛОТА"]
+      drinkHeal: n => "ВИПИТИ: ЛІКУЄ ${n} ОЗ"
+      shrineGives: name => "СВЯТИЛИЩЕ ДАЄ: ${name}"
+      shrineGold: "СВЯТИЛИЩЕ ДАЄ 50 ЗОЛОТА"
+      refreshed: "ВИ СПОВНЕНІ СИЛ"
+      youWin: name => "ВИ ОТРИМУЄТЕ ${name}"
+      find35: "ВИ ЗНАХОДИТЕ 35 ЗОЛОТА"
+      elite: "ЕЛІТА"
+      battle: "БІЙ"
+      bossOfAct: n => "БОС АКТУ ${n}"
+      foesN: n => "ВОРОГІВ: ${n}"
+      yourTurn: "ВАШ ХІД"
+      turnN: n => "ХІД ${n}"
+      enemyTurn: "ХІД ВОРОГІВ"
+      plusStr: n => "+${n} СИЛ"
+      ritual: n => "РИТУАЛ ${n}"
+      vulnerable: "ВРАЗЛИВІСТЬ"
+      weak: "СЛАБКІСТЬ"
+      slimed: n => "+${n} СЛИЗ"
+      blocked: "БЛОК"
+      plusEnergy: n => "+${n} ЕНЕРГІЇ"
+      plusHp: n => "+${n} ОЗ"
+      upgrade: "ПОКРАЩИТИ"
+      remove: "ПРИБРАТИ"
+      newRun: "НОВИЙ ЗАБІГ"
+      cont: "ДАЛІ"
+      deck: "КОЛОДА"
+      nCards: n => "КАРТ: ${n}"
+      pack: "НАБІР"
+      toOpen: n => "ВІДКРИТИ: ${n}"
+      tomorrow: "НАСТУПНИЙ ЗАВТРА"
+      done: "ГОТОВО"
+      needs10: "У КОЛОДІ ТРЕБА 10 КАРТ"
+      collect: "ЗАБРАТИ"
+      endTurn: "КІНЕЦЬ ХОДУ"
+      skip: "ПРОПУСТИТИ"
+      removeOne: "ПРИБРАТИ ОДНУ"
+      instead: "НАТОМІСТЬ"
+      onToAct: n => "ДО АКТУ ${n}"
+      rest: "ВІДПОЧИНОК"
+      healHp: n => "ЛІКУЄ ${n} ОЗ"
+      smith: "КУВАТИ"
+      upgradeCard: "ПОКРАЩИТИ КАРТУ"
+      nothingUp: "НЕМАЄ ЩО ПОКРАЩИТИ"
+      leave: "ПІТИ"
+      soldOut: "РОЗПРОДАНО"
+      nGold: n => "${n} ЗОЛОТА"
+      title: "МЕНЮ"
+      actLine: (n, name) => "АКТ ${n} · ${name}"
+      actN: n => "АКТ ${n}"
+      pickRoom: "ОБЕРІТЬ НАСТУПНУ КІМНАТУ"
+      tagline: "КАРТКОВЕ ПІДЗЕМЕЛЛЯ"
+      draw: "ДОБІР"
+      discard: "СКИДАННЯ"
+      noEnergy: "БРАКУЄ ЕНЕРГІЇ"
+      tapEnemy: "ТОРКНІТЬСЯ ВОРОГА"
+      tapAgain: "ТОРКНІТЬСЯ КАРТИ ЩЕ РАЗ, ЩОБ ЗІГРАТИ"
+      victory: "ПЕРЕМОГА"
+      plusGold: n => "+${n} ЗОЛОТА"
+      plusPack: "+1 НАБІР КАРТ"
+      takeCard: "ВІЗЬМІТЬ КАРТУ"
+      bossRelic: "ОБЕРІТЬ РЕЛІКВІЮ БОСА"
+      wayDown: "ШЛЯХ УНИЗ ВІДКРИТО"
+      campfire: "ВОГНИЩЕ"
+      restHere: "ВІДПОЧИНЬТЕ АБО ЗАГОСТРІТЬ КАРТУ"
+      treasure: "СКАРБ"
+      merchant: "ТОРГОВЕЦЬ"
+      sold: "ПРОДАНО"
+      victoryBang: "ПЕРЕМОГА!"
+      youDied: "ВИ ЗАГИНУЛИ"
+      cleared: "СКЛЕП ОЧИЩЕНО"
+      actFloor: (a, f) => "АКТ ${a}, ПОВЕРХ ${f}"
+      runStats: (cards, relics, gold) => "КАРТ ${cards} · РЕЛІКВІЙ ${relics} · ЗОЛОТА ${gold}"
+      runsWon: n => "ПЕРЕМОГ: ${n}"
+      best: (a, f) => "РЕКОРД: АКТ ${a}, ПОВЕРХ ${f}"
+      packOf: "НАБІР КАРТ"
+      joinColl: "ВОНИ ПОТРАПЛЯЮТЬ ДО ВАШОЇ КОЛЕКЦІЇ"
+      newBang: "НОВА!"
+      yourDeck: "ВАША КОЛОДА"
+      buildHelp1: "З НЕЇ ПОЧИНАЄТЬСЯ НОВИЙ ЗАБІГ. КАРТИ З"
+      buildHelp2: "ЗАБІГІВ І НАБОРІВ ПОТРАПЛЯЮТЬ СЮДИ. ТОРКНІТЬСЯ НАЗВИ"
+      removeCard: "ПРИБРАТИ КАРТУ"
+      drawPile: n => "ДОБІР (${n})"
+      discPile: n => "СКИДАННЯ (${n})"
+      deckOf: n => "ВАША КОЛОДА (${n})"
+      nothingHere: "ТУТ ПОРОЖНЬО"
+      upgraded: "ПОКРАЩЕНА"
+      tapBack: "ТОРКНІТЬСЯ БУДЬ-ДЕ, ЩОБ ПОВЕРНУТИСЯ"
+      dmgBlockN: n => "ШКОДА = БЛОК ${n}"
+      dmgBlock: "ШКОДА = БЛОК"
+      dmg: (n, times, all) => "ШКОДА ${n}${times > 1 ? " x${times}" : ""}${all ? " ВСІМ" : ""}"
+      strCounts: n => "СИЛА x${n}"
+      blockN: n => "БЛОК ${n}"
+      doubleBlock: "ПОДВОЇТИ БЛОК"
+      vulnN: (n, all) => "ВРАЗЛИВІСТЬ ${n}${all ? " ВСІМ" : ""}"
+      weakN: (n, all) => "СЛАБКІСТЬ ${n}${all ? " ВСІМ" : ""}"
+      strength: n => "+${n} СИЛИ"
+      doubleStr: "ПОДВОЇТИ СИЛУ"
+      strEachTurn: n => "+${n} СИЛ ЩОХОДУ"
+      blockEachTurn: n => ["${n} БЛОКУ НАПРИКІНЦІ", "КОЖНОГО ХОДУ"]
+      thorns: n => "ШИПИ ${n}"
+      thornsTurn: n => "ШИПИ ${n} НА ЦЕЙ ХІД"
+      keepBlock: ["БЛОК БІЛЬШЕ", "НЕ ЗГОРАЄ"]
+      loseHp: n => "ВТРАТИТИ ${n} ОЗ"
+      drawN: n => "ВЗЯТИ ${n}"
+      copyLine: ["КОПІЯ ЙДЕ", "У ВАШЕ СКИДАННЯ"]
+      exeLine: ["ВДВІЧІ ПО ВОРОГАХ", "З ОЗ НИЖЧЕ ПОЛОВИНИ"]
+      drainLine: ["ЛІКУЄ ШКОДУ,", "ЩО ПРОЙШЛА КРІЗЬ БЛОК"]
+      clogs: "ЗАСМІЧУЄ РУКУ"
+      exhaust: "СПАЛИТИ"
+    }
+    fr {
+      cards: ["FRAPPE", "DÉFENSE", "COGNER", "FENDRE", "DOUBLE FRAPPE", "VAGUE DE FER", "COUP DE POMMEAU", "SANS EFFORT", "COLÈRE", "CORDE À LINGE", "COUP DE TONNERRE", "PLAQUAGE", "CRI DE GUERRE", "HÉMOKINÉSIE", "UPPERCUT", "EMBRASEMENT", "MÉTALLISER", "VOIR ROUGE", "RETRANCHEMENT", "BARRIÈRE DE FEU", "LAME LOURDE", "ONDE DE CHOC", "TRANSE GUERRIÈRE", "CARNAGE", "FORME DÉMONIAQUE", "GOURDIN", "IMPERMÉABLE", "OFFRANDE", "BARRICADE", "SANS LIMITE", "CAGE D’ÉPINES", "ENGLUÉ", "DÉCHIRE-ÂME", "EXÉCUTION", "SERMENT DE SANG", "LAMES SPECTRALES", "LANTERNE DE CRYPTE", "GARDE MIROIR"]
+      relicN: ["SANG ARDENT", "ANCRE", "SAC DE BILLES", "LANTERNE", "VAJRA", "ORICHALQUE", "FIOLE DE SANG", "SHURIKEN", "FLEUR JOYEUSE", "ÉCAILLES DE BRONZE", "IDOLE D’OR", "TICKET REPAS", "FRAISE", "GLACE", "TAQUET DE CORNE", "BOÎTE À ÉNIGMES", "SAC DE VOYAGE", "OREILLER", "SABLIER", "POIRE", "FLAMME ÉTERNELLE", "VIEUX GRIMOIRE", "SANG NOIR"]
+      relicD: ["SOIGNE 6 APRÈS UN COMBAT", "10 BLOCAGE AU TOUR 1", "LES ENNEMIS COMMENCENT VULNÉRABLES", "+1 ÉNERGIE AU TOUR 1", "COMMENCE LES COMBATS AVEC 1 FORCE", "PAS DE BLOCAGE EN FIN DE TOUR : +6", "SOIGNE 2 EN DÉBUT DE COMBAT", "TOUTE 3E ATTAQUE DU TOUR : +1 FOR", "+1 ÉNERGIE TOUS LES 3 TOURS", "LES ATTAQUANTS SUBISSENT 3 DÉGÂTS", "25 % D’OR EN PLUS DES COMBATS", "SOIGNE 15 EN ENTRANT DANS UNE BOUTIQUE", "+7 PV MAX", "L’ÉNERGIE INUTILISÉE EST GARDÉE", "14 BLOCAGE AU TOUR 2", "PREMIERS PV PERDUS : PIOCHE 3", "PIOCHE 2 DE PLUS AU TOUR 1", "SE REPOSER SOIGNE 15 DE PLUS", "3 DÉGÂTS À TOUS CHAQUE TOUR", "+10 PV MAX", "+1 ÉNERGIE CHAQUE TOUR", "PIOCHE 1 DE PLUS CHAQUE TOUR", "SOIGNE 12 DE PLUS APRÈS UN COMBAT"]
+      foes: ["SLIME", "RAT", "CULTISTE", "VER À MÂCHOIRES", "SQUELETTE", "CHAUVE-SOURIS", "CHAMPIGNON", "CHEVALIER NOIR", "GOLEM", "LA LICHE", "LA VOUIVRE", "L’ŒIL"]
+      acts: ["LA CRYPTE", "LES CATACOMBES", "L’ABÎME"]
+      evN: ["AUTEL", "FONTAINE", "JOUEUR", "FORGE"]
+      evT: [["UN AUTEL DE PIERRE", "VIBRE D’UNE FAIBLE LUEUR."], ["UNE EAU CLAIRE JAILLIT", "DE LA ROCHE."], ["UNE SILHOUETTE ENCAPUCHÉE", "MÉLANGE UN JEU."], ["UNE ENCLUME ABANDONNÉE", "ROUGEOIE ENCORE."]]
+      evA: ["PRIER : -7 PV POUR UNE RELIQUE", "BOIRE", "50 OR POUR UNE CARTE RARE", "AMÉLIORER UNE CARTE"]
+      evB: ["LAISSER TRANQUILLE", "SE BAIGNER : RETIRER UNE CARTE", "PASSER SON CHEMIN", "FOUILLER LES CENDRES : 35 OR"]
+      drinkHeal: n => "BOIRE : SOIGNE ${n} PV"
+      shrineGives: name => "L’AUTEL DONNE : ${name}"
+      shrineGold: "L’AUTEL DONNE 50 OR"
+      refreshed: "TU TE SENS REVIGORÉ"
+      youWin: name => "TU GAGNES ${name}"
+      find35: "TU TROUVES 35 OR"
+      elite: "ÉLITE"
+      battle: "COMBAT"
+      bossOfAct: n => "BOSS DE L’ACTE ${n}"
+      foesN: n => "${n} ENNEMIS"
+      yourTurn: "TON TOUR"
+      turnN: n => "TOUR ${n}"
+      enemyTurn: "TOUR ENNEMI"
+      plusStr: n => "+${n} FOR"
+      ritual: n => "RITUEL ${n}"
+      vulnerable: "VULNÉRABLE"
+      weak: "FAIBLE"
+      slimed: n => "+${n} ENGLUÉ"
+      blocked: "BLOQUÉ"
+      plusEnergy: n => "+${n} ÉNERGIE"
+      plusHp: n => "+${n} PV"
+      upgrade: "AMÉLIORER"
+      remove: "RETIRER"
+      newRun: "NOUVELLE PARTIE"
+      cont: "CONTINUER"
+      deck: "DECK"
+      nCards: n => "${n} CARTES"
+      pack: "PAQUET"
+      toOpen: n => "${n} À OUVRIR"
+      tomorrow: "LE PROCHAIN DEMAIN"
+      done: "OK"
+      needs10: "UN DECK DEMANDE 10 CARTES"
+      collect: "RÉCUPÉRER"
+      endTurn: "FIN DU TOUR"
+      skip: "PASSER"
+      removeOne: "EN RETIRER UNE"
+      instead: "À LA PLACE"
+      onToAct: n => "VERS L’ACTE ${n}"
+      rest: "SE REPOSER"
+      healHp: n => "SOIGNE ${n} PV"
+      smith: "FORGER"
+      upgradeCard: "AMÉLIORER UNE CARTE"
+      nothingUp: "RIEN À AMÉLIORER"
+      leave: "PARTIR"
+      soldOut: "ÉPUISÉ"
+      nGold: n => "${n} OR"
+      title: "TITRE"
+      actLine: (n, name) => "ACTE ${n} · ${name}"
+      actN: n => "ACTE ${n}"
+      pickRoom: "CHOISIS LA SALLE SUIVANTE"
+      tagline: "UN DONJON DE CARTES"
+      draw: "PIOCHE"
+      discard: "DÉFAUSSE"
+      noEnergy: "PAS ASSEZ D’ÉNERGIE"
+      tapEnemy: "TOUCHE UN ENNEMI"
+      tapAgain: "TOUCHE ENCORE LA CARTE POUR LA JOUER"
+      victory: "VICTOIRE"
+      plusGold: n => "+${n} OR"
+      plusPack: "+1 PAQUET DE CARTES"
+      takeCard: "PRENDS UNE CARTE"
+      bossRelic: "CHOISIS UNE RELIQUE DE BOSS"
+      wayDown: "LE CHEMIN VERS LE BAS S’OUVRE"
+      campfire: "FEU DE CAMP"
+      restHere: "REPOSE-TOI OU AFFÛTE UNE CARTE"
+      treasure: "TRÉSOR"
+      merchant: "MARCHAND"
+      sold: "VENDU"
+      victoryBang: "VICTOIRE !"
+      youDied: "TU ES MORT"
+      cleared: "LA CRYPTE EST NETTOYÉE"
+      actFloor: (a, f) => "ACTE ${a}, ÉTAGE ${f}"
+      runStats: (cards, relics, gold) => "${cards} CARTES · ${relics} RELIQUES · ${gold} OR"
+      runsWon: n => "PARTIES GAGNÉES : ${n}"
+      best: (a, f) => "RECORD : ACTE ${a}, ÉTAGE ${f}"
+      packOf: "UN PAQUET DE CARTES"
+      joinColl: "ELLES REJOIGNENT TA COLLECTION"
+      newBang: "NOUVELLE !"
+      yourDeck: "TON DECK"
+      buildHelp1: "LE DÉBUT DE CHAQUE PARTIE. LES CARTES"
+      buildHelp2: "DES PARTIES ET PAQUETS ARRIVENT ICI. TOUCHE UN NOM POUR LA VOIR"
+      removeCard: "RETIRER UNE CARTE"
+      drawPile: n => "PIOCHE (${n})"
+      discPile: n => "DÉFAUSSE (${n})"
+      deckOf: n => "TON DECK (${n})"
+      nothingHere: "RIEN ICI"
+      upgraded: "AMÉLIORÉE"
+      tapBack: "TOUCHE N’IMPORTE OÙ POUR REVENIR"
+      dmgBlockN: n => "DÉGÂTS = BLOCAGE ${n}"
+      dmgBlock: "DÉGÂTS = BLOCAGE"
+      dmg: (n, times, all) => "DÉGÂTS ${n}${times > 1 ? " x${times}" : ""}${all ? " À TOUS" : ""}"
+      strCounts: n => "FOR COMPTE x${n}"
+      blockN: n => "BLOCAGE ${n}"
+      doubleBlock: "DOUBLE LE BLOCAGE"
+      vulnN: (n, all) => "VULNÉRABLE ${n}${all ? " À TOUS" : ""}"
+      weakN: (n, all) => "FAIBLE ${n}${all ? " À TOUS" : ""}"
+      strength: n => "+${n} FORCE"
+      doubleStr: "DOUBLE LA FORCE"
+      strEachTurn: n => "+${n} FOR CHAQUE TOUR"
+      blockEachTurn: n => ["${n} BLOCAGE À CHAQUE", "FIN DE TOUR"]
+      thorns: n => "ÉPINES ${n}"
+      thornsTurn: n => "ÉPINES ${n} CE TOUR"
+      keepBlock: ["LE BLOCAGE NE", "DISPARAÎT PLUS"]
+      loseHp: n => "PERDS ${n} PV"
+      drawN: n => "PIOCHE ${n}"
+      copyLine: ["UNE COPIE VA", "DANS TA DÉFAUSSE"]
+      exeLine: ["DOUBLE SUR LES", "ENNEMIS SOUS MI-PV"]
+      drainLine: ["SOIGNE LES DÉGÂTS", "QUI PASSENT"]
+      clogs: "ENCOMBRE TA MAIN"
+      exhaust: "ÉPUISEMENT"
+    }
+    tr {
+      cards: ["VURUŞ", "SAVUN", "DARBE", "YAR", "ÇİFTE VURUŞ", "DEMİR DALGA", "KABZA DARBESİ", "SİLKELE", "ÖFKE", "ÇAMAŞIR İPİ", "GÖK GÜRÜLTÜSÜ", "GÖVDE DARBESİ", "SAVAŞ NARASI", "KAN BÜKÜMÜ", "APERKAT", "TUTUŞ", "METALLEŞ", "GÖZÜ DÖNMEK", "SİPERLEN", "ALEV DUVARI", "AĞIR KILIÇ", "ŞOK DALGASI", "SAVAŞ TRANSI", "KATLİAM", "İBLİS SURETİ", "TOPUZ", "AŞILMAZ", "ADAK", "BARİKAT", "SINIR AŞIMI", "DİKEN KAFESİ", "BALÇIKLI", "RUH YARAN", "İNFAZ", "KAN YEMİNİ", "HAYALET KILIÇLAR", "MAHZEN FENERİ", "AYNA KALKAN"]
+      relicN: ["YANAN KAN", "ÇAPA", "BİLYE KESESİ", "FENER", "VAJRA", "ORİKALKUM", "KAN ŞİŞESİ", "ŞURİKEN", "MUTLU ÇİÇEK", "BRONZ PULLAR", "ALTIN PUT", "YEMEK FİŞİ", "ÇİLEK", "DONDURMA", "BOYNUZ BABA", "BULMACA KUTUSU", "HAZIRLIK ÇANTASI", "YASTIK", "KUM SAATİ", "ARMUT", "SÖNMEZ ALEV", "ESKİ KİTAP", "KARA KAN"]
+      relicD: ["SAVAŞTAN SONRA 6 İYİLEŞ", "1. TURDA 10 BLOK", "DÜŞMANLAR SAVUNMASIZ BAŞLAR", "1. TURDA +1 ENERJİ", "SAVAŞLARA 1 GÜÇLE BAŞLA", "TUR SONUNDA BLOK YOKSA: +6", "SAVAŞ BAŞINDA 2 İYİLEŞ", "TURDA HER 3. SALDIRI: +1 GÜÇ", "HER 3 TURDA +1 ENERJİ", "SALDIRANLAR 3 HASAR ALIR", "SAVAŞLARDAN %25 FAZLA ALTIN", "DÜKKÂNA GİRİNCE 15 İYİLEŞ", "+7 MAKS CAN", "KULLANILMAYAN ENERJİ KALIR", "2. TURDA 14 BLOK", "SAVAŞTA İLK CAN KAYBI: 3 ÇEK", "1. TURDA 2 FAZLA ÇEK", "DİNLENMEK 15 FAZLA İYİLEŞTİRİR", "HER TUR HERKESE 3 HASAR", "+10 MAKS CAN", "HER TUR +1 ENERJİ", "HER TUR 1 FAZLA ÇEK", "SAVAŞTAN SONRA 12 FAZLA İYİLEŞ"]
+      foes: ["BALÇIK", "SIÇAN", "TARİKATÇI", "ÇENE SOLUCANI", "İSKELET", "YARASA", "MANTAR", "KARA ŞÖVALYE", "GOLEM", "LİÇ", "EJDER", "GÖZ"]
+      acts: ["MAHZEN", "YERALTI MEZARLARI", "UÇURUM"]
+      evN: ["SUNAK", "PINAR", "KUMARBAZ", "DEMİRHANE"]
+      evT: [["TAŞ BİR SUNAK", "SOLUK BİR IŞIKLA UĞULDUYOR."], ["BERRAK SU KAYANIN", "İÇİNDEN FIŞKIRIYOR."], ["KUKULETALI BİRİ", "BİR DESTE KARIYOR."], ["TERK EDİLMİŞ BİR ÖRS", "HÂLÂ KIZIL YANIYOR."]]
+      evA: ["DUA ET: RELİK İÇİN 7 CAN KAYBET", "İÇ", "NADİR KART İÇİN 50 ALTIN ÖDE", "BİR KARTI GELİŞTİR"]
+      evB: ["DOKUNMA", "YIKAN: BİR KART ÇIKAR", "UZAKLAŞ", "KÜLLERİ ARA: 35 ALTIN"]
+      drinkHeal: n => "İÇ: ${n} CAN İYİLEŞ"
+      shrineGives: name => "SUNAK VERİYOR: ${name}"
+      shrineGold: "SUNAK 50 ALTIN VERİYOR"
+      refreshed: "TAZELENDİN"
+      youWin: name => "KAZANDIN: ${name}"
+      find35: "35 ALTIN BULDUN"
+      elite: "SEÇKİN"
+      battle: "SAVAŞ"
+      bossOfAct: n => "${n}. PERDENİN PATRONU"
+      foesN: n => "${n} DÜŞMAN"
+      yourTurn: "SENİN TURUN"
+      turnN: n => "TUR ${n}"
+      enemyTurn: "DÜŞMAN TURU"
+      plusStr: n => "+${n} GÜÇ"
+      ritual: n => "AYİN ${n}"
+      vulnerable: "SAVUNMASIZ"
+      weak: "ZAYIF"
+      slimed: n => "+${n} BALÇIKLI"
+      blocked: "ENGELLENDİ"
+      plusEnergy: n => "+${n} ENERJİ"
+      plusHp: n => "+${n} CAN"
+      upgrade: "GELİŞTİR"
+      remove: "ÇIKAR"
+      newRun: "YENİ OYUN"
+      cont: "DEVAM"
+      deck: "DESTE"
+      nCards: n => "${n} KART"
+      pack: "PAKET"
+      toOpen: n => "AÇILACAK ${n}"
+      tomorrow: "SONRAKİ YARIN"
+      done: "TAMAM"
+      needs10: "DESTEYE 10 KART GEREKİR"
+      collect: "AL"
+      endTurn: "TURU BİTİR"
+      skip: "GEÇ"
+      removeOne: "BİRİNİ ÇIKAR"
+      instead: "YERİNE"
+      onToAct: n => "${n}. PERDEYE"
+      rest: "DİNLEN"
+      healHp: n => "${n} CAN İYİLEŞ"
+      smith: "DÖV"
+      upgradeCard: "BİR KARTI GELİŞTİR"
+      nothingUp: "GELİŞTİRECEK KART YOK"
+      leave: "AYRIL"
+      soldOut: "TÜKENDİ"
+      nGold: n => "${n} ALTIN"
+      title: "BAŞLIK"
+      actLine: (n, name) => "PERDE ${n} · ${name}"
+      actN: n => "PERDE ${n}"
+      pickRoom: "SONRAKİ ODAYI SEÇ"
+      tagline: "BİR DESTE KURMA MACERASI"
+      draw: "ÇEK"
+      discard: "ATILAN"
+      noEnergy: "ENERJİ YETMİYOR"
+      tapEnemy: "BİR DÜŞMANA DOKUN"
+      tapAgain: "OYNAMAK İÇİN KARTA TEKRAR DOKUN"
+      victory: "ZAFER"
+      plusGold: n => "+${n} ALTIN"
+      plusPack: "+1 KART PAKETİ"
+      takeCard: "BİR KART AL"
+      bossRelic: "BİR PATRON RELİĞİ SEÇ"
+      wayDown: "AŞAĞI GİDEN YOL AÇILIYOR"
+      campfire: "KAMP ATEŞİ"
+      restHere: "BURADA DİNLEN YA DA BİR KARTI BİLE"
+      treasure: "HAZİNE"
+      merchant: "TÜCCAR"
+      sold: "SATILDI"
+      victoryBang: "ZAFER!"
+      youDied: "ÖLDÜN"
+      cleared: "MAHZEN TEMİZLENDİ"
+      actFloor: (a, f) => "PERDE ${a}, KAT ${f}"
+      runStats: (cards, relics, gold) => "${cards} KART · ${relics} RELİK · ${gold} ALTIN"
+      runsWon: n => "KAZANILAN OYUN: ${n}"
+      best: (a, f) => "EN İYİ: PERDE ${a}, KAT ${f}"
+      packOf: "BİR KART PAKETİ"
+      joinColl: "KOLEKSİYONUNA KATILIYORLAR"
+      newBang: "YENİ!"
+      yourDeck: "DESTEN"
+      buildHelp1: "YENİ BİR OYUN BUNUNLA BAŞLAR. OYUNLARDAN VE"
+      buildHelp2: "PAKETLERDEN GELEN KARTLAR BURAYA DÜŞER. GÖRMEK İÇİN ADA DOKUN"
+      removeCard: "BİR KART ÇIKAR"
+      drawPile: n => "ÇEKME DESTESİ (${n})"
+      discPile: n => "ATILANLAR (${n})"
+      deckOf: n => "DESTEN (${n})"
+      nothingHere: "BURADA BİR ŞEY YOK"
+      upgraded: "GELİŞTİRİLDİ"
+      tapBack: "GERİ DÖNMEK İÇİN HERHANGİ BİR YERE DOKUN"
+      dmgBlockN: n => "HASAR = BLOK ${n}"
+      dmgBlock: "HASAR = BLOK"
+      dmg: (n, times, all) => "HASAR ${n}${times > 1 ? " x${times}" : ""}${all ? " HEPSİNE" : ""}"
+      strCounts: n => "GÜÇ x${n} SAYILIR"
+      blockN: n => "BLOK ${n}"
+      doubleBlock: "BLOĞU İKİYE KATLA"
+      vulnN: (n, all) => "SAVUNMASIZ ${n}${all ? " HEPSİNE" : ""}"
+      weakN: (n, all) => "ZAYIF ${n}${all ? " HEPSİNE" : ""}"
+      strength: n => "+${n} GÜÇ"
+      doubleStr: "GÜCÜ İKİYE KATLA"
+      strEachTurn: n => "HER TUR +${n} GÜÇ"
+      blockEachTurn: n => ["HER TUR SONUNDA", "${n} BLOK"]
+      thorns: n => "DİKEN ${n}"
+      thornsTurn: n => "BU TUR DİKEN ${n}"
+      keepBlock: ["BLOK ARTIK", "KAYBOLMAZ"]
+      loseHp: n => "${n} CAN KAYBET"
+      drawN: n => "${n} ÇEK"
+      copyLine: ["BİR KOPYASI", "ATILANLARA GİDER"]
+      exeLine: ["CANI YARIDAN AZ", "DÜŞMANA İKİ KAT"]
+      drainLine: ["İÇERİ İŞLEYEN", "HASAR KADAR İYİLEŞ"]
+      clogs: "ELİNİ TIKAR"
+      exhaust: "TÜKET"
+    }
+    it {
+      cards: ["COLPO", "DIFESA", "MAZZATA", "FENDENTE", "COLPO DOPPIO", "ONDA DI FERRO", "POMOLATA", "SCROLLATA", "RABBIA", "BRACCIATA", "TUONO", "SPALLATA", "GRIDO DI GUERRA", "EMOCINESI", "MONTANTE", "INFIAMMARE", "METALLIZZARE", "VEDERE ROSSO", "TRINCERARSI", "BARRIERA DI FUOCO", "LAMA PESANTE", "ONDA D'URTO", "TRANCE BELLICA", "CARNEFICINA", "FORMA DEMONIACA", "RANDELLO", "IMPERVIO", "OFFERTA", "BARRICATA", "OLTRE IL LIMITE", "GABBIA DI SPINE", "INVISCHIATO", "SQUARCIA ANIME", "ESECUZIONE", "PATTO DI SANGUE", "LAME SPETTRALI", "LANTERNA CRIPTA", "SCUDO SPECCHIO"]
+      relicN: ["SANGUE ARDENTE", "ANCORA", "SACCHETTO DI BIGLIE", "LANTERNA", "VAJRA", "ORICALCO", "FIALA DI SANGUE", "SHURIKEN", "FIORE ALLEGRO", "SCAGLIE DI BRONZO", "IDOLO D'ORO", "BUONO PASTO", "FRAGOLA", "GELATO", "BITTA DI CORNO", "SCATOLA ENIGMA", "BORSA DA VIAGGIO", "CUSCINO", "CLESSIDRA", "PERA", "FIAMMA ETERNA", "VECCHIO TOMO", "SANGUE NERO"]
+      relicD: ["CURA 6 DOPO UNO SCONTRO", "10 PARATA AL TURNO 1", "I NEMICI PARTONO VULNERABILI", "+1 ENERGIA AL TURNO 1", "INIZIA GLI SCONTRI CON 1 FORZA", "NESSUNA PARATA A FINE TURNO: +6", "CURA 2 A INIZIO SCONTRO", "OGNI 3° ATTACCO DEL TURNO: +1 FOR", "+1 ENERGIA OGNI 3 TURNI", "CHI ATTACCA SUBISCE 3 DANNI", "25% D'ORO IN PIÙ DAGLI SCONTRI", "CURA 15 ENTRANDO IN UN NEGOZIO", "+7 PV MAX", "L'ENERGIA AVANZATA RESTA", "14 PARATA AL TURNO 2", "PRIMI PV PERSI: PESCA 3", "PESCA 2 IN PIÙ AL TURNO 1", "RIPOSARE CURA 15 IN PIÙ", "3 DANNI A TUTTI OGNI TURNO", "+10 PV MAX", "+1 ENERGIA OGNI TURNO", "PESCA 1 IN PIÙ OGNI TURNO", "CURA 12 IN PIÙ DOPO UNO SCONTRO"]
+      foes: ["MELMA", "RATTO", "CULTISTA", "VERME MASCELLA", "SCHELETRO", "PIPISTRELLO", "FUNGO", "CAVALIERE OSCURO", "GOLEM", "IL LICH", "IL DRAGO", "L'OCCHIO"]
+      acts: ["LA CRIPTA", "LE CATACOMBE", "L'ABISSO"]
+      evN: ["SANTUARIO", "FONTANA", "GIOCATORE", "FORGIA"]
+      evT: [["UN SANTUARIO DI PIETRA", "VIBRA DI LUCE FIOCA."], ["ACQUA LIMPIDA SGORGA", "DALLA ROCCIA."], ["UNA FIGURA INCAPPUCCIATA", "MESCOLA UN MAZZO."], ["UN'INCUDINE ABBANDONATA", "BRILLA ANCORA ROSSA."]]
+      evA: ["PREGA: -7 PV PER UNA RELIQUIA", "BEVI", "PAGA 50 ORO PER UNA CARTA RARA", "MIGLIORA UNA CARTA"]
+      evB: ["LASCIA STARE", "BAGNATI: TOGLI UNA CARTA", "VAI VIA", "FRUGA NELLA CENERE: 35 ORO"]
+      drinkHeal: n => "BEVI: CURA ${n} PV"
+      shrineGives: name => "IL SANTUARIO DONA: ${name}"
+      shrineGold: "IL SANTUARIO DONA 50 ORO"
+      refreshed: "TI SENTI RINVIGORITO"
+      youWin: name => "VINCI ${name}"
+      find35: "TROVI 35 ORO"
+      elite: "ÉLITE"
+      battle: "SCONTRO"
+      bossOfAct: n => "BOSS DELL'ATTO ${n}"
+      foesN: n => "${n} NEMICI"
+      yourTurn: "TUO TURNO"
+      turnN: n => "TURNO ${n}"
+      enemyTurn: "TURNO NEMICO"
+      plusStr: n => "+${n} FOR"
+      ritual: n => "RITUALE ${n}"
+      vulnerable: "VULNERABILE"
+      weak: "DEBOLE"
+      slimed: n => "+${n} INVISCHIATO"
+      blocked: "PARATO"
+      plusEnergy: n => "+${n} ENERGIA"
+      plusHp: n => "+${n} PV"
+      upgrade: "MIGLIORA"
+      remove: "TOGLI"
+      newRun: "NUOVA PARTITA"
+      cont: "CONTINUA"
+      deck: "MAZZO"
+      nCards: n => "${n} CARTE"
+      pack: "BUSTINA"
+      toOpen: n => "${n} DA APRIRE"
+      tomorrow: "LA PROSSIMA DOMANI"
+      done: "FATTO"
+      needs10: "UN MAZZO VUOLE 10 CARTE"
+      collect: "RACCOGLI"
+      endTurn: "FINE TURNO"
+      skip: "SALTA"
+      removeOne: "TOGLINE UNA"
+      instead: "INVECE"
+      onToAct: n => "VERSO L'ATTO ${n}"
+      rest: "RIPOSA"
+      healHp: n => "CURA ${n} PV"
+      smith: "FORGIA"
+      upgradeCard: "MIGLIORA UNA CARTA"
+      nothingUp: "NIENTE DA MIGLIORARE"
+      leave: "ESCI"
+      soldOut: "ESAURITO"
+      nGold: n => "${n} ORO"
+      title: "TITOLO"
+      actLine: (n, name) => "ATTO ${n} · ${name}"
+      actN: n => "ATTO ${n}"
+      pickRoom: "SCEGLI LA PROSSIMA STANZA"
+      tagline: "UN DUNGEON DI CARTE"
+      draw: "PESCA"
+      discard: "SCARTI"
+      noEnergy: "ENERGIA INSUFFICIENTE"
+      tapEnemy: "TOCCA UN NEMICO"
+      tapAgain: "TOCCA DI NUOVO LA CARTA PER GIOCARLA"
+      victory: "VITTORIA"
+      plusGold: n => "+${n} ORO"
+      plusPack: "+1 BUSTINA DI CARTE"
+      takeCard: "PRENDI UNA CARTA"
+      bossRelic: "SCEGLI UNA RELIQUIA DEL BOSS"
+      wayDown: "LA VIA VERSO IL BASSO SI APRE"
+      campfire: "FALÒ"
+      restHere: "RIPOSA QUI, O AFFILA UNA CARTA"
+      treasure: "TESORO"
+      merchant: "MERCANTE"
+      sold: "VENDUTO"
+      victoryBang: "VITTORIA!"
+      youDied: "SEI MORTO"
+      cleared: "LA CRIPTA È LIBERA"
+      actFloor: (a, f) => "ATTO ${a}, PIANO ${f}"
+      runStats: (cards, relics, gold) => "${cards} CARTE · ${relics} RELIQUIE · ${gold} ORO"
+      runsWon: n => "PARTITE VINTE: ${n}"
+      best: (a, f) => "RECORD: ATTO ${a}, PIANO ${f}"
+      packOf: "UNA BUSTINA DI CARTE"
+      joinColl: "ENTRANO NELLA TUA COLLEZIONE"
+      newBang: "NUOVA!"
+      yourDeck: "IL TUO MAZZO"
+      buildHelp1: "CON QUESTO INIZIA OGNI PARTITA. LE CARTE"
+      buildHelp2: "DI PARTITE E BUSTINE FINISCONO QUI. TOCCA UN NOME PER VEDERLA"
+      removeCard: "TOGLI UNA CARTA"
+      drawPile: n => "MAZZO DI PESCA (${n})"
+      discPile: n => "SCARTI (${n})"
+      deckOf: n => "IL TUO MAZZO (${n})"
+      nothingHere: "QUI NON C'È NIENTE"
+      upgraded: "MIGLIORATA"
+      tapBack: "TOCCA OVUNQUE PER TORNARE"
+      dmgBlockN: n => "DANNI = PARATA ${n}"
+      dmgBlock: "DANNI = PARATA"
+      dmg: (n, times, all) => "DANNI ${n}${times > 1 ? " x${times}" : ""}${all ? " A TUTTI" : ""}"
+      strCounts: n => "FOR CONTA x${n}"
+      blockN: n => "PARATA ${n}"
+      doubleBlock: "RADDOPPIA LA PARATA"
+      vulnN: (n, all) => "VULNERABILE ${n}${all ? " A TUTTI" : ""}"
+      weakN: (n, all) => "DEBOLE ${n}${all ? " A TUTTI" : ""}"
+      strength: n => "+${n} FORZA"
+      doubleStr: "RADDOPPIA LA FORZA"
+      strEachTurn: n => "+${n} FOR OGNI TURNO"
+      blockEachTurn: n => ["${n} PARATA A OGNI", "FINE TURNO"]
+      thorns: n => "SPINE ${n}"
+      thornsTurn: n => "SPINE ${n} QUESTO TURNO"
+      keepBlock: ["LA PARATA NON", "SVANISCE PIÙ"]
+      loseHp: n => "PERDI ${n} PV"
+      drawN: n => "PESCA ${n}"
+      copyLine: ["UNA COPIA VA", "NEI TUOI SCARTI"]
+      exeLine: ["DOPPIO SUI NEMICI", "SOTTO METÀ PV"]
+      drainLine: ["CURA I DANNI", "CHE PASSANO"]
+      clogs: "INTASA LA MANO"
+      exhaust: "ESAURISCI"
+    }
+  }
 
   // "title", "map", "fight", "reward", "rest", "shop", "chest", "event", "end", "build" (the deck
   // a run starts with) or "pack" (one being opened)
@@ -125,44 +1579,44 @@ app "cryptdeck" {
   // (block stays), x2 (double strength), exe (double on a foe below half health), drain (heals the
   // damage that gets through); sm strength counts that many times. u: what an upgrade changes.
   let CD = [
-    {n: "STRIKE", e: 1, t: 0, r: 0, i: 0, d: 6, u: {d: 9}},
-    {n: "DEFEND", e: 1, t: 1, r: 0, i: 1, b: 5, u: {b: 8}},
-    {n: "BASH", e: 2, t: 0, r: 0, i: 2, d: 8, v: 2, u: {d: 10, v: 3}},
-    {n: "CLEAVE", e: 1, t: 0, r: 1, i: 3, d: 8, all: true, u: {d: 11}},
-    {n: "TWIN STRIKE", e: 1, t: 0, r: 1, i: 4, d: 5, x: 2, u: {d: 7}},
-    {n: "IRON WAVE", e: 1, t: 0, r: 1, i: 5, d: 5, b: 5, u: {d: 7, b: 7}},
-    {n: "POMMEL STRIKE", e: 1, t: 0, r: 1, i: 0, d: 9, dr: 1, u: {d: 10, dr: 2}},
-    {n: "SHRUG IT OFF", e: 1, t: 1, r: 1, i: 1, b: 8, dr: 1, u: {b: 11}},
-    {n: "ANGER", e: 0, t: 0, r: 1, i: 6, d: 6, sp: "copy", u: {d: 8}},
-    {n: "CLOTHESLINE", e: 2, t: 0, r: 1, i: 2, d: 12, w: 2, u: {d: 14, w: 3}},
-    {n: "THUNDERCLAP", e: 1, t: 0, r: 1, i: 7, d: 4, all: true, v: 1, u: {d: 7}},
-    {n: "BODY SLAM", e: 1, t: 0, r: 1, i: 5, d: 0, sp: "slam", u: {e: 0}},
-    {n: "WAR CRY", e: 0, t: 1, r: 1, i: 8, dr: 1, ex: true, u: {dr: 2}},
-    {n: "HEMOKINESIS", e: 1, t: 0, r: 2, i: 9, hp: 2, d: 15, u: {d: 20}},
-    {n: "UPPERCUT", e: 2, t: 0, r: 2, i: 2, d: 13, w: 1, v: 1, u: {w: 2, v: 2}},
-    {n: "INFLAME", e: 1, t: 2, r: 2, i: 10, s: 2, u: {s: 3}},
-    {n: "METALLICIZE", e: 1, t: 2, r: 2, i: 11, pb: 3, u: {pb: 4}},
-    {n: "SEEING RED", e: 1, t: 1, r: 2, i: 12, en: 2, ex: true, u: {e: 0}},
-    {n: "ENTRENCH", e: 2, t: 1, r: 2, i: 11, sp: "dbl", u: {e: 1}},
-    {n: "FLAME BARRIER", e: 2, t: 1, r: 2, i: 6, b: 12, ft: 4, u: {b: 16, ft: 6}},
-    {n: "HEAVY BLADE", e: 2, t: 0, r: 2, i: 3, d: 14, sm: 3, u: {sm: 5}},
-    {n: "SHOCKWAVE", e: 2, t: 1, r: 2, i: 7, all: true, w: 3, v: 3, ex: true, u: {w: 5, v: 5}},
-    {n: "BATTLE TRANCE", e: 0, t: 1, r: 2, i: 8, dr: 3, u: {dr: 4}},
-    {n: "CARNAGE", e: 2, t: 0, r: 2, i: 3, d: 20, u: {d: 28}},
-    {n: "DEMON FORM", e: 3, t: 2, r: 3, i: 13, ps: 2, u: {ps: 3}},
-    {n: "BLUDGEON", e: 3, t: 0, r: 3, i: 2, d: 32, u: {d: 42}},
-    {n: "IMPERVIOUS", e: 2, t: 1, r: 3, i: 1, b: 30, ex: true, u: {b: 40}},
-    {n: "OFFERING", e: 0, t: 1, r: 3, i: 9, hp: 6, en: 2, dr: 3, ex: true, u: {dr: 5}},
-    {n: "BARRICADE", e: 3, t: 2, r: 3, i: 11, sp: "keep", u: {e: 2}},
-    {n: "LIMIT BREAK", e: 1, t: 1, r: 3, i: 10, sp: "x2", ex: true, u: {ex: false}},
-    {n: "THORN CAGE", e: 1, t: 2, r: 2, i: 14, pt: 3, u: {pt: 5}},
-    {n: "SLIMED", e: 1, t: 3, r: 4, i: 15, ex: true, u: {}},
-    {n: "SOUL REND", e: 2, t: 0, r: 3, i: 16, d: 9, all: true, sp: "drain", u: {d: 12}},
-    {n: "EXECUTE", e: 1, t: 0, r: 2, i: 2, d: 8, sp: "exe", u: {d: 11}},
-    {n: "BLOOD OATH", e: 0, t: 2, r: 3, i: 9, hp: 4, ps: 1, u: {hp: 2}},
-    {n: "SPECTRAL BLADES", e: 1, t: 0, r: 1, i: 4, d: 3, x: 3, u: {d: 4}},
-    {n: "CRYPT LANTERN", e: 0, t: 1, r: 2, i: 17, en: 1, dr: 1, ex: true, u: {dr: 2}},
-    {n: "MIRROR WARD", e: 2, t: 1, r: 3, i: 1, b: 10, ft: 10, u: {b: 14, ft: 14}}
+    {n: str.cards[0], e: 1, t: 0, r: 0, i: 0, d: 6, u: {d: 9}},
+    {n: str.cards[1], e: 1, t: 1, r: 0, i: 1, b: 5, u: {b: 8}},
+    {n: str.cards[2], e: 2, t: 0, r: 0, i: 2, d: 8, v: 2, u: {d: 10, v: 3}},
+    {n: str.cards[3], e: 1, t: 0, r: 1, i: 3, d: 8, all: true, u: {d: 11}},
+    {n: str.cards[4], e: 1, t: 0, r: 1, i: 4, d: 5, x: 2, u: {d: 7}},
+    {n: str.cards[5], e: 1, t: 0, r: 1, i: 5, d: 5, b: 5, u: {d: 7, b: 7}},
+    {n: str.cards[6], e: 1, t: 0, r: 1, i: 0, d: 9, dr: 1, u: {d: 10, dr: 2}},
+    {n: str.cards[7], e: 1, t: 1, r: 1, i: 1, b: 8, dr: 1, u: {b: 11}},
+    {n: str.cards[8], e: 0, t: 0, r: 1, i: 6, d: 6, sp: "copy", u: {d: 8}},
+    {n: str.cards[9], e: 2, t: 0, r: 1, i: 2, d: 12, w: 2, u: {d: 14, w: 3}},
+    {n: str.cards[10], e: 1, t: 0, r: 1, i: 7, d: 4, all: true, v: 1, u: {d: 7}},
+    {n: str.cards[11], e: 1, t: 0, r: 1, i: 5, d: 0, sp: "slam", u: {e: 0}},
+    {n: str.cards[12], e: 0, t: 1, r: 1, i: 8, dr: 1, ex: true, u: {dr: 2}},
+    {n: str.cards[13], e: 1, t: 0, r: 2, i: 9, hp: 2, d: 15, u: {d: 20}},
+    {n: str.cards[14], e: 2, t: 0, r: 2, i: 2, d: 13, w: 1, v: 1, u: {w: 2, v: 2}},
+    {n: str.cards[15], e: 1, t: 2, r: 2, i: 10, s: 2, u: {s: 3}},
+    {n: str.cards[16], e: 1, t: 2, r: 2, i: 11, pb: 3, u: {pb: 4}},
+    {n: str.cards[17], e: 1, t: 1, r: 2, i: 12, en: 2, ex: true, u: {e: 0}},
+    {n: str.cards[18], e: 2, t: 1, r: 2, i: 11, sp: "dbl", u: {e: 1}},
+    {n: str.cards[19], e: 2, t: 1, r: 2, i: 6, b: 12, ft: 4, u: {b: 16, ft: 6}},
+    {n: str.cards[20], e: 2, t: 0, r: 2, i: 3, d: 14, sm: 3, u: {sm: 5}},
+    {n: str.cards[21], e: 2, t: 1, r: 2, i: 7, all: true, w: 3, v: 3, ex: true, u: {w: 5, v: 5}},
+    {n: str.cards[22], e: 0, t: 1, r: 2, i: 8, dr: 3, u: {dr: 4}},
+    {n: str.cards[23], e: 2, t: 0, r: 2, i: 3, d: 20, u: {d: 28}},
+    {n: str.cards[24], e: 3, t: 2, r: 3, i: 13, ps: 2, u: {ps: 3}},
+    {n: str.cards[25], e: 3, t: 0, r: 3, i: 2, d: 32, u: {d: 42}},
+    {n: str.cards[26], e: 2, t: 1, r: 3, i: 1, b: 30, ex: true, u: {b: 40}},
+    {n: str.cards[27], e: 0, t: 1, r: 3, i: 9, hp: 6, en: 2, dr: 3, ex: true, u: {dr: 5}},
+    {n: str.cards[28], e: 3, t: 2, r: 3, i: 11, sp: "keep", u: {e: 2}},
+    {n: str.cards[29], e: 1, t: 1, r: 3, i: 10, sp: "x2", ex: true, u: {ex: false}},
+    {n: str.cards[30], e: 1, t: 2, r: 2, i: 14, pt: 3, u: {pt: 5}},
+    {n: str.cards[31], e: 1, t: 3, r: 4, i: 15, ex: true, u: {}},
+    {n: str.cards[32], e: 2, t: 0, r: 3, i: 16, d: 9, all: true, sp: "drain", u: {d: 12}},
+    {n: str.cards[33], e: 1, t: 0, r: 2, i: 2, d: 8, sp: "exe", u: {d: 11}},
+    {n: str.cards[34], e: 0, t: 2, r: 3, i: 9, hp: 4, ps: 1, u: {hp: 2}},
+    {n: str.cards[35], e: 1, t: 0, r: 1, i: 4, d: 3, x: 3, u: {d: 4}},
+    {n: str.cards[36], e: 0, t: 1, r: 2, i: 17, en: 1, dr: 1, ex: true, u: {dr: 2}},
+    {n: str.cards[37], e: 2, t: 1, r: 3, i: 1, b: 10, ft: 10, u: {b: 14, ft: 14}}
   ]
   // the cards a reward or a shop can offer, by rarity
   let POOL = [[], range(len(CD)).filter(c => CD[c].r == 1), range(len(CD)).filter(c => CD[c].r == 2), range(len(CD)).filter(c => CD[c].r == 3)]
@@ -177,29 +1631,29 @@ app "cryptdeck" {
 
   // ---- the relics -------------------------------------------------------------------------------
   let RL = [
-    {n: "BURNING BLOOD", d: "HEAL 6 AFTER A FIGHT"},
-    {n: "ANCHOR", d: "10 BLOCK ON TURN 1"},
-    {n: "BAG OF MARBLES", d: "ENEMIES START VULNERABLE"},
-    {n: "LANTERN", d: "+1 ENERGY ON TURN 1"},
-    {n: "VAJRA", d: "START FIGHTS WITH 1 STRENGTH"},
-    {n: "ORICHALCUM", d: "NO BLOCK AT TURN END: GAIN 6"},
-    {n: "BLOOD VIAL", d: "HEAL 2 AS A FIGHT STARTS"},
-    {n: "SHURIKEN", d: "EVERY 3RD ATTACK IN A TURN: +1 STR"},
-    {n: "HAPPY FLOWER", d: "+1 ENERGY EVERY 3RD TURN"},
-    {n: "BRONZE SCALES", d: "ATTACKERS TAKE 3 DAMAGE"},
-    {n: "GOLDEN IDOL", d: "25% MORE GOLD FROM FIGHTS"},
-    {n: "MEAL TICKET", d: "HEAL 15 ON ENTERING A SHOP"},
-    {n: "STRAWBERRY", d: "+7 MAX HP"},
-    {n: "ICE CREAM", d: "UNUSED ENERGY CARRIES OVER"},
-    {n: "HORN CLEAT", d: "14 BLOCK ON TURN 2"},
-    {n: "PUZZLE BOX", d: "FIRST HP LOST IN A FIGHT: DRAW 3"},
-    {n: "PREP BAG", d: "DRAW 2 MORE ON TURN 1"},
-    {n: "PILLOW", d: "RESTING HEALS 15 MORE"},
-    {n: "HOURGLASS", d: "3 DAMAGE TO ALL EACH TURN"},
-    {n: "PEAR", d: "+10 MAX HP"},
-    {n: "ETERNAL FLAME", d: "+1 ENERGY EVERY TURN"},
-    {n: "OLD TOME", d: "DRAW 1 MORE EVERY TURN"},
-    {n: "BLACK BLOOD", d: "HEAL 12 MORE AFTER A FIGHT"}
+    {n: str.relicN[0], d: str.relicD[0]},
+    {n: str.relicN[1], d: str.relicD[1]},
+    {n: str.relicN[2], d: str.relicD[2]},
+    {n: str.relicN[3], d: str.relicD[3]},
+    {n: str.relicN[4], d: str.relicD[4]},
+    {n: str.relicN[5], d: str.relicD[5]},
+    {n: str.relicN[6], d: str.relicD[6]},
+    {n: str.relicN[7], d: str.relicD[7]},
+    {n: str.relicN[8], d: str.relicD[8]},
+    {n: str.relicN[9], d: str.relicD[9]},
+    {n: str.relicN[10], d: str.relicD[10]},
+    {n: str.relicN[11], d: str.relicD[11]},
+    {n: str.relicN[12], d: str.relicD[12]},
+    {n: str.relicN[13], d: str.relicD[13]},
+    {n: str.relicN[14], d: str.relicD[14]},
+    {n: str.relicN[15], d: str.relicD[15]},
+    {n: str.relicN[16], d: str.relicD[16]},
+    {n: str.relicN[17], d: str.relicD[17]},
+    {n: str.relicN[18], d: str.relicD[18]},
+    {n: str.relicN[19], d: str.relicD[19]},
+    {n: str.relicN[20], d: str.relicD[20]},
+    {n: str.relicN[21], d: str.relicD[21]},
+    {n: str.relicN[22], d: str.relicD[22]}
   ]
   let R = range(23).map(r => indexOf(relics, r) >= 0)
 
@@ -208,18 +1662,18 @@ app "cryptdeck" {
   // damage (x times), b block, s strength, rit strength every turn, v vulnerable and w weak on the
   // knight, sl slimed cards into the knight's discard pile.
   let EN = [
-    {n: "SLIME", hp: [12, 16], o: 0, mv: [{a: 5}, {a: 3, sl: 1}]},
-    {n: "RAT", hp: [11, 14], o: 1, mv: [{a: 6}, {a: 3, x: 2}]},
-    {n: "CULTIST", hp: [46, 52], o: 2, mv: [{rit: 3}, {a: 6}]},
-    {n: "JAW WORM", hp: [40, 44], o: 1, mv: [{a: 11}, {a: 7, b: 5}, {s: 3, b: 6}]},
-    {n: "SKELETON", hp: [26, 30], o: 0, mv: [{a: 7}, {a: 3, b: 8}, {a: 4, x: 2}]},
-    {n: "BAT", hp: [13, 17], o: 1, mv: [{a: 3, x: 2}, {a: 2, w: 1}]},
-    {n: "SHROOM", hp: [22, 26], o: 0, mv: [{v: 2, b: 4}, {a: 7}, {a: 9}]},
-    {n: "DARK KNIGHT", hp: [82, 86], o: 2, mv: [{s: 3, b: 10}, {a: 14}, {a: 6, v: 2}, {a: 8, x: 2}]},
-    {n: "GOLEM", hp: [96, 104], o: 0, mv: [{b: 14, s: 2}, {a: 9, x: 2}, {a: 20}]},
-    {n: "THE LICH", hp: [200, 200], o: 0, mv: [{s: 3, b: 15}, {a: 20}, {a: 6, x: 3}, {sl: 3, w: 2}, {a: 12, v: 2}]},
-    {n: "THE WYRM", hp: [250, 250], o: 0, mv: [{a: 10, x: 2}, {b: 20, s: 2}, {a: 30}, {a: 6, w: 2, v: 2}, {a: 5, x: 4}]},
-    {n: "THE EYE", hp: [300, 300], o: 0, mv: [{v: 3, w: 3}, {a: 8, x: 3}, {s: 4, b: 25}, {a: 36}, {a: 10, sl: 4}, {a: 6, x: 5}]}
+    {n: str.foes[0], hp: [12, 16], o: 0, mv: [{a: 5}, {a: 3, sl: 1}]},
+    {n: str.foes[1], hp: [11, 14], o: 1, mv: [{a: 6}, {a: 3, x: 2}]},
+    {n: str.foes[2], hp: [46, 52], o: 2, mv: [{rit: 3}, {a: 6}]},
+    {n: str.foes[3], hp: [40, 44], o: 1, mv: [{a: 11}, {a: 7, b: 5}, {s: 3, b: 6}]},
+    {n: str.foes[4], hp: [26, 30], o: 0, mv: [{a: 7}, {a: 3, b: 8}, {a: 4, x: 2}]},
+    {n: str.foes[5], hp: [13, 17], o: 1, mv: [{a: 3, x: 2}, {a: 2, w: 1}]},
+    {n: str.foes[6], hp: [22, 26], o: 0, mv: [{v: 2, b: 4}, {a: 7}, {a: 9}]},
+    {n: str.foes[7], hp: [82, 86], o: 2, mv: [{s: 3, b: 10}, {a: 14}, {a: 6, v: 2}, {a: 8, x: 2}]},
+    {n: str.foes[8], hp: [96, 104], o: 0, mv: [{b: 14, s: 2}, {a: 9, x: 2}, {a: 20}]},
+    {n: str.foes[9], hp: [200, 200], o: 0, mv: [{s: 3, b: 15}, {a: 20}, {a: 6, x: 3}, {sl: 3, w: 2}, {a: 12, v: 2}]},
+    {n: str.foes[10], hp: [250, 250], o: 0, mv: [{a: 10, x: 2}, {b: 20, s: 2}, {a: 30}, {a: 6, w: 2, v: 2}, {a: 5, x: 4}]},
+    {n: str.foes[11], hp: [300, 300], o: 0, mv: [{v: 3, w: 3}, {a: 8, x: 3}, {s: 4, b: 25}, {a: 36}, {a: 10, sl: 4}, {a: 6, x: 5}]}
   ]
   let EASY = [[0, 0], [1, 1], [2], [3], [5, 5], [1, 0]]
   let HARD = [[4, 0], [3, 1], [6, 6], [2, 5], [4, 4], [0, 0, 1], [5, 5, 5], [6, 4], [3, 5]]
@@ -289,7 +1743,7 @@ app "cryptdeck" {
     disc = []
     exh = []
     sel = -1
-    fx = [{k: "ban", s: fk == 2 ? EN[grp[0]].n : fk == 1 ? "ELITE" : "BATTLE", s2: fk == 2 ? "BOSS OF ACT ${act + 1}" : len(grp) == 1 ? EN[grp[0]].n : "${len(grp)} FOES", t0: 0}]
+    fx = [{k: "ban", s: fk == 2 ? EN[grp[0]].n : fk == 1 ? str.elite : str.battle, s2: fk == 2 ? str.bossOfAct(act + 1) : len(grp) == 1 ? EN[grp[0]].n : str.foesN(len(grp)), t0: 0}]
     fxT = 1.0
     fxDur = 1.1
     fxTap = time
@@ -313,7 +1767,7 @@ app "cryptdeck" {
       pl = merge(pl, {turn: T, e: 3 + (R[20] ? 1 : 0) + (T == 1 && R[3] ? 1 : 0) + (R[8] && T % 3 == 0 ? 1 : 0) + (R[13] ? pl.e : 0), b: (pl.brr ? pl.b : 0) + gb, st: pl.st + ps, ft: 0, ac: 0, xd: 0})
       drawN = 5 + (R[21] ? 1 : 0) + (T == 1 && R[16] ? 2 : 0) + xd
       drawQ = drawQ + 1
-      fx = fx + hfx + (gb > 0 ? [{k: "blk", i: -1, n: gb, t0: fxT}] : []) + (ps > 0 ? [{k: "txt", i: -1, s: "+${ps} STR", c: "#ff8a5a", t0: fxT + 0.1}] : []) + (T > 1 ? [{k: "ban", s: "YOUR TURN", s2: "TURN ${T}", t0: fxT}] : [])
+      fx = fx + hfx + (gb > 0 ? [{k: "blk", i: -1, n: gb, t0: fxT}] : []) + (ps > 0 ? [{k: "txt", i: -1, s: str.plusStr(ps), c: "#ff8a5a", t0: fxT + 0.1}] : []) + (T > 1 ? [{k: "ban", s: str.yourTurn, s2: str.turnN(T), t0: fxT}] : [])
       fxDur = max(fxDur, fxT + (T > 1 ? 0.7 : 0.1))
       if len(en1.filter(e => e.hp > 0)) == 0 { winQ = winQ + 1 }
     }
@@ -350,9 +1804,9 @@ app "cryptdeck" {
           v: A.v + (M.v ?? 0), w: A.w + (M.w ?? 0), va: A.va || M.v != null, wa: A.wa || M.w != null,
           sl: A.sl + (M.sl ?? 0),
           en: set(A.en, i, merge(e, {hp: H.eh, b: bb, st: e.st + (M.s ?? 0), rit: e.rit + (M.rit ?? 0)})),
-          fx: A.fx + (nh > 0 ? [{k: "lunge", i: i, t0: A.t}] : [{k: "pulse", i: i, t0: A.t}]) + H.fx + (bb > 0 ? [{k: "blk", i: i, n: bb, t0: A.t + 0.1}] : []) + (M.s != null || M.rit != null ? [{k: "txt", i: i, s: M.s != null ? "+${M.s} STR" : "RITUAL ${M.rit}", c: "#ff8a5a", t0: A.t + 0.15}] : []) + (M.v != null ? [{k: "txt", i: -1, s: "VULNERABLE", c: "#c86aff", t0: A.t + 0.25}] : []) + (M.w != null ? [{k: "txt", i: -1, s: "WEAK", c: "#8ad85a", t0: A.t + 0.45}] : []) + (M.sl != null ? [{k: "txt", i: -1, s: "+${M.sl} SLIMED", c: "#5ac85a", t0: A.t + 0.6}] : []),
+          fx: A.fx + (nh > 0 ? [{k: "lunge", i: i, t0: A.t}] : [{k: "pulse", i: i, t0: A.t}]) + H.fx + (bb > 0 ? [{k: "blk", i: i, n: bb, t0: A.t + 0.1}] : []) + (M.s != null || M.rit != null ? [{k: "txt", i: i, s: M.s != null ? str.plusStr(M.s) : str.ritual(M.rit), c: "#ff8a5a", t0: A.t + 0.15}] : []) + (M.v != null ? [{k: "txt", i: -1, s: str.vulnerable, c: "#c86aff", t0: A.t + 0.25}] : []) + (M.w != null ? [{k: "txt", i: -1, s: str.weak, c: "#8ad85a", t0: A.t + 0.45}] : []) + (M.sl != null ? [{k: "txt", i: -1, s: str.slimed(M.sl), c: "#5ac85a", t0: A.t + 0.6}] : []),
           t: A.t + 0.55 + nh * 0.24
-        })[0])[0])[0])[0])[0])[0], {b: b1, hp: hp, v: pl.v, w: pl.w, va: false, wa: false, sl: 0, en: en.map(e => merge(e, {b: 0})), fx: [{k: "ban", s: "ENEMY TURN", s2: "", t0: 0}] + (b1 > pl.b ? [{k: "blk", i: -1, n: b1 - pl.b, t0: 0.1}] : []), t: 0.95})
+        })[0])[0])[0])[0])[0])[0], {b: b1, hp: hp, v: pl.v, w: pl.w, va: false, wa: false, sl: 0, en: en.map(e => merge(e, {b: 0})), fx: [{k: "ban", s: str.enemyTurn, s2: "", t0: 0}] + (b1 > pl.b ? [{k: "blk", i: -1, n: b1 - pl.b, t0: 0.1}] : []), t: 0.95})
       // ritual counts from the turn after it's taken; debuffs wear off by a turn
       let en3 = RS.en.map((e, i) => e.hp <= 0 ? e : [len(EN[e.k].mv)].map(L => merge(e, {st: e.st + en[i].rit, v: max(0, e.v - 1), w: max(0, e.w - 1), m: EN[e.k].o == 0 ? (e.m + 1) % L : EN[e.k].o == 1 ? (e.m + 1 + random(L - 1)) % L : 1 + random(L - 1)}))[0])
       let pz = RS.hp < hp && R[15] && !pl.pz
@@ -1397,12 +2851,12 @@ app "cryptdeck" {
     off: ["#8e88ac", "#5a5474", "#443e5c", "#221e36"],
     red: ["#ffaa94", "#e8504a", "#b8333a", "#621822"]
   }
-  let ACTN = ["THE CRYPT", "THE CATACOMBS", "THE ABYSS"]
+  let ACTN = str.acts
   let EVS = [
-    {n: "SHRINE", t: ["A STONE SHRINE HUMS", "WITH A FAINT LIGHT."], a: "PRAY: LOSE 7 HP FOR A RELIC", b: "LEAVE IT BE"},
-    {n: "FOUNTAIN", t: ["CLEAR WATER BUBBLES", "UP OUT OF THE ROCK."], a: "DRINK", b: "BATHE: REMOVE A CARD"},
-    {n: "GAMBLER", t: ["A HOODED FIGURE", "SHUFFLES A DECK."], a: "PAY 50 GOLD FOR A RARE CARD", b: "WALK AWAY"},
-    {n: "FORGE", t: ["AN ABANDONED ANVIL", "STILL GLOWS RED."], a: "UPGRADE A CARD", b: "SEARCH THE ASHES: 35 GOLD"}
+    {n: str.evN[0], t: str.evT[0], a: str.evA[0], b: str.evB[0]},
+    {n: str.evN[1], t: str.evT[1], a: str.evA[1], b: str.evB[1]},
+    {n: str.evN[2], t: str.evT[2], a: str.evA[2], b: str.evB[2]},
+    {n: str.evN[3], t: str.evT[3], a: str.evA[3], b: str.evB[3]}
   ]
 
   // ---- what's on screen, for drawing and for taps -----------------------------------------------
@@ -1443,18 +2897,18 @@ app "cryptdeck" {
   // a card looked at from the deck
   let PS = min(2.3, (SW - 80) / 80, (SH - TOP - INS - 240) / 112)
   let PVY = TOP + 70
-  let BT = (dv != "" ? [{id: "dvx", x: SW - 58, y: TOP + 6, w: 46, h: 40, l: "X", p: "off"}] + (dvC != null && (dv == "up" || dv == "rm") ? [{id: "dvok", x: BX1, y: PVY + 112 * PS + 30, w: BW1, h: 52, l: dv == "up" ? "UPGRADE" : "REMOVE", p: dv == "up" ? "go" : "red"}] : [])
-    : mode == "title" ? [{id: "new", x: BX1, y: SH * 0.68, w: BW1, h: 56, l: "NEW RUN", p: "go"}] + (rmode != "" ? [{id: "cont", x: BX1, y: SH * 0.68 + 68, w: BW1, h: 46, l: "CONTINUE", p: "blue"}] : [])
-      + [{id: "build", x: LS ? BX1 - 20 - TBW : BX1, y: TBY, w: TBW, h: 50, l: "DECK", l2: "${SDN} CARDS", p: "blue"}, {id: "pack", x: LS ? BX1 + BW1 + 20 : BX1 + TBW + 10, y: TBY, w: TBW, h: 50, l: "PACK", l2: packN > 1 ? "${packN} TO OPEN" : packN == 1 ? "1 TO OPEN" : "NEXT ONE TOMORROW", p: packN > 0 ? "go" : "off", dis: packN == 0}]
-    : mode == "build" ? (bv >= 0 ? [] : [{id: "title", x: BX1, y: SH - INS - 62, w: BW1, h: 54, l: "DONE", l2: SDN < 10 ? "A DECK NEEDS 10 CARDS" : "${SDN} CARDS", p: SDN < 10 ? "off" : "go", dis: SDN < 10}])
-    : mode == "pack" ? [{id: "title", x: BX1, y: SH - INS - 84, w: BW1, h: 56, l: "COLLECT", p: "go"}]
-    : mode == "fight" ? (showHand && !busy ? [{id: "end", x: SW - 132, y: CTY - 2, w: 122, h: 50, l: "END TURN", p: "go"}] : []) + [{id: "pdraw", x: 62, y: CTY, w: 50, h: 46, l: "${len(drw)}", p: "off", fs: 9}, {id: "pdisc", x: 118, y: CTY, w: 50, h: 46, l: "${len(disc)}", p: "off", fs: 9}]
-    : mode == "reward" && !busy ? (len(offer) > 0 ? [{id: "skip", x: BX1, y: RY + 196 + 112 * RWS, w: (BW1 - 10) / 2, h: 44, l: "SKIP", p: "off"}, {id: "rm", x: BX1 + (BW1 + 10) / 2, y: RY + 196 + 112 * RWS, w: (BW1 - 10) / 2, h: 44, l: "REMOVE ONE", l2: "INSTEAD", p: "red", dis: len(deck) <= 5}] : len(bossR) > 0 ? [] : [{id: "next", x: BX1, y: SH - INS - 84, w: BW1, h: 56, l: fk == 2 ? "ON TO ACT ${act + 2}" : "CONTINUE", p: "go"}])
-    : mode == "rest" ? [{id: "rest", x: BX1, y: SH * 0.52, w: BW1, h: 58, l: "REST", l2: "HEAL ${min(mhp - hp, floor(mhp * 0.3) + (R[17] ? 15 : 0))} HP", p: "go"}, {id: "smith", x: BX1, y: SH * 0.52 + 70, w: BW1, h: 58, l: "SMITH", l2: canUp ? "UPGRADE A CARD" : "NOTHING TO UPGRADE", p: canUp ? "blue" : "off", dis: !canUp}, {id: "leave", x: BX1 + BW1 / 4, y: SH * 0.52 + 140, w: BW1 / 2, h: 40, l: "LEAVE", p: "off"}]
-    : mode == "shop" ? [{id: "rm", x: SHC[5].x, y: SHC[5].y, w: SCW, h: SCH, l: "REMOVE", l2: rmDone ? "SOLD OUT" : "${rmc} GOLD", p: rmDone || gold < rmc ? "off" : "red", dis: rmDone || gold < rmc}, {id: "leave", x: BX1, y: SRY + 80, w: BW1, h: 50, l: "LEAVE", p: "go"}]
-    : mode == "chest" ? [{id: "next", x: BX1, y: SH - INS - 84, w: BW1, h: 56, l: "CONTINUE", p: "go"}]
-    : mode == "event" ? (evr != "" ? [{id: "next", x: BX1, y: SH - INS - 84, w: BW1, h: 56, l: "CONTINUE", p: "go"}] : [{id: "ea", x: 18, y: SH * 0.56, w: SW - 36, h: 52, l: evt == 1 ? "DRINK: HEAL ${floor(mhp / 3)} HP" : EVS[evt].a, p: (evt == 0 && hp <= 7) || (evt == 2 && gold < 50) || (evt == 3 && !canUp) ? "off" : "blue", dis: (evt == 0 && hp <= 7) || (evt == 2 && gold < 50) || (evt == 3 && !canUp)}, {id: "eb", x: 18, y: SH * 0.56 + 64, w: SW - 36, h: 52, l: EVS[evt].b, p: "off"}])
-    : mode == "end" && !busy ? [{id: "again", x: BX1, y: SH * 0.66, w: BW1, h: 56, l: "NEW RUN", p: "go"}, {id: "title", x: BX1, y: SH * 0.66 + 68, w: BW1, h: 44, l: "TITLE", p: "off"}]
+  let BT = (dv != "" ? [{id: "dvx", x: SW - 58, y: TOP + 6, w: 46, h: 40, l: "X", p: "off"}] + (dvC != null && (dv == "up" || dv == "rm") ? [{id: "dvok", x: BX1, y: PVY + 112 * PS + 30, w: BW1, h: 52, l: dv == "up" ? str.upgrade : str.remove, p: dv == "up" ? "go" : "red"}] : [])
+    : mode == "title" ? [{id: "new", x: BX1, y: SH * 0.68, w: BW1, h: 56, l: str.newRun, p: "go"}] + (rmode != "" ? [{id: "cont", x: BX1, y: SH * 0.68 + 68, w: BW1, h: 46, l: str.cont, p: "blue"}] : [])
+      + [{id: "build", x: LS ? BX1 - 20 - TBW : BX1, y: TBY, w: TBW, h: 50, l: str.deck, l2: str.nCards(SDN), p: "blue"}, {id: "pack", x: LS ? BX1 + BW1 + 20 : BX1 + TBW + 10, y: TBY, w: TBW, h: 50, l: str.pack, l2: packN > 0 ? str.toOpen(packN) : str.tomorrow, p: packN > 0 ? "go" : "off", dis: packN == 0}]
+    : mode == "build" ? (bv >= 0 ? [] : [{id: "title", x: BX1, y: SH - INS - 62, w: BW1, h: 54, l: str.done, l2: SDN < 10 ? str.needs10 : str.nCards(SDN), p: SDN < 10 ? "off" : "go", dis: SDN < 10}])
+    : mode == "pack" ? [{id: "title", x: BX1, y: SH - INS - 84, w: BW1, h: 56, l: str.collect, p: "go"}]
+    : mode == "fight" ? (showHand && !busy ? [{id: "end", x: SW - 132, y: CTY - 2, w: 122, h: 50, l: str.endTurn, p: "go"}] : []) + [{id: "pdraw", x: 62, y: CTY, w: 50, h: 46, l: "${len(drw)}", p: "off", fs: 9}, {id: "pdisc", x: 118, y: CTY, w: 50, h: 46, l: "${len(disc)}", p: "off", fs: 9}]
+    : mode == "reward" && !busy ? (len(offer) > 0 ? [{id: "skip", x: BX1, y: RY + 196 + 112 * RWS, w: (BW1 - 10) / 2, h: 44, l: str.skip, p: "off"}, {id: "rm", x: BX1 + (BW1 + 10) / 2, y: RY + 196 + 112 * RWS, w: (BW1 - 10) / 2, h: 44, l: str.removeOne, l2: str.instead, p: "red", dis: len(deck) <= 5}] : len(bossR) > 0 ? [] : [{id: "next", x: BX1, y: SH - INS - 84, w: BW1, h: 56, l: fk == 2 ? str.onToAct(act + 2) : str.cont, p: "go"}])
+    : mode == "rest" ? [{id: "rest", x: BX1, y: SH * 0.52, w: BW1, h: 58, l: str.rest, l2: str.healHp(min(mhp - hp, floor(mhp * 0.3) + (R[17] ? 15 : 0))), p: "go"}, {id: "smith", x: BX1, y: SH * 0.52 + 70, w: BW1, h: 58, l: str.smith, l2: canUp ? str.upgradeCard : str.nothingUp, p: canUp ? "blue" : "off", dis: !canUp}, {id: "leave", x: BX1 + BW1 / 4, y: SH * 0.52 + 140, w: BW1 / 2, h: 40, l: str.leave, p: "off"}]
+    : mode == "shop" ? [{id: "rm", x: SHC[5].x, y: SHC[5].y, w: SCW, h: SCH, l: str.remove, l2: rmDone ? str.soldOut : str.nGold(rmc), p: rmDone || gold < rmc ? "off" : "red", dis: rmDone || gold < rmc}, {id: "leave", x: BX1, y: SRY + 80, w: BW1, h: 50, l: str.leave, p: "go"}]
+    : mode == "chest" ? [{id: "next", x: BX1, y: SH - INS - 84, w: BW1, h: 56, l: str.cont, p: "go"}]
+    : mode == "event" ? (evr != "" ? [{id: "next", x: BX1, y: SH - INS - 84, w: BW1, h: 56, l: str.cont, p: "go"}] : [{id: "ea", x: 18, y: SH * 0.56, w: SW - 36, h: 52, l: evt == 1 ? str.drinkHeal(floor(mhp / 3)) : EVS[evt].a, p: (evt == 0 && hp <= 7) || (evt == 2 && gold < 50) || (evt == 3 && !canUp) ? "off" : "blue", dis: (evt == 0 && hp <= 7) || (evt == 2 && gold < 50) || (evt == 3 && !canUp)}, {id: "eb", x: 18, y: SH * 0.56 + 64, w: SW - 36, h: 52, l: EVS[evt].b, p: "off"}])
+    : mode == "end" && !busy ? [{id: "again", x: BX1, y: SH * 0.66, w: BW1, h: 56, l: str.newRun, p: "go"}, {id: "title", x: BX1, y: SH * 0.66 + 68, w: BW1, h: 44, l: str.title, p: "off"}]
     : []) + (TB && !busy ? [{id: "deck", x: SW - 106, y: TOP, w: 48, h: 30, l: "${len(deck)}", p: "off", fs: 8}, {id: "menu", x: SW - 52, y: TOP, w: 42, h: 30, l: "", p: "off"}] : [])
   // every card drawn, with where and how big: the hand, a reward, the shop, one looked at, or the title's
   let CARDS = dv != "" ? (dvC == null ? [] : [{h: {c: dvC.c, u: dv == "up" ? true : dvC.u}, x: SW / 2 - 40 * PS, y: PVY, s: PS, r: 0, dim: false, glow: false}])
@@ -1498,9 +2952,9 @@ app "cryptdeck" {
       }
       if mode == "map" {
         if LS {
-          text("ACT ${act + 1} · ${ACTN[act]}", SW / 2, TOP + 14, size: 8, color: accent, font: press, align: center)
+          text(str.actLine(act + 1, ACTN[act]), SW / 2, TOP + 14, size: 8, color: accent, font: press, align: center)
         } else {
-          text("ACT ${act + 1}", 14, TOP + 74, size: 9, color: accent, font: press)
+          text(str.actN(act + 1), 14, TOP + 74, size: 9, color: accent, font: press)
           text(ACTN[act], 14, TOP + 88, size: 6, color: muted, font: press)
         }
         // the paths, the ones taken bright
@@ -1524,7 +2978,7 @@ app "cryptdeck" {
         }
         circle(NP[60].x, NP[60].y, 30, fill: surface, stroke: indexOf(seen, 60) >= 0 ? accent : alpha(foreground, 0.25), width: 2)
         sprite(ESP[9 + act], NP[60].x - 24, NP[60].y - 24 * EROW[9 + act] / 24, 2, palette: EPL[9 + act])
-        text(len(REACH) > 0 ? "PICK THE NEXT ROOM" : "", SW / 2, MB + 20, size: 7, color: muted, font: press, align: center)
+        text(len(REACH) > 0 ? str.pickRoom : "", SW / 2, MB + 20, size: 7, color: muted, font: press, align: center)
       }
     }
     // ---- what moves: the fighters and what a card or a turn set going, the map's next rooms -------
@@ -1664,7 +3118,7 @@ app "cryptdeck" {
             let e2 = (now - f.t0) / 0.9
             let hx = f.i < 0 ? PCX : ECX[f.i]
             let hy = FL - (f.i < 0 ? 20 * q : EROW[en[f.i].k] * qe) * 0.6 - e2 * 30
-            let lab = f.d > 0 ? "-${f.d}" : f.bl > 0 ? "BLOCKED" : ""
+            let lab = f.d > 0 ? "-${f.d}" : f.bl > 0 ? str.blocked : ""
             if lab != "" {
               layer(clamp((1 - e2) * 3, 0, 1)) {
                 text(lab, hx + 1.5, hy + 1.5, size: f.d > 0 ? 14 : 8, color: INK, font: press, align: center)
@@ -1701,12 +3155,12 @@ app "cryptdeck" {
             let e2 = (now - f.t0) / 0.95
             let a = clamp(min(e2 * 8, (1 - e2) * 6), 0, 1)
             let cy = AY + (FL - AY) * 0.45
-            let rc = f.s == "ENEMY TURN" ? "#ff5a4a" : "#ffe14a"
+            let rc = f.s == str.enemyTurn ? "#ff5a4a" : "#ffe14a"
             layer(a) {
               rect(8, cy - 28, SW - 16, 56, fill: alpha(INK, 0.88))
               rect(8, cy - 28, SW - 16, 2, fill: rc)
               rect(8, cy + 26, SW - 16, 2, fill: rc)
-              text(f.s, SW / 2 + (1 - a) * 30, cy - (f.s2 == "" ? 0 : 7), size: 15, color: f.s == "ENEMY TURN" ? "#ff5a4a" : "#ffffff", font: press, align: center)
+              text(f.s, SW / 2 + (1 - a) * 30, cy - (f.s2 == "" ? 0 : 7), size: 15, color: f.s == str.enemyTurn ? "#ff5a4a" : "#ffffff", font: press, align: center)
               if f.s2 != "" { text(f.s2, SW / 2 - (1 - a) * 30, cy + 13, size: 7, color: "#d8d4ec", font: press, align: center) }
             }
           }
@@ -1734,7 +3188,7 @@ app "cryptdeck" {
         let ty = SH * 0.16
         text("CRYPTDECK", SW / 2 + 3, ty + 3, size: ls, color: INK, font: press, align: center)
         text("CRYPTDECK", SW / 2, ty, size: ls, color: accent, font: press, align: center)
-        text("A DECKBUILDING CRAWL", SW / 2, ty + ls + 10, size: 7, color: muted, font: press, align: center)
+        text(str.tagline, SW / 2, ty + ls + 10, size: 7, color: muted, font: press, align: center)
         let sc = min(5, SW / 80)
         let gy = SH * 0.24 + 20
         sprite(SP_KNIGHT, SW / 2 - 70 - 8 * sc, gy + (floor(tt * 1.4) % 2) * sc * 0.5, sc, palette: P_KNIGHT)
@@ -1768,30 +3222,30 @@ app "cryptdeck" {
         circle(ex - 5, ey - 6, 9, fill: alpha("#ffffff", eo ? 0.25 : 0.08))
         text("${pl.e ?? 0}/${3 + (R[20] ? 1 : 0)}", ex + 1, ey + 1.5, size: 9, color: INK, font: press, align: center)
         text("${pl.e ?? 0}/${3 + (R[20] ? 1 : 0)}", ex, ey, size: 9, color: "#ffffff", font: press, align: center)
-        text("DRAW", 87, CTY + 56, size: 5, color: muted, font: press, align: center)
-        text("DISCARD", 143, CTY + 56, size: 5, color: muted, font: press, align: center)
+        text(str.draw, 87, CTY + 56, size: 5, color: muted, font: press, align: center)
+        text(str.discard, 143, CTY + 56, size: 5, color: muted, font: press, align: center)
         if selV != null && showHand && !busy {
-          let hint = selV.e > pl.e ? "NOT ENOUGH ENERGY" : selT && len(alive) > 1 ? "TAP AN ENEMY" : "TAP THE CARD AGAIN TO PLAY"
+          let hint = selV.e > pl.e ? str.noEnergy : selT && len(alive) > 1 ? str.tapEnemy : str.tapAgain
           text(hint, SW / 2, LS ? TOP + 14 : AB + 13, size: 7, color: selV.e > pl.e ? "#ff8a5a" : foreground, font: press, align: center)
         }
       }
       // ---- after a fight ----
       if mode == "reward" && !busy {
         rect(18, RY + 64, SW - 36, 40, radius: 4, fill: "#3a7a3a", stroke: INK, width: 2)
-        text("VICTORY", SW / 2 + 2, RY + 86, size: 14, color: INK, font: press, align: center)
-        text("VICTORY", SW / 2, RY + 84, size: 14, color: "#ffffff", font: press, align: center)
+        text(str.victory, SW / 2 + 2, RY + 86, size: 14, color: INK, font: press, align: center)
+        text(str.victory, SW / 2, RY + 84, size: 14, color: "#ffffff", font: press, align: center)
         sprite(SP_COIN, 24, RY + 116, 2.6, palette: {o: INK, Y: "#ffd04a", W: "#fff8e0"})
-        text("+${rwG} GOLD", 48, RY + 125, size: 8, color: "#ffd04a", font: press)
+        text(str.plusGold(rwG), 48, RY + 125, size: 8, color: "#ffd04a", font: press)
         if rwR >= 0 {
           sprite(RI[rwR], SW / 2 - 10, RY + 114, 2.4, palette: RIP)
           text(RL[rwR].n, SW / 2 + 14, RY + 120, size: 6, color: foreground, font: press)
           text(RL[rwR].d, SW / 2 + 14, RY + 131, size: min(5, (SW / 2 - 24) / len(RL[rwR].d)), color: muted, font: press)
         }
-        if fk == 2 { text("+1 CARD PACK", SW / 2 + 14, RY + 125, size: 8, color: "#8aff7a", font: press) }
+        if fk == 2 { text(str.plusPack, SW / 2 + 14, RY + 125, size: 8, color: "#8aff7a", font: press) }
         if len(offer) > 0 {
-          text("TAKE A CARD", SW / 2, RY + 160, size: 8, color: accent, font: press, align: center)
+          text(str.takeCard, SW / 2, RY + 160, size: 8, color: accent, font: press, align: center)
         } else if len(bossR) > 0 {
-          text("CHOOSE A BOSS RELIC", SW / 2, RY + 160, size: 8, color: accent, font: press, align: center)
+          text(str.bossRelic, SW / 2, RY + 160, size: 8, color: accent, font: press, align: center)
           for t, j in BRT {
             rect(t.x, t.y, t.w, t.h, radius: 6 * corners, fill: surface, stroke: alpha(foreground, 0.2), width: 1)
             sprite(RI[bossR[j]], t.x + 10, t.y + 9.8, 4.8, palette: RIP)
@@ -1799,32 +3253,32 @@ app "cryptdeck" {
             text(RL[bossR[j]].d, t.x + 62, t.y + 40, size: 6, color: muted, font: press)
           }
         } else {
-          text(fk == 2 ? "THE WAY DOWN OPENS" : "", SW / 2, SH * 0.45, size: 8, color: accent, font: press, align: center)
+          text(fk == 2 ? str.wayDown : "", SW / 2, SH * 0.45, size: 8, color: accent, font: press, align: center)
         }
       }
       if mode == "rest" && dv == "" {
-        text("CAMPFIRE", SW / 2, TOP + 70, size: 12, color: accent, font: press, align: center)
-        text("REST HERE, OR SHARPEN A CARD", SW / 2, SH * 0.47, size: 6, color: muted, font: press, align: center)
+        text(str.campfire, SW / 2, TOP + 70, size: 12, color: accent, font: press, align: center)
+        text(str.restHere, SW / 2, SH * 0.47, size: 6, color: muted, font: press, align: center)
       }
       if mode == "chest" {
-        text("TREASURE", SW / 2, TOP + 70, size: 12, color: accent, font: press, align: center)
+        text(str.treasure, SW / 2, TOP + 70, size: 12, color: accent, font: press, align: center)
         sprite(MI[3], SW / 2 - 48, SH * 0.32, 8, palette: MIP)
         if rwR >= 0 {
           sprite(RI[rwR], SW / 2 - 24, SH * 0.32 - 70, 6, palette: RIP)
           text(RL[rwR].n, SW / 2, SH * 0.32 + 120, size: 10, color: foreground, font: press, align: center)
           text(RL[rwR].d, SW / 2, SH * 0.32 + 142, size: 6, color: muted, font: press, align: center)
         } else {
-          text("+50 GOLD", SW / 2, SH * 0.32 + 120, size: 10, color: "#ffd04a", font: press, align: center)
+          text(str.plusGold(50), SW / 2, SH * 0.32 + 120, size: 10, color: "#ffd04a", font: press, align: center)
         }
       }
       if mode == "shop" {
-        text("MERCHANT", SW / 2, TOP + 70, size: 10, color: accent, font: press, align: center)
+        text(str.merchant, SW / 2, TOP + 70, size: 10, color: accent, font: press, align: center)
         for j in range(min(5, len(shop))) {
           let it = shop[j]
           let c = SHC[j]
           if it.sold {
             rect(c.x, c.y, c.w, c.h, radius: 6, stroke: alpha(foreground, 0.15), width: 1)
-            text("SOLD", c.x + c.w / 2, c.y + c.h / 2, size: 7, color: muted, font: press, align: center)
+            text(str.sold, c.x + c.w / 2, c.y + c.h / 2, size: 7, color: muted, font: press, align: center)
           } else {
             sprite(SP_COIN, c.x + c.w / 2 - 22, c.y + c.h + 5, 1.8, palette: {o: INK, Y: "#ffd04a", W: "#fff8e0"})
             text("${it.p}", c.x + c.w / 2 - 8, c.y + c.h + 12, size: 7, color: gold >= it.p ? "#ffd04a" : "#ff5a4a", font: press)
@@ -1835,7 +3289,7 @@ app "cryptdeck" {
           let c = SHR[j]
           rect(c.x, c.y, c.w, c.h, radius: 6 * corners, fill: it.sold ? alpha(surface, 0.4) : surface, stroke: alpha(foreground, 0.2), width: 1)
           if it.sold {
-            text("SOLD", c.x + c.w / 2, c.y + c.h / 2, size: 7, color: muted, font: press, align: center)
+            text(str.sold, c.x + c.w / 2, c.y + c.h / 2, size: 7, color: muted, font: press, align: center)
           } else {
             sprite(RI[it.r], c.x + 8, c.y + 12, 3.2, palette: RIP)
             text(RL[it.r].n, c.x + 40, c.y + 16, size: min(6, (c.w - 46) / len(RL[it.r].n)), color: foreground, font: press)
@@ -1857,10 +3311,10 @@ app "cryptdeck" {
       if mode == "end" && !busy {
         let vic = hp > 0
         rect(18, SH * 0.2, SW - 36, 50, radius: 4, fill: vic ? "#3a7a3a" : "#8a2a32", stroke: INK, width: 2)
-        text(vic ? "VICTORY!" : "YOU DIED", SW / 2 + 2, SH * 0.2 + 27, size: 16, color: INK, font: press, align: center)
-        text(vic ? "VICTORY!" : "YOU DIED", SW / 2, SH * 0.2 + 25, size: 16, color: "#ffffff", font: press, align: center)
-        text(vic ? "THE CRYPT IS CLEARED" : "ACT ${act + 1}, FLOOR ${FLOOR}", SW / 2, SH * 0.2 + 84, size: 8, color: foreground, font: press, align: center)
-        text("${len(deck)} CARDS · ${len(relics)} RELICS · ${gold} GOLD", SW / 2, SH * 0.2 + 108, size: 6, color: muted, font: press, align: center)
+        text(vic ? str.victoryBang : str.youDied, SW / 2 + 2, SH * 0.2 + 27, size: 16, color: INK, font: press, align: center)
+        text(vic ? str.victoryBang : str.youDied, SW / 2, SH * 0.2 + 25, size: 16, color: "#ffffff", font: press, align: center)
+        text(vic ? str.cleared : str.actFloor(act + 1, FLOOR), SW / 2, SH * 0.2 + 84, size: 8, color: foreground, font: press, align: center)
+        text(str.runStats(len(deck), len(relics), gold), SW / 2, SH * 0.2 + 108, size: 6, color: muted, font: press, align: center)
         for t, j in relics {
           sprite(RI[t], SW / 2 - len(relics) * 11 + j * 22, SH * 0.2 + 126, 2.4, palette: RIP)
         }
@@ -1869,19 +3323,19 @@ app "cryptdeck" {
       if mode == "title" {
         let ba = floor((best - 1) / 13) + 1
         let bf = (best - 1) % 13 + 1
-        text(wins > 0 ? "RUNS WON: ${wins}" : best > 0 ? "BEST: ACT ${ba}, FLOOR ${bf}" : "", SW / 2, SH * 0.68 - 22, size: 7, color: accent, font: press, align: center)
+        text(wins > 0 ? str.runsWon(wins) : best > 0 ? str.best(ba, bf) : "", SW / 2, SH * 0.68 - 22, size: 7, color: accent, font: press, align: center)
       }
       if mode == "pack" {
-        text("A PACK OF CARDS", SW / 2, RY + 90, size: 12, color: accent, font: press, align: center)
-        text("THEY JOIN YOUR COLLECTION", SW / 2, RY + 118, size: 6, color: muted, font: press, align: center)
+        text(str.packOf, SW / 2, RY + 90, size: 12, color: accent, font: press, align: center)
+        text(str.joinColl, SW / 2, RY + 118, size: 6, color: muted, font: press, align: center)
         for o, j in pk {
-          if o.nw { text("NEW!", PKC[j].x + 40 * RWS, RY + 164, size: 8, color: "#8aff7a", font: press, align: center) }
+          if o.nw { text(str.newBang, PKC[j].x + 40 * RWS, RY + 164, size: 8, color: "#8aff7a", font: press, align: center) }
         }
       }
       if mode == "build" {
-        text("YOUR DECK", 14, TOP + 26, size: 12, color: accent, font: press)
-        text("WHAT A NEW RUN STARTS WITH. CARDS FROM", 14, TOP + 46, size: 5, color: muted, font: press)
-        text("RUNS AND PACKS LAND HERE. TAP A NAME TO SEE IT", 14, TOP + 56, size: 5, color: muted, font: press)
+        text(str.yourDeck, 14, TOP + 26, size: 12, color: accent, font: press)
+        text(str.buildHelp1, 14, TOP + 46, size: 5, color: muted, font: press)
+        text(str.buildHelp2, 14, TOP + 56, size: 5, color: muted, font: press)
         for t in BLT {
           let V = CD[t.c]
           let n = SD[t.c]
@@ -1929,7 +3383,7 @@ app "cryptdeck" {
       // ---- the deck, over everything ----
       if dv != "" {
         rect(0, 0, SW, SH, fill: background)
-        text(dv == "up" ? "UPGRADE A CARD" : dv == "rm" ? "REMOVE A CARD" : dv == "draw" ? "DRAW PILE (${len(drw)})" : dv == "disc" ? "DISCARD PILE (${len(disc)})" : "YOUR DECK (${len(deck)})", 14, TOP + 26, size: 9, color: accent, font: press)
+        text(dv == "up" ? str.upgradeCard : dv == "rm" ? str.removeCard : dv == "draw" ? str.drawPile(len(drw)) : dv == "disc" ? str.discPile(len(disc)) : str.deckOf(len(deck)), 14, TOP + 26, size: 9, color: accent, font: press)
         if dvC == null {
           for h, j in DVL {
             let tx = 12 + (j % DCOLS) * (DTW + 6)
@@ -1940,9 +3394,9 @@ app "cryptdeck" {
             text("${V.e}", tx + DTH / 2 + 0.5, ty + DTH / 2 + 0.5, size: DTH * 0.3, color: INK, font: press, align: center)
             text(V.n + (h.u ? "+" : ""), tx + DTH + 2, ty + DTH / 2, size: min(6, (DTW - DTH - 6) / len(V.n + (h.u ? "+" : ""))), color: h.u ? "#8aff7a" : "#ffffff", font: press)
           }
-          if len(DVL) == 0 { text("NOTHING HERE", SW / 2, SH * 0.4, size: 8, color: muted, font: press, align: center) }
+          if len(DVL) == 0 { text(str.nothingHere, SW / 2, SH * 0.4, size: 8, color: muted, font: press, align: center) }
         } else {
-          text(dv == "up" ? "UPGRADED" : "", SW / 2, PVY + 112 * PS + 16, size: 7, color: "#8aff7a", font: press, align: center)
+          text(dv == "up" ? str.upgraded : "", SW / 2, PVY + 112 * PS + 16, size: 7, color: "#8aff7a", font: press, align: center)
         }
         for b in BT {
           let P = get(BTN, b.p, BTN.off)
@@ -2079,25 +3533,25 @@ app "cryptdeck" {
               if len(fr) > 0 {
                 gainR = fr[0]
                 gainQ = gainQ + 1
-                evr = "THE SHRINE GIVES: ${RL[fr[0]].n}"
+                evr = str.shrineGives(RL[fr[0]].n)
               } else {
                 gold = gold + 50
-                evr = "THE SHRINE GIVES 50 GOLD"
+                evr = str.shrineGold
               }
             } else if evt == 1 {
               hp = min(mhp, hp + floor(mhp / 3))
-              evr = "YOU FEEL REFRESHED"
+              evr = str.refreshed
             } else if evt == 2 {
               let rc = POOL[3][random(len(POOL[3]))]
               gold = gold - 50
               deck = deck + [{c: rc, u: false}]
               coll = set(OWN, rc, OWN[rc] + 1)
-              evr = "YOU WIN ${CD[rc].n}"
+              evr = str.youWin(CD[rc].n)
             }
             haptic()
           } else if b.id == "eb" && evt == 3 {
             gold = gold + 35
-            evr = "YOU FIND 35 GOLD"
+            evr = str.find35
           }
         } else if mode == "map" {
           let z = REACH.find(n => abs(NP[n].x - x) < 26 && abs(NP[n].y - y) < 26)
@@ -2168,14 +3622,14 @@ app "cryptdeck" {
             fx = [{k: "card", t: V.t, x: HL[sel].x, y: HL[sel].y, ti: len(tg) == 1 ? tg[0] : -1, t0: 0}]
               + (V.t == 0 ? [{k: "plunge", t0: 0.05}] : [])
               + (V.d == null ? [] : tg.map(i => {k: "slash", i: i, n: nh, t0: 0.1}) + tg.map(i => {k: "hit", i: i, d: en[i].hp - en1[i].hp, bl: en[i].b - en1[i].b, t0: 0.16}))
-              + ((V.v ?? 0) > 0 ? tg.filter(i => en1[i].hp > 0).map(i => {k: "txt", i: i, s: "VULNERABLE", c: "#c86aff", t0: 0.3}) : [])
-              + ((V.w ?? 0) > 0 ? tg.filter(i => en1[i].hp > 0).map(i => {k: "txt", i: i, s: "WEAK", c: "#8ad85a", t0: (V.v ?? 0) > 0 ? 0.5 : 0.3}) : [])
+              + ((V.v ?? 0) > 0 ? tg.filter(i => en1[i].hp > 0).map(i => {k: "txt", i: i, s: str.vulnerable, c: "#c86aff", t0: 0.3}) : [])
+              + ((V.w ?? 0) > 0 ? tg.filter(i => en1[i].hp > 0).map(i => {k: "txt", i: i, s: str.weak, c: "#8ad85a", t0: (V.v ?? 0) > 0 ? 0.5 : 0.3}) : [])
               + (nb > pl.b ? [{k: "blk", i: -1, n: nb - pl.b, t0: 0.1}] : [])
-              + (nst > pl.st ? [{k: "txt", i: -1, s: "+${nst - pl.st} STR", c: "#ff8a5a", t0: 0.15}] : [])
+              + (nst > pl.st ? [{k: "txt", i: -1, s: str.plusStr(nst - pl.st), c: "#ff8a5a", t0: 0.15}] : [])
               + ((V.hp ?? 0) > 0 ? [{k: "hit", i: -1, d: min(hp, V.hp), bl: 0, t0: 0.1}] : [])
-              + ((V.en ?? 0) > 0 ? [{k: "txt", i: -1, s: "+${V.en} ENERGY", c: "#ffd04a", t0: 0.3}] : [])
+              + ((V.en ?? 0) > 0 ? [{k: "txt", i: -1, s: str.plusEnergy(V.en), c: "#ffd04a", t0: 0.3}] : [])
               + (V.t == 2 ? [{k: "txt", i: -1, s: V.n, c: "#c8a0ff", t0: 0.15}] : [])
-              + (heal > 0 && hp < mhp ? [{k: "txt", i: -1, s: "+${min(mhp - hp, heal)} HP", c: "#6fe05a", t0: 0.35}] : [])
+              + (heal > 0 && hp < mhp ? [{k: "txt", i: -1, s: str.plusHp(min(mhp - hp, heal)), c: "#6fe05a", t0: 0.35}] : [])
             en = en2
             pl = merge(pl, {e: pl.e - V.e + (V.en ?? 0), b: nb, st: nst, ps: pl.ps + (V.ps ?? 0), pb: pl.pb + (V.pb ?? 0), pt: pl.pt + (V.pt ?? 0), ft: pl.ft + (V.ft ?? 0), brr: pl.brr || V.sp == "keep", ac: ac, pz: pl.pz || pz})
             hp = min(mhp, max(0, hp - (V.hp ?? 0)) + heal)
@@ -2253,33 +3707,33 @@ app "cryptdeck" {
       // ---- every card on screen ----
       if mode == "build" && bv >= 0 {
         rect(0, 0, SW, SH, fill: alpha(background, 0.94))
-        text("TAP ANYWHERE TO GO BACK", SW / 2, PVY + 112 * PS + 24, size: 6, color: muted, font: press, align: center)
+        text(str.tapBack, SW / 2, PVY + 112 * PS + 24, size: 6, color: muted, font: press, align: center)
       }
       for k in CARDS {
         let V = k.h.u ? merge(CD[k.h.c], CD[k.h.c].u) : CD[k.h.c]
         let inF = mode == "fight" && dv == ""
         let dd = V.d == null ? 0 : inF ? floor(((V.sp == "slam" ? pl.b : V.d) + pl.st * (V.sm ?? 1)) * (pl.w > 0 ? 0.75 : 1)) : V.d
-        let L = (V.d != null ? [V.sp == "slam" ? (inF ? "DMG = BLOCK ${dd}" : "DMG = BLOCK") : "DMG ${dd}${(V.x ?? 1) > 1 ? " x${V.x}" : ""}${V.all ?? false ? " ALL" : ""}"] : [])
-          + (V.sm != null ? ["STR COUNTS x${V.sm}"] : [])
-          + (V.b != null ? ["BLOCK ${V.b}"] : [])
-          + (V.sp == "dbl" ? ["DOUBLE BLOCK"] : [])
-          + (V.v != null ? ["VULNERABLE ${V.v}${V.all ?? false ? " ALL" : ""}"] : [])
-          + (V.w != null ? ["WEAK ${V.w}${V.all ?? false ? " ALL" : ""}"] : [])
-          + (V.s != null ? ["+${V.s} STRENGTH"] : [])
-          + (V.sp == "x2" ? ["DOUBLE STRENGTH"] : [])
-          + (V.ps != null ? ["+${V.ps} STR EACH TURN"] : [])
-          + (V.pb != null ? ["${V.pb} BLOCK EACH", "TURN'S END"] : [])
-          + (V.pt != null ? ["THORNS ${V.pt}"] : [])
-          + (V.ft != null ? ["THORNS ${V.ft} THIS TURN"] : [])
-          + (V.sp == "keep" ? ["BLOCK NO LONGER", "WEARS OFF"] : [])
-          + (V.hp != null ? ["LOSE ${V.hp} HP"] : [])
-          + (V.en != null ? ["+${V.en} ENERGY"] : [])
-          + (V.dr != null ? ["DRAW ${V.dr}"] : [])
-          + (V.sp == "copy" ? ["A COPY GOES TO", "YOUR DISCARD"] : [])
-          + (V.sp == "exe" ? ["DOUBLE ON FOES", "BELOW HALF HP"] : [])
-          + (V.sp == "drain" ? ["HEAL THE DAMAGE", "THAT GETS THROUGH"] : [])
-          + (V.t == 3 ? ["CLOGS YOUR HAND"] : [])
-          + (V.ex ?? false ? ["EXHAUST"] : [])
+        let L = (V.d != null ? [V.sp == "slam" ? (inF ? str.dmgBlockN(dd) : str.dmgBlock) : str.dmg(dd, V.x ?? 1, V.all ?? false)] : [])
+          + (V.sm != null ? [str.strCounts(V.sm)] : [])
+          + (V.b != null ? [str.blockN(V.b)] : [])
+          + (V.sp == "dbl" ? [str.doubleBlock] : [])
+          + (V.v != null ? [str.vulnN(V.v, V.all ?? false)] : [])
+          + (V.w != null ? [str.weakN(V.w, V.all ?? false)] : [])
+          + (V.s != null ? [str.strength(V.s)] : [])
+          + (V.sp == "x2" ? [str.doubleStr] : [])
+          + (V.ps != null ? [str.strEachTurn(V.ps)] : [])
+          + (V.pb != null ? str.blockEachTurn(V.pb) : [])
+          + (V.pt != null ? [str.thorns(V.pt)] : [])
+          + (V.ft != null ? [str.thornsTurn(V.ft)] : [])
+          + (V.sp == "keep" ? str.keepBlock : [])
+          + (V.hp != null ? [str.loseHp(V.hp)] : [])
+          + (V.en != null ? [str.plusEnergy(V.en)] : [])
+          + (V.dr != null ? [str.drawN(V.dr)] : [])
+          + (V.sp == "copy" ? str.copyLine : [])
+          + (V.sp == "exe" ? str.exeLine : [])
+          + (V.sp == "drain" ? str.drainLine : [])
+          + (V.t == 3 ? [str.clogs] : [])
+          + (V.ex ?? false ? [str.exhaust] : [])
         let nm = V.n + (k.h.u ? "+" : "")
         rotate(k.r, k.x + 40 * k.s, k.y + 56 * k.s) {
           scale(k.s, k.s, k.x, k.y) {
@@ -2295,7 +3749,7 @@ app "cryptdeck" {
               sprite(IC[V.i], k.x + 25, k.y + 25, 2.5, palette: ICP)
               rect(k.x + 6, k.y + 59, 68, 47, radius: 2, fill: "#efe4c8")
               for ln, j in L {
-                text(ln, k.x + 40, k.y + 66 + j * 9.5, size: min(8.5, 104 / len(ln)), color: ln == "EXHAUST" ? "#8a4a2a" : INK, bold: true, align: center)
+                text(ln, k.x + 40, k.y + 66 + j * 9.5, size: min(8.5, 104 / len(ln)), color: ln == str.exhaust ? "#8a4a2a" : INK, bold: true, align: center)
               }
               circle(k.x + 7, k.y + 7, 9, fill: INK)
               circle(k.x + 7, k.y + 7, 7.5, fill: V.t == 3 ? "#8a8a96" : k.dim ? "#8a6a4a" : "#ffd04a")

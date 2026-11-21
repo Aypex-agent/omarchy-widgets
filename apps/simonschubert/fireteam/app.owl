@@ -13,7 +13,600 @@ app "fireteam" {
   // action left, `on chk` plays the hostiles' whole turn in one go, each picking the tile it likes
   // best of those it can reach: one it can shoot from, in cover, near the squad.
 
-  meta { owl: 14; description: "Turn-based squad tactics in pixel art: lead a rifleman, a shotgunner and a sniper through eight operations; take cover, flank, set overwatch, throw grenades and blow up barrels"; version: "1.1.0"; license: "MIT"; category: "games" }
+  meta { owl: 16; description: "Turn-based squad tactics in pixel art: lead a rifleman, a shotgunner and a sniper through eight operations; take cover, flank, set overwatch, throw grenades and blow up barrels"; version: "1.2"; license: "MIT"; category: "games" }
+
+  // pixel font in capitals: the WATCH tag under a soldier holds 6 letters, KIA 7, the big buttons
+  // about 15; button words shrink to fit
+  strings {
+    en {
+      op: n => "OP ${n}"
+      opName: i => ["FIRST CONTACT", "DOCKS", "WAREHOUSE", "CROSSROADS", "SUBSTATION", "THE YARD", "COMPOUND", "HQ"][i]
+      hostiles: "HOSTILES"
+      onMove: "ON THE MOVE"
+      turn: n => "TURN ${n}"
+      yourMove: "YOUR MOVE"
+      flanked: "FLANKED"
+      miss: "MISS"
+      overwatch: "OVERWATCH"
+      watch: "WATCH"
+      kia: "KIA"
+      nadeAll: "3 DMG TO ALL 9 TILES"
+      nadePick: "PICK A TILE UP TO 5 AWAY"
+      outRange: "OUT OF RANGE"
+      noLos: "NO LINE OF SIGHT"
+      blows: "BLOWS UP 3x3 · 3 DMG"
+      shotInfo: (hc, lo, hi, cov) => "${hc}% · ${lo}-${hi} DMG · ${cov}"
+      full: "FULL COVER"
+      half: "HALF COVER"
+      none: "NO COVER"
+      move: "MOVE"
+      dash: "DASH"
+      status: (f, g) => "${f} HOSTILES · ${g} GRENADES"
+      waiting: "WAITING"
+      throw: "THROW"
+      shoot: "SHOOT"
+      fire: hc => "FIRE ${hc}%"
+      noShot: "NO SHOT"
+      grenade: "GRENADE"
+      endTurn: "END TURN"
+      opCleared: "OP CLEARED"
+      squadLost: "SQUAD LOST"
+      cameHome: n => "${n} OF 3 CAME HOME"
+      noneHome: "NO ONE CAME HOME"
+      turns: n => "${n} TURNS"
+      mapsRound: "THE MAPS COME ROUND, HARDER"
+      next: name => "NEXT: ${name}"
+      tryAnother: "TRY ANOTHER WAY IN"
+      nextOp: "NEXT OP"
+      retry: "RETRY"
+      tagline: "SQUAD TACTICS"
+      carryOn: "CONTINUE"
+      deploy: "DEPLOY"
+      newCampaign: "NEW CAMPAIGN"
+      soundOn: "SOUND ON"
+      soundOff: "SOUND OFF"
+      best: n => "BEST: ${n} OPS CLEARED"
+    }
+    id {
+      op: n => "OP ${n}"
+      opName: i => ["KONTAK PERTAMA", "DERMAGA", "GUDANG", "PERSIMPANGAN", "GARDU INDUK", "HALAMAN", "KOMPLEKS", "MARKAS"][i]
+      hostiles: "MUSUH"
+      onMove: "BERGERAK"
+      turn: n => "GILIRAN ${n}"
+      yourMove: "GILIRANMU"
+      flanked: "TERAPIT"
+      miss: "MELESET"
+      overwatch: "SIAGA"
+      watch: "SIAGA"
+      kia: "GUGUR"
+      nadeAll: "3 DMG KE SEMUA 9 PETAK"
+      nadePick: "PILIH PETAK SEJAUH 5"
+      outRange: "DI LUAR JANGKAUAN"
+      noLos: "TIDAK TERLIHAT"
+      blows: "MELEDAK 3x3 · 3 DMG"
+      shotInfo: (hc, lo, hi, cov) => "${hc}% · ${lo}-${hi} DMG · ${cov}"
+      full: "LINDUNG PENUH"
+      half: "LINDUNG SEBAGIAN"
+      none: "TANPA LINDUNG"
+      move: "JALAN"
+      dash: "LARI"
+      status: (f, g) => "${f} MUSUH · ${g} GRANAT"
+      waiting: "MENUNGGU"
+      throw: "LEMPAR"
+      shoot: "TEMBAK"
+      fire: hc => "TEMBAK ${hc}%"
+      noShot: "TAK BISA TEMBAK"
+      grenade: "GRANAT"
+      endTurn: "AKHIRI GILIRAN"
+      opCleared: "OP BERHASIL"
+      squadLost: "REGU GUGUR"
+      cameHome: n => "${n} DARI 3 PULANG"
+      noneHome: "TAK ADA YANG PULANG"
+      turns: n => "${n} GILIRAN"
+      mapsRound: "PETA BERULANG, LEBIH SULIT"
+      next: name => "BERIKUTNYA: ${name}"
+      tryAnother: "COBA JALAN MASUK LAIN"
+      nextOp: "OP BERIKUTNYA"
+      retry: "ULANGI"
+      tagline: "TAKTIK REGU"
+      carryOn: "LANJUT"
+      deploy: "BERANGKAT"
+      newCampaign: "KAMPANYE BARU"
+      soundOn: "SUARA NYALA"
+      soundOff: "SUARA MATI"
+      best: n => "TERBAIK: ${n} OP BERHASIL"
+    }
+    es {
+      op: n => "OP ${n}"
+      opName: i => ["PRIMER CONTACTO", "MUELLES", "ALMACÉN", "CRUCE", "SUBESTACIÓN", "EL PATIO", "RECINTO", "CUARTEL"][i]
+      hostiles: "ENEMIGOS"
+      onMove: "EN MOVIMIENTO"
+      turn: n => "TURNO ${n}"
+      yourMove: "TU TURNO"
+      flanked: "FLANQUEADO"
+      miss: "FALLO"
+      overwatch: "VIGILANCIA"
+      watch: "ALERTA"
+      kia: "BAJA"
+      nadeAll: "3 DAÑO A LAS 9 CASILLAS"
+      nadePick: "ELIGE UNA CASILLA A 5 O MENOS"
+      outRange: "FUERA DE ALCANCE"
+      noLos: "SIN LÍNEA DE TIRO"
+      blows: "EXPLOTA 3x3 · 3 DAÑO"
+      shotInfo: (hc, lo, hi, cov) => "${hc}% · ${lo}-${hi} DAÑO · ${cov}"
+      full: "COBERTURA TOTAL"
+      half: "MEDIA COBERTURA"
+      none: "SIN COBERTURA"
+      move: "MOVER"
+      dash: "CORRER"
+      status: (f, g) => "${f} ${f == 1 ? "ENEMIGO" : "ENEMIGOS"} · ${g} ${g == 1 ? "GRANADA" : "GRANADAS"}"
+      waiting: "ESPERANDO"
+      throw: "LANZAR"
+      shoot: "DISPARAR"
+      fire: hc => "FUEGO ${hc}%"
+      noShot: "SIN TIRO"
+      grenade: "GRANADA"
+      endTurn: "FIN DE TURNO"
+      opCleared: "OP COMPLETADA"
+      squadLost: "ESCUADRA CAÍDA"
+      cameHome: n => n == 1 ? "1 DE 3 VOLVIÓ" : "${n} DE 3 VOLVIERON"
+      noneHome: "NADIE VOLVIÓ"
+      turns: n => n == 1 ? "1 TURNO" : "${n} TURNOS"
+      mapsRound: "LOS MAPAS VUELVEN, MÁS DUROS"
+      next: name => "SIGUIENTE: ${name}"
+      tryAnother: "PRUEBA OTRA FORMA DE ENTRAR"
+      nextOp: "SIGUIENTE OP"
+      retry: "REINTENTAR"
+      tagline: "TÁCTICA DE ESCUADRA"
+      carryOn: "CONTINUAR"
+      deploy: "DESPLEGAR"
+      newCampaign: "NUEVA CAMPAÑA"
+      soundOn: "SONIDO SÍ"
+      soundOff: "SONIDO NO"
+      best: n => "RÉCORD: ${n} OPS COMPLETADAS"
+    }
+    pt {
+      op: n => "OP ${n}"
+      opName: i => ["PRIMEIRO CONTATO", "DOCAS", "ARMAZÉM", "ENCRUZILHADA", "SUBESTAÇÃO", "O PÁTIO", "COMPLEXO", "QG"][i]
+      hostiles: "INIMIGOS"
+      onMove: "EM MOVIMENTO"
+      turn: n => "TURNO ${n}"
+      yourMove: "SUA VEZ"
+      flanked: "FLANQUEADO"
+      miss: "ERROU"
+      overwatch: "VIGIA"
+      watch: "VIGIA"
+      kia: "BAIXA"
+      nadeAll: "3 DANO EM TODAS AS 9 CASAS"
+      nadePick: "ESCOLHA UMA CASA A ATÉ 5"
+      outRange: "FORA DE ALCANCE"
+      noLos: "SEM LINHA DE VISÃO"
+      blows: "EXPLODE 3x3 · 3 DANO"
+      shotInfo: (hc, lo, hi, cov) => "${hc}% · ${lo}-${hi} DANO · ${cov}"
+      full: "COBERTURA TOTAL"
+      half: "MEIA COBERTURA"
+      none: "SEM COBERTURA"
+      move: "MOVER"
+      dash: "CORRER"
+      status: (f, g) => "${f} ${f == 1 ? "INIMIGO" : "INIMIGOS"} · ${g} ${g == 1 ? "GRANADA" : "GRANADAS"}"
+      waiting: "AGUARDANDO"
+      throw: "LANÇAR"
+      shoot: "ATIRAR"
+      fire: hc => "FOGO ${hc}%"
+      noShot: "SEM TIRO"
+      grenade: "GRANADA"
+      endTurn: "FIM DO TURNO"
+      opCleared: "OP CONCLUÍDA"
+      squadLost: "EQUIPE PERDIDA"
+      cameHome: n => n == 1 ? "1 DE 3 VOLTOU" : "${n} DE 3 VOLTARAM"
+      noneHome: "NINGUÉM VOLTOU"
+      turns: n => n == 1 ? "1 TURNO" : "${n} TURNOS"
+      mapsRound: "OS MAPAS VOLTAM, MAIS DIFÍCEIS"
+      next: name => "PRÓXIMA: ${name}"
+      tryAnother: "TENTE OUTRO CAMINHO"
+      nextOp: "PRÓXIMA OP"
+      retry: "DE NOVO"
+      tagline: "TÁTICA DE ESQUADRÃO"
+      carryOn: "CONTINUAR"
+      deploy: "MOBILIZAR"
+      newCampaign: "NOVA CAMPANHA"
+      soundOn: "SOM LIGADO"
+      soundOff: "SOM DESLIGADO"
+      best: n => "RECORDE: ${n} OPS CONCLUÍDAS"
+    }
+    de {
+      op: n => "OP ${n}"
+      opName: i => ["ERSTKONTAKT", "DOCKS", "LAGERHALLE", "KREUZUNG", "UMSPANNWERK", "DER HOF", "ANLAGE", "HQ"][i]
+      hostiles: "FEINDE"
+      onMove: "RÜCKEN VOR"
+      turn: n => "RUNDE ${n}"
+      yourMove: "DEIN ZUG"
+      flanked: "FLANKIERT"
+      miss: "DANEBEN"
+      overwatch: "WACHE"
+      watch: "WACHE"
+      kia: "TOT"
+      nadeAll: "3 SCHADEN AUF ALLE 9 FELDER"
+      nadePick: "WÄHL EIN FELD BIS 5 ENTFERNT"
+      outRange: "AUSSER REICHWEITE"
+      noLos: "KEINE SICHTLINIE"
+      blows: "SPRENGT 3x3 · 3 SCHADEN"
+      shotInfo: (hc, lo, hi, cov) => "${hc}% · ${lo}-${hi} SCHADEN · ${cov}"
+      full: "VOLLE DECKUNG"
+      half: "HALBE DECKUNG"
+      none: "KEINE DECKUNG"
+      move: "GEHEN"
+      dash: "SPRINT"
+      status: (f, g) => "${f} ${f == 1 ? "FEIND" : "FEINDE"} · ${g} ${g == 1 ? "GRANATE" : "GRANATEN"}"
+      waiting: "WARTEN"
+      throw: "WERFEN"
+      shoot: "SCHIESSEN"
+      fire: hc => "FEUER ${hc}%"
+      noShot: "KEIN SCHUSS"
+      grenade: "GRANATE"
+      endTurn: "ZUG BEENDEN"
+      opCleared: "OP ERFÜLLT"
+      squadLost: "TRUPP VERLOREN"
+      cameHome: n => n == 1 ? "1 VON 3 KAM HEIM" : "${n} VON 3 KAMEN HEIM"
+      noneHome: "KEINER KAM HEIM"
+      turns: n => n == 1 ? "1 RUNDE" : "${n} RUNDEN"
+      mapsRound: "DIE KARTEN KOMMEN WIEDER, HÄRTER"
+      next: name => "NÄCHSTE: ${name}"
+      tryAnother: "VERSUCH EINEN ANDEREN WEG"
+      nextOp: "NÄCHSTE OP"
+      retry: "NOCHMAL"
+      tagline: "TRUPPTAKTIK"
+      carryOn: "WEITER"
+      deploy: "AUSRÜCKEN"
+      newCampaign: "NEUE KAMPAGNE"
+      soundOn: "TON AN"
+      soundOff: "TON AUS"
+      best: n => "REKORD: ${n} OPS ERFÜLLT"
+    }
+    zh {
+      op: n => "行动 ${n}"
+      opName: i => ["初次交火", "码头", "仓库", "十字路口", "变电站", "院子", "据点", "总部"][i]
+      hostiles: "敌人"
+      onMove: "正在行动"
+      turn: n => "第 ${n} 回合"
+      yourMove: "轮到你了"
+      flanked: "侧击"
+      miss: "未命中"
+      overwatch: "警戒射击"
+      watch: "警戒"
+      kia: "阵亡"
+      nadeAll: "9 格各受 3 点伤害"
+      nadePick: "选择 5 格以内的位置"
+      outRange: "超出射程"
+      noLos: "没有射界"
+      blows: "3x3 爆炸 · 3 伤害"
+      shotInfo: (hc, lo, hi, cov) => "${hc}% · ${lo}-${hi} 伤害 · ${cov}"
+      full: "全掩护"
+      half: "半掩护"
+      none: "无掩护"
+      move: "移动"
+      dash: "冲刺"
+      status: (f, g) => "敌人 ${f} · 手雷 ${g}"
+      waiting: "等待中"
+      throw: "投掷"
+      shoot: "射击"
+      fire: hc => "开火 ${hc}%"
+      noShot: "无法射击"
+      grenade: "手雷"
+      endTurn: "结束回合"
+      opCleared: "行动完成"
+      squadLost: "小队覆没"
+      cameHome: n => "3 人中 ${n} 人归来"
+      noneHome: "无人归来"
+      turns: n => "${n} 回合"
+      mapsRound: "地图轮回，难度提升"
+      next: name => "下一个：${name}"
+      tryAnother: "换条路线再试"
+      nextOp: "下一行动"
+      retry: "重试"
+      tagline: "小队战术"
+      carryOn: "继续"
+      deploy: "出发"
+      newCampaign: "新战役"
+      soundOn: "声音开"
+      soundOff: "声音关"
+      best: n => "最佳：完成 ${n} 次行动"
+    }
+    ru {
+      op: n => "ОП ${n}"
+      opName: i => ["ПЕРВЫЙ КОНТАКТ", "ДОКИ", "СКЛАД", "ПЕРЕКРЁСТОК", "ПОДСТАНЦИЯ", "ДВОР", "КОМПЛЕКС", "ШТАБ"][i]
+      hostiles: "ПРОТИВНИК"
+      onMove: "НАСТУПАЕТ"
+      turn: n => "ХОД ${n}"
+      yourMove: "ВАШ ХОД"
+      flanked: "ФЛАНГ"
+      miss: "МИМО"
+      overwatch: "ДОЗОР"
+      watch: "ДОЗОР"
+      kia: "УБИТ"
+      nadeAll: "3 УРОНА ПО ВСЕМ 9 КЛЕТКАМ"
+      nadePick: "ВЫБЕРИТЕ КЛЕТКУ В РАДИУСЕ 5"
+      outRange: "ВНЕ ДОСЯГАЕМОСТИ"
+      noLos: "НЕТ ЛИНИИ ОГНЯ"
+      blows: "ВЗРЫВ 3x3 · 3 УРОНА"
+      shotInfo: (hc, lo, hi, cov) => "${hc}% · ${lo}-${hi} УРОНА · ${cov}"
+      full: "ПОЛНОЕ УКРЫТИЕ"
+      half: "ПОЛУУКРЫТИЕ"
+      none: "БЕЗ УКРЫТИЯ"
+      move: "ИДТИ"
+      dash: "РЫВОК"
+      status: (f, g) => "ВРАГОВ: ${f} · ГРАНАТ: ${g}"
+      waiting: "ОЖИДАНИЕ"
+      throw: "БРОСИТЬ"
+      shoot: "СТРЕЛЯТЬ"
+      fire: hc => "ОГОНЬ ${hc}%"
+      noShot: "НЕТ ВЫСТРЕЛА"
+      grenade: "ГРАНАТА"
+      endTurn: "КОНЕЦ ХОДА"
+      opCleared: "ОП ВЫПОЛНЕНА"
+      squadLost: "ОТРЯД ПОТЕРЯН"
+      cameHome: n => n == 1 ? "ВЕРНУЛСЯ 1 ИЗ 3" : "ВЕРНУЛИСЬ ${n} ИЗ 3"
+      noneHome: "НИКТО НЕ ВЕРНУЛСЯ"
+      turns: n => "ХОДОВ: ${n}"
+      mapsRound: "КАРТЫ ПО НОВОЙ, СЛОЖНЕЕ"
+      next: name => "ДАЛЕЕ: ${name}"
+      tryAnother: "ПОПРОБУЙТЕ ДРУГОЙ ПОДХОД"
+      nextOp: "ДАЛЬШЕ"
+      retry: "ЕЩЁ РАЗ"
+      tagline: "ТАКТИКА ОТРЯДА"
+      carryOn: "ПРОДОЛЖИТЬ"
+      deploy: "В БОЙ"
+      newCampaign: "НОВАЯ КАМПАНИЯ"
+      soundOn: "ЗВУК ВКЛ"
+      soundOff: "ЗВУК ВЫКЛ"
+      best: n => "РЕКОРД: ${n} ОП"
+    }
+    ja {
+      op: n => "作戦 ${n}"
+      opName: i => ["初接触", "埠頭", "倉庫", "交差点", "変電所", "中庭", "敷地", "司令部"][i]
+      hostiles: "敵"
+      onMove: "移動中"
+      turn: n => "ターン ${n}"
+      yourMove: "あなたの番です"
+      flanked: "側面"
+      miss: "ミス"
+      overwatch: "警戒射撃"
+      watch: "警戒"
+      kia: "戦死"
+      nadeAll: "9 マスすべてに 3 ダメージ"
+      nadePick: "5 マス以内を選んでください"
+      outRange: "射程外"
+      noLos: "射線が通りません"
+      blows: "3x3 爆発 · 3 ダメージ"
+      shotInfo: (hc, lo, hi, cov) => "${hc}% · ${lo}-${hi} ダメージ · ${cov}"
+      full: "完全遮蔽"
+      half: "半遮蔽"
+      none: "遮蔽なし"
+      move: "移動"
+      dash: "ダッシュ"
+      status: (f, g) => "敵 ${f} · 手榴弾 ${g}"
+      waiting: "待機中"
+      throw: "投げる"
+      shoot: "撃つ"
+      fire: hc => "射撃 ${hc}%"
+      noShot: "射撃不可"
+      grenade: "手榴弾"
+      endTurn: "ターン終了"
+      opCleared: "作戦成功"
+      squadLost: "部隊全滅"
+      cameHome: n => "3 人中 ${n} 人が帰還しました"
+      noneHome: "誰も帰還しませんでした"
+      turns: n => "${n} ターン"
+      mapsRound: "マップが一巡、難しくなります"
+      next: name => "次：${name}"
+      tryAnother: "別の侵入路を試しましょう"
+      nextOp: "次の作戦"
+      retry: "再挑戦"
+      tagline: "部隊戦術"
+      carryOn: "続ける"
+      deploy: "出撃"
+      newCampaign: "新しいキャンペーン"
+      soundOn: "サウンド オン"
+      soundOff: "サウンド オフ"
+      best: n => "ベスト：${n} 作戦成功"
+    }
+    uk {
+      op: n => "ОП ${n}"
+      opName: i => ["ПЕРШИЙ КОНТАКТ", "ДОКИ", "СКЛАД", "ПЕРЕХРЕСТЯ", "ПІДСТАНЦІЯ", "ДВІР", "КОМПЛЕКС", "ШТАБ"][i]
+      hostiles: "ВОРОГ"
+      onMove: "НАСТУПАЄ"
+      turn: n => "ХІД ${n}"
+      yourMove: "ВАШ ХІД"
+      flanked: "ФЛАНГ"
+      miss: "ПОВЗ"
+      overwatch: "ДОЗІР"
+      watch: "ДОЗІР"
+      kia: "ВБИТО"
+      nadeAll: "3 ШКОДИ ПО ВСІХ 9 КЛІТИНКАХ"
+      nadePick: "ВИБЕРІТЬ КЛІТИНКУ В РАДІУСІ 5"
+      outRange: "ПОЗА ДОСЯЖНІСТЮ"
+      noLos: "НЕМАЄ ЛІНІЇ ВОГНЮ"
+      blows: "ВИБУХ 3x3 · 3 ШКОДИ"
+      shotInfo: (hc, lo, hi, cov) => "${hc}% · ${lo}-${hi} ШКОДИ · ${cov}"
+      full: "ПОВНЕ УКРИТТЯ"
+      half: "НАПІВУКРИТТЯ"
+      none: "БЕЗ УКРИТТЯ"
+      move: "ЙТИ"
+      dash: "РИВОК"
+      status: (f, g) => "ВОРОГІВ: ${f} · ГРАНАТ: ${g}"
+      waiting: "ОЧІКУВАННЯ"
+      throw: "КИНУТИ"
+      shoot: "СТРІЛЯТИ"
+      fire: hc => "ВОГОНЬ ${hc}%"
+      noShot: "НЕМАЄ ПОСТРІЛУ"
+      grenade: "ГРАНАТА"
+      endTurn: "КІНЕЦЬ ХОДУ"
+      opCleared: "ОП ВИКОНАНО"
+      squadLost: "ЗАГІН ЗАГИНУВ"
+      cameHome: n => n == 1 ? "ПОВЕРНУВСЯ 1 З 3" : "ПОВЕРНУЛИСЯ ${n} З 3"
+      noneHome: "НІХТО НЕ ПОВЕРНУВСЯ"
+      turns: n => "ХОДІВ: ${n}"
+      mapsRound: "МАПИ ЗНОВУ, СКЛАДНІШЕ"
+      next: name => "ДАЛІ: ${name}"
+      tryAnother: "СПРОБУЙТЕ ІНШИЙ ПІДХІД"
+      nextOp: "ДАЛІ"
+      retry: "ЩЕ РАЗ"
+      tagline: "ТАКТИКА ЗАГОНУ"
+      carryOn: "ПРОДОВЖИТИ"
+      deploy: "У БІЙ"
+      newCampaign: "НОВА КАМПАНІЯ"
+      soundOn: "ЗВУК УВІМК"
+      soundOff: "ЗВУК ВИМК"
+      best: n => "РЕКОРД: ${n} ОП"
+    }
+    fr {
+      op: n => "OP ${n}"
+      opName: i => ["PREMIER CONTACT", "DOCKS", "ENTREPÔT", "CARREFOUR", "SOUS-STATION", "LA COUR", "ENCEINTE", "QG"][i]
+      hostiles: "ENNEMIS"
+      onMove: "EN MOUVEMENT"
+      turn: n => "TOUR ${n}"
+      yourMove: "À TOI"
+      flanked: "DE FLANC"
+      miss: "RATÉ"
+      overwatch: "TIR D'ALERTE"
+      watch: "ALERTE"
+      kia: "MORT"
+      nadeAll: "3 DÉGÂTS SUR LES 9 CASES"
+      nadePick: "CHOISIS UNE CASE À 5 OU MOINS"
+      outRange: "HORS DE PORTÉE"
+      noLos: "PAS DE LIGNE DE TIR"
+      blows: "EXPLOSE 3x3 · 3 DÉGÂTS"
+      shotInfo: (hc, lo, hi, cov) => "${hc}% · ${lo}-${hi} DÉGÂTS · ${cov}"
+      full: "COUVERT TOTAL"
+      half: "DEMI-COUVERT"
+      none: "À DÉCOUVERT"
+      move: "AVANCER"
+      dash: "SPRINT"
+      status: (f, g) => "${f} ${f <= 1 ? "ENNEMI" : "ENNEMIS"} · ${g} ${g <= 1 ? "GRENADE" : "GRENADES"}"
+      waiting: "EN ATTENTE"
+      throw: "LANCER"
+      shoot: "TIRER"
+      fire: hc => "FEU ${hc}%"
+      noShot: "PAS DE TIR"
+      grenade: "GRENADE"
+      endTurn: "FIN DU TOUR"
+      opCleared: "OP RÉUSSIE"
+      squadLost: "ESCOUADE PERDUE"
+      cameHome: n => n == 1 ? "1 SUR 3 EST RENTRÉ" : "${n} SUR 3 SONT RENTRÉS"
+      noneHome: "PERSONNE N'EST RENTRÉ"
+      turns: n => n <= 1 ? "${n} TOUR" : "${n} TOURS"
+      mapsRound: "LES CARTES REVIENNENT, PLUS DURES"
+      next: name => "SUIVANTE : ${name}"
+      tryAnother: "ESSAIE UNE AUTRE ENTRÉE"
+      nextOp: "OP SUIVANTE"
+      retry: "RÉESSAYER"
+      tagline: "TACTIQUE D'ESCOUADE"
+      carryOn: "CONTINUER"
+      deploy: "DÉPLOYER"
+      newCampaign: "NOUVELLE CAMPAGNE"
+      soundOn: "SON ACTIVÉ"
+      soundOff: "SON COUPÉ"
+      best: n => "RECORD : ${n} OPS RÉUSSIES"
+    }
+    tr {
+      op: n => "OP ${n}"
+      opName: i => ["İLK TEMAS", "RIHTIM", "DEPO", "KAVŞAK", "TRAFO MERKEZİ", "AVLU", "YERLEŞKE", "KARARGÂH"][i]
+      hostiles: "DÜŞMAN"
+      onMove: "HAREKETTE"
+      turn: n => "TUR ${n}"
+      yourMove: "SIRA SENDE"
+      flanked: "KANATTAN"
+      miss: "ISKA"
+      overwatch: "NÖBET"
+      watch: "NÖBET"
+      kia: "ÖLDÜ"
+      nadeAll: "9 KAREYE 3 HASAR"
+      nadePick: "EN FAZLA 5 UZAKTA BİR KARE SEÇ"
+      outRange: "MENZİL DIŞI"
+      noLos: "GÖRÜŞ HATTI YOK"
+      blows: "3x3 PATLAR · 3 HASAR"
+      shotInfo: (hc, lo, hi, cov) => "${hc}% · ${lo}-${hi} HASAR · ${cov}"
+      full: "TAM SİPER"
+      half: "YARIM SİPER"
+      none: "SİPER YOK"
+      move: "YÜRÜ"
+      dash: "KOŞ"
+      status: (f, g) => "${f} DÜŞMAN · ${g} BOMBA"
+      waiting: "BEKLENİYOR"
+      throw: "AT"
+      shoot: "ATEŞ"
+      fire: hc => "ATEŞ %${hc}"
+      noShot: "ATIŞ YOK"
+      grenade: "BOMBA"
+      endTurn: "TURU BİTİR"
+      opCleared: "OP TAMAM"
+      squadLost: "TİM KAYBEDİLDİ"
+      cameHome: n => "3 KİŞİDEN ${n} KİŞİ DÖNDÜ"
+      noneHome: "KİMSE DÖNMEDİ"
+      turns: n => "${n} TUR"
+      mapsRound: "HARİTALAR BAŞA DÖNER, DAHA ZOR"
+      next: name => "SIRADAKİ: ${name}"
+      tryAnother: "BAŞKA BİR YOL DENE"
+      nextOp: "SONRAKİ OP"
+      retry: "TEKRAR"
+      tagline: "TİM TAKTİĞİ"
+      carryOn: "DEVAM"
+      deploy: "KONUŞLAN"
+      newCampaign: "YENİ SEFER"
+      soundOn: "SES AÇIK"
+      soundOff: "SES KAPALI"
+      best: n => "EN İYİ: ${n} OP"
+    }
+    it {
+      op: n => "OP ${n}"
+      opName: i => ["PRIMO CONTATTO", "MOLI", "MAGAZZINO", "INCROCIO", "SOTTOSTAZIONE", "IL CORTILE", "RECINTO", "QG"][i]
+      hostiles: "NEMICI"
+      onMove: "IN MOVIMENTO"
+      turn: n => "TURNO ${n}"
+      yourMove: "TOCCA A TE"
+      flanked: "AI FIANCHI"
+      miss: "MANCATO"
+      overwatch: "VEGLIA"
+      watch: "VEGLIA"
+      kia: "CADUTO"
+      nadeAll: "3 DANNI A TUTTE LE 9 CASELLE"
+      nadePick: "SCEGLI UNA CASELLA ENTRO 5"
+      outRange: "FUORI PORTATA"
+      noLos: "NESSUNA LINEA DI TIRO"
+      blows: "ESPLODE 3x3 · 3 DANNI"
+      shotInfo: (hc, lo, hi, cov) => "${hc}% · ${lo}-${hi} DANNI · ${cov}"
+      full: "COPERTURA PIENA"
+      half: "MEZZA COPERTURA"
+      none: "SCOPERTO"
+      move: "MUOVI"
+      dash: "SCATTO"
+      status: (f, g) => "${f} ${f == 1 ? "NEMICO" : "NEMICI"} · ${g} ${g == 1 ? "GRANATA" : "GRANATE"}"
+      waiting: "IN ATTESA"
+      throw: "LANCIA"
+      shoot: "SPARA"
+      fire: hc => "FUOCO ${hc}%"
+      noShot: "NESSUN TIRO"
+      grenade: "GRANATA"
+      endTurn: "FINE TURNO"
+      opCleared: "OP COMPLETATA"
+      squadLost: "SQUADRA PERSA"
+      cameHome: n => n == 1 ? "1 SU 3 È TORNATO" : "${n} SU 3 SONO TORNATI"
+      noneHome: "NESSUNO È TORNATO"
+      turns: n => n == 1 ? "1 TURNO" : "${n} TURNI"
+      mapsRound: "LE MAPPE RICOMINCIANO, PIÙ DURE"
+      next: name => "PROSSIMA: ${name}"
+      tryAnother: "PROVA UN'ALTRA VIA"
+      nextOp: "PROSSIMA OP"
+      retry: "RIPROVA"
+      tagline: "TATTICA DI SQUADRA"
+      carryOn: "CONTINUA"
+      deploy: "SCHIERATI"
+      newCampaign: "NUOVA CAMPAGNA"
+      soundOn: "AUDIO SÌ"
+      soundOff: "AUDIO NO"
+      best: n => "RECORD: ${n} OP COMPLETATE"
+    }
+  }
 
   title: ""
   statusBar: false
@@ -126,14 +719,14 @@ app "fireteam" {
   // the maps, from the hostiles' side down to the squad's: # wall, c crate, b barrel, s sandbags,
   // 1 2 3 the squad, g grunt, h heavy, m marksman, o officer
   let OPS = [
-    {n: "FIRST CONTACT", m: ["...c.....", ".g.c..g..", ".....cc..", ".......g.", "####.####", "...c.....", ".........", ".s....c..", "....b....", "..c....s.", ".........", "...csc...", "...123..."]},
-    {n: "DOCKS", m: ["g..c...h.", ".........", ".##..##..", ".##..##.g", "g........", "..c...c..", "###.b.###", ".........", ".c.##..c.", "...##....", "s.......s", "..s.c.s..", "..1.2.3.."]},
-    {n: "WAREHOUSE", m: ["m..c.....", "...c..g..", "#.###.###", "........g", ".cc...cc.", "...g...h.", "#.###.###", "....b....", ".c.....c.", ".........", "##..c..##", ".s.s.s.s.", "..1.2.3.."]},
-    {n: "CROSSROADS", m: ["c..#.#..m", "...#.#...", ".g.#.#.g.", "...c.c...", "###...###", "....h....", "###...###", "...c.c...", "...#g#...", "...#.#.c.", ".c.#.#...", "s..#.#.s.", "1.2#.#.3."]},
-    {n: "SUBSTATION", m: ["..b.m.b..", ".g.....g.", "..ss.ss..", "#..#.#..#", "b.h...h.b", "g..#.#..g", "####.####", ".........", ".c.....c.", "##..b..##", ".........", "..s.c.s..", "...123..."]},
-    {n: "THE YARD", m: ["h..gc...h", "..c...c..", ".........", ".##.m.##.", ".#.....#.", "...b.b...", "g#.....#g", "##.....##", ".##.#.##.", "....c....", "..s...s..", "c..s.s..c", "1...2...3"]},
-    {n: "COMPOUND", m: ["..m.o.m..", "#.#####.#", ".........", ".c.h.h.c.", "g.......g", "###.#.###", "...#.#...", "...#.#...", "b.##.##.b", "..#.c.#..", "....s....", ".s.s.s.s.", "..1.2.3.."]},
-    {n: "HQ", m: ["o.......o", "..s...s..", "h.......h", "##.###.##", "g..m.m..g", ".c.....c.", "###.b.###", "....#....", ".c#.#.#c.", "..#g#g#..", "...###...", ".s.....s.", "..1.2.3.."]}
+    {m: ["...c.....", ".g.c..g..", ".....cc..", ".......g.", "####.####", "...c.....", ".........", ".s....c..", "....b....", "..c....s.", ".........", "...csc...", "...123..."]},
+    {m: ["g..c...h.", ".........", ".##..##..", ".##..##.g", "g........", "..c...c..", "###.b.###", ".........", ".c.##..c.", "...##....", "s.......s", "..s.c.s..", "..1.2.3.."]},
+    {m: ["m..c.....", "...c..g..", "#.###.###", "........g", ".cc...cc.", "...g...h.", "#.###.###", "....b....", ".c.....c.", ".........", "##..c..##", ".s.s.s.s.", "..1.2.3.."]},
+    {m: ["c..#.#..m", "...#.#...", ".g.#.#.g.", "...c.c...", "###...###", "....h....", "###...###", "...c.c...", "...#g#...", "...#.#.c.", ".c.#.#...", "s..#.#.s.", "1.2#.#.3."]},
+    {m: ["..b.m.b..", ".g.....g.", "..ss.ss..", "#..#.#..#", "b.h...h.b", "g..#.#..g", "####.####", ".........", ".c.....c.", "##..b..##", ".........", "..s.c.s..", "...123..."]},
+    {m: ["h..gc...h", "..c...c..", ".........", ".##.m.##.", ".#.....#.", "...b.b...", "g#.....#g", "##.....##", ".##.#.##.", "....c....", "..s...s..", "c..s.s..c", "1...2...3"]},
+    {m: ["..m.o.m..", "#.#####.#", ".........", ".c.h.h.c.", "g.......g", "###.#.###", "...#.#...", "...#.#...", "b.##.##.b", "..#.c.#..", "....s....", ".s.s.s.s.", "..1.2.3.."]},
+    {m: ["o.......o", "..s...s..", "h.......h", "##.###.##", "g..m.m..g", ".c.....c.", "###.b.###", "....#....", ".c#.#.#c.", "..#g#g#..", "...###...", ".s.....s.", "..1.2.3.."]}
   ]
 
   // ---- the operation ----------------------------------------------------------------------------
@@ -177,7 +770,7 @@ app "fireteam" {
     tgt = -1
     nade = false
     bq = null
-    fx = [{k: 8, s: "OP ${mis + 1}", s2: OPS[mis % 8].n, t0: time + 0.2}]
+    fx = [{k: 8, s: str.op(mis + 1), s2: str.opName(mis % 8), t0: time + 0.2}]
     fxEnd = time + 0.4
     mode = "play"
   }
@@ -246,7 +839,7 @@ app "fireteam" {
           })[0])[0])[0])[0])[0])[0])[0])[0])[0])[0])[0])[0], {us: aw, fx: [], t: t0 + (len(ids) > 0 ? 1.1 : 0) + (len(woke) > 0 ? 0.7 : 0)})
         let still = any(res.us, u => u.s == 0 && u.hp > 0)
         units = res.us.map(u => u.s == 0 ? merge(u, {ap: u.hp > 0 ? 2 : 0, ow: false}) : u)
-        fx = fx.filter(z => (z.t1 ?? z.t0 + 1.6) > time) + (len(ids) > 0 ? [{k: 8, s: "HOSTILES", s2: "ON THE MOVE", t0: t0}] : []) + woke.map(j => {k: 9, x: aw[j].x, y: aw[j].y, t0: t0 + (len(ids) > 0 ? 1.1 : 0)}) + res.fx + (still ? [{k: 8, s: "TURN ${turn + 1}", s2: "YOUR MOVE", t0: res.t + 0.1}] : [])
+        fx = fx.filter(z => (z.t1 ?? z.t0 + 1.6) > time) + (len(ids) > 0 ? [{k: 8, s: str.hostiles, s2: str.onMove, t0: t0}] : []) + woke.map(j => {k: 9, x: aw[j].x, y: aw[j].y, t0: t0 + (len(ids) > 0 ? 1.1 : 0)}) + res.fx + (still ? [{k: 8, s: str.turn(turn + 1), s2: str.yourMove, t0: res.t + 0.1}] : [])
         fxEnd = res.t + 0.2
         // every shot, hit and miss of their turn, a soldier going down on the hit that drops them,
         // and the end of the operation if it came to one
@@ -680,13 +1273,13 @@ app "fireteam" {
             let dy = BY + (f.y + 0.1) * T - e * 0.7 * T
             text("-${f.d}", dx + q * 0.5, dy + q * 0.5, size: 4.5 * q, color: INK, font: press, align: center)
             text("-${f.d}", dx, dy, size: 4.5 * q, color: "#ff5a4a", font: press, align: center)
-            if f.fl { text("FLANKED", dx, dy - 5 * q, size: 2.6 * q, color: "#ffe14a", font: press, align: center) }
+            if f.fl { text(str.flanked, dx, dy - 5 * q, size: 2.6 * q, color: "#ffe14a", font: press, align: center) }
           } else if f.k == 6 && now >= f.t0 && now < f.t0 + 1 {
             let e = now - f.t0
-            text("MISS", BX + (f.x + 0.5) * T, BY + (f.y + 0.1) * T - e * 0.6 * T, size: 3.2 * q, color: "#d8d4ec", font: press, align: center)
+            text(str.miss, BX + (f.x + 0.5) * T, BY + (f.y + 0.1) * T - e * 0.6 * T, size: 3.2 * q, color: "#d8d4ec", font: press, align: center)
           } else if f.k == 7 && now >= f.t0 && now < f.t0 + 1 {
             let e = now - f.t0
-            text("OVERWATCH", BX + (f.x + 0.5) * T, BY + (f.y - 0.6) * T - e * 0.5 * T, size: 2.8 * q, color: "#a8d8ff", font: press, align: center)
+            text(str.overwatch, BX + (f.x + 0.5) * T, BY + (f.y - 0.6) * T - e * 0.5 * T, size: 2.8 * q, color: "#a8d8ff", font: press, align: center)
           } else if f.k == 9 && now >= f.t0 && now < f.t0 + 1.2 && vis[f.y * W + f.x] {
             let ax = BX + (f.x + 0.5) * T
             let ay = BY + (f.y - 0.7) * T - abs(sin((now - f.t0) * 9)) * 2 * q
@@ -700,9 +1293,9 @@ app "fireteam" {
             let cy = BY + H * T * 0.45
             layer(a) {
               rect(BX, cy - 30, W * T, 60, fill: alpha(INK, 0.85))
-              rect(BX, cy - 30, W * T, 2, fill: f.s == "HOSTILES" ? "#ff5a4a" : "#ffe14a")
-              rect(BX, cy + 28, W * T, 2, fill: f.s == "HOSTILES" ? "#ff5a4a" : "#ffe14a")
-              text(f.s, BX + W * T / 2 + (1 - a) * 30, cy - 8, size: 16, color: f.s == "HOSTILES" ? "#ff5a4a" : "#ffffff", font: press, align: center)
+              rect(BX, cy - 30, W * T, 2, fill: f.s == str.hostiles ? "#ff5a4a" : "#ffe14a")
+              rect(BX, cy + 28, W * T, 2, fill: f.s == str.hostiles ? "#ff5a4a" : "#ffe14a")
+              text(f.s, BX + W * T / 2 + (1 - a) * 30, cy - 8, size: 16, color: f.s == str.hostiles ? "#ff5a4a" : "#ffffff", font: press, align: center)
               text(f.s2, BX + W * T / 2 - (1 - a) * 30, cy + 14, size: 8, color: "#d8d4ec", font: press, align: center)
             }
           }
@@ -874,9 +1467,9 @@ app "fireteam" {
       if mode == "play" && len(grid) == N {
         // ---- the top bar: the operation, the turn, and the way to the title ----
         let ty = TOP + 14
-        text("OP ${mis + 1}", HX, ty, size: 9, color: accent, font: press)
-        text(OPS[mis % 8].n, HX + 8 * len("OP ${mis + 1}") + 10, ty, size: 7, color: foreground, font: press)
-        text("TURN ${turn}", HX + HW - 52, ty, size: 7, color: muted, font: press, align: end)
+        text(str.op(mis + 1), HX, ty, size: 9, color: accent, font: press)
+        text(str.opName(mis % 8), HX + 8 * len(str.op(mis + 1)) + 10, ty, size: 7, color: foreground, font: press)
+        text(str.turn(turn), HX + HW - 52, ty, size: 7, color: muted, font: press, align: end)
         let md = downAt[0] >= HX + HW - 46 && downAt[1] < TOP + 32 ? 2 : 0
         rect(HX + HW - 38, TOP + 2, 38, 24, radius: 4, fill: INK)
         rect(HX + HW - 36, TOP + 4 + md, 34, 18, radius: 3, fill: "#4a4466")
@@ -896,17 +1489,17 @@ app "fireteam" {
             let pw = min(5, (CW - 54) / u.mh)
             for pp in range(u.mh) { rect(x0 + 48 + pp * pw, PY + 22, pw - 1, 5, fill: pp < uh ? "#6fe05a" : alpha(foreground, 0.15)) }
             for a in range(2) { rect(x0 + 48 + a * 10, PY + 34, 7, 7, radius: 1, fill: a < u.ap ? "#5ab4ff" : alpha(foreground, 0.15)) }
-            if u.ow { text("WATCH", x0 + 72, PY + 38, size: 6, color: "#a8d8ff", font: press) }
+            if u.ow { text(str.watch, x0 + 72, PY + 38, size: 6, color: "#a8d8ff", font: press) }
           } else {
-            text("KIA", x0 + 48, PY + 30, size: 8, color: "#ff5a4a", font: press)
+            text(str.kia, x0 + 48, PY + 30, size: 8, color: "#ff5a4a", font: press)
           }
         }
         // ---- a line about what's picked ----
-        let info = won || wiped ? "" : nade ? (tgt >= 0 ? "3 DMG TO ALL 9 TILES" : "PICK A TILE UP TO 5 AWAY") : pick != null ? (!pick.ok ? (pick.d > KD[me.k].rng ? "OUT OF RANGE" : "NO LINE OF SIGHT") : pick.b ? "BLOWS UP 3x3 · 3 DMG" : "${pick.hc}% · ${KD[me.k].lo + (pick.cv == 0 ? 1 : 0)}-${KD[me.k].hi + (pick.cv == 0 ? 1 : 0)} DMG · ${pick.cv >= 40 ? "FULL COVER" : pick.cv > 0 ? "HALF COVER" : "FLANKED"}") : len(path) > 1 ? "${D[tgt] <= KD[me.k].mv ? "MOVE" : "DASH"} · ${max(tcov) >= 40 ? "FULL COVER" : max(tcov) > 0 ? "HALF COVER" : "NO COVER"}" : me != null && me.ap > 0 ? "${len(foes)} HOSTILES · ${nades} GRENADES" : "WAITING"
+        let info = won || wiped ? "" : nade ? (tgt >= 0 ? str.nadeAll : str.nadePick) : pick != null ? (!pick.ok ? (pick.d > KD[me.k].rng ? str.outRange : str.noLos) : pick.b ? str.blows : str.shotInfo(pick.hc, KD[me.k].lo + (pick.cv == 0 ? 1 : 0), KD[me.k].hi + (pick.cv == 0 ? 1 : 0), pick.cv >= 40 ? str.full : pick.cv > 0 ? str.half : str.flanked)) : len(path) > 1 ? "${D[tgt] <= KD[me.k].mv ? str.move : str.dash} · ${max(tcov) >= 40 ? str.full : max(tcov) > 0 ? str.half : str.none}" : me != null && me.ap > 0 ? str.status(len(foes), nades) : str.waiting
         text(info, PX + PW / 2, IY, size: 7, color: pick != null && pick.ok ? foreground : muted, font: press, align: center)
         // ---- buttons: what the soldier can do, or the go-ahead for what's picked ----
         if tgt >= 0 && !won && !wiped {
-          let lab = nade ? "THROW" : pick != null ? (pick.ok ? (pick.b ? "SHOOT" : "FIRE ${pick.hc}%") : "") : D[tgt] <= KD[me.k].mv ? "MOVE" : "DASH"
+          let lab = nade ? str.throw : pick != null ? (pick.ok ? (pick.b ? str.shoot : str.fire(pick.hc)) : "") : D[tgt] <= KD[me.k].mv ? str.move : str.dash
           let pal = lab == "" ? BTN.off : pick != null || nade ? BTN.red : BTN.blue
           let bw = PW - 54
           let pd = downAt[1] >= BTY && downAt[1] < BTY + 46 && downAt[0] >= PX && downAt[0] < PX + bw ? 3 : 0
@@ -914,8 +1507,8 @@ app "fireteam" {
           rect(PX, BTY + pd, bw, 42, radius: 4, fill: pal[1], stroke: INK, width: 2)
           rect(PX + 3, BTY + pd + 3, bw - 6, 4, radius: 2, fill: pal[0])
           rect(PX + 3, BTY + pd + 34, bw - 6, 5, radius: 2, fill: pal[2])
-          text(lab == "" ? "NO SHOT" : lab, PX + bw / 2 + 1, BTY + pd + 23, size: 11, color: INK, font: press, align: center)
-          text(lab == "" ? "NO SHOT" : lab, PX + bw / 2, BTY + pd + 21, size: 11, color: "#ffffff", font: press, align: center)
+          text(lab == "" ? str.noShot : lab, PX + bw / 2 + 1, BTY + pd + 23, size: 11, color: INK, font: press, align: center)
+          text(lab == "" ? str.noShot : lab, PX + bw / 2, BTY + pd + 21, size: 11, color: "#ffffff", font: press, align: center)
           let cd = downAt[1] >= BTY && downAt[1] < BTY + 46 && downAt[0] >= PX + PW - 46 ? 3 : 0
           rect(PX + PW - 46, BTY + 4, 46, 42, radius: 4, fill: BTN.off[3])
           rect(PX + PW - 46, BTY + cd, 46, 42, radius: 4, fill: BTN.off[1], stroke: INK, width: 2)
@@ -933,7 +1526,7 @@ app "fireteam" {
             rect(x0, BTY + pd, BW, 42, radius: 4, fill: pal[1], stroke: INK, width: 2)
             rect(x0 + 3, BTY + pd + 3, BW - 6, 4, radius: 2, fill: pal[0])
             rect(x0 + 3, BTY + pd + 34, BW - 6, 5, radius: 2, fill: pal[2])
-            let lab = ["WATCH", "GRENADE", "END TURN"][b]
+            let lab = [str.watch, str.grenade, str.endTurn][b]
             let ls = min(8, (BW - 12) / len(lab))
             text(lab, x0 + BW / 2 + 1, BTY + pd + (b == 1 ? 18 : 23), size: ls, color: INK, font: press, align: center)
             text(lab, x0 + BW / 2, BTY + pd + (b == 1 ? 16 : 21), size: ls, color: can ? "#ffffff" : "#b8b2d0", font: press, align: center)
@@ -950,21 +1543,21 @@ app "fireteam" {
           rect(ccx, ccy, ccw, 260, radius: 14 * corners, fill: surface, stroke: INK, width: 2)
           rect(ccx - 10, ccy + 16, ccw + 20, 44, radius: 4, fill: won ? "#3a7a3a" : "#8a2a32", stroke: INK, width: 2)
           rect(ccx - 7, ccy + 19, ccw + 14, 3, radius: 1.5, fill: alpha("#ffffff", 0.3))
-          let hd = won ? "OP CLEARED" : "SQUAD LOST"
+          let hd = won ? str.opCleared : str.squadLost
           text(hd, SW / 2 + 2, ccy + 41, size: 14, color: INK, font: press, align: center)
           text(hd, SW / 2, ccy + 39, size: 14, color: "#ffffff", font: press, align: center)
-          text("OP ${mis + 1} · ${OPS[mis % 8].n}", SW / 2, ccy + 84, size: 7, color: muted, font: press, align: center)
-          text(won ? "${len(squad)} OF 3 CAME HOME" : "NO ONE CAME HOME", SW / 2, ccy + 110, size: 8, color: foreground, font: press, align: center)
-          text("${turn} TURNS", SW / 2, ccy + 130, size: 8, color: foreground, font: press, align: center)
-          text(won ? (mis % 8 == 7 ? "THE MAPS COME ROUND, HARDER" : "NEXT: ${OPS[(mis + 1) % 8].n}") : "TRY ANOTHER WAY IN", SW / 2, ccy + 160, size: 7, color: accent, font: press, align: center)
+          text("${str.op(mis + 1)} · ${str.opName(mis % 8)}", SW / 2, ccy + 84, size: 7, color: muted, font: press, align: center)
+          text(won ? str.cameHome(len(squad)) : str.noneHome, SW / 2, ccy + 110, size: 8, color: foreground, font: press, align: center)
+          text(str.turns(turn), SW / 2, ccy + 130, size: 8, color: foreground, font: press, align: center)
+          text(won ? (mis % 8 == 7 ? str.mapsRound : str.next(str.opName((mis + 1) % 8))) : str.tryAnother, SW / 2, ccy + 160, size: 7, color: accent, font: press, align: center)
           let pd = downAt[1] >= OBY && downAt[1] < OBY + 50 && abs(downAt[0] - SW / 2) < 110 ? 3 : 0
           let pal = won ? BTN.go : BTN.red
           rect(SW / 2 - 110, OBY + 4, 220, 46, radius: 4, fill: pal[3])
           rect(SW / 2 - 110, OBY + pd, 220, 46, radius: 4, fill: pal[1], stroke: INK, width: 2)
           rect(SW / 2 - 107, OBY + pd + 3, 214, 4, radius: 2, fill: pal[0])
           rect(SW / 2 - 107, OBY + pd + 37, 214, 6, radius: 2, fill: pal[2])
-          text(won ? "NEXT OP" : "RETRY", SW / 2 + 2, OBY + pd + 25, size: 13, color: INK, font: press, align: center)
-          text(won ? "NEXT OP" : "RETRY", SW / 2, OBY + pd + 23, size: 13, color: "#ffffff", font: press, align: center)
+          text(won ? str.nextOp : str.retry, SW / 2 + 2, OBY + pd + 25, size: 13, color: INK, font: press, align: center)
+          text(won ? str.nextOp : str.retry, SW / 2, OBY + pd + 23, size: 13, color: "#ffffff", font: press, align: center)
         }
       }
       // ---- the title ----
@@ -978,7 +1571,7 @@ app "fireteam" {
         let ls = min(30, (SW - 40) / 8)
         text("FIRETEAM", SW / 2 + 3, ty + 3, size: ls, color: INK, font: press, align: center)
         text("FIRETEAM", SW / 2, ty, size: ls, color: accent, font: press, align: center)
-        text("SQUAD TACTICS", SW / 2, ty + ls + 8, size: 8, color: muted, font: press, align: center)
+        text(str.tagline, SW / 2, ty + ls + 8, size: 8, color: muted, font: press, align: center)
         // the squad, behind sandbags, and a hostile across the way taking fire
         let sc = LS ? 4 : min(6, SW / 70)
         let gy = LS ? ty + 60 : SH * 0.36
@@ -1004,18 +1597,18 @@ app "fireteam" {
         rect(SW / 2 - 120, TBY + pd, 240, 50, radius: 4, fill: BTN.go[1], stroke: INK, width: 2)
         rect(SW / 2 - 117, TBY + pd + 3, 234, 4, radius: 2, fill: BTN.go[0])
         rect(SW / 2 - 117, TBY + pd + 41, 234, 6, radius: 2, fill: BTN.go[2])
-        let dl = going ? "CONTINUE" : "DEPLOY"
+        let dl = going ? str.carryOn : str.deploy
         text(dl, SW / 2 + 2, TBY + pd + 26, size: 14, color: INK, font: press, align: center)
         text(dl, SW / 2, TBY + pd + 24, size: 14, color: "#ffffff", font: press, align: center)
         let nextOp = going || len(units) == 0 || wiped ? mis : mis + 1
-        text("OP ${nextOp + 1} · ${OPS[nextOp % 8].n}", SW / 2, TBY - 18, size: 8, color: foreground, font: press, align: center)
+        text("${str.op(nextOp + 1)} · ${str.opName(nextOp % 8)}", SW / 2, TBY - 18, size: 8, color: foreground, font: press, align: center)
         if len(units) > 0 {
           let nd = downAt[1] >= TBY + 70 && downAt[1] < TBY + 106 && abs(downAt[0] - SW / 2) < 110 ? 2 : 0
           rect(SW / 2 - 110, TBY + 72 + nd, 220, 32, radius: 4, fill: alpha(foreground, 0.08), stroke: alpha(foreground, 0.2), width: 1)
-          text("NEW CAMPAIGN", SW / 2, TBY + 88 + nd, size: 8, color: muted, font: press, align: center)
+          text(str.newCampaign, SW / 2, TBY + 88 + nd, size: 8, color: muted, font: press, align: center)
         }
-        text(snd ? "SOUND ON" : "SOUND OFF", SW - 14, TOP + 18, size: 7, color: snd ? accent : muted, font: press, align: end)
-        if best > 0 { text("BEST: ${best} OPS CLEARED", SW / 2, LS ? TBY - 40 : TBY + 130, size: 7, color: accent, font: press, align: center) }
+        text(snd ? str.soundOn : str.soundOff, SW - 14, TOP + 18, size: 7, color: snd ? accent : muted, font: press, align: end)
+        if best > 0 { text(str.best(best), SW / 2, LS ? TBY - 40 : TBY + 130, size: 7, color: accent, font: press, align: center) }
       }
     }
   }

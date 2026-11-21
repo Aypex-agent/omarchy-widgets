@@ -23,7 +23,7 @@ app "pixel pinball" {
   // their angles at the start, hL and hR held or not. fk and ek count in steps of this film, so
   // they go negative for what came before it.
 
-  meta { owl: 23; description: "Pixel art pinball on four tables in space: bumpers, slingshots, lanes, targets, a black hole that warps you to the next table, light shows and a dot-matrix score"; version: "1.2"; license: "MIT"; category: "games" }
+  meta { owl: 23; description: "Pixel art pinball on four tables in space: bumpers, slingshots, lanes, targets, a black hole that warps you to the next table, light shows and a dot-matrix score"; version: "1.3"; license: "MIT"; category: "games" }
 
   title: ""
   statusBar: false
@@ -89,6 +89,126 @@ app "pixel pinball" {
     <rect x="32" y="224" width="40" height="8" fill="#f4f2ff"/>
     <rect x="216" y="224" width="8" height="8" fill="#ffd23f"/>
   </svg>"""
+
+  // Every word is drawn in the display's own 5 by 7 dot font, which has only A to Z, 0 to 9, space
+  // and , . ! : - so the texts are capitals without accents, and Chinese, Japanese, Russian and
+  // Ukrainian phones see the English. Pairs are the display's two rows (small, then big: about 8
+  // letters, or 17 when longer); the title's help lines fit about 31 letters.
+  // JACKPOT, KICKBACK, SKILL SHOT and WARP stay as pinball machines say them everywhere.
+  strings {
+    en {
+      ball: n => "BALL ${n}"; ballSaved: ["BALL", "SAVED"]; gameOver: "GAME OVER"; gameOverTwo: ["GAME", "OVER"]
+      multiplier: "MULTIPLIER"; isLit: "IS LIT"; jackpot: "JACKPOT"; skillShot: ["SHOT 10,000", "SKILL"]
+      blackHole: "BLACK HOLE"; hyperspace: "HYPERSPACE"; warpBang: "WARP!"; shootHole: "SHOOT THE HOLE"; warp: "WARP"; kickback: "KICKBACK"
+      pressToTwo: ["PRESS TO", "PLAY"]; fourTables: "FOUR TABLES"; best: "BEST"; score: "SCORE"
+      table: n => "TABLE ${n}"; paused: "PAUSED"; warpReady: "WARP READY"; save: "SAVE"
+      pressToPlay: "PRESS TO PLAY"; bestN: s => "BEST ${s}"
+      helpLeft: "LEFT HALF: LEFT FLIPPER"; helpRight: "RIGHT HALF: RIGHT FLIPPER"
+      helpLaunch: "HOLD RIGHT, LET GO: LAUNCH"; helpPause: "TAP THE DISPLAY: PAUSE"
+      soundOn: "SOUND ON: TAP THE DISPLAY"; soundOff: "SOUND OFF: TAP THE DISPLAY"
+      lanesHint: "LANES + TARGETS LIGHT THE WARP"; holeHint: "SHOOT THE BLACK HOLE TO WARP"
+      pressToGoOn: "PRESS TO GO ON"; newBest: "NEW BEST!"; reached: n => "REACHED TABLE ${n}"; playAgain: "PRESS TO PLAY AGAIN"
+      launch1: "HOLD RIGHT, LET GO"; launch2: "TO LAUNCH THE BALL"
+    }
+    id {
+      ball: n => "BOLA ${n}"; ballSaved: ["BOLA", "SELAMAT"]; gameOver: "GAME OVER"; gameOverTwo: ["GAME", "OVER"]
+      multiplier: "PENGGANDA"; isLit: "MENYALA"; jackpot: "JACKPOT"; skillShot: ["SHOT 10,000", "SKILL"]
+      blackHole: "LUBANG HITAM"; hyperspace: "RUANG HIPER"; warpBang: "WARP!"; shootHole: "TEMBAK LUBANGNYA"; warp: "WARP"; kickback: "KICKBACK"
+      pressToTwo: ["TEKAN UNTUK", "MAIN"]; fourTables: "EMPAT MEJA"; best: "TERBAIK"; score: "SKOR"
+      table: n => "MEJA ${n}"; paused: "JEDA"; warpReady: "WARP SIAP"; save: "SAVE"
+      pressToPlay: "TEKAN UNTUK MAIN"; bestN: s => "TERBAIK ${s}"
+      helpLeft: "SEPARUH KIRI: FLIPPER KIRI"; helpRight: "SEPARUH KANAN: FLIPPER KANAN"
+      helpLaunch: "TAHAN KANAN, LEPAS: LUNCURKAN"; helpPause: "KETUK LAYAR: JEDA"
+      soundOn: "SUARA NYALA: KETUK LAYAR"; soundOff: "SUARA MATI: KETUK LAYAR"
+      lanesHint: "JALUR DAN TARGET MENYALAKAN WARP"; holeHint: "TEMBAK LUBANG HITAM UNTUK WARP"
+      pressToGoOn: "TEKAN UNTUK LANJUT"; newBest: "REKOR BARU!"; reached: n => "SAMPAI MEJA ${n}"; playAgain: "TEKAN UNTUK MAIN LAGI"
+      launch1: "TAHAN KANAN, LALU LEPAS"; launch2: "UNTUK MELUNCURKAN BOLA"
+    }
+    es {
+      ball: n => "BOLA ${n}"; ballSaved: ["BOLA", "SALVADA"]; gameOver: "GAME OVER"; gameOverTwo: ["GAME", "OVER"]
+      multiplier: "MULTIPLICADOR"; isLit: "ENCENDIDO"; jackpot: "JACKPOT"; skillShot: ["SHOT 10,000", "SKILL"]
+      blackHole: "AGUJERO NEGRO"; hyperspace: "HIPERESPACIO"; warpBang: "WARP!"; shootHole: "TIRA AL AGUJERO"; warp: "WARP"; kickback: "KICKBACK"
+      pressToTwo: ["PULSA PARA", "JUGAR"]; fourTables: "CUATRO MESAS"; best: "RECORD"; score: "PUNTOS"
+      table: n => "MESA ${n}"; paused: "PAUSA"; warpReady: "WARP LISTO"; save: "SAVE"
+      pressToPlay: "PULSA PARA JUGAR"; bestN: s => "RECORD ${s}"
+      helpLeft: "IZQUIERDA: FLIPPER IZQUIERDO"; helpRight: "DERECHA: FLIPPER DERECHO"
+      helpLaunch: "MANTEN DERECHA, SUELTA: LANZAR"; helpPause: "TOCA LA PANTALLA: PAUSA"
+      soundOn: "SONIDO SI: TOCA LA PANTALLA"; soundOff: "SONIDO NO: TOCA LA PANTALLA"
+      lanesHint: "CARRILES Y DIANAS CARGAN EL WARP"; holeHint: "DISPARA AL AGUJERO NEGRO: WARP"
+      pressToGoOn: "PULSA PARA SEGUIR"; newBest: "NUEVO RECORD!"; reached: n => "LLEGASTE A LA MESA ${n}"; playAgain: "PULSA PARA REPETIR"
+      launch1: "MANTEN DERECHA Y SUELTA"; launch2: "PARA LANZAR LA BOLA"
+    }
+    pt {
+      ball: n => "BOLA ${n}"; ballSaved: ["BOLA", "SALVA"]; gameOver: "GAME OVER"; gameOverTwo: ["GAME", "OVER"]
+      multiplier: "MULTIPLICADOR"; isLit: "ACESO"; jackpot: "JACKPOT"; skillShot: ["SHOT 10,000", "SKILL"]
+      blackHole: "BURACO NEGRO"; hyperspace: "HIPERESPACO"; warpBang: "WARP!"; shootHole: "ACERTE O BURACO"; warp: "WARP"; kickback: "KICKBACK"
+      pressToTwo: ["TOQUE PARA", "JOGAR"]; fourTables: "QUATRO MESAS"; best: "RECORDE"; score: "PONTOS"
+      table: n => "MESA ${n}"; paused: "PAUSA"; warpReady: "WARP PRONTO"; save: "SAVE"
+      pressToPlay: "TOQUE PARA JOGAR"; bestN: s => "RECORDE ${s}"
+      helpLeft: "ESQUERDA: FLIPPER ESQUERDO"; helpRight: "DIREITA: FLIPPER DIREITO"
+      helpLaunch: "SEGURE A DIREITA, SOLTE: LANCA"; helpPause: "TOQUE NO VISOR: PAUSA"
+      soundOn: "SOM LIGADO: TOQUE NO VISOR"; soundOff: "SOM DESLIGADO: TOQUE NO VISOR"
+      lanesHint: "PISTAS E ALVOS CARREGAM O WARP"; holeHint: "ACERTE O BURACO NEGRO: WARP"
+      pressToGoOn: "TOQUE PARA SEGUIR"; newBest: "NOVO RECORDE!"; reached: n => "CHEGOU A MESA ${n}"; playAgain: "TOQUE: JOGAR DE NOVO"
+      launch1: "SEGURE A DIREITA E SOLTE"; launch2: "PARA LANCAR A BOLA"
+    }
+    de {
+      ball: n => "KUGEL ${n}"; ballSaved: ["KUGEL", "GERETTET"]; gameOver: "GAME OVER"; gameOverTwo: ["GAME", "OVER"]
+      multiplier: "MULTIPLIKATOR"; isLit: "BEREIT"; jackpot: "JACKPOT"; skillShot: ["SHOT 10,000", "SKILL"]
+      blackHole: "SCHWARZES LOCH"; hyperspace: "HYPERRAUM"; warpBang: "WARP!"; shootHole: "TRIFF DAS LOCH"; warp: "WARP"; kickback: "KICKBACK"
+      pressToTwo: ["TIPPEN ZUM", "SPIELEN"]; fourTables: "VIER TISCHE"; best: "REKORD"; score: "PUNKTE"
+      table: n => "TISCH ${n}"; paused: "PAUSE"; warpReady: "WARP BEREIT"; save: "SAVE"
+      pressToPlay: "TIPPEN ZUM SPIELEN"; bestN: s => "REKORD ${s}"
+      helpLeft: "LINKS: LINKER FLIPPER"; helpRight: "RECHTS: RECHTER FLIPPER"
+      helpLaunch: "RECHTS HALTEN, LOS: ABSCHUSS"; helpPause: "DISPLAY TIPPEN: PAUSE"
+      soundOn: "TON AN: DISPLAY TIPPEN"; soundOff: "TON AUS: DISPLAY TIPPEN"
+      lanesHint: "BAHNEN UND ZIELE LADEN DEN WARP"; holeHint: "TRIFF DAS SCHWARZE LOCH: WARP"
+      pressToGoOn: "TIPPEN: WEITER"; newBest: "NEUER REKORD!"; reached: n => "TISCH ${n} ERREICHT"; playAgain: "TIPPEN: NOCHMAL"
+      launch1: "RECHTS HALTEN, LOSLASSEN"; launch2: "ZUM ABSCHIESSEN"
+    }
+    fr {
+      ball: n => "BILLE ${n}"; ballSaved: ["BILLE", "SAUVEE"]; gameOver: "GAME OVER"; gameOverTwo: ["GAME", "OVER"]
+      multiplier: "MULTIPLICATEUR"; isLit: "ALLUME"; jackpot: "JACKPOT"; skillShot: ["SHOT 10,000", "SKILL"]
+      blackHole: "TROU NOIR"; hyperspace: "HYPERESPACE"; warpBang: "WARP!"; shootHole: "VISE LE TROU"; warp: "WARP"; kickback: "KICKBACK"
+      pressToTwo: ["TOUCHE POUR", "JOUER"]; fourTables: "QUATRE TABLES"; best: "RECORD"; score: "SCORE"
+      table: n => "TABLE ${n}"; paused: "PAUSE"; warpReady: "WARP PRET"; save: "SAVE"
+      pressToPlay: "TOUCHE POUR JOUER"; bestN: s => "RECORD ${s}"
+      helpLeft: "MOITIE GAUCHE: FLIPPER GAUCHE"; helpRight: "MOITIE DROITE: FLIPPER DROIT"
+      helpLaunch: "TIENS A DROITE, LACHE: LANCER"; helpPause: "TOUCHE LE CADRAN: PAUSE"
+      soundOn: "SON ACTIVE: TOUCHE LE CADRAN"; soundOff: "SON COUPE: TOUCHE LE CADRAN"
+      lanesHint: "CIBLES ET COULOIRS ARMENT LE WARP"; holeHint: "VISE LE TROU NOIR POUR LE WARP"
+      pressToGoOn: "TOUCHE POUR REPRENDRE"; newBest: "NOUVEAU RECORD!"; reached: n => "TABLE ${n} ATTEINTE"; playAgain: "TOUCHE POUR REJOUER"
+      launch1: "TIENS A DROITE, LACHE"; launch2: "POUR LANCER LA BILLE"
+    }
+    tr {
+      ball: n => "TOP ${n}"; ballSaved: ["TOP", "KURTARILDI"]; gameOver: "GAME OVER"; gameOverTwo: ["GAME", "OVER"]
+      multiplier: "CARPAN"; isLit: "HAZIR"; jackpot: "JACKPOT"; skillShot: ["SHOT 10,000", "SKILL"]
+      blackHole: "KARA DELIK"; hyperspace: "HIPERUZAY"; warpBang: "WARP!"; shootHole: "DELIGE VUR"; warp: "WARP"; kickback: "KICKBACK"
+      pressToTwo: ["DOKUN VE", "OYNA"]; fourTables: "DORT MASA"; best: "REKOR"; score: "SKOR"
+      table: n => "MASA ${n}"; paused: "DURDU"; warpReady: "WARP HAZIR"; save: "SAVE"
+      pressToPlay: "OYNAMAK ICIN DOKUN"; bestN: s => "REKOR ${s}"
+      helpLeft: "SOL YARI: SOL FLIPPER"; helpRight: "SAG YARI: SAG FLIPPER"
+      helpLaunch: "SAGI TUT, BIRAK: FIRLAT"; helpPause: "EKRANA DOKUN: DURAKLAT"
+      soundOn: "SES ACIK: EKRANA DOKUN"; soundOff: "SES KAPALI: EKRANA DOKUN"
+      lanesHint: "SERITLER VE HEDEFLER WARP YAKAR"; holeHint: "WARP ICIN KARA DELIGE VUR"
+      pressToGoOn: "DEVAM ICIN DOKUN"; newBest: "YENI REKOR!"; reached: n => "ULASILAN MASA: ${n}"; playAgain: "TEKRAR ICIN DOKUN"
+      launch1: "SAGI TUT VE BIRAK"; launch2: "TOPU FIRLATMAK ICIN"
+    }
+    it {
+      ball: n => "PALLA ${n}"; ballSaved: ["PALLA", "SALVATA"]; gameOver: "GAME OVER"; gameOverTwo: ["GAME", "OVER"]
+      multiplier: "MOLTIPLICATORE"; isLit: "ACCESO"; jackpot: "JACKPOT"; skillShot: ["SHOT 10,000", "SKILL"]
+      blackHole: "BUCO NERO"; hyperspace: "IPERSPAZIO"; warpBang: "WARP!"; shootHole: "COLPISCI IL BUCO"; warp: "WARP"; kickback: "KICKBACK"
+      pressToTwo: ["TOCCA PER", "GIOCARE"]; fourTables: "QUATTRO TAVOLI"; best: "RECORD"; score: "PUNTI"
+      table: n => "TAVOLO ${n}"; paused: "PAUSA"; warpReady: "WARP PRONTO"; save: "SAVE"
+      pressToPlay: "TOCCA PER GIOCARE"; bestN: s => "RECORD ${s}"
+      helpLeft: "SINISTRA: FLIPPER SINISTRO"; helpRight: "DESTRA: FLIPPER DESTRO"
+      helpLaunch: "TIENI A DESTRA, MOLLA: LANCIO"; helpPause: "TOCCA IL DISPLAY: PAUSA"
+      soundOn: "AUDIO SI: TOCCA IL DISPLAY"; soundOff: "AUDIO NO: TOCCA IL DISPLAY"
+      lanesHint: "CORSIE E BERSAGLI ARMANO IL WARP"; holeHint: "COLPISCI IL BUCO NERO: WARP"
+      pressToGoOn: "TOCCA PER RIPRENDERE"; newBest: "NUOVO RECORD!"; reached: n => "ARRIVATO AL TAVOLO ${n}"; playAgain: "TOCCA PER RIGIOCARE"
+      launch1: "TIENI A DESTRA E MOLLA"; launch2: "PER LANCIARE LA PALLA"
+    }
+  }
 
   // "title", "play", "pause" or "over"
   state mode = "title" persist
@@ -727,7 +847,7 @@ app "pixel pinball" {
       msgT = time
       if snd { sound(S_SAVE) }
     } else if ball < 3 {
-      msg = "BALL ${ball + 1}"
+      msg = str.ball(ball + 1)
       msgT = time
       ball = ball + 1
       seg = merge(park, {mu: 1, kb: true, bs: true})
@@ -1316,17 +1436,17 @@ app "pixel pinball" {
         let ev = WEM > 0
         let evc = blink ? "#ffe2b8" : DMD
         let page = floor(tick / 25) % 4
-        let evWords = WEM == 1 ? ["MULTIPLIER", "${WMU}X"] : WEM == 2 ? ["IS LIT", "JACKPOT"] : WEM == 3 ? [fmtNum(25000 * WMU), "JACKPOT"] : WEM == 4 ? ["SHOT 10,000", "SKILL"] : WEM == 5 ? ["BLACK HOLE", fmtNum(2500 * WMU)] : WEM == 7 ? ["HYPERSPACE", "WARP!"] : WEM == 8 ? ["SHOOT THE HOLE", "WARP"] : ["", "KICKBACK"]
-        let msgWords = msg == "BALL SAVED" ? ["BALL", "SAVED"] : msg == "GAME OVER" ? ["GAME", "OVER"] : ["", msg]
-        let two = mode == "title" ? (page == 0 ? ["PIXEL", "PINBALL"] : page == 1 ? ["PRESS TO", "PLAY"] : page == 2 ? ["FOUR TABLES", "WARP"] : ["BEST", fmtNum(best)])
-          : mode == "over" ? (floor(tick / 20) % 2 == 0 ? ["GAME", "OVER"] : ["SCORE", fmtNum(last)])
-          : WARPING ? ["TABLE ${lvl + 1}", T.name] : ev ? evWords : SHOWMSG ? msgWords : mode == "pause" && blink ? ["", "PAUSED"] : null
+        let evWords = WEM == 1 ? [str.multiplier, "${WMU}X"] : WEM == 2 ? [str.isLit, str.jackpot] : WEM == 3 ? [fmtNum(25000 * WMU), str.jackpot] : WEM == 4 ? str.skillShot : WEM == 5 ? [str.blackHole, fmtNum(2500 * WMU)] : WEM == 7 ? [str.hyperspace, str.warpBang] : WEM == 8 ? [str.shootHole, str.warp] : ["", str.kickback]
+        let msgWords = msg == "BALL SAVED" ? str.ballSaved : msg == "GAME OVER" ? str.gameOverTwo : ["", msg]
+        let two = mode == "title" ? (page == 0 ? ["PIXEL", "PINBALL"] : page == 1 ? str.pressToTwo : page == 2 ? [str.fourTables, str.warp] : [str.best, fmtNum(best)])
+          : mode == "over" ? (floor(tick / 20) % 2 == 0 ? str.gameOverTwo : [str.score, fmtNum(last)])
+          : WARPING ? [str.table(lvl + 1), T.name] : ev ? evWords : SHOWMSG ? msgWords : mode == "pause" && blink ? ["", str.paused] : null
         let sc = fmtNum(WSC)
         let pulse = alpha("#fff3c4", 0.6 + 0.3 * sin(tick * 0.4))
         let dw = [
           [two == null ? "-" : two[0], DMID, small, q, 0.5, ev ? evc : DMD, two != null && two[0] != ""],
           [two == null ? "-" : two[1], DMID, two != null && two[0] == "" ? DY + 6 * q : big, len(two == null ? "" : two[1]) > 8 ? q : 2 * q, 0.5, ev ? evc : DMD, two != null],
-          [WWP ? "WARP READY" : "BALL ${ball}", OX + 2 * q, small, q, 0, alpha(DMD, 0.75), two == null && (!WWP || blink)],
+          [WWP ? str.warpReady : str.ball(ball), OX + 2 * q, small, q, 0, alpha(DMD, 0.75), two == null && (!WWP || blink)],
           ["${WMU}X", OX + 102 * q, small, q, 1, alpha(DMD, 0.75), two == null],
           [sc, DMID, len(sc) > 9 ? DY + 12 * q : big, len(sc) > 9 ? q : 2 * q, 0.5, DMD, two == null]
         ]
@@ -1338,41 +1458,41 @@ app "pixel pinball" {
           ["4X", X + 52.2 * q, Y + 127.5 * q, 0.45 * q, 0.5, WMU >= 4 ? "#3a2200" : alpha(TH.rail, 0.45), true],
           ["5X", X + 60.2 * q, Y + 125.5 * q, 0.45 * q, 0.5, WMU >= 5 ? "#3a2200" : alpha(TH.rail, 0.45), true],
           // printed on the playfield, lit by what they name
-          ["JACKPOT", X + T.jl[0] * q, Y + T.jl[1] * q, 0.35 * q, 0.5, WJP && blink ? "#ff4fd8" : WJP ? "#ffc2f2" : alpha("#ff4fd8", 0.45), true],
-          ["WARP", X + 48 * q, Y + 119 * q, 0.35 * q, 0.5, WWP ? (blink ? "#7dff8a" : "#ffffff") : alpha(TH.rail, 0.5), true],
-          ["SAVE", X + 48 * q, Y + 142.6 * q, 0.3 * q, 0.5, alpha("#ff6a3d", 0.75), true],
+          [str.jackpot, X + T.jl[0] * q, Y + T.jl[1] * q, 0.35 * q, 0.5, WJP && blink ? "#ff4fd8" : WJP ? "#ffc2f2" : alpha("#ff4fd8", 0.45), true],
+          [str.warp, X + 48 * q, Y + 119 * q, 0.35 * q, 0.5, WWP ? (blink ? "#7dff8a" : "#ffffff") : alpha(TH.rail, 0.5), true],
+          [str.save, X + 48 * q, Y + 142.6 * q, 0.3 * q, 0.5, alpha("#ff6a3d", 0.75), true],
           // the title
           ["PIXEL", SW / 2 + q, OY + 30 * q, 2.6 * q, 0.5, "#120b30", mode == "title"],
           ["PIXEL", SW / 2, OY + 29 * q, 2.6 * q, 0.5, "#38e1ff", mode == "title"],
           ["PINBALL", SW / 2 + q, OY + 51 * q, 2.2 * q, 0.5, "#120b30", mode == "title"],
           ["PINBALL", SW / 2, OY + 50 * q, 2.2 * q, 0.5, "#ff4fd8", mode == "title"],
-          ["PRESS TO PLAY", SW / 2, OY + 76 * q, 0.9 * q, 0.5, "#fff3c4", mode == "title" && tick % 12 < 9],
-          ["BEST ${fmtNum(best)}", SW / 2, OY + 88 * q, 0.7 * q, 0.5, "#ffd23f", mode == "title" && best > 0],
-          ["LEFT HALF: LEFT FLIPPER", SW / 2, OY + 104 * q, 0.55 * q, 0.5, "#b8acff", mode == "title"],
-          ["RIGHT HALF: RIGHT FLIPPER", SW / 2, OY + 110 * q, 0.55 * q, 0.5, "#b8acff", mode == "title"],
-          ["HOLD RIGHT, LET GO: LAUNCH", SW / 2, OY + 116 * q, 0.55 * q, 0.5, "#b8acff", mode == "title"],
-          ["TAP THE DISPLAY: PAUSE", SW / 2, OY + 122 * q, 0.55 * q, 0.5, "#b8acff", mode == "title"],
-          [snd ? "SOUND ON: TAP THE DISPLAY" : "SOUND OFF: TAP THE DISPLAY", SW / 2, OY + 127 * q, 0.55 * q, 0.5, snd ? "#fff3c4" : "#6c6496", mode == "title"],
-          ["LANES + TARGETS LIGHT THE WARP", SW / 2, OY + 132 * q, 0.5 * q, 0.5, "#7dff8a", mode == "title"],
-          ["SHOOT THE BLACK HOLE TO WARP", SW / 2, OY + 137.5 * q, 0.5 * q, 0.5, "#7dff8a", mode == "title"],
+          [str.pressToPlay, SW / 2, OY + 76 * q, 0.9 * q, 0.5, "#fff3c4", mode == "title" && tick % 12 < 9],
+          [str.bestN(fmtNum(best)), SW / 2, OY + 88 * q, 0.7 * q, 0.5, "#ffd23f", mode == "title" && best > 0],
+          [str.helpLeft, SW / 2, OY + 104 * q, 0.55 * q, 0.5, "#b8acff", mode == "title"],
+          [str.helpRight, SW / 2, OY + 110 * q, 0.55 * q, 0.5, "#b8acff", mode == "title"],
+          [str.helpLaunch, SW / 2, OY + 116 * q, 0.55 * q, 0.5, "#b8acff", mode == "title"],
+          [str.helpPause, SW / 2, OY + 122 * q, 0.55 * q, 0.5, "#b8acff", mode == "title"],
+          [snd ? str.soundOn : str.soundOff, SW / 2, OY + 127 * q, 0.55 * q, 0.5, snd ? "#fff3c4" : "#6c6496", mode == "title"],
+          [str.lanesHint, SW / 2, OY + 132 * q, 0.5 * q, 0.5, "#7dff8a", mode == "title"],
+          [str.holeHint, SW / 2, OY + 137.5 * q, 0.5 * q, 0.5, "#7dff8a", mode == "title"],
           // the pause
-          ["PAUSED", SW / 2, OY + 56 * q, 2.2 * q, 0.5, "#fff3c4", mode == "pause"],
-          ["PRESS TO GO ON", SW / 2, OY + 78 * q, 0.8 * q, 0.5, "#b8acff", mode == "pause" && tick % 12 < 9],
-          [snd ? "SOUND ON: TAP THE DISPLAY" : "SOUND OFF: TAP THE DISPLAY", SW / 2, OY + 92 * q, 0.55 * q, 0.5, snd ? "#fff3c4" : "#6c6496", mode == "pause"],
+          [str.paused, SW / 2, OY + 56 * q, 2.2 * q, 0.5, "#fff3c4", mode == "pause"],
+          [str.pressToGoOn, SW / 2, OY + 78 * q, 0.8 * q, 0.5, "#b8acff", mode == "pause" && tick % 12 < 9],
+          [snd ? str.soundOn : str.soundOff, SW / 2, OY + 92 * q, 0.55 * q, 0.5, snd ? "#fff3c4" : "#6c6496", mode == "pause"],
           // the end
-          ["GAME OVER", SW / 2, OY + 44 * q, 1.6 * q, 0.5, "#ff4fd8", mode == "over"],
+          [str.gameOver, SW / 2, OY + 44 * q, 1.6 * q, 0.5, "#ff4fd8", mode == "over"],
           [fmtNum(last), SW / 2, OY + 62 * q, len(fmtNum(last)) > 9 ? 1.2 * q : 1.7 * q, 0.5, "#fff3c4", mode == "over"],
-          [last >= best && last > 0 ? "NEW BEST!" : "BEST ${fmtNum(best)}", SW / 2, OY + 81 * q, 0.8 * q, 0.5, "#ffd23f", mode == "over"],
-          ["REACHED TABLE ${lvl + 1}", SW / 2, OY + 90 * q, 0.6 * q, 0.5, "#b8acff", mode == "over"],
-          ["PRESS TO PLAY AGAIN", SW / 2, OY + 104 * q, 0.7 * q, 0.5, "#b8acff", mode == "over" && overReady && tick % 12 < 9],
+          [last >= best && last > 0 ? str.newBest : str.bestN(fmtNum(best)), SW / 2, OY + 81 * q, 0.8 * q, 0.5, "#ffd23f", mode == "over"],
+          [str.reached(lvl + 1), SW / 2, OY + 90 * q, 0.6 * q, 0.5, "#b8acff", mode == "over"],
+          [str.playAgain, SW / 2, OY + 104 * q, 0.7 * q, 0.5, "#b8acff", mode == "over" && overReady && tick % 12 < 9],
           // the warp
-          ["TABLE ${lvl + 1}", SW / 2 + q, OY + 66 * q, 1.2 * q, 0.5, "#120b30", WARP2],
-          ["TABLE ${lvl + 1}", SW / 2, OY + 65 * q, 1.2 * q, 0.5, "#ffffff", WARP2],
+          [str.table(lvl + 1), SW / 2 + q, OY + 66 * q, 1.2 * q, 0.5, "#120b30", WARP2],
+          [str.table(lvl + 1), SW / 2, OY + 65 * q, 1.2 * q, 0.5, "#ffffff", WARP2],
           [T.name, SW / 2 + q, OY + 79 * q, 1.6 * q, 0.5, "#120b30", WARP2],
           [T.name, SW / 2, OY + 78 * q, 1.6 * q, 0.5, TH.lane, WARP2],
           // how to launch, on the first ball
-          ["HOLD RIGHT, LET GO", SW / 2, OY + 106 * q, 0.6 * q, 0.5, pulse, mode == "play" && WPARK && ball == 1 && WSC == 0 && !charging && !WARPING],
-          ["TO LAUNCH THE BALL", SW / 2, OY + 112 * q, 0.6 * q, 0.5, pulse, mode == "play" && WPARK && ball == 1 && WSC == 0 && !charging && !WARPING]
+          [str.launch1, SW / 2, OY + 106 * q, 0.6 * q, 0.5, pulse, mode == "play" && WPARK && ball == 1 && WSC == 0 && !charging && !WARPING],
+          [str.launch2, SW / 2, OY + 112 * q, 0.6 * q, 0.5, pulse, mode == "play" && WPARK && ball == 1 && WSC == 0 && !charging && !WARPING]
         ]
         clip(OX, DY + 2 * q, 104 * q, 22 * q) {
           for w in dw {
@@ -1452,7 +1572,7 @@ app "pixel pinball" {
               lvl = 0
               seg = {x: 96.5, y: 167.5, vx: 0, vy: 0, st: 3, sc: 0, ln: [0, 0, 0], tg: [0, 0, 0], mu: 1, jp: false, kb: true, bs: true, gl: false, gt: false, wp: false, sn: 0, hk: 0, hc: 0, sk: random(3), ag: 0, fb: -1, fk: -999, em: 0, ek: -999, aL: 30, hL: false, aR: 30, hR: false}
               segT = time
-              msg = "BALL 1"
+              msg = str.ball(1)
               msgT = -1
               tapT = time
               haptic()
@@ -1494,7 +1614,7 @@ app "pixel pinball" {
               lvl = 0
               seg = {x: 96.5, y: 167.5, vx: 0, vy: 0, st: 3, sc: 0, ln: [0, 0, 0], tg: [0, 0, 0], mu: 1, jp: false, kb: true, bs: true, gl: false, gt: false, wp: false, sn: 0, hk: 0, hc: 0, sk: random(3), ag: 0, fb: -1, fk: -999, em: 0, ek: -999, aL: 30, hL: false, aR: 30, hR: false}
               segT = time
-              msg = "BALL 1"
+              msg = str.ball(1)
               msgT = -1
               tapT = time
               haptic()

@@ -13,7 +13,119 @@ app "wanderlings" {
   // which is drawn again only after sixty cells have changed; the cells dug and built since are
   // drawn over it each frame.
 
-  meta { owl: 23; description: "A pixel-art puzzle after the old classic: walkers march blindly from a hatch; give them jobs to dig, bash, mine, build, block, climb, float or blow up, and lead them home through twelve levels"; version: "1.0.2"; license: "MIT"; category: "games" }
+  meta { owl: 23; description: "A pixel-art puzzle after the old classic: walkers march blindly from a hatch; give them jobs to dig, bash, mine, build, block, climb, float or blow up, and lead them home through twelve levels"; version: "1.1"; license: "MIT"; category: "games" }
+
+  // The jobs' names sit under their pictures on narrow buttons: five letters or so.
+  strings {
+    en {
+      level: n => "LEVEL ${n}"; nuke: "TAP AGAIN TO NUKE"; out: (a, t) => "OUT ${a}/${t}"; home: n => "HOME ${n}"; need: n => "NEED ${n}"
+      paused: "PAUSED"; allHome: "ALL HOME!"; wellDone: "WELL DONE"; tooFew: "TOO FEW"
+      cameHome: (s, t) => "${s} OF ${t} CAME HOME"; needed: n => "YOU NEEDED ${n}"; allCleared: "EVERY LEVEL CLEARED"
+      next: x => "NEXT: ${x}"; tryOther: "TRY ANOTHER WAY"; nextLevel: "NEXT LEVEL"; playAgain: "PLAY AGAIN"; levels: "LEVELS"
+      tagline: "LEAD THEM HOME"; isNew: "NEW"; cont: n => "CONTINUE ${n}"; pick: "PICK A LEVEL"
+      job: i => ["CLIMB", "FLOAT", "BOMB", "BLOCK", "BUILD", "BASH", "MINE", "DIG"][i]
+      lvName: i => ["DIG DOWN", "MIND THE GAP", "HOLD THE LINE", "THE WALL", "LONG WAY DOWN", "KNOCK KNOCK", "SLANT", "BOOM", "STAIRWAY", "TUNNEL VISION", "STAIRS AND SMOKE", "ALL HANDS"][i]
+    }
+    id {
+      level: n => "LEVEL ${n}"; nuke: "KETUK LAGI UNTUK MELEDAKKAN"; out: (a, t) => "KELUAR ${a}/${t}"; home: n => "PULANG ${n}"; need: n => "PERLU ${n}"
+      paused: "JEDA"; allHome: "SEMUA PULANG!"; wellDone: "BAGUS"; tooFew: "KURANG"
+      cameHome: (s, t) => "${s} DARI ${t} SAMPAI RUMAH"; needed: n => "TARGETNYA ${n}"; allCleared: "SEMUA LEVEL SELESAI"
+      next: x => "BERIKUTNYA: ${x}"; tryOther: "COBA CARA LAIN"; nextLevel: "LEVEL BERIKUTNYA"; playAgain: "MAIN LAGI"; levels: "LEVEL"
+      tagline: "ANTAR MEREKA PULANG"; isNew: "BARU"; cont: n => "LANJUT ${n}"; pick: "PILIH LEVEL"
+      job: i => ["PANJAT", "PAYUNG", "BOM", "TAHAN", "TANGGA", "DOBRAK", "MIRING", "GALI"][i]
+      lvName: i => ["GALI KE BAWAH", "AWAS CELAH", "TAHAN BARISAN", "TEMBOK", "JALAN TURUN PANJANG", "TOK TOK", "MIRING", "BUM", "TANGGA", "TEROWONGAN", "TANGGA DAN ASAP", "SEMUA BERAKSI"][i]
+    }
+    es {
+      level: n => "NIVEL ${n}"; nuke: "TOCA OTRA VEZ PARA DETONAR"; out: (a, t) => "FUERA ${a}/${t}"; home: n => "CASA ${n}"; need: n => "META ${n}"
+      paused: "PAUSA"; allHome: "¡TODOS EN CASA!"; wellDone: "BIEN HECHO"; tooFew: "MUY POCOS"
+      cameHome: (s, t) => "${s} DE ${t} LLEGARON"; needed: n => "NECESITABAS ${n}"; allCleared: "TODOS LOS NIVELES SUPERADOS"
+      next: x => "SIGUIENTE: ${x}"; tryOther: "PRUEBA OTRA FORMA"; nextLevel: "SIGUIENTE NIVEL"; playAgain: "JUGAR DE NUEVO"; levels: "NIVELES"
+      tagline: "LLÉVALOS A CASA"; isNew: "NUEVO"; cont: n => "SEGUIR ${n}"; pick: "ELIGE UN NIVEL"
+      job: i => ["TREPA", "FLOTA", "BOMBA", "PARA", "PUENTE", "GOLPE", "MINA", "CAVA"][i]
+      lvName: i => ["CAVA HACIA ABAJO", "CUIDADO CON EL HUECO", "AGUANTA LA LÍNEA", "EL MURO", "LARGA CAÍDA", "TOC TOC", "EN DIAGONAL", "BUM", "ESCALERA", "VISIÓN DE TÚNEL", "ESCALERAS Y HUMO", "MANOS A LA OBRA"][i]
+    }
+    pt {
+      level: n => "NÍVEL ${n}"; nuke: "TOQUE DE NOVO PARA DETONAR"; out: (a, t) => "FORA ${a}/${t}"; home: n => "CASA ${n}"; need: n => "META ${n}"
+      paused: "PAUSA"; allHome: "TODOS EM CASA!"; wellDone: "MUITO BEM"; tooFew: "POUCOS"
+      cameHome: (s, t) => "${s} DE ${t} CHEGARAM"; needed: n => "VOCÊ PRECISAVA DE ${n}"; allCleared: "TODOS OS NÍVEIS CONCLUÍDOS"
+      next: x => "PRÓXIMO: ${x}"; tryOther: "TENTE OUTRO JEITO"; nextLevel: "PRÓXIMO NÍVEL"; playAgain: "JOGAR DE NOVO"; levels: "NÍVEIS"
+      tagline: "LEVE-OS PARA CASA"; isNew: "NOVO"; cont: n => "CONTINUAR ${n}"; pick: "ESCOLHA UM NÍVEL"
+      job: i => ["SOBE", "FLUTUA", "BOMBA", "PARA", "PONTE", "SOCA", "MINA", "CAVA"][i]
+      lvName: i => ["CAVE PARA BAIXO", "CUIDADO COM O VÃO", "SEGURE A LINHA", "O MURO", "LONGA DESCIDA", "TOC TOC", "EM DIAGONAL", "BUM", "ESCADARIA", "VISÃO DE TÚNEL", "ESCADAS E FUMAÇA", "MÃOS À OBRA"][i]
+    }
+    de {
+      level: n => "LEVEL ${n}"; nuke: "NOCHMAL TIPPEN ZUM SPRENGEN"; out: (a, t) => "RAUS ${a}/${t}"; home: n => "HEIM ${n}"; need: n => "ZIEL ${n}"
+      paused: "PAUSE"; allHome: "ALLE DAHEIM!"; wellDone: "GUT GEMACHT"; tooFew: "ZU WENIGE"
+      cameHome: (s, t) => "${s} VON ${t} SIND DAHEIM"; needed: n => "DU BRAUCHTEST ${n}"; allCleared: "ALLE LEVEL GESCHAFFT"
+      next: x => "NÄCHSTES: ${x}"; tryOther: "VERSUCH'S ANDERS"; nextLevel: "NÄCHSTES LEVEL"; playAgain: "NOCHMAL"; levels: "LEVEL"
+      tagline: "BRING SIE HEIM"; isNew: "NEU"; cont: n => "WEITER ${n}"; pick: "WÄHL EIN LEVEL"
+      job: i => ["HOCH", "SCHIRM", "BOMBE", "STOPP", "BAUEN", "HAUEN", "SCHRÄG", "GRABEN"][i]
+      lvName: i => ["NACH UNTEN", "VORSICHT LÜCKE", "HALT DIE LINIE", "DIE MAUER", "TIEF HINAB", "KLOPF KLOPF", "SCHRÄG", "BUMM", "TREPPAUF", "TUNNELBLICK", "TREPPEN UND RAUCH", "ALLE MANN"][i]
+    }
+    zh {
+      level: n => "第${n}关"; nuke: "再点一下全部引爆"; out: (a, t) => "出 ${a}/${t}"; home: n => "到家 ${n}"; need: n => "目标 ${n}"
+      paused: "暂停"; allHome: "全员到家!"; wellDone: "干得好"; tooFew: "太少了"
+      cameHome: (s, t) => "${t}个中${s}个到家"; needed: n => "需要${n}个"; allCleared: "全部过关"
+      next: x => "下一关: ${x}"; tryOther: "换个办法试试"; nextLevel: "下一关"; playAgain: "再玩一次"; levels: "关卡"
+      tagline: "带他们回家"; isNew: "新"; cont: n => "继续第${n}关"; pick: "选择关卡"
+      job: i => ["攀爬", "飘浮", "炸弹", "阻挡", "建造", "横挖", "斜挖", "下挖"][i]
+      lvName: i => ["向下挖", "小心缝隙", "守住防线", "高墙", "长路下行", "咚咚", "斜坡", "轰", "阶梯", "隧道视野", "阶梯与硝烟", "全员出动"][i]
+    }
+    ru {
+      level: n => "УРОВЕНЬ ${n}"; nuke: "НАЖМИТЕ ЕЩЁ РАЗ ДЛЯ ВЗРЫВА"; out: (a, t) => "ВЫШЛИ ${a}/${t}"; home: n => "ДОМА ${n}"; need: n => "НУЖНО ${n}"
+      paused: "ПАУЗА"; allHome: "ВСЕ ДОМА!"; wellDone: "ОТЛИЧНО"; tooFew: "МАЛОВАТО"
+      cameHome: (s, t) => "${s} ИЗ ${t} ДОШЛИ ДОМОЙ"; needed: n => "НУЖНО БЫЛО ${n}"; allCleared: "ВСЕ УРОВНИ ПРОЙДЕНЫ"
+      next: x => "ДАЛЕЕ: ${x}"; tryOther: "ПОПРОБУЙТЕ ИНАЧЕ"; nextLevel: "ДАЛЬШЕ"; playAgain: "ЕЩЁ РАЗ"; levels: "УРОВНИ"
+      tagline: "ОТВЕДИТЕ ИХ ДОМОЙ"; isNew: "НОВЫЙ"; cont: n => "ПРОДОЛЖИТЬ ${n}"; pick: "ВЫБЕРИТЕ УРОВЕНЬ"
+      job: i => ["ВВЕРХ", "ЗОНТ", "БОМБА", "СТОП", "МОСТ", "ТАРАН", "КОСО", "ВНИЗ"][i]
+      lvName: i => ["ВНИЗ", "ПРОПАСТЬ", "ДЕРЖИТЕ СТРОЙ", "СТЕНА", "ДОЛГИЙ СПУСК", "ТУК-ТУК", "НАИСКОСОК", "БУМ", "ЛЕСТНИЦА", "ТУННЕЛЬ", "ЛЕСТНИЦЫ И ДЫМ", "ВСЕ ЗА ДЕЛО"][i]
+    }
+    ja {
+      level: n => "レベル ${n}"; nuke: "もう一度タップで全員爆破"; out: (a, t) => "出た ${a}/${t}"; home: n => "帰宅 ${n}"; need: n => "目標 ${n}"
+      paused: "一時停止"; allHome: "全員帰宅!"; wellDone: "よくできました"; tooFew: "足りません"
+      cameHome: (s, t) => "${t}人中${s}人が帰宅"; needed: n => "必要なのは${n}人"; allCleared: "全レベルクリア"
+      next: x => "次: ${x}"; tryOther: "別の方法を試しましょう"; nextLevel: "次のレベル"; playAgain: "もう一度"; levels: "レベル"
+      tagline: "みんなを家へ"; isNew: "新"; cont: n => "続きから ${n}"; pick: "レベルを選んでください"
+      job: i => ["登る", "傘", "爆弾", "止める", "建てる", "横掘り", "斜め掘り", "掘る"][i]
+      lvName: i => ["下へ掘る", "すき間に注意", "ラインを守れ", "壁", "長い下り坂", "トントン", "ななめ", "ドカン", "階段", "トンネル", "階段と煙", "総動員"][i]
+    }
+    uk {
+      level: n => "РІВЕНЬ ${n}"; nuke: "ТОРКНІТЬСЯ ЩЕ РАЗ ДЛЯ ВИБУХУ"; out: (a, t) => "ВИЙШЛИ ${a}/${t}"; home: n => "ВДОМА ${n}"; need: n => "ТРЕБА ${n}"
+      paused: "ПАУЗА"; allHome: "УСІ ВДОМА!"; wellDone: "ЧУДОВО"; tooFew: "ЗАМАЛО"
+      cameHome: (s, t) => "${s} З ${t} ДІЙШЛИ ДОДОМУ"; needed: n => "ТРЕБА БУЛО ${n}"; allCleared: "УСІ РІВНІ ПРОЙДЕНО"
+      next: x => "ДАЛІ: ${x}"; tryOther: "СПРОБУЙТЕ ІНАКШЕ"; nextLevel: "ДАЛІ"; playAgain: "ЩЕ РАЗ"; levels: "РІВНІ"
+      tagline: "ВІДВЕДІТЬ ЇХ ДОДОМУ"; isNew: "НОВИЙ"; cont: n => "ПРОДОВЖИТИ ${n}"; pick: "ОБЕРІТЬ РІВЕНЬ"
+      job: i => ["ВГОРУ", "ПОЛІТ", "БОМБА", "СТОП", "МІСТ", "ТАРАН", "СКІС", "ВНИЗ"][i]
+      lvName: i => ["ВНИЗ", "ПРІРВА", "ТРИМАЙТЕ СТРІЙ", "СТІНА", "ДОВГИЙ СПУСК", "ТУК-ТУК", "НАВСКОСИ", "БУМ", "СХОДИ", "ТУНЕЛЬ", "СХОДИ І ДИМ", "УСІ ДО СПРАВИ"][i]
+    }
+    fr {
+      level: n => "NIVEAU ${n}"; nuke: "TOUCHE ENCORE POUR EXPLOSER"; out: (a, t) => "SORTIS ${a}/${t}"; home: n => "RENTRÉS ${n}"; need: n => "BUT ${n}"
+      paused: "PAUSE"; allHome: "TOUS RENTRÉS !"; wellDone: "BRAVO"; tooFew: "TROP PEU"
+      cameHome: (s, t) => "${s} SUR ${t} SONT RENTRÉS"; needed: n => "IL EN FALLAIT ${n}"; allCleared: "TOUS LES NIVEAUX RÉUSSIS"
+      next: x => "SUIVANT : ${x}"; tryOther: "ESSAIE AUTREMENT"; nextLevel: "NIVEAU SUIVANT"; playAgain: "REJOUER"; levels: "NIVEAUX"
+      tagline: "RAMÈNE-LES CHEZ EUX"; isNew: "NOUVEAU"; cont: n => "CONTINUER ${n}"; pick: "CHOISIS UN NIVEAU"
+      job: i => ["GRIMPE", "FLOTTE", "BOMBE", "STOP", "PONT", "CASSE", "MINE", "CREUSE"][i]
+      lvName: i => ["CREUSE", "ATTENTION AU VIDE", "TIENS LA LIGNE", "LE MUR", "LONGUE DESCENTE", "TOC TOC", "EN BIAIS", "BOUM", "ESCALIER", "EFFET TUNNEL", "ESCALIERS ET FUMÉE", "TOUS SUR LE PONT"][i]
+    }
+    tr {
+      level: n => "BÖLÜM ${n}"; nuke: "PATLATMAK İÇİN TEKRAR DOKUN"; out: (a, t) => "ÇIKTI ${a}/${t}"; home: n => "EVDE ${n}"; need: n => "HEDEF ${n}"
+      paused: "DURAKLADI"; allHome: "HEPSİ EVDE!"; wellDone: "AFERİN"; tooFew: "ÇOK AZ"
+      cameHome: (s, t) => "${t} KİŞİDEN ${s} EVE VARDI"; needed: n => "${n} GEREKİYORDU"; allCleared: "TÜM BÖLÜMLER TAMAM"
+      next: x => "SIRADAKİ: ${x}"; tryOther: "BAŞKA BİR YOL DENE"; nextLevel: "SONRAKİ BÖLÜM"; playAgain: "TEKRAR OYNA"; levels: "BÖLÜMLER"
+      tagline: "ONLARI EVE GÖTÜR"; isNew: "YENİ"; cont: n => "DEVAM ${n}"; pick: "BİR BÖLÜM SEÇ"
+      job: i => ["TIRMAN", "SÜZÜL", "BOMBA", "DUR", "KÖPRÜ", "KIR", "MADEN", "KAZ"][i]
+      lvName: i => ["AŞAĞI KAZ", "BOŞLUĞA DİKKAT", "HATTI TUT", "DUVAR", "UZUN İNİŞ", "TAK TAK", "EĞİK", "BUM", "MERDİVEN", "TÜNEL", "MERDİVEN VE DUMAN", "HERKES İŞ BAŞINA"][i]
+    }
+    it {
+      level: n => "LIVELLO ${n}"; nuke: "TOCCA ANCORA PER FAR ESPLODERE"; out: (a, t) => "USCITI ${a}/${t}"; home: n => "A CASA ${n}"; need: n => "META ${n}"
+      paused: "PAUSA"; allHome: "TUTTI A CASA!"; wellDone: "BEN FATTO"; tooFew: "TROPPO POCHI"
+      cameHome: (s, t) => "${s} SU ${t} A CASA"; needed: n => "NE SERVIVANO ${n}"; allCleared: "TUTTI I LIVELLI SUPERATI"
+      next: x => "PROSSIMO: ${x}"; tryOther: "PROVA UN'ALTRA STRADA"; nextLevel: "PROSSIMO LIVELLO"; playAgain: "GIOCA ANCORA"; levels: "LIVELLI"
+      tagline: "PORTALI A CASA"; isNew: "NUOVO"; cont: n => "CONTINUA ${n}"; pick: "SCEGLI UN LIVELLO"
+      job: i => ["SALI", "PLANA", "BOMBA", "FERMA", "PONTE", "SFONDA", "MINA", "SCAVA"][i]
+      lvName: i => ["SCAVA GIÙ", "ATTENTO AL VUOTO", "TIENI LA LINEA", "IL MURO", "LUNGA DISCESA", "TOC TOC", "IN DIAGONALE", "BUM", "SCALINATA", "EFFETTO TUNNEL", "SCALE E FUMO", "TUTTI AL LAVORO"][i]
+    }
+  }
 
   title: ""
   statusBar: false
@@ -799,8 +911,8 @@ app "wanderlings" {
         rect(14, TOP + 4 + md, 36, 24, radius: 3, fill: BTN.off[1])
         for k in range(3) { rect(22, TOP + 9 + md + k * 6, 20, 3, fill: "#ffffff") }
         let lw = BXP - 74
-        text("LEVEL ${lvl + 1}", 62, TOP + 10, size: 8, color: accent, font: press)
-        text(LV.n, 62, TOP + 25, size: min(7, lw / max(1, len(LV.n))), color: foreground, font: press)
+        text(str.level(lvl + 1), 62, TOP + 10, size: 8, color: accent, font: press)
+        text(str.lvName(lvl % 12), 62, TOP + 25, size: min(7, lw / max(1, len(str.lvName(lvl % 12)))), color: foreground, font: press)
         for b in range(3) {
           let bx = [BXP, BXF, BXN][b]
           let on = b == 0 ? paused : b == 1 ? fast : armed
@@ -829,14 +941,14 @@ app "wanderlings" {
           }
         }
         if armed {
-          text("TAP AGAIN TO NUKE", BXN + BB, FY - 8, size: 6, color: "#ff8a7a", font: press, align: end)
+          text(str.nuke, BXN + BB, FY - 8, size: 6, color: "#ff8a7a", font: press, align: end)
         }
         // ---- the counts ----
         let need = LV.need
         let homeC = base.sv >= need ? "#6fe05a" : foreground
-        text("OUT ${base.out}/${LV.t}", PX + 2, PY + 8, size: 7, color: muted, font: press)
-        text("HOME ${base.sv}", PX + PW / 2, PY + 8, size: 7, color: homeC, font: press, align: center)
-        text("NEED ${need}", PX + PW - 2, PY + 8, size: 7, color: muted, font: press, align: end)
+        text(str.out(base.out, LV.t), PX + 2, PY + 8, size: 7, color: muted, font: press)
+        text(str.home(base.sv), PX + PW / 2, PY + 8, size: 7, color: homeC, font: press, align: center)
+        text(str.need(need), PX + PW - 2, PY + 8, size: 7, color: muted, font: press, align: end)
         // ---- the jobs: a button each, with what's left ----
         for b in range(8) {
           let bx = PX + (LS ? b % 2 : b) * (JW + 6)
@@ -851,14 +963,14 @@ app "wanderlings" {
           layer(has ? 1 : 0.35) {
             sprite(ICON[b], bx + JW / 2 - 6 * ip, by + pd + 6, ip, palette: ICP)
           }
-          text(JOBS[b], bx + JW / 2, by + pd + JH - 12, size: min(6, (JW - 6) / 5), color: has ? (on ? accent : foreground) : muted, font: press, align: center)
+          text(str.job(b), bx + JW / 2, by + pd + JH - 12, size: min(6, (JW - 6) / max(5, len(str.job(b)))), color: has ? (on ? accent : foreground) : muted, font: press, align: center)
           rect(bx + JW - 15, by + pd - 5, 18, 14, radius: 3, fill: has ? (on ? accent : INK) : alpha(INK, 0.6), stroke: INK, width: 1)
           text("${sk[b]}", bx + JW - 6, by + pd + 2.5, size: 7, color: has ? (on ? INK : "#ffffff") : "#8e88ac", font: press, align: center)
         }
         // ---- paused ----
         if paused && !base.done {
           rect(FX + W * C / 2 - 70, FY + H * C * 0.42 - 20, 140, 40, radius: 4, fill: alpha(INK, 0.85))
-          text("PAUSED", FX + W * C / 2, FY + H * C * 0.42, size: 12, color: "#ffffff", font: press, align: center)
+          text(str.paused, FX + W * C / 2, FY + H * C * 0.42, size: 12, color: "#ffffff", font: press, align: center)
         }
         // ---- the end of a level ----
         if base.done {
@@ -870,25 +982,25 @@ app "wanderlings" {
           rect(ccx, ccy, ccw, 280, radius: 14 * corners, fill: surface, stroke: INK, width: 2)
           rect(ccx - 10, ccy + 16, ccw + 20, 44, radius: 4, fill: won ? "#3a7a3a" : "#8a2a32", stroke: INK, width: 2)
           rect(ccx - 7, ccy + 19, ccw + 14, 3, radius: 1.5, fill: alpha("#ffffff", 0.3))
-          let hd = won ? (lvl == 11 ? "ALL HOME!" : "WELL DONE") : "TOO FEW"
+          let hd = won ? (lvl == 11 ? str.allHome : str.wellDone) : str.tooFew
           text(hd, SW / 2 + 2, ccy + 41, size: 14, color: INK, font: press, align: center)
           text(hd, SW / 2, ccy + 39, size: 14, color: "#ffffff", font: press, align: center)
-          text("LEVEL ${lvl + 1} · ${LV.n}", SW / 2, ccy + 84, size: 7, color: muted, font: press, align: center)
-          text("${base.sv} OF ${LV.t} CAME HOME", SW / 2, ccy + 112, size: 8, color: foreground, font: press, align: center)
-          text("YOU NEEDED ${LV.need}", SW / 2, ccy + 132, size: 8, color: won ? "#6fe05a" : "#ff8a7a", font: press, align: center)
-          text(won ? (lvl == 11 ? "EVERY LEVEL CLEARED" : "NEXT: ${LVS[lvl + 1].n}") : "TRY ANOTHER WAY", SW / 2, ccy + 156, size: 7, color: accent, font: press, align: center)
+          text("${str.level(lvl + 1)} · ${str.lvName(lvl % 12)}", SW / 2, ccy + 84, size: 7, color: muted, font: press, align: center)
+          text(str.cameHome(base.sv, LV.t), SW / 2, ccy + 112, size: 8, color: foreground, font: press, align: center)
+          text(str.needed(LV.need), SW / 2, ccy + 132, size: 8, color: won ? "#6fe05a" : "#ff8a7a", font: press, align: center)
+          text(won ? (lvl == 11 ? str.allCleared : str.next(str.lvName(lvl + 1))) : str.tryOther, SW / 2, ccy + 156, size: 7, color: accent, font: press, align: center)
           let pd = downAt[1] >= OBY && downAt[1] < OBY + 50 && abs(downAt[0] - SW / 2) < 120 ? 3 : 0
           let pal = won ? BTN.go : BTN.red
           rect(SW / 2 - 110, OBY + 4, 220, 46, radius: 4, fill: pal[3])
           rect(SW / 2 - 110, OBY + pd, 220, 46, radius: 4, fill: pal[1], stroke: INK, width: 2)
           rect(SW / 2 - 107, OBY + pd + 3, 214, 4, radius: 2, fill: pal[0])
           rect(SW / 2 - 107, OBY + pd + 37, 214, 6, radius: 2, fill: pal[2])
-          let bl = won && lvl < 11 ? "NEXT LEVEL" : "PLAY AGAIN"
+          let bl = won && lvl < 11 ? str.nextLevel : str.playAgain
           text(bl, SW / 2 + 2, OBY + pd + 25, size: 12, color: INK, font: press, align: center)
           text(bl, SW / 2, OBY + pd + 23, size: 12, color: "#ffffff", font: press, align: center)
           let nd = downAt[1] >= OBY + 62 && downAt[1] < OBY + 98 && abs(downAt[0] - SW / 2) < 110 ? 2 : 0
           rect(SW / 2 - 110, OBY + 64 + nd, 220, 32, radius: 4, fill: alpha(foreground, 0.08), stroke: alpha(foreground, 0.2), width: 1)
-          text("LEVELS", SW / 2, OBY + 80 + nd, size: 8, color: muted, font: press, align: center)
+          text(str.levels, SW / 2, OBY + 80 + nd, size: 8, color: muted, font: press, align: center)
         }
       }
       // ---- the title ----
@@ -899,7 +1011,7 @@ app "wanderlings" {
         let ls = min(24, (LS ? SW / 2 - 30 : SW - 30) / 11)
         text("WANDERLINGS", lx + 3, ty + 3, size: ls, color: INK, font: press, align: center)
         text("WANDERLINGS", lx, ty, size: ls, color: accent, font: press, align: center)
-        text("LEAD THEM HOME", lx, ty + ls + 10, size: 8, color: muted, font: press, align: center)
+        text(str.tagline, lx, ty + ls + 10, size: 8, color: muted, font: press, align: center)
         // a few of them on a strip of ground, one under an umbrella
         let gs = LS ? 3 : min(4, SW / 100)
         let gw = LS ? SW / 2 - 40 : SW - 40
@@ -934,7 +1046,7 @@ app "wanderlings" {
             rect(bx + TS / 2 - 4, by + TS * 0.7, 8, 7, radius: 1, fill: alpha(foreground, 0.25))
             rect(bx + TS / 2 - 3, by + TS * 0.7 - 5, 6, 6, radius: 3, stroke: alpha(foreground, 0.25), width: 1.5)
           } else {
-            text("NEW", bx + TS / 2, by + pd + TS * 0.78, size: max(5, TS * 0.09), color: accent, font: press, align: center)
+            text(str.isNew, bx + TS / 2, by + pd + TS * 0.78, size: max(5, TS * 0.09), color: accent, font: press, align: center)
           }
         }
         if going {
@@ -943,10 +1055,10 @@ app "wanderlings" {
           rect(CBX - 120, CBY + pd, 240, 46, radius: 4, fill: BTN.go[1], stroke: INK, width: 2)
           rect(CBX - 117, CBY + pd + 3, 234, 4, radius: 2, fill: BTN.go[0])
           rect(CBX - 117, CBY + pd + 37, 234, 6, radius: 2, fill: BTN.go[2])
-          text("CONTINUE ${lvl + 1}", CBX + 2, CBY + pd + 25, size: 12, color: INK, font: press, align: center)
-          text("CONTINUE ${lvl + 1}", CBX, CBY + pd + 23, size: 12, color: "#ffffff", font: press, align: center)
+          text(str.cont(lvl + 1), CBX + 2, CBY + pd + 25, size: 12, color: INK, font: press, align: center)
+          text(str.cont(lvl + 1), CBX, CBY + pd + 23, size: 12, color: "#ffffff", font: press, align: center)
         } else if !LS {
-          text("PICK A LEVEL", SW / 2, CBY + 20, size: 8, color: muted, font: press, align: center)
+          text(str.pick, SW / 2, CBY + 20, size: 8, color: muted, font: press, align: center)
         }
       }
     }

@@ -10,7 +10,227 @@ app "pixel farm" {
   // reeling the hook and the fish slide by formulas of the time since it was hooked, so a tap
   // only has to compare where both are.
 
-  meta { owl: 23; description: "A cozy pixel art farm: plant crops that grow in real time, even while the app is closed, harvest them for coins and fish the pond between harvests"; version: "1.1.0"; license: "MIT"; category: "games" }
+  meta { owl: 23; description: "A cozy pixel art farm: plant crops that grow in real time, even while the app is closed, harvest them for coins and fish the pond between harvests"; version: "1.2"; license: "MIT"; category: "games" }
+
+  // A seed card is about 80dp wide at size 5-6, a book entry about 70dp: crop and fish names stay short.
+  strings {
+    en {
+      welcome: "WELCOME BACK!"; readyHarvest: n => "${n} READY TO HARVEST"; levelUp: n => "LEVEL ${n}!"; seedsOf: c => "${c} SEEDS"
+      resting: "THE FISH ARE RESTING"; backIn: t => "BACK IN ${t}"; tooSoon: "TOO SOON!"; snapped: "THE LINE SNAPPED"
+      moreField: "MORE FIELD!"; noCoins: "NOT ENOUGH COINS"; morePlots: c => "3 MORE PLOTS: ${c}"; tapBuy: "TAP AGAIN TO BUY"
+      giant: v => "GIANT! +${v}"; readyIn: t => "READY IN ${t}"; pickSeed: "PICK A SEED BELOW"; atLevel: n => "AT LEVEL ${n}"
+      lv: n => "LV ${n}"; ready: n => "${n} READY"; growing: "GROWING"; tab: i => ["SEEDS", "FISH", "BOOK"][i]; level: n => "LEVEL ${n}"
+      allField: "ALL FIELD"; tapAgain: "TAP AGAIN"; plus3: "+3 PLOTS"; open: "OPEN"
+      tapSoil: c => "TAP SOIL TO PLANT ${c}"; noSeed: "NO SEED PICKED: TAPS ONLY HARVEST"
+      drag1: "DRAG OVER THE FIELD TO HARVEST"; drag2: "AND SOW IN ONE GO"
+      pondFull: "POND FULL"; next: t => "NEXT ${t}"; hold: "HOLD TO CAST"; letGoThrow: "LET GO TO THROW"; farther: "FARTHER OUT, RARER FISH"
+      nightOnly: "SOME ONLY BITE AT NIGHT"; oneBack: t => "ONE BACK IN ${t}"; letGo: "LET GO!"; near: "NEAR"; far: "FAR"
+      wait: "WAIT FOR A BITE"; bobber: "TAP WHEN THE BOBBER GOES UNDER"; tap: "TAP"; gotAway: "IT GOT AWAY"; castAgain: "TAP TO CAST AGAIN"
+      hook1: "TAP WHEN THE HOOK"; hook2: "IS ON THE FISH"; coins: v => "+${v} COINS"; newBook: "NEW IN YOUR BOOK!"
+      fishCount: n => "FISH ${n}/9"; soundOn: "SOUND ON"; soundOff: "SOUND OFF"; atNight: "AT NIGHT"; farOut: "FAR OUT"; harvests: n => "HARVESTS ${n}"
+      hrs: n => "${n}H"; mins: n => "${n}M"; secs: n => "${n}S"
+      crop: i => ["RADISH", "CARROT", "POTATO", "TOMATO", "CORN", "PUMPKIN", "STRAWBERRY"][i]
+      fish: i => ["MINNOW", "PERCH", "CARP", "TROUT", "BASS", "CATFISH", "PIKE", "EEL", "GOLDEN KOI"][i]
+    }
+    id {
+      welcome: "SELAMAT DATANG!"; readyHarvest: n => "${n} SIAP DIPANEN"; levelUp: n => "LEVEL ${n}!"; seedsOf: c => "BENIH ${c}"
+      resting: "IKANNYA SEDANG ISTIRAHAT"; backIn: t => "KEMBALI DALAM ${t}"; tooSoon: "TERLALU CEPAT!"; snapped: "TALINYA PUTUS"
+      moreField: "LADANG BERTAMBAH!"; noCoins: "KOIN TIDAK CUKUP"; morePlots: c => "3 PETAK LAGI: ${c}"; tapBuy: "KETUK LAGI UNTUK BELI"
+      giant: v => "RAKSASA! +${v}"; readyIn: t => "SIAP DALAM ${t}"; pickSeed: "PILIH BENIH DI BAWAH"; atLevel: n => "DI LEVEL ${n}"
+      lv: n => "LV ${n}"; ready: n => "${n} SIAP"; growing: "TUMBUH"; tab: i => ["BENIH", "IKAN", "BUKU"][i]; level: n => "LEVEL ${n}"
+      allField: "SEMUA LADANG"; tapAgain: "KETUK LAGI"; plus3: "+3 PETAK"; open: "TERBUKA"
+      tapSoil: c => "KETUK TANAH UNTUK MENANAM ${c}"; noSeed: "BELUM PILIH BENIH: KETUK HANYA MEMANEN"
+      drag1: "SERET DI ATAS LADANG UNTUK MEMANEN"; drag2: "DAN MENANAM SEKALIGUS"
+      pondFull: "KOLAM PENUH"; next: t => "BERIKUTNYA ${t}"; hold: "TAHAN UNTUK MELEMPAR"; letGoThrow: "LEPAS UNTUK MELEMPAR"; farther: "MAKIN JAUH, MAKIN LANGKA"
+      nightOnly: "ADA YANG HANYA MAKAN MALAM"; oneBack: t => "SATU KEMBALI DALAM ${t}"; letGo: "LEPAS!"; near: "DEKAT"; far: "JAUH"
+      wait: "TUNGGU GIGITAN"; bobber: "KETUK SAAT PELAMPUNG TENGGELAM"; tap: "KETUK"; gotAway: "IKANNYA LEPAS"; castAgain: "KETUK UNTUK MELEMPAR LAGI"
+      hook1: "KETUK SAAT KAIL"; hook2: "ADA DI IKAN"; coins: v => "+${v} KOIN"; newBook: "BARU DI BUKUMU!"
+      fishCount: n => "IKAN ${n}/9"; soundOn: "SUARA NYALA"; soundOff: "SUARA MATI"; atNight: "MALAM"; farOut: "JAUH"; harvests: n => "PANEN ${n}"
+      hrs: n => "${n}J"; mins: n => "${n}M"; secs: n => "${n}D"
+      crop: i => ["LOBAK", "WORTEL", "KENTANG", "TOMAT", "JAGUNG", "LABU", "STROBERI"][i]
+      fish: i => ["WADER", "PERCH", "IKAN MAS", "TRAUT", "BASS", "LELE", "IKAN TOMBAK", "SIDAT", "KOI EMAS"][i]
+    }
+    es {
+      welcome: "¡HOLA DE NUEVO!"; readyHarvest: n => "${n} LISTOS PARA COSECHAR"; levelUp: n => "¡NIVEL ${n}!"; seedsOf: c => "SEMILLAS DE ${c}"
+      resting: "LOS PECES DESCANSAN"; backIn: t => "VUELVEN EN ${t}"; tooSoon: "¡DEMASIADO PRONTO!"; snapped: "SE ROMPIÓ EL SEDAL"
+      moreField: "¡MÁS CAMPO!"; noCoins: "FALTAN MONEDAS"; morePlots: c => "3 PARCELAS MÁS: ${c}"; tapBuy: "TOCA OTRA VEZ PARA COMPRAR"
+      giant: v => "¡GIGANTE! +${v}"; readyIn: t => "LISTO EN ${t}"; pickSeed: "ELIGE UNA SEMILLA ABAJO"; atLevel: n => "EN EL NIVEL ${n}"
+      lv: n => "NV ${n}"; ready: n => "${n} LISTOS"; growing: "CRECIENDO"; tab: i => ["SEMILLAS", "PESCA", "LIBRO"][i]; level: n => "NIVEL ${n}"
+      allField: "TODO EL CAMPO"; tapAgain: "TOCA OTRA VEZ"; plus3: "+3 PARCELAS"; open: "ABIERTO"
+      tapSoil: c => "TOCA LA TIERRA PARA PLANTAR ${c}"; noSeed: "SIN SEMILLA: TOCAR SOLO COSECHA"
+      drag1: "ARRASTRA SOBRE EL CAMPO PARA COSECHAR"; drag2: "Y SEMBRAR DE UNA VEZ"
+      pondFull: "ESTANQUE LLENO"; next: t => "OTRO EN ${t}"; hold: "MANTÉN PARA LANZAR"; letGoThrow: "SUELTA PARA LANZAR"; farther: "MÁS LEJOS, PECES MÁS RAROS"
+      nightOnly: "ALGUNOS SOLO PICAN DE NOCHE"; oneBack: t => "UNO VUELVE EN ${t}"; letGo: "¡SUELTA!"; near: "CERCA"; far: "LEJOS"
+      wait: "ESPERA LA PICADA"; bobber: "TOCA CUANDO SE HUNDA EL CORCHO"; tap: "TOCA"; gotAway: "SE ESCAPÓ"; castAgain: "TOCA PARA LANZAR OTRA VEZ"
+      hook1: "TOCA CUANDO EL ANZUELO"; hook2: "ESTÉ SOBRE EL PEZ"; coins: v => "+${v} MONEDAS"; newBook: "¡NUEVO EN TU LIBRO!"
+      fishCount: n => "PECES ${n}/9"; soundOn: "SONIDO: SÍ"; soundOff: "SONIDO: NO"; atNight: "DE NOCHE"; farOut: "LEJOS"; harvests: n => "COSECHAS ${n}"
+      hrs: n => "${n}H"; mins: n => "${n}M"; secs: n => "${n}S"
+      crop: i => ["RÁBANO", "ZANAHORIA", "PATATA", "TOMATE", "MAÍZ", "CALABAZA", "FRESA"][i]
+      fish: i => ["PECECILLO", "PERCA", "CARPA", "TRUCHA", "LOBINA", "BAGRE", "LUCIO", "ANGUILA", "KOI DORADO"][i]
+    }
+    pt {
+      welcome: "BEM-VINDO DE VOLTA!"; readyHarvest: n => "${n} PRONTOS PARA COLHER"; levelUp: n => "NÍVEL ${n}!"; seedsOf: c => "SEMENTES DE ${c}"
+      resting: "OS PEIXES ESTÃO DESCANSANDO"; backIn: t => "VOLTAM EM ${t}"; tooSoon: "CEDO DEMAIS!"; snapped: "A LINHA ARREBENTOU"
+      moreField: "MAIS CAMPO!"; noCoins: "MOEDAS INSUFICIENTES"; morePlots: c => "MAIS 3 CANTEIROS: ${c}"; tapBuy: "TOQUE DE NOVO PARA COMPRAR"
+      giant: v => "GIGANTE! +${v}"; readyIn: t => "PRONTO EM ${t}"; pickSeed: "ESCOLHA UMA SEMENTE ABAIXO"; atLevel: n => "NO NÍVEL ${n}"
+      lv: n => "NV ${n}"; ready: n => "${n} PRONTOS"; growing: "CRESCENDO"; tab: i => ["SEMENTES", "PESCA", "LIVRO"][i]; level: n => "NÍVEL ${n}"
+      allField: "CAMPO TODO"; tapAgain: "TOQUE DE NOVO"; plus3: "+3 CANTEIROS"; open: "ABERTO"
+      tapSoil: c => "TOQUE NA TERRA PARA PLANTAR ${c}"; noSeed: "SEM SEMENTE: TOQUES SÓ COLHEM"
+      drag1: "ARRASTE SOBRE O CAMPO PARA COLHER"; drag2: "E SEMEAR DE UMA VEZ"
+      pondFull: "LAGO CHEIO"; next: t => "OUTRO EM ${t}"; hold: "SEGURE PARA LANÇAR"; letGoThrow: "SOLTE PARA ARREMESSAR"; farther: "MAIS LONGE, PEIXES MAIS RAROS"
+      nightOnly: "ALGUNS SÓ MORDEM À NOITE"; oneBack: t => "UM VOLTA EM ${t}"; letGo: "SOLTE!"; near: "PERTO"; far: "LONGE"
+      wait: "ESPERE A MORDIDA"; bobber: "TOQUE QUANDO A BOIA AFUNDAR"; tap: "TOQUE"; gotAway: "ESCAPOU"; castAgain: "TOQUE PARA LANÇAR DE NOVO"
+      hook1: "TOQUE QUANDO O ANZOL"; hook2: "ESTIVER NO PEIXE"; coins: v => "+${v} MOEDAS"; newBook: "NOVO NO SEU LIVRO!"
+      fishCount: n => "PEIXES ${n}/9"; soundOn: "SOM LIGADO"; soundOff: "SOM DESL."; atNight: "À NOITE"; farOut: "LONGE"; harvests: n => "COLHEITAS ${n}"
+      hrs: n => "${n}H"; mins: n => "${n}M"; secs: n => "${n}S"
+      crop: i => ["RABANETE", "CENOURA", "BATATA", "TOMATE", "MILHO", "ABÓBORA", "MORANGO"][i]
+      fish: i => ["PIABA", "PERCA", "CARPA", "TRUTA", "ROBALO", "BAGRE", "LÚCIO", "ENGUIA", "KOI DOURADO"][i]
+    }
+    de {
+      welcome: "WILLKOMMEN ZURÜCK!"; readyHarvest: n => "${n} BEREIT ZUR ERNTE"; levelUp: n => "LEVEL ${n}!"; seedsOf: c => "${c}-SAMEN"
+      resting: "DIE FISCHE RUHEN"; backIn: t => "ZURÜCK IN ${t}"; tooSoon: "ZU FRÜH!"; snapped: "DIE SCHNUR IST GERISSEN"
+      moreField: "MEHR FELD!"; noCoins: "ZU WENIG MÜNZEN"; morePlots: c => "3 BEETE MEHR: ${c}"; tapBuy: "NOCHMAL TIPPEN ZUM KAUFEN"
+      giant: v => "RIESIG! +${v}"; readyIn: t => "REIF IN ${t}"; pickSeed: "WÄHL UNTEN EINEN SAMEN"; atLevel: n => "AB LEVEL ${n}"
+      lv: n => "LV ${n}"; ready: n => "${n} REIF"; growing: "WÄCHST"; tab: i => ["SAMEN", "ANGELN", "BUCH"][i]; level: n => "LEVEL ${n}"
+      allField: "GANZES FELD"; tapAgain: "NOCHMAL"; plus3: "+3 BEETE"; open: "OFFEN"
+      tapSoil: c => "TIPP AUF ERDE: ${c} PFLANZEN"; noSeed: "KEIN SAMEN GEWÄHLT: TIPPEN ERNTET NUR"
+      drag1: "ÜBERS FELD WISCHEN ZUM ERNTEN"; drag2: "UND SÄEN IN EINEM ZUG"
+      pondFull: "TEICH VOLL"; next: t => "NÄCHSTER ${t}"; hold: "HALTEN ZUM AUSHOLEN"; letGoThrow: "LOSLASSEN ZUM WERFEN"; farther: "WEITER DRAUSSEN, SELTENERE FISCHE"
+      nightOnly: "MANCHE BEISSEN NUR NACHTS"; oneBack: t => "EINER ZURÜCK IN ${t}"; letGo: "LOSLASSEN!"; near: "NAH"; far: "FERN"
+      wait: "WARTE AUF EINEN BISS"; bobber: "TIPP, WENN DER SCHWIMMER ABTAUCHT"; tap: "TIPP"; gotAway: "ER IST WEG"; castAgain: "TIPP ZUM NEU AUSWERFEN"
+      hook1: "TIPP, WENN DER HAKEN"; hook2: "AM FISCH IST"; coins: v => "+${v} MÜNZEN"; newBook: "NEU IN DEINEM BUCH!"
+      fishCount: n => "FISCHE ${n}/9"; soundOn: "TON AN"; soundOff: "TON AUS"; atNight: "NACHTS"; farOut: "WEIT DRAUSSEN"; harvests: n => "ERNTEN ${n}"
+      hrs: n => "${n}H"; mins: n => "${n}M"; secs: n => "${n}S"
+      crop: i => ["RADIESCHEN", "KAROTTE", "KARTOFFEL", "TOMATE", "MAIS", "KÜRBIS", "ERDBEERE"][i]
+      fish: i => ["ELRITZE", "BARSCH", "KARPFEN", "FORELLE", "SCHWARZBARSCH", "WELS", "HECHT", "AAL", "GOLDKOI"][i]
+    }
+    zh {
+      welcome: "欢迎回来!"; readyHarvest: n => "${n} 块可以收获"; levelUp: n => "${n} 级!"; seedsOf: c => "${c}种子"
+      resting: "鱼儿在休息"; backIn: t => "${t} 后回来"; tooSoon: "太早了!"; snapped: "鱼线断了"
+      moreField: "田地扩大!"; noCoins: "金币不够"; morePlots: c => "再开 3 块地: ${c}"; tapBuy: "再点一下购买"
+      giant: v => "巨大! +${v}"; readyIn: t => "${t} 后成熟"; pickSeed: "在下方选择种子"; atLevel: n => "${n} 级解锁"
+      lv: n => "${n} 级"; ready: n => "${n} 块成熟"; growing: "生长中"; tab: i => ["种子", "钓鱼", "图鉴"][i]; level: n => "${n} 级"
+      allField: "田地已满"; tapAgain: "再点一下"; plus3: "+3 块地"; open: "已开放"
+      tapSoil: c => "点泥土种下${c}"; noSeed: "未选种子: 点击只会收获"
+      drag1: "在田地上拖动, 一次完成"; drag2: "收获和播种"
+      pondFull: "池塘满了"; next: t => "下一条 ${t}"; hold: "按住蓄力"; letGoThrow: "松手抛竿"; farther: "抛得越远, 鱼越稀有"
+      nightOnly: "有些鱼只在夜里咬钩"; oneBack: t => "${t} 后回来一条"; letGo: "松手!"; near: "近"; far: "远"
+      wait: "等鱼咬钩"; bobber: "浮漂沉下时点击"; tap: "点"; gotAway: "鱼跑了"; castAgain: "点击再抛一次"
+      hook1: "鱼钩对准鱼时"; hook2: "点击"; coins: v => "+${v} 金币"; newBook: "图鉴新增!"
+      fishCount: n => "鱼 ${n}/9"; soundOn: "声音开"; soundOff: "声音关"; atNight: "夜间"; farOut: "远处"; harvests: n => "收获 ${n}"
+      hrs: n => "${n}时"; mins: n => "${n}分"; secs: n => "${n}秒"
+      crop: i => ["萝卜", "胡萝卜", "土豆", "番茄", "玉米", "南瓜", "草莓"][i]
+      fish: i => ["米诺鱼", "河鲈", "鲤鱼", "鳟鱼", "黑鲈", "鲶鱼", "狗鱼", "鳗鱼", "金锦鲤"][i]
+    }
+    ru {
+      welcome: "С ВОЗВРАЩЕНИЕМ!"; readyHarvest: n => "ГОТОВО К СБОРУ: ${n}"; levelUp: n => "УРОВЕНЬ ${n}!"; seedsOf: c => "СЕМЕНА: ${c}"
+      resting: "РЫБА ОТДЫХАЕТ"; backIn: t => "ВЕРНЁТСЯ ЧЕРЕЗ ${t}"; tooSoon: "СЛИШКОМ РАНО!"; snapped: "ЛЕСКА ПОРВАЛАСЬ"
+      moreField: "ПОЛЕ БОЛЬШЕ!"; noCoins: "НЕ ХВАТАЕТ МОНЕТ"; morePlots: c => "ЕЩЁ 3 ГРЯДКИ: ${c}"; tapBuy: "НАЖМИТЕ ЕЩЁ РАЗ, ЧТОБЫ КУПИТЬ"
+      giant: v => "ГИГАНТ! +${v}"; readyIn: t => "ПОСПЕЕТ ЧЕРЕЗ ${t}"; pickSeed: "ВЫБЕРИТЕ СЕМЕНА НИЖЕ"; atLevel: n => "С УРОВНЯ ${n}"
+      lv: n => "УР ${n}"; ready: n => "ГОТОВО: ${n}"; growing: "РАСТЁТ"; tab: i => ["СЕМЕНА", "РЫБАЛКА", "КНИГА"][i]; level: n => "УРОВЕНЬ ${n}"
+      allField: "ВСЁ ПОЛЕ"; tapAgain: "ЕЩЁ РАЗ"; plus3: "+3 ГРЯДКИ"; open: "ОТКРЫТО"
+      tapSoil: c => "НАЖМИТЕ НА ЗЕМЛЮ: ${c}"; noSeed: "СЕМЕНА НЕ ВЫБРАНЫ: НАЖАТИЕ ТОЛЬКО СОБИРАЕТ"
+      drag1: "ВЕДИТЕ ПО ПОЛЮ, ЧТОБЫ СОБРАТЬ"; drag2: "И ПОСЕЯТЬ ЗА РАЗ"
+      pondFull: "ПРУД ПОЛОН"; next: t => "СЛЕД. ${t}"; hold: "ДЕРЖИТЕ ДЛЯ ЗАБРОСА"; letGoThrow: "ОТПУСТИТЕ, ЧТОБЫ БРОСИТЬ"; farther: "ДАЛЬШЕ - РЕЖЕ РЫБА"
+      nightOnly: "НЕКОТОРЫЕ КЛЮЮТ ТОЛЬКО НОЧЬЮ"; oneBack: t => "ОДНА ВЕРНЁТСЯ ЧЕРЕЗ ${t}"; letGo: "ОТПУСКАЙТЕ!"; near: "БЛИЗКО"; far: "ДАЛЕКО"
+      wait: "ЖДИТЕ ПОКЛЁВКИ"; bobber: "НАЖМИТЕ, КОГДА ПОПЛАВОК УЙДЁТ ПОД ВОДУ"; tap: "ЖМИТЕ"; gotAway: "СОРВАЛАСЬ"; castAgain: "НАЖМИТЕ ДЛЯ НОВОГО ЗАБРОСА"
+      hook1: "НАЖМИТЕ, КОГДА КРЮЧОК"; hook2: "БУДЕТ НА РЫБЕ"; coins: v => "+${v} МОНЕТ"; newBook: "НОВОЕ В КНИГЕ!"
+      fishCount: n => "РЫБЫ ${n}/9"; soundOn: "ЗВУК ВКЛ"; soundOff: "ЗВУК ВЫКЛ"; atNight: "НОЧЬЮ"; farOut: "ДАЛЕКО"; harvests: n => "УРОЖАИ ${n}"
+      hrs: n => "${n}Ч"; mins: n => "${n}М"; secs: n => "${n}С"
+      crop: i => ["РЕДИС", "МОРКОВЬ", "КАРТОФЕЛЬ", "ТОМАТ", "КУКУРУЗА", "ТЫКВА", "КЛУБНИКА"][i]
+      fish: i => ["ГОЛЬЯН", "ОКУНЬ", "КАРП", "ФОРЕЛЬ", "ЧЁРНЫЙ ОКУНЬ", "СОМ", "ЩУКА", "УГОРЬ", "ЗОЛОТОЙ КОИ"][i]
+    }
+    ja {
+      welcome: "おかえりなさい!"; readyHarvest: n => "${n}か所が収穫できます"; levelUp: n => "レベル${n}!"; seedsOf: c => "${c}のタネ"
+      resting: "魚は休んでいます"; backIn: t => "${t}後に戻ります"; tooSoon: "早すぎ!"; snapped: "糸が切れました"
+      moreField: "畑が広がった!"; noCoins: "コインが足りません"; morePlots: c => "畑を3つ追加: ${c}"; tapBuy: "もう一度タップで購入"
+      giant: v => "特大! +${v}"; readyIn: t => "あと${t}で収穫"; pickSeed: "下からタネを選んでください"; atLevel: n => "レベル${n}で解放"
+      lv: n => "LV ${n}"; ready: n => "${n}か所 収穫可"; growing: "成長中"; tab: i => ["タネ", "釣り", "図鑑"][i]; level: n => "レベル${n}"
+      allField: "畑は全開"; tapAgain: "もう一度"; plus3: "+3 区画"; open: "開放済み"
+      tapSoil: c => "土をタップして${c}を植える"; noSeed: "タネ未選択: タップは収穫のみ"
+      drag1: "畑の上をなぞると収穫と"; drag2: "種まきが一度にできます"
+      pondFull: "池は満杯"; next: t => "次 ${t}"; hold: "長押しで振りかぶる"; letGoThrow: "離して投げる"; farther: "遠いほど珍しい魚"
+      nightOnly: "夜にしか釣れない魚もいます"; oneBack: t => "${t}後に1匹戻ります"; letGo: "離して!"; near: "近い"; far: "遠い"
+      wait: "アタリを待ちます"; bobber: "ウキが沈んだらタップ"; tap: "タップ"; gotAway: "逃げられた"; castAgain: "タップでもう一度投げる"
+      hook1: "針が魚に重なったら"; hook2: "タップ"; coins: v => "+${v} コイン"; newBook: "図鑑に新登録!"
+      fishCount: n => "魚 ${n}/9"; soundOn: "サウンド ON"; soundOff: "サウンド OFF"; atNight: "夜"; farOut: "遠く"; harvests: n => "収穫 ${n}"
+      hrs: n => "${n}時間"; mins: n => "${n}分"; secs: n => "${n}秒"
+      crop: i => ["ラディッシュ", "ニンジン", "ジャガイモ", "トマト", "トウモロコシ", "カボチャ", "イチゴ"][i]
+      fish: i => ["ミノー", "パーチ", "コイ", "マス", "バス", "ナマズ", "パイク", "ウナギ", "金の錦鯉"][i]
+    }
+    uk {
+      welcome: "З ПОВЕРНЕННЯМ!"; readyHarvest: n => "ГОТОВО ДО ЗБОРУ: ${n}"; levelUp: n => "РІВЕНЬ ${n}!"; seedsOf: c => "НАСІННЯ: ${c}"
+      resting: "РИБА ВІДПОЧИВАЄ"; backIn: t => "ПОВЕРНЕТЬСЯ ЧЕРЕЗ ${t}"; tooSoon: "ЗАРАНО!"; snapped: "ВОЛОСІНЬ ПОРВАЛАСЯ"
+      moreField: "БІЛЬШЕ ПОЛЯ!"; noCoins: "БРАКУЄ МОНЕТ"; morePlots: c => "ЩЕ 3 ГРЯДКИ: ${c}"; tapBuy: "ТОРКНІТЬСЯ ЩЕ РАЗ, ЩОБ КУПИТИ"
+      giant: v => "ВЕЛЕТЕНЬ! +${v}"; readyIn: t => "ДОСПІЄ ЧЕРЕЗ ${t}"; pickSeed: "ОБЕРІТЬ НАСІННЯ НИЖЧЕ"; atLevel: n => "З РІВНЯ ${n}"
+      lv: n => "РІВ ${n}"; ready: n => "ГОТОВО: ${n}"; growing: "РОСТЕ"; tab: i => ["НАСІННЯ", "РИБАЛКА", "КНИГА"][i]; level: n => "РІВЕНЬ ${n}"
+      allField: "УСЕ ПОЛЕ"; tapAgain: "ЩЕ РАЗ"; plus3: "+3 ГРЯДКИ"; open: "ВІДКРИТО"
+      tapSoil: c => "ТОРКНІТЬСЯ ЗЕМЛІ: ${c}"; noSeed: "НАСІННЯ НЕ ОБРАНО: ДОТИК ЛИШЕ ЗБИРАЄ"
+      drag1: "ВЕДІТЬ ПО ПОЛЮ, ЩОБ ЗІБРАТИ"; drag2: "І ПОСІЯТИ ЗА РАЗ"
+      pondFull: "СТАВОК ПОВНИЙ"; next: t => "НАСТ. ${t}"; hold: "ТРИМАЙТЕ ДЛЯ ЗАКИДАННЯ"; letGoThrow: "ВІДПУСТІТЬ, ЩОБ КИНУТИ"; farther: "ДАЛІ - РІДКІСНІША РИБА"
+      nightOnly: "ДЕЯКІ КЛЮЮТЬ ЛИШЕ ВНОЧІ"; oneBack: t => "ОДНА ПОВЕРНЕТЬСЯ ЧЕРЕЗ ${t}"; letGo: "ВІДПУСКАЙТЕ!"; near: "БЛИЗЬКО"; far: "ДАЛЕКО"
+      wait: "ЧЕКАЙТЕ НА КЛЮВАННЯ"; bobber: "ТОРКНІТЬСЯ, КОЛИ ПОПЛАВОК ПІРНЕ"; tap: "ТИСНІТЬ"; gotAway: "ЗІРВАЛАСЯ"; castAgain: "ТОРКНІТЬСЯ, ЩОБ ЗАКИНУТИ ЗНОВУ"
+      hook1: "ТОРКНІТЬСЯ, КОЛИ ГАЧОК"; hook2: "БУДЕ НА РИБІ"; coins: v => "+${v} МОНЕТ"; newBook: "НОВЕ В КНИЗІ!"
+      fishCount: n => "РИБИ ${n}/9"; soundOn: "ЗВУК УВІМК"; soundOff: "ЗВУК ВИМК"; atNight: "ВНОЧІ"; farOut: "ДАЛЕКО"; harvests: n => "ВРОЖАЇ ${n}"
+      hrs: n => "${n}Г"; mins: n => "${n}ХВ"; secs: n => "${n}С"
+      crop: i => ["РЕДИСКА", "МОРКВА", "КАРТОПЛЯ", "ПОМІДОР", "КУКУРУДЗА", "ГАРБУЗ", "ПОЛУНИЦЯ"][i]
+      fish: i => ["ГОЛЬЯН", "ОКУНЬ", "КОРОП", "ФОРЕЛЬ", "ЧОРНИЙ ОКУНЬ", "СОМ", "ЩУКА", "ВУГОР", "ЗОЛОТИЙ КОЇ"][i]
+    }
+    fr {
+      welcome: "BON RETOUR !"; readyHarvest: n => "${n} PRÊTS À RÉCOLTER"; levelUp: n => "NIVEAU ${n} !"; seedsOf: c => "GRAINES : ${c}"
+      resting: "LES POISSONS SE REPOSENT"; backIn: t => "RETOUR DANS ${t}"; tooSoon: "TROP TÔT !"; snapped: "LA LIGNE A CASSÉ"
+      moreField: "PLUS DE CHAMP !"; noCoins: "PAS ASSEZ DE PIÈCES"; morePlots: c => "3 PARCELLES DE PLUS : ${c}"; tapBuy: "TOUCHE ENCORE POUR ACHETER"
+      giant: v => "GÉANT ! +${v}"; readyIn: t => "PRÊT DANS ${t}"; pickSeed: "CHOISIS UNE GRAINE EN BAS"; atLevel: n => "AU NIVEAU ${n}"
+      lv: n => "NV ${n}"; ready: n => "${n} PRÊTS"; growing: "EN CROISSANCE"; tab: i => ["GRAINES", "PÊCHE", "CARNET"][i]; level: n => "NIVEAU ${n}"
+      allField: "TOUT LE CHAMP"; tapAgain: "TOUCHE ENCORE"; plus3: "+3 PARCELLES"; open: "OUVERT"
+      tapSoil: c => "TOUCHE LA TERRE : ${c}"; noSeed: "AUCUNE GRAINE : TOUCHER NE FAIT QUE RÉCOLTER"
+      drag1: "GLISSE SUR LE CHAMP POUR RÉCOLTER"; drag2: "ET SEMER D'UN COUP"
+      pondFull: "ÉTANG PLEIN"; next: t => "SUIVANT ${t}"; hold: "MAINTIENS POUR LANCER"; letGoThrow: "LÂCHE POUR LANCER"; farther: "PLUS LOIN, POISSONS PLUS RARES"
+      nightOnly: "CERTAINS NE MORDENT QUE LA NUIT"; oneBack: t => "UN REVIENT DANS ${t}"; letGo: "LÂCHE !"; near: "PRÈS"; far: "LOIN"
+      wait: "ATTENDS UNE TOUCHE"; bobber: "TOUCHE QUAND LE BOUCHON PLONGE"; tap: "TOUCHE"; gotAway: "IL S'EST ÉCHAPPÉ"; castAgain: "TOUCHE POUR RELANCER"
+      hook1: "TOUCHE QUAND L'HAMEÇON"; hook2: "EST SUR LE POISSON"; coins: v => "+${v} PIÈCES"; newBook: "NOUVEAU DANS TON CARNET !"
+      fishCount: n => "POISSONS ${n}/9"; soundOn: "SON ACTIF"; soundOff: "SON COUPÉ"; atNight: "LA NUIT"; farOut: "AU LARGE"; harvests: n => "RÉCOLTES ${n}"
+      hrs: n => "${n}H"; mins: n => "${n}MIN"; secs: n => "${n}S"
+      crop: i => ["RADIS", "CAROTTE", "PATATE", "TOMATE", "MAÏS", "CITROUILLE", "FRAISE"][i]
+      fish: i => ["VAIRON", "PERCHE", "CARPE", "TRUITE", "BLACK-BASS", "SILURE", "BROCHET", "ANGUILLE", "KOI DORÉ"][i]
+    }
+    tr {
+      welcome: "TEKRAR HOŞ GELDİN!"; readyHarvest: n => "${n} HASADA HAZIR"; levelUp: n => "SEVİYE ${n}!"; seedsOf: c => "${c} TOHUMU"
+      resting: "BALIKLAR DİNLENİYOR"; backIn: t => "${t} SONRA DÖNER"; tooSoon: "ÇOK ERKEN!"; snapped: "MİSİNA KOPTU"
+      moreField: "TARLA BÜYÜDÜ!"; noCoins: "YETERLİ PARA YOK"; morePlots: c => "3 PARSEL DAHA: ${c}"; tapBuy: "ALMAK İÇİN TEKRAR DOKUN"
+      giant: v => "DEV! +${v}"; readyIn: t => "${t} SONRA HAZIR"; pickSeed: "AŞAĞIDAN TOHUM SEÇ"; atLevel: n => "SEVİYE ${n}'DE"
+      lv: n => "SV ${n}"; ready: n => "${n} HAZIR"; growing: "BÜYÜYOR"; tab: i => ["TOHUM", "BALIK", "DEFTER"][i]; level: n => "SEVİYE ${n}"
+      allField: "TÜM TARLA"; tapAgain: "TEKRAR DOKUN"; plus3: "+3 PARSEL"; open: "AÇIK"
+      tapSoil: c => "EKMEK İÇİN TOPRAĞA DOKUN: ${c}"; noSeed: "TOHUM SEÇİLMEDİ: DOKUNUŞ SADECE HASAT EDER"
+      drag1: "HASAT İÇİN TARLADA SÜRÜKLE"; drag2: "VE TEK SEFERDE EK"
+      pondFull: "GÖLET DOLU"; next: t => "SONRAKİ ${t}"; hold: "ATMAK İÇİN BASILI TUT"; letGoThrow: "FIRLATMAK İÇİN BIRAK"; farther: "UZAKTA DAHA NADİR BALIK"
+      nightOnly: "BAZILARI SADECE GECE VURUR"; oneBack: t => "BİRİ ${t} SONRA DÖNER"; letGo: "BIRAK!"; near: "YAKIN"; far: "UZAK"
+      wait: "VURUŞU BEKLE"; bobber: "MANTAR BATINCA DOKUN"; tap: "DOKUN"; gotAway: "KAÇTI"; castAgain: "TEKRAR ATMAK İÇİN DOKUN"
+      hook1: "İĞNE BALIĞIN ÜSTÜNDEYKEN"; hook2: "DOKUN"; coins: v => "+${v} PARA"; newBook: "DEFTERİNDE YENİ!"
+      fishCount: n => "BALIK ${n}/9"; soundOn: "SES AÇIK"; soundOff: "SES KAPALI"; atNight: "GECE"; farOut: "AÇIKTA"; harvests: n => "HASAT ${n}"
+      hrs: n => "${n}SA"; mins: n => "${n}DK"; secs: n => "${n}SN"
+      crop: i => ["TURP", "HAVUÇ", "PATATES", "DOMATES", "MISIR", "BALKABAĞI", "ÇİLEK"][i]
+      fish: i => ["KÜÇÜK BALIK", "PERKA", "SAZAN", "ALABALIK", "LEVREK", "YAYIN", "TURNA", "YILAN BALIĞI", "ALTIN KOI"][i]
+    }
+    it {
+      welcome: "BENTORNATO!"; readyHarvest: n => "${n} PRONTI DA RACCOGLIERE"; levelUp: n => "LIVELLO ${n}!"; seedsOf: c => "SEMI: ${c}"
+      resting: "I PESCI RIPOSANO"; backIn: t => "TORNANO TRA ${t}"; tooSoon: "TROPPO PRESTO!"; snapped: "LA LENZA SI È SPEZZATA"
+      moreField: "PIÙ CAMPO!"; noCoins: "MONETE INSUFFICIENTI"; morePlots: c => "3 APPEZZAMENTI IN PIÙ: ${c}"; tapBuy: "TOCCA ANCORA PER COMPRARE"
+      giant: v => "GIGANTE! +${v}"; readyIn: t => "PRONTO TRA ${t}"; pickSeed: "SCEGLI UN SEME QUI SOTTO"; atLevel: n => "AL LIVELLO ${n}"
+      lv: n => "LV ${n}"; ready: n => "${n} PRONTI"; growing: "IN CRESCITA"; tab: i => ["SEMI", "PESCA", "DIARIO"][i]; level: n => "LIVELLO ${n}"
+      allField: "TUTTO IL CAMPO"; tapAgain: "TOCCA ANCORA"; plus3: "+3 LOTTI"; open: "APERTO"
+      tapSoil: c => "TOCCA LA TERRA PER PIANTARE ${c}"; noSeed: "NESSUN SEME: TOCCARE RACCOGLIE SOLO"
+      drag1: "TRASCINA SUL CAMPO PER RACCOGLIERE"; drag2: "E SEMINARE IN UN COLPO"
+      pondFull: "STAGNO PIENO"; next: t => "PROSSIMO ${t}"; hold: "TIENI PREMUTO PER LANCIARE"; letGoThrow: "RILASCIA PER LANCIARE"; farther: "PIÙ LONTANO, PESCI PIÙ RARI"
+      nightOnly: "ALCUNI ABBOCCANO SOLO DI NOTTE"; oneBack: t => "UNO TORNA TRA ${t}"; letGo: "RILASCIA!"; near: "VICINO"; far: "LONTANO"
+      wait: "ASPETTA CHE ABBOCCHI"; bobber: "TOCCA QUANDO IL GALLEGGIANTE AFFONDA"; tap: "TOCCA"; gotAway: "È SCAPPATO"; castAgain: "TOCCA PER RILANCIARE"
+      hook1: "TOCCA QUANDO L'AMO"; hook2: "È SUL PESCE"; coins: v => "+${v} MONETE"; newBook: "NUOVO NEL TUO DIARIO!"
+      fishCount: n => "PESCI ${n}/9"; soundOn: "AUDIO SÌ"; soundOff: "AUDIO NO"; atNight: "DI NOTTE"; farOut: "AL LARGO"; harvests: n => "RACCOLTI ${n}"
+      hrs: n => "${n}H"; mins: n => "${n}M"; secs: n => "${n}S"
+      crop: i => ["RAVANELLO", "CAROTA", "PATATA", "POMODORO", "MAIS", "ZUCCA", "FRAGOLA"][i]
+      fish: i => ["VAIRONE", "PERSICO", "CARPA", "TROTA", "PERSICO TROTA", "PESCE GATTO", "LUCCIO", "ANGUILLA", "KOI DORATA"][i]
+    }
+  }
 
   title: ""
   statusBar: false
@@ -230,14 +450,14 @@ app "pixel farm" {
     greeted = true
     if stockT == 0 { stockT = now }
     if last > 0 && now - last > 120 {
-      msg = len(ripe) > 0 ? "WELCOME BACK!|${len(ripe)} READY TO HARVEST" : "WELCOME BACK!"
+      msg = len(ripe) > 0 ? "${str.welcome}|${str.readyHarvest(len(ripe))}" : str.welcome
       msgT = time
     }
     last = now
   }
   on lvl {
     if value > (old ?? 99) {
-      msg = len(CROPS.filter(c => c.lv == value)) > 0 ? "LEVEL ${value}!|${CROPS.filter(c => c.lv == value)[0].n} SEEDS" : "LEVEL ${value}!"
+      msg = len(CROPS.filter(c => c.lv == value)) > 0 ? "${str.levelUp(value)}|${str.seedsOf(str.crop(indexOf(CROPS.map(c => c.lv), value)))}" : str.levelUp(value)
       msgT = time
       if snd { sound(S_TADA) }
     }
@@ -296,7 +516,7 @@ app "pixel farm" {
   let fmt = n => n < 10000 ? str(floor(n))
     : n < 1000000 ? "${fixed(n / 1000, n < 100000 ? 1 : 0)}K"
     : "${fixed(n / 1000000, 1)}M"
-  let fmtT = s => s >= 3600 ? "${floor(s / 3600)}H ${pad(floor(s % 3600 / 60), 2, "0")}M" : s >= 60 ? "${floor(s / 60)}M ${pad(floor(s % 60), 2, "0")}S" : "${floor(s)}S"
+  let fmtT = s => s >= 3600 ? "${str.hrs(floor(s / 3600))} ${str.mins(pad(floor(s % 3600 / 60), 2, "0"))}" : s >= 60 ? "${str.mins(floor(s / 60))} ${str.secs(pad(floor(s % 60), 2, "0"))}" : str.secs(floor(s))
 
   // ---- the screen, in dp --------------------------------------------------------------------------
   // The farm on top (the house, the field and the pond) and the panel below it, or in landscape
@@ -411,13 +631,13 @@ app "pixel farm" {
             fs = 1
             pressT = time
           } else {
-            msg = "THE FISH ARE RESTING|BACK IN ${[nextFish].map(fmtT)[0]}"
+            msg = "${str.resting}|${str.backIn([nextFish].map(fmtT)[0])}"
             msgT = time
           }
         } else if fs == 2 {
           if time < biteAt {
             fs = 5
-            why = "TOO SOON!"
+            why = str.tooSoon
             endT = time
           } else if time <= biteAt + BITE {
             fs = 3
@@ -457,7 +677,7 @@ app "pixel farm" {
             misses = misses + 1
             if misses >= 3 {
               fs = 5
-              why = "THE LINE SNAPPED"
+              why = str.snapped
               endT = time
               if snd { sound(S_SNAP) }
             }
@@ -496,17 +716,17 @@ app "pixel farm" {
               bank = bank - fieldCost
               plots = plots + 3
               armT = -99
-              msg = "MORE FIELD!"
+              msg = str.moreField
               msgT = time
               if snd { sound(S_COIN) }
               haptic()
             } else {
-              msg = "NOT ENOUGH COINS"
+              msg = str.noCoins
               msgT = time
             }
           } else {
             armT = time
-            msg = "3 MORE PLOTS: ${[fieldCost].map(fmt)[0]}|TAP AGAIN TO BUY"
+            msg = "${str.morePlots([fieldCost].map(fmt)[0])}|${str.tapBuy}"
             msgT = time
           }
         } else if field[p].k >= 0 && grow[p] >= 1 {
@@ -517,21 +737,21 @@ app "pixel farm" {
           xp = xp + CROPS[k].x
           grown = set(grown, k, grown[k] + 1)
           field = set(field, p, {k: -1, t: 0})
-          pops = drop(pops, max(0, len(pops) - 7)) + [{p: p, s: big ? "GIANT! +${v}" : "+${v}", t: time}]
+          pops = drop(pops, max(0, len(pops) - 7)) + [{p: p, s: big ? str.giant(v) : "+${v}", t: time}]
           if snd { sound(big ? S_COIN : S_POP) }
           haptic("light")
         } else if field[p].k >= 0 {
-          msg = "${CROPS[field[p].k].n}|READY IN ${[CROPS[field[p].k].g - (tnow - field[p].t)].map(fmtT)[0]}"
+          msg = "${str.crop(field[p].k)}|${str.readyIn([CROPS[field[p].k].g - (tnow - field[p].t)].map(fmtT)[0])}"
           msgT = time
         } else if seed < 0 {
-          msg = "PICK A SEED BELOW"
+          msg = str.pickSeed
           msgT = time
         } else if bank >= CROPS[seed].cost {
           bank = bank - CROPS[seed].cost
           field = set(field, p, {k: seed, t: tnow})
           if snd { sound(S_PLANT) }
         } else {
-          msg = "NOT ENOUGH COINS"
+          msg = str.noCoins
           msgT = time
         }
       } else if x >= PDX && x < PDX + PDW && y >= PDY && y < PDY + PDH {
@@ -547,7 +767,7 @@ app "pixel farm" {
           if lvl >= CROPS[j].lv {
             seed = seed == j ? -1 : j
           } else {
-            msg = "${CROPS[j].n}|AT LEVEL ${CROPS[j].lv}"
+            msg = "${str.crop(j)}|${str.atLevel(CROPS[j].lv)}"
             msgT = time
           }
         } else if j == 7 && plots < 24 {
@@ -556,12 +776,12 @@ app "pixel farm" {
               bank = bank - fieldCost
               plots = plots + 3
               armT = -99
-              msg = "MORE FIELD!"
+              msg = str.moreField
               msgT = time
               if snd { sound(S_COIN) }
               haptic()
             } else {
-              msg = "NOT ENOUGH COINS"
+              msg = str.noCoins
               msgT = time
             }
           } else {
@@ -585,7 +805,7 @@ app "pixel farm" {
           xp = xp + CROPS[k].x
           grown = set(grown, k, grown[k] + 1)
           field = set(field, p, {k: -1, t: 0})
-          pops = drop(pops, max(0, len(pops) - 7)) + [{p: p, s: big ? "GIANT! +${v}" : "+${v}", t: time}]
+          pops = drop(pops, max(0, len(pops) - 7)) + [{p: p, s: big ? str.giant(v) : "+${v}", t: time}]
           if snd && (big || time - dragS > 0.3 || time < dragS) {
             sound(big ? S_COIN : S_POP)
             dragS = time
@@ -773,18 +993,18 @@ app "pixel farm" {
     // ---- the coins, the level and what's ready ----
     sprite(coinArt, 14, TOP + 6, 2.8, palette: PAL)
     text([bank].map(fmt)[0], 40, TOP + 14, size: 13, color: UI.text, font: press)
-    text("LV ${lvl}", 40, TOP + 32, size: 7, color: UI.dim, font: press)
+    text(str.lv(lvl), 40, TOP + 32, size: 7, color: UI.dim, font: press)
     rect(84, TOP + 29, 60, 6, fill: UI.card)
     rect(84, TOP + 29, 60 * clamp((xp - lvFrom) / (lvTo - lvFrom), 0, 1), 6, fill: UI.go)
     sprite(night ? moonArt : sunArt, SW - 30, TOP + 6, 2, palette: PAL)
     text(fmtTime(tnow, "HH:mm"), SW - 36, TOP + 14, size: 9, color: UI.text, font: press, align: end)
-    text(len(ripe) > 0 ? "${len(ripe)} READY" : len(filter(field, f => f.k >= 0)) > 0 ? "GROWING" : "", SW - 16, TOP + 32, size: 7, color: len(ripe) > 0 ? UI.gold : UI.dim, font: press, align: end)
+    text(len(ripe) > 0 ? str.ready(len(ripe)) : len(filter(field, f => f.k >= 0)) > 0 ? str.growing : "", SW - 16, TOP + 32, size: 7, color: len(ripe) > 0 ? UI.gold : UI.dim, font: press, align: end)
 
     // ---- the panel ----
     for t in range(3) {
       let tx = PX + t * PW / 3
       rect(tx + 2, PY, PW / 3 - 4, TH, fill: tab == t ? UI.gold : UI.card, radius: 6 * corners)
-      text(["SEEDS", "FISH", "BOOK"][t], tx + PW / 6, PY + TH / 2, size: 8, color: tab == t ? UI.bg : UI.text, font: press, align: center)
+      text(str.tab(t), tx + PW / 6, PY + TH / 2, size: 8, color: tab == t ? UI.bg : UI.text, font: press, align: center)
     }
     if tab == 0 {
       for k in range(8) {
@@ -800,21 +1020,21 @@ app "pixel farm" {
           } else {
             image(ripeImg[k], cx + (CW - 14 * ip) / 2, cy + 5 + (12 - ripeH[k]) * ip, 14 * ip, ripeH[k] * ip, color: SHADOW)
           }
-          text(CROPS[k].n, cx + CW / 2, cy + CH - 23, size: CW < 90 ? 5 : 6, color: open ? UI.text : UI.dim, font: press, align: center)
-          text(open ? "${CROPS[k].cost} · ${CROPS[k].g >= 3600 ? "${CROPS[k].g / 3600}H" : "${CROPS[k].g / 60}M"}" : "LEVEL ${CROPS[k].lv}", cx + CW / 2, cy + CH - 10, size: 5, color: open ? (bank >= CROPS[k].cost ? UI.gold : UI.warn) : UI.dim, font: press, align: center)
+          text(str.crop(k), cx + CW / 2, cy + CH - 23, size: CW < 90 ? 5 : 6, color: open ? UI.text : UI.dim, font: press, align: center)
+          text(open ? "${CROPS[k].cost} · ${CROPS[k].g >= 3600 ? str.hrs(CROPS[k].g / 3600) : str.mins(CROPS[k].g / 60)}" : str.level(CROPS[k].lv), cx + CW / 2, cy + CH - 10, size: 5, color: open ? (bank >= CROPS[k].cost ? UI.gold : UI.warn) : UI.dim, font: press, align: center)
         } else {
           let armed = time - armT < 3 && time >= armT
           if armed { rect(cx + 1, cy + 1, CW - 2, CH - 2, stroke: UI.gold, width: 2, radius: 6 * corners) }
           image(plot, cx + (CW - 12 * ip) / 2, cy + 5 + 3 * ip, 12 * ip, 8 * ip)
-          text(plots >= 24 ? "ALL FIELD" : armed ? "TAP AGAIN" : "+3 PLOTS", cx + CW / 2, cy + CH - 23, size: CW < 90 ? 5 : 6, color: UI.text, font: press, align: center)
-          text(plots >= 24 ? "OPEN" : [fieldCost].map(fmt)[0], cx + CW / 2, cy + CH - 10, size: 5, color: plots >= 24 ? UI.dim : bank >= fieldCost ? UI.gold : UI.warn, font: press, align: center)
+          text(plots >= 24 ? str.allField : armed ? str.tapAgain : str.plus3, cx + CW / 2, cy + CH - 23, size: CW < 90 ? 5 : 6, color: UI.text, font: press, align: center)
+          text(plots >= 24 ? str.open : [fieldCost].map(fmt)[0], cx + CW / 2, cy + CH - 10, size: 5, color: plots >= 24 ? UI.dim : bank >= fieldCost ? UI.gold : UI.warn, font: press, align: center)
         }
       }
       let hy0 = CY + 2 * CH + 22
       if hy0 + 30 < PY + PH {
-        text(seed >= 0 ? "TAP SOIL TO PLANT ${CROPS[seed].n}" : "NO SEED PICKED: TAPS ONLY HARVEST", PX + 4, hy0, size: 6, color: UI.text, font: press)
-        text("DRAG OVER THE FIELD TO HARVEST", PX + 4, hy0 + 16, size: 6, color: UI.dim, font: press)
-        text("AND SOW IN ONE GO", PX + 4, hy0 + 30, size: 6, color: UI.dim, font: press)
+        text(seed >= 0 ? str.tapSoil(str.crop(seed)) : str.noSeed, PX + 4, hy0, size: 6, color: UI.text, font: press)
+        text(str.drag1, PX + 4, hy0 + 16, size: 6, color: UI.dim, font: press)
+        text(str.drag2, PX + 4, hy0 + 30, size: 6, color: UI.dim, font: press)
       }
     } else if tab == 1 {
       // the fish in the pond
@@ -825,39 +1045,39 @@ app "pixel farm" {
           image(fish0, PX + 4 + i * 34, CY + 2, 28, 14, color: SHADOW)
         }
       }
-      text(fishLeft >= 5 ? "POND FULL" : "NEXT ${[nextFish].map(fmtT)[0]}", PX + PW - 4, CY + 9, size: 6, color: UI.dim, font: press, align: end)
+      text(fishLeft >= 5 ? str.pondFull : str.next([nextFish].map(fmtT)[0]), PX + PW - 4, CY + 9, size: 6, color: UI.dim, font: press, align: end)
       let AY = CY + 30
       let AH = PY + PH - AY
       let mid = AY + AH / 2 - 10
       rect(PX, AY, PW, AH, fill: UI.card, radius: 8 * corners)
       if fs == 0 {
         if fishLeft > 0 {
-          if time % 1.4 < 1.05 { text("HOLD TO CAST", PX + PW / 2, mid - 10, size: 12, color: UI.gold, font: press, align: center) }
-          text("LET GO TO THROW", PX + PW / 2, mid + 16, size: 7, color: UI.text, font: press, align: center)
-          text("FARTHER OUT, RARER FISH", PX + PW / 2, mid + 32, size: 7, color: UI.dim, font: press, align: center)
-          if night { text("SOME ONLY BITE AT NIGHT", PX + PW / 2, mid + 48, size: 7, color: UI.dim, font: press, align: center) }
+          if time % 1.4 < 1.05 { text(str.hold, PX + PW / 2, mid - 10, size: 12, color: UI.gold, font: press, align: center) }
+          text(str.letGoThrow, PX + PW / 2, mid + 16, size: 7, color: UI.text, font: press, align: center)
+          text(str.farther, PX + PW / 2, mid + 32, size: 7, color: UI.dim, font: press, align: center)
+          if night { text(str.nightOnly, PX + PW / 2, mid + 48, size: 7, color: UI.dim, font: press, align: center) }
         } else {
-          text("THE FISH ARE RESTING", PX + PW / 2, mid - 6, size: 9, color: UI.text, font: press, align: center)
-          text("ONE BACK IN ${[nextFish].map(fmtT)[0]}", PX + PW / 2, mid + 16, size: 7, color: UI.dim, font: press, align: center)
+          text(str.resting, PX + PW / 2, mid - 6, size: 9, color: UI.text, font: press, align: center)
+          text(str.oneBack([nextFish].map(fmtT)[0]), PX + PW / 2, mid + 16, size: 7, color: UI.dim, font: press, align: center)
         }
       } else if fs == 1 {
         let pw = 1 - abs(((time - pressT) * 0.8) % 2 - 1)
         let bw = PW - 48
-        text("LET GO!", PX + PW / 2, mid - 30, size: 11, color: UI.gold, font: press, align: center)
+        text(str.letGo, PX + PW / 2, mid - 30, size: 11, color: UI.gold, font: press, align: center)
         rect(PX + 24, mid - 8, bw, 20, fill: UI.bg, radius: 4 * corners)
         rect(PX + 24 + bw * 0.85, mid - 8, bw * 0.15, 20, fill: alpha(UI.gold, 0.25))
         rect(PX + 26, mid - 6, (bw - 4) * pw, 16, fill: mix(UI.water, UI.gold, pw), radius: 3 * corners)
-        text("NEAR", PX + 24, mid + 28, size: 6, color: UI.dim, font: press)
-        text("FAR", PX + 24 + bw, mid + 28, size: 6, color: UI.dim, font: press, align: end)
+        text(str.near, PX + 24, mid + 28, size: 6, color: UI.dim, font: press)
+        text(str.far, PX + 24 + bw, mid + 28, size: 6, color: UI.dim, font: press, align: end)
       } else if fs == 2 {
         if time < biteAt {
-          text("WAIT FOR A BITE${["", ".", "..", "..."][floor(time * 2) % 4]}", PX + PW / 2, mid - 6, size: 9, color: UI.text, font: press, align: center)
-          text("TAP WHEN THE BOBBER GOES UNDER", PX + PW / 2, mid + 16, size: 6, color: UI.dim, font: press, align: center)
+          text("${str.wait}${["", ".", "..", "..."][floor(time * 2) % 4]}", PX + PW / 2, mid - 6, size: 9, color: UI.text, font: press, align: center)
+          text(str.bobber, PX + PW / 2, mid + 16, size: 6, color: UI.dim, font: press, align: center)
         } else if time <= biteAt + BITE {
-          text("!! TAP !!", PX + PW / 2, mid, size: 16, color: floor(time * 8) % 2 == 0 ? UI.gold : UI.warn, font: press, align: center)
+          text("!! ${str.tap} !!", PX + PW / 2, mid, size: 16, color: floor(time * 8) % 2 == 0 ? UI.gold : UI.warn, font: press, align: center)
         } else {
-          text("IT GOT AWAY", PX + PW / 2, mid - 6, size: 10, color: UI.text, font: press, align: center)
-          text("TAP TO CAST AGAIN", PX + PW / 2, mid + 16, size: 7, color: UI.dim, font: press, align: center)
+          text(str.gotAway, PX + PW / 2, mid - 6, size: 10, color: UI.text, font: press, align: center)
+          text(str.castAgain, PX + PW / 2, mid + 16, size: 7, color: UI.dim, font: press, align: center)
         }
       } else if fs == 3 {
         let f = FISH[fish]
@@ -866,8 +1086,8 @@ app "pixel farm" {
         let z = 0.5 + 0.22 * sin(rt * (0.9 + fish * 0.08)) + 0.14 * sin(rt * (2.3 + fish * 0.1) + 1.7)
         let bx = PX + 20
         let bw = PW - 40
-        text("TAP WHEN THE HOOK", PX + PW / 2, mid - 42, size: 7, color: UI.text, font: press, align: center)
-        text("IS ON THE FISH", PX + PW / 2, mid - 28, size: 7, color: UI.text, font: press, align: center)
+        text(str.hook1, PX + PW / 2, mid - 42, size: 7, color: UI.text, font: press, align: center)
+        text(str.hook2, PX + PW / 2, mid - 28, size: 7, color: UI.text, font: press, align: center)
         rect(bx, mid - 12, bw, 28, fill: "#2a7ac0", radius: 4 * corners)
         rect(bx + bw * (z - f.w / 2), mid - 12, bw * f.w, 28, fill: alpha("#a8e8ff", 0.45))
         image(fish0, bx + bw * z - 14, mid - 5, 28, 14, color: "#1a4a80")
@@ -882,20 +1102,20 @@ app "pixel farm" {
       } else if fs == 4 {
         let f = FISH[fish]
         image(fishImg[fish], PX + PW / 2 - 28, mid - 46, 56, 28)
-        text(f.n, PX + PW / 2, mid + 2, size: 11, color: UI.text, font: press, align: center)
-        text("+${f.v} COINS", PX + PW / 2, mid + 22, size: 8, color: UI.gold, font: press, align: center)
-        if fresh { text("NEW IN YOUR BOOK!", PX + PW / 2, mid + 40, size: 7, color: UI.go, font: press, align: center) }
-        text("TAP TO CAST AGAIN", PX + PW / 2, mid + 62, size: 6, color: UI.dim, font: press, align: center)
+        text(str.fish(fish), PX + PW / 2, mid + 2, size: 11, color: UI.text, font: press, align: center)
+        text(str.coins(f.v), PX + PW / 2, mid + 22, size: 8, color: UI.gold, font: press, align: center)
+        if fresh { text(str.newBook, PX + PW / 2, mid + 40, size: 7, color: UI.go, font: press, align: center) }
+        text(str.castAgain, PX + PW / 2, mid + 62, size: 6, color: UI.dim, font: press, align: center)
       } else {
         text(why, PX + PW / 2, mid - 6, size: 10, color: UI.text, font: press, align: center)
-        text("TAP TO CAST AGAIN", PX + PW / 2, mid + 16, size: 7, color: UI.dim, font: press, align: center)
+        text(str.castAgain, PX + PW / 2, mid + 16, size: 7, color: UI.dim, font: press, align: center)
       }
     } else {
       // the book: every fish and crop, and how many
       let found = count(caught, c => c > 0)
-      text("FISH ${found}/9", PX + 4, CY + 6, size: 8, color: UI.text, font: press)
+      text(str.fishCount(found), PX + 4, CY + 6, size: 8, color: UI.text, font: press)
       rect(PX + PW - 84, CY - 4, 84, 20, fill: UI.card, radius: 6 * corners)
-      text(snd ? "SOUND ON" : "SOUND OFF", PX + PW - 42, CY + 6, size: 6, color: snd ? UI.gold : UI.dim, font: press, align: center)
+      text(snd ? str.soundOn : str.soundOff, PX + PW - 42, CY + 6, size: 6, color: snd ? UI.gold : UI.dim, font: press, align: center)
       let BW = (PW - 12) / 3
       let BH = min(48, (PH - TH - 120) / 3)
       for i in range(9) {
@@ -907,11 +1127,11 @@ app "pixel farm" {
         } else {
           image(fishImg[i], bx + 6, by + BH / 2 - 7, 28, 14, color: SHADOW)
         }
-        text(caught[i] > 0 ? FISH[i].n : "???", bx + 40, by + BH / 2 - 7, size: 5, color: caught[i] > 0 ? UI.text : UI.dim, font: press)
-        text(caught[i] > 0 ? "x${caught[i]}" : FISH[i].h == 2 ? "AT NIGHT" : FISH[i].p >= 0.6 ? "FAR OUT" : "", bx + 40, by + BH / 2 + 7, size: 5, color: UI.dim, font: press)
+        text(caught[i] > 0 ? str.fish(i) : "???", bx + 40, by + BH / 2 - 7, size: 5, color: caught[i] > 0 ? UI.text : UI.dim, font: press)
+        text(caught[i] > 0 ? "x${caught[i]}" : FISH[i].h == 2 ? str.atNight : FISH[i].p >= 0.6 ? str.farOut : "", bx + 40, by + BH / 2 + 7, size: 5, color: UI.dim, font: press)
       }
       let gy = CY + 20 + 3 * (BH + 6) + 12
-      text("HARVESTS ${sum(grown)}", PX + 4, gy, size: 8, color: UI.text, font: press)
+      text(str.harvests(sum(grown)), PX + 4, gy, size: 8, color: UI.text, font: press)
       let GW = PW / 7
       for k in range(7) {
         let gx = PX + k * GW

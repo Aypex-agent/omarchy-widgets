@@ -6,7 +6,95 @@ app "idle lemonade" {
   // There's no game loop. The coins are `bank` plus what the businesses have made since `since`,
   // so they keep coming while the app is closed; a tap or a purchase settles them into `bank`.
 
-  meta { owl: 23; description: "An idle tycoon in pixel art: tap for coins, open a lemonade stand, a bakery, a diner, an arcade, a hotel and a bank, and level them up"; version: "1.0.2"; license: "MIT"; category: "games" }
+  meta { owl: 23; description: "An idle tycoon in pixel art: tap for coins, open a lemonade stand, a bakery, a diner, an arcade, a hotel and a bank, and level them up"; version: "1.1"; license: "MIT"; category: "games" }
+
+  // pixel font in capitals: the names sit between the icon and the price button (about 16 letters)
+  strings {
+    en {
+      biz: i => ["LEMONADE", "BAKERY", "DINER", "ARCADE", "HOTEL", "BANK"][i]
+      perSec: r => "${r}/S"
+      level: (l, r) => "LV${l} +${r}/S"
+      tap: v => "TAP +${v}"
+      hint: "TAP THE TOWN FOR COINS"
+    }
+    id {
+      biz: i => ["LIMUN", "TOKO ROTI", "KEDAI", "ARKADE", "HOTEL", "BANK"][i]
+      perSec: r => "${r}/D"
+      level: (l, r) => "LV${l} +${r}/D"
+      tap: v => "KETUK +${v}"
+      hint: "KETUK KOTA UNTUK KOIN"
+    }
+    es {
+      biz: i => ["LIMONADA", "PANADERÍA", "CAFETERÍA", "RECREATIVOS", "HOTEL", "BANCO"][i]
+      perSec: r => "${r}/S"
+      level: (l, r) => "NV${l} +${r}/S"
+      tap: v => "TOCA +${v}"
+      hint: "TOCA EL PUEBLO Y GANA MONEDAS"
+    }
+    pt {
+      biz: i => ["LIMONADA", "PADARIA", "LANCHONETE", "FLIPERAMA", "HOTEL", "BANCO"][i]
+      perSec: r => "${r}/S"
+      level: (l, r) => "NV${l} +${r}/S"
+      tap: v => "TOQUE +${v}"
+      hint: "TOQUE NA CIDADE E GANHE MOEDAS"
+    }
+    de {
+      biz: i => ["LIMONADE", "BÄCKEREI", "IMBISS", "SPIELHALLE", "HOTEL", "BANK"][i]
+      perSec: r => "${r}/S"
+      level: (l, r) => "LV${l} +${r}/S"
+      tap: v => "TIPP +${v}"
+      hint: "TIPP AUF DIE STADT FÜR MÜNZEN"
+    }
+    zh {
+      biz: i => ["柠檬水", "面包店", "餐馆", "游戏厅", "酒店", "银行"][i]
+      perSec: r => "${r}/秒"
+      level: (l, r) => "LV${l} +${r}/秒"
+      tap: v => "点击 +${v}"
+      hint: "点击小镇赚金币"
+    }
+    ru {
+      biz: i => ["ЛИМОНАД", "ПЕКАРНЯ", "ЗАКУСОЧНАЯ", "ИГРОВОЙ ЗАЛ", "ОТЕЛЬ", "БАНК"][i]
+      perSec: r => "${r}/С"
+      level: (l, r) => "УР${l} +${r}/С"
+      tap: v => "КАСАНИЕ +${v}"
+      hint: "НАЖИМАЙТЕ НА ГОРОД ЗА МОНЕТАМИ"
+    }
+    ja {
+      biz: i => ["レモネード", "パン屋", "ダイナー", "ゲームセンター", "ホテル", "銀行"][i]
+      perSec: r => "${r}/秒"
+      level: (l, r) => "LV${l} +${r}/秒"
+      tap: v => "タップ +${v}"
+      hint: "町をタップしてコインを集めます"
+    }
+    uk {
+      biz: i => ["ЛИМОНАД", "ПЕКАРНЯ", "ЗАКУСОЧНА", "ІГРОВИЙ ЗАЛ", "ГОТЕЛЬ", "БАНК"][i]
+      perSec: r => "${r}/С"
+      level: (l, r) => "РІВ${l} +${r}/С"
+      tap: v => "ДОТИК +${v}"
+      hint: "ТОРКАЙТЕСЯ МІСТА ЗА МОНЕТАМИ"
+    }
+    fr {
+      biz: i => ["LIMONADE", "BOULANGERIE", "SNACK", "ARCADE", "HÔTEL", "BANQUE"][i]
+      perSec: r => "${r}/S"
+      level: (l, r) => "NV${l} +${r}/S"
+      tap: v => "TOUCHE +${v}"
+      hint: "TOUCHE LA VILLE POUR DES PIÈCES"
+    }
+    tr {
+      biz: i => ["LİMONATA", "FIRIN", "LOKANTA", "ATARİ SALONU", "OTEL", "BANKA"][i]
+      perSec: r => "${r}/SN"
+      level: (l, r) => "SV${l} +${r}/SN"
+      tap: v => "DOKUN +${v}"
+      hint: "PARA İÇİN KASABAYA DOKUN"
+    }
+    it {
+      biz: i => ["LIMONATA", "PANETTERIA", "TAVOLA CALDA", "SALA GIOCHI", "HOTEL", "BANCA"][i]
+      perSec: r => "${r}/S"
+      level: (l, r) => "LV${l} +${r}/S"
+      tap: v => "TOCCA +${v}"
+      hint: "TOCCA LA CITTÀ PER LE MONETE"
+    }
+  }
 
   title: ""
   statusBar: false
@@ -47,12 +135,12 @@ app "idle lemonade" {
   // ---- the businesses ---------------------------------------------------------------------------
   // c is what the first one costs, r what a level earns each second
   let biz = [
-    {n: "LEMONADE", c: 10, r: 0.5},
-    {n: "BAKERY", c: 120, r: 4},
-    {n: "DINER", c: 1400, r: 30},
-    {n: "ARCADE", c: 16000, r: 220},
-    {n: "HOTEL", c: 200000, r: 1600},
-    {n: "BANK", c: 2500000, r: 12000}
+    {c: 10, r: 0.5},
+    {c: 120, r: 4},
+    {c: 1400, r: 30},
+    {c: 16000, r: 220},
+    {c: 200000, r: 1600},
+    {c: 2500000, r: 12000}
   ]
   let boost = lv.map(l => l >= 50 ? 8 : l >= 25 ? 4 : l >= 10 ? 2 : 1)
   let stars = lv.map(l => l >= 50 ? 3 : l >= 25 ? 2 : l >= 10 ? 1 : 0)
@@ -384,10 +472,10 @@ app "idle lemonade" {
       sprite(coinArt, 4 * p, (T + 3) * p, 1.6 * p, palette: pal)
       text([coins].map(fmt)[0], 19.5 * p, (T + 9.5) * p, size: 6 * p, color: "#2a1630", font: press)
       text([coins].map(fmt)[0], 19 * p, (T + 9) * p, size: 6 * p, color: "#fff4e0", font: press)
-      text("${[rate].map(fmtRate)[0]}/S", 19 * p, (T + 18) * p, size: 3 * p, color: "#2a1630", font: press)
-      text("TAP +${[tap].map(fmt)[0]}", 124 * p, (T + 9) * p, size: 3 * p, color: "#2a1630", font: press, align: end)
+      text(str.perSec([rate].map(fmtRate)[0]), 19 * p, (T + 18) * p, size: 3 * p, color: "#2a1630", font: press)
+      text(str.tap([tap].map(fmt)[0]), 124 * p, (T + 9) * p, size: 3 * p, color: "#2a1630", font: press, align: end)
       if owned == 0 && time % 1.2 < 0.8 {
-        text("TAP THE TOWN FOR COINS", 64 * p, (BB - 14) * p, size: 3 * p, color: "#2a1630", font: press, align: center)
+        text(str.hint, 64 * p, (BB - 14) * p, size: 3 * p, color: "#2a1630", font: press, align: center)
       }
 
       // ---- the businesses ----
@@ -399,8 +487,8 @@ app "idle lemonade" {
         if open[i] {
           let ic = icons[i]
           sprite(ic, (13.5 - len(ic[0]) * 0.8) * p, (ry + 9 - len(ic) * 0.8) * p, 1.6 * p, palette: pal)
-          text(biz[i].n, 25 * p, (ry + 6) * p, size: 3.4 * p, color: "#fff4e0", font: press)
-          text(lv[i] > 0 ? "LV${lv[i]} +${[income[i]].map(fmtRate)[0]}/S" : "+${[biz[i].r].map(fmtRate)[0]}/S", 25 * p, (ry + 11.5) * p, size: 2.4 * p, color: "#a8a0d0", font: press)
+          text(str.biz(i), 25 * p, (ry + 6) * p, size: 3.4 * p, color: "#fff4e0", font: press)
+          text(lv[i] > 0 ? str.level(lv[i], [income[i]].map(fmtRate)[0]) : "+${str.perSec([biz[i].r].map(fmtRate)[0])}", 25 * p, (ry + 11.5) * p, size: 2.4 * p, color: "#a8a0d0", font: press)
           // how far to the next doubling
           let g0 = goal[i] == 10 ? 0 : goal[i] == 25 ? 10 : goal[i] == 50 ? 25 : 50
           rect(25 * p, (ry + 14) * p, 54 * p, p, fill: "#16122c")

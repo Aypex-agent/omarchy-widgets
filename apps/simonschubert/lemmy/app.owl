@@ -1,7 +1,289 @@
 app "lemmy" {
-  meta { owl: 23; description: "A Lemmy reader: hot, new and top posts from across the fediverse or one community, community search, any instance, and every post's comments, threaded"; version: "1.3"; license: "MIT"; category: "news" }
+  meta { owl: 23; description: "A Lemmy reader: hot, new and top posts from across the fediverse or one community, community search, any instance, and every post's comments, threaded"; version: "1.4"; license: "MIT"; category: "news" }
+
+  strings {
+    en {
+      // The title over a post's comments.
+      comments: n => n == 1 ? "1 comment" : "${n} comments"
+      // The bottom bar's tabs, a quarter of the width each.
+      hot: "hot"; fresh: "new"; top: "top"; groups: "groups"
+      search: i => "search communities on ${i}"
+      noAnswer: i => "${i} didn't answer"
+      tryAgain: "try again"; loading: "loading…"
+      noCommunities: "no communities found"
+      // Under a community's member count, 64 dp wide.
+      members: "members"
+      instance: "instance"
+      another: "another instance, like lemmy.ca"
+      noPosts: "no posts yet"
+      pinned: "pinned"
+      offline: "offline · showing the last list"
+      deleted: "[deleted]"
+      noComments: "no comments yet"
+      commentsFailed: "the comments didn't load"
+      loadingComments: "loading the comments…"
+      hideReplies: "hide replies"
+      replies: n => n == 1 ? "1 reply" : "${n} replies"
+      repliesFailed: "the replies didn't load"
+      loadingReplies: "loading the replies…"
+      moreOn: i => "more on ${i} ↗"
+    }
+    id {
+      comments: n => "${n} komentar"
+      hot: "populer"; fresh: "baru"; top: "teratas"; groups: "grup"
+      search: i => "cari komunitas di ${i}"
+      noAnswer: i => "${i} tidak menjawab"
+      tryAgain: "coba lagi"; loading: "memuat…"
+      noCommunities: "tidak ada komunitas"
+      members: "anggota"
+      instance: "instance"
+      another: "instance lain, misalnya lemmy.ca"
+      noPosts: "belum ada postingan"
+      pinned: "disematkan"
+      offline: "offline · menampilkan daftar terakhir"
+      deleted: "[dihapus]"
+      noComments: "belum ada komentar"
+      commentsFailed: "komentar gagal dimuat"
+      loadingComments: "memuat komentar…"
+      hideReplies: "sembunyikan balasan"
+      replies: n => "${n} balasan"
+      repliesFailed: "balasan gagal dimuat"
+      loadingReplies: "memuat balasan…"
+      moreOn: i => "selengkapnya di ${i} ↗"
+    }
+    es {
+      comments: n => n == 1 ? "1 comentario" : "${n} comentarios"
+      hot: "popular"; fresh: "nuevo"; top: "top"; groups: "grupos"
+      search: i => "busca comunidades en ${i}"
+      noAnswer: i => "${i} no respondió"
+      tryAgain: "reintentar"; loading: "cargando…"
+      noCommunities: "no hay comunidades"
+      members: "miembros"
+      instance: "instancia"
+      another: "otra instancia, como lemmy.ca"
+      noPosts: "aún no hay posts"
+      pinned: "fijado"
+      offline: "sin conexión · la última lista"
+      deleted: "[borrado]"
+      noComments: "aún no hay comentarios"
+      commentsFailed: "no se cargaron los comentarios"
+      loadingComments: "cargando los comentarios…"
+      hideReplies: "ocultar respuestas"
+      replies: n => n == 1 ? "1 respuesta" : "${n} respuestas"
+      repliesFailed: "no se cargaron las respuestas"
+      loadingReplies: "cargando las respuestas…"
+      moreOn: i => "más en ${i} ↗"
+    }
+    pt {
+      comments: n => n == 1 ? "1 comentário" : "${n} comentários"
+      hot: "em alta"; fresh: "novos"; top: "top"; groups: "grupos"
+      search: i => "buscar comunidades em ${i}"
+      noAnswer: i => "${i} não respondeu"
+      tryAgain: "tentar de novo"; loading: "carregando…"
+      noCommunities: "nenhuma comunidade encontrada"
+      members: "membros"
+      instance: "instância"
+      another: "outra instância, como lemmy.ca"
+      noPosts: "nenhum post ainda"
+      pinned: "fixado"
+      offline: "offline · mostrando a última lista"
+      deleted: "[apagado]"
+      noComments: "nenhum comentário ainda"
+      commentsFailed: "os comentários não carregaram"
+      loadingComments: "carregando os comentários…"
+      hideReplies: "ocultar respostas"
+      replies: n => n == 1 ? "1 resposta" : "${n} respostas"
+      repliesFailed: "as respostas não carregaram"
+      loadingReplies: "carregando as respostas…"
+      moreOn: i => "mais em ${i} ↗"
+    }
+    de {
+      comments: n => n == 1 ? "1 kommentar" : "${n} kommentare"
+      hot: "beliebt"; fresh: "neu"; top: "top"; groups: "gruppen"
+      search: i => "communitys auf ${i} suchen"
+      noAnswer: i => "${i} antwortet nicht"
+      tryAgain: "nochmal versuchen"; loading: "lädt…"
+      noCommunities: "keine communitys gefunden"
+      members: "mitglieder"
+      instance: "instanz"
+      another: "andere instanz, z. b. lemmy.ca"
+      noPosts: "noch keine beiträge"
+      pinned: "angeheftet"
+      offline: "offline · die letzte liste"
+      deleted: "[gelöscht]"
+      noComments: "noch keine kommentare"
+      commentsFailed: "die kommentare haben nicht geladen"
+      loadingComments: "kommentare laden…"
+      hideReplies: "antworten ausblenden"
+      replies: n => n == 1 ? "1 antwort" : "${n} antworten"
+      repliesFailed: "die antworten haben nicht geladen"
+      loadingReplies: "antworten laden…"
+      moreOn: i => "mehr auf ${i} ↗"
+    }
+    zh {
+      comments: n => "${n} 条评论"
+      hot: "热门"; fresh: "最新"; top: "最佳"; groups: "社区"
+      search: i => "在 ${i} 上搜索社区"
+      noAnswer: i => "${i} 没有响应"
+      tryAgain: "重试"; loading: "加载中…"
+      noCommunities: "没有找到社区"
+      members: "成员"
+      instance: "实例"
+      another: "其他实例，例如 lemmy.ca"
+      noPosts: "还没有帖子"
+      pinned: "置顶"
+      offline: "离线 · 显示上次的列表"
+      deleted: "[已删除]"
+      noComments: "还没有评论"
+      commentsFailed: "评论加载失败"
+      loadingComments: "正在加载评论…"
+      hideReplies: "收起回复"
+      replies: n => "${n} 条回复"
+      repliesFailed: "回复加载失败"
+      loadingReplies: "正在加载回复…"
+      moreOn: i => "在 ${i} 上查看更多 ↗"
+    }
+    ru {
+      comments: n => "${n} " + (n % 10 == 1 && n % 100 != 11 ? "комментарий" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "комментария" : "комментариев")
+      hot: "горячее"; fresh: "новое"; top: "лучшее"; groups: "группы"
+      search: i => "поиск сообществ на ${i}"
+      noAnswer: i => "${i} не отвечает"
+      tryAgain: "попробовать снова"; loading: "загрузка…"
+      noCommunities: "сообщества не найдены"
+      members: "участники"
+      instance: "инстанс"
+      another: "другой инстанс, например lemmy.ca"
+      noPosts: "постов пока нет"
+      pinned: "закреплено"
+      offline: "офлайн · последний список"
+      deleted: "[удалено]"
+      noComments: "комментариев пока нет"
+      commentsFailed: "комментарии не загрузились"
+      loadingComments: "загрузка комментариев…"
+      hideReplies: "скрыть ответы"
+      replies: n => "${n} " + (n % 10 == 1 && n % 100 != 11 ? "ответ" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "ответа" : "ответов")
+      repliesFailed: "ответы не загрузились"
+      loadingReplies: "загрузка ответов…"
+      moreOn: i => "ещё на ${i} ↗"
+    }
+    ja {
+      comments: n => "コメント ${n} 件"
+      hot: "人気"; fresh: "新着"; top: "トップ"; groups: "グループ"
+      search: i => "${i} でコミュニティを検索"
+      noAnswer: i => "${i} から応答がありません"
+      tryAgain: "再試行"; loading: "読み込み中…"
+      noCommunities: "コミュニティが見つかりません"
+      members: "メンバー"
+      instance: "インスタンス"
+      another: "ほかのインスタンス（例: lemmy.ca）"
+      noPosts: "まだ投稿はありません"
+      pinned: "固定"
+      offline: "オフライン · 前回のリストです"
+      deleted: "[削除済み]"
+      noComments: "まだコメントはありません"
+      commentsFailed: "コメントを読み込めませんでした"
+      loadingComments: "コメントを読み込み中…"
+      hideReplies: "返信を隠す"
+      replies: n => "返信 ${n} 件"
+      repliesFailed: "返信を読み込めませんでした"
+      loadingReplies: "返信を読み込み中…"
+      moreOn: i => "${i} でもっと見る ↗"
+    }
+    uk {
+      comments: n => "${n} " + (n % 10 == 1 && n % 100 != 11 ? "коментар" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "коментарі" : "коментарів")
+      hot: "гаряче"; fresh: "нове"; top: "найкраще"; groups: "групи"
+      search: i => "пошук спільнот на ${i}"
+      noAnswer: i => "${i} не відповідає"
+      tryAgain: "ще раз"; loading: "завантаження…"
+      noCommunities: "спільнот не знайдено"
+      members: "учасники"
+      instance: "інстанс"
+      another: "інший інстанс, наприклад lemmy.ca"
+      noPosts: "дописів поки немає"
+      pinned: "закріплено"
+      offline: "офлайн · останній список"
+      deleted: "[видалено]"
+      noComments: "коментарів поки немає"
+      commentsFailed: "коментарі не завантажилися"
+      loadingComments: "завантаження коментарів…"
+      hideReplies: "сховати відповіді"
+      replies: n => "${n} " + (n % 10 == 1 && n % 100 != 11 ? "відповідь" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "відповіді" : "відповідей")
+      repliesFailed: "відповіді не завантажилися"
+      loadingReplies: "завантаження відповідей…"
+      moreOn: i => "більше на ${i} ↗"
+    }
+    fr {
+      comments: n => n <= 1 ? "${n} commentaire" : "${n} commentaires"
+      hot: "populaire"; fresh: "nouveau"; top: "top"; groups: "groupes"
+      search: i => "chercher des communautés sur ${i}"
+      noAnswer: i => "${i} ne répond pas"
+      tryAgain: "réessayer"; loading: "chargement…"
+      noCommunities: "aucune communauté trouvée"
+      members: "membres"
+      instance: "instance"
+      another: "une autre instance, comme lemmy.ca"
+      noPosts: "pas encore de posts"
+      pinned: "épinglé"
+      offline: "hors ligne · la dernière liste"
+      deleted: "[supprimé]"
+      noComments: "pas encore de commentaires"
+      commentsFailed: "les commentaires n'ont pas chargé"
+      loadingComments: "chargement des commentaires…"
+      hideReplies: "masquer les réponses"
+      replies: n => n <= 1 ? "${n} réponse" : "${n} réponses"
+      repliesFailed: "les réponses n'ont pas chargé"
+      loadingReplies: "chargement des réponses…"
+      moreOn: i => "plus sur ${i} ↗"
+    }
+    tr {
+      comments: n => "${n} yorum"
+      hot: "popüler"; fresh: "yeni"; top: "en iyi"; groups: "gruplar"
+      search: i => "${i} üzerinde topluluk ara"
+      noAnswer: i => "${i} yanıt vermedi"
+      tryAgain: "tekrar dene"; loading: "yükleniyor…"
+      noCommunities: "topluluk bulunamadı"
+      members: "üye"
+      instance: "sunucu"
+      another: "başka bir sunucu, ör. lemmy.ca"
+      noPosts: "henüz gönderi yok"
+      pinned: "sabit"
+      offline: "çevrimdışı · son liste"
+      deleted: "[silindi]"
+      noComments: "henüz yorum yok"
+      commentsFailed: "yorumlar yüklenemedi"
+      loadingComments: "yorumlar yükleniyor…"
+      hideReplies: "yanıtları gizle"
+      replies: n => "${n} yanıt"
+      repliesFailed: "yanıtlar yüklenemedi"
+      loadingReplies: "yanıtlar yükleniyor…"
+      moreOn: i => "${i} üzerinde daha fazla ↗"
+    }
+    it {
+      comments: n => n == 1 ? "1 commento" : "${n} commenti"
+      hot: "popolari"; fresh: "nuovi"; top: "top"; groups: "gruppi"
+      search: i => "cerca community su ${i}"
+      noAnswer: i => "${i} non risponde"
+      tryAgain: "riprova"; loading: "caricamento…"
+      noCommunities: "nessuna community trovata"
+      members: "membri"
+      instance: "istanza"
+      another: "un'altra istanza, tipo lemmy.ca"
+      noPosts: "ancora nessun post"
+      pinned: "fissato"
+      offline: "offline · l'ultima lista"
+      deleted: "[eliminato]"
+      noComments: "ancora nessun commento"
+      commentsFailed: "i commenti non si sono caricati"
+      loadingComments: "caricamento dei commenti…"
+      hideReplies: "nascondi risposte"
+      replies: n => n == 1 ? "1 risposta" : "${n} risposte"
+      repliesFailed: "le risposte non si sono caricate"
+      loadingReplies: "caricamento delle risposte…"
+      moreOn: i => "altro su ${i} ↗"
+    }
+  }
   // A post's comments are a view of their own; Back returns to the list, and from a community's list to all of them.
-  title: open != 0 ? (post.comments == 1 ? "1 comment" : "${post.comments ?? 0} comments") : community != "" ? communityTitle : "lemmy"
+  title: open != 0 ? str.comments(post.comments ?? 0) : community != "" ? communityTitle : "lemmy"
   back: open != 0 || community != ""
   onBack: { community = open == 0 ? "" : community; open = 0; expanded = []; replies = {} }
   icon: """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
@@ -132,7 +414,7 @@ app "lemmy" {
           Text { text: fmtAgo(c.time, now); style: small; color: muted; width: 32; align: end; maxLines: 1 }
         }
         if c.gone {
-          Text { text: "[deleted]"; style: small; color: muted }
+          Text { text: str.deleted; style: small; color: muted }
         } else {
           Md { t: c.text; small: depth > 0 }
         }
@@ -154,7 +436,7 @@ app "lemmy" {
         height: 32
         Image { src: icon; size: 24; tint: feed == name ? foreground : muted }
       }
-      Text { text: name == "communities" ? "groups" : name; style: small; align: center; maxLines: 1; bold: feed == name; color: feed == name ? foreground : muted }
+      Text { text: name == "communities" ? str.groups : name == "new" ? str.fresh : name == "top" ? str.top : str.hot; style: small; align: center; maxLines: 1; bold: feed == name; color: feed == name ? foreground : muted }
     }
   }
 
@@ -184,13 +466,13 @@ app "lemmy" {
         weight: 1
         gap: 12
         padding: [12, 4, 12, 12]
-        Input { text: query; placeholder: "search communities on ${instance}"; onChange: query = value; clear: true }
+        Input { text: query; placeholder: str.search(instance); onChange: query = value; clear: true }
         if comms != null && !comms.ok {
-          Text { text: "${instance} didn't answer"; color: muted }
-          Button { text: "try again"; onTap: refresh() }
+          Text { text: str.noAnswer(instance); color: muted }
+          Button { text: str.tryAgain; onTap: refresh() }
         } else {
-          if comms == null || comms.out == null { Text { text: "loading…"; color: muted } }
-          if comms != null && comms.ok && len(communities) == 0 { Text { text: "no communities found"; color: muted } }
+          if comms == null || comms.out == null { Text { text: str.loading; color: muted } }
+          if comms != null && comms.ok && len(communities) == 0 { Text { text: str.noCommunities; color: muted } }
         }
         for c in communities key "${c.name}@${c.host}" {
           Row {
@@ -221,12 +503,12 @@ app "lemmy" {
               width: 64
               align: end
               Text { text: fmtNum(c.subs, {compact: true}); bold: true; align: end; maxLines: 1 }
-              Text { text: "members"; style: small; color: muted; align: end; maxLines: 1 }
+              Text { text: str.members; style: small; color: muted; align: end; maxLines: 1 }
             }
           }
         }
         Box { height: 1; fill: width; background: alpha(muted, 0.25) }
-        Text { text: "instance"; style: label; color: muted }
+        Text { text: str.instance; style: label; color: muted }
         Flow {
           gap: 8
           Pick { name: "lemmy.world" }
@@ -236,7 +518,7 @@ app "lemmy" {
           Pick { name: "feddit.org" }
           Pick { name: "lemmy.zip" }
         }
-        Input { text: instance; placeholder: "another instance, like lemmy.ca"; onSubmit: { instance = lower(trim(value)); community = ""; query = ""; savedHot = []; savedNew = []; savedTop = [] } }
+        Input { text: instance; placeholder: str.another; onSubmit: { instance = lower(trim(value)); community = ""; query = ""; savedHot = []; savedNew = []; savedTop = [] } }
       }
     } else if open == 0 {
       Column {
@@ -245,8 +527,8 @@ app "lemmy" {
         gap: 14
         padding: [12, 4, 12, 12]
         if len(posts) == 0 {
-          Text { text: offline ? "${instance} didn't answer" : live != null ? "no posts yet" : "loading…"; color: muted }
-          if offline { Button { text: "try again"; onTap: refresh() } }
+          Text { text: offline ? str.noAnswer(instance) : live != null ? str.noPosts : str.loading; color: muted }
+          if offline { Button { text: str.tryAgain; onTap: refresh() } }
         }
         for s in posts key s.id {
           let read = contains(seen, s.id)
@@ -260,7 +542,7 @@ app "lemmy" {
               onTap: { seen = read ? seen : (seen + [s.id]).drop(max(0, len(seen) - 499)); post = s; open = s.url == "" ? s.id : 0; expanded = []; replies = {}; url(s.url == "" ? null : s.url) }
               Text { text: s.title; bold: !read; color: read ? muted : foreground; maxLines: 3 }
               Text { text: community != "" ? (s.site == "" ? s.author : s.site) : "c/${s.community}${s.host == instance ? "" : "@" + s.host}"; style: small; color: muted; maxLines: 1 }
-              Text { text: "${s.pinned ? "pinned · " : ""}▲ ${s.score} · ${s.author}"; style: small; color: green; maxLines: 1 }
+              Text { text: "${s.pinned ? str.pinned + " · " : ""}▲ ${s.score} · ${s.author}"; style: small; color: green; maxLines: 1 }
             }
             if s.thumb != "" {
               Image { src: s.thumb; width: 56; height: 56; fit: cover; radius: 6 * corners; onTap: { seen = read ? seen : (seen + [s.id]).drop(max(0, len(seen) - 499)); post = s; open = s.url == "" ? s.id : 0; expanded = []; replies = {}; url(s.url == "" ? null : s.url) } }
@@ -280,7 +562,7 @@ app "lemmy" {
           }
         }
         if offline && len(posts) > 0 {
-          Text { text: "offline · showing the last list"; style: label; color: muted }
+          Text { text: str.offline; style: label; color: muted }
         }
       }
     } else {
@@ -306,8 +588,8 @@ app "lemmy" {
         Box { height: 1; fill: width; background: alpha(muted, 0.25) }
         if tree == null || len(tree) == 0 {
           Column {
-            Text { text: tree != null || post.comments == 0 ? "no comments yet" : thread != null && !thread.ok ? "the comments didn't load" : "loading the comments…"; color: muted }
-            if tree == null && thread != null && !thread.ok { Button { text: "try again"; onTap: refresh() } }
+            Text { text: tree != null || post.comments == 0 ? str.noComments : thread != null && !thread.ok ? str.commentsFailed : str.loadingComments; color: muted }
+            if tree == null && thread != null && !thread.ok { Button { text: str.tryAgain; onTap: refresh() } }
           }
         }
         for c in (tree ?? []).take(80) key c.id {
@@ -324,7 +606,7 @@ app "lemmy" {
             }
             if c.kids > 0 {
               Text {
-                text: unfolded ? "hide replies" : c.kids == 1 ? "1 reply" : "${c.kids} replies"
+                text: unfolded ? str.hideReplies : str.replies(c.kids)
                 style: small
                 color: accent
                 onTap: { unfold = unfolded ? unfold : c.id; expanded = unfolded ? expanded.filter(e => e != c.id) : expanded + [c.id] }
@@ -332,14 +614,14 @@ app "lemmy" {
             }
             if unfolded {
               if len(all) == 0 {
-                Text { text: reply != null && !reply.ok && unfold == c.id ? "the replies didn't load" : "loading the replies…"; style: small; color: muted }
+                Text { text: reply != null && !reply.ok && unfold == c.id ? str.repliesFailed : str.loadingReplies; style: small; color: muted }
               }
               for r in all.take(120) key r.c.id { Comment { c: r.c; depth: r.d } }
             }
           }
         }
         if tree != null && len(tree) > 80 {
-          Text { text: "more on ${instance} ↗"; color: accent; onTap: url("https://${instance}/post/${open}") }
+          Text { text: str.moreOn(instance); color: accent; onTap: url("https://${instance}/post/${open}") }
         }
       }
     }

@@ -7,7 +7,58 @@ app "night owl" {
   // obstacles and fireflies come from the run's seed, and a tap starts a new arc: from that arc
   // follows the moment the owl next hits something (`dieAt`), so a frame only has to draw.
 
-  meta { owl: 12; description: "A one-button pixel art runner: an owl jumps and flaps through a moonlit forest, over stumps and brambles, catching fireflies"; version: "1.1"; license: "MIT"; category: "games" }
+  meta { owl: 16; description: "A one-button pixel art runner: an owl jumps and flaps through a moonlit forest, over stumps and brambles, catching fireflies"; version: "1.2"; license: "MIT"; category: "games" }
+
+  strings {
+    en {
+      start: "TAP TO START"; howTo: "TAP TO JUMP, AGAIN TO FLAP"; best: n => "BEST ${n}"; hi: s => "HI ${s}"; over: "GAME OVER"
+      score: n => "SCORE ${n}"; again: "TAP TO RUN AGAIN"
+    }
+    id {
+      start: "KETUK UNTUK MULAI"; howTo: "KETUK UNTUK LOMPAT, LAGI UNTUK KEPAK"; best: n => "TERBAIK ${n}"; hi: s => "TOP ${s}"
+      over: "PERMAINAN USAI"; score: n => "SKOR ${n}"; again: "KETUK UNTUK LARI LAGI"
+    }
+    es {
+      start: "TOCA PARA EMPEZAR"; howTo: "TOCA PARA SALTAR, OTRA VEZ PARA ALETEAR"; best: n => "RÉCORD ${n}"; hi: s => "RÉC ${s}"
+      over: "FIN DEL JUEGO"; score: n => "PUNTOS ${n}"; again: "TOCA PARA CORRER OTRA VEZ"
+    }
+    pt {
+      start: "TOQUE PARA COMEÇAR"; howTo: "TOQUE: PULA. DE NOVO: BATE ASAS"; best: n => "RECORDE ${n}"; hi: s => "REC ${s}"
+      over: "FIM DE JOGO"; score: n => "PONTOS ${n}"; again: "TOQUE PARA CORRER DE NOVO"
+    }
+    de {
+      start: "TIPP ZUM STARTEN"; howTo: "TIPP ZUM SPRINGEN, NOCHMAL ZUM FLATTERN"; best: n => "BESTWERT ${n}"; hi: s => "HI ${s}"
+      over: "GAME OVER"; score: n => "PUNKTE ${n}"; again: "TIPP FÜR NOCH EINEN LAUF"
+    }
+    zh {
+      start: "点击开始"; howTo: "点击跳跃，再点一次扑翅"; best: n => "最佳 ${n}"; hi: s => "最高 ${s}"; over: "游戏结束"; score: n => "得分 ${n}"
+      again: "点击再跑一次"
+    }
+    ru {
+      start: "НАЖМИТЕ, ЧТОБЫ НАЧАТЬ"; howTo: "НАЖМИТЕ — ПРЫЖОК, ЕЩЁ РАЗ — ВЗМАХ"; best: n => "РЕКОРД ${n}"; hi: s => "РЕК ${s}"
+      over: "ИГРА ОКОНЧЕНА"; score: n => "СЧЁТ ${n}"; again: "НАЖМИТЕ, ЧТОБЫ БЕЖАТЬ СНОВА"
+    }
+    ja {
+      start: "タップでスタート"; howTo: "タップでジャンプ、もう一度で羽ばたき"; best: n => "ベスト ${n}"; hi: s => "ハイ ${s}"; over: "ゲームオーバー"; score: n => "スコア ${n}"
+      again: "タップでもう一度"
+    }
+    uk {
+      start: "ТОРКНІТЬСЯ, ЩОБ ПОЧАТИ"; howTo: "ТОРКНІТЬСЯ — СТРИБОК, ЩЕ РАЗ — ПОМАХ"; best: n => "РЕКОРД ${n}"; hi: s => "РЕК ${s}"
+      over: "ГРУ ЗАКІНЧЕНО"; score: n => "РАХУНОК ${n}"; again: "ТОРКНІТЬСЯ, ЩОБ БІГТИ ЗНОВУ"
+    }
+    fr {
+      start: "TOUCHE POUR COMMENCER"; howTo: "TOUCHE POUR SAUTER, ENCORE POUR VOLER"; best: n => "RECORD ${n}"; hi: s => "REC ${s}"
+      over: "PARTIE TERMINÉE"; score: n => "SCORE ${n}"; again: "TOUCHE POUR REJOUER"
+    }
+    tr {
+      start: "BAŞLAMAK İÇİN DOKUN"; howTo: "ZIPLAMAK İÇİN DOKUN, KANAT İÇİN TEKRAR"; best: n => "EN İYİ ${n}"; hi: s => "EN İYİ ${s}"
+      over: "OYUN BİTTİ"; score: n => "SKOR ${n}"; again: "TEKRAR KOŞMAK İÇİN DOKUN"
+    }
+    it {
+      start: "TOCCA PER INIZIARE"; howTo: "TOCCA PER SALTARE, ANCORA PER VOLARE"; best: n => "RECORD ${n}"; hi: s => "REC ${s}"
+      over: "FINE PARTITA"; score: n => "PUNTI ${n}"; again: "TOCCA PER CORRERE ANCORA"
+    }
+  }
 
   title: ""
   statusBar: false
@@ -668,17 +719,17 @@ app "night owl" {
     if fresh {
       text("NIGHT OWL", width / 2 + p, (GY * 0.42) * p + p, size: 9 * p, color: "#141436", font: press, align: center)
       text("NIGHT OWL", width / 2, (GY * 0.42) * p, size: 9 * p, color: "#ffe46b", font: press, align: center)
-      if time % 1.2 < 0.8 { text("TAP TO START", width / 2, (GY * 0.42 + 16) * p, size: 3.5 * p, color: "#e8e0ff", font: press, align: center) }
-      text("TAP TO JUMP, AGAIN TO FLAP", width / 2, (GY + 54) * p, size: 3 * p, color: "#8a7aa0", font: press, align: center)
-      if best > 0 { text("BEST ${best}", width / 2, (GY + 62) * p, size: 3 * p, color: "#8a7aa0", font: press, align: center) }
+      if time % 1.2 < 0.8 { text(str.start, width / 2, (GY * 0.42 + 16) * p, size: 3.5 * p, color: "#e8e0ff", font: press, align: center) }
+      text(str.howTo, width / 2, (GY + 54) * p, size: 3 * p, color: "#8a7aa0", font: press, align: center)
+      if best > 0 { text(str.best(best), width / 2, (GY + 62) * p, size: 3 * p, color: "#8a7aa0", font: press, align: center) }
     } else {
       text(pad(str(score), 5, "0"), 6 * p, 8 * p, size: 4 * p, color: "#fff3d6", font: press)
-      text("HI ${pad(str(max(best, score)), 5, "0")}", width - 6 * p, 8 * p, size: 4 * p, color: "#8a7aa0", font: press, align: end)
+      text(str.hi(pad(str(max(best, score)), 5, "0")), width - 6 * p, 8 * p, size: 4 * p, color: "#8a7aa0", font: press, align: end)
       if dead {
-        text("GAME OVER", width / 2 + p, (GY * 0.42) * p + p, size: 7 * p, color: "#141436", font: press, align: center)
-        text("GAME OVER", width / 2, (GY * 0.42) * p, size: 7 * p, color: "#ff8aa0", font: press, align: center)
-        text("SCORE ${final > 0 ? final : score}", width / 2, (GY * 0.42 + 12) * p, size: 4 * p, color: "#fff3d6", font: press, align: center)
-        if since > 0.8 && time % 1.2 < 0.8 { text("TAP TO RUN AGAIN", width / 2, (GY * 0.42 + 24) * p, size: 3.5 * p, color: "#e8e0ff", font: press, align: center) }
+        text(str.over, width / 2 + p, (GY * 0.42) * p + p, size: 7 * p, color: "#141436", font: press, align: center)
+        text(str.over, width / 2, (GY * 0.42) * p, size: 7 * p, color: "#ff8aa0", font: press, align: center)
+        text(str.score(final > 0 ? final : score), width / 2, (GY * 0.42 + 12) * p, size: 4 * p, color: "#fff3d6", font: press, align: center)
+        if since > 0.8 && time % 1.2 < 0.8 { text(str.again, width / 2, (GY * 0.42 + 24) * p, size: 3.5 * p, color: "#e8e0ff", font: press, align: center) }
       }
     }
   }

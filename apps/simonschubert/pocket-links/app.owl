@@ -8,7 +8,7 @@ app "pocket links" {
   // forward 60 times a second for up to ten seconds, and the canvas draws the step the clock is
   // in. When the film has stopped, a trigger settles the stroke.
 
-  meta { owl: 23; description: "Pixel art mini golf: nine holes of walls, corner banks, bumpers, sand, slopes and water; drag back to aim, let go to putt, and beat your best round"; version: "1.1"; license: "MIT"; category: "games" }
+  meta { owl: 23; description: "Pixel art mini golf: nine holes of walls, corner banks, bumpers, sand, slopes and water; drag back to aim, let go to putt, and beat your best round"; version: "1.2"; license: "MIT"; category: "games" }
 
   title: ""
   statusBar: false
@@ -30,6 +30,276 @@ app "pocket links" {
     <rect x="84" y="164" width="8" height="8" fill="#d6dbe0"/>
     <rect x="60" y="156" width="8" height="8" fill="#ffffff"/>
   </svg>"""
+
+  // Everything is drawn in the pixel font, in capitals. Widths in art pixels (q): the bar names
+  // 13 characters at most, the card's word 13, the title's buttons 15.
+  strings {
+    en {
+      hole: n => "HOLE ${n}"
+      par: p => "PAR ${p}"
+      stroke: n => "STROKE ${n}"
+      // the strokes against par when it's level, in the middle of the bottom line
+      evenShort: "E"
+      evenWord: "EVEN"
+      hint: "DRAG BACK, LET GO TO PUTT"
+      holeName: i => ["FIRST PUTT", "DOGLEG", "SAND TRAP", "THE CREEK", "ROLLING HILLS", "PINBALL", "SWITCHBACK", "ISLAND GREEN", "GRAND FINALE"][i]
+      pickedUp: "PICKED UP"; holeInOne: "HOLE IN ONE!"; albatross: "ALBATROSS!"; eagle: "EAGLE!"; birdie: "BIRDIE!"
+      parWord: "PAR"; bogey: "BOGEY"; doubleBogey: "DOUBLE BOGEY"
+      strokesPar: (n, p) => "${n} STROKE${n == 1 ? "" : "S"} - PAR ${p}"
+      tapScorecard: "TAP FOR THE SCORECARD"
+      tapHole: n => "TAP FOR HOLE ${n}"
+      scorecard: "SCORECARD"
+      bestRound: "BEST ROUND!"
+      best: b => "BEST ${b}"
+      tapAgain: "TAP TO PLAY AGAIN"
+      tagline: "NINE HOLES OF MINI GOLF"
+      bestLine: (b, p) => "BEST ROUND ${b} - PAR ${p}"
+      cont: "CONTINUE"; newRound: "NEW ROUND"
+      teeOff: "TAP TO TEE OFF"
+    }
+    id {
+      hole: n => "LUBANG ${n}"
+      par: p => "PAR ${p}"
+      stroke: n => "PUKULAN ${n}"
+      evenShort: "±0"
+      evenWord: "PAR"
+      hint: "TARIK MUNDUR, LEPAS UNTUK PUKUL"
+      holeName: i => ["PUTT PERTAMA", "DOGLEG", "BUNKER PASIR", "SUNGAI KECIL", "PERBUKITAN", "PINBALL", "ZIG-ZAG", "GREEN PULAU", "FINAL AKBAR"][i]
+      pickedUp: "BOLA DIAMBIL"; holeInOne: "HOLE IN ONE!"; albatross: "ALBATROSS!"; eagle: "EAGLE!"; birdie: "BIRDIE!"
+      parWord: "PAR"; bogey: "BOGEY"; doubleBogey: "DOUBLE BOGEY"
+      strokesPar: (n, p) => "${n} PUKULAN - PAR ${p}"
+      tapScorecard: "KETUK UNTUK KARTU SKOR"
+      tapHole: n => "KETUK UNTUK LUBANG ${n}"
+      scorecard: "KARTU SKOR"
+      bestRound: "SKOR TERBAIK!"
+      best: b => "TERBAIK ${b}"
+      tapAgain: "KETUK UNTUK MAIN LAGI"
+      tagline: "SEMBILAN LUBANG MINI GOLF"
+      bestLine: (b, p) => "SKOR TERBAIK ${b} - PAR ${p}"
+      cont: "LANJUTKAN"; newRound: "RONDE BARU"
+      teeOff: "KETUK UNTUK MULAI"
+    }
+    es {
+      hole: n => "HOYO ${n}"
+      par: p => "PAR ${p}"
+      stroke: n => "GOLPE ${n}"
+      evenShort: "±0"
+      evenWord: "PAR"
+      hint: "ARRASTRA ATRÁS, SUELTA Y GOLPEA"
+      holeName: i => ["PRIMER PUTT", "DOGLEG", "BÚNKER", "EL ARROYO", "COLINAS", "PINBALL", "ZIGZAG", "GREEN ISLA", "GRAN FINAL"][i]
+      pickedUp: "RECOGIDA"; holeInOne: "¡HOYO EN UNO!"; albatross: "¡ALBATROS!"; eagle: "¡ÁGUILA!"; birdie: "¡BIRDIE!"
+      parWord: "PAR"; bogey: "BOGEY"; doubleBogey: "DOBLE BOGEY"
+      strokesPar: (n, p) => "${n} GOLPE${n == 1 ? "" : "S"} - PAR ${p}"
+      tapScorecard: "TOCA PARA VER LA TARJETA"
+      tapHole: n => "TOCA PARA EL HOYO ${n}"
+      scorecard: "TARJETA"
+      bestRound: "¡MEJOR RONDA!"
+      best: b => "MEJOR ${b}"
+      tapAgain: "TOCA PARA JUGAR DE NUEVO"
+      tagline: "NUEVE HOYOS DE MINIGOLF"
+      bestLine: (b, p) => "MEJOR RONDA ${b} - PAR ${p}"
+      cont: "CONTINUAR"; newRound: "NUEVA RONDA"
+      teeOff: "TOCA PARA SALIR"
+    }
+    pt {
+      hole: n => "BURACO ${n}"
+      par: p => "PAR ${p}"
+      stroke: n => "TACADA ${n}"
+      evenShort: "±0"
+      evenWord: "PAR"
+      hint: "ARRASTE PARA TRÁS E SOLTE"
+      holeName: i => ["PRIMEIRO PUTT", "DOGLEG", "BUNKER", "O RIACHO", "COLINAS", "PINBALL", "ZIGUE-ZAGUE", "GREEN ILHA", "GRANDE FINAL"][i]
+      pickedUp: "RECOLHIDA"; holeInOne: "HOLE IN ONE!"; albatross: "ALBATROZ!"; eagle: "EAGLE!"; birdie: "BIRDIE!"
+      parWord: "PAR"; bogey: "BOGEY"; doubleBogey: "DUPLO BOGEY"
+      strokesPar: (n, p) => "${n} TACADA${n == 1 ? "" : "S"} - PAR ${p}"
+      tapScorecard: "TOQUE PARA VER O CARTÃO"
+      tapHole: n => "TOQUE PARA O BURACO ${n}"
+      scorecard: "CARTÃO"
+      bestRound: "MELHOR RODADA!"
+      best: b => "MELHOR ${b}"
+      tapAgain: "TOQUE PARA JOGAR DE NOVO"
+      tagline: "NOVE BURACOS DE MINIGOLFE"
+      bestLine: (b, p) => "MELHOR RODADA ${b} - PAR ${p}"
+      cont: "CONTINUAR"; newRound: "NOVA RODADA"
+      teeOff: "TOQUE PARA COMEÇAR"
+    }
+    de {
+      hole: n => "LOCH ${n}"
+      par: p => "PAR ${p}"
+      stroke: n => "SCHLAG ${n}"
+      evenShort: "±0"
+      evenWord: "PAR"
+      hint: "ZIEH ZURÜCK, LASS LOS ZUM PUTTEN"
+      holeName: i => ["ERSTER PUTT", "DOGLEG", "SANDBUNKER", "DER BACH", "HÜGELLAND", "FLIPPER", "SERPENTINE", "INSELGRÜN", "DAS FINALE"][i]
+      pickedUp: "AUFGEHOBEN"; holeInOne: "HOLE-IN-ONE!"; albatross: "ALBATROS!"; eagle: "EAGLE!"; birdie: "BIRDIE!"
+      parWord: "PAR"; bogey: "BOGEY"; doubleBogey: "DOPPELBOGEY"
+      strokesPar: (n, p) => "${n} ${n == 1 ? "SCHLAG" : "SCHLÄGE"} - PAR ${p}"
+      tapScorecard: "TIPP FÜR DIE SCOREKARTE"
+      tapHole: n => "TIPP FÜR LOCH ${n}"
+      scorecard: "SCOREKARTE"
+      bestRound: "BESTE RUNDE!"
+      best: b => "BESTE ${b}"
+      tapAgain: "TIPP FÜR NOCH EINE RUNDE"
+      tagline: "NEUN LÖCHER MINIGOLF"
+      bestLine: (b, p) => "BESTE RUNDE ${b} - PAR ${p}"
+      cont: "WEITER"; newRound: "NEUE RUNDE"
+      teeOff: "TIPP ZUM ABSCHLAG"
+    }
+    zh {
+      hole: n => "第${n}洞"
+      par: p => "标准杆 ${p}"
+      stroke: n => "杆数 ${n}"
+      evenShort: "±0"
+      evenWord: "平标准杆"
+      hint: "向后拖动，松手推杆"
+      holeName: i => ["第一推", "狗腿洞", "沙坑", "小溪", "起伏山丘", "弹珠台", "之字弯道", "岛屿果岭", "压轴大戏"][i]
+      pickedUp: "已捡球"; holeInOne: "一杆进洞！"; albatross: "信天翁！"; eagle: "老鹰！"; birdie: "小鸟！"
+      parWord: "标准杆"; bogey: "柏忌"; doubleBogey: "双柏忌"
+      strokesPar: (n, p) => "${n} 杆 - 标准杆 ${p}"
+      tapScorecard: "点按查看记分卡"
+      tapHole: n => "点按进入第${n}洞"
+      scorecard: "记分卡"
+      bestRound: "最佳成绩！"
+      best: b => "最佳 ${b}"
+      tapAgain: "点按再玩一次"
+      tagline: "九洞迷你高尔夫"
+      bestLine: (b, p) => "最佳成绩 ${b} - 标准杆 ${p}"
+      cont: "继续"; newRound: "新一轮"
+      teeOff: "点按开球"
+    }
+    ru {
+      hole: n => "ЛУНКА ${n}"
+      par: p => "ПАР ${p}"
+      stroke: n => "УДАР ${n}"
+      evenShort: "±0"
+      evenWord: "ПАР"
+      hint: "ПОТЯНИТЕ НАЗАД И ОТПУСТИТЕ"
+      holeName: i => ["ПЕРВЫЙ ПАТТ", "ДОГЛЕГ", "БУНКЕР", "РУЧЕЙ", "ХОЛМЫ", "ПИНБОЛ", "СЕРПАНТИН", "ОСТРОВ", "ФИНАЛ"][i]
+      pickedUp: "МЯЧ ПОДНЯТ"; holeInOne: "ЭЙС!"; albatross: "АЛЬБАТРОС!"; eagle: "ИГЛ!"; birdie: "БЁРДИ!"
+      parWord: "ПАР"; bogey: "БОГИ"; doubleBogey: "ДАБЛ-БОГИ"
+      strokesPar: (n, p) => "${n} ${n % 10 == 1 && n % 100 != 11 ? "УДАР" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "УДАРА" : "УДАРОВ"} - ПАР ${p}"
+      tapScorecard: "НАЖМИТЕ ДЛЯ КАРТЫ СЧЁТА"
+      tapHole: n => "НАЖМИТЕ: ЛУНКА ${n}"
+      scorecard: "КАРТА СЧЁТА"
+      bestRound: "ЛУЧШИЙ РАУНД!"
+      best: b => "РЕКОРД ${b}"
+      tapAgain: "НАЖМИТЕ, ЧТОБЫ СЫГРАТЬ ЕЩЁ"
+      tagline: "ДЕВЯТЬ ЛУНОК МИНИ-ГОЛЬФА"
+      bestLine: (b, p) => "ЛУЧШИЙ РАУНД ${b} - ПАР ${p}"
+      cont: "ПРОДОЛЖИТЬ"; newRound: "НОВЫЙ РАУНД"
+      teeOff: "НАЖМИТЕ, ЧТОБЫ НАЧАТЬ"
+    }
+    ja {
+      hole: n => "${n}番ホール"
+      par: p => "パー${p}"
+      stroke: n => "${n}打"
+      evenShort: "E"
+      evenWord: "イーブン"
+      hint: "後ろに引いて離すとパット"
+      holeName: i => ["ファーストパット", "ドッグレッグ", "バンカー", "小川", "なだらかな丘", "ピンボール", "つづら折り", "アイランドグリーン", "グランドフィナーレ"][i]
+      pickedUp: "ギブアップ"; holeInOne: "ホールインワン！"; albatross: "アルバトロス！"; eagle: "イーグル！"; birdie: "バーディー！"
+      parWord: "パー"; bogey: "ボギー"; doubleBogey: "ダブルボギー"
+      strokesPar: (n, p) => "${n}打 - パー${p}"
+      tapScorecard: "タップでスコアカード"
+      tapHole: n => "タップで${n}番ホールへ"
+      scorecard: "スコアカード"
+      bestRound: "ベストスコア！"
+      best: b => "ベスト ${b}"
+      tapAgain: "タップでもう一度"
+      tagline: "9ホールのミニゴルフ"
+      bestLine: (b, p) => "ベスト ${b} - パー${p}"
+      cont: "つづける"; newRound: "新しいラウンド"
+      teeOff: "タップでティーオフ"
+    }
+    uk {
+      hole: n => "ЛУНКА ${n}"
+      par: p => "ПАР ${p}"
+      stroke: n => "УДАР ${n}"
+      evenShort: "±0"
+      evenWord: "ПАР"
+      hint: "ПОТЯГНІТЬ НАЗАД І ВІДПУСТІТЬ"
+      holeName: i => ["ПЕРШИЙ ПАТ", "ДОГЛЕГ", "БУНКЕР", "СТРУМОК", "ПАГОРБИ", "ПІНБОЛ", "СЕРПАНТИН", "ОСТРІВ", "ФІНАЛ"][i]
+      pickedUp: "М'ЯЧ ПІДНЯТО"; holeInOne: "ЕЙС!"; albatross: "АЛЬБАТРОС!"; eagle: "ІГЛ!"; birdie: "БЕРДІ!"
+      parWord: "ПАР"; bogey: "БОГІ"; doubleBogey: "ДАБЛ-БОГІ"
+      strokesPar: (n, p) => "${n} ${n % 10 == 1 && n % 100 != 11 ? "УДАР" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "УДАРИ" : "УДАРІВ"} - ПАР ${p}"
+      tapScorecard: "НАТИСНІТЬ ДЛЯ РАХУНКУ"
+      tapHole: n => "НАТИСНІТЬ: ЛУНКА ${n}"
+      scorecard: "КАРТКА РАХУНКУ"
+      bestRound: "НАЙКРАЩИЙ РАУНД!"
+      best: b => "РЕКОРД ${b}"
+      tapAgain: "НАТИСНІТЬ, ЩОБ ГРАТИ ЗНОВУ"
+      tagline: "ДЕВ'ЯТЬ ЛУНОК МІНІ-ГОЛЬФУ"
+      bestLine: (b, p) => "НАЙКРАЩИЙ РАУНД ${b} - ПАР ${p}"
+      cont: "ПРОДОВЖИТИ"; newRound: "НОВИЙ РАУНД"
+      teeOff: "НАТИСНІТЬ, ЩОБ ПОЧАТИ"
+    }
+    fr {
+      hole: n => "TROU ${n}"
+      par: p => "PAR ${p}"
+      stroke: n => "COUP ${n}"
+      evenShort: "±0"
+      evenWord: "PAR"
+      hint: "TIRE EN ARRIÈRE ET LÂCHE"
+      holeName: i => ["PREMIER PUTT", "DOGLEG", "BUNKER", "LE RUISSEAU", "COLLINES", "FLIPPER", "LACETS", "GREEN ÎLOT", "GRAND FINAL"][i]
+      pickedUp: "RAMASSÉE"; holeInOne: "TROU EN UN !"; albatross: "ALBATROS !"; eagle: "EAGLE !"; birdie: "BIRDIE !"
+      parWord: "PAR"; bogey: "BOGEY"; doubleBogey: "DOUBLE BOGEY"
+      strokesPar: (n, p) => "${n} COUP${n > 1 ? "S" : ""} - PAR ${p}"
+      tapScorecard: "TOUCHE POUR LA CARTE"
+      tapHole: n => "TOUCHE POUR LE TROU ${n}"
+      scorecard: "CARTE DE SCORE"
+      bestRound: "MEILLEURE PARTIE !"
+      best: b => "RECORD ${b}"
+      tapAgain: "TOUCHE POUR REJOUER"
+      tagline: "NEUF TROUS DE MINIGOLF"
+      bestLine: (b, p) => "MEILLEURE PARTIE ${b} - PAR ${p}"
+      cont: "CONTINUER"; newRound: "NOUVELLE PARTIE"
+      teeOff: "TOUCHE POUR COMMENCER"
+    }
+    tr {
+      hole: n => "${n}. DELİK"
+      par: p => "PAR ${p}"
+      stroke: n => "VURUŞ ${n}"
+      evenShort: "±0"
+      evenWord: "PAR"
+      hint: "GERİ ÇEK, VURMAK İÇİN BIRAK"
+      holeName: i => ["İLK PUTT", "DOGLEG", "KUM TUZAĞI", "DERE", "TEPELER", "PİNBALL", "ZİKZAK", "ADA GREEN", "BÜYÜK FİNAL"][i]
+      pickedUp: "TOP ALINDI"; holeInOne: "HOLE IN ONE!"; albatross: "ALBATROS!"; eagle: "EAGLE!"; birdie: "BIRDIE!"
+      parWord: "PAR"; bogey: "BOGEY"; doubleBogey: "ÇİFT BOGEY"
+      strokesPar: (n, p) => "${n} VURUŞ - PAR ${p}"
+      tapScorecard: "SKOR KARTI İÇİN DOKUN"
+      tapHole: n => "${n}. DELİK İÇİN DOKUN"
+      scorecard: "SKOR KARTI"
+      bestRound: "EN İYİ TUR!"
+      best: b => "EN İYİ ${b}"
+      tapAgain: "TEKRAR OYNAMAK İÇİN DOKUN"
+      tagline: "DOKUZ DELİKLİ MİNİ GOLF"
+      bestLine: (b, p) => "EN İYİ TUR ${b} - PAR ${p}"
+      cont: "DEVAM"; newRound: "YENİ TUR"
+      teeOff: "BAŞLAMAK İÇİN DOKUN"
+    }
+    it {
+      hole: n => "BUCA ${n}"
+      par: p => "PAR ${p}"
+      stroke: n => "COLPO ${n}"
+      evenShort: "±0"
+      evenWord: "PAR"
+      hint: "TRASCINA INDIETRO E RILASCIA"
+      holeName: i => ["PRIMO PUTT", "DOGLEG", "BUNKER", "IL RUSCELLO", "COLLINE", "FLIPPER", "TORNANTI", "GREEN ISOLA", "GRAN FINALE"][i]
+      pickedUp: "RACCOLTA"; holeInOne: "BUCA IN UNO!"; albatross: "ALBATROS!"; eagle: "EAGLE!"; birdie: "BIRDIE!"
+      parWord: "PAR"; bogey: "BOGEY"; doubleBogey: "DOPPIO BOGEY"
+      strokesPar: (n, p) => "${n} ${n == 1 ? "COLPO" : "COLPI"} - PAR ${p}"
+      tapScorecard: "TOCCA PER IL PUNTEGGIO"
+      tapHole: n => "TOCCA PER LA BUCA ${n}"
+      scorecard: "SCORECARD"
+      bestRound: "GIRO MIGLIORE!"
+      best: b => "RECORD ${b}"
+      tapAgain: "TOCCA PER RIGIOCARE"
+      tagline: "NOVE BUCHE DI MINIGOLF"
+      bestLine: (b, p) => "GIRO MIGLIORE ${b} - PAR ${p}"
+      cont: "CONTINUA"; newRound: "NUOVO GIRO"
+      teeOff: "TOCCA PER INIZIARE"
+    }
+  }
 
   // "title", "play", "holed" (the card after a hole) or "round" (the scorecard after the ninth)
   state mode = "title" persist
@@ -295,7 +565,7 @@ app "pocket links" {
 
   // the strokes over or under par on the holes played
   let rel = sum(range(9).map(i => cards[i] > 0 ? cards[i] - PARS[i] : 0))
-  let relText = rel == 0 ? "E" : rel > 0 ? "+${rel}" : "${rel}"
+  let relText = rel == 0 ? str.evenShort : rel > 0 ? "+${rel}" : "${rel}"
 
   when shotT == -1 && time != tapT { shotT = time }
   // The putt is over: in the cup the hole is done; in the water it costs a stroke and the ball
@@ -567,12 +837,12 @@ app "pocket links" {
       // ---- the bars ----
       let hy = OY - 8 * q
       let ly = OY + CH + 7 * q
-      text("HOLE ${hole + 1}", OX + 2 * q, hy, size: 4 * q, color: "#f4f0dc", font: press)
-      text(HOLES[hole].name, SW / 2 + 6 * q, hy, size: 2.6 * q, color: "#8fbf8f", font: press, align: center)
+      text(str.hole(hole + 1), OX + 2 * q, hy, size: 4 * q, color: "#f4f0dc", font: press)
+      text(str.holeName(hole), SW / 2 + 6 * q, hy, size: 2.6 * q, color: "#8fbf8f", font: press, align: center)
       rect(OX + CW - 16 * q, hy - 4 * q, 14 * q, 8 * q, radius: q, fill: "#24402c")
       for j in range(3) { rect(OX + CW - 12.5 * q, hy - 2.4 * q + j * 2 * q, 7 * q, 0.8 * q, fill: "#c8e0c0") }
-      text("PAR ${HOLES[hole].par}", OX + 2 * q, ly, size: 3 * q, color: "#8fbf8f", font: press)
-      text("STROKE ${strokes}", OX + CW - 2 * q, ly, size: 3 * q, color: "#f4f0dc", font: press, align: end)
+      text(str.par(HOLES[hole].par), OX + 2 * q, ly, size: 3 * q, color: "#8fbf8f", font: press)
+      text(str.stroke(strokes), OX + CW - 2 * q, ly, size: 3 * q, color: "#f4f0dc", font: press, align: end)
       if aiming && mode == "play" && !rolling {
         rect(SW / 2 - 16 * q, ly - 1.5 * q, 32 * q, 3 * q, radius: q, fill: "#24402c")
         rect(SW / 2 - 16 * q, ly - 1.5 * q, 32 * q * pw, 3 * q, radius: q, fill: mix("#8fdc8a", "#ff5a3c", pw))
@@ -580,21 +850,21 @@ app "pocket links" {
         text(relText, SW / 2, ly, size: 3 * q, color: rel < 0 ? "#ffe46b" : rel > 0 ? "#ff9a8a" : "#c8e0c0", font: press, align: center)
       }
       if mode == "play" && hole == 0 && strokes == 0 && !aiming {
-        text("DRAG BACK, LET GO TO PUTT", SW / 2, OY + CH - 6 * q, size: 2.6 * q, color: alpha("#ffffff", 0.55 + 0.35 * sin(tt * 3)), font: press, align: center)
+        text(str.hint, SW / 2, OY + CH - 6 * q, size: 2.6 * q, color: alpha("#ffffff", 0.55 + 0.35 * sin(tt * 3)), font: press, align: center)
       }
 
       // ---- the card after a hole ----
       if mode == "holed" {
         let n = cards[hole]
         let d = n - HOLES[hole].par
-        let word = n >= 10 ? "PICKED UP" : n == 1 ? "HOLE IN ONE!" : d <= -3 ? "ALBATROSS!" : d == -2 ? "EAGLE!" : d == -1 ? "BIRDIE!" : d == 0 ? "PAR" : d == 1 ? "BOGEY" : d == 2 ? "DOUBLE BOGEY" : "+${d}"
+        let word = n >= 10 ? str.pickedUp : n == 1 ? str.holeInOne : d <= -3 ? str.albatross : d == -2 ? str.eagle : d == -1 ? str.birdie : d == 0 ? str.parWord : d == 1 ? str.bogey : d == 2 ? str.doubleBogey : "+${d}"
         rect(0, 0, SW, SH, fill: alpha(INK, 0.45))
         rect(OX + 8 * q, OY + 44 * q, CW - 16 * q, 48 * q, radius: 2 * q, fill: "#1b2a20")
         rect(OX + 8 * q, OY + 44 * q, CW - 16 * q, 48 * q, radius: 2 * q, stroke: WOOD[1], width: q)
         text(word, SW / 2 + 0.6 * q, OY + 58 * q + 0.6 * q, size: 6 * q, color: INK, font: press, align: center)
         text(word, SW / 2, OY + 58 * q, size: 6 * q, color: d < 0 ? "#ffe46b" : d == 0 ? "#8fdc8a" : "#ff9a8a", font: press, align: center)
-        text("${n} STROKE${n == 1 ? "" : "S"} - PAR ${HOLES[hole].par}", SW / 2, OY + 70 * q, size: 3 * q, color: "#f4f0dc", font: press, align: center)
-        if tt % 1.2 < 0.85 { text(hole >= 8 ? "TAP FOR THE SCORECARD" : "TAP FOR HOLE ${hole + 2}", SW / 2, OY + 82 * q, size: 2.6 * q, color: "#8fbf8f", font: press, align: center) }
+        text(str.strokesPar(n, HOLES[hole].par), SW / 2, OY + 70 * q, size: 3 * q, color: "#f4f0dc", font: press, align: center)
+        if tt % 1.2 < 0.85 { text(hole >= 8 ? str.tapScorecard : str.tapHole(hole + 2), SW / 2, OY + 82 * q, size: 2.6 * q, color: "#8fbf8f", font: press, align: center) }
       }
 
       // ---- the scorecard after the ninth ----
@@ -604,7 +874,7 @@ app "pocket links" {
         rect(0, 0, SW, SH, fill: alpha(INK, 0.55))
         rect(OX + 3 * q, OY + 30 * q, CW - 6 * q, 80 * q, radius: 2 * q, fill: "#1b2a20")
         rect(OX + 3 * q, OY + 30 * q, CW - 6 * q, 80 * q, radius: 2 * q, stroke: WOOD[1], width: q)
-        text("SCORECARD", SW / 2, OY + 40 * q, size: 5 * q, color: "#f4f0dc", font: press, align: center)
+        text(str.scorecard, SW / 2, OY + 40 * q, size: 5 * q, color: "#f4f0dc", font: press, align: center)
         for j in range(9) {
           let cx = OX + (7 + j * 9.5 + 4.5) * q
           let d = cards[j] - PARS[j]
@@ -613,9 +883,9 @@ app "pocket links" {
           rect(cx - 4 * q, OY + 62.5 * q, 8 * q, 8 * q, radius: q, fill: d < 0 ? "#3d5a1e" : d == 0 ? "#24402c" : "#4a2626")
           text("${cards[j]}", cx, OY + 66.5 * q, size: 3 * q, color: d < 0 ? "#ffe46b" : d == 0 ? "#f4f0dc" : "#ff9a8a", font: press, align: center)
         }
-        text("${tot} - ${rd == 0 ? "EVEN" : rd > 0 ? "+${rd}" : "${rd}"}", SW / 2, OY + 81 * q, size: 5 * q, color: rd < 0 ? "#ffe46b" : rd == 0 ? "#8fdc8a" : "#ff9a8a", font: press, align: center)
-        text(best == tot ? "BEST ROUND!" : "BEST ${best}", SW / 2, OY + 91 * q, size: 3 * q, color: best == tot ? "#ffe46b" : "#8fbf8f", font: press, align: center)
-        if tt % 1.2 < 0.85 { text("TAP TO PLAY AGAIN", SW / 2, OY + 102 * q, size: 2.6 * q, color: "#c8e0c0", font: press, align: center) }
+        text("${tot} - ${rd == 0 ? str.evenWord : rd > 0 ? "+${rd}" : "${rd}"}", SW / 2, OY + 81 * q, size: 5 * q, color: rd < 0 ? "#ffe46b" : rd == 0 ? "#8fdc8a" : "#ff9a8a", font: press, align: center)
+        text(best == tot ? str.bestRound : str.best(best), SW / 2, OY + 91 * q, size: 3 * q, color: best == tot ? "#ffe46b" : "#8fbf8f", font: press, align: center)
+        if tt % 1.2 < 0.85 { text(str.tapAgain, SW / 2, OY + 102 * q, size: 2.6 * q, color: "#c8e0c0", font: press, align: center) }
       }
 
       // ---- the title ----
@@ -625,17 +895,17 @@ app "pocket links" {
         text("POCKET", SW / 2, OY + 34 * q, size: 10 * q, color: "#f4f0dc", font: press, align: center)
         text("LINKS", SW / 2 + q, OY + 48 * q + q, size: 10 * q, color: INK, font: press, align: center)
         text("LINKS", SW / 2, OY + 48 * q, size: 10 * q, color: "#8fdc8a", font: press, align: center)
-        text("NINE HOLES OF MINI GOLF", SW / 2, OY + 62 * q, size: 2.6 * q, color: "#c8e0c0", font: press, align: center)
-        if best > 0 { text("BEST ROUND ${best} - PAR ${PAR}", SW / 2, OY + 70 * q, size: 2.6 * q, color: "#ffe46b", font: press, align: center) }
+        text(str.tagline, SW / 2, OY + 62 * q, size: 2.6 * q, color: "#c8e0c0", font: press, align: center)
+        if best > 0 { text(str.bestLine(best, PAR), SW / 2, OY + 70 * q, size: 2.6 * q, color: "#ffe46b", font: press, align: center) }
         if started {
-          for bt, j in [["CONTINUE", B1Y, WOOD[1]], ["NEW ROUND", B2Y, "#3f6f45"]] {
+          for bt, j in [[str.cont, B1Y, WOOD[1]], [str.newRound, B2Y, "#3f6f45"]] {
             rect(SW / 2 - BW / 2, bt[1] + q, BW, BH, radius: 2 * q, fill: INK)
             rect(SW / 2 - BW / 2, bt[1], BW, BH, radius: 2 * q, fill: bt[2])
             text(bt[0], SW / 2, bt[1] + BH / 2, size: 3.5 * q, color: "#f4f0dc", font: press, align: center)
           }
-          text("HOLE ${hole + 1} - ${relText}", SW / 2, B2Y + BH + 8 * q, size: 2.6 * q, color: "#8fbf8f", font: press, align: center)
+          text("${str.hole(hole + 1)} - ${relText}", SW / 2, B2Y + BH + 8 * q, size: 2.6 * q, color: "#8fbf8f", font: press, align: center)
         } else if tt % 1.2 < 0.85 {
-          text("TAP TO TEE OFF", SW / 2, B1Y + BH / 2, size: 3.5 * q, color: "#f4f0dc", font: press, align: center)
+          text(str.teeOff, SW / 2, B1Y + BH / 2, size: 3.5 * q, color: "#f4f0dc", font: press, align: center)
         }
       }
     }

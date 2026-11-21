@@ -1,5 +1,5 @@
 app "derelict" {
-  meta { owl: 23; description: "A retro first-person shooter on a space station gone dark: clear three decks of husks, drones and brutes, find the keycards and the secrets, reach the exit lift"; version: "1.0"; license: "MIT"; category: "games" }
+  meta { owl: 23; description: "A retro first-person shooter on a space station gone dark: clear three decks of husks, drones and brutes, find the keycards and the secrets, reach the exit lift"; version: "1.1"; license: "MIT"; category: "games" }
   // How it works: the view is one AGSL shader, a grid raycaster in the spirit of the early 90s. Each deck is a
   // 32 x 32 grid, kept twice: as lists here, for walking, sight and shots, and as a small grey image the shader
   // reads (wall kind, door number or floor kind, and light, side by side), so a ray only samples a texture per
@@ -12,6 +12,572 @@ app "derelict" {
   statusBar: false
   edge: true
   fps: mode == "play" ? 60 : (modes.saver ? 15 : 30)
+  strings {
+    en {
+      dock: "DOCKING BAY"
+      hydro: "HYDROPONICS"
+      command: "COMMAND DECK"
+      medkit: "MEDKIT"
+      stim: "STIM"
+      vest: "ARMOR VEST"
+      rivets: "RIVETS"
+      shells: "SHELLS"
+      cells: "POWER CELLS"
+      redKey: "RED KEYCARD"
+      blueKey: "BLUE KEYCARD"
+      scattergun: "SCATTERGUN"
+      plasma: "PLASMA CUTTER"
+      secretFound: "SECRET FOUND"
+      redNeeded: "RED KEYCARD NEEDED"
+      blueNeeded: "BLUE KEYCARD NEEDED"
+      noAmmo: "OUT OF AMMO"
+      wardenDown: "THE WARDEN IS DOWN"
+      health: "HEALTH"
+      armor: "ARMOR"
+      ammo: "AMMO"
+      move: "MOVE"
+      fire: "FIRE"
+      slideTurn: "SLIDE OR HOLD TO TURN"
+      tagline: "THE STATION WENT DARK. GO IN."
+      tapDeck: "TAP A DECK"
+      controls: "LEFT THUMB MOVES - RIGHT THUMB TURNS - HOLD FIRE"
+      soundOn: "SOUND ON"
+      soundOff: "SOUND OFF"
+      paused: "PAUSED"
+      resume: "RESUME"
+      quit: "QUIT TO TITLE"
+      died: "YOU DIED"
+      tryAgain: "TAP TO TRY THE DECK AGAIN"
+      stationClear: "STATION CLEAR"
+      deckClear: "DECK CLEAR"
+      tapTitle: "TAP FOR THE TITLE"
+      tapNext: "TAP FOR THE NEXT DECK"
+      hp: n => "HP ${n}"
+      ar: n => "AR ${n}"
+      ammoN: n => "AMMO ${n}"
+      diedLine: (d, k, n) => "${d}  -  ${k}/${n} KILLS"
+      kills: (k, n) => "KILLS    ${k} / ${n}"
+      secrets: (k, n) => "SECRETS  ${k} / ${n}"
+      time: t => "TIME     ${t}"
+    }
+    id {
+      dock: "DOK KAPAL"
+      hydro: "HIDROPONIK"
+      command: "DEK KOMANDO"
+      medkit: "KOTAK OBAT"
+      stim: "STIM"
+      vest: "ROMPI ZIRAH"
+      rivets: "PAKU KELING"
+      shells: "PELURU SENAPAN"
+      cells: "SEL DAYA"
+      redKey: "KARTU KUNCI MERAH"
+      blueKey: "KARTU KUNCI BIRU"
+      scattergun: "SENAPAN GOTRI"
+      plasma: "PEMOTONG PLASMA"
+      secretFound: "RAHASIA DITEMUKAN"
+      redNeeded: "PERLU KARTU KUNCI MERAH"
+      blueNeeded: "PERLU KARTU KUNCI BIRU"
+      noAmmo: "AMUNISI HABIS"
+      wardenDown: "SANG SIPIR TUMBANG"
+      health: "NYAWA"
+      armor: "ZIRAH"
+      ammo: "AMUNISI"
+      move: "GERAK"
+      fire: "TEMBAK"
+      slideTurn: "GESER/TAHAN: BELOK"
+      tagline: "STASIUN ITU PADAM. MASUKLAH."
+      tapDeck: "KETUK SEBUAH DEK"
+      controls: "JEMPOL KIRI GERAK - JEMPOL KANAN BELOK - TAHAN TEMBAK"
+      soundOn: "SUARA NYALA"
+      soundOff: "SUARA MATI"
+      paused: "JEDA"
+      resume: "LANJUTKAN"
+      quit: "KE LAYAR JUDUL"
+      died: "KAMU MATI"
+      tryAgain: "KETUK UNTUK MENCOBA LAGI"
+      stationClear: "STASIUN BERSIH"
+      deckClear: "DEK BERSIH"
+      tapTitle: "KETUK UNTUK KE JUDUL"
+      tapNext: "KETUK UNTUK DEK BERIKUTNYA"
+      hp: n => "HP ${n}"
+      ar: n => "AR ${n}"
+      ammoN: n => "AMUNISI ${n}"
+      diedLine: (d, k, n) => "${d}  -  ${k}/${n} TEWAS"
+      kills: (k, n) => "TEWAS    ${k} / ${n}"
+      secrets: (k, n) => "RAHASIA  ${k} / ${n}"
+      time: t => "WAKTU    ${t}"
+    }
+    es {
+      dock: "BAHÍA DE ATRAQUE"
+      hydro: "HIDROPONÍA"
+      command: "PUENTE DE MANDO"
+      medkit: "BOTIQUÍN"
+      stim: "ESTIMULANTE"
+      vest: "CHALECO BLINDADO"
+      rivets: "REMACHES"
+      shells: "CARTUCHOS"
+      cells: "CÉLULAS DE ENERGÍA"
+      redKey: "TARJETA ROJA"
+      blueKey: "TARJETA AZUL"
+      scattergun: "ESCOPETA"
+      plasma: "CORTADOR DE PLASMA"
+      secretFound: "SECRETO ENCONTRADO"
+      redNeeded: "HACE FALTA LA TARJETA ROJA"
+      blueNeeded: "HACE FALTA LA TARJETA AZUL"
+      noAmmo: "SIN MUNICIÓN"
+      wardenDown: "EL ALCAIDE HA CAÍDO"
+      health: "SALUD"
+      armor: "BLINDAJE"
+      ammo: "MUNICIÓN"
+      move: "MOVER"
+      fire: "FUEGO"
+      slideTurn: "DESLIZA/MANTÉN: GIRAR"
+      tagline: "LA ESTACIÓN SE APAGÓ. ENTRA."
+      tapDeck: "TOCA UNA CUBIERTA"
+      controls: "PULGAR IZQ. MUEVE - DERECHO GIRA - MANTÉN FUEGO"
+      soundOn: "SONIDO SÍ"
+      soundOff: "SONIDO NO"
+      paused: "PAUSA"
+      resume: "CONTINUAR"
+      quit: "VOLVER AL TÍTULO"
+      died: "HAS MUERTO"
+      tryAgain: "TOCA PARA REINTENTAR"
+      stationClear: "ESTACIÓN LIMPIA"
+      deckClear: "DESPEJADO"
+      tapTitle: "TOCA PARA IR AL TÍTULO"
+      tapNext: "TOCA PARA LA SIGUIENTE"
+      hp: n => "HP ${n}"
+      ar: n => "AR ${n}"
+      ammoN: n => "MUNICIÓN ${n}"
+      diedLine: (d, k, n) => "${d}  -  ${k}/${n} BAJAS"
+      kills: (k, n) => "BAJAS     ${k} / ${n}"
+      secrets: (k, n) => "SECRETOS  ${k} / ${n}"
+      time: t => "TIEMPO    ${t}"
+    }
+    pt {
+      dock: "BAÍA DE ATRACAÇÃO"
+      hydro: "HIDROPONIA"
+      command: "PONTE DE COMANDO"
+      medkit: "KIT MÉDICO"
+      stim: "ESTIMULANTE"
+      vest: "COLETE BLINDADO"
+      rivets: "REBITES"
+      shells: "CARTUCHOS"
+      cells: "CÉLULAS DE ENERGIA"
+      redKey: "CARTÃO VERMELHO"
+      blueKey: "CARTÃO AZUL"
+      scattergun: "ESPINGARDA"
+      plasma: "CORTADOR DE PLASMA"
+      secretFound: "SEGREDO ENCONTRADO"
+      redNeeded: "PRECISA DO CARTÃO VERMELHO"
+      blueNeeded: "PRECISA DO CARTÃO AZUL"
+      noAmmo: "SEM MUNIÇÃO"
+      wardenDown: "O GUARDIÃO CAIU"
+      health: "SAÚDE"
+      armor: "ARMADURA"
+      ammo: "MUNIÇÃO"
+      move: "MOVER"
+      fire: "FOGO"
+      slideTurn: "DESLIZE/SEGURE: VIRAR"
+      tagline: "A ESTAÇÃO APAGOU. ENTRE."
+      tapDeck: "TOQUE NUM CONVÉS"
+      controls: "POLEGAR ESQ. MOVE - DIREITO VIRA - SEGURE FOGO"
+      soundOn: "SOM LIGADO"
+      soundOff: "SOM DESLIGADO"
+      paused: "PAUSADO"
+      resume: "CONTINUAR"
+      quit: "VOLTAR AO TÍTULO"
+      died: "VOCÊ MORREU"
+      tryAgain: "TOQUE PARA TENTAR DE NOVO"
+      stationClear: "ESTAÇÃO LIVRE"
+      deckClear: "LIBERADO"
+      tapTitle: "TOQUE PARA IR AO TÍTULO"
+      tapNext: "TOQUE PARA O PRÓXIMO CONVÉS"
+      hp: n => "HP ${n}"
+      ar: n => "AR ${n}"
+      ammoN: n => "MUNIÇÃO ${n}"
+      diedLine: (d, k, n) => "${d}  -  ${k}/${n} ABATES"
+      kills: (k, n) => "ABATES    ${k} / ${n}"
+      secrets: (k, n) => "SEGREDOS  ${k} / ${n}"
+      time: t => "TEMPO     ${t}"
+    }
+    de {
+      dock: "DOCKINGBUCHT"
+      hydro: "HYDROPONIK"
+      command: "KOMMANDODECK"
+      medkit: "MEDKIT"
+      stim: "STIM"
+      vest: "SCHUTZWESTE"
+      rivets: "NIETEN"
+      shells: "SCHROTPATRONEN"
+      cells: "ENERGIEZELLEN"
+      redKey: "ROTE SCHLÜSSELKARTE"
+      blueKey: "BLAUE SCHLÜSSELKARTE"
+      scattergun: "SCHROTFLINTE"
+      plasma: "PLASMASCHNEIDER"
+      secretFound: "GEHEIMNIS GEFUNDEN"
+      redNeeded: "ROTE SCHLÜSSELKARTE NÖTIG"
+      blueNeeded: "BLAUE SCHLÜSSELKARTE NÖTIG"
+      noAmmo: "KEINE MUNITION"
+      wardenDown: "DER WÄRTER IST ERLEDIGT"
+      health: "LEBEN"
+      armor: "PANZER"
+      ammo: "MUNITION"
+      move: "LAUFEN"
+      fire: "FEUER"
+      slideTurn: "WISCHEN/HALTEN: DREHEN"
+      tagline: "DIE STATION IST DUNKEL. GEH REIN."
+      tapDeck: "TIPPE AUF EIN DECK"
+      controls: "LINKER DAUMEN LÄUFT - RECHTER DREHT - FEUER HALTEN"
+      soundOn: "TON AN"
+      soundOff: "TON AUS"
+      paused: "PAUSE"
+      resume: "WEITER"
+      quit: "ZUM TITEL"
+      died: "DU BIST TOT"
+      tryAgain: "TIPPE FÜR EINEN NEUEN VERSUCH"
+      stationClear: "STATION FREI"
+      deckClear: "DECK FREI"
+      tapTitle: "TIPPE FÜR DEN TITEL"
+      tapNext: "TIPPE FÜRS NÄCHSTE DECK"
+      hp: n => "HP ${n}"
+      ar: n => "AR ${n}"
+      ammoN: n => "MUNITION ${n}"
+      diedLine: (d, k, n) => "${d}  -  ${k}/${n} ABSCHÜSSE"
+      kills: (k, n) => "ABSCHÜSSE    ${k} / ${n}"
+      secrets: (k, n) => "GEHEIMNISSE  ${k} / ${n}"
+      time: t => "ZEIT         ${t}"
+    }
+    zh {
+      dock: "停泊舱"
+      hydro: "水培区"
+      command: "指挥甲板"
+      medkit: "医疗包"
+      stim: "兴奋剂"
+      vest: "防弹背心"
+      rivets: "铆钉"
+      shells: "霰弹"
+      cells: "能量电池"
+      redKey: "红色钥匙卡"
+      blueKey: "蓝色钥匙卡"
+      scattergun: "霰弹枪"
+      plasma: "等离子切割器"
+      secretFound: "发现秘密"
+      redNeeded: "需要红色钥匙卡"
+      blueNeeded: "需要蓝色钥匙卡"
+      noAmmo: "弹药耗尽"
+      wardenDown: "典狱长倒下了"
+      health: "生命"
+      armor: "护甲"
+      ammo: "弹药"
+      move: "移动"
+      fire: "开火"
+      slideTurn: "滑动或按住来转向"
+      tagline: "空间站陷入了黑暗。进去吧。"
+      tapDeck: "点选一层甲板"
+      controls: "左手拇指移动 - 右手拇指转向 - 按住开火"
+      soundOn: "声音 开"
+      soundOff: "声音 关"
+      paused: "暂停"
+      resume: "继续"
+      quit: "返回标题"
+      died: "你死了"
+      tryAgain: "点按重试本层"
+      stationClear: "空间站已肃清"
+      deckClear: "甲板已肃清"
+      tapTitle: "点按返回标题"
+      tapNext: "点按进入下一层"
+      hp: n => "生命 ${n}"
+      ar: n => "护甲 ${n}"
+      ammoN: n => "弹药 ${n}"
+      diedLine: (d, k, n) => "${d}  -  击杀 ${k}/${n}"
+      kills: (k, n) => "击杀  ${k} / ${n}"
+      secrets: (k, n) => "秘密  ${k} / ${n}"
+      time: t => "时间  ${t}"
+    }
+    ru {
+      dock: "СТЫКОВОЧНЫЙ ОТСЕК"
+      hydro: "ГИДРОПОНИКА"
+      command: "КОМАНДНАЯ ПАЛУБА"
+      medkit: "АПТЕЧКА"
+      stim: "СТИМУЛЯТОР"
+      vest: "БРОНЕЖИЛЕТ"
+      rivets: "ЗАКЛЁПКИ"
+      shells: "ПАТРОНЫ"
+      cells: "ЭНЕРГОЯЧЕЙКИ"
+      redKey: "КРАСНАЯ КЛЮЧ-КАРТА"
+      blueKey: "СИНЯЯ КЛЮЧ-КАРТА"
+      scattergun: "ДРОБОВИК"
+      plasma: "ПЛАЗМОРЕЗ"
+      secretFound: "ТАЙНИК НАЙДЕН"
+      redNeeded: "НУЖНА КРАСНАЯ КЛЮЧ-КАРТА"
+      blueNeeded: "НУЖНА СИНЯЯ КЛЮЧ-КАРТА"
+      noAmmo: "НЕТ ПАТРОНОВ"
+      wardenDown: "СМОТРИТЕЛЬ ПОВЕРЖЕН"
+      health: "ЗДОРОВЬЕ"
+      armor: "БРОНЯ"
+      ammo: "ПАТРОНЫ"
+      move: "ИДТИ"
+      fire: "ОГОНЬ"
+      slideTurn: "ВЕДИТЕ/ДЕРЖИТЕ: ПОВОРОТ"
+      tagline: "СТАНЦИЯ ПОГРУЗИЛАСЬ ВО ТЬМУ. ВХОДИТЕ."
+      tapDeck: "ВЫБЕРИТЕ ПАЛУБУ"
+      controls: "ЛЕВЫЙ ПАЛЕЦ - ХОД, ПРАВЫЙ - ПОВОРОТ, ДЕРЖИТЕ ОГОНЬ"
+      soundOn: "ЗВУК ВКЛ"
+      soundOff: "ЗВУК ВЫКЛ"
+      paused: "ПАУЗА"
+      resume: "ПРОДОЛЖИТЬ"
+      quit: "В ГЛАВНОЕ МЕНЮ"
+      died: "ВЫ ПОГИБЛИ"
+      tryAgain: "НАЖМИТЕ, ЧТОБЫ ПОВТОРИТЬ"
+      stationClear: "СТАНЦИЯ ЧИСТА"
+      deckClear: "ЗАЧИЩЕНО"
+      tapTitle: "НАЖМИТЕ, ЧТОБЫ ВЫЙТИ В МЕНЮ"
+      tapNext: "НАЖМИТЕ, ЧТОБЫ ИДТИ ДАЛЬШЕ"
+      hp: n => "HP ${n}"
+      ar: n => "AR ${n}"
+      ammoN: n => "ПАТРОНЫ ${n}"
+      diedLine: (d, k, n) => "${d}  -  ${k}/${n} УБИТО"
+      kills: (k, n) => "УБИТО    ${k} / ${n}"
+      secrets: (k, n) => "ТАЙНИКИ  ${k} / ${n}"
+      time: t => "ВРЕМЯ    ${t}"
+    }
+    ja {
+      dock: "ドッキングベイ"
+      hydro: "水耕エリア"
+      command: "司令デッキ"
+      medkit: "メディキット"
+      stim: "スティム"
+      vest: "アーマーベスト"
+      rivets: "リベット"
+      shells: "ショットシェル"
+      cells: "パワーセル"
+      redKey: "赤のカードキー"
+      blueKey: "青のカードキー"
+      scattergun: "散弾銃"
+      plasma: "プラズマカッター"
+      secretFound: "シークレット発見"
+      redNeeded: "赤のカードキーが必要です"
+      blueNeeded: "青のカードキーが必要です"
+      noAmmo: "弾切れ"
+      wardenDown: "ワーデンを倒した"
+      health: "体力"
+      armor: "アーマー"
+      ammo: "弾薬"
+      move: "移動"
+      fire: "発射"
+      slideTurn: "スライドか長押しで旋回"
+      tagline: "ステーションは闇に沈んだ。中へ。"
+      tapDeck: "デッキをタップ"
+      controls: "左の親指で移動 - 右の親指で旋回 - 発射は長押し"
+      soundOn: "サウンド オン"
+      soundOff: "サウンド オフ"
+      paused: "一時停止"
+      resume: "再開"
+      quit: "タイトルへ戻る"
+      died: "死亡"
+      tryAgain: "タップでもう一度挑戦"
+      stationClear: "ステーション制圧"
+      deckClear: "デッキ制圧"
+      tapTitle: "タップでタイトルへ"
+      tapNext: "タップで次のデッキへ"
+      hp: n => "HP ${n}"
+      ar: n => "AR ${n}"
+      ammoN: n => "弾薬 ${n}"
+      diedLine: (d, k, n) => "${d}  -  撃破 ${k}/${n}"
+      kills: (k, n) => "撃破  ${k} / ${n}"
+      secrets: (k, n) => "秘密  ${k} / ${n}"
+      time: t => "時間  ${t}"
+    }
+    uk {
+      dock: "СТИКУВАЛЬНИЙ ВІДСІК"
+      hydro: "ГІДРОПОНІКА"
+      command: "КОМАНДНА ПАЛУБА"
+      medkit: "АПТЕЧКА"
+      stim: "СТИМУЛЯТОР"
+      vest: "БРОНЕЖИЛЕТ"
+      rivets: "ЗАКЛЕПКИ"
+      shells: "НАБОЇ"
+      cells: "ЕНЕРГОКОМІРКИ"
+      redKey: "ЧЕРВОНА КЛЮЧ-КАРТКА"
+      blueKey: "СИНЯ КЛЮЧ-КАРТКА"
+      scattergun: "ДРОБОВИК"
+      plasma: "ПЛАЗМОРІЗ"
+      secretFound: "СХОВАНКУ ЗНАЙДЕНО"
+      redNeeded: "ПОТРІБНА ЧЕРВОНА КЛЮЧ-КАРТКА"
+      blueNeeded: "ПОТРІБНА СИНЯ КЛЮЧ-КАРТКА"
+      noAmmo: "НЕМАЄ НАБОЇВ"
+      wardenDown: "НАГЛЯДАЧА ПОВАЛЕНО"
+      health: "ЗДОРОВ'Я"
+      armor: "БРОНЯ"
+      ammo: "НАБОЇ"
+      move: "ЙТИ"
+      fire: "ВОГОНЬ"
+      slideTurn: "ВЕДІТЬ/ТРИМАЙТЕ: ПОВОРОТ"
+      tagline: "СТАНЦІЯ ПОРИНУЛА В ТЕМРЯВУ. ЗАХОДЬТЕ."
+      tapDeck: "ВИБЕРІТЬ ПАЛУБУ"
+      controls: "ЛІВИЙ ПАЛЕЦЬ - РУХ, ПРАВИЙ - ПОВОРОТ, ТРИМАЙТЕ ВОГОНЬ"
+      soundOn: "ЗВУК УВІМК"
+      soundOff: "ЗВУК ВИМК"
+      paused: "ПАУЗА"
+      resume: "ПРОДОВЖИТИ"
+      quit: "У ГОЛОВНЕ МЕНЮ"
+      died: "ВИ ЗАГИНУЛИ"
+      tryAgain: "ТОРКНІТЬСЯ, ЩОБ ПОВТОРИТИ"
+      stationClear: "СТАНЦІЯ ЧИСТА"
+      deckClear: "ЗАЧИЩЕНО"
+      tapTitle: "ТОРКНІТЬСЯ, ЩОБ ВИЙТИ В МЕНЮ"
+      tapNext: "ТОРКНІТЬСЯ, ЩОБ ІТИ ДАЛІ"
+      hp: n => "HP ${n}"
+      ar: n => "AR ${n}"
+      ammoN: n => "НАБОЇ ${n}"
+      diedLine: (d, k, n) => "${d}  -  ${k}/${n} ВБИТО"
+      kills: (k, n) => "ВБИТО     ${k} / ${n}"
+      secrets: (k, n) => "СХОВАНКИ  ${k} / ${n}"
+      time: t => "ЧАС       ${t}"
+    }
+    fr {
+      dock: "BAIE D'AMARRAGE"
+      hydro: "HYDROPONIE"
+      command: "PONT DE COMMANDE"
+      medkit: "MÉDIKIT"
+      stim: "STIMULANT"
+      vest: "GILET PARE-BALLES"
+      rivets: "RIVETS"
+      shells: "CARTOUCHES"
+      cells: "CELLULES D'ÉNERGIE"
+      redKey: "CARTE ROUGE"
+      blueKey: "CARTE BLEUE"
+      scattergun: "FUSIL À POMPE"
+      plasma: "DÉCOUPEUR PLASMA"
+      secretFound: "SECRET TROUVÉ"
+      redNeeded: "CARTE ROUGE REQUISE"
+      blueNeeded: "CARTE BLEUE REQUISE"
+      noAmmo: "PLUS DE MUNITIONS"
+      wardenDown: "LE GARDIEN EST TOMBÉ"
+      health: "SANTÉ"
+      armor: "ARMURE"
+      ammo: "MUNITIONS"
+      move: "BOUGER"
+      fire: "FEU"
+      slideTurn: "GLISSE/MAINTIENS: TOURNER"
+      tagline: "LA STATION S'EST ÉTEINTE. ENTRE."
+      tapDeck: "TOUCHE UN PONT"
+      controls: "POUCE GAUCHE BOUGE - DROIT TOURNE - MAINTIENS FEU"
+      soundOn: "SON ACTIVÉ"
+      soundOff: "SON COUPÉ"
+      paused: "PAUSE"
+      resume: "REPRENDRE"
+      quit: "RETOUR AU TITRE"
+      died: "TU ES MORT"
+      tryAgain: "TOUCHE POUR REJOUER LE PONT"
+      stationClear: "STATION LIBRE"
+      deckClear: "PONT LIBRE"
+      tapTitle: "TOUCHE POUR LE TITRE"
+      tapNext: "TOUCHE POUR LE PONT SUIVANT"
+      hp: n => "HP ${n}"
+      ar: n => "AR ${n}"
+      ammoN: n => "MUNITIONS ${n}"
+      diedLine: (d, k, n) => "${d}  -  ${k}/${n} ÉLIMINÉS"
+      kills: (k, n) => "ÉLIMINÉS  ${k} / ${n}"
+      secrets: (k, n) => "SECRETS   ${k} / ${n}"
+      time: t => "TEMPS     ${t}"
+    }
+    tr {
+      dock: "YANAŞMA BÖLMESİ"
+      hydro: "HİDROPONİK"
+      command: "KOMUTA GÜVERTESİ"
+      medkit: "SAĞLIK KİTİ"
+      stim: "UYARICI"
+      vest: "ÇELİK YELEK"
+      rivets: "PERÇİNLER"
+      shells: "FİŞEKLER"
+      cells: "GÜÇ HÜCRELERİ"
+      redKey: "KIRMIZI ANAHTAR KART"
+      blueKey: "MAVİ ANAHTAR KART"
+      scattergun: "POMPALI TÜFEK"
+      plasma: "PLAZMA KESİCİ"
+      secretFound: "SIR BULUNDU"
+      redNeeded: "KIRMIZI ANAHTAR KART GEREKLİ"
+      blueNeeded: "MAVİ ANAHTAR KART GEREKLİ"
+      noAmmo: "CEPHANE BİTTİ"
+      wardenDown: "GARDİYAN DÜŞTÜ"
+      health: "SAĞLIK"
+      armor: "ZIRH"
+      ammo: "CEPHANE"
+      move: "YÜRÜ"
+      fire: "ATEŞ"
+      slideTurn: "KAYDIR/TUT: DÖN"
+      tagline: "İSTASYON KARARDI. İÇERİ GİR."
+      tapDeck: "BİR GÜVERTEYE DOKUN"
+      controls: "SOL BAŞPARMAK YÜRÜR - SAĞ DÖNER - ATEŞİ BASILI TUT"
+      soundOn: "SES AÇIK"
+      soundOff: "SES KAPALI"
+      paused: "DURDU"
+      resume: "DEVAM"
+      quit: "BAŞLIĞA DÖN"
+      died: "ÖLDÜN"
+      tryAgain: "TEKRAR DENEMEK İÇİN DOKUN"
+      stationClear: "İSTASYON TEMİZ"
+      deckClear: "TEMİZLENDİ"
+      tapTitle: "BAŞLIK İÇİN DOKUN"
+      tapNext: "SONRAKİ GÜVERTE İÇİN DOKUN"
+      hp: n => "HP ${n}"
+      ar: n => "AR ${n}"
+      ammoN: n => "CEPHANE ${n}"
+      diedLine: (d, k, n) => "${d}  -  ${k}/${n} LEŞ"
+      kills: (k, n) => "LEŞ     ${k} / ${n}"
+      secrets: (k, n) => "SIRLAR  ${k} / ${n}"
+      time: t => "SÜRE    ${t}"
+    }
+    it {
+      dock: "BAIA DI ATTRACCO"
+      hydro: "IDROPONICA"
+      command: "PONTE DI COMANDO"
+      medkit: "MEDIKIT"
+      stim: "STIMOLANTE"
+      vest: "GIUBBOTTO CORAZZATO"
+      rivets: "RIVETTI"
+      shells: "CARTUCCE"
+      cells: "CELLE ENERGETICHE"
+      redKey: "TESSERA ROSSA"
+      blueKey: "TESSERA BLU"
+      scattergun: "FUCILE A POMPA"
+      plasma: "TAGLIERINA AL PLASMA"
+      secretFound: "SEGRETO TROVATO"
+      redNeeded: "SERVE LA TESSERA ROSSA"
+      blueNeeded: "SERVE LA TESSERA BLU"
+      noAmmo: "MUNIZIONI FINITE"
+      wardenDown: "IL GUARDIANO È CADUTO"
+      health: "SALUTE"
+      armor: "ARMATURA"
+      ammo: "MUNIZIONI"
+      move: "MUOVI"
+      fire: "FUOCO"
+      slideTurn: "SCORRI/TIENI: GIRA"
+      tagline: "LA STAZIONE SI È SPENTA. ENTRA."
+      tapDeck: "TOCCA UN PONTE"
+      controls: "POLLICE SINISTRO MUOVE - DESTRO GIRA - TIENI FUOCO"
+      soundOn: "AUDIO SÌ"
+      soundOff: "AUDIO NO"
+      paused: "PAUSA"
+      resume: "RIPRENDI"
+      quit: "TORNA AL TITOLO"
+      died: "SEI MORTO"
+      tryAgain: "TOCCA PER RIPROVARE IL PONTE"
+      stationClear: "STAZIONE LIBERA"
+      deckClear: "LIBERATO"
+      tapTitle: "TOCCA PER IL TITOLO"
+      tapNext: "TOCCA PER IL PONTE SUCCESSIVO"
+      hp: n => "HP ${n}"
+      ar: n => "AR ${n}"
+      ammoN: n => "MUNIZIONI ${n}"
+      diedLine: (d, k, n) => "${d}  -  ${k}/${n} UCCISIONI"
+      kills: (k, n) => "UCCISIONI  ${k} / ${n}"
+      secrets: (k, n) => "SEGRETI    ${k} / ${n}"
+      time: t => "TEMPO      ${t}"
+    }
+  }
   source modes = android.modes
   back: mode == "play"
   onBack: mode = "paused"
@@ -60,7 +626,7 @@ app "derelict" {
 
   // ---- the decks ------------------------------------------------------------------------------------------------
   let LVS = [
-    {name: "DOCKING BAY", sx: 2.5, sy: 21.5, sa: 0, ex: 25, ey: 23, nk: 7, ns: 1,
+    {name: str.dock, sx: 2.5, sy: 21.5, sa: 0, ex: 25, ey: 23, nk: 7, ns: 1,
       m: [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 5, 5, 5, 5, 5, 5, 5, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 4, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 4, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], [1, 1, 1, 6, 1, 1, 1, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 4, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 4, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 4, 4, 4, 6, 4, 4, 4, 4, 4, 1, 1, 1, 1, 10, 1, 1, 1, 1, 1, 1], [1, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1], [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 1, 1, 1, 1], [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1], [1, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1], [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1], [1, 1, 1, 6, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 7, 1, 1, 1, 1, 1], [1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 6, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1], [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1], [1, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1], [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1], [1, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1], [1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 9, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]],
       dx: [[-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, -1, -1, -1, -1, -1, -1, -1, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 4, -1, -1, -1, -1, -1, -1, -1, -1, -1, 5, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, 9, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, 12, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, 13, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]],
       doors: [{x: 6, y: 2, k: 6}, {x: 12, y: 4, k: 6}, {x: 20, y: 4, k: 6}, {x: 3, y: 5, k: 6}, {x: 15, y: 7, k: 6}, {x: 25, y: 7, k: 10}, {x: 6, y: 8, k: 6}, {x: 22, y: 11, k: 6}, {x: 6, y: 13, k: 6}, {x: 3, y: 15, k: 6}, {x: 26, y: 15, k: 7}, {x: 13, y: 16, k: 6}, {x: 6, y: 18, k: 6}, {x: 6, y: 21, k: 6}],
@@ -68,7 +634,7 @@ app "derelict" {
       decor: [{f: 22, x: 3.5, y: 4.5}, {f: 21, x: 9.5, y: 6.5}, {f: 23, x: 24.5, y: 6.5}, {f: 22, x: 11.5, y: 10.5}, {f: 22, x: 18.5, y: 10.5}, {f: 22, x: 10.5, y: 13.5}, {f: 22, x: 18.5, y: 13.5}, {f: 21, x: 11.5, y: 15.5}, {f: 21, x: 18.5, y: 15.5}, {f: 23, x: 25.5, y: 19.5}],
       en: [{id: 1001, k: 1, x: 16.5, y: 3.5, hp: 25, s: 0, t: 0, cd: 0, lx: 16.5, ly: 3.5, see: false, fl: 0, mv: false}, {id: 1002, k: 0, x: 25.5, y: 5.5, hp: 40, s: 0, t: 0, cd: 0, lx: 25.5, ly: 5.5, see: false, fl: 0, mv: false}, {id: 1003, k: 3, x: 16.5, y: 6.5, hp: 12, s: 0, t: 0, cd: 0, lx: 16.5, ly: 6.5, see: false, fl: 0, mv: false}, {id: 1004, k: 0, x: 3.5, y: 9.5, hp: 40, s: 0, t: 0, cd: 0, lx: 3.5, ly: 9.5, see: false, fl: 0, mv: false}, {id: 1005, k: 1, x: 16.5, y: 11.5, hp: 25, s: 0, t: 0, cd: 0, lx: 16.5, ly: 11.5, see: false, fl: 0, mv: false}, {id: 1006, k: 3, x: 11.5, y: 12.5, hp: 12, s: 0, t: 0, cd: 0, lx: 11.5, ly: 12.5, see: false, fl: 0, mv: false}, {id: 1007, k: 0, x: 25.5, y: 13.5, hp: 40, s: 0, t: 0, cd: 0, lx: 25.5, ly: 13.5, see: false, fl: 0, mv: false}, {id: 1008, k: 0, x: 25.5, y: 18.5, hp: 40, s: 0, t: 0, cd: 0, lx: 25.5, ly: 18.5, see: false, fl: 0, mv: false}, {id: 1009, k: 0, x: 11.5, y: 19.5, hp: 40, s: 0, t: 0, cd: 0, lx: 11.5, ly: 19.5, see: false, fl: 0, mv: false}],
       items: [{id: 1010, k: "g", x: 2.5, y: 2.5}, {id: 1011, k: "q", x: 26.5, y: 3.5}, {id: 1012, k: "a", x: 25.5, y: 8.5}, {id: 1013, k: "s", x: 25.5, y: 9.5}, {id: 1014, k: "m", x: 3.5, y: 12.5}, {id: 1015, k: "r", x: 25.5, y: 14.5}, {id: 1016, k: "r", x: 3.5, y: 17.5}, {id: 1017, k: "s", x: 17.5, y: 19.5}]},
-    {name: "HYDROPONICS", sx: 2.5, sy: 17.5, sa: 0, ex: 26, ey: 22, nk: 10, ns: 1,
+    {name: str.hydro, sx: 2.5, sy: 17.5, sa: 0, ex: 26, ey: 22, nk: 10, ns: 1,
       m: [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 1, 0, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 3, 3, 0, 0, 3, 3, 0, 0, 0, 0, 1, 1, 1, 6, 1, 1, 1, 1], [1, 1, 1, 1, 10, 1, 1, 1, 1, 1, 0, 0, 0, 0, 3, 3, 0, 0, 3, 3, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 3, 3, 0, 0, 3, 3, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 3, 3, 0, 0, 3, 3, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 7, 1, 1, 1, 1, 1], [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 6, 1, 1, 1, 1, 1, 1, 6, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1], [1, 1, 1, 8, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 6, 1, 1, 1, 1, 1], [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 9, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]],
       dx: [[-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, -1, -1, -1, -1], [-1, -1, -1, -1, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 3, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, 4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 5, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 6, -1, -1, -1, -1, -1, -1, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 9, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 11, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 12, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]],
       doors: [{x: 24, y: 2, k: 6}, {x: 27, y: 4, k: 6}, {x: 4, y: 5, k: 10}, {x: 24, y: 6, k: 6}, {x: 9, y: 7, k: 6}, {x: 26, y: 9, k: 7}, {x: 12, y: 10, k: 6}, {x: 19, y: 10, k: 6}, {x: 3, y: 11, k: 8}, {x: 15, y: 14, k: 6}, {x: 9, y: 17, k: 6}, {x: 26, y: 18, k: 6}, {x: 15, y: 19, k: 6}],
@@ -76,7 +642,7 @@ app "derelict" {
       decor: [{f: 21, x: 27.5, y: 3.5}, {f: 23, x: 3.5, y: 19.5}],
       en: [{id: 2001, k: 2, x: 3.5, y: 2.5, hp: 150, s: 0, t: 0, cd: 0, lx: 3.5, ly: 2.5, see: false, fl: 0, mv: false}, {id: 2002, k: 3, x: 12.5, y: 3.5, hp: 12, s: 0, t: 0, cd: 0, lx: 12.5, ly: 3.5, see: false, fl: 0, mv: false}, {id: 2003, k: 3, x: 21.5, y: 3.5, hp: 12, s: 0, t: 0, cd: 0, lx: 21.5, ly: 3.5, see: false, fl: 0, mv: false}, {id: 2004, k: 0, x: 12.5, y: 6.5, hp: 40, s: 0, t: 0, cd: 0, lx: 12.5, ly: 6.5, see: false, fl: 0, mv: false}, {id: 2005, k: 0, x: 20.5, y: 6.5, hp: 40, s: 0, t: 0, cd: 0, lx: 20.5, ly: 6.5, see: false, fl: 0, mv: false}, {id: 2006, k: 1, x: 27.5, y: 6.5, hp: 25, s: 0, t: 0, cd: 0, lx: 27.5, ly: 6.5, see: false, fl: 0, mv: false}, {id: 2007, k: 1, x: 3.5, y: 7.5, hp: 25, s: 0, t: 0, cd: 0, lx: 3.5, ly: 7.5, see: false, fl: 0, mv: false}, {id: 2008, k: 0, x: 24.5, y: 11.5, hp: 40, s: 0, t: 0, cd: 0, lx: 24.5, ly: 11.5, see: false, fl: 0, mv: false}, {id: 2009, k: 1, x: 12.5, y: 12.5, hp: 25, s: 0, t: 0, cd: 0, lx: 12.5, ly: 12.5, see: false, fl: 0, mv: false}, {id: 2010, k: 0, x: 18.5, y: 12.5, hp: 40, s: 0, t: 0, cd: 0, lx: 18.5, ly: 12.5, see: false, fl: 0, mv: false}, {id: 2011, k: 2, x: 26.5, y: 13.5, hp: 150, s: 0, t: 0, cd: 0, lx: 26.5, ly: 13.5, see: false, fl: 0, mv: false}, {id: 2012, k: 3, x: 24.5, y: 16.5, hp: 12, s: 0, t: 0, cd: 0, lx: 24.5, ly: 16.5, see: false, fl: 0, mv: false}, {id: 2013, k: 3, x: 28.5, y: 16.5, hp: 12, s: 0, t: 0, cd: 0, lx: 28.5, ly: 16.5, see: false, fl: 0, mv: false}, {id: 2014, k: 0, x: 12.5, y: 19.5, hp: 40, s: 0, t: 0, cd: 0, lx: 12.5, ly: 19.5, see: false, fl: 0, mv: false}],
       items: [{id: 2015, k: "Q", x: 27.5, y: 2.5}, {id: 2016, k: "G", x: 6.5, y: 3.5}, {id: 2017, k: "c", x: 29.5, y: 8.5}, {id: 2018, k: "s", x: 3.5, y: 9.5}, {id: 2019, k: "q", x: 3.5, y: 14.5}, {id: 2020, k: "c", x: 6.5, y: 14.5}, {id: 2021, k: "m", x: 12.5, y: 15.5}, {id: 2022, k: "r", x: 18.5, y: 15.5}, {id: 2023, k: "s", x: 18.5, y: 19.5}, {id: 2024, k: "n", x: 3.5, y: 20.5}]},
-    {name: "COMMAND DECK", sx: 3.5, sy: 25.5, sa: 0, ex: 15, ey: 1, nk: 13, ns: 1,
+    {name: str.command, sx: 3.5, sy: 25.5, sa: 0, ex: 15, ey: 1, nk: 13, ns: 1,
       m: [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 9, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 1], [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 8, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], [1, 1, 1, 6, 1, 1, 1, 1, 2, 2, 2, 2, 2, 7, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 6, 1, 1, 1, 1, 1, 1, 1], [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1], [1, 1, 1, 1, 1, 6, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1], [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1, 6, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]],
       dx: [[-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, 4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 5, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 6, -1, -1, -1, -1, -1, -1, 7, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, 9, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10, -1, -1, -1, -1, -1, -1, 11, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, 12, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, 13, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 14, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]],
       doors: [{x: 14, y: 7, k: 8}, {x: 7, y: 9, k: 6}, {x: 19, y: 9, k: 6}, {x: 3, y: 12, k: 6}, {x: 13, y: 12, k: 7}, {x: 24, y: 12, k: 6}, {x: 18, y: 14, k: 7}, {x: 25, y: 14, k: 10}, {x: 10, y: 16, k: 7}, {x: 5, y: 18, k: 6}, {x: 18, y: 20, k: 6}, {x: 25, y: 20, k: 6}, {x: 9, y: 23, k: 6}, {x: 8, y: 25, k: 6}, {x: 22, y: 25, k: 6}],
@@ -95,7 +661,7 @@ app "derelict" {
   ]
   // the sprite of each item, and its name for the message
   let IF = {m: 24, n: 33, a: 25, r: 26, s: 27, c: 28, q: 29, Q: 30, g: 31, G: 32}
-  let INAME = {m: "MEDKIT", n: "STIM", a: "ARMOR VEST", r: "RIVETS", s: "SHELLS", c: "POWER CELLS", q: "RED KEYCARD", Q: "BLUE KEYCARD", g: "SCATTERGUN", G: "PLASMA CUTTER"}
+  let INAME = {m: str.medkit, n: str.stim, a: str.vest, r: str.rivets, s: str.shells, c: str.cells, q: str.redKey, Q: str.blueKey, g: str.scattergun, G: str.plasma}
   let WNAME = ["RIVET GUN", "SCATTERGUN", "PLASMA CUTTER"]
   let AMAX = [200, 50, 300]
   // what you carry into a deck picked on the title
@@ -261,13 +827,13 @@ app "derelict" {
         let newSec = count(range(len(LD)), i => LD[i].k == 10 && dop0[i] == 0 && dop[i] > 0)
         if newSec > 0 {
           secrets = secrets + newSec
-          msg = "SECRET FOUND"
+          msg = str.secretFound
           msgAt = gt
           haptic("light")
         }
         let needK = first(LD.filter(D => (D.k == 7 && !kr || D.k == 8 && !kb) && abs(D.x + 0.5 - px) < 1.35 && abs(D.y + 0.5 - py) < 1.35))
         if needK != null && gt - msgAt > 2.5 {
-          msg = needK.k == 7 ? "RED KEYCARD NEEDED" : "BLUE KEYCARD NEEDED"
+          msg = needK.k == 7 ? str.redNeeded : str.blueNeeded
           msgAt = gt
         }
 
@@ -298,7 +864,7 @@ app "derelict" {
         if firing && gt >= fireAt && !canFire {
           let alt = first(range(3).filter(i => has[2 - i] && am[2 - i] > 0))
           if alt != null { wpn = 2 - alt }
-          msg = "OUT OF AMMO"
+          msg = str.noAmmo
           msgAt = gt
           fireAt = gt + 0.5
         }
@@ -349,7 +915,7 @@ app "derelict" {
           fx = fx + bq.map(c => {x: c.x, y: c.y, t0: gt, life: 0.5, s: 1.5, b: 0})
           if len(bq) > 0 { haptic("strong") }
           if any(died, e => e.k == 4) {
-            msg = "THE WARDEN IS DOWN"
+            msg = str.wardenDown
             msgAt = gt
           }
         }
@@ -671,11 +1237,11 @@ app "derelict" {
           rect(0, bh - 3, W, 3, fill: #0b0d10)
           if mode == "play" || mode == "paused" {
           for i in range(4) { rect(W * [0, 0.235, 0.455, 0.645][i] + (i == 0 ? 0 : -1), 6, 2, bh - 12, fill: #0b0d10) }
-          text("HEALTH", 10, 16, size: 7, color: #8a929c, font: PIX)
+          text(str.health, 10, 16, size: 7, color: #8a929c, font: PIX)
           text("${round(hp)}", 10, 40, size: 17, color: hp < 25 ? #ff4030 : #f0e8d8, font: PIX)
-          text("ARMOR", W * 0.235 + 8, 16, size: 7, color: #8a929c, font: PIX)
+          text(str.armor, W * 0.235 + 8, 16, size: 7, color: #8a929c, font: PIX)
           text("${round(ar)}", W * 0.235 + 8, 40, size: 17, color: #60d880, font: PIX)
-          text("AMMO", W * 0.455 + 8, 16, size: 7, color: #8a929c, font: PIX)
+          text(str.ammo, W * 0.455 + 8, 16, size: 7, color: #8a929c, font: PIX)
           text("${am[wpn]}", W * 0.455 + 8, 40, size: 17, color: #ffc840, font: PIX)
           rect(W * 0.645 + 8, 12, 13, 18, fill: kr ? #ff3a30 : #2a2f36)
           rect(W * 0.645 + 8, 34, 13, 18, fill: kb ? #3a8aff : #2a2f36)
@@ -717,7 +1283,7 @@ app "derelict" {
           let ky = sby + clamp(LFd.y - sby, -46, 46)
           circle(kx, ky, 20, fill: alpha(#c8d0da, 0.45))
         } else {
-          text("MOVE", sbx, sby, size: 9, align: center, color: alpha(#c8d0da, 0.45), font: PIX)
+          text(str.move, sbx, sby, size: 9, align: center, color: alpha(#c8d0da, 0.45), font: PIX)
         }
         if RFd != null && !fireOn {
           circle(RFd.startX, RFd.startY, 34, stroke: alpha(#c8d0da, 0.35), width: 2)
@@ -729,12 +1295,12 @@ app "derelict" {
         path(range(8).map(i => [FBX + cos(rad(i * 45 + 22.5)) * FBR, FBY + 6 + sin(rad(i * 45 + 22.5)) * FBR]), closed: true, fill: #5a140e)
         path(range(8).map(i => [FBX + cos(rad(i * 45 + 22.5)) * FBR, FBY + fo + sin(rad(i * 45 + 22.5)) * FBR]), closed: true, fill: fireOn ? #ff5a3a : #c8321e)
         path(range(8).map(i => [FBX + cos(rad(i * 45 + 22.5)) * (FBR - 8), FBY + fo + sin(rad(i * 45 + 22.5)) * (FBR - 8)]), closed: true, fill: fireOn ? #ff7a50 : #e0462a)
-        text("FIRE", FBX, FBY + fo, size: 11, align: center, color: #fff4e0, font: PIX)
-        text("SLIDE OR HOLD TO TURN", FBX - (LAND ? 40 : 0), FBY + FBR + (LAND ? 16 : 22), size: 7, align: center, color: alpha(#c8d0da, 0.4), font: PIX)
+        text(str.fire, FBX, FBY + fo, size: 11, align: center, color: #fff4e0, font: PIX)
+        text(str.slideTurn, FBX - (LAND ? 40 : 0), FBY + FBR + (LAND ? 16 : 22), size: 7, align: center, color: alpha(#c8d0da, 0.4), font: PIX)
         if LAND {
-          text("HP ${round(hp)}", 16, 20, size: 12, color: hp < 25 ? #ff4030 : #f0e8d8, font: PIX)
-          text("AR ${round(ar)}", 120, 20, size: 12, color: #60d880, font: PIX)
-          text("AMMO ${am[wpn]}", 220, 20, size: 12, color: #ffc840, font: PIX)
+          text(str.hp(round(hp)), 16, 20, size: 12, color: hp < 25 ? #ff4030 : #f0e8d8, font: PIX)
+          text(str.ar(round(ar)), 120, 20, size: 12, color: #60d880, font: PIX)
+          text(str.ammoN(am[wpn]), 220, 20, size: 12, color: #ffc840, font: PIX)
           rect(360, 12, 10, 16, fill: kr ? #ff3a30 : alpha(#2a2f36, 0.6))
           rect(376, 12, 10, 16, fill: kb ? #3a8aff : alpha(#2a2f36, 0.6))
           for i in range(3) {
@@ -753,7 +1319,7 @@ app "derelict" {
         if mode == "title" {
           text("DERELICT", W / 2 + 3, my + 3, size: big, align: center, color: #5a140e, font: PIX)
           text("DERELICT", W / 2, my, size: big, align: center, color: #e0462a, font: PIX)
-          text("THE STATION WENT DARK. GO IN.", W / 2, my + big * 1.3, size: 8, align: center, color: #c8d0da, font: PIX)
+          text(str.tagline, W / 2, my + big * 1.3, size: 8, align: center, color: #c8d0da, font: PIX)
           for i in range(len(LVS)) {
             let by = MENUY + i * MENUH
             let opn = i < unlocked
@@ -761,33 +1327,33 @@ app "derelict" {
             rect(W / 2 - MENUW / 2, by, MENUW, MENUH - 12, fill: opn ? #c8321e : #20242a)
             text("${i + 1} ${LVS[i].name}", W / 2, by + (MENUH - 12) / 2, size: 11, align: center, color: opn ? #fff4e0 : #4a5058, font: PIX)
           }
-          text("TAP A DECK", W / 2, MENUY + len(LVS) * MENUH + 14, size: 8, align: center, color: #8a929c, font: PIX)
-          text("LEFT THUMB MOVES - RIGHT THUMB TURNS - HOLD FIRE", W / 2, MENUY + len(LVS) * MENUH + 36, size: 6, align: center, color: #5a626c, font: PIX)
-          text(snd ? "SOUND ON" : "SOUND OFF", W / 2, MENUY + len(LVS) * MENUH + 72, size: 8, align: center, color: snd ? #c8d0da : #5a626c, font: PIX)
+          text(str.tapDeck, W / 2, MENUY + len(LVS) * MENUH + 14, size: 8, align: center, color: #8a929c, font: PIX)
+          text(str.controls, W / 2, MENUY + len(LVS) * MENUH + 36, size: 6, align: center, color: #5a626c, font: PIX)
+          text(snd ? str.soundOn : str.soundOff, W / 2, MENUY + len(LVS) * MENUH + 72, size: 8, align: center, color: snd ? #c8d0da : #5a626c, font: PIX)
         } else if mode == "paused" {
-          text("PAUSED", W / 2, my, size: big, align: center, color: #ffc840, font: PIX)
+          text(str.paused, W / 2, my, size: big, align: center, color: #ffc840, font: PIX)
           rect(W / 2 - MENUW / 2, MENUY + 5, MENUW, MENUH - 12, fill: #5a140e)
           rect(W / 2 - MENUW / 2, MENUY, MENUW, MENUH - 12, fill: #c8321e)
-          text("RESUME", W / 2, MENUY + (MENUH - 12) / 2, size: 11, align: center, color: #fff4e0, font: PIX)
+          text(str.resume, W / 2, MENUY + (MENUH - 12) / 2, size: 11, align: center, color: #fff4e0, font: PIX)
           rect(W / 2 - MENUW / 2, MENUY + MENUH + 5, MENUW, MENUH - 12, fill: #14171c)
           rect(W / 2 - MENUW / 2, MENUY + MENUH, MENUW, MENUH - 12, fill: #3a4048)
-          text("QUIT TO TITLE", W / 2, MENUY + MENUH + (MENUH - 12) / 2, size: 11, align: center, color: #c8d0da, font: PIX)
+          text(str.quit, W / 2, MENUY + MENUH + (MENUH - 12) / 2, size: 11, align: center, color: #c8d0da, font: PIX)
           rect(W / 2 - MENUW / 2, MENUY + 2 * MENUH + 5, MENUW, MENUH - 12, fill: #14171c)
           rect(W / 2 - MENUW / 2, MENUY + 2 * MENUH, MENUW, MENUH - 12, fill: #3a4048)
-          text(snd ? "SOUND ON" : "SOUND OFF", W / 2, MENUY + 2 * MENUH + (MENUH - 12) / 2, size: 11, align: center, color: #c8d0da, font: PIX)
+          text(snd ? str.soundOn : str.soundOff, W / 2, MENUY + 2 * MENUH + (MENUH - 12) / 2, size: 11, align: center, color: #c8d0da, font: PIX)
         } else if mode == "dead" {
-          text("YOU DIED", W / 2 + 3, my + 3, size: big, align: center, color: #300806, font: PIX)
-          text("YOU DIED", W / 2, my, size: big, align: center, color: #ff3a20, font: PIX)
-          text("${LV.name}  -  ${kills}/${LV.nk} KILLS", W / 2, my + big * 1.4, size: 8, align: center, color: #c8d0da, font: PIX)
-          text("TAP TO TRY THE DECK AGAIN", W / 2, my + big * 1.4 + 50, size: 9, align: center, color: #ffc840, font: PIX)
+          text(str.died, W / 2 + 3, my + 3, size: big, align: center, color: #300806, font: PIX)
+          text(str.died, W / 2, my, size: big, align: center, color: #ff3a20, font: PIX)
+          text(str.diedLine(LV.name, kills, LV.nk), W / 2, my + big * 1.4, size: 8, align: center, color: #c8d0da, font: PIX)
+          text(str.tryAgain, W / 2, my + big * 1.4 + 50, size: 9, align: center, color: #ffc840, font: PIX)
         } else {
           let won = mode == "won"
-          text(won ? "STATION CLEAR" : "DECK CLEAR", W / 2, my, size: big * (won ? 0.8 : 1), align: center, color: #60d880, font: PIX)
+          text(won ? str.stationClear : str.deckClear, W / 2, my, size: big * (won ? 0.8 : 1), align: center, color: #60d880, font: PIX)
           text(LV.name, W / 2, my + big * 1.4, size: 9, align: center, color: #c8d0da, font: PIX)
-          text("KILLS    ${kills} / ${LV.nk}", W / 2, my + big * 1.4 + 30, size: 9, align: center, color: #f0e8d8, font: PIX)
-          text("SECRETS  ${secrets} / ${LV.ns}", W / 2, my + big * 1.4 + 52, size: 9, align: center, color: #f0e8d8, font: PIX)
-          text("TIME     ${floor((endT - t0) / 60)}:${pad(floor((endT - t0) % 60), 2, "0")}", W / 2, my + big * 1.4 + 74, size: 9, align: center, color: #f0e8d8, font: PIX)
-          text(won ? "TAP FOR THE TITLE" : "TAP FOR THE NEXT DECK", W / 2, my + big * 1.4 + 112, size: 9, align: center, color: #ffc840, font: PIX)
+          text(str.kills(kills, LV.nk), W / 2, my + big * 1.4 + 30, size: 9, align: center, color: #f0e8d8, font: PIX)
+          text(str.secrets(secrets, LV.ns), W / 2, my + big * 1.4 + 52, size: 9, align: center, color: #f0e8d8, font: PIX)
+          text(str.time("${floor((endT - t0) / 60)}:${pad(floor((endT - t0) % 60), 2, "0")}"), W / 2, my + big * 1.4 + 74, size: 9, align: center, color: #f0e8d8, font: PIX)
+          text(won ? str.tapTitle : str.tapNext, W / 2, my + big * 1.4 + 112, size: 9, align: center, color: #ffc840, font: PIX)
         }
       }
 

@@ -1,7 +1,1234 @@
 app "mtg cards" {
-  meta { owl: 23; description: "Magic: The Gathering cards from Scryfall: search with Scryfall's syntax, card pages with prices, legality, printings and rulings, a random card, and deck lists"; version: "1.2"; license: "MIT"; category: "games" }
+  meta { owl: 23; description: "Magic: The Gathering cards from Scryfall: search with Scryfall's syntax, card pages with prices, legality, printings and rulings, a random card, and deck lists"; version: "1.3"; license: "MIT"; category: "games" }
+  // chips are as wide as len(label) * 8 + 28; the five sort chips share a row
+  strings {
+    en {
+      card: "card"
+      randomCard: "random card"
+      search: "search"
+      random: "random"
+      decks: "decks"
+      settings: "settings"
+      noMatch: "no cards match"
+      busy: "Scryfall is busy; try again in a minute"
+      unreachable: "couldn't reach Scryfall"
+      cantLoadCard: "couldn't load the card"
+      noCardFilter: "no card matches that filter"
+      noAnswer: c => "Scryfall didn't answer: ${c}"
+      notFound: names => "not found: ${names}. "
+      imported: n => "imported ${n} cards. "
+      importing: "importing…"
+      tryAgain: "try again"
+      loading: "loading…"
+      flipTo: name => "↻ flip to ${name}"
+      loyalty: v => "loyalty ${v}"
+      defense: v => "defense ${v}"
+      illustrated: a => "illustrated by ${a}"
+      prices: "prices"
+      noPrices: "Scryfall has no prices for this printing"
+      deck: "deck"
+      addToDeck: "add to a deck"
+      inIt: n => "${n} in it"
+      addedTo: d => "added to ${d}"
+      addedToSide: d => "added to ${d}'s sideboard"
+      plusMain: "+ main"
+      plusSide: "+ side"
+      firstDeck: "name your first deck"
+      orNewDeck: "or a new deck"
+      create: "create"
+      done: "done"
+      legality: "legality"
+      legal: "legal"
+      banned: "banned"
+      restricted: "restricted"
+      notLegal: "not legal"
+      printings: (n, more) => "${n}${more ? "+" : ""} printings"
+      showAll: "show all"
+      rulings: "rulings"
+      showRulings: "show rulings"
+      noRulings: "no rulings for this card"
+      cantRulings: "couldn't load the rulings"
+      share: "share"
+      cards: n => "${n} cards"
+      plusSideboard: n => " + ${n} sideboard"
+      sideboardN: n => "sideboard ${n}"
+      noSideboard: "no sideboard"
+      updatingPrices: "updating prices…"
+      pricesJust: "prices just updated"
+      pricesFrom: a => "prices from ${a} ago"
+      manaCurve: "mana curve"
+      addCards: "add cards"
+      importList: "import"
+      shareList: "share list"
+      copy: "copy"
+      updatePrices: "update prices"
+      rename: "rename"
+      delete: "delete"
+      copiedList: "copied the list"
+      deckName: "deck name"
+      deleteQ: d => "delete ${d}?"
+      cardSearch: "a card's name, or any Scryfall search"
+      searching: "searching…"
+      side: "side"
+      pasteHelp: "Paste a deck list, one card a line like \"4 Lightning Bolt\" or \"1 Sol Ring (C21) 263\", with \"Sideboard\" before the sideboard."
+      impCount: (n, l) => "${n} cards in ${l} lines"
+      emptyDeck: "An empty deck: add cards from a card's page, search for them under add cards, or import a list."
+      group: i => ["creature", "planeswalker", "battle", "land", "instant", "sorcery", "artifact", "enchantment", "other"][i]
+      sideboard: "sideboard"
+      searchHint: "search cards, e.g. t:dragon c:r"
+      sortName: "name"
+      sortNew: "new"
+      sortMana: "mana"
+      sortPrice: "price"
+      recent: "recent"
+      try: "try"
+      example: i => ["legendary dragons", "cheap blue card draw", "Golgari commanders", "big creatures in Pauper", "cards worth $100 or more", "this year's mythics", "art with cats in it"][i]
+      syntaxHelp: "Searches use Scryfall's syntax: t: type, o: rules text, c: colors, id: color identity, mv: mana value, f: format, r: rarity, s: set, usd: price."
+      syntaxGuide: "the full syntax guide"
+      prev: "‹ prev"
+      next: "next ›"
+      page: n => "page ${n}"
+      filter: i => ["any card", "commander", "planeswalker", "mythic", "silly", "pricey"][i]
+      ownFilter: "or your own filter, e.g. t:goblin"
+      another: "another"
+      decksEmpty: "Keep your deck lists here: name one, then add cards from their pages, search for them inside the deck, or paste a list."
+      newDeckName: "new deck name"
+      pricesIn: "prices in"
+      usd: "US dollars"
+      eur: "euros"
+      tix: "MTGO tickets"
+      searchResults: "search results"
+      listPrices: "a list with prices"
+      gridCards: "a grid of cards"
+      everyPrinting: "every printing, not one per card"
+      clearRecent: "clear recent searches"
+      disclaimer: "Cards, prices and images come from Scryfall, fetched only while the app is open. Prices are updated once a day. Mana symbols and card images are Wizards of the Coast's; this app isn't affiliated with Wizards of the Coast or Scryfall."
+    }
+    id {
+      card: "kartu"
+      randomCard: "kartu acak"
+      search: "cari"
+      random: "acak"
+      decks: "dek"
+      settings: "setelan"
+      noMatch: "tidak ada kartu yang cocok"
+      busy: "Scryfall sedang sibuk; coba lagi sebentar lagi"
+      unreachable: "tidak bisa menghubungi Scryfall"
+      cantLoadCard: "tidak bisa memuat kartu"
+      noCardFilter: "tidak ada kartu yang cocok dengan filter itu"
+      noAnswer: c => "Scryfall tidak menjawab: ${c}"
+      notFound: names => "tidak ditemukan: ${names}. "
+      imported: n => "${n} kartu diimpor. "
+      importing: "mengimpor…"
+      tryAgain: "coba lagi"
+      loading: "memuat…"
+      flipTo: name => "↻ balik ke ${name}"
+      loyalty: v => "loyalitas ${v}"
+      defense: v => "pertahanan ${v}"
+      illustrated: a => "ilustrasi oleh ${a}"
+      prices: "harga"
+      noPrices: "Scryfall tidak punya harga untuk cetakan ini"
+      deck: "dek"
+      addToDeck: "tambah ke dek"
+      inIt: n => "${n} di dek"
+      addedTo: d => "ditambahkan ke ${d}"
+      addedToSide: d => "ditambahkan ke sideboard ${d}"
+      plusMain: "+ utama"
+      plusSide: "+ side"
+      firstDeck: "beri nama dek pertamamu"
+      orNewDeck: "atau dek baru"
+      create: "buat"
+      done: "selesai"
+      legality: "legalitas"
+      legal: "legal"
+      banned: "dilarang"
+      restricted: "dibatasi"
+      notLegal: "tidak legal"
+      printings: (n, more) => "${n}${more ? "+" : ""} cetakan"
+      showAll: "tampilkan semua"
+      rulings: "putusan"
+      showRulings: "tampilkan putusan"
+      noRulings: "tidak ada putusan untuk kartu ini"
+      cantRulings: "tidak bisa memuat putusan"
+      share: "bagikan"
+      cards: n => "${n} kartu"
+      plusSideboard: n => " + ${n} sideboard"
+      sideboardN: n => "sideboard ${n}"
+      noSideboard: "tanpa sideboard"
+      updatingPrices: "memperbarui harga…"
+      pricesJust: "harga baru saja diperbarui"
+      pricesFrom: a => "harga dari ${a} lalu"
+      manaCurve: "kurva mana"
+      addCards: "tambah kartu"
+      importList: "impor"
+      shareList: "bagikan daftar"
+      copy: "salin"
+      updatePrices: "perbarui harga"
+      rename: "ganti nama"
+      delete: "hapus"
+      copiedList: "daftar disalin"
+      deckName: "nama dek"
+      deleteQ: d => "hapus ${d}?"
+      cardSearch: "nama kartu, atau pencarian Scryfall apa pun"
+      searching: "mencari…"
+      side: "side"
+      pasteHelp: "Tempel daftar dek, satu kartu per baris seperti \"4 Lightning Bolt\" atau \"1 Sol Ring (C21) 263\", dengan \"Sideboard\" sebelum sideboard."
+      impCount: (n, l) => "${n} kartu dalam ${l} baris"
+      emptyDeck: "Dek kosong: tambahkan kartu dari halaman kartu, cari di tambah kartu, atau impor daftar."
+      group: i => ["makhluk", "planeswalker", "pertempuran", "tanah", "instan", "sihir", "artefak", "pesona", "lainnya"][i]
+      sideboard: "sideboard"
+      searchHint: "cari kartu, mis. t:dragon c:r"
+      sortName: "nama"
+      sortNew: "baru"
+      sortMana: "mana"
+      sortPrice: "harga"
+      recent: "terakhir"
+      try: "coba"
+      example: i => ["naga legendaris", "tarik kartu biru murah", "commander Golgari", "makhluk besar di Pauper", "kartu seharga $100 ke atas", "mythic tahun ini", "artwork dengan kucing"][i]
+      syntaxHelp: "Pencarian memakai sintaks Scryfall: t: tipe, o: teks aturan, c: warna, id: identitas warna, mv: nilai mana, f: format, r: kelangkaan, s: set, usd: harga."
+      syntaxGuide: "panduan sintaks lengkap"
+      prev: "‹ sebelumnya"
+      next: "berikutnya ›"
+      page: n => "halaman ${n}"
+      filter: i => ["kartu apa saja", "commander", "planeswalker", "mythic", "konyol", "mahal"][i]
+      ownFilter: "atau filtermu sendiri, mis. t:goblin"
+      another: "lagi"
+      decksEmpty: "Simpan daftar dekmu di sini: beri nama satu, lalu tambahkan kartu dari halamannya, cari di dalam dek, atau tempel daftar."
+      newDeckName: "nama dek baru"
+      pricesIn: "harga dalam"
+      usd: "dolar AS"
+      eur: "euro"
+      tix: "tiket MTGO"
+      searchResults: "hasil pencarian"
+      listPrices: "daftar dengan harga"
+      gridCards: "kisi kartu"
+      everyPrinting: "setiap cetakan, bukan satu per kartu"
+      clearRecent: "hapus pencarian terakhir"
+      disclaimer: "Kartu, harga, dan gambar berasal dari Scryfall, diambil hanya saat aplikasi terbuka. Harga diperbarui sekali sehari. Simbol mana dan gambar kartu milik Wizards of the Coast; aplikasi ini tidak berafiliasi dengan Wizards of the Coast maupun Scryfall."
+    }
+    es {
+      card: "carta"
+      randomCard: "carta al azar"
+      search: "buscar"
+      random: "al azar"
+      decks: "mazos"
+      settings: "configuración"
+      noMatch: "ninguna carta coincide"
+      busy: "Scryfall está ocupado; vuelve a intentarlo en un minuto"
+      unreachable: "no se pudo conectar con Scryfall"
+      cantLoadCard: "no se pudo cargar la carta"
+      noCardFilter: "ninguna carta coincide con ese filtro"
+      noAnswer: c => "Scryfall no respondió: ${c}"
+      notFound: names => "no encontradas: ${names}. "
+      imported: n => n == 1 ? "1 carta importada. " : "${n} cartas importadas. "
+      importing: "importando…"
+      tryAgain: "reintentar"
+      loading: "cargando…"
+      flipTo: name => "↻ girar a ${name}"
+      loyalty: v => "lealtad ${v}"
+      defense: v => "defensa ${v}"
+      illustrated: a => "ilustrada por ${a}"
+      prices: "precios"
+      noPrices: "Scryfall no tiene precios para esta impresión"
+      deck: "mazo"
+      addToDeck: "añadir a un mazo"
+      inIt: n => "${n} en el mazo"
+      addedTo: d => "añadida a ${d}"
+      addedToSide: d => "añadida al banquillo de ${d}"
+      plusMain: "+ principal"
+      plusSide: "+ banquillo"
+      firstDeck: "ponle nombre a tu primer mazo"
+      orNewDeck: "o un mazo nuevo"
+      create: "crear"
+      done: "listo"
+      legality: "legalidad"
+      legal: "legal"
+      banned: "prohibida"
+      restricted: "restringida"
+      notLegal: "no legal"
+      printings: (n, more) => "${n}${more ? "+" : ""} impresiones"
+      showAll: "ver todas"
+      rulings: "aclaraciones"
+      showRulings: "ver aclaraciones"
+      noRulings: "no hay aclaraciones para esta carta"
+      cantRulings: "no se pudieron cargar las aclaraciones"
+      share: "compartir"
+      cards: n => n == 1 ? "1 carta" : "${n} cartas"
+      plusSideboard: n => " + ${n} de banquillo"
+      sideboardN: n => "banquillo ${n}"
+      noSideboard: "sin banquillo"
+      updatingPrices: "actualizando precios…"
+      pricesJust: "precios recién actualizados"
+      pricesFrom: a => "precios de hace ${a}"
+      manaCurve: "curva de maná"
+      addCards: "añadir cartas"
+      importList: "importar"
+      shareList: "compartir lista"
+      copy: "copiar"
+      updatePrices: "actualizar precios"
+      rename: "renombrar"
+      delete: "eliminar"
+      copiedList: "lista copiada"
+      deckName: "nombre del mazo"
+      deleteQ: d => "¿eliminar ${d}?"
+      cardSearch: "el nombre de una carta o cualquier búsqueda de Scryfall"
+      searching: "buscando…"
+      side: "banquillo"
+      pasteHelp: "Pega una lista de mazo, una carta por línea como \"4 Lightning Bolt\" o \"1 Sol Ring (C21) 263\", con \"Sideboard\" antes del banquillo."
+      impCount: (n, l) => "${n} ${n == 1 ? "carta" : "cartas"} en ${l} ${l == 1 ? "línea" : "líneas"}"
+      emptyDeck: "Un mazo vacío: añade cartas desde la página de una carta, búscalas en añadir cartas o importa una lista."
+      group: i => ["criatura", "planeswalker", "batalla", "tierra", "instantáneo", "conjuro", "artefacto", "encantamiento", "otros"][i]
+      sideboard: "banquillo"
+      searchHint: "buscar cartas, p. ej. t:dragon c:r"
+      sortName: "nombre"
+      sortNew: "nuevas"
+      sortMana: "maná"
+      sortPrice: "precio"
+      recent: "recientes"
+      try: "prueba"
+      example: i => ["dragones legendarios", "robo de cartas azul barato", "comandantes Golgari", "criaturas grandes en Pauper", "cartas de $100 o más", "míticas de este año", "ilustraciones con gatos"][i]
+      syntaxHelp: "Las búsquedas usan la sintaxis de Scryfall: t: tipo, o: texto de reglas, c: colores, id: identidad de color, mv: valor de maná, f: formato, r: rareza, s: expansión, usd: precio."
+      syntaxGuide: "la guía de sintaxis completa"
+      prev: "‹ anterior"
+      next: "siguiente ›"
+      page: n => "página ${n}"
+      filter: i => ["cualquier carta", "comandante", "planeswalker", "mítica", "divertida", "cara"][i]
+      ownFilter: "o tu propio filtro, p. ej. t:goblin"
+      another: "otra"
+      decksEmpty: "Guarda aquí tus listas de mazo: ponle nombre a una y añade cartas desde sus páginas, búscalas dentro del mazo o pega una lista."
+      newDeckName: "nombre del nuevo mazo"
+      pricesIn: "precios en"
+      usd: "dólares estadounidenses"
+      eur: "euros"
+      tix: "tickets de MTGO"
+      searchResults: "resultados de búsqueda"
+      listPrices: "una lista con precios"
+      gridCards: "una cuadrícula de cartas"
+      everyPrinting: "cada impresión, no una por carta"
+      clearRecent: "borrar búsquedas recientes"
+      disclaimer: "Las cartas, precios e imágenes vienen de Scryfall y solo se descargan con la app abierta. Los precios se actualizan una vez al día. Los símbolos de maná y las imágenes de las cartas son de Wizards of the Coast; esta app no está afiliada a Wizards of the Coast ni a Scryfall."
+    }
+    pt {
+      card: "carta"
+      randomCard: "carta aleatória"
+      search: "busca"
+      random: "aleatória"
+      decks: "decks"
+      settings: "configurações"
+      noMatch: "nenhuma carta encontrada"
+      busy: "O Scryfall está ocupado; tente de novo em um minuto"
+      unreachable: "não foi possível acessar o Scryfall"
+      cantLoadCard: "não foi possível carregar a carta"
+      noCardFilter: "nenhuma carta corresponde a esse filtro"
+      noAnswer: c => "O Scryfall não respondeu: ${c}"
+      notFound: names => "não encontradas: ${names}. "
+      imported: n => n == 1 ? "1 carta importada. " : "${n} cartas importadas. "
+      importing: "importando…"
+      tryAgain: "tentar de novo"
+      loading: "carregando…"
+      flipTo: name => "↻ virar para ${name}"
+      loyalty: v => "lealdade ${v}"
+      defense: v => "defesa ${v}"
+      illustrated: a => "ilustrada por ${a}"
+      prices: "preços"
+      noPrices: "O Scryfall não tem preços para esta impressão"
+      deck: "deck"
+      addToDeck: "adicionar a um deck"
+      inIt: n => "${n} no deck"
+      addedTo: d => "adicionada a ${d}"
+      addedToSide: d => "adicionada ao sideboard de ${d}"
+      plusMain: "+ principal"
+      plusSide: "+ side"
+      firstDeck: "dê um nome ao seu primeiro deck"
+      orNewDeck: "ou um deck novo"
+      create: "criar"
+      done: "pronto"
+      legality: "legalidade"
+      legal: "legal"
+      banned: "banida"
+      restricted: "restrita"
+      notLegal: "não legal"
+      printings: (n, more) => "${n}${more ? "+" : ""} impressões"
+      showAll: "mostrar todas"
+      rulings: "esclarecimentos"
+      showRulings: "mostrar esclarecimentos"
+      noRulings: "nenhum esclarecimento para esta carta"
+      cantRulings: "não foi possível carregar os esclarecimentos"
+      share: "compartilhar"
+      cards: n => n == 1 ? "1 carta" : "${n} cartas"
+      plusSideboard: n => " + ${n} no sideboard"
+      sideboardN: n => "sideboard ${n}"
+      noSideboard: "sem sideboard"
+      updatingPrices: "atualizando preços…"
+      pricesJust: "preços recém-atualizados"
+      pricesFrom: a => "preços de ${a} atrás"
+      manaCurve: "curva de mana"
+      addCards: "adicionar cartas"
+      importList: "importar"
+      shareList: "compartilhar lista"
+      copy: "copiar"
+      updatePrices: "atualizar preços"
+      rename: "renomear"
+      delete: "excluir"
+      copiedList: "lista copiada"
+      deckName: "nome do deck"
+      deleteQ: d => "excluir ${d}?"
+      cardSearch: "o nome de uma carta ou qualquer busca do Scryfall"
+      searching: "buscando…"
+      side: "side"
+      pasteHelp: "Cole uma lista de deck, uma carta por linha como \"4 Lightning Bolt\" ou \"1 Sol Ring (C21) 263\", com \"Sideboard\" antes do sideboard."
+      impCount: (n, l) => "${n} ${n == 1 ? "carta" : "cartas"} em ${l} ${l == 1 ? "linha" : "linhas"}"
+      emptyDeck: "Um deck vazio: adicione cartas pela página de uma carta, busque em adicionar cartas ou importe uma lista."
+      group: i => ["criatura", "planeswalker", "batalha", "terreno", "mágica instantânea", "feitiço", "artefato", "encantamento", "outros"][i]
+      sideboard: "sideboard"
+      searchHint: "buscar cartas, ex.: t:dragon c:r"
+      sortName: "nome"
+      sortNew: "novas"
+      sortMana: "mana"
+      sortPrice: "preço"
+      recent: "recentes"
+      try: "experimente"
+      example: i => ["dragões lendários", "compra de cartas azul barata", "comandantes Golgari", "criaturas grandes no Pauper", "cartas de $100 ou mais", "míticas deste ano", "artes com gatos"][i]
+      syntaxHelp: "As buscas usam a sintaxe do Scryfall: t: tipo, o: texto de regras, c: cores, id: identidade de cor, mv: valor de mana, f: formato, r: raridade, s: coleção, usd: preço."
+      syntaxGuide: "o guia completo da sintaxe"
+      prev: "‹ anterior"
+      next: "próxima ›"
+      page: n => "página ${n}"
+      filter: i => ["qualquer carta", "comandante", "planeswalker", "mítica", "engraçada", "cara"][i]
+      ownFilter: "ou seu próprio filtro, ex.: t:goblin"
+      another: "outra"
+      decksEmpty: "Guarde aqui suas listas de deck: dê um nome a uma e adicione cartas pelas páginas delas, busque dentro do deck ou cole uma lista."
+      newDeckName: "nome do novo deck"
+      pricesIn: "preços em"
+      usd: "dólares americanos"
+      eur: "euros"
+      tix: "tickets do MTGO"
+      searchResults: "resultados da busca"
+      listPrices: "uma lista com preços"
+      gridCards: "uma grade de cartas"
+      everyPrinting: "todas as impressões, não uma por carta"
+      clearRecent: "limpar buscas recentes"
+      disclaimer: "Cartas, preços e imagens vêm do Scryfall e só são baixados com o app aberto. Os preços são atualizados uma vez por dia. Os símbolos de mana e as imagens das cartas são da Wizards of the Coast; este app não tem vínculo com a Wizards of the Coast nem com o Scryfall."
+    }
+    de {
+      card: "karte"
+      randomCard: "zufallskarte"
+      search: "suche"
+      random: "zufall"
+      decks: "decks"
+      settings: "einstellungen"
+      noMatch: "keine passenden karten"
+      busy: "Scryfall ist ausgelastet; versuch es in einer minute nochmal"
+      unreachable: "Scryfall nicht erreichbar"
+      cantLoadCard: "karte konnte nicht geladen werden"
+      noCardFilter: "keine karte passt zu diesem filter"
+      noAnswer: c => "Scryfall hat nicht geantwortet: ${c}"
+      notFound: names => "nicht gefunden: ${names}. "
+      imported: n => n == 1 ? "1 karte importiert. " : "${n} karten importiert. "
+      importing: "importiere…"
+      tryAgain: "nochmal versuchen"
+      loading: "lädt…"
+      flipTo: name => "↻ umdrehen zu ${name}"
+      loyalty: v => "loyalität ${v}"
+      defense: v => "verteidigung ${v}"
+      illustrated: a => "illustriert von ${a}"
+      prices: "preise"
+      noPrices: "Scryfall hat keine preise für diesen druck"
+      deck: "deck"
+      addToDeck: "zu einem deck hinzufügen"
+      inIt: n => "${n} drin"
+      addedTo: d => "zu ${d} hinzugefügt"
+      addedToSide: d => "zum sideboard von ${d} hinzugefügt"
+      plusMain: "+ main"
+      plusSide: "+ side"
+      firstDeck: "nenn dein erstes deck"
+      orNewDeck: "oder ein neues deck"
+      create: "anlegen"
+      done: "fertig"
+      legality: "legalität"
+      legal: "legal"
+      banned: "gebannt"
+      restricted: "beschränkt"
+      notLegal: "nicht legal"
+      printings: (n, more) => "${n}${more ? "+" : ""} drucke"
+      showAll: "alle zeigen"
+      rulings: "rulings"
+      showRulings: "rulings zeigen"
+      noRulings: "keine rulings für diese karte"
+      cantRulings: "rulings konnten nicht geladen werden"
+      share: "teilen"
+      cards: n => n == 1 ? "1 karte" : "${n} karten"
+      plusSideboard: n => " + ${n} sideboard"
+      sideboardN: n => "sideboard ${n}"
+      noSideboard: "kein sideboard"
+      updatingPrices: "preise werden aktualisiert…"
+      pricesJust: "preise gerade aktualisiert"
+      pricesFrom: a => "preise von vor ${a}"
+      manaCurve: "manakurve"
+      addCards: "karten hinzufügen"
+      importList: "importieren"
+      shareList: "liste teilen"
+      copy: "kopieren"
+      updatePrices: "preise aktualisieren"
+      rename: "umbenennen"
+      delete: "löschen"
+      copiedList: "liste kopiert"
+      deckName: "deckname"
+      deleteQ: d => "${d} löschen?"
+      cardSearch: "ein kartenname oder eine Scryfall-suche"
+      searching: "suche…"
+      side: "side"
+      pasteHelp: "Füg eine Deckliste ein, eine Karte pro Zeile wie \"4 Lightning Bolt\" oder \"1 Sol Ring (C21) 263\", mit \"Sideboard\" vor dem Sideboard."
+      impCount: (n, l) => "${n} ${n == 1 ? "karte" : "karten"} in ${l} ${l == 1 ? "zeile" : "zeilen"}"
+      emptyDeck: "Ein leeres Deck: füg Karten von ihrer Seite hinzu, such sie unter karten hinzufügen oder importier eine Liste."
+      group: i => ["kreatur", "planeswalker", "schlacht", "land", "spontanzauber", "hexerei", "artefakt", "verzauberung", "sonstige"][i]
+      sideboard: "sideboard"
+      searchHint: "karten suchen, z. B. t:dragon c:r"
+      sortName: "name"
+      sortNew: "neu"
+      sortMana: "mana"
+      sortPrice: "preis"
+      recent: "zuletzt"
+      try: "probier"
+      example: i => ["legendäre drachen", "günstiges blaues kartenziehen", "Golgari-Commander", "große kreaturen in Pauper", "karten ab $100", "mythische karten von diesem jahr", "artworks mit katzen"][i]
+      syntaxHelp: "Suchen nutzen die Syntax von Scryfall: t: Typ, o: Regeltext, c: Farben, id: Farbidentität, mv: Manabetrag, f: Format, r: Seltenheit, s: Set, usd: Preis."
+      syntaxGuide: "die ganze syntax-anleitung"
+      prev: "‹ zurück"
+      next: "weiter ›"
+      page: n => "seite ${n}"
+      filter: i => ["jede karte", "commander", "planeswalker", "mythisch", "albern", "teuer"][i]
+      ownFilter: "oder dein eigener filter, z. B. t:goblin"
+      another: "noch eine"
+      decksEmpty: "Hier liegen deine Decklisten: gib einer einen Namen, dann füg Karten von ihren Seiten hinzu, such sie im Deck oder füg eine Liste ein."
+      newDeckName: "name des neuen decks"
+      pricesIn: "preise in"
+      usd: "US-dollar"
+      eur: "euro"
+      tix: "MTGO-tickets"
+      searchResults: "suchergebnisse"
+      listPrices: "eine liste mit preisen"
+      gridCards: "ein raster aus karten"
+      everyPrinting: "jeder druck, nicht einer pro karte"
+      clearRecent: "letzte suchen löschen"
+      disclaimer: "Karten, Preise und Bilder kommen von Scryfall und werden nur geladen, solange die App offen ist. Preise werden einmal am Tag aktualisiert. Manasymbole und Kartenbilder gehören Wizards of the Coast; diese App hat nichts mit Wizards of the Coast oder Scryfall zu tun."
+    }
+    zh {
+      card: "卡牌"
+      randomCard: "随机卡牌"
+      search: "搜索"
+      random: "随机"
+      decks: "套牌"
+      settings: "设置"
+      noMatch: "没有匹配的卡牌"
+      busy: "Scryfall 繁忙，请一分钟后再试"
+      unreachable: "无法连接 Scryfall"
+      cantLoadCard: "无法加载这张卡牌"
+      noCardFilter: "没有符合该筛选条件的卡牌"
+      noAnswer: c => "Scryfall 没有响应：${c}"
+      notFound: names => "未找到：${names}。"
+      imported: n => "已导入 ${n} 张卡牌。"
+      importing: "正在导入…"
+      tryAgain: "重试"
+      loading: "正在加载…"
+      flipTo: name => "↻ 翻到 ${name}"
+      loyalty: v => "忠诚 ${v}"
+      defense: v => "防御 ${v}"
+      illustrated: a => "画师：${a}"
+      prices: "价格"
+      noPrices: "Scryfall 没有这个版本的价格"
+      deck: "套牌"
+      addToDeck: "加入套牌"
+      inIt: n => "已有 ${n} 张"
+      addedTo: d => "已加入 ${d}"
+      addedToSide: d => "已加入 ${d} 的备牌"
+      plusMain: "+ 主牌"
+      plusSide: "+ 备牌"
+      firstDeck: "为你的第一副套牌命名"
+      orNewDeck: "或新建套牌"
+      create: "创建"
+      done: "完成"
+      legality: "赛制合法性"
+      legal: "合法"
+      banned: "禁用"
+      restricted: "限用"
+      notLegal: "不合法"
+      printings: (n, more) => "${n}${more ? "+" : ""} 个版本"
+      showAll: "显示全部"
+      rulings: "裁定"
+      showRulings: "显示裁定"
+      noRulings: "这张卡牌没有裁定"
+      cantRulings: "无法加载裁定"
+      share: "分享"
+      cards: n => "${n} 张卡牌"
+      plusSideboard: n => " + 备牌 ${n} 张"
+      sideboardN: n => "备牌 ${n}"
+      noSideboard: "无备牌"
+      updatingPrices: "正在更新价格…"
+      pricesJust: "价格刚刚更新"
+      pricesFrom: a => "${a}前的价格"
+      manaCurve: "法术力曲线"
+      addCards: "添加卡牌"
+      importList: "导入"
+      shareList: "分享列表"
+      copy: "复制"
+      updatePrices: "更新价格"
+      rename: "重命名"
+      delete: "删除"
+      copiedList: "已复制列表"
+      deckName: "套牌名称"
+      deleteQ: d => "删除 ${d}？"
+      cardSearch: "卡牌名称，或任意 Scryfall 搜索"
+      searching: "正在搜索…"
+      side: "备牌"
+      pasteHelp: "粘贴套牌列表，每行一张卡牌，如 \"4 Lightning Bolt\" 或 \"1 Sol Ring (C21) 263\",备牌前写 \"Sideboard\"。"
+      impCount: (n, l) => "${l} 行共 ${n} 张卡牌"
+      emptyDeck: "空套牌：从卡牌页面添加卡牌，在添加卡牌中搜索，或导入一个列表。"
+      group: i => ["生物", "鹏洛客", "战役", "地", "瞬间", "法术", "神器", "结界", "其他"][i]
+      sideboard: "备牌"
+      searchHint: "搜索卡牌，如 t:dragon c:r"
+      sortName: "名称"
+      sortNew: "最新"
+      sortMana: "费用"
+      sortPrice: "价格"
+      recent: "最近"
+      try: "试试"
+      example: i => ["传奇龙", "便宜的蓝色抓牌", "葛加理指挥官", "纯铁赛制中的大生物", "价值 $100 以上的卡牌", "今年的秘稀", "画里有猫的卡牌"][i]
+      syntaxHelp: "搜索使用 Scryfall 语法：t: 类别，o: 规则叙述，c: 颜色，id: 颜色标识，mv: 法术力值，f: 赛制，r: 稀有度，s: 系列，usd: 价格。"
+      syntaxGuide: "完整语法指南"
+      prev: "‹ 上一页"
+      next: "下一页 ›"
+      page: n => "第 ${n} 页"
+      filter: i => ["任意卡牌", "指挥官", "鹏洛客", "秘稀", "搞笑", "高价"][i]
+      ownFilter: "或自定义筛选，如 t:goblin"
+      another: "再来一张"
+      decksEmpty: "在这里保存套牌列表：先命名一副，再从卡牌页面添加卡牌、在套牌内搜索，或粘贴一个列表。"
+      newDeckName: "新套牌名称"
+      pricesIn: "价格货币"
+      usd: "美元"
+      eur: "欧元"
+      tix: "MTGO 点数"
+      searchResults: "搜索结果"
+      listPrices: "带价格的列表"
+      gridCards: "卡牌网格"
+      everyPrinting: "显示每个版本，而不是每张卡一个"
+      clearRecent: "清除最近搜索"
+      disclaimer: "卡牌、价格和图片来自 Scryfall,仅在应用打开时获取。价格每天更新一次。法术力符号和卡图归 Wizards of the Coast 所有;本应用与 Wizards of the Coast 和 Scryfall 均无关联。"
+    }
+    ru {
+      card: "карта"
+      randomCard: "случайная карта"
+      search: "поиск"
+      random: "случайная"
+      decks: "колоды"
+      settings: "настройки"
+      noMatch: "карт не найдено"
+      busy: "Scryfall занят; попробуйте через минуту"
+      unreachable: "не удалось связаться со Scryfall"
+      cantLoadCard: "не удалось загрузить карту"
+      noCardFilter: "под этот фильтр не подходит ни одна карта"
+      noAnswer: c => "Scryfall не ответил: ${c}"
+      notFound: names => "не найдено: ${names}. "
+      imported: n => "импортировано карт: ${n}. "
+      importing: "импорт…"
+      tryAgain: "повторить"
+      loading: "загрузка…"
+      flipTo: name => "↻ перевернуть: ${name}"
+      loyalty: v => "верность ${v}"
+      defense: v => "защита ${v}"
+      illustrated: a => "художник: ${a}"
+      prices: "цены"
+      noPrices: "У Scryfall нет цен для этого издания"
+      deck: "колода"
+      addToDeck: "добавить в колоду"
+      inIt: n => "в колоде: ${n}"
+      addedTo: d => "добавлено в «${d}»"
+      addedToSide: d => "добавлено в сайдборд «${d}»"
+      plusMain: "+ основа"
+      plusSide: "+ сайд"
+      firstDeck: "назовите свою первую колоду"
+      orNewDeck: "или новая колода"
+      create: "создать"
+      done: "готово"
+      legality: "легальность"
+      legal: "легальна"
+      banned: "запрещена"
+      restricted: "ограничена"
+      notLegal: "нелегальна"
+      printings: (n, more) => "изданий: ${n}${more ? "+" : ""}"
+      showAll: "показать все"
+      rulings: "разъяснения"
+      showRulings: "показать разъяснения"
+      noRulings: "для этой карты разъяснений нет"
+      cantRulings: "не удалось загрузить разъяснения"
+      share: "поделиться"
+      cards: n => "${n} ${n % 10 == 1 && n % 100 != 11 ? "карта" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? "карты" : "карт"}"
+      plusSideboard: n => " + ${n} в сайдборде"
+      sideboardN: n => "сайдборд ${n}"
+      noSideboard: "без сайдборда"
+      updatingPrices: "обновление цен…"
+      pricesJust: "цены только что обновлены"
+      pricesFrom: a => "цены ${a} назад"
+      manaCurve: "кривая маны"
+      addCards: "добавить карты"
+      importList: "импорт"
+      shareList: "поделиться списком"
+      copy: "копировать"
+      updatePrices: "обновить цены"
+      rename: "переименовать"
+      delete: "удалить"
+      copiedList: "список скопирован"
+      deckName: "название колоды"
+      deleteQ: d => "удалить «${d}»?"
+      cardSearch: "название карты или любой поиск Scryfall"
+      searching: "поиск…"
+      side: "сайд"
+      pasteHelp: "Вставьте список колоды, по карте в строке, например \"4 Lightning Bolt\" или \"1 Sol Ring (C21) 263\", а перед сайдбордом — \"Sideboard\"."
+      impCount: (n, l) => "карт: ${n}, строк: ${l}"
+      emptyDeck: "Колода пуста: добавляйте карты с их страниц, ищите их в разделе «добавить карты» или импортируйте список."
+      group: i => ["существо", "мироходец", "битва", "земля", "мгновенное", "волшебство", "артефакт", "чары", "другое"][i]
+      sideboard: "сайдборд"
+      searchHint: "поиск карт, например t:dragon c:r"
+      sortName: "имя"
+      sortNew: "новые"
+      sortMana: "мана"
+      sortPrice: "цена"
+      recent: "недавние"
+      try: "попробуйте"
+      example: i => ["легендарные драконы", "дешёвый синий добор", "командиры Голгари", "крупные существа в Pauper", "карты от $100", "мифические карты этого года", "арты с кошками"][i]
+      syntaxHelp: "Поиск использует синтаксис Scryfall: t: тип, o: текст правил, c: цвета, id: цветовая принадлежность, mv: мана-стоимость, f: формат, r: редкость, s: выпуск, usd: цена."
+      syntaxGuide: "полное руководство по синтаксису"
+      prev: "‹ назад"
+      next: "далее ›"
+      page: n => "страница ${n}"
+      filter: i => ["любая карта", "командир", "мироходец", "мифическая", "шуточная", "дорогая"][i]
+      ownFilter: "или свой фильтр, например t:goblin"
+      another: "ещё"
+      decksEmpty: "Храните здесь списки колод: назовите колоду, затем добавляйте карты с их страниц, ищите их внутри колоды или вставьте список."
+      newDeckName: "название новой колоды"
+      pricesIn: "валюта цен"
+      usd: "доллары США"
+      eur: "евро"
+      tix: "билеты MTGO"
+      searchResults: "результаты поиска"
+      listPrices: "список с ценами"
+      gridCards: "сетка карт"
+      everyPrinting: "все издания, а не одно на карту"
+      clearRecent: "очистить недавние поиски"
+      disclaimer: "Карты, цены и изображения берутся из Scryfall и загружаются, только пока приложение открыто. Цены обновляются раз в день. Символы маны и изображения карт принадлежат Wizards of the Coast; приложение не связано с Wizards of the Coast или Scryfall."
+    }
+    ja {
+      card: "カード"
+      randomCard: "ランダムカード"
+      search: "検索"
+      random: "ランダム"
+      decks: "デッキ"
+      settings: "設定"
+      noMatch: "一致するカードがありません"
+      busy: "Scryfall が混み合っています。1 分後にもう一度お試しください"
+      unreachable: "Scryfall に接続できません"
+      cantLoadCard: "カードを読み込めません"
+      noCardFilter: "その条件に合うカードがありません"
+      noAnswer: c => "Scryfall から応答がありません：${c}"
+      notFound: names => "見つかりません：${names}。"
+      imported: n => "${n} 枚をインポートしました。"
+      importing: "インポート中…"
+      tryAgain: "再試行"
+      loading: "読み込み中…"
+      flipTo: name => "↻ ${name} に裏返す"
+      loyalty: v => "忠誠度 ${v}"
+      defense: v => "防衛 ${v}"
+      illustrated: a => "イラスト：${a}"
+      prices: "価格"
+      noPrices: "Scryfall にこの版の価格はありません"
+      deck: "デッキ"
+      addToDeck: "デッキに追加"
+      inIt: n => "${n} 枚入り"
+      addedTo: d => "${d} に追加しました"
+      addedToSide: d => "${d} のサイドボードに追加しました"
+      plusMain: "+ メイン"
+      plusSide: "+ サイド"
+      firstDeck: "最初のデッキに名前を付けてください"
+      orNewDeck: "または新しいデッキ"
+      create: "作成"
+      done: "完了"
+      legality: "フォーマット"
+      legal: "使用可"
+      banned: "禁止"
+      restricted: "制限"
+      notLegal: "使用不可"
+      printings: (n, more) => "${n}${more ? "+" : ""} 版"
+      showAll: "すべて表示"
+      rulings: "裁定"
+      showRulings: "裁定を表示"
+      noRulings: "このカードの裁定はありません"
+      cantRulings: "裁定を読み込めません"
+      share: "共有"
+      cards: n => "${n} 枚"
+      plusSideboard: n => " + サイド ${n} 枚"
+      sideboardN: n => "サイドボード ${n}"
+      noSideboard: "サイドボードなし"
+      updatingPrices: "価格を更新中…"
+      pricesJust: "価格を更新しました"
+      pricesFrom: a => "${a}前の価格"
+      manaCurve: "マナカーブ"
+      addCards: "カードを追加"
+      importList: "インポート"
+      shareList: "リストを共有"
+      copy: "コピー"
+      updatePrices: "価格を更新"
+      rename: "名前を変更"
+      delete: "削除"
+      copiedList: "リストをコピーしました"
+      deckName: "デッキ名"
+      deleteQ: d => "${d} を削除しますか？"
+      cardSearch: "カード名、または Scryfall の検索式"
+      searching: "検索中…"
+      side: "サイド"
+      pasteHelp: "デッキリストを貼り付けてください。1 行に 1 枚、\"4 Lightning Bolt\" や \"1 Sol Ring (C21) 263\" のように書き、サイドボードの前に \"Sideboard\" と入れます。"
+      impCount: (n, l) => "${l} 行で ${n} 枚"
+      emptyDeck: "空のデッキです。カードのページから追加するか、カードを追加で検索するか、リストをインポートしてください。"
+      group: i => ["クリーチャー", "プレインズウォーカー", "バトル", "土地", "インスタント", "ソーサリー", "アーティファクト", "エンチャント", "その他"][i]
+      sideboard: "サイドボード"
+      searchHint: "カードを検索（例：t:dragon c:r）"
+      sortName: "名前"
+      sortNew: "新しい"
+      sortMana: "マナ"
+      sortPrice: "価格"
+      recent: "最近"
+      try: "試す"
+      example: i => ["伝説のドラゴン", "安い青のドロー", "ゴルガリの統率者", "パウパーの大型クリーチャー", "$100 以上のカード", "今年の神話レア", "猫が描かれたアート"][i]
+      syntaxHelp: "検索は Scryfall の構文を使います：t: タイプ、o: ルール文章、c: 色、id: 固有色、mv: マナ総量、f: フォーマット、r: レアリティ、s: セット、usd: 価格。"
+      syntaxGuide: "構文ガイドを見る"
+      prev: "‹ 前へ"
+      next: "次へ ›"
+      page: n => "${n} ページ"
+      filter: i => ["すべて", "統率者", "プレインズウォーカー", "神話レア", "おもしろ", "高額"][i]
+      ownFilter: "または自分の条件（例：t:goblin）"
+      another: "もう 1 枚"
+      decksEmpty: "ここにデッキリストを保存できます。名前を付けてから、カードのページから追加するか、デッキ内で検索するか、リストを貼り付けてください。"
+      newDeckName: "新しいデッキ名"
+      pricesIn: "価格の通貨"
+      usd: "米ドル"
+      eur: "ユーロ"
+      tix: "MTGO チケット"
+      searchResults: "検索結果"
+      listPrices: "価格付きリスト"
+      gridCards: "カードのグリッド"
+      everyPrinting: "カードごとに 1 つではなく、すべての版"
+      clearRecent: "最近の検索を消去"
+      disclaimer: "カード、価格、画像は Scryfall から取得し、アプリを開いているときだけ読み込みます。価格は 1 日 1 回更新されます。マナシンボルとカード画像は Wizards of the Coast のものです。このアプリは Wizards of the Coast や Scryfall とは関係ありません。"
+    }
+    uk {
+      card: "карта"
+      randomCard: "випадкова карта"
+      search: "пошук"
+      random: "випадкова"
+      decks: "колоди"
+      settings: "налаштування"
+      noMatch: "карт не знайдено"
+      busy: "Scryfall зайнятий; спробуйте за хвилину"
+      unreachable: "не вдалося зв'язатися зі Scryfall"
+      cantLoadCard: "не вдалося завантажити карту"
+      noCardFilter: "під цей фільтр не підходить жодна карта"
+      noAnswer: c => "Scryfall не відповів: ${c}"
+      notFound: names => "не знайдено: ${names}. "
+      imported: n => "імпортовано карт: ${n}. "
+      importing: "імпорт…"
+      tryAgain: "повторити"
+      loading: "завантаження…"
+      flipTo: name => "↻ перевернути: ${name}"
+      loyalty: v => "вірність ${v}"
+      defense: v => "захист ${v}"
+      illustrated: a => "художник: ${a}"
+      prices: "ціни"
+      noPrices: "У Scryfall немає цін для цього видання"
+      deck: "колода"
+      addToDeck: "додати до колоди"
+      inIt: n => "у колоді: ${n}"
+      addedTo: d => "додано до «${d}»"
+      addedToSide: d => "додано до сайдборду «${d}»"
+      plusMain: "+ основа"
+      plusSide: "+ сайд"
+      firstDeck: "назвіть свою першу колоду"
+      orNewDeck: "або нова колода"
+      create: "створити"
+      done: "готово"
+      legality: "легальність"
+      legal: "легальна"
+      banned: "заборонена"
+      restricted: "обмежена"
+      notLegal: "нелегальна"
+      printings: (n, more) => "видань: ${n}${more ? "+" : ""}"
+      showAll: "показати всі"
+      rulings: "роз'яснення"
+      showRulings: "показати роз'яснення"
+      noRulings: "для цієї карти роз'яснень немає"
+      cantRulings: "не вдалося завантажити роз'яснення"
+      share: "поділитися"
+      cards: n => "${n} ${n % 10 == 1 && n % 100 != 11 ? "карта" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? "карти" : "карт"}"
+      plusSideboard: n => " + ${n} у сайдборді"
+      sideboardN: n => "сайдборд ${n}"
+      noSideboard: "без сайдборду"
+      updatingPrices: "оновлення цін…"
+      pricesJust: "ціни щойно оновлено"
+      pricesFrom: a => "ціни ${a} тому"
+      manaCurve: "крива мани"
+      addCards: "додати карти"
+      importList: "імпорт"
+      shareList: "поділитися списком"
+      copy: "копіювати"
+      updatePrices: "оновити ціни"
+      rename: "перейменувати"
+      delete: "видалити"
+      copiedList: "список скопійовано"
+      deckName: "назва колоди"
+      deleteQ: d => "видалити «${d}»?"
+      cardSearch: "назва карти або будь-який пошук Scryfall"
+      searching: "пошук…"
+      side: "сайд"
+      pasteHelp: "Вставте список колоди, по карті в рядку, наприклад \"4 Lightning Bolt\" або \"1 Sol Ring (C21) 263\", а перед сайдбордом — \"Sideboard\"."
+      impCount: (n, l) => "карт: ${n}, рядків: ${l}"
+      emptyDeck: "Колода порожня: додавайте карти з їхніх сторінок, шукайте їх у розділі «додати карти» або імпортуйте список."
+      group: i => ["істота", "мироходець", "битва", "земля", "миттєве", "чаклунство", "артефакт", "чари", "інше"][i]
+      sideboard: "сайдборд"
+      searchHint: "пошук карт, наприклад t:dragon c:r"
+      sortName: "назва"
+      sortNew: "нові"
+      sortMana: "мана"
+      sortPrice: "ціна"
+      recent: "нещодавні"
+      try: "спробуйте"
+      example: i => ["легендарні дракони", "дешевий синій добір", "командири Голгарі", "великі істоти в Pauper", "карти від $100", "міфічні карти цього року", "арти з котами"][i]
+      syntaxHelp: "Пошук використовує синтаксис Scryfall: t: тип, o: текст правил, c: кольори, id: колірна належність, mv: вартість мани, f: формат, r: рідкісність, s: випуск, usd: ціна."
+      syntaxGuide: "повний посібник із синтаксису"
+      prev: "‹ назад"
+      next: "далі ›"
+      page: n => "сторінка ${n}"
+      filter: i => ["будь-яка карта", "командир", "мироходець", "міфічна", "жартівлива", "дорога"][i]
+      ownFilter: "або свій фільтр, наприклад t:goblin"
+      another: "ще"
+      decksEmpty: "Зберігайте тут списки колод: назвіть колоду, потім додавайте карти з їхніх сторінок, шукайте їх усередині колоди або вставте список."
+      newDeckName: "назва нової колоди"
+      pricesIn: "валюта цін"
+      usd: "долари США"
+      eur: "євро"
+      tix: "квитки MTGO"
+      searchResults: "результати пошуку"
+      listPrices: "список із цінами"
+      gridCards: "сітка карт"
+      everyPrinting: "усі видання, а не одне на карту"
+      clearRecent: "очистити нещодавні пошуки"
+      disclaimer: "Карти, ціни й зображення беруться зі Scryfall і завантажуються, лише поки застосунок відкрито. Ціни оновлюються раз на день. Символи мани й зображення карт належать Wizards of the Coast; застосунок не пов'язаний із Wizards of the Coast чи Scryfall."
+    }
+    fr {
+      card: "carte"
+      randomCard: "carte au hasard"
+      search: "recherche"
+      random: "hasard"
+      decks: "decks"
+      settings: "paramètres"
+      noMatch: "aucune carte ne correspond"
+      busy: "Scryfall est occupé ; réessaie dans une minute"
+      unreachable: "impossible de joindre Scryfall"
+      cantLoadCard: "impossible de charger la carte"
+      noCardFilter: "aucune carte ne correspond à ce filtre"
+      noAnswer: c => "Scryfall n'a pas répondu : ${c}"
+      notFound: names => "introuvables : ${names}. "
+      imported: n => n <= 1 ? "${n} carte importée. " : "${n} cartes importées. "
+      importing: "import…"
+      tryAgain: "réessayer"
+      loading: "chargement…"
+      flipTo: name => "↻ retourner vers ${name}"
+      loyalty: v => "loyauté ${v}"
+      defense: v => "défense ${v}"
+      illustrated: a => "illustrée par ${a}"
+      prices: "prix"
+      noPrices: "Scryfall n'a pas de prix pour cette impression"
+      deck: "deck"
+      addToDeck: "ajouter à un deck"
+      inIt: n => "${n} dedans"
+      addedTo: d => "ajoutée à ${d}"
+      addedToSide: d => "ajoutée à la réserve de ${d}"
+      plusMain: "+ main"
+      plusSide: "+ réserve"
+      firstDeck: "nomme ton premier deck"
+      orNewDeck: "ou un nouveau deck"
+      create: "créer"
+      done: "terminé"
+      legality: "légalité"
+      legal: "légale"
+      banned: "bannie"
+      restricted: "restreinte"
+      notLegal: "non légale"
+      printings: (n, more) => "${n}${more ? "+" : ""} impressions"
+      showAll: "tout voir"
+      rulings: "précisions"
+      showRulings: "voir les précisions"
+      noRulings: "aucune précision pour cette carte"
+      cantRulings: "impossible de charger les précisions"
+      share: "partager"
+      cards: n => n <= 1 ? "${n} carte" : "${n} cartes"
+      plusSideboard: n => " + ${n} en réserve"
+      sideboardN: n => "réserve ${n}"
+      noSideboard: "pas de réserve"
+      updatingPrices: "mise à jour des prix…"
+      pricesJust: "prix à l'instant mis à jour"
+      pricesFrom: a => "prix d'il y a ${a}"
+      manaCurve: "courbe de mana"
+      addCards: "ajouter des cartes"
+      importList: "importer"
+      shareList: "partager la liste"
+      copy: "copier"
+      updatePrices: "mettre à jour les prix"
+      rename: "renommer"
+      delete: "supprimer"
+      copiedList: "liste copiée"
+      deckName: "nom du deck"
+      deleteQ: d => "supprimer ${d} ?"
+      cardSearch: "le nom d'une carte ou une recherche Scryfall"
+      searching: "recherche…"
+      side: "réserve"
+      pasteHelp: "Colle une liste de deck, une carte par ligne comme \"4 Lightning Bolt\" ou \"1 Sol Ring (C21) 263\", avec \"Sideboard\" avant la réserve."
+      impCount: (n, l) => "${n} ${n <= 1 ? "carte" : "cartes"} sur ${l} ${l <= 1 ? "ligne" : "lignes"}"
+      emptyDeck: "Un deck vide : ajoute des cartes depuis leur page, cherche-les dans ajouter des cartes ou importe une liste."
+      group: i => ["créature", "planeswalker", "bataille", "terrain", "éphémère", "rituel", "artefact", "enchantement", "autres"][i]
+      sideboard: "réserve"
+      searchHint: "chercher des cartes, ex. t:dragon c:r"
+      sortName: "nom"
+      sortNew: "récent"
+      sortMana: "mana"
+      sortPrice: "prix"
+      recent: "récentes"
+      try: "essaie"
+      example: i => ["dragons légendaires", "pioche bleue pas chère", "commandants Golgari", "grosses créatures en Pauper", "cartes à $100 ou plus", "mythiques de cette année", "illustrations avec des chats"][i]
+      syntaxHelp: "Les recherches utilisent la syntaxe de Scryfall : t: type, o: texte de règles, c: couleurs, id: identité colorée, mv: valeur de mana, f: format, r: rareté, s: extension, usd: prix."
+      syntaxGuide: "le guide complet de la syntaxe"
+      prev: "‹ préc."
+      next: "suiv. ›"
+      page: n => "page ${n}"
+      filter: i => ["toute carte", "commandant", "planeswalker", "mythique", "loufoque", "chère"][i]
+      ownFilter: "ou ton propre filtre, ex. t:goblin"
+      another: "une autre"
+      decksEmpty: "Garde tes listes de deck ici : nomme-en une, puis ajoute des cartes depuis leurs pages, cherche-les dans le deck ou colle une liste."
+      newDeckName: "nom du nouveau deck"
+      pricesIn: "prix en"
+      usd: "dollars US"
+      eur: "euros"
+      tix: "tickets MTGO"
+      searchResults: "résultats de recherche"
+      listPrices: "une liste avec les prix"
+      gridCards: "une grille de cartes"
+      everyPrinting: "chaque impression, pas une par carte"
+      clearRecent: "effacer les recherches récentes"
+      disclaimer: "Les cartes, prix et images viennent de Scryfall et ne sont chargés que lorsque l'app est ouverte. Les prix sont mis à jour une fois par jour. Les symboles de mana et les images des cartes appartiennent à Wizards of the Coast ; cette app n'est affiliée ni à Wizards of the Coast ni à Scryfall."
+    }
+    tr {
+      card: "kart"
+      randomCard: "rastgele kart"
+      search: "ara"
+      random: "rastgele"
+      decks: "desteler"
+      settings: "ayarlar"
+      noMatch: "eşleşen kart yok"
+      busy: "Scryfall meşgul; bir dakika sonra tekrar dene"
+      unreachable: "Scryfall'a ulaşılamadı"
+      cantLoadCard: "kart yüklenemedi"
+      noCardFilter: "bu filtreye uyan kart yok"
+      noAnswer: c => "Scryfall yanıt vermedi: ${c}"
+      notFound: names => "bulunamadı: ${names}. "
+      imported: n => "${n} kart içe aktarıldı. "
+      importing: "içe aktarılıyor…"
+      tryAgain: "tekrar dene"
+      loading: "yükleniyor…"
+      flipTo: name => "↻ çevir: ${name}"
+      loyalty: v => "sadakat ${v}"
+      defense: v => "savunma ${v}"
+      illustrated: a => "çizen: ${a}"
+      prices: "fiyatlar"
+      noPrices: "Scryfall'da bu baskı için fiyat yok"
+      deck: "deste"
+      addToDeck: "bir desteye ekle"
+      inIt: n => "destede ${n}"
+      addedTo: d => "${d} destesine eklendi"
+      addedToSide: d => "${d} destesinin yedeğine eklendi"
+      plusMain: "+ ana"
+      plusSide: "+ yedek"
+      firstDeck: "ilk destene bir ad ver"
+      orNewDeck: "ya da yeni bir deste"
+      create: "oluştur"
+      done: "bitti"
+      legality: "geçerlilik"
+      legal: "geçerli"
+      banned: "yasaklı"
+      restricted: "kısıtlı"
+      notLegal: "geçersiz"
+      printings: (n, more) => "${n}${more ? "+" : ""} baskı"
+      showAll: "tümünü göster"
+      rulings: "kararlar"
+      showRulings: "kararları göster"
+      noRulings: "bu kart için karar yok"
+      cantRulings: "kararlar yüklenemedi"
+      share: "paylaş"
+      cards: n => "${n} kart"
+      plusSideboard: n => " + ${n} yedek"
+      sideboardN: n => "yedek ${n}"
+      noSideboard: "yedek yok"
+      updatingPrices: "fiyatlar güncelleniyor…"
+      pricesJust: "fiyatlar az önce güncellendi"
+      pricesFrom: a => "${a} önceki fiyatlar"
+      manaCurve: "mana eğrisi"
+      addCards: "kart ekle"
+      importList: "içe aktar"
+      shareList: "listeyi paylaş"
+      copy: "kopyala"
+      updatePrices: "fiyatları güncelle"
+      rename: "yeniden adlandır"
+      delete: "sil"
+      copiedList: "liste kopyalandı"
+      deckName: "deste adı"
+      deleteQ: d => "${d} silinsin mi?"
+      cardSearch: "bir kart adı ya da herhangi bir Scryfall araması"
+      searching: "aranıyor…"
+      side: "yedek"
+      pasteHelp: "Bir deste listesi yapıştır, her satıra bir kart: \"4 Lightning Bolt\" ya da \"1 Sol Ring (C21) 263\" gibi, yedeklerden önce \"Sideboard\" yaz."
+      impCount: (n, l) => "${l} satırda ${n} kart"
+      emptyDeck: "Boş bir deste: kartları kendi sayfalarından ekle, kart ekle bölümünde ara ya da bir liste içe aktar."
+      group: i => ["yaratık", "planeswalker", "savaş", "arazi", "anlık", "büyü", "eser", "efsun", "diğer"][i]
+      sideboard: "yedek"
+      searchHint: "kart ara, örn. t:dragon c:r"
+      sortName: "ad"
+      sortNew: "yeni"
+      sortMana: "mana"
+      sortPrice: "fiyat"
+      recent: "son aramalar"
+      try: "dene"
+      example: i => ["efsanevi ejderhalar", "ucuz mavi kart çekme", "Golgari komutanları", "Pauper'da büyük yaratıklar", "$100 ve üzeri kartlar", "bu yılın efsanevileri", "içinde kedi olan çizimler"][i]
+      syntaxHelp: "Aramalar Scryfall sözdizimini kullanır: t: tür, o: kural metni, c: renkler, id: renk kimliği, mv: mana değeri, f: format, r: nadirlik, s: set, usd: fiyat."
+      syntaxGuide: "sözdizimi rehberinin tamamı"
+      prev: "‹ önceki"
+      next: "sonraki ›"
+      page: n => "sayfa ${n}"
+      filter: i => ["herhangi bir kart", "komutan", "planeswalker", "efsanevi", "şaka", "pahalı"][i]
+      ownFilter: "ya da kendi filtren, örn. t:goblin"
+      another: "bir tane daha"
+      decksEmpty: "Deste listelerini burada tut: birine ad ver, sonra kartları sayfalarından ekle, destenin içinde ara ya da bir liste yapıştır."
+      newDeckName: "yeni deste adı"
+      pricesIn: "fiyat birimi"
+      usd: "ABD doları"
+      eur: "euro"
+      tix: "MTGO biletleri"
+      searchResults: "arama sonuçları"
+      listPrices: "fiyatlı bir liste"
+      gridCards: "kart ızgarası"
+      everyPrinting: "her baskı, kart başına bir tane değil"
+      clearRecent: "son aramaları temizle"
+      disclaimer: "Kartlar, fiyatlar ve görseller Scryfall'dan gelir ve yalnızca uygulama açıkken indirilir. Fiyatlar günde bir kez güncellenir. Mana sembolleri ve kart görselleri Wizards of the Coast'a aittir; bu uygulamanın Wizards of the Coast ya da Scryfall ile bir bağı yoktur."
+    }
+    it {
+      card: "carta"
+      randomCard: "carta a caso"
+      search: "cerca"
+      random: "a caso"
+      decks: "mazzi"
+      settings: "impostazioni"
+      noMatch: "nessuna carta corrisponde"
+      busy: "Scryfall è occupato; riprova tra un minuto"
+      unreachable: "impossibile raggiungere Scryfall"
+      cantLoadCard: "impossibile caricare la carta"
+      noCardFilter: "nessuna carta corrisponde a quel filtro"
+      noAnswer: c => "Scryfall non ha risposto: ${c}"
+      notFound: names => "non trovate: ${names}. "
+      imported: n => n == 1 ? "1 carta importata. " : "${n} carte importate. "
+      importing: "importazione…"
+      tryAgain: "riprova"
+      loading: "caricamento…"
+      flipTo: name => "↻ gira su ${name}"
+      loyalty: v => "fedeltà ${v}"
+      defense: v => "difesa ${v}"
+      illustrated: a => "illustrata da ${a}"
+      prices: "prezzi"
+      noPrices: "Scryfall non ha prezzi per questa stampa"
+      deck: "mazzo"
+      addToDeck: "aggiungi a un mazzo"
+      inIt: n => "${n} nel mazzo"
+      addedTo: d => "aggiunta a ${d}"
+      addedToSide: d => "aggiunta al sideboard di ${d}"
+      plusMain: "+ main"
+      plusSide: "+ side"
+      firstDeck: "dai un nome al tuo primo mazzo"
+      orNewDeck: "o un nuovo mazzo"
+      create: "crea"
+      done: "fatto"
+      legality: "legalità"
+      legal: "legale"
+      banned: "bandita"
+      restricted: "limitata"
+      notLegal: "non legale"
+      printings: (n, more) => "${n}${more ? "+" : ""} stampe"
+      showAll: "mostra tutte"
+      rulings: "chiarimenti"
+      showRulings: "mostra chiarimenti"
+      noRulings: "nessun chiarimento per questa carta"
+      cantRulings: "impossibile caricare i chiarimenti"
+      share: "condividi"
+      cards: n => n == 1 ? "1 carta" : "${n} carte"
+      plusSideboard: n => " + ${n} nel sideboard"
+      sideboardN: n => "sideboard ${n}"
+      noSideboard: "nessun sideboard"
+      updatingPrices: "aggiornamento prezzi…"
+      pricesJust: "prezzi appena aggiornati"
+      pricesFrom: a => "prezzi di ${a} fa"
+      manaCurve: "curva di mana"
+      addCards: "aggiungi carte"
+      importList: "importa"
+      shareList: "condividi lista"
+      copy: "copia"
+      updatePrices: "aggiorna prezzi"
+      rename: "rinomina"
+      delete: "elimina"
+      copiedList: "lista copiata"
+      deckName: "nome del mazzo"
+      deleteQ: d => "eliminare ${d}?"
+      cardSearch: "il nome di una carta o qualsiasi ricerca Scryfall"
+      searching: "ricerca…"
+      side: "side"
+      pasteHelp: "Incolla una lista del mazzo, una carta per riga come \"4 Lightning Bolt\" o \"1 Sol Ring (C21) 263\", con \"Sideboard\" prima del sideboard."
+      impCount: (n, l) => "${n} ${n == 1 ? "carta" : "carte"} in ${l} ${l == 1 ? "riga" : "righe"}"
+      emptyDeck: "Un mazzo vuoto: aggiungi carte dalla pagina di una carta, cercale in aggiungi carte o importa una lista."
+      group: i => ["creatura", "planeswalker", "battaglia", "terra", "istantaneo", "stregoneria", "artefatto", "incantesimo", "altro"][i]
+      sideboard: "sideboard"
+      searchHint: "cerca carte, es. t:dragon c:r"
+      sortName: "nome"
+      sortNew: "nuove"
+      sortMana: "mana"
+      sortPrice: "prezzo"
+      recent: "recenti"
+      try: "prova"
+      example: i => ["draghi leggendari", "pescate blu economiche", "comandanti Golgari", "creature grandi in Pauper", "carte da $100 in su", "mitiche di quest'anno", "illustrazioni con gatti"][i]
+      syntaxHelp: "Le ricerche usano la sintassi di Scryfall: t: tipo, o: testo delle regole, c: colori, id: identità di colore, mv: valore di mana, f: formato, r: rarità, s: espansione, usd: prezzo."
+      syntaxGuide: "la guida completa alla sintassi"
+      prev: "‹ prec."
+      next: "succ. ›"
+      page: n => "pagina ${n}"
+      filter: i => ["qualsiasi carta", "comandante", "planeswalker", "mitica", "buffa", "costosa"][i]
+      ownFilter: "o un tuo filtro, es. t:goblin"
+      another: "un'altra"
+      decksEmpty: "Tieni qui le tue liste: dai un nome a una, poi aggiungi carte dalle loro pagine, cercale dentro il mazzo o incolla una lista."
+      newDeckName: "nome del nuovo mazzo"
+      pricesIn: "prezzi in"
+      usd: "dollari USA"
+      eur: "euro"
+      tix: "ticket MTGO"
+      searchResults: "risultati di ricerca"
+      listPrices: "una lista con i prezzi"
+      gridCards: "una griglia di carte"
+      everyPrinting: "ogni stampa, non una per carta"
+      clearRecent: "cancella ricerche recenti"
+      disclaimer: "Carte, prezzi e immagini arrivano da Scryfall e vengono scaricati solo mentre l'app è aperta. I prezzi si aggiornano una volta al giorno. I simboli di mana e le immagini delle carte sono di Wizards of the Coast; questa app non è affiliata a Wizards of the Coast né a Scryfall."
+    }
+  }
   // A card's page and an open deck are levels of their own; Back returns to the tab.
-  title: openId != "" ? cd.name ?? "card" : deck != null ? deck.name : view == "search" ? "mtg cards" : view == "random" ? "random card" : view
+  title: openId != "" ? cd.name ?? str.card : deck != null ? deck.name : view == "search" ? "mtg cards" : view == "random" ? str.randomCard : view == "decks" ? str.decks : str.settings
   back: openId != "" || deck != null || (view == "search" && len(query) > 0)
   onBack: {
     if openId != "" {
@@ -101,14 +1328,14 @@ app "mtg cards" {
   let ix = {id: indexOf(hdr, "scryfall_id"), set: indexOf(hdr, "set"), cn: indexOf(hdr, "collector_number"), rarity: indexOf(hdr, "rarity"), name: indexOf(hdr, "name"), cost: indexOf(hdr, "mana_cost"), cmc: indexOf(hdr, "cmc"), type: indexOf(hdr, "type_line"), usd: indexOf(hdr, "usd_price"), eur: indexOf(hdr, "eur_price"), tix: indexOf(hdr, "tix_price"), img: indexOf(hdr, "image_uri")}
   let fields = csvLines.drop(1).map(l => match(trim(l), csvRe)).filter(m => m != null).map(m => m.map(f => startsWith(f ?? "", '"') ? replace(sub(f, 1, len(f) - 1), '""', '"') : f ?? ""))
   let rows = fields.map(f => {id: f[ix.id], set: lower(f[ix.set]), cn: f[ix.cn], rarity: f[ix.rarity], name: f[ix.name], cost: f[ix.cost], cmc: num(f[ix.cmc], 0), type: f[ix.type], usd: f[ix.usd] == "" ? null : f[ix.usd], eur: f[ix.eur] == "" ? null : f[ix.eur], tix: f[ix.tix] == "" ? null : f[ix.tix], img: startsWith(f[ix.img], "https://cards.scryfall.io/large/") ? sub(f[ix.img], 32, len(f[ix.img])) : ""})
-  let searchErr = found == null || found.ok ? "" : found.code == 404 ? "no cards match" : parseJson(found.out).details ?? (found.code == 429 ? "Scryfall is busy; try again in a minute" : "couldn't reach Scryfall")
+  let searchErr = found == null || found.ok ? "" : found.code == 404 ? str.noMatch : parseJson(found.out).details ?? (found.code == 429 ? str.busy : str.unreachable)
   let more = len(rows) >= 175
 
   // ------------------------------------------------------------------ a card's page
   source card = http(openId != "" ? "${api}/cards/${enc(openId)}" : null, hj) every 6h json timeout 20s status
   source rnd = http(openId == "" && deck == null && view == "random" ? "${api}/cards/random?q=${enc(rq)}&n=${int(nonce)}" : null, hj) every 24h json timeout 20s status
   let cd = openId != "" ? (card != null && card.ok && card.out.id == openId ? card.out : null) : view == "random" && deck == null && rnd != null && rnd.ok ? rnd.out : null
-  let cardErr = openId != "" ? (card != null && !card.ok ? parseJson(card.out).details ?? "couldn't load the card" : "") : rnd != null && !rnd.ok ? (rnd.code == 404 ? "no card matches that filter" : parseJson(rnd.out).details ?? "couldn't reach Scryfall") : ""
+  let cardErr = openId != "" ? (card != null && !card.ok ? parseJson(card.out).details ?? str.cantLoadCard : "") : rnd != null && !rnd.ok ? (rnd.code == 404 ? str.noCardFilter : parseJson(rnd.out).details ?? str.unreachable) : ""
   let faces = cd.card_faces ?? []
   let faceImgs = cd.image_uris == null && len(faces) > 1
   let imgUrl = faceImgs ? faces[faceIdx % len(faces)].image_uris.normal : cd.image_uris.normal
@@ -146,7 +1373,7 @@ app "mtg cards" {
   let curve = range(8).map(k => sum(mainC.filter(c => c.g != "Land" && (k == 7 ? c.cmc >= 7 : floor(c.cmc) == k)).map(c => c.qty)))
   let curveMax = max(curve + [1])
   // The list as it shows: the main deck by type, then the sideboard, each by mana value.
-  let sections = (groups + ["Other"]).map(g => {t: lower(g), cards: mainC.filter(c => c.g == g).sortBy(c => c.cmc)}).filter(x => len(x.cards) > 0) + (len(sideC) > 0 ? [{t: "sideboard", cards: sideC.sortBy(c => c.cmc)}] : [])
+  let sections = (groups + ["Other"]).map(g => {t: str.group(indexOf(groups + ["Other"], g)), cards: mainC.filter(c => c.g == g).sortBy(c => c.cmc)}).filter(x => len(x.cards) > 0) + (len(sideC) > 0 ? [{t: str.sideboard, cards: sideC.sortBy(c => c.cmc)}] : [])
   let pips = ["W", "U", "B", "R", "G", "C"].map(s => {s: s, n: sum(mainC.map(c => c.qty * len(matchAll(c.cost ?? "", "[{][^}]*" + s + "[^}]*[}]"))))}).filter(p => p.n > 0)
   let pipTotal = max(1, sum(pips.map(p => p.n)))
   let deckIds = unique(dc.map(c => c.id))
@@ -199,14 +1426,14 @@ app "mtg cards" {
     addSeq = addSeq + 1
     impGot = impGot + sum(found2.map(h => h.it.q))
     let missing = hits.filter(h => h.c == null).map(h => h.it.name)
-    impMsg = !impRes.ok ? impRes.out.details ?? "Scryfall didn't answer: ${impRes.code}" : (impMsg == "importing…" ? "" : impMsg) + (len(missing) > 0 ? "not found: ${join(missing, ", ")}. " : "")
+    impMsg = !impRes.ok ? impRes.out.details ?? str.noAnswer(impRes.code) : (impMsg == str.importing ? "" : impMsg) + (len(missing) > 0 ? str.notFound(join(missing, ", ")) : "")
     if impRes.ok && impAt + 75 < len(impItems) {
       impAt = impAt + 75
       impRes = null
       impRes = post("${api}/cards/collection", {identifiers: impItems.drop(impAt).take(75).map(it => it.set != null && it.cn != null ? {set: lower(it.set), collector_number: it.cn} : {name: it.name})}, hp)
     } else {
       impAt = -1
-      impMsg = impRes.ok ? "imported ${impGot} cards. " + impMsg : impMsg
+      impMsg = impRes.ok ? str.imported(impGot) + impMsg : impMsg
       impText = impRes.ok ? "" : impText
     }
   }
@@ -296,9 +1523,9 @@ app "mtg cards" {
       if cd == null {
         if cardErr != "" {
           Text { text: cardErr; color: muted; padding: [0, 24]; align: center }
-          Button { text: "try again"; onTap: { nonce = random(1000000); refresh() } }
+          Button { text: str.tryAgain; onTap: { nonce = random(1000000); refresh() } }
         } else {
-          Text { text: "loading…"; color: muted; padding: [0, 24]; align: center }
+          Text { text: str.loading; color: muted; padding: [0, 24]; align: center }
         }
       } else {
         Column {
@@ -319,7 +1546,7 @@ app "mtg cards" {
           if faceImgs {
             Box {
               onTap: faceIdx = faceIdx + 1
-              Chip { label: "↻ flip to ${faces[(faceIdx + 1) % len(faces)].name}" }
+              Chip { label: str.flipTo(faces[(faceIdx + 1) % len(faces)].name) }
             }
           }
         }
@@ -344,19 +1571,19 @@ app "mtg cards" {
               Text { text: f.flavor_text; italic: true; style: small; color: muted }
             }
             if f.power != null || f.loyalty != null || f.defense != null {
-              Text { text: f.power != null ? "${f.power}/${f.toughness}" : f.loyalty != null ? "loyalty ${f.loyalty}" : "defense ${f.defense}"; bold: true; align: end }
+              Text { text: f.power != null ? "${f.power}/${f.toughness}" : f.loyalty != null ? str.loyalty(f.loyalty) : str.defense(f.defense); bold: true; align: end }
             }
           }
         }
 
         Text { text: "${cd.set_name} (${upper(cd.set)}) · #${cd.collector_number} · ${cd.rarity} · ${sub(cd.released_at ?? "", 0, 4)}"; style: small; color: muted }
         if cd.artist != null {
-          Text { text: "illustrated by ${cd.artist}"; style: small; color: muted }
+          Text { text: str.illustrated(cd.artist); style: small; color: muted }
         }
 
-        Head { t: "prices" }
+        Head { t: str.prices }
         if len(priceList) == 0 {
-          Text { text: "Scryfall has no prices for this printing"; style: small; color: muted }
+          Text { text: str.noPrices; style: small; color: muted }
         } else {
           Grid {
             columns: 3
@@ -375,9 +1602,9 @@ app "mtg cards" {
           }
         }
 
-        Head { t: "deck" }
+        Head { t: str.deck }
         if !adding {
-          Button { text: "add to a deck"; onTap: { adding = true; newDeck = "" } }
+          Button { text: str.addToDeck; onTap: { adding = true; newDeck = "" } }
         } else {
           Column {
             gap: 6
@@ -392,35 +1619,35 @@ app "mtg cards" {
                   gap: 0
                   weight: 1
                   Text { text: d.name; bold: true; maxLines: 1 }
-                  Text { text: "${sum(d.cards.filter(x => x.id == cd.id).map(x => x.qty))} in it"; style: small; color: muted }
+                  Text { text: str.inIt(sum(d.cards.filter(x => x.id == cd.id).map(x => x.qty))); style: small; color: muted }
                 }
                 Box {
-                  onTap: { addReq = {did: d.id, items: [{id: cd.id, name: cd.name, qty: 1, side: false, cmc: cd.cmc ?? 0, type: cd.type_line ?? faces[0].type_line ?? "", cost: cd.mana_cost ?? faces[0].mana_cost ?? "", set: cd.set, usd: cd.prices.usd, eur: cd.prices.eur, tix: cd.prices.tix}]}; addSeq = addSeq + 1; haptic(); toast = "added to ${d.name}" }
-                  Chip { label: "+ main"; tint: accent }
+                  onTap: { addReq = {did: d.id, items: [{id: cd.id, name: cd.name, qty: 1, side: false, cmc: cd.cmc ?? 0, type: cd.type_line ?? faces[0].type_line ?? "", cost: cd.mana_cost ?? faces[0].mana_cost ?? "", set: cd.set, usd: cd.prices.usd, eur: cd.prices.eur, tix: cd.prices.tix}]}; addSeq = addSeq + 1; haptic(); toast = str.addedTo(d.name) }
+                  Chip { label: str.plusMain; tint: accent }
                 }
                 Box {
-                  onTap: { addReq = {did: d.id, items: [{id: cd.id, name: cd.name, qty: 1, side: true, cmc: cd.cmc ?? 0, type: cd.type_line ?? faces[0].type_line ?? "", cost: cd.mana_cost ?? faces[0].mana_cost ?? "", set: cd.set, usd: cd.prices.usd, eur: cd.prices.eur, tix: cd.prices.tix}]}; addSeq = addSeq + 1; haptic(); toast = "added to ${d.name}'s sideboard" }
-                  Chip { label: "+ side" }
+                  onTap: { addReq = {did: d.id, items: [{id: cd.id, name: cd.name, qty: 1, side: true, cmc: cd.cmc ?? 0, type: cd.type_line ?? faces[0].type_line ?? "", cost: cd.mana_cost ?? faces[0].mana_cost ?? "", set: cd.set, usd: cd.prices.usd, eur: cd.prices.eur, tix: cd.prices.tix}]}; addSeq = addSeq + 1; haptic(); toast = str.addedToSide(d.name) }
+                  Chip { label: str.plusSide }
                 }
               }
             }
             Row {
               gap: 8
               align: center
-              Input { text: newDeck; placeholder: len(decks) == 0 ? "name your first deck" : "or a new deck"; weight: 1; onChange: newDeck = value; onSubmit: { if trim(value) != "" { decks = decks + [{id: max(decks.map(d => d.id) + [0]) + 1, name: trim(value), priced: now, cards: []}]; newDeck = "" } } }
+              Input { text: newDeck; placeholder: len(decks) == 0 ? str.firstDeck : str.orNewDeck; weight: 1; onChange: newDeck = value; onSubmit: { if trim(value) != "" { decks = decks + [{id: max(decks.map(d => d.id) + [0]) + 1, name: trim(value), priced: now, cards: []}]; newDeck = "" } } }
               Box {
                 onTap: { if trim(newDeck) != "" { decks = decks + [{id: max(decks.map(d => d.id) + [0]) + 1, name: trim(newDeck), priced: now, cards: []}]; newDeck = "" } }
-                Chip { label: "create" }
+                Chip { label: str.create }
               }
             }
             if toast != "" {
               Text { text: toast; style: small; color: green }
             }
-            Text { text: "done"; style: small; color: accent; align: end; onTap: { adding = false; toast = "" } }
+            Text { text: str.done; style: small; color: accent; align: end; onTap: { adding = false; toast = "" } }
           }
         }
 
-        Head { t: "legality" }
+        Head { t: str.legality }
         Grid {
           columns: 2
           gap: 6
@@ -429,14 +1656,14 @@ app "mtg cards" {
             Row {
               gap: 8
               align: center
-              Text { text: st == "legal" ? "legal" : st == "banned" ? "banned" : st == "restricted" ? "restricted" : "not legal"; style: small; align: center; maxLines: 1; width: 78; padding: [0, 3]; radius: 3 * corners; color: st == "legal" ? green : st == "banned" ? red : st == "restricted" ? yellow : muted; background: alpha(st == "legal" ? green : st == "banned" ? red : st == "restricted" ? yellow : muted, 0.14) }
+              Text { text: st == "legal" ? str.legal : st == "banned" ? str.banned : st == "restricted" ? str.restricted : str.notLegal; style: small; align: center; maxLines: 1; width: 78; padding: [0, 3]; radius: 3 * corners; color: st == "legal" ? green : st == "banned" ? red : st == "restricted" ? yellow : muted; background: alpha(st == "legal" ? green : st == "banned" ? red : st == "restricted" ? yellow : muted, 0.14) }
               Text { text: k; style: small; maxLines: 1 }
             }
           }
         }
 
         if len(printRows) > 1 {
-          Head { t: "${len(printRows)}${len(printRows) >= 175 ? "+" : ""} printings" }
+          Head { t: str.printings(len(printRows), len(printRows) >= 175) }
           for p in printRows.take(allPrints ? 175 : 8) key p.id {
             Row {
               gap: 8
@@ -450,17 +1677,17 @@ app "mtg cards" {
             }
           }
           if len(printRows) > 8 && !allPrints {
-            Text { text: "show all"; style: small; color: accent; onTap: allPrints = true }
+            Text { text: str.showAll; style: small; color: accent; onTap: allPrints = true }
           }
         }
 
-        Head { t: "rulings" }
+        Head { t: str.rulings }
         if !showRulings {
-          Text { text: "show rulings"; style: small; color: accent; onTap: showRulings = true }
+          Text { text: str.showRulings; style: small; color: accent; onTap: showRulings = true }
         } else if rulings == null {
-          Text { text: "loading…"; style: small; color: muted }
+          Text { text: str.loading; style: small; color: muted }
         } else if !rulings.ok || len(rulings.out.data ?? []) == 0 {
-          Text { text: rulings.ok ? "no rulings for this card" : "couldn't load the rulings"; style: small; color: muted }
+          Text { text: rulings.ok ? str.noRulings : str.cantRulings; style: small; color: muted }
         } else {
           for r in rulings.out.data {
             Column {
@@ -491,7 +1718,7 @@ app "mtg cards" {
           }
           Box {
             onTap: share("${cd.name}\n${cd.scryfall_uri}")
-            Chip { label: "share" }
+            Chip { label: str.share }
           }
         }
       }
@@ -527,23 +1754,23 @@ app "mtg cards" {
           Row {
             gap: 8
             align: center
-            Text { text: "${nMain} cards"; fontSize: 22; bold: true; weight: 1 }
+            Text { text: str.cards(nMain); fontSize: 22; bold: true; weight: 1 }
             Price { v: vMain; sz: 22; heavy: true }
           }
           Row {
             gap: 8
-            Text { text: nSide > 0 ? "sideboard ${nSide}" : "no sideboard"; style: small; color: muted; weight: 1 }
+            Text { text: nSide > 0 ? str.sideboardN(nSide) : str.noSideboard; style: small; color: muted; weight: 1 }
             if nSide > 0 {
               Price { v: vSide; sz: 12; tint: muted }
             }
           }
           if len(dc) > 0 {
-            Text { text: refAt >= 0 ? "updating prices…" : fmtAgo(deck.priced ?? now, now) == "now" ? "prices just updated" : "prices from ${fmtAgo(deck.priced ?? now, now)} ago"; style: small; color: muted }
+            Text { text: refAt >= 0 ? str.updatingPrices : fmtAgo(deck.priced ?? now, now) == "now" ? str.pricesJust : str.pricesFrom(fmtAgo(deck.priced ?? now, now)); style: small; color: muted }
           }
         }
 
         if nMain > 0 {
-          Head { t: "mana curve" }
+          Head { t: str.manaCurve }
           Row {
             gap: 6
             align: bottom
@@ -586,47 +1813,47 @@ app "mtg cards" {
           gap: 6
           Box {
             onTap: { dAdd = !dAdd; dImp = false; confirmDel = false; renaming = false }
-            Chip { label: "add cards"; on: dAdd }
+            Chip { label: str.addCards; on: dAdd }
           }
           Box {
             onTap: { dImp = !dImp; dAdd = false; confirmDel = false; renaming = false; impMsg = "" }
-            Chip { label: "import"; on: dImp }
+            Chip { label: str.importList; on: dImp }
           }
           if len(dc) > 0 {
             Box {
               onTap: share(exportText)
-              Chip { label: "share list" }
+              Chip { label: str.shareList }
             }
             Box {
               onTap: { copy(exportText); toast = "copied" }
-              Chip { label: "copy" }
+              Chip { label: str.copy }
             }
             Box {
               onTap: { refDeck = deckOpen; refAt = 0; refRes = null; refRes = post("${api}/cards/collection", {identifiers: deckIds.take(75).map(i => {id: i})}, hp) }
-              Chip { label: "update prices" }
+              Chip { label: str.updatePrices }
             }
           }
           Box {
             onTap: { renaming = !renaming; newDeck = deck.name; confirmDel = false }
-            Chip { label: "rename"; on: renaming }
+            Chip { label: str.rename; on: renaming }
           }
           Box {
             onTap: { confirmDel = !confirmDel; renaming = false }
-            Chip { label: "delete"; on: confirmDel; tint: red }
+            Chip { label: str.delete; on: confirmDel; tint: red }
           }
         }
         if toast == "copied" {
-          Text { text: "copied the list"; style: small; color: green }
+          Text { text: str.copiedList; style: small; color: green }
         }
         if renaming {
-          Input { text: newDeck; placeholder: "deck name"; onChange: newDeck = value; onSubmit: { if trim(value) != "" { decks = decks.map(x => x.id == deckOpen ? merge(x, {name: trim(value)}) : x); renaming = false } } }
+          Input { text: newDeck; placeholder: str.deckName; onChange: newDeck = value; onSubmit: { if trim(value) != "" { decks = decks.map(x => x.id == deckOpen ? merge(x, {name: trim(value)}) : x); renaming = false } } }
         }
         if confirmDel {
           Row {
             gap: 8
             align: center
-            Text { text: "delete ${deck.name}?"; weight: 1; color: red }
-            Button { text: "delete"; color: red; onTap: { decks = decks.filter(x => x.id != deckOpen); deckOpen = 0; confirmDel = false } }
+            Text { text: str.deleteQ(deck.name); weight: 1; color: red }
+            Button { text: str.delete; color: red; onTap: { decks = decks.filter(x => x.id != deckOpen); deckOpen = 0; confirmDel = false } }
           }
         }
 
@@ -640,11 +1867,11 @@ app "mtg cards" {
               gap: 10
               align: center
               Image { src: searchIcon; size: 20; tint: muted }
-              Input { text: dTyped; placeholder: "a card's name, or any Scryfall search"; weight: 1; onChange: dTyped = value; onSubmit: dq = trim(value) }
+              Input { text: dTyped; placeholder: str.cardSearch; weight: 1; onChange: dTyped = value; onSubmit: dq = trim(value) }
             }
             if dq != "" {
               if found == null {
-                Text { text: "searching…"; style: small; color: muted }
+                Text { text: str.searching; style: small; color: muted }
               } else if searchErr != "" {
                 Text { text: searchErr; style: small; color: muted }
               } else {
@@ -667,7 +1894,7 @@ app "mtg cards" {
                     }
                     Box {
                       onTap: { addReq = {did: deckOpen, items: [{id: r.id, name: r.name, qty: 1, side: true, cmc: r.cmc, type: r.type, cost: r.cost, set: r.set, usd: r.usd, eur: r.eur, tix: r.tix}]}; addSeq = addSeq + 1; haptic("light") }
-                      Chip { label: "side" }
+                      Chip { label: str.side }
                     }
                   }
                 }
@@ -682,22 +1909,22 @@ app "mtg cards" {
             padding: [12, 8]
             background: alpha(foreground, 0.05)
             radius: 8 * corners
-            Text { text: "Paste a deck list, one card a line like \"4 Lightning Bolt\" or \"1 Sol Ring (C21) 263\", with \"Sideboard\" before the sideboard."; style: small; color: muted }
+            Text { text: str.pasteHelp; style: small; color: muted }
             Input { text: impText; placeholder: "4 Lightning Bolt …"; onChange: impText = value }
             Row {
               gap: 8
               align: center
-              Text { text: len(impParsed) == 0 ? "" : "${sum(impParsed.map(it => it.q))} cards in ${len(impParsed)} lines"; style: small; color: muted; weight: 1 }
-              Button { text: impAt >= 0 ? "importing…" : "import"; onTap: { if len(impParsed) > 0 && impAt < 0 { impItems = impParsed.take(300); impAt = 0; impGot = 0; impMsg = "importing…"; impRes = null; impRes = post("${api}/cards/collection", {identifiers: impParsed.take(75).map(it => it.set != null && it.cn != null ? {set: lower(it.set), collector_number: it.cn} : {name: it.name})}, hp) } } }
+              Text { text: len(impParsed) == 0 ? "" : str.impCount(sum(impParsed.map(it => it.q)), len(impParsed)); style: small; color: muted; weight: 1 }
+              Button { text: impAt >= 0 ? str.importing : str.importList; onTap: { if len(impParsed) > 0 && impAt < 0 { impItems = impParsed.take(300); impAt = 0; impGot = 0; impMsg = str.importing; impRes = null; impRes = post("${api}/cards/collection", {identifiers: impParsed.take(75).map(it => it.set != null && it.cn != null ? {set: lower(it.set), collector_number: it.cn} : {name: it.name})}, hp) } } }
             }
             if impMsg != "" {
-              Text { text: impMsg; style: small; color: startsWith(impMsg, "imported") ? green : yellow }
+              Text { text: impMsg; style: small; color: startsWith(impMsg, str.imported(impGot)) ? green : yellow }
             }
           }
         }
 
         if len(dc) == 0 && !dAdd && !dImp {
-          Text { text: "An empty deck: add cards from a card's page, search for them under add cards, or import a list."; color: muted; padding: [0, 8] }
+          Text { text: str.emptyDeck; color: muted; padding: [0, 8] }
         }
 
         for sec in sections key sec.t {
@@ -727,7 +1954,7 @@ app "mtg cards" {
             gap: 10
             align: center
             Image { src: searchIcon; size: 20; tint: muted }
-            Input { text: typed; placeholder: "search cards, e.g. t:dragon c:r"; weight: 1; onChange: typed = value; onSubmit: { query = trim(value); page = 1; recent = trim(value) == "" ? recent : ([trim(value)] + recent.filter(r => r != trim(value))).take(8) } }
+            Input { text: typed; placeholder: str.searchHint; weight: 1; onChange: typed = value; onSubmit: { query = trim(value); page = 1; recent = trim(value) == "" ? recent : ([trim(value)] + recent.filter(r => r != trim(value))).take(8) } }
             if len(typed) > 0 {
               Text { text: "✕"; color: muted; width: 28; align: center; onTap: { typed = ""; query = ""; page = 1 } }
             }
@@ -735,10 +1962,10 @@ app "mtg cards" {
           if query != "" {
             Row {
               gap: 6
-              for s in [{k: "name", l: "name"}, {k: "released", l: "new"}, {k: "cmc", l: "mana"}, {k: cur, l: "price"}, {k: "edhrec", l: "edhrec"}] {
+              for s in [{k: "name", l: str.sortName}, {k: "released", l: str.sortNew}, {k: "cmc", l: str.sortMana}, {k: cur, l: str.sortPrice}, {k: "edhrec", l: "edhrec"}] {
                 Box {
                   weight: 1
-                  onTap: { dir = ord == s.k ? (dir == "desc" ? "asc" : "desc") : s.l == "price" ? "desc" : "auto"; ord = s.k; page = 1 }
+                  onTap: { dir = ord == s.k ? (dir == "desc" ? "asc" : "desc") : s.l == str.sortPrice ? "desc" : "auto"; ord = s.k; page = 1 }
                   Chip { label: ord == s.k ? s.l + (dir == "desc" ? " ↓" : dir == "asc" ? " ↑" : "") : s.l; on: ord == s.k; wide: true }
                 }
               }
@@ -753,7 +1980,7 @@ app "mtg cards" {
             gap: 8
             padding: [16, 4, 16, 16]
             if len(recent) > 0 {
-              Head { t: "recent" }
+              Head { t: str.recent }
               Flow {
                 gap: 6
                 for r in recent {
@@ -764,15 +1991,15 @@ app "mtg cards" {
                 }
               }
             }
-            Head { t: "try" }
+            Head { t: str.try }
             for ex in [
-              {q: "t:legendary t:dragon", l: "legendary dragons"},
-              {q: "o:\"draw a card\" mv<=2 c:u", l: "cheap blue card draw"},
-              {q: "is:commander id:bg", l: "Golgari commanders"},
-              {q: "f:pauper t:creature pow>=4", l: "big creatures in Pauper"},
-              {q: "usd>=100", l: "cards worth $100 or more"},
-              {q: "year>=2025 r:mythic", l: "this year's mythics"},
-              {q: "art:cat", l: "art with cats in it"}
+              {q: "t:legendary t:dragon", l: str.example(0)},
+              {q: "o:\"draw a card\" mv<=2 c:u", l: str.example(1)},
+              {q: "is:commander id:bg", l: str.example(2)},
+              {q: "f:pauper t:creature pow>=4", l: str.example(3)},
+              {q: "usd>=100", l: str.example(4)},
+              {q: "year>=2025 r:mythic", l: str.example(5)},
+              {q: "art:cat", l: str.example(6)}
             ] {
               Row {
                 gap: 10
@@ -783,11 +2010,11 @@ app "mtg cards" {
                 Text { text: ex.q; style: small; font: mono; color: accent; maxLines: 1 }
               }
             }
-            Text { text: "Searches use Scryfall's syntax: t: type, o: rules text, c: colors, id: color identity, mv: mana value, f: format, r: rarity, s: set, usd: price."; style: small; color: muted; padding: [0, 10, 0, 0] }
-            Text { text: "the full syntax guide"; style: small; color: accent; onTap: url("https://scryfall.com/docs/syntax") }
+            Text { text: str.syntaxHelp; style: small; color: muted; padding: [0, 10, 0, 0] }
+            Text { text: str.syntaxGuide; style: small; color: accent; onTap: url("https://scryfall.com/docs/syntax") }
           }
         } else if found == null {
-          Text { text: "searching…"; color: muted; padding: [0, 24]; align: center }
+          Text { text: str.searching; color: muted; padding: [0, 24]; align: center }
         } else if searchErr != "" {
           Column {
             weight: 1
@@ -795,7 +2022,7 @@ app "mtg cards" {
             gap: 8
             Text { text: searchErr; color: muted; align: center }
             if found.code != 404 {
-              Button { text: "try again"; onTap: refresh() }
+              Button { text: str.tryAgain; onTap: refresh() }
             }
           }
         } else if look == "grid" {
@@ -827,14 +2054,14 @@ app "mtg cards" {
                 width: 90
                 opacity: page > 1 ? 1 : 0.35
                 onTap: page = max(1, page - 1)
-                Chip { label: "‹ prev"; wide: true }
+                Chip { label: str.prev; wide: true }
               }
-              Text { text: "page ${page}"; style: small; color: muted; weight: 1; align: center }
+              Text { text: str.page(page); style: small; color: muted; weight: 1; align: center }
               Box {
                 width: 90
                 opacity: more ? 1 : 0.35
                 onTap: page = more ? page + 1 : page
-                Chip { label: "next ›"; wide: true }
+                Chip { label: str.next; wide: true }
               }
             }
           }
@@ -856,14 +2083,14 @@ app "mtg cards" {
                   width: 90
                   opacity: page > 1 ? 1 : 0.35
                   onTap: page = max(1, page - 1)
-                  Chip { label: "‹ prev"; wide: true }
+                  Chip { label: str.prev; wide: true }
                 }
-                Text { text: "page ${page}"; style: small; color: muted; weight: 1; align: center }
+                Text { text: str.page(page); style: small; color: muted; weight: 1; align: center }
                 Box {
                   width: 90
                   opacity: more ? 1 : 0.35
                   onTap: page = more ? page + 1 : page
-                  Chip { label: "next ›"; wide: true }
+                  Chip { label: str.next; wide: true }
                 }
               }
             }
@@ -879,7 +2106,7 @@ app "mtg cards" {
           padding: [16, 4, 16, 16]
           Flow {
             gap: 6
-            for f in [{q: "", l: "any card"}, {q: "is:commander", l: "commander"}, {q: "t:planeswalker", l: "planeswalker"}, {q: "r:mythic", l: "mythic"}, {q: "is:funny", l: "silly"}, {q: "usd>=20", l: "pricey"}] {
+            for f in [{q: "", l: str.filter(0)}, {q: "is:commander", l: str.filter(1)}, {q: "t:planeswalker", l: str.filter(2)}, {q: "r:mythic", l: str.filter(3)}, {q: "is:funny", l: str.filter(4)}, {q: "usd>=20", l: str.filter(5)}] {
               Box {
                 onTap: { rq = f.q; rTyped = ""; nonce = random(1000000); faceIdx = 0; adding = false; showRulings = false; allPrints = false }
                 Chip { label: f.l; on: rq == f.q }
@@ -889,8 +2116,8 @@ app "mtg cards" {
           Row {
             gap: 8
             align: center
-            Input { text: rTyped; placeholder: "or your own filter, e.g. t:goblin"; weight: 1; onChange: rTyped = value; onSubmit: { rq = trim(value); nonce = random(1000000); faceIdx = 0; adding = false } }
-            Button { text: "another"; color: accent; onTap: { nonce = random(1000000); faceIdx = 0; adding = false; showRulings = false; allPrints = false; haptic() } }
+            Input { text: rTyped; placeholder: str.ownFilter; weight: 1; onChange: rTyped = value; onSubmit: { rq = trim(value); nonce = random(1000000); faceIdx = 0; adding = false } }
+            Button { text: str.another; color: accent; onTap: { nonce = random(1000000); faceIdx = 0; adding = false; showRulings = false; allPrints = false; haptic() } }
           }
           CardPage { }
         }
@@ -903,7 +2130,7 @@ app "mtg cards" {
           gap: 8
           padding: [16, 4, 16, 16]
           if len(decks) == 0 {
-            Text { text: "Keep your deck lists here: name one, then add cards from their pages, search for them inside the deck, or paste a list."; color: muted; padding: [0, 8] }
+            Text { text: str.decksEmpty; color: muted; padding: [0, 8] }
           }
           for d in decks key d.id {
             Row {
@@ -917,7 +2144,7 @@ app "mtg cards" {
                 gap: 2
                 weight: 1
                 Text { text: d.name; bold: true; maxLines: 1 }
-                Text { text: "${sum(d.cards.filter(c => !c.side).map(c => c.qty))} cards${any(d.cards, c => c.side) ? " + ${sum(d.cards.filter(c => c.side).map(c => c.qty))} sideboard" : ""}"; style: small; color: muted }
+                Text { text: "${str.cards(sum(d.cards.filter(c => !c.side).map(c => c.qty)))}${any(d.cards, c => c.side) ? str.plusSideboard(sum(d.cards.filter(c => c.side).map(c => c.qty))) : ""}"; style: small; color: muted }
               }
               Price { v: sum(d.cards.filter(c => !c.side).map(c => c.qty * num(get(c, cur, null), 0))); sz: 15; heavy: true }
             }
@@ -926,8 +2153,8 @@ app "mtg cards" {
             gap: 8
             align: center
             padding: [0, 6, 0, 0]
-            Input { text: newDeck; placeholder: "new deck name"; weight: 1; onChange: newDeck = value; onSubmit: { if trim(value) != "" { decks = decks + [{id: max(decks.map(d => d.id) + [0]) + 1, name: trim(value), priced: now, cards: []}]; newDeck = "" } } }
-            Button { text: "create"; onTap: { if trim(newDeck) != "" { decks = decks + [{id: max(decks.map(d => d.id) + [0]) + 1, name: trim(newDeck), priced: now, cards: []}]; newDeck = "" } } }
+            Input { text: newDeck; placeholder: str.newDeckName; weight: 1; onChange: newDeck = value; onSubmit: { if trim(value) != "" { decks = decks + [{id: max(decks.map(d => d.id) + [0]) + 1, name: trim(value), priced: now, cards: []}]; newDeck = "" } } }
+            Button { text: str.create; onTap: { if trim(newDeck) != "" { decks = decks + [{id: max(decks.map(d => d.id) + [0]) + 1, name: trim(newDeck), priced: now, cards: []}]; newDeck = "" } } }
           }
         }
 
@@ -938,8 +2165,8 @@ app "mtg cards" {
           scroll: true
           gap: 6
           padding: [16, 4, 16, 16]
-          Head { t: "prices in" }
-          for c in [{k: "usd", l: "US dollars", s: "$"}, {k: "eur", l: "euros", s: "€"}, {k: "tix", l: "MTGO tickets", s: "tix"}] {
+          Head { t: str.pricesIn }
+          for c in [{k: "usd", l: str.usd, s: "$"}, {k: "eur", l: str.eur, s: "€"}, {k: "tix", l: str.tix, s: "tix"}] {
             Row {
               gap: 10
               align: center
@@ -950,8 +2177,8 @@ app "mtg cards" {
               Text { text: cur == c.k ? "●" : ""; color: accent; width: 20 }
             }
           }
-          Head { t: "search results" }
-          for c in [{k: "list", l: "a list with prices"}, {k: "grid", l: "a grid of cards"}] {
+          Head { t: str.searchResults }
+          for c in [{k: "list", l: str.listPrices}, {k: "grid", l: str.gridCards}] {
             Row {
               gap: 10
               align: center
@@ -966,13 +2193,13 @@ app "mtg cards" {
             align: center
             padding: [0, 7]
             onTap: { prints = !prints; page = 1 }
-            Text { text: "every printing, not one per card"; weight: 1; color: prints ? foreground : muted }
+            Text { text: str.everyPrinting; weight: 1; color: prints ? foreground : muted }
             Text { text: prints ? "●" : "○"; color: accent; width: 20 }
           }
           if len(recent) > 0 {
-            Text { text: "clear recent searches"; style: small; color: accent; padding: [0, 8]; onTap: recent = [] }
+            Text { text: str.clearRecent; style: small; color: accent; padding: [0, 8]; onTap: recent = [] }
           }
-          Text { text: "Cards, prices and images come from Scryfall, fetched only while the app is open. Prices are updated once a day. Mana symbols and card images are Wizards of the Coast's; this app isn't affiliated with Wizards of the Coast or Scryfall."; style: small; color: muted; padding: [0, 12, 0, 0] }
+          Text { text: str.disclaimer; style: small; color: muted; padding: [0, 12, 0, 0] }
           Text { text: "scryfall.com"; style: small; color: accent; onTap: url("https://scryfall.com") }
         }
       }
@@ -980,10 +2207,10 @@ app "mtg cards" {
       Box { height: 1; fill: width; background: alpha(muted, 0.25) }
       Row {
         gap: 0
-        Tab { name: "search"; label: "search"; pic: searchIcon }
-        Tab { name: "random"; label: "random"; pic: randomIcon }
-        Tab { name: "decks"; label: "decks"; pic: decksIcon }
-        Tab { name: "settings"; label: "settings"; pic: settingsIcon }
+        Tab { name: "search"; label: str.search; pic: searchIcon }
+        Tab { name: "random"; label: str.random; pic: randomIcon }
+        Tab { name: "decks"; label: str.decks; pic: decksIcon }
+        Tab { name: "settings"; label: str.settings; pic: settingsIcon }
       }
     }
   }

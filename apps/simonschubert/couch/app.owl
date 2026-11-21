@@ -1,14 +1,1133 @@
 app "couch" {
-  meta { owl: 23; description: "A movie and TV tracker for Trakt: trending, popular and anticipated titles, cast, seasons and episodes, search; sign in for up next, a calendar, your watchlist, history and ratings"; version: "1.3"; license: "MIT"; category: "media" }
+  meta { owl: 23; description: "A movie and TV tracker for Trakt: trending, popular and anticipated titles, cast, seasons and episodes, search; sign in for up next, a calendar, your watchlist, history and ratings"; version: "1.4"; license: "MIT"; category: "media" }
   // A port of Couch for Trakt (github.com/SimonSchubert/omarchy-couch). Not affiliated with Trakt.
   // A title's page, search, history and settings are a level of their own; Back returns to the tab.
-  title: open != null ? (open.m.title ?? "") : view == "search" ? "search" : view == "history" ? "history" : view == "settings" ? "settings" : tab == "upnext" ? "up next" : tab
+  title: open != null ? (open.m.title ?? "") : view == "search" ? str.search : view == "history" ? str.history : view == "settings" ? str.settings : get(str.tabs, tab, tab)
   back: open != null || view != ""
   onBack: { view = len(stack) > 0 ? view : ""; stack = stack.drop(1); season = -1; allEps = false; more = false; unconf = false; confirmOut = false }
   icon: """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
     <rect width="256" height="256" rx="56" fill="#1A1B26"/>
     <path fill="#73DACA" transform="translate(53.33 186.56) scale(0.16267 -0.16267)" d="M480 611Q480 644 504.5 668.5Q529 693 563 693H709Q744 693 768.5 668.5Q793 644 793 611V521Q756 507 732.5 475.0Q709 443 709 404V318H480ZM209 404V318H438V611Q438 644 413.5 668.5Q389 693 355 693H209Q174 693 149.5 668.5Q125 644 125 611V521Q162 507 185.5 475.0Q209 443 209 404ZM820 484Q789 480 769.5 454.5Q750 429 750 396V277H168V402Q168 437 143.5 461.5Q119 486 84.0 486.0Q49 486 24.5 461.5Q0 437 0 402V193Q0 160 24.5 135.5Q49 111 84 111V27H168V111H750V27H834V111Q869 111 893.5 135.5Q918 160 918 193V402Q918 441 888.5 465.5Q859 490 820 484Z"/>
   </svg>"""
+
+  strings {
+    en {
+      // How wide a letter is against a Latin one: chips, buttons and badges are sized by it.
+      cw: 1
+      tabs: {discover: "discover", upnext: "up next", calendar: "calendar", watchlist: "watchlist"}
+      search: "search"; history: "history"; settings: "settings"
+      needApp: "Signing in needs your own Trakt app: create one at trakt.tv/oauth/applications and add its client ID and secret under Trakt app below."
+      cantReach: "Can't reach Trakt."
+      noCode: c => "Trakt didn't hand out a code (${c})."
+      declined: "Sign-in was declined on Trakt."
+      expired: "The code expired. Get a new one."
+      usedCode: "That code was already used. Get a new one."
+      notAccepted: c => "Trakt didn't accept the sign-in (${c})."
+      signedIn: "Signed in"
+      signedOutByTrakt: "Trakt signed you out. Sign in again to see your lists."
+      wlFail: "Couldn't update your watchlist. Try again in a moment."
+      hisFail: "Couldn't change your history. Try again in a moment."
+      rateFail: "Couldn't save your rating. Try again in a moment."
+      markFail: "Couldn't mark it. Try again in a moment."
+      watchFail: "Couldn't mark it watched. Try again in a moment."
+      // Discover's chips (small, sized to the text) and the line under them.
+      sections: {trending: "trending", popular: "popular", anticipated: "anticipated", watched: "this week", boxoffice: "box office"}
+      sectionNotes: {trending: "Most watched on Trakt right now", popular: "Best rated by the most people, all time", anticipated: "Most added to lists, not out yet", watched: "Most watched in the last seven days", boxoffice: "Top 10 at the US box office last weekend"}
+      myShows: "my shows"; myMovies: "my movies"; premieres: "premieres"; newShows: "new shows"
+      // k: 0 created, 1 directed, 2 written; n: the names.
+      crew: (k, n) => k == 0 ? "Created by ${n}" : k == 1 ? "Directed by ${n}" : "Written by ${n}"
+      statusWords: {"returning series": "Returning", "in production": "In production", "planned": "Planned", "canceled": "Canceled", "ended": "Ended", "released": "Released", "post production": "Post-production", "upcoming": "Upcoming", "pilot": "Pilot", "rumored": "Rumored"}
+      perEp: r => "${r} per ep"
+      // A day of a month (m is 1 to 12), and with its year.
+      md: (m, d) => "${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m - 1]} ${d}"
+      date: (md, y) => "${md}, ${y}"
+      // The facts grid on a title's page: three columns, one line in 11 sp.
+      premiered: "Premiered"; released: "Released"; runtime: "Runtime"; statusK: "Status"; network: "Network"; airs: "Airs"; country: "Country"; language: "Language"; episodesK: "Episodes"; rated: "Rated"
+      slowDown: "Trakt asked to slow down; try again in a minute."
+      answered: c => "Trakt answered ${c}."
+      movie: "Movie"; show: "Show"
+      episodeN: n => "Episode ${n}"
+      notScheduled: "Not scheduled"
+      signInPitch: "Sign in with your Trakt account to track episodes, keep a watchlist and see your calendar."
+      signInTrakt: "Sign in with Trakt"
+      // v is already a number as text, like 1.2K.
+      votes: v => "${v} votes"
+      removedWl: "Removed from your watchlist"; addedWl: "Added to your watchlist"; signInFirst: "Sign in to Trakt first"
+      onWatchlist: "On watchlist"; watchlistBtn: "Watchlist"
+      markedWatched: "Marked as watched"; removedHistory: "Removed from your history"
+      tapUnwatch: "Tap again to unwatch"; watchedN: n => "Watched ${n}×"; watched: "Watched"; markWatched: "Mark watched"
+      trailer: "Trailer"
+      yourRatingN: n => "Your rating: ${n}/10"; yourRating: "Your rating"
+      less: "Less"; more: "More"
+      caughtUp: "All caught up"; yourProgress: "Your progress"
+      // 140 dp wide, small text.
+      epOf: (a, b) => "${a} of ${b} episodes"
+      nextEp: ep => "Next: ${ep}"
+      episodes: "Episodes"; specials: "Specials"
+      loadingEps: "Loading episodes…"; noEps: "No episodes listed yet"
+      epCount: n => "${n} episodes"
+      unmarkedN: n => "Unmarked ${n} episodes"; markedN: n => "Marked ${n} episodes"
+      seasonWatched: "Season watched"; markSeason: "Mark season"
+      showAll: n => "Show all ${n} episodes"
+      cast: "Cast"; moreLike: "More like this"; dataFrom: "Data and images from Trakt."
+      placeholder: "movies and shows"; searchHint: "search movies and shows"
+      all: "all"; movies: "movies"; shows: "shows"
+      searching: "Searching…"; results: n => "${n} results"
+      noMatch: q => "Nothing matches “${q}”"; tryFewer: "Try fewer words, or the original title."
+      trendingNow: "Trending now"
+      loading: "Loading…"
+      everything: "That's everything"; nothingWatched: "Nothing watched yet"; historyHint: "Movies and episodes you mark watched appear here."
+      today: "Today"; yesterday: "Yesterday"; tomorrow: "Tomorrow"
+      // Page buttons, 90 dp wide.
+      newer: "‹ newer"; older: "older ›"; prev: "‹ prev"; next: "next ›"; page: n => "page ${n}"
+      statEpisodes: "episodes"; statHours: "hours"
+      profile: "Profile on Trakt"; signedOut: "Signed out"; tapSignOut: "Tap again to sign out"; signOut: "Sign out"
+      signInWhy: "Your watchlist, up next, calendar, history and ratings, kept in step with every other Trakt app you use."
+      gettingCode: "Getting a code…"; tryAgain: "Try again"; signIn: "Sign in"
+      goTo: u => "On any phone or computer, go to ${u} and enter this code:"
+      openUrl: u => "Open ${u}"; codeCopied: "Code copied"; copyCode: "Copy code"; cancel: "Cancel"
+      waiting: t => "Waiting for you to approve  ·  code valid for ${t}"
+      spoilers: "Spoilers"; spoilersHint: "Hide the titles and stories of episodes you haven't watched yet."; showBtn: "Show"; hide: "Hide"
+      traktApp: "Trakt app"
+      traktAppHint: "Needed to sign in. The built-in app can only read Trakt's public lists, since a client secret can't be kept in public source. Create your own app at trakt.tv/oauth/applications with the redirect URI urn:ietf:wg:oauth:2.0:oob and paste its client ID and secret here. Changing this signs you out."
+      useOwn: "Use my own app"; clientId: "Client ID"; clientSecret: "Client secret"; fromApp: "from your app's page on trakt.tv"
+      badId: "That client ID doesn't look right"; usingBuiltin: "Using the built-in Trakt app"; usingYours: "Using your Trakt app"
+      save: "Save"; useBuiltin: "Use the built-in app"
+      about: "About"
+      aboutText: "Couch for Trakt 1.0. Movie and show data and images from Trakt (trakt.tv). Couch is an independent app and not affiliated with or endorsed by Trakt."
+      source: "Source"
+      // n is already a number as text, like 1.2K.
+      heroLists: n => "${n} lists"; heroWatching: n => "${n} watching"
+      upNextPitch: "See what's next in every show you watch"
+      allCaughtUp: "You're all caught up"; upNextHint: "Shows you are watching appear here with their next episode."
+      ofLeft: (a, b, c) => "${a} of ${b}  ·  ${c} left"
+      markedEp: (t, ep) => "Marked ${t} ${ep} watched"
+      calSignIn: "Sign in to see when the shows you watch air next."
+      calNoShows: "Nothing airing in the next two weeks"; calNoMovies: "No releases for your movies in the next two months"; calNothing: "Nothing scheduled"
+      calHint: "Add shows and movies to your watchlist, or watch an episode, and their dates show up here."
+      wlPitch: "Keep a watchlist across all your devices"
+      sorts: {added: "recently added", released: "newest", rating: "top rated", title: "A–Z"}
+      wlEmpty: "Your watchlist is empty"; wlHint: "Tap Watchlist on any movie or show to save it for later."
+      nMovies: n => n == 1 ? "1 movie" : "${n} movies"; nShows: n => n == 1 ? "1 show" : "${n} shows"
+      // A poster's badge for a movie not out yet.
+      out: md => "Out ${md}"
+      span: (a, b, n) => "${a}–${b} of ${n}"
+    }
+    id {
+      cw: 1
+      tabs: {discover: "jelajahi", upnext: "berikutnya", calendar: "kalender", watchlist: "daftar tonton"}
+      search: "cari"; history: "riwayat"; settings: "pengaturan"
+      needApp: "Untuk masuk, kamu perlu aplikasi Trakt sendiri: buat di trakt.tv/oauth/applications lalu tambahkan client ID dan secret-nya di Aplikasi Trakt di bawah."
+      cantReach: "Tidak bisa menghubungi Trakt."
+      noCode: c => "Trakt tidak memberikan kode (${c})."
+      declined: "Masuk ditolak di Trakt."
+      expired: "Kode kedaluwarsa. Minta kode baru."
+      usedCode: "Kode itu sudah dipakai. Minta kode baru."
+      notAccepted: c => "Trakt tidak menerima proses masuk (${c})."
+      signedIn: "Sudah masuk"
+      signedOutByTrakt: "Trakt mengeluarkanmu. Masuk lagi untuk melihat daftarmu."
+      wlFail: "Tidak bisa memperbarui daftar tontonmu. Coba lagi sebentar lagi."
+      hisFail: "Tidak bisa mengubah riwayatmu. Coba lagi sebentar lagi."
+      rateFail: "Tidak bisa menyimpan nilaimu. Coba lagi sebentar lagi."
+      markFail: "Tidak bisa menandainya. Coba lagi sebentar lagi."
+      watchFail: "Tidak bisa menandainya sudah ditonton. Coba lagi sebentar lagi."
+      sections: {trending: "tren", popular: "populer", anticipated: "dinanti", watched: "minggu ini", boxoffice: "box office"}
+      sectionNotes: {trending: "Paling banyak ditonton di Trakt saat ini", popular: "Nilai terbaik dari paling banyak orang, sepanjang masa", anticipated: "Paling banyak masuk daftar, belum rilis", watched: "Paling banyak ditonton tujuh hari terakhir", boxoffice: "10 teratas box office AS akhir pekan lalu"}
+      myShows: "serialku"; myMovies: "filmku"; premieres: "tayang perdana"; newShows: "serial baru"
+      crew: (k, n) => k == 0 ? "Dibuat oleh ${n}" : k == 1 ? "Disutradarai ${n}" : "Ditulis oleh ${n}"
+      statusWords: {"returning series": "Berlanjut", "in production": "Dalam produksi", "planned": "Direncanakan", "canceled": "Dibatalkan", "ended": "Tamat", "released": "Dirilis", "post production": "Pascaproduksi", "upcoming": "Segera", "pilot": "Pilot", "rumored": "Rumor"}
+      perEp: r => "${r} per episode"
+      md: (m, d) => "${d} ${["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"][m - 1]}"
+      date: (md, y) => "${md} ${y}"
+      premiered: "Tayang"; released: "Rilis"; runtime: "Durasi"; statusK: "Status"; network: "Jaringan"; airs: "Tayang"; country: "Negara"; language: "Bahasa"; episodesK: "Episode"; rated: "Rating"
+      slowDown: "Trakt minta pelan-pelan; coba lagi dalam semenit."
+      answered: c => "Trakt menjawab ${c}."
+      movie: "Film"; show: "Serial"
+      episodeN: n => "Episode ${n}"
+      notScheduled: "Belum dijadwalkan"
+      signInPitch: "Masuk dengan akun Trakt-mu untuk melacak episode, menyimpan daftar tonton, dan melihat kalendermu."
+      signInTrakt: "Masuk dengan Trakt"
+      votes: v => "${v} suara"
+      removedWl: "Dihapus dari daftar tontonmu"; addedWl: "Ditambahkan ke daftar tontonmu"; signInFirst: "Masuk ke Trakt dulu"
+      onWatchlist: "Di daftar tonton"; watchlistBtn: "Daftar tonton"
+      markedWatched: "Ditandai sudah ditonton"; removedHistory: "Dihapus dari riwayatmu"
+      tapUnwatch: "Ketuk lagi untuk membatalkan"; watchedN: n => "Ditonton ${n}×"; watched: "Ditonton"; markWatched: "Tandai ditonton"
+      trailer: "Trailer"
+      yourRatingN: n => "Nilaimu: ${n}/10"; yourRating: "Nilaimu"
+      less: "Lebih sedikit"; more: "Selengkapnya"
+      caughtUp: "Semua sudah ditonton"; yourProgress: "Progresmu"
+      epOf: (a, b) => "${a} dari ${b} episode"
+      nextEp: ep => "Berikutnya: ${ep}"
+      episodes: "Episode"; specials: "Spesial"
+      loadingEps: "Memuat episode…"; noEps: "Belum ada episode"
+      epCount: n => "${n} episode"
+      unmarkedN: n => "${n} episode tidak ditandai lagi"; markedN: n => "${n} episode ditandai"
+      seasonWatched: "Musim ditonton"; markSeason: "Tandai musim"
+      showAll: n => "Tampilkan ${n} episode"
+      cast: "Pemeran"; moreLike: "Mirip dengan ini"; dataFrom: "Data dan gambar dari Trakt."
+      placeholder: "film dan serial"; searchHint: "cari film dan serial"
+      all: "semua"; movies: "film"; shows: "serial"
+      searching: "Mencari…"; results: n => "${n} hasil"
+      noMatch: q => "Tidak ada yang cocok dengan “${q}”"; tryFewer: "Coba lebih sedikit kata, atau judul aslinya."
+      trendingNow: "Sedang tren"
+      loading: "Memuat…"
+      everything: "Itu semuanya"; nothingWatched: "Belum ada yang ditonton"; historyHint: "Film dan episode yang kamu tandai ditonton muncul di sini."
+      today: "Hari ini"; yesterday: "Kemarin"; tomorrow: "Besok"
+      newer: "‹ lebih baru"; older: "lebih lama ›"; prev: "‹ sebelum"; next: "berikut ›"; page: n => "halaman ${n}"
+      statEpisodes: "episode"; statHours: "jam"
+      profile: "Profil di Trakt"; signedOut: "Sudah keluar"; tapSignOut: "Ketuk lagi untuk keluar"; signOut: "Keluar"
+      signInWhy: "Daftar tonton, berikutnya, kalender, riwayat, dan nilaimu, selalu sama dengan semua aplikasi Trakt lain yang kamu pakai."
+      gettingCode: "Mengambil kode…"; tryAgain: "Coba lagi"; signIn: "Masuk"
+      goTo: u => "Di ponsel atau komputer mana pun, buka ${u} dan masukkan kode ini:"
+      openUrl: u => "Buka ${u}"; codeCopied: "Kode disalin"; copyCode: "Salin kode"; cancel: "Batal"
+      waiting: t => "Menunggu persetujuanmu  ·  kode berlaku ${t}"
+      spoilers: "Spoiler"; spoilersHint: "Sembunyikan judul dan cerita episode yang belum kamu tonton."; showBtn: "Tampilkan"; hide: "Sembunyikan"
+      traktApp: "Aplikasi Trakt"
+      traktAppHint: "Diperlukan untuk masuk. Aplikasi bawaan hanya bisa membaca daftar publik Trakt, karena client secret tidak bisa disimpan di kode publik. Buat aplikasimu sendiri di trakt.tv/oauth/applications dengan redirect URI urn:ietf:wg:oauth:2.0:oob lalu tempel client ID dan secret-nya di sini. Mengubah ini membuatmu keluar."
+      useOwn: "Pakai aplikasiku sendiri"; clientId: "Client ID"; clientSecret: "Client secret"; fromApp: "dari halaman aplikasimu di trakt.tv"
+      badId: "Client ID itu sepertinya salah"; usingBuiltin: "Memakai aplikasi Trakt bawaan"; usingYours: "Memakai aplikasi Trakt-mu"
+      save: "Simpan"; useBuiltin: "Pakai aplikasi bawaan"
+      about: "Tentang"
+      aboutText: "Couch for Trakt 1.0. Data dan gambar film dan serial dari Trakt (trakt.tv). Couch adalah aplikasi independen dan tidak berafiliasi dengan atau didukung oleh Trakt."
+      source: "Kode sumber"
+      heroLists: n => "${n} daftar"; heroWatching: n => "${n} menonton"
+      upNextPitch: "Lihat apa berikutnya di setiap serial yang kamu tonton"
+      allCaughtUp: "Semua sudah kamu tonton"; upNextHint: "Serial yang sedang kamu tonton muncul di sini dengan episode berikutnya."
+      ofLeft: (a, b, c) => "${a} dari ${b}  ·  sisa ${c}"
+      markedEp: (t, ep) => "${t} ${ep} ditandai ditonton"
+      calSignIn: "Masuk untuk melihat kapan serial yang kamu tonton tayang berikutnya."
+      calNoShows: "Tidak ada yang tayang dua minggu ke depan"; calNoMovies: "Tidak ada rilis untuk filmmu dua bulan ke depan"; calNothing: "Tidak ada jadwal"
+      calHint: "Tambahkan serial dan film ke daftar tontonmu, atau tonton satu episode, dan tanggalnya muncul di sini."
+      wlPitch: "Simpan daftar tonton di semua perangkatmu"
+      sorts: {added: "baru ditambah", released: "terbaru", rating: "nilai teratas", title: "A–Z"}
+      wlEmpty: "Daftar tontonmu kosong"; wlHint: "Ketuk Daftar tonton di film atau serial mana pun untuk menyimpannya."
+      nMovies: n => "${n} film"; nShows: n => "${n} serial"
+      out: md => "Rilis ${md}"
+      span: (a, b, n) => "${a}–${b} dari ${n}"
+    }
+    es {
+      cw: 1
+      tabs: {discover: "descubrir", upnext: "a continuación", calendar: "calendario", watchlist: "pendientes"}
+      search: "buscar"; history: "historial"; settings: "ajustes"
+      needApp: "Para iniciar sesión necesitas tu propia app de Trakt: crea una en trakt.tv/oauth/applications y añade su client ID y secret en App de Trakt, abajo."
+      cantReach: "No se puede conectar con Trakt."
+      noCode: c => "Trakt no dio ningún código (${c})."
+      declined: "El inicio de sesión se rechazó en Trakt."
+      expired: "El código caducó. Pide uno nuevo."
+      usedCode: "Ese código ya se usó. Pide uno nuevo."
+      notAccepted: c => "Trakt no aceptó el inicio de sesión (${c})."
+      signedIn: "Sesión iniciada"
+      signedOutByTrakt: "Trakt cerró tu sesión. Inicia sesión de nuevo para ver tus listas."
+      wlFail: "No se pudo actualizar tu lista. Inténtalo de nuevo en un momento."
+      hisFail: "No se pudo cambiar tu historial. Inténtalo de nuevo en un momento."
+      rateFail: "No se pudo guardar tu puntuación. Inténtalo de nuevo en un momento."
+      markFail: "No se pudo marcar. Inténtalo de nuevo en un momento."
+      watchFail: "No se pudo marcar como visto. Inténtalo de nuevo en un momento."
+      sections: {trending: "tendencias", popular: "populares", anticipated: "esperadas", watched: "esta semana", boxoffice: "taquilla"}
+      sectionNotes: {trending: "Lo más visto en Trakt ahora mismo", popular: "Lo mejor valorado por más gente, de siempre", anticipated: "Lo más añadido a listas, aún sin estrenar", watched: "Lo más visto en los últimos siete días", boxoffice: "Top 10 de la taquilla de EE. UU. el último fin de semana"}
+      myShows: "mis series"; myMovies: "mis películas"; premieres: "estrenos"; newShows: "series nuevas"
+      crew: (k, n) => k == 0 ? "Creada por ${n}" : k == 1 ? "Dirigida por ${n}" : "Escrita por ${n}"
+      statusWords: {"returning series": "Continúa", "in production": "En producción", "planned": "Planeada", "canceled": "Cancelada", "ended": "Finalizada", "released": "Estrenada", "post production": "Posproducción", "upcoming": "Próximamente", "pilot": "Piloto", "rumored": "Rumoreada"}
+      perEp: r => "${r} por ep."
+      md: (m, d) => "${d} ${["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sept", "oct", "nov", "dic"][m - 1]}"
+      date: (md, y) => "${md} ${y}"
+      premiered: "Estreno"; released: "Estreno"; runtime: "Duración"; statusK: "Estado"; network: "Cadena"; airs: "Emisión"; country: "País"; language: "Idioma"; episodesK: "Episodios"; rated: "Clasificación"
+      slowDown: "Trakt pidió ir más despacio; inténtalo en un minuto."
+      answered: c => "Trakt respondió ${c}."
+      movie: "Película"; show: "Serie"
+      episodeN: n => "Episodio ${n}"
+      notScheduled: "Sin fecha"
+      signInPitch: "Inicia sesión con tu cuenta de Trakt para seguir episodios, tener una lista de pendientes y ver tu calendario."
+      signInTrakt: "Iniciar sesión con Trakt"
+      votes: v => "${v} votos"
+      removedWl: "Quitada de tus pendientes"; addedWl: "Añadida a tus pendientes"; signInFirst: "Primero inicia sesión en Trakt"
+      onWatchlist: "En pendientes"; watchlistBtn: "Pendientes"
+      markedWatched: "Marcada como vista"; removedHistory: "Quitada de tu historial"
+      tapUnwatch: "Toca otra vez para desmarcar"; watchedN: n => "Vista ${n}×"; watched: "Vista"; markWatched: "Marcar vista"
+      trailer: "Tráiler"
+      yourRatingN: n => "Tu puntuación: ${n}/10"; yourRating: "Tu puntuación"
+      less: "Menos"; more: "Más"
+      caughtUp: "Todo al día"; yourProgress: "Tu progreso"
+      epOf: (a, b) => "${a} de ${b} episodios"
+      nextEp: ep => "Siguiente: ${ep}"
+      episodes: "Episodios"; specials: "Especiales"
+      loadingEps: "Cargando episodios…"; noEps: "Aún no hay episodios"
+      epCount: n => n == 1 ? "1 episodio" : "${n} episodios"
+      unmarkedN: n => n == 1 ? "1 episodio desmarcado" : "${n} episodios desmarcados"; markedN: n => n == 1 ? "1 episodio marcado" : "${n} episodios marcados"
+      seasonWatched: "Temporada vista"; markSeason: "Marcar temporada"
+      showAll: n => "Ver los ${n} episodios"
+      cast: "Reparto"; moreLike: "Similares"; dataFrom: "Datos e imágenes de Trakt."
+      placeholder: "películas y series"; searchHint: "buscar películas y series"
+      all: "todo"; movies: "películas"; shows: "series"
+      searching: "Buscando…"; results: n => n == 1 ? "1 resultado" : "${n} resultados"
+      noMatch: q => "Nada coincide con “${q}”"; tryFewer: "Prueba con menos palabras o con el título original."
+      trendingNow: "Tendencias ahora"
+      loading: "Cargando…"
+      everything: "Eso es todo"; nothingWatched: "Aún no has visto nada"; historyHint: "Aquí aparecen las películas y episodios que marques como vistos."
+      today: "Hoy"; yesterday: "Ayer"; tomorrow: "Mañana"
+      newer: "‹ recientes"; older: "antiguos ›"; prev: "‹ anterior"; next: "siguiente ›"; page: n => "página ${n}"
+      statEpisodes: "episodios"; statHours: "horas"
+      profile: "Perfil en Trakt"; signedOut: "Sesión cerrada"; tapSignOut: "Toca otra vez para salir"; signOut: "Cerrar sesión"
+      signInWhy: "Tus pendientes, lo siguiente, calendario, historial y puntuaciones, sincronizados con todas tus otras apps de Trakt."
+      gettingCode: "Pidiendo un código…"; tryAgain: "Reintentar"; signIn: "Iniciar sesión"
+      goTo: u => "En cualquier teléfono u ordenador, ve a ${u} e introduce este código:"
+      openUrl: u => "Abrir ${u}"; codeCopied: "Código copiado"; copyCode: "Copiar código"; cancel: "Cancelar"
+      waiting: t => "Esperando tu aprobación  ·  código válido ${t}"
+      spoilers: "Spoilers"; spoilersHint: "Oculta los títulos y argumentos de los episodios que aún no has visto."; showBtn: "Mostrar"; hide: "Ocultar"
+      traktApp: "App de Trakt"
+      traktAppHint: "Necesaria para iniciar sesión. La app integrada solo puede leer las listas públicas de Trakt, porque un client secret no se puede guardar en código público. Crea tu propia app en trakt.tv/oauth/applications con la redirect URI urn:ietf:wg:oauth:2.0:oob y pega aquí su client ID y secret. Cambiar esto cierra tu sesión."
+      useOwn: "Usar mi propia app"; clientId: "Client ID"; clientSecret: "Client secret"; fromApp: "de la página de tu app en trakt.tv"
+      badId: "Ese client ID no parece correcto"; usingBuiltin: "Usando la app de Trakt integrada"; usingYours: "Usando tu app de Trakt"
+      save: "Guardar"; useBuiltin: "Usar la app integrada"
+      about: "Acerca de"
+      aboutText: "Couch for Trakt 1.0. Datos e imágenes de películas y series de Trakt (trakt.tv). Couch es una app independiente, sin relación con Trakt ni respaldada por Trakt."
+      source: "Código"
+      heroLists: n => "${n} listas"; heroWatching: n => "${n} viendo"
+      upNextPitch: "Mira qué sigue en cada serie que ves"
+      allCaughtUp: "Estás al día"; upNextHint: "Las series que estás viendo aparecen aquí con su siguiente episodio."
+      ofLeft: (a, b, c) => "${a} de ${b}  ·  faltan ${c}"
+      markedEp: (t, ep) => "${t} ${ep} marcado como visto"
+      calSignIn: "Inicia sesión para ver cuándo se emiten las series que ves."
+      calNoShows: "Nada se emite en las próximas dos semanas"; calNoMovies: "Ningún estreno de tus películas en los próximos dos meses"; calNothing: "Nada programado"
+      calHint: "Añade series y películas a tus pendientes, o mira un episodio, y sus fechas aparecerán aquí."
+      wlPitch: "Ten una lista de pendientes en todos tus dispositivos"
+      sorts: {added: "añadidas", released: "más nuevas", rating: "mejor valoradas", title: "A–Z"}
+      wlEmpty: "Tu lista de pendientes está vacía"; wlHint: "Toca Pendientes en cualquier película o serie para guardarla."
+      nMovies: n => n == 1 ? "1 película" : "${n} películas"; nShows: n => n == 1 ? "1 serie" : "${n} series"
+      out: md => "Sale ${md}"
+      span: (a, b, n) => "${a}–${b} de ${n}"
+    }
+    pt {
+      cw: 1
+      tabs: {discover: "descobrir", upnext: "a seguir", calendar: "calendário", watchlist: "minha lista"}
+      search: "buscar"; history: "histórico"; settings: "configurações"
+      needApp: "Para entrar, você precisa do seu próprio app do Trakt: crie um em trakt.tv/oauth/applications e adicione o client ID e o secret em App do Trakt, abaixo."
+      cantReach: "Não foi possível acessar o Trakt."
+      noCode: c => "O Trakt não forneceu um código (${c})."
+      declined: "O login foi recusado no Trakt."
+      expired: "O código expirou. Peça um novo."
+      usedCode: "Esse código já foi usado. Peça um novo."
+      notAccepted: c => "O Trakt não aceitou o login (${c})."
+      signedIn: "Conectado"
+      signedOutByTrakt: "O Trakt desconectou você. Entre de novo para ver suas listas."
+      wlFail: "Não foi possível atualizar sua lista. Tente de novo em instantes."
+      hisFail: "Não foi possível alterar seu histórico. Tente de novo em instantes."
+      rateFail: "Não foi possível salvar sua nota. Tente de novo em instantes."
+      markFail: "Não foi possível marcar. Tente de novo em instantes."
+      watchFail: "Não foi possível marcar como assistido. Tente de novo em instantes."
+      sections: {trending: "em alta", popular: "populares", anticipated: "aguardados", watched: "esta semana", boxoffice: "bilheteria"}
+      sectionNotes: {trending: "Os mais assistidos no Trakt agora", popular: "Os mais bem avaliados pelo maior número de pessoas, de todos os tempos", anticipated: "Os mais adicionados a listas, ainda não lançados", watched: "Os mais assistidos nos últimos sete dias", boxoffice: "Top 10 da bilheteria dos EUA no último fim de semana"}
+      myShows: "minhas séries"; myMovies: "meus filmes"; premieres: "estreias"; newShows: "séries novas"
+      crew: (k, n) => k == 0 ? "Criada por ${n}" : k == 1 ? "Direção de ${n}" : "Roteiro de ${n}"
+      statusWords: {"returning series": "Em exibição", "in production": "Em produção", "planned": "Planejada", "canceled": "Cancelada", "ended": "Encerrada", "released": "Lançado", "post production": "Pós-produção", "upcoming": "Em breve", "pilot": "Piloto", "rumored": "Boato"}
+      perEp: r => "${r} por ep."
+      md: (m, d) => "${d} ${["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"][m - 1]}"
+      date: (md, y) => "${md} ${y}"
+      premiered: "Estreia"; released: "Lançamento"; runtime: "Duração"; statusK: "Status"; network: "Emissora"; airs: "Exibição"; country: "País"; language: "Idioma"; episodesK: "Episódios"; rated: "Classificação"
+      slowDown: "O Trakt pediu para ir mais devagar; tente em um minuto."
+      answered: c => "O Trakt respondeu ${c}."
+      movie: "Filme"; show: "Série"
+      episodeN: n => "Episódio ${n}"
+      notScheduled: "Sem data"
+      signInPitch: "Entre com sua conta do Trakt para acompanhar episódios, ter uma lista e ver seu calendário."
+      signInTrakt: "Entrar com o Trakt"
+      votes: v => "${v} votos"
+      removedWl: "Removido da sua lista"; addedWl: "Adicionado à sua lista"; signInFirst: "Entre no Trakt primeiro"
+      onWatchlist: "Na lista"; watchlistBtn: "Minha lista"
+      markedWatched: "Marcado como assistido"; removedHistory: "Removido do seu histórico"
+      tapUnwatch: "Toque de novo para desmarcar"; watchedN: n => "Assistido ${n}×"; watched: "Assistido"; markWatched: "Marcar assistido"
+      trailer: "Trailer"
+      yourRatingN: n => "Sua nota: ${n}/10"; yourRating: "Sua nota"
+      less: "Menos"; more: "Mais"
+      caughtUp: "Tudo em dia"; yourProgress: "Seu progresso"
+      epOf: (a, b) => "${a} de ${b} episódios"
+      nextEp: ep => "Próximo: ${ep}"
+      episodes: "Episódios"; specials: "Especiais"
+      loadingEps: "Carregando episódios…"; noEps: "Ainda sem episódios"
+      epCount: n => n == 1 ? "1 episódio" : "${n} episódios"
+      unmarkedN: n => n == 1 ? "1 episódio desmarcado" : "${n} episódios desmarcados"; markedN: n => n == 1 ? "1 episódio marcado" : "${n} episódios marcados"
+      seasonWatched: "Temporada vista"; markSeason: "Marcar temporada"
+      showAll: n => "Ver todos os ${n} episódios"
+      cast: "Elenco"; moreLike: "Parecidos"; dataFrom: "Dados e imagens do Trakt."
+      placeholder: "filmes e séries"; searchHint: "buscar filmes e séries"
+      all: "tudo"; movies: "filmes"; shows: "séries"
+      searching: "Buscando…"; results: n => n == 1 ? "1 resultado" : "${n} resultados"
+      noMatch: q => "Nada corresponde a “${q}”"; tryFewer: "Tente menos palavras ou o título original."
+      trendingNow: "Em alta agora"
+      loading: "Carregando…"
+      everything: "Isso é tudo"; nothingWatched: "Nada assistido ainda"; historyHint: "Filmes e episódios que você marcar como assistidos aparecem aqui."
+      today: "Hoje"; yesterday: "Ontem"; tomorrow: "Amanhã"
+      newer: "‹ recentes"; older: "antigos ›"; prev: "‹ anterior"; next: "próxima ›"; page: n => "página ${n}"
+      statEpisodes: "episódios"; statHours: "horas"
+      profile: "Perfil no Trakt"; signedOut: "Desconectado"; tapSignOut: "Toque de novo para sair"; signOut: "Sair"
+      signInWhy: "Sua lista, a seguir, calendário, histórico e notas, sincronizados com todos os outros apps do Trakt que você usa."
+      gettingCode: "Pegando um código…"; tryAgain: "Tentar de novo"; signIn: "Entrar"
+      goTo: u => "Em qualquer celular ou computador, acesse ${u} e digite este código:"
+      openUrl: u => "Abrir ${u}"; codeCopied: "Código copiado"; copyCode: "Copiar código"; cancel: "Cancelar"
+      waiting: t => "Aguardando sua aprovação  ·  código válido por ${t}"
+      spoilers: "Spoilers"; spoilersHint: "Esconde os títulos e as histórias dos episódios que você ainda não viu."; showBtn: "Mostrar"; hide: "Esconder"
+      traktApp: "App do Trakt"
+      traktAppHint: "Necessário para entrar. O app embutido só lê as listas públicas do Trakt, porque um client secret não pode ficar em código público. Crie seu próprio app em trakt.tv/oauth/applications com a redirect URI urn:ietf:wg:oauth:2.0:oob e cole aqui o client ID e o secret. Mudar isso desconecta você."
+      useOwn: "Usar meu próprio app"; clientId: "Client ID"; clientSecret: "Client secret"; fromApp: "da página do seu app no trakt.tv"
+      badId: "Esse client ID não parece certo"; usingBuiltin: "Usando o app do Trakt embutido"; usingYours: "Usando seu app do Trakt"
+      save: "Salvar"; useBuiltin: "Usar o app embutido"
+      about: "Sobre"
+      aboutText: "Couch for Trakt 1.0. Dados e imagens de filmes e séries do Trakt (trakt.tv). Couch é um app independente, sem vínculo com o Trakt nem endossado por ele."
+      source: "Código"
+      heroLists: n => "${n} listas"; heroWatching: n => "${n} assistindo"
+      upNextPitch: "Veja o que vem a seguir em cada série que você assiste"
+      allCaughtUp: "Você está em dia"; upNextHint: "As séries que você está assistindo aparecem aqui com o próximo episódio."
+      ofLeft: (a, b, c) => "${a} de ${b}  ·  faltam ${c}"
+      markedEp: (t, ep) => "${t} ${ep} marcado como assistido"
+      calSignIn: "Entre para ver quando as séries que você assiste vão ao ar."
+      calNoShows: "Nada no ar nas próximas duas semanas"; calNoMovies: "Nenhum lançamento dos seus filmes nos próximos dois meses"; calNothing: "Nada programado"
+      calHint: "Adicione séries e filmes à sua lista, ou assista a um episódio, e as datas aparecem aqui."
+      wlPitch: "Tenha uma lista em todos os seus aparelhos"
+      sorts: {added: "adicionados", released: "mais novos", rating: "mais bem avaliados", title: "A–Z"}
+      wlEmpty: "Sua lista está vazia"; wlHint: "Toque em Minha lista em qualquer filme ou série para guardar para depois."
+      nMovies: n => n == 1 ? "1 filme" : "${n} filmes"; nShows: n => n == 1 ? "1 série" : "${n} séries"
+      out: md => "Estreia ${md}"
+      span: (a, b, n) => "${a}–${b} de ${n}"
+    }
+    de {
+      cw: 1
+      tabs: {discover: "entdecken", upnext: "als nächstes", calendar: "kalender", watchlist: "merkliste"}
+      search: "suche"; history: "verlauf"; settings: "einstellungen"
+      needApp: "Zum Anmelden brauchst du deine eigene Trakt-App: leg eine unter trakt.tv/oauth/applications an und trag Client-ID und Secret unten bei Trakt-App ein."
+      cantReach: "Trakt ist nicht erreichbar."
+      noCode: c => "Trakt hat keinen Code geliefert (${c})."
+      declined: "Die Anmeldung wurde auf Trakt abgelehnt."
+      expired: "Der Code ist abgelaufen. Hol dir einen neuen."
+      usedCode: "Der Code wurde schon benutzt. Hol dir einen neuen."
+      notAccepted: c => "Trakt hat die Anmeldung nicht angenommen (${c})."
+      signedIn: "Angemeldet"
+      signedOutByTrakt: "Trakt hat dich abgemeldet. Melde dich wieder an, um deine Listen zu sehen."
+      wlFail: "Merkliste konnte nicht geändert werden. Versuch es gleich noch mal."
+      hisFail: "Verlauf konnte nicht geändert werden. Versuch es gleich noch mal."
+      rateFail: "Bewertung konnte nicht gespeichert werden. Versuch es gleich noch mal."
+      markFail: "Konnte nicht markiert werden. Versuch es gleich noch mal."
+      watchFail: "Konnte nicht als gesehen markiert werden. Versuch es gleich noch mal."
+      sections: {trending: "im trend", popular: "beliebt", anticipated: "erwartet", watched: "diese woche", boxoffice: "kinokassen"}
+      sectionNotes: {trending: "Gerade am meisten auf Trakt geschaut", popular: "Von den meisten am besten bewertet, aller Zeiten", anticipated: "Am häufigsten auf Listen, noch nicht erschienen", watched: "Am meisten geschaut in den letzten sieben Tagen", boxoffice: "Top 10 der US-Kinokassen am letzten Wochenende"}
+      myShows: "meine serien"; myMovies: "meine filme"; premieres: "premieren"; newShows: "neue serien"
+      crew: (k, n) => k == 0 ? "Erfunden von ${n}" : k == 1 ? "Regie: ${n}" : "Drehbuch: ${n}"
+      statusWords: {"returning series": "Wird fortgesetzt", "in production": "In Produktion", "planned": "Geplant", "canceled": "Abgesetzt", "ended": "Beendet", "released": "Erschienen", "post production": "Postproduktion", "upcoming": "Demnächst", "pilot": "Pilot", "rumored": "Gerücht"}
+      perEp: r => "${r} pro Folge"
+      md: (m, d) => "${d}. ${["Jan.", "Feb.", "März", "Apr.", "Mai", "Juni", "Juli", "Aug.", "Sep.", "Okt.", "Nov.", "Dez."][m - 1]}"
+      date: (md, y) => "${md} ${y}"
+      premiered: "Premiere"; released: "Erschienen"; runtime: "Laufzeit"; statusK: "Status"; network: "Sender"; airs: "Läuft"; country: "Land"; language: "Sprache"; episodesK: "Folgen"; rated: "FSK"
+      slowDown: "Trakt bittet um eine Pause; versuch es in einer Minute."
+      answered: c => "Trakt antwortet ${c}."
+      movie: "Film"; show: "Serie"
+      episodeN: n => "Folge ${n}"
+      notScheduled: "Kein Termin"
+      signInPitch: "Melde dich mit deinem Trakt-Konto an, um Folgen abzuhaken, eine Merkliste zu führen und deinen Kalender zu sehen."
+      signInTrakt: "Mit Trakt anmelden"
+      votes: v => "${v} Stimmen"
+      removedWl: "Von deiner Merkliste entfernt"; addedWl: "Zu deiner Merkliste hinzugefügt"; signInFirst: "Melde dich zuerst bei Trakt an"
+      onWatchlist: "Auf der Merkliste"; watchlistBtn: "Merkliste"
+      markedWatched: "Als gesehen markiert"; removedHistory: "Aus deinem Verlauf entfernt"
+      tapUnwatch: "Nochmal tippen zum Entfernen"; watchedN: n => "${n}× gesehen"; watched: "Gesehen"; markWatched: "Gesehen"
+      trailer: "Trailer"
+      yourRatingN: n => "Deine Bewertung: ${n}/10"; yourRating: "Deine Bewertung"
+      less: "Weniger"; more: "Mehr"
+      caughtUp: "Alles gesehen"; yourProgress: "Dein Fortschritt"
+      epOf: (a, b) => "${a} von ${b} Folgen"
+      nextEp: ep => "Als Nächstes: ${ep}"
+      episodes: "Folgen"; specials: "Specials"
+      loadingEps: "Folgen werden geladen…"; noEps: "Noch keine Folgen"
+      epCount: n => n == 1 ? "1 Folge" : "${n} Folgen"
+      unmarkedN: n => n == 1 ? "1 Folge entfernt" : "${n} Folgen entfernt"; markedN: n => n == 1 ? "1 Folge markiert" : "${n} Folgen markiert"
+      seasonWatched: "Staffel gesehen"; markSeason: "Staffel markieren"
+      showAll: n => "Alle ${n} Folgen zeigen"
+      cast: "Besetzung"; moreLike: "Mehr davon"; dataFrom: "Daten und Bilder von Trakt."
+      placeholder: "filme und serien"; searchHint: "filme und serien suchen"
+      all: "alle"; movies: "filme"; shows: "serien"
+      searching: "Suche…"; results: n => n == 1 ? "1 Treffer" : "${n} Treffer"
+      noMatch: q => "Nichts passt zu „${q}“"; tryFewer: "Versuch weniger Wörter oder den Originaltitel."
+      trendingNow: "Gerade im Trend"
+      loading: "Lädt…"
+      everything: "Das ist alles"; nothingWatched: "Noch nichts gesehen"; historyHint: "Filme und Folgen, die du als gesehen markierst, erscheinen hier."
+      today: "Heute"; yesterday: "Gestern"; tomorrow: "Morgen"
+      newer: "‹ neuer"; older: "älter ›"; prev: "‹ zurück"; next: "weiter ›"; page: n => "seite ${n}"
+      statEpisodes: "folgen"; statHours: "stunden"
+      profile: "Profil auf Trakt"; signedOut: "Abgemeldet"; tapSignOut: "Nochmal tippen zum Abmelden"; signOut: "Abmelden"
+      signInWhy: "Deine Merkliste, als Nächstes, Kalender, Verlauf und Bewertungen, im Einklang mit jeder anderen Trakt-App, die du nutzt."
+      gettingCode: "Hole einen Code…"; tryAgain: "Nochmal"; signIn: "Anmelden"
+      goTo: u => "Geh auf einem beliebigen Handy oder Computer zu ${u} und gib diesen Code ein:"
+      openUrl: u => "${u} öffnen"; codeCopied: "Code kopiert"; copyCode: "Code kopieren"; cancel: "Abbrechen"
+      waiting: t => "Warte auf deine Bestätigung  ·  Code gilt noch ${t}"
+      spoilers: "Spoiler"; spoilersHint: "Versteckt Titel und Inhalt von Folgen, die du noch nicht gesehen hast."; showBtn: "Zeigen"; hide: "Verstecken"
+      traktApp: "Trakt-App"
+      traktAppHint: "Zum Anmelden nötig. Die eingebaute App kann nur die öffentlichen Listen von Trakt lesen, weil ein Client-Secret nicht in öffentlichem Code geheim bleibt. Leg unter trakt.tv/oauth/applications deine eigene App mit der Redirect-URI urn:ietf:wg:oauth:2.0:oob an und füg hier ihre Client-ID und ihr Secret ein. Eine Änderung meldet dich ab."
+      useOwn: "Eigene App nutzen"; clientId: "Client-ID"; clientSecret: "Client-Secret"; fromApp: "von der Seite deiner App auf trakt.tv"
+      badId: "Diese Client-ID sieht nicht richtig aus"; usingBuiltin: "Eingebaute Trakt-App aktiv"; usingYours: "Deine Trakt-App aktiv"
+      save: "Speichern"; useBuiltin: "Eingebaute App nutzen"
+      about: "Über"
+      aboutText: "Couch for Trakt 1.0. Film- und Seriendaten und Bilder von Trakt (trakt.tv). Couch ist eine unabhängige App und weder mit Trakt verbunden noch von Trakt unterstützt."
+      source: "Quellcode"
+      heroLists: n => "${n} Listen"; heroWatching: n => "${n} schauen"
+      upNextPitch: "Sieh, was als Nächstes in jeder deiner Serien kommt"
+      allCaughtUp: "Du bist auf dem neuesten Stand"; upNextHint: "Serien, die du schaust, erscheinen hier mit ihrer nächsten Folge."
+      ofLeft: (a, b, c) => "${a} von ${b}  ·  noch ${c}"
+      markedEp: (t, ep) => "${t} ${ep} als gesehen markiert"
+      calSignIn: "Melde dich an, um zu sehen, wann deine Serien als Nächstes laufen."
+      calNoShows: "In den nächsten zwei Wochen läuft nichts"; calNoMovies: "Keine Starts deiner Filme in den nächsten zwei Monaten"; calNothing: "Nichts geplant"
+      calHint: "Setz Serien und Filme auf deine Merkliste oder schau eine Folge, dann erscheinen ihre Termine hier."
+      wlPitch: "Eine Merkliste auf all deinen Geräten"
+      sorts: {added: "zuletzt hinzugefügt", released: "neueste", rating: "beste", title: "A–Z"}
+      wlEmpty: "Deine Merkliste ist leer"; wlHint: "Tippe bei einem Film oder einer Serie auf Merkliste, um sie für später zu speichern."
+      nMovies: n => n == 1 ? "1 Film" : "${n} Filme"; nShows: n => n == 1 ? "1 Serie" : "${n} Serien"
+      out: md => "Ab ${md}"
+      span: (a, b, n) => "${a}–${b} von ${n}"
+    }
+    zh {
+      cw: 1.8
+      tabs: {discover: "发现", upnext: "接下来", calendar: "日历", watchlist: "待看"}
+      search: "搜索"; history: "历史"; settings: "设置"
+      needApp: "登录需要你自己的 Trakt 应用：在 trakt.tv/oauth/applications 创建一个，然后在下方 Trakt 应用里填入它的 client ID 和 secret。"
+      cantReach: "无法连接 Trakt。"
+      noCode: c => "Trakt 没有给出代码（${c}）。"
+      declined: "登录在 Trakt 上被拒绝。"
+      expired: "代码已过期，请获取新代码。"
+      usedCode: "该代码已被使用，请获取新代码。"
+      notAccepted: c => "Trakt 没有接受登录（${c}）。"
+      signedIn: "已登录"
+      signedOutByTrakt: "Trakt 已将你登出，请重新登录以查看你的列表。"
+      wlFail: "无法更新待看列表，请稍后再试。"
+      hisFail: "无法更改观看历史，请稍后再试。"
+      rateFail: "无法保存评分，请稍后再试。"
+      markFail: "无法标记，请稍后再试。"
+      watchFail: "无法标记为已看，请稍后再试。"
+      sections: {trending: "热门", popular: "流行", anticipated: "期待", watched: "本周", boxoffice: "票房"}
+      sectionNotes: {trending: "此刻 Trakt 上观看最多", popular: "有史以来评分最好、评价人数最多", anticipated: "加入列表最多，尚未上映", watched: "过去七天观看最多", boxoffice: "上周末美国票房前十"}
+      myShows: "我的剧集"; myMovies: "我的电影"; premieres: "首播"; newShows: "新剧"
+      crew: (k, n) => k == 0 ? "创作：${n}" : k == 1 ? "导演：${n}" : "编剧：${n}"
+      statusWords: {"returning series": "续订中", "in production": "制作中", "planned": "计划中", "canceled": "已取消", "ended": "已完结", "released": "已上映", "post production": "后期制作", "upcoming": "即将上映", "pilot": "试播", "rumored": "传闻"}
+      perEp: r => "每集 ${r}"
+      md: (m, d) => "${m}月${d}日"
+      date: (md, y) => "${y}年${md}"
+      premiered: "首播"; released: "上映"; runtime: "时长"; statusK: "状态"; network: "电视网"; airs: "播出"; country: "国家"; language: "语言"; episodesK: "集数"; rated: "分级"
+      slowDown: "Trakt 要求放慢速度，请一分钟后再试。"
+      answered: c => "Trakt 返回 ${c}。"
+      movie: "电影"; show: "剧集"
+      episodeN: n => "第 ${n} 集"
+      notScheduled: "未定档"
+      signInPitch: "用你的 Trakt 账号登录，追踪剧集、管理待看列表并查看日历。"
+      signInTrakt: "用 Trakt 登录"
+      votes: v => "${v} 票"
+      removedWl: "已从待看移除"; addedWl: "已加入待看"; signInFirst: "请先登录 Trakt"
+      onWatchlist: "已在待看"; watchlistBtn: "待看"
+      markedWatched: "已标记为看过"; removedHistory: "已从历史移除"
+      tapUnwatch: "再点一次取消看过"; watchedN: n => "看过 ${n} 次"; watched: "看过"; markWatched: "标记看过"
+      trailer: "预告片"
+      yourRatingN: n => "你的评分：${n}/10"; yourRating: "你的评分"
+      less: "收起"; more: "展开"
+      caughtUp: "全部看完"; yourProgress: "你的进度"
+      epOf: (a, b) => "已看 ${a}/${b} 集"
+      nextEp: ep => "下一集：${ep}"
+      episodes: "剧集"; specials: "特别篇"
+      loadingEps: "正在加载剧集…"; noEps: "暂无剧集"
+      epCount: n => "${n} 集"
+      unmarkedN: n => "已取消标记 ${n} 集"; markedN: n => "已标记 ${n} 集"
+      seasonWatched: "本季已看"; markSeason: "标记本季"
+      showAll: n => "显示全部 ${n} 集"
+      cast: "演员"; moreLike: "相似推荐"; dataFrom: "数据和图片来自 Trakt。"
+      placeholder: "电影和剧集"; searchHint: "搜索电影和剧集"
+      all: "全部"; movies: "电影"; shows: "剧集"
+      searching: "正在搜索…"; results: n => "${n} 个结果"
+      noMatch: q => "没有与“${q}”匹配的结果"; tryFewer: "试试更少的词，或原始标题。"
+      trendingNow: "正在热门"
+      loading: "加载中…"
+      everything: "就这些了"; nothingWatched: "还没有看过任何内容"; historyHint: "你标记为看过的电影和剧集会出现在这里。"
+      today: "今天"; yesterday: "昨天"; tomorrow: "明天"
+      newer: "‹ 较新"; older: "较早 ›"; prev: "‹ 上一页"; next: "下一页 ›"; page: n => "第 ${n} 页"
+      statEpisodes: "集"; statHours: "小时"
+      profile: "Trakt 主页"; signedOut: "已登出"; tapSignOut: "再点一次登出"; signOut: "登出"
+      signInWhy: "你的待看、接下来、日历、历史和评分，与你使用的其他 Trakt 应用保持同步。"
+      gettingCode: "正在获取代码…"; tryAgain: "重试"; signIn: "登录"
+      goTo: u => "在任意手机或电脑上打开 ${u}，输入此代码："
+      openUrl: u => "打开 ${u}"; codeCopied: "代码已复制"; copyCode: "复制代码"; cancel: "取消"
+      waiting: t => "等待你的确认  ·  代码有效期 ${t}"
+      spoilers: "剧透"; spoilersHint: "隐藏你还没看过的剧集的标题和剧情。"; showBtn: "显示"; hide: "隐藏"
+      traktApp: "Trakt 应用"
+      traktAppHint: "登录时需要。内置应用只能读取 Trakt 的公开列表，因为 client secret 无法保存在公开源代码中。请在 trakt.tv/oauth/applications 创建你自己的应用，redirect URI 填 urn:ietf:wg:oauth:2.0:oob，然后把它的 client ID 和 secret 粘贴到这里。更改后会登出。"
+      useOwn: "使用我自己的应用"; clientId: "Client ID"; clientSecret: "Client secret"; fromApp: "来自 trakt.tv 上你的应用页面"
+      badId: "这个 client ID 看起来不对"; usingBuiltin: "正在使用内置 Trakt 应用"; usingYours: "正在使用你的 Trakt 应用"
+      save: "保存"; useBuiltin: "使用内置应用"
+      about: "关于"
+      aboutText: "Couch for Trakt 1.0。电影和剧集数据及图片来自 Trakt（trakt.tv）。Couch 是独立应用，与 Trakt 无关联，也未获 Trakt 认可。"
+      source: "源代码"
+      heroLists: n => "${n} 个列表"; heroWatching: n => "${n} 人在看"
+      upNextPitch: "查看你在追的每部剧的下一集"
+      allCaughtUp: "你已全部看完"; upNextHint: "你在看的剧集会和下一集一起出现在这里。"
+      ofLeft: (a, b, c) => "${a}/${b}  ·  剩 ${c} 集"
+      markedEp: (t, ep) => "已将 ${t} ${ep} 标记为看过"
+      calSignIn: "登录后可查看你在看的剧集何时播出。"
+      calNoShows: "未来两周没有播出"; calNoMovies: "未来两个月你的电影没有上映"; calNothing: "没有安排"
+      calHint: "把剧集和电影加入待看，或看一集，它们的日期就会出现在这里。"
+      wlPitch: "在你的所有设备上保留待看列表"
+      sorts: {added: "最近添加", released: "最新", rating: "评分最高", title: "A–Z"}
+      wlEmpty: "你的待看列表是空的"; wlHint: "在任何电影或剧集上点“待看”即可保存以后再看。"
+      nMovies: n => "${n} 部电影"; nShows: n => "${n} 部剧集"
+      out: md => "${md}上映"
+      span: (a, b, n) => "${a}–${b}，共 ${n}"
+    }
+    ru {
+      cw: 1
+      tabs: {discover: "обзор", upnext: "дальше", calendar: "календарь", watchlist: "список"}
+      search: "поиск"; history: "история"; settings: "настройки"
+      needApp: "Для входа нужно ваше собственное приложение Trakt: создайте его на trakt.tv/oauth/applications и добавьте его client ID и secret ниже, в разделе «Приложение Trakt»."
+      cantReach: "Не удаётся связаться с Trakt."
+      noCode: c => "Trakt не выдал код (${c})."
+      declined: "Вход отклонён на Trakt."
+      expired: "Срок кода истёк. Получите новый."
+      usedCode: "Этот код уже использован. Получите новый."
+      notAccepted: c => "Trakt не принял вход (${c})."
+      signedIn: "Вход выполнен"
+      signedOutByTrakt: "Trakt вывел вас из аккаунта. Войдите снова, чтобы видеть свои списки."
+      wlFail: "Не удалось обновить список. Попробуйте чуть позже."
+      hisFail: "Не удалось изменить историю. Попробуйте чуть позже."
+      rateFail: "Не удалось сохранить оценку. Попробуйте чуть позже."
+      markFail: "Не удалось отметить. Попробуйте чуть позже."
+      watchFail: "Не удалось отметить как просмотренное. Попробуйте чуть позже."
+      sections: {trending: "в тренде", popular: "популярное", anticipated: "ожидаемое", watched: "эта неделя", boxoffice: "прокат"}
+      sectionNotes: {trending: "Больше всего смотрят на Trakt прямо сейчас", popular: "Лучшие оценки от большинства людей, за всё время", anticipated: "Чаще всего добавляют в списки, ещё не вышло", watched: "Больше всего смотрели за последние семь дней", boxoffice: "Топ-10 проката США за прошлые выходные"}
+      myShows: "мои сериалы"; myMovies: "мои фильмы"; premieres: "премьеры"; newShows: "новые сериалы"
+      crew: (k, n) => k == 0 ? "Создатели: ${n}" : k == 1 ? "Режиссёр: ${n}" : "Сценарий: ${n}"
+      statusWords: {"returning series": "Продолжается", "in production": "В производстве", "planned": "Запланирован", "canceled": "Отменён", "ended": "Завершён", "released": "Вышел", "post production": "Постпродакшн", "upcoming": "Скоро", "pilot": "Пилот", "rumored": "Слухи"}
+      perEp: r => "${r} за серию"
+      md: (m, d) => "${d} ${["янв.", "февр.", "мар.", "апр.", "мая", "июн.", "июл.", "авг.", "сент.", "окт.", "нояб.", "дек."][m - 1]}"
+      date: (md, y) => "${md} ${y}"
+      premiered: "Премьера"; released: "Выход"; runtime: "Длительность"; statusK: "Статус"; network: "Канал"; airs: "Эфир"; country: "Страна"; language: "Язык"; episodesK: "Серии"; rated: "Рейтинг"
+      slowDown: "Trakt просит не спешить; попробуйте через минуту."
+      answered: c => "Ответ Trakt: ${c}."
+      movie: "Фильм"; show: "Сериал"
+      episodeN: n => "Серия ${n}"
+      notScheduled: "Дата не назначена"
+      signInPitch: "Войдите через аккаунт Trakt, чтобы отмечать серии, вести список и видеть свой календарь."
+      signInTrakt: "Войти через Trakt"
+      votes: v => "голосов: ${v}"
+      removedWl: "Удалено из вашего списка"; addedWl: "Добавлено в ваш список"; signInFirst: "Сначала войдите в Trakt"
+      onWatchlist: "В списке"; watchlistBtn: "В список"
+      markedWatched: "Отмечено как просмотренное"; removedHistory: "Удалено из вашей истории"
+      tapUnwatch: "Нажмите ещё раз, чтобы снять"; watchedN: n => "Просмотрено ${n}×"; watched: "Просмотрено"; markWatched: "Просмотрено"
+      trailer: "Трейлер"
+      yourRatingN: n => "Ваша оценка: ${n}/10"; yourRating: "Ваша оценка"
+      less: "Свернуть"; more: "Ещё"
+      caughtUp: "Всё просмотрено"; yourProgress: "Ваш прогресс"
+      epOf: (a, b) => "серий: ${a} из ${b}"
+      nextEp: ep => "Далее: ${ep}"
+      episodes: "Серии"; specials: "Спецвыпуски"
+      loadingEps: "Загрузка серий…"; noEps: "Серий пока нет"
+      epCount: n => n % 10 == 1 && n % 100 != 11 ? "${n} серия" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "${n} серии" : "${n} серий"
+      unmarkedN: n => "Снята отметка с серий: ${n}"; markedN: n => "Отмечено серий: ${n}"
+      seasonWatched: "Сезон просмотрен"; markSeason: "Отметить сезон"
+      showAll: n => "Показать все серии (${n})"
+      cast: "В ролях"; moreLike: "Похожее"; dataFrom: "Данные и изображения от Trakt."
+      placeholder: "фильмы и сериалы"; searchHint: "искать фильмы и сериалы"
+      all: "всё"; movies: "фильмы"; shows: "сериалы"
+      searching: "Поиск…"; results: n => "Результатов: ${n}"
+      noMatch: q => "Ничего не найдено по запросу «${q}»"; tryFewer: "Попробуйте меньше слов или оригинальное название."
+      trendingNow: "Сейчас в тренде"
+      loading: "Загрузка…"
+      everything: "Это всё"; nothingWatched: "Пока ничего не просмотрено"; historyHint: "Здесь появятся фильмы и серии, которые вы отметите как просмотренные."
+      today: "Сегодня"; yesterday: "Вчера"; tomorrow: "Завтра"
+      newer: "‹ новее"; older: "старее ›"; prev: "‹ назад"; next: "далее ›"; page: n => "стр. ${n}"
+      statEpisodes: "серий"; statHours: "часов"
+      profile: "Профиль на Trakt"; signedOut: "Вы вышли"; tapSignOut: "Нажмите ещё раз, чтобы выйти"; signOut: "Выйти"
+      signInWhy: "Ваш список, что дальше, календарь, история и оценки — синхронно со всеми приложениями Trakt, которыми вы пользуетесь."
+      gettingCode: "Получаем код…"; tryAgain: "Повторить"; signIn: "Войти"
+      goTo: u => "На любом телефоне или компьютере откройте ${u} и введите этот код:"
+      openUrl: u => "Открыть ${u}"; codeCopied: "Код скопирован"; copyCode: "Копировать код"; cancel: "Отмена"
+      waiting: t => "Ждём вашего подтверждения  ·  код действует ${t}"
+      spoilers: "Спойлеры"; spoilersHint: "Скрывать названия и сюжет серий, которые вы ещё не посмотрели."; showBtn: "Показать"; hide: "Скрыть"
+      traktApp: "Приложение Trakt"
+      traktAppHint: "Нужно для входа. Встроенное приложение может читать только публичные списки Trakt, потому что client secret нельзя хранить в открытом коде. Создайте своё приложение на trakt.tv/oauth/applications с redirect URI urn:ietf:wg:oauth:2.0:oob и вставьте сюда его client ID и secret. После изменения вы выйдете из аккаунта."
+      useOwn: "Своё приложение"; clientId: "Client ID"; clientSecret: "Client secret"; fromApp: "со страницы вашего приложения на trakt.tv"
+      badId: "Этот client ID выглядит неверно"; usingBuiltin: "Используется встроенное приложение Trakt"; usingYours: "Используется ваше приложение Trakt"
+      save: "Сохранить"; useBuiltin: "Встроенное приложение"
+      about: "О приложении"
+      aboutText: "Couch for Trakt 1.0. Данные и изображения фильмов и сериалов от Trakt (trakt.tv). Couch — независимое приложение, не связанное с Trakt и не одобренное им."
+      source: "Исходный код"
+      heroLists: n => "в списках: ${n}"; heroWatching: n => "смотрят: ${n}"
+      upNextPitch: "Смотрите, что дальше в каждом вашем сериале"
+      allCaughtUp: "Вы всё посмотрели"; upNextHint: "Сериалы, которые вы смотрите, появятся здесь со следующей серией."
+      ofLeft: (a, b, c) => "${a} из ${b}  ·  осталось ${c}"
+      markedEp: (t, ep) => "${t} ${ep} отмечено как просмотренное"
+      calSignIn: "Войдите, чтобы видеть, когда выходят ваши сериалы."
+      calNoShows: "В ближайшие две недели ничего не выходит"; calNoMovies: "Ваши фильмы не выходят в ближайшие два месяца"; calNothing: "Ничего не запланировано"
+      calHint: "Добавьте сериалы и фильмы в список или посмотрите серию — и их даты появятся здесь."
+      wlPitch: "Список на всех ваших устройствах"
+      sorts: {added: "недавние", released: "новинки", rating: "лучшие", title: "А–Я"}
+      wlEmpty: "Ваш список пуст"; wlHint: "Нажмите «В список» у любого фильма или сериала, чтобы сохранить его на потом."
+      nMovies: n => n % 10 == 1 && n % 100 != 11 ? "${n} фильм" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "${n} фильма" : "${n} фильмов"
+      nShows: n => n % 10 == 1 && n % 100 != 11 ? "${n} сериал" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "${n} сериала" : "${n} сериалов"
+      out: md => "С ${md}"
+      span: (a, b, n) => "${a}–${b} из ${n}"
+    }
+    ja {
+      cw: 1.8
+      tabs: {discover: "見つける", upnext: "次に見る", calendar: "カレンダー", watchlist: "見たい"}
+      search: "検索"; history: "履歴"; settings: "設定"
+      needApp: "サインインには自分の Trakt アプリが必要です：trakt.tv/oauth/applications で作成し、下の Trakt アプリにその client ID と secret を追加してください。"
+      cantReach: "Trakt に接続できません。"
+      noCode: c => "Trakt がコードを発行しませんでした（${c}）。"
+      declined: "Trakt でサインインが拒否されました。"
+      expired: "コードの期限が切れました。新しいコードを取得してください。"
+      usedCode: "そのコードは使用済みです。新しいコードを取得してください。"
+      notAccepted: c => "Trakt がサインインを受け付けませんでした（${c}）。"
+      signedIn: "サインインしました"
+      signedOutByTrakt: "Trakt からサインアウトされました。リストを見るには再度サインインしてください。"
+      wlFail: "見たいリストを更新できませんでした。少し後でもう一度お試しください。"
+      hisFail: "履歴を変更できませんでした。少し後でもう一度お試しください。"
+      rateFail: "評価を保存できませんでした。少し後でもう一度お試しください。"
+      markFail: "マークできませんでした。少し後でもう一度お試しください。"
+      watchFail: "視聴済みにできませんでした。少し後でもう一度お試しください。"
+      sections: {trending: "トレンド", popular: "人気", anticipated: "期待作", watched: "今週", boxoffice: "興行収入"}
+      sectionNotes: {trending: "今 Trakt で最も見られています", popular: "最も多くの人が高く評価、歴代", anticipated: "最も多くリストに追加、未公開", watched: "過去 7 日間で最も見られました", boxoffice: "先週末の米国興行収入トップ 10"}
+      myShows: "マイ番組"; myMovies: "マイ映画"; premieres: "初回放送"; newShows: "新番組"
+      crew: (k, n) => k == 0 ? "原案：${n}" : k == 1 ? "監督：${n}" : "脚本：${n}"
+      statusWords: {"returning series": "継続中", "in production": "制作中", "planned": "企画中", "canceled": "打ち切り", "ended": "終了", "released": "公開済み", "post production": "ポストプロダクション", "upcoming": "公開予定", "pilot": "パイロット", "rumored": "噂"}
+      perEp: r => "1話 ${r}"
+      md: (m, d) => "${m}月${d}日"
+      date: (md, y) => "${y}年${md}"
+      premiered: "初回放送"; released: "公開"; runtime: "上映時間"; statusK: "状態"; network: "放送局"; airs: "放送"; country: "国"; language: "言語"; episodesK: "話数"; rated: "レーティング"
+      slowDown: "Trakt からペースを落とすよう求められました。1 分後にお試しください。"
+      answered: c => "Trakt の応答：${c}。"
+      movie: "映画"; show: "番組"
+      episodeN: n => "第${n}話"
+      notScheduled: "未定"
+      signInPitch: "Trakt アカウントでサインインすると、エピソードの記録、見たいリスト、カレンダーが使えます。"
+      signInTrakt: "Trakt でサインイン"
+      votes: v => "${v} 票"
+      removedWl: "見たいリストから削除しました"; addedWl: "見たいリストに追加しました"; signInFirst: "まず Trakt にサインインしてください"
+      onWatchlist: "見たいリスト済"; watchlistBtn: "見たい"
+      markedWatched: "視聴済みにしました"; removedHistory: "履歴から削除しました"
+      tapUnwatch: "もう一度タップで取り消し"; watchedN: n => "${n}回視聴"; watched: "視聴済み"; markWatched: "視聴済みにする"
+      trailer: "予告編"
+      yourRatingN: n => "あなたの評価：${n}/10"; yourRating: "あなたの評価"
+      less: "閉じる"; more: "もっと見る"
+      caughtUp: "すべて視聴済み"; yourProgress: "あなたの進捗"
+      epOf: (a, b) => "${b}話中 ${a}話"
+      nextEp: ep => "次：${ep}"
+      episodes: "エピソード"; specials: "スペシャル"
+      loadingEps: "エピソードを読み込み中…"; noEps: "エピソードはまだありません"
+      epCount: n => "${n}話"
+      unmarkedN: n => "${n}話の視聴済みを外しました"; markedN: n => "${n}話を視聴済みにしました"
+      seasonWatched: "シーズン視聴済み"; markSeason: "シーズンを視聴済みに"
+      showAll: n => "全${n}話を表示"
+      cast: "キャスト"; moreLike: "似た作品"; dataFrom: "データと画像は Trakt より。"
+      placeholder: "映画と番組"; searchHint: "映画と番組を検索"
+      all: "すべて"; movies: "映画"; shows: "番組"
+      searching: "検索中…"; results: n => "${n}件"
+      noMatch: q => "「${q}」に一致するものはありません"; tryFewer: "単語を減らすか、原題でお試しください。"
+      trendingNow: "今のトレンド"
+      loading: "読み込み中…"
+      everything: "これですべてです"; nothingWatched: "まだ何も視聴していません"; historyHint: "視聴済みにした映画とエピソードがここに表示されます。"
+      today: "今日"; yesterday: "昨日"; tomorrow: "明日"
+      newer: "‹ 新しい"; older: "古い ›"; prev: "‹ 前へ"; next: "次へ ›"; page: n => "${n}ページ"
+      statEpisodes: "話"; statHours: "時間"
+      profile: "Trakt のプロフィール"; signedOut: "サインアウトしました"; tapSignOut: "もう一度タップでサインアウト"; signOut: "サインアウト"
+      signInWhy: "見たいリスト、次に見る、カレンダー、履歴、評価を、使っている他の Trakt アプリと同期します。"
+      gettingCode: "コードを取得中…"; tryAgain: "再試行"; signIn: "サインイン"
+      goTo: u => "スマホやパソコンで ${u} を開き、このコードを入力してください："
+      openUrl: u => "${u} を開く"; codeCopied: "コードをコピーしました"; copyCode: "コードをコピー"; cancel: "キャンセル"
+      waiting: t => "承認を待っています  ·  コードの有効期限 ${t}"
+      spoilers: "ネタバレ"; spoilersHint: "まだ見ていないエピソードのタイトルとあらすじを隠します。"; showBtn: "表示"; hide: "隠す"
+      traktApp: "Trakt アプリ"
+      traktAppHint: "サインインに必要です。組み込みアプリは Trakt の公開リストしか読めません。client secret は公開ソースに置けないためです。trakt.tv/oauth/applications で redirect URI を urn:ietf:wg:oauth:2.0:oob にして自分のアプリを作り、その client ID と secret をここに貼り付けてください。変更するとサインアウトします。"
+      useOwn: "自分のアプリを使う"; clientId: "Client ID"; clientSecret: "Client secret"; fromApp: "trakt.tv のアプリのページから"
+      badId: "その client ID は正しくないようです"; usingBuiltin: "組み込みの Trakt アプリを使用中"; usingYours: "あなたの Trakt アプリを使用中"
+      save: "保存"; useBuiltin: "組み込みアプリを使う"
+      about: "このアプリについて"
+      aboutText: "Couch for Trakt 1.0。映画と番組のデータと画像は Trakt（trakt.tv）より。Couch は独立したアプリで、Trakt とは提携しておらず、Trakt の承認も受けていません。"
+      source: "ソース"
+      heroLists: n => "${n} リスト"; heroWatching: n => "${n} 人が視聴中"
+      upNextPitch: "見ている番組の次のエピソードがわかります"
+      allCaughtUp: "すべて視聴済みです"; upNextHint: "視聴中の番組が次のエピソードとともにここに表示されます。"
+      ofLeft: (a, b, c) => "${a} / ${b}  ·  残り ${c}"
+      markedEp: (t, ep) => "${t} ${ep} を視聴済みにしました"
+      calSignIn: "サインインすると、見ている番組の次の放送日がわかります。"
+      calNoShows: "今後 2 週間の放送はありません"; calNoMovies: "今後 2 か月、あなたの映画の公開はありません"; calNothing: "予定はありません"
+      calHint: "番組や映画を見たいリストに追加するか、エピソードを視聴すると、日付がここに表示されます。"
+      wlPitch: "すべてのデバイスで見たいリストを共有"
+      sorts: {added: "追加順", released: "新しい順", rating: "評価順", title: "A–Z"}
+      wlEmpty: "見たいリストは空です"; wlHint: "映画や番組の「見たい」をタップすると、後で見るために保存できます。"
+      nMovies: n => "映画 ${n}本"; nShows: n => "番組 ${n}本"
+      out: md => "${md}公開"
+      span: (a, b, n) => "${n}件中 ${a}–${b}"
+    }
+    uk {
+      cw: 1
+      tabs: {discover: "огляд", upnext: "далі", calendar: "календар", watchlist: "список"}
+      search: "пошук"; history: "історія"; settings: "налаштування"
+      needApp: "Для входу потрібен ваш власний застосунок Trakt: створіть його на trakt.tv/oauth/applications і додайте його client ID та secret нижче, у розділі «Застосунок Trakt»."
+      cantReach: "Не вдається зв'язатися з Trakt."
+      noCode: c => "Trakt не видав код (${c})."
+      declined: "Вхід відхилено на Trakt."
+      expired: "Термін дії коду минув. Отримайте новий."
+      usedCode: "Цей код уже використано. Отримайте новий."
+      notAccepted: c => "Trakt не прийняв вхід (${c})."
+      signedIn: "Вхід виконано"
+      signedOutByTrakt: "Trakt вивів вас з акаунта. Увійдіть знову, щоб бачити свої списки."
+      wlFail: "Не вдалося оновити список. Спробуйте трохи згодом."
+      hisFail: "Не вдалося змінити історію. Спробуйте трохи згодом."
+      rateFail: "Не вдалося зберегти оцінку. Спробуйте трохи згодом."
+      markFail: "Не вдалося позначити. Спробуйте трохи згодом."
+      watchFail: "Не вдалося позначити як переглянуте. Спробуйте трохи згодом."
+      sections: {trending: "у тренді", popular: "популярне", anticipated: "очікуване", watched: "цей тиждень", boxoffice: "прокат"}
+      sectionNotes: {trending: "Найбільше дивляться на Trakt просто зараз", popular: "Найкращі оцінки від найбільшої кількості людей, за весь час", anticipated: "Найчастіше додають до списків, ще не вийшло", watched: "Найбільше дивилися за останні сім днів", boxoffice: "Топ-10 прокату США за минулі вихідні"}
+      myShows: "мої серіали"; myMovies: "мої фільми"; premieres: "прем'єри"; newShows: "нові серіали"
+      crew: (k, n) => k == 0 ? "Автори: ${n}" : k == 1 ? "Режисер: ${n}" : "Сценарій: ${n}"
+      statusWords: {"returning series": "Триває", "in production": "У виробництві", "planned": "Заплановано", "canceled": "Скасовано", "ended": "Завершено", "released": "Вийшов", "post production": "Постпродакшн", "upcoming": "Незабаром", "pilot": "Пілот", "rumored": "Чутки"}
+      perEp: r => "${r} за серію"
+      md: (m, d) => "${d} ${["січ.", "лют.", "бер.", "квіт.", "трав.", "черв.", "лип.", "серп.", "вер.", "жовт.", "лист.", "груд."][m - 1]}"
+      date: (md, y) => "${md} ${y}"
+      premiered: "Прем'єра"; released: "Вихід"; runtime: "Тривалість"; statusK: "Статус"; network: "Канал"; airs: "Ефір"; country: "Країна"; language: "Мова"; episodesK: "Серії"; rated: "Рейтинг"
+      slowDown: "Trakt просить не поспішати; спробуйте за хвилину."
+      answered: c => "Відповідь Trakt: ${c}."
+      movie: "Фільм"; show: "Серіал"
+      episodeN: n => "Серія ${n}"
+      notScheduled: "Дату не призначено"
+      signInPitch: "Увійдіть через акаунт Trakt, щоб позначати серії, вести список і бачити свій календар."
+      signInTrakt: "Увійти через Trakt"
+      votes: v => "голосів: ${v}"
+      removedWl: "Видалено з вашого списку"; addedWl: "Додано до вашого списку"; signInFirst: "Спершу увійдіть у Trakt"
+      onWatchlist: "У списку"; watchlistBtn: "До списку"
+      markedWatched: "Позначено як переглянуте"; removedHistory: "Видалено з вашої історії"
+      tapUnwatch: "Торкніться ще раз, щоб зняти"; watchedN: n => "Переглянуто ${n}×"; watched: "Переглянуто"; markWatched: "Переглянуто"
+      trailer: "Трейлер"
+      yourRatingN: n => "Ваша оцінка: ${n}/10"; yourRating: "Ваша оцінка"
+      less: "Згорнути"; more: "Ще"
+      caughtUp: "Усе переглянуто"; yourProgress: "Ваш прогрес"
+      epOf: (a, b) => "серій: ${a} з ${b}"
+      nextEp: ep => "Далі: ${ep}"
+      episodes: "Серії"; specials: "Спецвипуски"
+      loadingEps: "Завантаження серій…"; noEps: "Серій поки немає"
+      epCount: n => n % 10 == 1 && n % 100 != 11 ? "${n} серія" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "${n} серії" : "${n} серій"
+      unmarkedN: n => "Знято позначку із серій: ${n}"; markedN: n => "Позначено серій: ${n}"
+      seasonWatched: "Сезон переглянуто"; markSeason: "Позначити сезон"
+      showAll: n => "Показати всі серії (${n})"
+      cast: "У ролях"; moreLike: "Схоже"; dataFrom: "Дані й зображення від Trakt."
+      placeholder: "фільми й серіали"; searchHint: "шукати фільми й серіали"
+      all: "усе"; movies: "фільми"; shows: "серіали"
+      searching: "Пошук…"; results: n => "Результатів: ${n}"
+      noMatch: q => "Нічого не знайдено за запитом «${q}»"; tryFewer: "Спробуйте менше слів або оригінальну назву."
+      trendingNow: "Зараз у тренді"
+      loading: "Завантаження…"
+      everything: "Це все"; nothingWatched: "Поки нічого не переглянуто"; historyHint: "Тут з'являться фільми й серії, які ви позначите як переглянуті."
+      today: "Сьогодні"; yesterday: "Учора"; tomorrow: "Завтра"
+      newer: "‹ новіші"; older: "старіші ›"; prev: "‹ назад"; next: "далі ›"; page: n => "стор. ${n}"
+      statEpisodes: "серій"; statHours: "годин"
+      profile: "Профіль на Trakt"; signedOut: "Ви вийшли"; tapSignOut: "Торкніться ще раз, щоб вийти"; signOut: "Вийти"
+      signInWhy: "Ваш список, що далі, календар, історія та оцінки — синхронно з усіма застосунками Trakt, якими ви користуєтеся."
+      gettingCode: "Отримуємо код…"; tryAgain: "Повторити"; signIn: "Увійти"
+      goTo: u => "На будь-якому телефоні чи комп'ютері відкрийте ${u} і введіть цей код:"
+      openUrl: u => "Відкрити ${u}"; codeCopied: "Код скопійовано"; copyCode: "Копіювати код"; cancel: "Скасувати"
+      waiting: t => "Чекаємо на ваше підтвердження  ·  код дійсний ${t}"
+      spoilers: "Спойлери"; spoilersHint: "Приховувати назви й сюжет серій, які ви ще не переглянули."; showBtn: "Показати"; hide: "Приховати"
+      traktApp: "Застосунок Trakt"
+      traktAppHint: "Потрібен для входу. Вбудований застосунок може читати лише публічні списки Trakt, бо client secret не можна зберігати у відкритому коді. Створіть власний застосунок на trakt.tv/oauth/applications з redirect URI urn:ietf:wg:oauth:2.0:oob і вставте сюди його client ID та secret. Після зміни ви вийдете з акаунта."
+      useOwn: "Власний застосунок"; clientId: "Client ID"; clientSecret: "Client secret"; fromApp: "зі сторінки вашого застосунку на trakt.tv"
+      badId: "Цей client ID виглядає неправильно"; usingBuiltin: "Використовується вбудований застосунок Trakt"; usingYours: "Використовується ваш застосунок Trakt"
+      save: "Зберегти"; useBuiltin: "Вбудований застосунок"
+      about: "Про застосунок"
+      aboutText: "Couch for Trakt 1.0. Дані й зображення фільмів і серіалів від Trakt (trakt.tv). Couch — незалежний застосунок, не пов'язаний із Trakt і не схвалений ним."
+      source: "Вихідний код"
+      heroLists: n => "у списках: ${n}"; heroWatching: n => "дивляться: ${n}"
+      upNextPitch: "Дивіться, що далі в кожному вашому серіалі"
+      allCaughtUp: "Ви все переглянули"; upNextHint: "Серіали, які ви дивитеся, з'являться тут із наступною серією."
+      ofLeft: (a, b, c) => "${a} з ${b}  ·  лишилося ${c}"
+      markedEp: (t, ep) => "${t} ${ep} позначено як переглянуте"
+      calSignIn: "Увійдіть, щоб бачити, коли виходять ваші серіали."
+      calNoShows: "Найближчі два тижні нічого не виходить"; calNoMovies: "Ваші фільми не виходять найближчі два місяці"; calNothing: "Нічого не заплановано"
+      calHint: "Додайте серіали й фільми до списку або перегляньте серію — і їхні дати з'являться тут."
+      wlPitch: "Список на всіх ваших пристроях"
+      sorts: {added: "нещодавні", released: "новинки", rating: "найкращі", title: "А–Я"}
+      wlEmpty: "Ваш список порожній"; wlHint: "Торкніться «До списку» в будь-якого фільму чи серіалу, щоб зберегти його на потім."
+      nMovies: n => n % 10 == 1 && n % 100 != 11 ? "${n} фільм" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "${n} фільми" : "${n} фільмів"
+      nShows: n => n % 10 == 1 && n % 100 != 11 ? "${n} серіал" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "${n} серіали" : "${n} серіалів"
+      out: md => "З ${md}"
+      span: (a, b, n) => "${a}–${b} з ${n}"
+    }
+    fr {
+      cw: 1
+      tabs: {discover: "découvrir", upnext: "à suivre", calendar: "calendrier", watchlist: "à voir"}
+      search: "recherche"; history: "historique"; settings: "réglages"
+      needApp: "Pour te connecter, il te faut ta propre app Trakt : crée-la sur trakt.tv/oauth/applications puis ajoute son client ID et son secret sous App Trakt, plus bas."
+      cantReach: "Impossible de joindre Trakt."
+      noCode: c => "Trakt n'a pas donné de code (${c})."
+      declined: "La connexion a été refusée sur Trakt."
+      expired: "Le code a expiré. Demandes-en un nouveau."
+      usedCode: "Ce code a déjà servi. Demandes-en un nouveau."
+      notAccepted: c => "Trakt n'a pas accepté la connexion (${c})."
+      signedIn: "Connecté"
+      signedOutByTrakt: "Trakt t'a déconnecté. Reconnecte-toi pour voir tes listes."
+      wlFail: "Impossible de mettre à jour ta liste. Réessaie dans un instant."
+      hisFail: "Impossible de modifier ton historique. Réessaie dans un instant."
+      rateFail: "Impossible d'enregistrer ta note. Réessaie dans un instant."
+      markFail: "Impossible de le marquer. Réessaie dans un instant."
+      watchFail: "Impossible de le marquer comme vu. Réessaie dans un instant."
+      sections: {trending: "tendances", popular: "populaires", anticipated: "attendus", watched: "cette semaine", boxoffice: "box-office"}
+      sectionNotes: {trending: "Les plus regardés sur Trakt en ce moment", popular: "Les mieux notés par le plus de monde, de tous les temps", anticipated: "Les plus ajoutés aux listes, pas encore sortis", watched: "Les plus regardés ces sept derniers jours", boxoffice: "Top 10 du box-office américain le week-end dernier"}
+      myShows: "mes séries"; myMovies: "mes films"; premieres: "premières"; newShows: "nouvelles séries"
+      crew: (k, n) => k == 0 ? "Créée par ${n}" : k == 1 ? "Réalisé par ${n}" : "Écrit par ${n}"
+      statusWords: {"returning series": "En cours", "in production": "En production", "planned": "Prévue", "canceled": "Annulée", "ended": "Terminée", "released": "Sorti", "post production": "Postproduction", "upcoming": "À venir", "pilot": "Pilote", "rumored": "Rumeur"}
+      perEp: r => "${r} par épisode"
+      md: (m, d) => "${d} ${["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."][m - 1]}"
+      date: (md, y) => "${md} ${y}"
+      premiered: "Première"; released: "Sortie"; runtime: "Durée"; statusK: "Statut"; network: "Chaîne"; airs: "Diffusion"; country: "Pays"; language: "Langue"; episodesK: "Épisodes"; rated: "Classement"
+      slowDown: "Trakt demande de ralentir ; réessaie dans une minute."
+      answered: c => "Trakt a répondu ${c}."
+      movie: "Film"; show: "Série"
+      episodeN: n => "Épisode ${n}"
+      notScheduled: "Pas de date"
+      signInPitch: "Connecte-toi avec ton compte Trakt pour suivre tes épisodes, garder une liste à voir et voir ton calendrier."
+      signInTrakt: "Se connecter avec Trakt"
+      votes: v => "${v} votes"
+      removedWl: "Retiré de ta liste"; addedWl: "Ajouté à ta liste"; signInFirst: "Connecte-toi d'abord à Trakt"
+      onWatchlist: "Dans la liste"; watchlistBtn: "À voir"
+      markedWatched: "Marqué comme vu"; removedHistory: "Retiré de ton historique"
+      tapUnwatch: "Touche encore pour annuler"; watchedN: n => "Vu ${n}×"; watched: "Vu"; markWatched: "Marquer vu"
+      trailer: "Bande-annonce"
+      yourRatingN: n => "Ta note : ${n}/10"; yourRating: "Ta note"
+      less: "Moins"; more: "Plus"
+      caughtUp: "Tout est vu"; yourProgress: "Ta progression"
+      epOf: (a, b) => "${a} sur ${b} épisodes"
+      nextEp: ep => "Suivant : ${ep}"
+      episodes: "Épisodes"; specials: "Spéciaux"
+      loadingEps: "Chargement des épisodes…"; noEps: "Pas encore d'épisodes"
+      epCount: n => n <= 1 ? "${n} épisode" : "${n} épisodes"
+      unmarkedN: n => n <= 1 ? "${n} épisode décoché" : "${n} épisodes décochés"; markedN: n => n <= 1 ? "${n} épisode marqué" : "${n} épisodes marqués"
+      seasonWatched: "Saison vue"; markSeason: "Marquer la saison"
+      showAll: n => "Voir les ${n} épisodes"
+      cast: "Distribution"; moreLike: "Dans le même genre"; dataFrom: "Données et images de Trakt."
+      placeholder: "films et séries"; searchHint: "chercher des films et séries"
+      all: "tout"; movies: "films"; shows: "séries"
+      searching: "Recherche…"; results: n => n <= 1 ? "${n} résultat" : "${n} résultats"
+      noMatch: q => "Rien ne correspond à « ${q} »"; tryFewer: "Essaie moins de mots, ou le titre original."
+      trendingNow: "Tendances du moment"
+      loading: "Chargement…"
+      everything: "C'est tout"; nothingWatched: "Rien de vu pour l'instant"; historyHint: "Les films et épisodes que tu marques comme vus apparaissent ici."
+      today: "Aujourd'hui"; yesterday: "Hier"; tomorrow: "Demain"
+      newer: "‹ récents"; older: "anciens ›"; prev: "‹ préc."; next: "suiv. ›"; page: n => "page ${n}"
+      statEpisodes: "épisodes"; statHours: "heures"
+      profile: "Profil sur Trakt"; signedOut: "Déconnecté"; tapSignOut: "Touche encore pour te déconnecter"; signOut: "Se déconnecter"
+      signInWhy: "Ta liste à voir, à suivre, ton calendrier, ton historique et tes notes, synchronisés avec toutes tes autres apps Trakt."
+      gettingCode: "Récupération du code…"; tryAgain: "Réessayer"; signIn: "Se connecter"
+      goTo: u => "Sur n'importe quel téléphone ou ordinateur, va sur ${u} et saisis ce code :"
+      openUrl: u => "Ouvrir ${u}"; codeCopied: "Code copié"; copyCode: "Copier le code"; cancel: "Annuler"
+      waiting: t => "En attente de ton accord  ·  code valable ${t}"
+      spoilers: "Spoilers"; spoilersHint: "Cache les titres et les histoires des épisodes que tu n'as pas encore vus."; showBtn: "Afficher"; hide: "Cacher"
+      traktApp: "App Trakt"
+      traktAppHint: "Nécessaire pour te connecter. L'app intégrée ne peut lire que les listes publiques de Trakt, car un client secret ne peut pas rester secret dans du code public. Crée ta propre app sur trakt.tv/oauth/applications avec l'URI de redirection urn:ietf:wg:oauth:2.0:oob et colle ici son client ID et son secret. Changer ceci te déconnecte."
+      useOwn: "Utiliser ma propre app"; clientId: "Client ID"; clientSecret: "Client secret"; fromApp: "depuis la page de ton app sur trakt.tv"
+      badId: "Ce client ID ne semble pas correct"; usingBuiltin: "App Trakt intégrée utilisée"; usingYours: "Ton app Trakt est utilisée"
+      save: "Enregistrer"; useBuiltin: "Utiliser l'app intégrée"
+      about: "À propos"
+      aboutText: "Couch for Trakt 1.0. Données et images des films et séries de Trakt (trakt.tv). Couch est une app indépendante, ni affiliée à Trakt ni approuvée par Trakt."
+      source: "Code source"
+      heroLists: n => "${n} listes"; heroWatching: n => "${n} spectateurs"
+      upNextPitch: "Vois ce qui suit dans chaque série que tu regardes"
+      allCaughtUp: "Tu es à jour"; upNextHint: "Les séries que tu regardes apparaissent ici avec leur prochain épisode."
+      ofLeft: (a, b, c) => "${a} sur ${b}  ·  ${c} restants"
+      markedEp: (t, ep) => "${t} ${ep} marqué comme vu"
+      calSignIn: "Connecte-toi pour voir quand tes séries passent."
+      calNoShows: "Rien de diffusé dans les deux prochaines semaines"; calNoMovies: "Aucune sortie de tes films dans les deux prochains mois"; calNothing: "Rien de prévu"
+      calHint: "Ajoute des séries et des films à ta liste, ou regarde un épisode, et leurs dates s'affichent ici."
+      wlPitch: "Une liste à voir sur tous tes appareils"
+      sorts: {added: "ajouts récents", released: "plus récents", rating: "mieux notés", title: "A–Z"}
+      wlEmpty: "Ta liste à voir est vide"; wlHint: "Touche À voir sur un film ou une série pour le garder pour plus tard."
+      nMovies: n => n <= 1 ? "${n} film" : "${n} films"; nShows: n => n <= 1 ? "${n} série" : "${n} séries"
+      out: md => "Sortie ${md}"
+      span: (a, b, n) => "${a}–${b} sur ${n}"
+    }
+    tr {
+      cw: 1
+      tabs: {discover: "keşfet", upnext: "sıradaki", calendar: "takvim", watchlist: "izlenecekler"}
+      search: "ara"; history: "geçmiş"; settings: "ayarlar"
+      needApp: "Giriş yapmak için kendi Trakt uygulaman gerekir: trakt.tv/oauth/applications adresinde bir tane oluştur ve client ID ile secret'ını aşağıdaki Trakt uygulaması kısmına ekle."
+      cantReach: "Trakt'a ulaşılamıyor."
+      noCode: c => "Trakt kod vermedi (${c})."
+      declined: "Giriş Trakt'ta reddedildi."
+      expired: "Kodun süresi doldu. Yeni bir kod al."
+      usedCode: "Bu kod zaten kullanıldı. Yeni bir kod al."
+      notAccepted: c => "Trakt girişi kabul etmedi (${c})."
+      signedIn: "Giriş yapıldı"
+      signedOutByTrakt: "Trakt oturumunu kapattı. Listelerini görmek için tekrar giriş yap."
+      wlFail: "İzlenecekler güncellenemedi. Birazdan tekrar dene."
+      hisFail: "Geçmiş değiştirilemedi. Birazdan tekrar dene."
+      rateFail: "Puanın kaydedilemedi. Birazdan tekrar dene."
+      markFail: "İşaretlenemedi. Birazdan tekrar dene."
+      watchFail: "İzlendi olarak işaretlenemedi. Birazdan tekrar dene."
+      sections: {trending: "trend", popular: "popüler", anticipated: "beklenen", watched: "bu hafta", boxoffice: "gişe"}
+      sectionNotes: {trending: "Şu anda Trakt'ta en çok izlenenler", popular: "En çok kişiden en iyi puanı alanlar, tüm zamanlar", anticipated: "Listelere en çok eklenenler, henüz çıkmadı", watched: "Son yedi günde en çok izlenenler", boxoffice: "Geçen hafta sonu ABD gişesinde ilk 10"}
+      myShows: "dizilerim"; myMovies: "filmlerim"; premieres: "prömiyerler"; newShows: "yeni diziler"
+      crew: (k, n) => k == 0 ? "Yaratıcı: ${n}" : k == 1 ? "Yönetmen: ${n}" : "Senaryo: ${n}"
+      statusWords: {"returning series": "Devam ediyor", "in production": "Yapımda", "planned": "Planlandı", "canceled": "İptal edildi", "ended": "Bitti", "released": "Çıktı", "post production": "Post prodüksiyon", "upcoming": "Yakında", "pilot": "Pilot", "rumored": "Söylenti"}
+      perEp: r => "bölüm başı ${r}"
+      md: (m, d) => "${d} ${["Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"][m - 1]}"
+      date: (md, y) => "${md} ${y}"
+      premiered: "Prömiyer"; released: "Çıkış"; runtime: "Süre"; statusK: "Durum"; network: "Kanal"; airs: "Yayın"; country: "Ülke"; language: "Dil"; episodesK: "Bölümler"; rated: "Yaş sınırı"
+      slowDown: "Trakt yavaşlamanı istedi; bir dakika sonra tekrar dene."
+      answered: c => "Trakt'ın yanıtı: ${c}."
+      movie: "Film"; show: "Dizi"
+      episodeN: n => "Bölüm ${n}"
+      notScheduled: "Tarih yok"
+      signInPitch: "Bölümleri takip etmek, izlenecekler listesi tutmak ve takvimini görmek için Trakt hesabınla giriş yap."
+      signInTrakt: "Trakt ile giriş yap"
+      votes: v => "${v} oy"
+      removedWl: "İzleneceklerden çıkarıldı"; addedWl: "İzleneceklere eklendi"; signInFirst: "Önce Trakt'a giriş yap"
+      onWatchlist: "Listede"; watchlistBtn: "İzlenecek"
+      markedWatched: "İzlendi olarak işaretlendi"; removedHistory: "Geçmişinden çıkarıldı"
+      tapUnwatch: "Geri almak için tekrar dokun"; watchedN: n => "${n}× izlendi"; watched: "İzlendi"; markWatched: "İzlendi yap"
+      trailer: "Fragman"
+      yourRatingN: n => "Puanın: ${n}/10"; yourRating: "Puanın"
+      less: "Daha az"; more: "Daha fazla"
+      caughtUp: "Hepsi izlendi"; yourProgress: "İlerlemen"
+      epOf: (a, b) => "${b} bölümün ${a} tanesi"
+      nextEp: ep => "Sıradaki: ${ep}"
+      episodes: "Bölümler"; specials: "Özel bölümler"
+      loadingEps: "Bölümler yükleniyor…"; noEps: "Henüz bölüm yok"
+      epCount: n => "${n} bölüm"
+      unmarkedN: n => "${n} bölümün işareti kaldırıldı"; markedN: n => "${n} bölüm işaretlendi"
+      seasonWatched: "Sezon izlendi"; markSeason: "Sezonu işaretle"
+      showAll: n => "${n} bölümün hepsini göster"
+      cast: "Oyuncular"; moreLike: "Benzerleri"; dataFrom: "Veriler ve görseller Trakt'tan."
+      placeholder: "filmler ve diziler"; searchHint: "film ve dizi ara"
+      all: "tümü"; movies: "filmler"; shows: "diziler"
+      searching: "Aranıyor…"; results: n => "${n} sonuç"
+      noMatch: q => "“${q}” ile eşleşen bir şey yok"; tryFewer: "Daha az kelime ya da orijinal adı dene."
+      trendingNow: "Şu an trend"
+      loading: "Yükleniyor…"
+      everything: "Hepsi bu"; nothingWatched: "Henüz bir şey izlenmedi"; historyHint: "İzlendi olarak işaretlediğin filmler ve bölümler burada görünür."
+      today: "Bugün"; yesterday: "Dün"; tomorrow: "Yarın"
+      newer: "‹ yeni"; older: "eski ›"; prev: "‹ önceki"; next: "sonraki ›"; page: n => "sayfa ${n}"
+      statEpisodes: "bölüm"; statHours: "saat"
+      profile: "Trakt profili"; signedOut: "Çıkış yapıldı"; tapSignOut: "Çıkmak için tekrar dokun"; signOut: "Çıkış yap"
+      signInWhy: "İzleneceklerin, sıradakiler, takvim, geçmiş ve puanların, kullandığın diğer tüm Trakt uygulamalarıyla eşit kalır."
+      gettingCode: "Kod alınıyor…"; tryAgain: "Tekrar dene"; signIn: "Giriş yap"
+      goTo: u => "Herhangi bir telefon ya da bilgisayarda ${u} adresine git ve bu kodu gir:"
+      openUrl: u => "${u} aç"; codeCopied: "Kod kopyalandı"; copyCode: "Kodu kopyala"; cancel: "İptal"
+      waiting: t => "Onayın bekleniyor  ·  kod ${t} geçerli"
+      spoilers: "Spoiler"; spoilersHint: "Henüz izlemediğin bölümlerin adlarını ve hikâyelerini gizler."; showBtn: "Göster"; hide: "Gizle"
+      traktApp: "Trakt uygulaması"
+      traktAppHint: "Giriş için gerekli. Yerleşik uygulama yalnızca Trakt'ın herkese açık listelerini okuyabilir, çünkü client secret açık kaynak kodda saklanamaz. trakt.tv/oauth/applications adresinde redirect URI olarak urn:ietf:wg:oauth:2.0:oob ile kendi uygulamanı oluştur ve client ID ile secret'ını buraya yapıştır. Bunu değiştirmek oturumunu kapatır."
+      useOwn: "Kendi uygulamamı kullan"; clientId: "Client ID"; clientSecret: "Client secret"; fromApp: "trakt.tv'deki uygulama sayfandan"
+      badId: "Bu client ID doğru görünmüyor"; usingBuiltin: "Yerleşik Trakt uygulaması kullanılıyor"; usingYours: "Senin Trakt uygulaman kullanılıyor"
+      save: "Kaydet"; useBuiltin: "Yerleşik uygulamayı kullan"
+      about: "Hakkında"
+      aboutText: "Couch for Trakt 1.0. Film ve dizi verileri ile görseller Trakt'tan (trakt.tv). Couch bağımsız bir uygulamadır; Trakt ile bağlantılı değildir ve Trakt tarafından onaylanmamıştır."
+      source: "Kaynak kod"
+      heroLists: n => "${n} liste"; heroWatching: n => "${n} izliyor"
+      upNextPitch: "İzlediğin her dizide sırada ne olduğunu gör"
+      allCaughtUp: "Hepsini izledin"; upNextHint: "İzlediğin diziler sıradaki bölümleriyle burada görünür."
+      ofLeft: (a, b, c) => "${a}/${b}  ·  ${c} kaldı"
+      markedEp: (t, ep) => "${t} ${ep} izlendi olarak işaretlendi"
+      calSignIn: "İzlediğin dizilerin ne zaman yayınlanacağını görmek için giriş yap."
+      calNoShows: "Önümüzdeki iki hafta yayın yok"; calNoMovies: "Önümüzdeki iki ay filmlerinden çıkan yok"; calNothing: "Planlanan bir şey yok"
+      calHint: "Dizi ve filmleri izleneceklerine ekle ya da bir bölüm izle, tarihleri burada görünsün."
+      wlPitch: "Tüm cihazlarında bir izlenecekler listesi tut"
+      sorts: {added: "son eklenen", released: "en yeni", rating: "en iyi", title: "A–Z"}
+      wlEmpty: "İzlenecekler listen boş"; wlHint: "Sonraya saklamak için herhangi bir film ya da dizide İzlenecek'e dokun."
+      nMovies: n => "${n} film"; nShows: n => "${n} dizi"
+      out: md => "Çıkış ${md}"
+      span: (a, b, n) => "${n} içinde ${a}–${b}"
+    }
+    it {
+      cw: 1
+      tabs: {discover: "scopri", upnext: "prossimi", calendar: "calendario", watchlist: "da vedere"}
+      search: "cerca"; history: "cronologia"; settings: "impostazioni"
+      needApp: "Per accedere ti serve una tua app Trakt: creala su trakt.tv/oauth/applications e aggiungi il suo client ID e secret in App Trakt, qui sotto."
+      cantReach: "Impossibile raggiungere Trakt."
+      noCode: c => "Trakt non ha fornito un codice (${c})."
+      declined: "L'accesso è stato rifiutato su Trakt."
+      expired: "Il codice è scaduto. Chiedine uno nuovo."
+      usedCode: "Quel codice è già stato usato. Chiedine uno nuovo."
+      notAccepted: c => "Trakt non ha accettato l'accesso (${c})."
+      signedIn: "Accesso eseguito"
+      signedOutByTrakt: "Trakt ti ha disconnesso. Accedi di nuovo per vedere le tue liste."
+      wlFail: "Impossibile aggiornare la tua lista. Riprova tra un attimo."
+      hisFail: "Impossibile modificare la cronologia. Riprova tra un attimo."
+      rateFail: "Impossibile salvare il tuo voto. Riprova tra un attimo."
+      markFail: "Impossibile segnarlo. Riprova tra un attimo."
+      watchFail: "Impossibile segnarlo come visto. Riprova tra un attimo."
+      sections: {trending: "di tendenza", popular: "popolari", anticipated: "attesi", watched: "questa settimana", boxoffice: "box office"}
+      sectionNotes: {trending: "I più visti su Trakt in questo momento", popular: "I più votati dal maggior numero di persone, di sempre", anticipated: "I più aggiunti alle liste, non ancora usciti", watched: "I più visti negli ultimi sette giorni", boxoffice: "Top 10 del box office USA lo scorso fine settimana"}
+      myShows: "le mie serie"; myMovies: "i miei film"; premieres: "debutti"; newShows: "nuove serie"
+      crew: (k, n) => k == 0 ? "Creata da ${n}" : k == 1 ? "Regia di ${n}" : "Scritto da ${n}"
+      statusWords: {"returning series": "In corso", "in production": "In produzione", "planned": "Pianificata", "canceled": "Cancellata", "ended": "Conclusa", "released": "Uscito", "post production": "Post-produzione", "upcoming": "In arrivo", "pilot": "Pilota", "rumored": "Voci"}
+      perEp: r => "${r} a ep."
+      md: (m, d) => "${d} ${["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"][m - 1]}"
+      date: (md, y) => "${md} ${y}"
+      premiered: "Debutto"; released: "Uscita"; runtime: "Durata"; statusK: "Stato"; network: "Rete"; airs: "In onda"; country: "Paese"; language: "Lingua"; episodesK: "Episodi"; rated: "Divieto"
+      slowDown: "Trakt chiede di rallentare; riprova tra un minuto."
+      answered: c => "Trakt ha risposto ${c}."
+      movie: "Film"; show: "Serie"
+      episodeN: n => "Episodio ${n}"
+      notScheduled: "Senza data"
+      signInPitch: "Accedi con il tuo account Trakt per seguire gli episodi, tenere una lista da vedere e vedere il tuo calendario."
+      signInTrakt: "Accedi con Trakt"
+      votes: v => "${v} voti"
+      removedWl: "Tolto dalla tua lista"; addedWl: "Aggiunto alla tua lista"; signInFirst: "Prima accedi a Trakt"
+      onWatchlist: "In lista"; watchlistBtn: "Da vedere"
+      markedWatched: "Segnato come visto"; removedHistory: "Tolto dalla cronologia"
+      tapUnwatch: "Tocca di nuovo per annullare"; watchedN: n => "Visto ${n}×"; watched: "Visto"; markWatched: "Segna visto"
+      trailer: "Trailer"
+      yourRatingN: n => "Il tuo voto: ${n}/10"; yourRating: "Il tuo voto"
+      less: "Meno"; more: "Altro"
+      caughtUp: "Tutto visto"; yourProgress: "I tuoi progressi"
+      epOf: (a, b) => "${a} di ${b} episodi"
+      nextEp: ep => "Prossimo: ${ep}"
+      episodes: "Episodi"; specials: "Speciali"
+      loadingEps: "Caricamento episodi…"; noEps: "Ancora nessun episodio"
+      epCount: n => n == 1 ? "1 episodio" : "${n} episodi"
+      unmarkedN: n => n == 1 ? "1 episodio tolto" : "${n} episodi tolti"; markedN: n => n == 1 ? "1 episodio segnato" : "${n} episodi segnati"
+      seasonWatched: "Stagione vista"; markSeason: "Segna stagione"
+      showAll: n => "Mostra tutti i ${n} episodi"
+      cast: "Cast"; moreLike: "Simili"; dataFrom: "Dati e immagini da Trakt."
+      placeholder: "film e serie"; searchHint: "cerca film e serie"
+      all: "tutto"; movies: "film"; shows: "serie"
+      searching: "Ricerca…"; results: n => n == 1 ? "1 risultato" : "${n} risultati"
+      noMatch: q => "Nessun risultato per “${q}”"; tryFewer: "Prova con meno parole o con il titolo originale."
+      trendingNow: "Di tendenza ora"
+      loading: "Caricamento…"
+      everything: "È tutto"; nothingWatched: "Ancora niente di visto"; historyHint: "Qui compaiono i film e gli episodi che segni come visti."
+      today: "Oggi"; yesterday: "Ieri"; tomorrow: "Domani"
+      newer: "‹ recenti"; older: "vecchi ›"; prev: "‹ prec."; next: "succ. ›"; page: n => "pagina ${n}"
+      statEpisodes: "episodi"; statHours: "ore"
+      profile: "Profilo su Trakt"; signedOut: "Disconnesso"; tapSignOut: "Tocca di nuovo per uscire"; signOut: "Esci"
+      signInWhy: "La tua lista, i prossimi, il calendario, la cronologia e i voti, sincronizzati con tutte le altre app Trakt che usi."
+      gettingCode: "Recupero codice…"; tryAgain: "Riprova"; signIn: "Accedi"
+      goTo: u => "Su qualsiasi telefono o computer, vai su ${u} e inserisci questo codice:"
+      openUrl: u => "Apri ${u}"; codeCopied: "Codice copiato"; copyCode: "Copia codice"; cancel: "Annulla"
+      waiting: t => "In attesa della tua approvazione  ·  codice valido ${t}"
+      spoilers: "Spoiler"; spoilersHint: "Nasconde titoli e trame degli episodi che non hai ancora visto."; showBtn: "Mostra"; hide: "Nascondi"
+      traktApp: "App Trakt"
+      traktAppHint: "Serve per accedere. L'app integrata può leggere solo le liste pubbliche di Trakt, perché un client secret non può restare segreto in un codice pubblico. Crea la tua app su trakt.tv/oauth/applications con il redirect URI urn:ietf:wg:oauth:2.0:oob e incolla qui il suo client ID e secret. Cambiarlo ti disconnette."
+      useOwn: "Usa la mia app"; clientId: "Client ID"; clientSecret: "Client secret"; fromApp: "dalla pagina della tua app su trakt.tv"
+      badId: "Quel client ID non sembra giusto"; usingBuiltin: "In uso l'app Trakt integrata"; usingYours: "In uso la tua app Trakt"
+      save: "Salva"; useBuiltin: "Usa l'app integrata"
+      about: "Info"
+      aboutText: "Couch for Trakt 1.0. Dati e immagini di film e serie da Trakt (trakt.tv). Couch è un'app indipendente, non affiliata né approvata da Trakt."
+      source: "Codice"
+      heroLists: n => "${n} liste"; heroWatching: n => "${n} lo guardano"
+      upNextPitch: "Vedi cosa c'è dopo in ogni serie che guardi"
+      allCaughtUp: "Sei in pari"; upNextHint: "Le serie che stai guardando compaiono qui con il prossimo episodio."
+      ofLeft: (a, b, c) => "${a} di ${b}  ·  ne mancano ${c}"
+      markedEp: (t, ep) => "${t} ${ep} segnato come visto"
+      calSignIn: "Accedi per vedere quando vanno in onda le serie che guardi."
+      calNoShows: "Niente in onda nelle prossime due settimane"; calNoMovies: "Nessuna uscita dei tuoi film nei prossimi due mesi"; calNothing: "Niente in programma"
+      calHint: "Aggiungi serie e film alla tua lista, o guarda un episodio, e le loro date compaiono qui."
+      wlPitch: "Una lista da vedere su tutti i tuoi dispositivi"
+      sorts: {added: "aggiunti di recente", released: "più nuovi", rating: "più votati", title: "A–Z"}
+      wlEmpty: "La tua lista è vuota"; wlHint: "Tocca Da vedere su qualsiasi film o serie per salvarlo per dopo."
+      nMovies: n => "${n} film"; nShows: n => "${n} serie"
+      out: md => "Esce ${md}"
+      span: (a, b, n) => "${a}–${b} di ${n}"
+    }
+  }
 
   // Material icons (Apache 2.0): the tabs, the top bar and the buttons.
   asset discoverIcon = base64"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iI2ZmZiIgZD0iTTEzLjUsMC42N3MwLjc0LDIuNjUgMC43NCw0LjhjMCwyLjA2IC0xLjM1LDMuNzMgLTMuNDEsMy43MyAtMi4wNywwIC0zLjYzLC0xLjY3IC0zLjYzLC0zLjczbDAuMDMsLTAuMzZDNS4yMSw3LjUxIDQsMTAuNjIgNCwxNGMwLDQuNDIgMy41OCw4IDgsOHM4LC0zLjU4IDgsLThDMjAsOC42MSAxNy40MSwzLjggMTMuNSwwLjY3ek0xMS43MSwxOWMtMS43OCwwIC0zLjIyLC0xLjQgLTMuMjIsLTMuMTQgMCwtMS42MiAxLjA1LC0yLjc2IDIuODEsLTMuMTIgMS43NywtMC4zNiAzLjYsLTEuMjEgNC42MiwtMi41OCAwLjM5LDEuMjkgMC41OSwyLjY1IDAuNTksNC4wNCAwLDIuNjUgLTIuMTUsNC44IC00LjgsNC44eiIvPjwvc3ZnPg=="
@@ -45,7 +1164,7 @@ app "couch" {
   let cid = myId != "" ? myId : builtinId
   let csec = myId != "" ? mySecret : ""
   let canSignIn = csec != ""
-  let needApp = "Signing in needs your own Trakt app: create one at trakt.tv/oauth/applications and add its client ID and secret under Trakt app below."
+  let needApp = str.needApp
 
   // {access, refresh, expires, life}: the person's tokens, times in Unix seconds.
   state auth = null persist
@@ -68,7 +1187,6 @@ app "couch" {
   let sw = screenWidth ?? 411
   let pw = floor((sw - 32 - 20) / 3)
   let cum = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
-  let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
   let today = fmtTime(now, "yyyy-MM-dd")
   let nowIso = fmtTime(now, "yyyy-MM-dd")
 
@@ -86,18 +1204,18 @@ app "couch" {
   on codeRes {
     asking = value == 0 ? asking : false
     dev = value == 0 ? dev : value.ok && value.out.device_code != null ? {code: value.out.device_code, user: value.out.user_code, url: startsWith(value.out.verification_url ?? "", "https://") && contains(value.out.verification_url, "trakt.tv/") ? value.out.verification_url : "https://trakt.tv/activate", until: tick + clamp(num(value.out.expires_in, 600), 60, 1800)} : null
-    authMsg = value == 0 ? authMsg : value.ok ? "" : value.code < 0 ? "Can't reach Trakt." : "Trakt didn't hand out a code (${value.code})."
+    authMsg = value == 0 ? authMsg : value.ok ? "" : value.code < 0 ? str.cantReach : str.noCode(value.code)
   }
   // Every 7 s while a code is on show; Trakt asks for 5 or more.
   every 7s { tokRes = post(dev != null && !signedIn && tick < dev.until ? "https://api.trakt.tv/oauth/device/token" : null, {code: dev.code, client_id: cid, client_secret: csec}, {"trakt-api-key": cid, "trakt-api-version": "2"}) }
   on tokRes {
     auth = value != 0 && value.ok && value.out.access_token != null ? {access: value.out.access_token, refresh: value.out.refresh_token, expires: num(value.out.created_at, tick) + num(value.out.expires_in, 86400), life: num(value.out.expires_in, 86400)} : auth
-    authMsg = value == 0 || value.ok || value.code == 400 || value.code == 429 || value.code < 0 ? authMsg : value.code == 418 ? "Sign-in was declined on Trakt." : value.code == 410 ? "The code expired. Get a new one." : value.code == 409 ? "That code was already used. Get a new one." : "Trakt didn't accept the sign-in (${value.code})."
+    authMsg = value == 0 || value.ok || value.code == 400 || value.code == 429 || value.code < 0 ? authMsg : value.code == 418 ? str.declined : value.code == 410 ? str.expired : value.code == 409 ? str.usedCode : str.notAccepted(value.code)
     dev = value == 0 || value.code == 400 || value.code == 429 || value.code < 0 ? dev : null
-    note = value != 0 && value.ok ? "Signed in" : note
+    note = value != 0 && value.ok ? str.signedIn : note
     noteUntil = value != 0 && value.ok ? tick + 3 : noteUntil
   }
-  when dev != null && tick > dev.until { dev = null; authMsg = "The code expired. Get a new one." }
+  when dev != null && tick > dev.until { dev = null; authMsg = str.expired }
 
   // Tokens are renewed once three quarters of their life is gone, and when Trakt stops taking one.
   source me = http(signedIn ? "https://api.trakt.tv/users/settings" : null, hdr) every 1h json timeout 20s status
@@ -106,7 +1224,7 @@ app "couch" {
     refRes = post(auth.refresh != null ? "https://api.trakt.tv/oauth/token" : null, {refresh_token: auth.refresh, client_id: cid, client_secret: csec, redirect_uri: "urn:ietf:wg:oauth:2.0:oob", grant_type: "refresh_token"}, {"trakt-api-key": cid, "trakt-api-version": "2"})
   }
   on refRes {
-    authMsg = value != 0 && !value.ok && value.code >= 400 && value.code < 500 ? "Trakt signed you out. Sign in again to see your lists." : authMsg
+    authMsg = value != 0 && !value.ok && value.code >= 400 && value.code < 500 ? str.signedOutByTrakt : authMsg
     auth = value == 0 ? auth : value.ok && value.out.access_token != null ? {access: value.out.access_token, refresh: value.out.refresh_token, expires: num(value.out.created_at, now) + num(value.out.expires_in, 86400), life: num(value.out.expires_in, 86400)} : value.code >= 400 && value.code < 500 ? null : auth
   }
   let user = signedIn && me != null && me.ok ? me.out.user : null
@@ -137,27 +1255,27 @@ app "couch" {
   on wlS { wlOver = [] }
   on wlRes {
     wlOver = value != 0 && !value.ok ? [] : wlOver
-    note = value != 0 && !value.ok ? "Couldn't update your watchlist. Try again in a moment." : note
+    note = value != 0 && !value.ok ? str.wlFail : note
     noteUntil = value != 0 && !value.ok ? tick + 4 : noteUntil
   }
   on hisRes {
     playsOver = value != 0 && !value.ok ? [] : playsOver
-    note = value != 0 && !value.ok ? "Couldn't change your history. Try again in a moment." : note
+    note = value != 0 && !value.ok ? str.hisFail : note
     noteUntil = value != 0 && !value.ok ? tick + 4 : noteUntil
   }
   on rateRes {
     rateOver = value != 0 && !value.ok ? [] : rateOver
-    note = value != 0 && !value.ok ? "Couldn't save your rating. Try again in a moment." : note
+    note = value != 0 && !value.ok ? str.rateFail : note
     noteUntil = value != 0 && !value.ok ? tick + 4 : noteUntil
   }
   on epRes {
     epOver = value != 0 && !value.ok ? [] : epOver
-    note = value != 0 && !value.ok ? "Couldn't mark it. Try again in a moment." : note
+    note = value != 0 && !value.ok ? str.markFail : note
     noteUntil = value != 0 && !value.ok ? tick + 4 : noteUntil
   }
   on upRes {
     doneOver = value != 0 && !value.ok ? [] : doneOver
-    note = value != 0 && !value.ok ? "Couldn't mark it watched. Try again in a moment." : note
+    note = value != 0 && !value.ok ? str.watchFail : note
     noteUntil = value != 0 && !value.ok ? tick + 4 : noteUntil
   }
 
@@ -174,11 +1292,11 @@ app "couch" {
   let heroAt = len(heroes) == 0 ? null : heroes[hero % len(heroes)]
   every 7s { hero = tab == "discover" && onTab ? (hero + 1) % max(1, len(heroes)) : hero }
   let sections = [
-    {k: "trending", l: "trending", n: "Most watched on Trakt right now"},
-    {k: "popular", l: "popular", n: "Best rated by the most people, all time"},
-    {k: "anticipated", l: "anticipated", n: "Most added to lists, not out yet"},
-    {k: "watched", l: "this week", n: "Most watched in the last seven days"},
-    {k: "boxoffice", l: "box office", n: "Top 10 at the US box office last weekend"}
+    {k: "trending", l: str.sections.trending, n: str.sectionNotes.trending},
+    {k: "popular", l: str.sections.popular, n: str.sectionNotes.popular},
+    {k: "anticipated", l: str.sections.anticipated, n: str.sectionNotes.anticipated},
+    {k: "watched", l: str.sections.watched, n: str.sectionNotes.watched},
+    {k: "boxoffice", l: str.sections.boxoffice, n: str.sectionNotes.boxoffice}
   ].filter(s => s.k != "boxoffice" || dtype == "movie")
 
   // ------------------------------------------------------------------ up next
@@ -189,7 +1307,7 @@ app "couch" {
 
   // ------------------------------------------------------------------ calendar
   state cmode = "shows" persist
-  let cmodes = signedIn ? [{k: "shows", l: "my shows"}, {k: "movies", l: "my movies"}, {k: "premieres", l: "premieres"}, {k: "new", l: "new shows"}] : [{k: "premieres", l: "premieres"}, {k: "new", l: "new shows"}]
+  let cmodes = signedIn ? [{k: "shows", l: str.myShows}, {k: "movies", l: str.myMovies}, {k: "premieres", l: str.premieres}, {k: "new", l: str.newShows}] : [{k: "premieres", l: str.premieres}, {k: "new", l: str.newShows}]
   let cm = any(cmodes, x => x.k == cmode) ? cmode : cmodes[0].k
   // From yesterday, so last night's episode is still there in the morning.
   let cstart = fmtTime(now - 86400, "yyyy-MM-dd")
@@ -270,9 +1388,9 @@ app "couch" {
   let cast = pplFor == okey && ppl != null && ppl.ok ? (ppl.out.cast ?? []).take(12) : []
   let crew = pplFor == okey && ppl != null && ppl.ok ? ppl.out.crew : null
   let crewLines = [
-    {j: "Created by", n: get(crew ?? {}, "created by", []).map(p => p.person.name).unique().take(3)},
-    {j: "Directed by", n: (crew.directing ?? []).filter(p => indexOf(p.jobs ?? [p.job], "Director") >= 0).map(p => p.person.name).unique().take(3)},
-    {j: "Written by", n: (crew.writing ?? []).map(p => p.person.name).unique().take(3)}
+    {j: 0, n: get(crew ?? {}, "created by", []).map(p => p.person.name).unique().take(3)},
+    {j: 1, n: (crew.directing ?? []).filter(p => indexOf(p.jobs ?? [p.job], "Director") >= 0).map(p => p.person.name).unique().take(3)},
+    {j: 2, n: (crew.writing ?? []).map(p => p.person.name).unique().take(3)}
   ].filter(c => len(c.n) > 0)
   let related = relFor == okey && rel != null && rel.ok ? rel.out.filter(m => m.ids.trakt != null).map(m => {t: ot, m: m}) : []
   let seasons0 = isShow && seasFor == okey && seas != null && seas.ok ? seas.out.filter(s => s.number != null) : []
@@ -299,19 +1417,18 @@ app "couch" {
   let genres = (item.genres ?? []).take(4).map(g => get(genreWords, g, join(split(g, "-").map(w => upper(sub(w, 0, 1)) + sub(w, 1, len(w))), " ")))
   let runtime = num(item.runtime, 0) <= 0 ? "" : floor(item.runtime / 60) > 0 ? "${floor(item.runtime / 60)}h${item.runtime % 60 > 0 ? " " + (item.runtime % 60) + "m" : ""}" : "${item.runtime}m"
   let relDate = item.released ?? sub(item.first_aired ?? "", 0, 10)
-  let relText = len(relDate ?? "") >= 10 ? "${months[num(sub(relDate, 5, 7)) - 1]} ${num(sub(relDate, 8, 10))}, ${sub(relDate, 0, 4)}" : ""
-  let statusWords = {"returning series": "Returning", "in production": "In production", "planned": "Planned", "canceled": "Canceled", "ended": "Ended", "released": "Released", "post production": "Post-production", "upcoming": "Upcoming", "pilot": "Pilot", "rumored": "Rumored"}
-  let metaLine = join([item.year == null ? "" : "${item.year}", isShow ? item.network ?? "" : "", runtime == "" ? "" : runtime + (isShow ? " per ep" : ""), item.certification ?? ""].filter(s => s != ""), "  ·  ")
+  let relText = len(relDate ?? "") >= 10 ? str.date(str.md(num(sub(relDate, 5, 7)), num(sub(relDate, 8, 10))), sub(relDate, 0, 4)) : ""
+  let metaLine = join([item.year == null ? "" : "${item.year}", isShow ? item.network ?? "" : "", runtime == "" ? "" : (isShow ? str.perEp(runtime) : runtime), item.certification ?? ""].filter(s => s != ""), "  ·  ")
   let facts = [
-    {k: isShow ? "Premiered" : "Released", v: relText},
-    {k: "Runtime", v: runtime},
-    {k: "Status", v: get(statusWords, item.status ?? "", "")},
-    {k: "Network", v: item.network ?? ""},
-    {k: "Airs", v: full.airs.day == null ? "" : "${full.airs.day}${full.airs.time == null ? "" : " " + full.airs.time}"},
-    {k: "Country", v: upper(full.country ?? "")},
-    {k: "Language", v: upper(full.language ?? "")},
-    {k: "Episodes", v: full.aired_episodes == null ? "" : "${full.aired_episodes}"},
-    {k: "Rated", v: full.certification ?? ""}
+    {k: isShow ? str.premiered : str.released, v: relText},
+    {k: str.runtime, v: runtime},
+    {k: str.statusK, v: get(str.statusWords, item.status ?? "", "")},
+    {k: str.network, v: item.network ?? ""},
+    {k: str.airs, v: full.airs.day == null ? "" : "${full.airs.day}${full.airs.time == null ? "" : " " + full.airs.time}"},
+    {k: str.country, v: upper(full.country ?? "")},
+    {k: str.language, v: upper(full.language ?? "")},
+    {k: str.episodesK, v: full.aired_episodes == null ? "" : "${full.aired_episodes}"},
+    {k: str.rated, v: full.certification ?? ""}
   ].filter(f => f.v != "")
   let trailer = startsWith(full.trailer ?? "", "https://") ? full.trailer : null
   let siteUrl = "https://trakt.tv/${ot}s/${item.ids.slug ?? oid}"
@@ -357,7 +1474,7 @@ app "couch" {
           width: pw
           padding: 5
           if badge != "" {
-            Text { text: badge; fontSize: 11; bold: true; color: #ffffff; background: alpha(#000000, 0.6); radius: 4 * corners; padding: [6, 2]; maxLines: 1; width: min(pw - 40, len(badge) * 7 + 14) }
+            Text { text: badge; fontSize: 11; bold: true; color: #ffffff; background: alpha(#000000, 0.6); radius: 4 * corners; padding: [6, 2]; maxLines: 1; width: min(pw - 40, len(badge) * 7 * str.cw + 14) }
           }
           Spacer { weight: 1 }
           if mark {
@@ -376,7 +1493,7 @@ app "couch" {
       Row {
         gap: 4
         align: center
-        Text { text: m.year == null ? (it.t == "show" ? "Show" : "Movie") : "${m.year}"; fontSize: 11; color: muted; weight: 1; maxLines: 1 }
+        Text { text: m.year == null ? (it.t == "show" ? str.show : str.movie) : "${m.year}"; fontSize: 11; color: muted; weight: 1; maxLines: 1 }
         if num(m.rating, 0) > 0 {
           Image { src: heartIcon; size: 11; tint: red }
           Text { text: "${round(m.rating * 10)}%"; fontSize: 11; color: muted; width: 30; maxLines: 1 }
@@ -387,7 +1504,7 @@ app "couch" {
 
   // A labelled chip; the caller's Box takes the tap.
   component Chip(text, sel = false) {
-    Text { text: text; style: small; align: center; maxLines: 1; padding: [14, 6]; color: sel ? background : foreground; background: sel ? accent : null; bold: sel; border: sel ? 0 : 1; borderColor: alpha(muted, 0.45); radius: 16 * corners; width: len(text) * 8 + 30 }
+    Text { text: text; style: small; align: center; maxLines: 1; padding: [14, 6]; color: sel ? background : foreground; background: sel ? accent : null; bold: sel; border: sel ? 0 : 1; borderColor: alpha(muted, 0.45); radius: 16 * corners; width: len(text) * 8 * str.cw + 30 }
   }
 
   // A button with an icon, outlined; filled while it's `on`.
@@ -401,7 +1518,7 @@ app "couch" {
       background: sel ? alpha(tint, 0.16) : null
       radius: 18 * corners
       Image { src: pic; size: 16; tint: sel ? tint : foreground }
-      Text { text: text; style: small; bold: true; maxLines: 1; color: sel ? tint : foreground; width: len(text) * 7.5 + 4 }
+      Text { text: text; style: small; bold: true; maxLines: 1; color: sel ? tint : foreground; width: len(text) * 7.5 * str.cw + 4 }
     }
   }
 
@@ -426,7 +1543,7 @@ app "couch" {
   // What went wrong with an answer, if anything.
   component Trouble(res) {
     if res != null && !res.ok {
-      Text { text: res.code == 429 ? "Trakt asked to slow down; try again in a minute." : res.code < 0 ? "Can't reach Trakt." : "Trakt answered ${res.code}."; style: small; color: yellow; padding: [0, 6] }
+      Text { text: res.code == 429 ? str.slowDown : res.code < 0 ? str.cantReach : str.answered(res.code); style: small; color: yellow; padding: [0, 6] }
     }
   }
 
@@ -453,7 +1570,7 @@ app "couch" {
         if e != null {
           Text { text: "S${pad(e.season, 2, "0")}E${pad(e.number, 2, "0")}${hideSpoilers || e.title == null ? "" : "  ·  " + e.title}"; style: small; maxLines: 1 }
         }
-        Text { text: r.movie != null ? "Movie" + (num(m.runtime, 0) <= 0 ? "" : m.runtime >= 60 ? "  ·  ${floor(m.runtime / 60)}h ${m.runtime % 60}m" : "  ·  ${m.runtime}m") : m.network ?? ""; style: small; color: muted; maxLines: 1 }
+        Text { text: r.movie != null ? str.movie + (num(m.runtime, 0) <= 0 ? "" : m.runtime >= 60 ? "  ·  ${floor(m.runtime / 60)}h ${m.runtime % 60}m" : "  ·  ${m.runtime}m") : m.network ?? ""; style: small; color: muted; maxLines: 1 }
       }
     }
   }
@@ -470,8 +1587,8 @@ app "couch" {
       Column {
         gap: 2
         weight: 1
-        Text { text: "${e.number}.  ${veil || e.title == null ? "Episode " + e.number : e.title}"; bold: true; maxLines: 2; color: aired ? foreground : muted }
-        Text { text: (len(d) == 10 ? "${months[num(sub(d, 5, 7)) - 1]} ${num(sub(d, 8, 10))}, ${sub(d, 0, 4)}" : "Not scheduled") + (num(e.rating, 0) > 0 && aired ? "  ·  ${round(e.rating * 10)}%" : "") + (e.runtime == null ? "" : "  ·  ${e.runtime}m"); style: small; color: muted; maxLines: 1 }
+        Text { text: "${e.number}.  ${veil || e.title == null ? str.episodeN(e.number) : e.title}"; bold: true; maxLines: 2; color: aired ? foreground : muted }
+        Text { text: (len(d) == 10 ? str.date(str.md(num(sub(d, 5, 7)), num(sub(d, 8, 10))), sub(d, 0, 4)) : str.notScheduled) + (num(e.rating, 0) > 0 && aired ? "  ·  ${round(e.rating * 10)}%" : "") + (e.runtime == null ? "" : "  ·  ${e.runtime}m"); style: small; color: muted; maxLines: 1 }
         if !veil && e.overview != null && more {
           Text { text: e.overview; style: small; color: alpha(foreground, 0.8); maxLines: 6 }
         }
@@ -515,10 +1632,10 @@ app "couch" {
       padding: [8, 40, 8, 16]
       Image { src: loginIcon; size: 44; tint: muted }
       Text { text: text; bold: true; align: center }
-      Text { text: "Sign in with your Trakt account to track episodes, keep a watchlist and see your calendar."; style: small; color: muted; align: center }
+      Text { text: str.signInPitch; style: small; color: muted; align: center }
       Box {
         onTap: { view = "settings"; stack = []; asking = canSignIn; authMsg = canSignIn ? "" : needApp; ownApp = ownApp || !canSignIn; codeRes = 0; codeRes = post(canSignIn ? "https://api.trakt.tv/oauth/device/code" : null, {client_id: cid}, {"trakt-api-key": cid, "trakt-api-version": "2"}) }
-        Pill { text: "Sign in with Trakt"; pic: loginIcon; sel: true }
+        Pill { text: str.signInTrakt; pic: loginIcon; sel: true }
       }
     }
   }
@@ -573,7 +1690,7 @@ app "couch" {
                     align: center
                     Image { src: heartIcon; size: 16; tint: red }
                     Text { text: "${round(item.rating * 10)}%"; bold: true; width: 44 }
-                    Text { text: num(item.votes, 0) >= 1000 ? "${round(item.votes / 1000, 1)}K votes" : "${item.votes ?? 0} votes"; style: small; color: muted; weight: 1 }
+                    Text { text: str.votes(num(item.votes, 0) >= 1000 ? "${round(item.votes / 1000, 1)}K" : "${item.votes ?? 0}"); style: small; color: muted; weight: 1 }
                   }
                 }
               }
@@ -589,19 +1706,19 @@ app "couch" {
           Flow {
             gap: 8
             Box {
-              onTap: { wlRes = 0; wlRes = post(listed ? "https://api.trakt.tv/sync/watchlist/remove" : "https://api.trakt.tv/sync/watchlist", bodyFor, hdr); note = signedIn ? (listed ? "Removed from your watchlist" : "Added to your watchlist") : "Sign in to Trakt first"; noteUntil = tick + 3; wlOver = signedIn ? [{k: okey, v: !listed}] + wlOver : wlOver; view = signedIn ? view : "settings"; stack = signedIn ? stack : []; haptic() }
-              Pill { text: listed ? "On watchlist" : "Watchlist"; pic: listed ? bookmarkedIcon : watchlistIcon; sel: listed }
+              onTap: { wlRes = 0; wlRes = post(listed ? "https://api.trakt.tv/sync/watchlist/remove" : "https://api.trakt.tv/sync/watchlist", bodyFor, hdr); note = signedIn ? (listed ? str.removedWl : str.addedWl) : str.signInFirst; noteUntil = tick + 3; wlOver = signedIn ? [{k: okey, v: !listed}] + wlOver : wlOver; view = signedIn ? view : "settings"; stack = signedIn ? stack : []; haptic() }
+              Pill { text: listed ? str.onWatchlist : str.watchlistBtn; pic: listed ? bookmarkedIcon : watchlistIcon; sel: listed }
             }
             if !isShow {
               Box {
-                onTap: { step = pl > 0 && !unconf; hisRes = 0; hisRes = post(!signedIn ? null : pl == 0 ? "https://api.trakt.tv/sync/history" : unconf ? "https://api.trakt.tv/sync/history/remove" : null, bodyFor, hdr); note = !signedIn ? "Sign in to Trakt first" : pl == 0 ? "Marked as watched" : unconf ? "Removed from your history" : note; noteUntil = !signedIn || pl == 0 || unconf ? tick + 3 : noteUntil; playsOver = !signedIn ? playsOver : pl == 0 ? [{k: oid, v: 1}] + playsOver : unconf ? [{k: oid, v: 0}] + playsOver : playsOver; unconf = step; unconfUntil = step ? tick + 3 : 0; haptic() }
-                Pill { text: unconf ? "Tap again to unwatch" : pl > 1 ? "Watched ${pl}×" : pl == 1 ? "Watched" : "Mark watched"; pic: pl > 0 ? doneIcon : checkIcon; sel: pl > 0; tint: green }
+                onTap: { step = pl > 0 && !unconf; hisRes = 0; hisRes = post(!signedIn ? null : pl == 0 ? "https://api.trakt.tv/sync/history" : unconf ? "https://api.trakt.tv/sync/history/remove" : null, bodyFor, hdr); note = !signedIn ? str.signInFirst : pl == 0 ? str.markedWatched : unconf ? str.removedHistory : note; noteUntil = !signedIn || pl == 0 || unconf ? tick + 3 : noteUntil; playsOver = !signedIn ? playsOver : pl == 0 ? [{k: oid, v: 1}] + playsOver : unconf ? [{k: oid, v: 0}] + playsOver : playsOver; unconf = step; unconfUntil = step ? tick + 3 : 0; haptic() }
+                Pill { text: unconf ? str.tapUnwatch : pl > 1 ? str.watchedN(pl) : pl == 1 ? str.watched : str.markWatched; pic: pl > 0 ? doneIcon : checkIcon; sel: pl > 0; tint: green }
               }
             }
             if trailer != null {
               Box {
                 onTap: url(trailer)
-                Pill { text: "Trailer"; pic: trailerIcon }
+                Pill { text: str.trailer; pic: trailerIcon }
               }
             }
             Box {
@@ -613,7 +1730,7 @@ app "couch" {
           if signedIn {
             Column {
               gap: 2
-              Text { text: mine > 0 ? "Your rating: ${mine}/10" : "Your rating"; style: small; color: muted; bold: true }
+              Text { text: mine > 0 ? str.yourRatingN(mine) : str.yourRating; style: small; color: muted; bold: true }
               Row {
                 gap: 0
                 for v in range(1, 11) {
@@ -634,10 +1751,10 @@ app "couch" {
           }
           if item.overview != null && item.overview != "" {
             Text { text: item.overview; color: alpha(foreground, 0.85); maxLines: more ? 100 : 5; onTap: more = !more }
-            Text { text: more ? "Less" : "More"; style: small; bold: true; color: accent; onTap: more = !more }
+            Text { text: more ? str.less : str.more; style: small; bold: true; color: accent; onTap: more = !more }
           }
           if len(crewLines) > 0 {
-            Text { text: join(crewLines.map(c => "${c.j} ${join(c.n, ", ")}"), "\n"); style: small; color: muted }
+            Text { text: join(crewLines.map(c => str.crew(c.j, join(c.n, ", "))), "\n"); style: small; color: muted }
           }
 
           if isShow && progress != null && num(progress.aired, 0) > 0 {
@@ -650,18 +1767,18 @@ app "couch" {
               Row {
                 gap: 8
                 align: center
-                Text { text: progress.completed >= progress.aired ? "All caught up" : "Your progress"; bold: true; weight: 1 }
-                Text { text: "${progress.completed} of ${progress.aired} episodes"; style: small; color: muted; width: 140; align: end }
+                Text { text: progress.completed >= progress.aired ? str.caughtUp : str.yourProgress; bold: true; weight: 1 }
+                Text { text: str.epOf(progress.completed, progress.aired); style: small; color: muted; width: 140; align: end }
               }
               Progress { value: progress.completed; max: progress.aired; color: accent }
               if nx != null {
                 Row {
                   gap: 10
                   align: center
-                  Text { text: "Next: S${pad(nx.season, 2, "0")}E${pad(nx.number, 2, "0")}${hideSpoilers || nx.title == null ? "" : "  ·  " + nx.title}"; style: small; weight: 1; maxLines: 2 }
+                  Text { text: str.nextEp("S${pad(nx.season, 2, "0")}E${pad(nx.number, 2, "0")}${hideSpoilers || nx.title == null ? "" : "  ·  " + nx.title}"); style: small; weight: 1; maxLines: 2 }
                   Box {
-                    onTap: { epRes = 0; epRes = post("https://api.trakt.tv/sync/history", {episodes: [{ids: {trakt: nx.ids.trakt}}]}, hdr); epOver = [{k: "${oid}:${nx.season}:${nx.number}", v: true}] + epOver; note = "Marked as watched"; noteUntil = tick + 3; haptic() }
-                    Pill { text: "Watched"; pic: checkIcon; sel: true; tint: green }
+                    onTap: { epRes = 0; epRes = post("https://api.trakt.tv/sync/history", {episodes: [{ids: {trakt: nx.ids.trakt}}]}, hdr); epOver = [{k: "${oid}:${nx.season}:${nx.number}", v: true}] + epOver; note = str.markedWatched; noteUntil = tick + 3; haptic() }
+                    Pill { text: str.watched; pic: checkIcon; sel: true; tint: green }
                   }
                 }
               }
@@ -669,13 +1786,13 @@ app "couch" {
           }
 
           if isShow && len(seasons) > 0 {
-            Head { text: "Episodes" }
+            Head { text: str.episodes }
             Flow {
               gap: 6
               for s in seasons key s.number {
                 Box {
                   onTap: { season = s.number; allEps = false }
-                  Chip { text: s.number == 0 ? "Specials" : "S${s.number}"; sel: sn == s.number }
+                  Chip { text: s.number == 0 ? str.specials : "S${s.number}"; sel: sn == s.number }
                 }
               }
             }
@@ -683,11 +1800,11 @@ app "couch" {
               gap: 8
               align: center
               let sinfo = seasons.find(s => s.number == sn)
-              Text { text: len(episodes) == 0 ? (eps == null || epsFor != "${okey}:${sn}" ? "Loading episodes…" : "No episodes listed yet") : "${len(episodes)} episodes${sinfo.first_aired == null ? "" : "  ·  " + sub(sinfo.first_aired, 0, 4)}"; style: small; color: muted; weight: 1 }
+              Text { text: len(episodes) == 0 ? (eps == null || epsFor != "${okey}:${sn}" ? str.loadingEps : str.noEps) : str.epCount(len(episodes)) + (sinfo.first_aired == null ? "" : "  ·  " + sub(sinfo.first_aired, 0, 4)); style: small; color: muted; weight: 1 }
               if signedIn && len(airedEps) > 0 {
                 Box {
-                  onTap: { epRes = 0; epRes = post(seasonDone ? "https://api.trakt.tv/sync/history/remove" : "https://api.trakt.tv/sync/history", {shows: [{ids: {trakt: oid}, seasons: [{number: sn}]}]}, hdr); epOver = airedEps.map(e => {k: "${oid}:${e.season}:${e.number}", v: !seasonDone}) + epOver; note = seasonDone ? "Unmarked ${len(airedEps)} episodes" : "Marked ${len(airedEps)} episodes"; noteUntil = tick + 3; haptic() }
-                  Pill { text: seasonDone ? "Season watched" : "Mark season"; pic: seasonDone ? doneIcon : checkIcon; sel: seasonDone; tint: green }
+                  onTap: { epRes = 0; epRes = post(seasonDone ? "https://api.trakt.tv/sync/history/remove" : "https://api.trakt.tv/sync/history", {shows: [{ids: {trakt: oid}, seasons: [{number: sn}]}]}, hdr); epOver = airedEps.map(e => {k: "${oid}:${e.season}:${e.number}", v: !seasonDone}) + epOver; note = seasonDone ? str.unmarkedN(len(airedEps)) : str.markedN(len(airedEps)); noteUntil = tick + 3; haptic() }
+                  Pill { text: seasonDone ? str.seasonWatched : str.markSeason; pic: seasonDone ? doneIcon : checkIcon; sel: seasonDone; tint: green }
                 }
               }
             }
@@ -700,7 +1817,7 @@ app "couch" {
             if !allEps && len(episodes) > 30 {
               Box {
                 onTap: allEps = true
-                Pill { text: "Show all ${len(episodes)} episodes"; pic: tvIcon }
+                Pill { text: str.showAll(len(episodes)); pic: tvIcon }
               }
             }
           }
@@ -723,7 +1840,7 @@ app "couch" {
           }
 
           if len(cast) > 0 {
-            Head { text: "Cast" }
+            Head { text: str.cast }
             Grid {
               columns: 4
               gap: 8
@@ -754,7 +1871,7 @@ app "couch" {
           }
 
           if len(related) > 0 {
-            Head { text: "More like this" }
+            Head { text: str.moreLike }
             Grid {
               columns: 3
               gap: 10
@@ -763,7 +1880,7 @@ app "couch" {
               }
             }
           }
-          Text { text: "Data and images from Trakt."; fontSize: 11; color: muted; align: center; onTap: url(siteUrl) }
+          Text { text: str.dataFrom; fontSize: 11; color: muted; align: center; onTap: url(siteUrl) }
         }
 
       } else {
@@ -777,7 +1894,7 @@ app "couch" {
             borderColor: alpha(accent, 0.8)
             radius: 22 * corners
             Image { src: searchIcon; size: 20; tint: muted }
-            Input { text: typed; placeholder: "movies and shows"; focus: true; weight: 1; onChange: typed = value; onSubmit: typed = value }
+            Input { text: typed; placeholder: str.placeholder; focus: true; weight: 1; onChange: typed = value; onSubmit: typed = value }
             if typed != "" {
               Text { text: "✕"; color: muted; width: 28; align: center; onTap: typed = "" }
             }
@@ -795,7 +1912,7 @@ app "couch" {
               radius: 22 * corners
               onTap: { view = "search"; typed = "" }
               Image { src: searchIcon; size: 20; tint: muted }
-              Text { text: "search movies and shows"; color: muted; maxLines: 1; weight: 1 }
+              Text { text: str.searchHint; color: muted; maxLines: 1; weight: 1 }
             }
             if signedIn {
               Box {
@@ -832,7 +1949,7 @@ app "couch" {
           // ---------------------------------------------------------------- search
           Row {
             gap: 6
-            for f in [{k: "movie,show", l: "all"}, {k: "movie", l: "movies"}, {k: "show", l: "shows"}] key f.k {
+            for f in [{k: "movie,show", l: str.all}, {k: "movie", l: str.movies}, {k: "show", l: str.shows}] key f.k {
               Box {
                 onTap: sfilter = f.k
                 Chip { text: f.l; sel: sfilter == f.k }
@@ -841,9 +1958,9 @@ app "couch" {
           }
           if len(squery) >= 2 {
             Trouble { res: found }
-            Text { text: found == null ? "Searching…" : "${len(results)} results"; style: small; color: muted }
+            Text { text: found == null ? str.searching : str.results(len(results)); style: small; color: muted }
             if found != null && found.ok && len(results) == 0 {
-              Empty { pic: searchIcon; text: "Nothing matches “${squery}”"; detail: "Try fewer words, or the original title." }
+              Empty { pic: searchIcon; text: str.noMatch(squery); detail: str.tryFewer }
             }
             Grid {
               columns: 3
@@ -853,7 +1970,7 @@ app "couch" {
               }
             }
           } else {
-            Text { text: len(suggestions) > 0 ? "Trending now" : ""; style: small; color: muted }
+            Text { text: len(suggestions) > 0 ? str.trendingNow : ""; style: small; color: muted }
             Grid {
               columns: 3
               gap: 10
@@ -867,14 +1984,14 @@ app "couch" {
           // ---------------------------------------------------------------- history
           Trouble { res: his }
           if his == null {
-            Text { text: "Loading…"; color: muted; align: center; padding: [0, 24] }
+            Text { text: str.loading; color: muted; align: center; padding: [0, 24] }
           } else if his.ok && len(hrows) == 0 {
-            Empty { pic: historyIcon; text: hpage > 1 ? "That's everything" : "Nothing watched yet"; detail: "Movies and episodes you mark watched appear here." }
+            Empty { pic: historyIcon; text: hpage > 1 ? str.everything : str.nothingWatched; detail: str.historyHint }
           }
           for d in hdays key d {
             let rows = hrows.filter(c => fmtTime(c.t, "yyyy-MM-dd") == d)
             let t0 = rows[0].t
-            Text { text: d == today ? "Today" : d == fmtTime(now - 86400, "yyyy-MM-dd") ? "Yesterday" : now - t0 < 6 * 86400 ? fmtTime(t0, "EEEE") : fmtTime(t0, "EEE, MMM d, yyyy"); bold: true; padding: [0, 8, 0, 0] }
+            Text { text: d == today ? str.today : d == fmtTime(now - 86400, "yyyy-MM-dd") ? str.yesterday : now - t0 < 6 * 86400 ? fmtTime(t0, "EEEE") : fmtTime(t0, "EEE, MMM d, yyyy"); bold: true; padding: [0, 8, 0, 0] }
             for c in rows key c.r.id {
               DayRow { r: c.r; lead: fmtTime(c.t, "HH:mm") }
             }
@@ -883,9 +2000,9 @@ app "couch" {
             Row {
               gap: 8
               align: center
-              Text { text: "‹ newer"; style: small; align: center; padding: [12, 6]; border: 1; borderColor: alpha(muted, 0.4); radius: 14 * corners; width: 90; opacity: hpage > 1 ? 1 : 0.35; onTap: hpage = max(1, hpage - 1) }
-              Text { text: "page ${hpage}"; style: small; color: muted; weight: 1; align: center }
-              Text { text: "older ›"; style: small; align: center; padding: [12, 6]; border: 1; borderColor: alpha(muted, 0.4); radius: 14 * corners; width: 90; opacity: len(his.out) >= 25 ? 1 : 0.35; onTap: hpage = len(his.out) >= 25 ? hpage + 1 : hpage }
+              Text { text: str.newer; style: small; align: center; padding: [12, 6]; border: 1; borderColor: alpha(muted, 0.4); radius: 14 * corners; width: 90; opacity: hpage > 1 ? 1 : 0.35; onTap: hpage = max(1, hpage - 1) }
+              Text { text: str.page(hpage); style: small; color: muted; weight: 1; align: center }
+              Text { text: str.older; style: small; align: center; padding: [12, 6]; border: 1; borderColor: alpha(muted, 0.4); radius: 14 * corners; width: 90; opacity: len(his.out) >= 25 ? 1 : 0.35; onTap: hpage = len(his.out) >= 25 ? hpage + 1 : hpage }
             }
           }
 
@@ -917,14 +2034,14 @@ app "couch" {
                 Column {
                   gap: 2
                   weight: 1
-                  Text { text: user == null ? "Signed in" : user.name ?? user.username; bold: true; fontSize: 17; maxLines: 1 }
+                  Text { text: user == null ? str.signedIn : user.name ?? user.username; bold: true; fontSize: 17; maxLines: 1 }
                   Text { text: user == null ? "" : "@${user.username}${user.vip ? "  ·  VIP" : ""}"; style: small; color: muted; maxLines: 1 }
                 }
               }
               if stats != null && stats.ok {
                 Row {
                   gap: 8
-                  for s in [{v: stats.out.movies.watched, l: "movies"}, {v: stats.out.episodes.watched, l: "episodes"}, {v: round((num(stats.out.movies.minutes, 0) + num(stats.out.episodes.minutes, 0)) / 60), l: "hours"}] key s.l {
+                  for s in [{v: stats.out.movies.watched, l: str.movies}, {v: stats.out.episodes.watched, l: str.statEpisodes}, {v: round((num(stats.out.movies.minutes, 0) + num(stats.out.episodes.minutes, 0)) / 60), l: str.statHours}] key s.l {
                     Column {
                       weight: 1
                       gap: 0
@@ -942,88 +2059,88 @@ app "couch" {
                 if user != null {
                   Box {
                     onTap: url("https://trakt.tv/users/${user.ids.slug}")
-                    Pill { text: "Profile on Trakt"; pic: openIcon }
+                    Pill { text: str.profile; pic: openIcon }
                   }
                 }
                 Box {
-                  onTap: { outRes = 0; outRes = post(confirmOut ? "https://api.trakt.tv/oauth/revoke" : null, {token: auth.access, client_id: cid, client_secret: csec}, {"trakt-api-key": cid, "trakt-api-version": "2"}); note = confirmOut ? "Signed out" : note; noteUntil = confirmOut ? tick + 3 : noteUntil; auth = confirmOut ? null : auth; stack = []; confirmOut = !confirmOut }
-                  Pill { text: confirmOut ? "Tap again to sign out" : "Sign out"; pic: logoutIcon; sel: confirmOut; tint: red }
+                  onTap: { outRes = 0; outRes = post(confirmOut ? "https://api.trakt.tv/oauth/revoke" : null, {token: auth.access, client_id: cid, client_secret: csec}, {"trakt-api-key": cid, "trakt-api-version": "2"}); note = confirmOut ? str.signedOut : note; noteUntil = confirmOut ? tick + 3 : noteUntil; auth = confirmOut ? null : auth; stack = []; confirmOut = !confirmOut }
+                  Pill { text: confirmOut ? str.tapSignOut : str.signOut; pic: logoutIcon; sel: confirmOut; tint: red }
                 }
               }
             } else if dev == null {
-              Text { text: "Sign in with Trakt"; bold: true; fontSize: 17 }
-              Text { text: "Your watchlist, up next, calendar, history and ratings, kept in step with every other Trakt app you use."; style: small; color: muted }
+              Text { text: str.signInTrakt; bold: true; fontSize: 17 }
+              Text { text: str.signInWhy; style: small; color: muted }
               if authMsg != "" {
                 Text { text: authMsg; style: small; color: red }
               }
               Box {
                 onTap: { authMsg = canSignIn ? "" : needApp; ownApp = ownApp || !canSignIn; codeRes = 0; codeRes = post(asking || !canSignIn ? null : "https://api.trakt.tv/oauth/device/code", {client_id: cid}, {"trakt-api-key": cid, "trakt-api-version": "2"}); asking = canSignIn }
-                Pill { text: asking ? "Getting a code…" : authMsg != "" ? "Try again" : "Sign in"; pic: loginIcon; sel: true }
+                Pill { text: asking ? str.gettingCode : authMsg != "" ? str.tryAgain : str.signIn; pic: loginIcon; sel: true }
               }
             } else {
-              Text { text: "On any phone or computer, go to ${replace(dev.url, "https://", "")} and enter this code:"; style: small }
+              Text { text: str.goTo(replace(dev.url, "https://", "")); style: small }
               Text { text: dev.user; fontSize: 30; bold: true; font: mono; align: center; padding: [0, 12]; border: 2; borderColor: accent; radius: 10 * corners; color: accent }
               Flow {
                 gap: 8
                 Box {
                   onTap: url(dev.url)
-                  Pill { text: "Open ${replace(dev.url, "https://", "")}"; pic: openIcon; sel: true }
+                  Pill { text: str.openUrl(replace(dev.url, "https://", "")); pic: openIcon; sel: true }
                 }
                 Box {
-                  onTap: { copy(dev.user); note = "Code copied"; noteUntil = tick + 2 }
-                  Pill { text: "Copy code"; pic: copyIcon }
+                  onTap: { copy(dev.user); note = str.codeCopied; noteUntil = tick + 2 }
+                  Pill { text: str.copyCode; pic: copyIcon }
                 }
                 Box {
                   onTap: { dev = null; authMsg = "" }
-                  Pill { text: "Cancel"; pic: logoutIcon }
+                  Pill { text: str.cancel; pic: logoutIcon }
                 }
               }
-              Text { text: "Waiting for you to approve  ·  code valid for ${floor(max(0, dev.until - tick) / 60)}:${pad(max(0, dev.until - tick) % 60, 2, "0")}"; style: small; color: muted }
+              Text { text: str.waiting("${floor(max(0, dev.until - tick) / 60)}:${pad(max(0, dev.until - tick) % 60, 2, "0")}"); style: small; color: muted }
             }
           }
 
-          Head { text: "Spoilers" }
-          Text { text: "Hide the titles and stories of episodes you haven't watched yet."; style: small; color: muted }
+          Head { text: str.spoilers }
+          Text { text: str.spoilersHint; style: small; color: muted }
           Row {
             gap: 6
             Box {
               onTap: hideSpoilers = false
-              Pill { text: "Show"; pic: eyeIcon; sel: !hideSpoilers }
+              Pill { text: str.showBtn; pic: eyeIcon; sel: !hideSpoilers }
             }
             Box {
               onTap: hideSpoilers = true
-              Pill { text: "Hide"; pic: eyeOffIcon; sel: hideSpoilers }
+              Pill { text: str.hide; pic: eyeOffIcon; sel: hideSpoilers }
             }
           }
 
-          Head { text: "Trakt app" }
-          Text { text: "Needed to sign in. The built-in app can only read Trakt's public lists, since a client secret can't be kept in public source. Create your own app at trakt.tv/oauth/applications with the redirect URI urn:ietf:wg:oauth:2.0:oob and paste its client ID and secret here. Changing this signs you out."; style: small; color: muted }
+          Head { text: str.traktApp }
+          Text { text: str.traktAppHint; style: small; color: muted }
           if !ownApp {
             Box {
               onTap: ownApp = true
-              Pill { text: "Use my own app"; pic: settingsIcon }
+              Pill { text: str.useOwn; pic: settingsIcon }
             }
           } else {
-            Text { text: "Client ID"; style: small; color: muted }
-            Input { text: idIn; placeholder: "from your app's page on trakt.tv"; onChange: idIn = value }
-            Text { text: "Client secret"; style: small; color: muted }
-            Input { text: secretIn; placeholder: "from your app's page on trakt.tv"; onChange: secretIn = value }
+            Text { text: str.clientId; style: small; color: muted }
+            Input { text: idIn; placeholder: str.fromApp; onChange: idIn = value }
+            Text { text: str.clientSecret; style: small; color: muted }
+            Input { text: secretIn; placeholder: str.fromApp; onChange: secretIn = value }
             let valid = (trim(idIn) == "") == (trim(secretIn) == "") && (trim(idIn) == "" || len(match(trim(idIn), '^[A-Za-z0-9_-]{20,128}$') ?? []) > 0)
             Row {
               gap: 8
               Box {
-                onTap: { auth = valid && trim(idIn) != myId ? null : auth; note = !valid ? "That client ID doesn't look right" : trim(idIn) == "" ? "Using the built-in Trakt app" : "Using your Trakt app"; noteUntil = tick + 3; myId = valid ? trim(idIn) : myId; mySecret = valid ? trim(secretIn) : mySecret; ownApp = valid ? myId != "" : ownApp }
-                Pill { text: "Save"; pic: checkIcon; sel: true }
+                onTap: { auth = valid && trim(idIn) != myId ? null : auth; note = !valid ? str.badId : trim(idIn) == "" ? str.usingBuiltin : str.usingYours; noteUntil = tick + 3; myId = valid ? trim(idIn) : myId; mySecret = valid ? trim(secretIn) : mySecret; ownApp = valid ? myId != "" : ownApp }
+                Pill { text: str.save; pic: checkIcon; sel: true }
               }
               Box {
                 onTap: { idIn = ""; secretIn = "" }
-                Pill { text: "Use the built-in app"; pic: logoutIcon }
+                Pill { text: str.useBuiltin; pic: logoutIcon }
               }
             }
           }
 
-          Head { text: "About" }
-          Text { text: "Couch for Trakt 1.0. Movie and show data and images from Trakt (trakt.tv). Couch is an independent app and not affiliated with or endorsed by Trakt."; style: small; color: muted }
+          Head { text: str.about }
+          Text { text: str.aboutText; style: small; color: muted }
           Row {
             gap: 8
             Box {
@@ -1032,7 +2149,7 @@ app "couch" {
             }
             Box {
               onTap: url("https://github.com/SimonSchubert/omarchy-couch")
-              Pill { text: "Source"; pic: openIcon }
+              Pill { text: str.source; pic: openIcon }
             }
           }
 
@@ -1066,7 +2183,7 @@ app "couch" {
                 padding: [14, 12]
                 gap: 3
                 Spacer { weight: 1 }
-                Text { text: "#${hero % max(1, len(heroes)) + 1}${heroAt.stat == null ? "" : "  ·  " + (heroAt.stat >= 1000 ? "${round(heroAt.stat / 1000, 1)}K" : "${heroAt.stat}") + (dsec2 == "anticipated" ? " lists" : " watching")}"; fontSize: 11; bold: true; color: #ffffff; opacity: 0.85 }
+                Text { text: "#${hero % max(1, len(heroes)) + 1}${heroAt.stat == null ? "" : "  ·  " + (dsec2 == "anticipated" ? str.heroLists(heroAt.stat >= 1000 ? "${round(heroAt.stat / 1000, 1)}K" : "${heroAt.stat}") : str.heroWatching(heroAt.stat >= 1000 ? "${round(heroAt.stat / 1000, 1)}K" : "${heroAt.stat}"))}"; fontSize: 11; bold: true; color: #ffffff; opacity: 0.85 }
                 Text { text: hm.title ?? ""; fontSize: 22; bold: true; color: #ffffff; maxLines: 2 }
                 Row {
                   gap: 6
@@ -1088,7 +2205,7 @@ app "couch" {
           }
           Row {
             gap: 6
-            for t in [{k: "movie", l: "movies"}, {k: "show", l: "shows"}] key t.k {
+            for t in [{k: "movie", l: str.movies}, {k: "show", l: str.shows}] key t.k {
               Box {
                 onTap: { dtype = t.k; dpage = 1; hero = 0 }
                 Chip { text: t.l; sel: dtype == t.k }
@@ -1107,7 +2224,7 @@ app "couch" {
           Text { text: (sections.find(s => s.k == dsec2) ?? {n: ""}).n; style: small; color: muted }
           Trouble { res: disc }
           if disc == null {
-            Text { text: "Loading…"; color: muted; align: center; padding: [0, 24] }
+            Text { text: str.loading; color: muted; align: center; padding: [0, 24] }
           }
           Grid {
             columns: 3
@@ -1120,22 +2237,22 @@ app "couch" {
             Row {
               gap: 8
               align: center
-              Text { text: "‹ prev"; style: small; align: center; padding: [12, 6]; border: 1; borderColor: alpha(muted, 0.4); radius: 14 * corners; width: 90; opacity: dpage > 1 ? 1 : 0.35; onTap: { dpage = max(1, dpage - 1); hero = 0 } }
-              Text { text: "page ${dpage}"; style: small; color: muted; weight: 1; align: center }
-              Text { text: "next ›"; style: small; align: center; padding: [12, 6]; border: 1; borderColor: alpha(muted, 0.4); radius: 14 * corners; width: 90; opacity: len(ditems) >= 24 && dpage < 10 ? 1 : 0.35; onTap: { dpage = len(ditems) >= 24 && dpage < 10 ? dpage + 1 : dpage; hero = 0 } }
+              Text { text: str.prev; style: small; align: center; padding: [12, 6]; border: 1; borderColor: alpha(muted, 0.4); radius: 14 * corners; width: 90; opacity: dpage > 1 ? 1 : 0.35; onTap: { dpage = max(1, dpage - 1); hero = 0 } }
+              Text { text: str.page(dpage); style: small; color: muted; weight: 1; align: center }
+              Text { text: str.next; style: small; align: center; padding: [12, 6]; border: 1; borderColor: alpha(muted, 0.4); radius: 14 * corners; width: 90; opacity: len(ditems) >= 24 && dpage < 10 ? 1 : 0.35; onTap: { dpage = len(ditems) >= 24 && dpage < 10 ? dpage + 1 : dpage; hero = 0 } }
             }
           }
 
         } else if tab == "upnext" {
           // ---------------------------------------------------------------- up next
           if !signedIn {
-            SignIn { text: "See what's next in every show you watch" }
+            SignIn { text: str.upNextPitch }
           } else {
             Trouble { res: up }
             if up == null {
-              Text { text: "Loading…"; color: muted; align: center; padding: [0, 24] }
+              Text { text: str.loading; color: muted; align: center; padding: [0, 24] }
             } else if up.ok && len(ups) == 0 {
-              Empty { pic: upnextIcon; text: upage > 1 ? "That's everything" : "You're all caught up"; detail: "Shows you are watching appear here with their next episode." }
+              Empty { pic: upnextIcon; text: upage > 1 ? str.everything : str.allCaughtUp; detail: str.upNextHint }
             }
             for r in ups key r.show.ids.trakt {
               let nx = r.progress.next_episode
@@ -1155,13 +2272,13 @@ app "couch" {
                   Text { text: r.show.title ?? ""; bold: true; maxLines: 1 }
                   Text { text: "S${pad(nx.season, 2, "0")}E${pad(nx.number, 2, "0")}${hideSpoilers || nx.title == null ? "" : "  ·  " + nx.title}"; style: small; maxLines: 1 }
                   Progress { value: num(r.progress.completed, 0) + (ticked ? 1 : 0); max: max(1, num(r.progress.aired, 1)); color: accent; height: 4 }
-                  Text { text: "${num(r.progress.completed, 0) + (ticked ? 1 : 0)} of ${r.progress.aired}  ·  ${max(0, num(r.progress.aired, 0) - num(r.progress.completed, 0) - (ticked ? 1 : 0))} left"; fontSize: 11; color: muted; maxLines: 1 }
+                  Text { text: str.ofLeft(num(r.progress.completed, 0) + (ticked ? 1 : 0), r.progress.aired, max(0, num(r.progress.aired, 0) - num(r.progress.completed, 0) - (ticked ? 1 : 0))); fontSize: 11; color: muted; maxLines: 1 }
                 }
                 Box {
                   width: 44
                   height: 44
                   align: center
-                  onTap: { upRes = 0; upRes = post(ticked ? null : "https://api.trakt.tv/sync/history", {episodes: [{ids: {trakt: nx.ids.trakt}}]}, hdr); doneOver = ticked ? doneOver : doneOver + [nx.ids.trakt]; note = ticked ? note : "Marked ${r.show.title} S${pad(nx.season, 2, "0")}E${pad(nx.number, 2, "0")} watched"; noteUntil = ticked ? noteUntil : tick + 3; haptic() }
+                  onTap: { upRes = 0; upRes = post(ticked ? null : "https://api.trakt.tv/sync/history", {episodes: [{ids: {trakt: nx.ids.trakt}}]}, hdr); doneOver = ticked ? doneOver : doneOver + [nx.ids.trakt]; note = ticked ? note : str.markedEp(r.show.title, "S${pad(nx.season, 2, "0")}E${pad(nx.number, 2, "0")}"); noteUntil = ticked ? noteUntil : tick + 3; haptic() }
                   Image { src: ticked ? doneIcon : checkIcon; size: ticked ? 34 : 26; tint: ticked ? green : muted; padding: ticked ? 0 : 4; border: ticked ? 0 : 2; borderColor: alpha(muted, 0.6); radius: 20 }
                 }
               }
@@ -1170,9 +2287,9 @@ app "couch" {
               Row {
                 gap: 8
                 align: center
-                Text { text: "‹ prev"; style: small; align: center; padding: [12, 6]; border: 1; borderColor: alpha(muted, 0.4); radius: 14 * corners; width: 90; opacity: upage > 1 ? 1 : 0.35; onTap: upage = max(1, upage - 1) }
-                Text { text: "page ${upage}"; style: small; color: muted; weight: 1; align: center }
-                Text { text: "next ›"; style: small; align: center; padding: [12, 6]; border: 1; borderColor: alpha(muted, 0.4); radius: 14 * corners; width: 90; opacity: len(up.out) >= 20 ? 1 : 0.35; onTap: upage = len(up.out) >= 20 ? upage + 1 : upage }
+                Text { text: str.prev; style: small; align: center; padding: [12, 6]; border: 1; borderColor: alpha(muted, 0.4); radius: 14 * corners; width: 90; opacity: upage > 1 ? 1 : 0.35; onTap: upage = max(1, upage - 1) }
+                Text { text: str.page(upage); style: small; color: muted; weight: 1; align: center }
+                Text { text: str.next; style: small; align: center; padding: [12, 6]; border: 1; borderColor: alpha(muted, 0.4); radius: 14 * corners; width: 90; opacity: len(up.out) >= 20 ? 1 : 0.35; onTap: upage = len(up.out) >= 20 ? upage + 1 : upage }
               }
             }
           }
@@ -1195,24 +2312,24 @@ app "couch" {
               padding: [14, 10]
               background: alpha(foreground, 0.05)
               radius: 10 * corners
-              Text { text: "Sign in to see when the shows you watch air next."; style: small; weight: 1 }
+              Text { text: str.calSignIn; style: small; weight: 1 }
               Box {
                 onTap: { view = "settings"; asking = canSignIn; authMsg = canSignIn ? "" : needApp; ownApp = ownApp || !canSignIn; codeRes = 0; codeRes = post(canSignIn ? "https://api.trakt.tv/oauth/device/code" : null, {client_id: cid}, {"trakt-api-key": cid, "trakt-api-version": "2"}) }
-                Pill { text: "Sign in"; pic: loginIcon; sel: true }
+                Pill { text: str.signIn; pic: loginIcon; sel: true }
               }
             }
           }
           Trouble { res: cal }
           if cal == null {
-            Text { text: "Loading…"; color: muted; align: center; padding: [0, 24] }
+            Text { text: str.loading; color: muted; align: center; padding: [0, 24] }
           } else if cal.ok && len(crows) == 0 {
-            Empty { pic: calendarIcon; text: cm == "shows" ? "Nothing airing in the next two weeks" : cm == "movies" ? "No releases for your movies in the next two months" : "Nothing scheduled"; detail: cm == "shows" || cm == "movies" ? "Add shows and movies to your watchlist, or watch an episode, and their dates show up here." : "" }
+            Empty { pic: calendarIcon; text: cm == "shows" ? str.calNoShows : cm == "movies" ? str.calNoMovies : str.calNothing; detail: cm == "shows" || cm == "movies" ? str.calHint : "" }
           }
           let ranked = range(len(crows)).map(i => {c: crows[i], i: i, d: fmtTime(crows[i].t, "yyyy-MM-dd")})
           for d in cdays key d {
             let rows = ranked.filter(x => x.d == d)
             let t0 = rows[0].c.t
-            Text { text: d == today ? "Today" : d == fmtTime(now + 86400, "yyyy-MM-dd") ? "Tomorrow" : d == fmtTime(now - 86400, "yyyy-MM-dd") ? "Yesterday" : t0 - now < 6 * 86400 && t0 > now ? fmtTime(t0, "EEEE") : fmtTime(t0, "EEE, MMM d"); bold: true; color: d < today ? muted : foreground; padding: [0, 8, 0, 0] }
+            Text { text: d == today ? str.today : d == fmtTime(now + 86400, "yyyy-MM-dd") ? str.tomorrow : d == fmtTime(now - 86400, "yyyy-MM-dd") ? str.yesterday : t0 - now < 6 * 86400 && t0 > now ? fmtTime(t0, "EEEE") : fmtTime(t0, "EEE, MMM d"); bold: true; color: d < today ? muted : foreground; padding: [0, 8, 0, 0] }
             for x in rows key "${x.i}" {
               DayRow { r: x.c.r; pic: x.i < 24; lead: x.c.movie ? "" : fmtTime(x.c.t, "HH:mm"); dim: d < today }
             }
@@ -1221,11 +2338,11 @@ app "couch" {
         } else {
           // ---------------------------------------------------------------- watchlist
           if !signedIn {
-            SignIn { text: "Keep a watchlist across all your devices" }
+            SignIn { text: str.wlPitch }
           } else {
             Row {
               gap: 6
-              for t in [{k: "movie", l: "movies"}, {k: "show", l: "shows"}] key t.k {
+              for t in [{k: "movie", l: str.movies}, {k: "show", l: str.shows}] key t.k {
                 Box {
                   onTap: { wtype = t.k; wpage = 0 }
                   Chip { text: t.l; sel: wtype == t.k }
@@ -1234,7 +2351,7 @@ app "couch" {
             }
             Flow {
               gap: 6
-              for s in [{k: "added", l: "recently added"}, {k: "released", l: "newest"}, {k: "rating", l: "top rated"}, {k: "title", l: "A–Z"}] key s.k {
+              for s in [{k: "added", l: str.sorts.added}, {k: "released", l: str.sorts.released}, {k: "rating", l: str.sorts.rating}, {k: "title", l: str.sorts.title}] key s.k {
                 Box {
                   onTap: { wsort = s.k; wpage = 0 }
                   Chip { text: s.l; sel: wsort == s.k }
@@ -1243,26 +2360,26 @@ app "couch" {
             }
             Trouble { res: wtype == "show" ? wlS : wlM }
             if (wtype == "show" ? wlS : wlM) == null {
-              Text { text: "Loading…"; color: muted; align: center; padding: [0, 24] }
+              Text { text: str.loading; color: muted; align: center; padding: [0, 24] }
             } else if len(wlist) == 0 {
-              Empty { pic: watchlistIcon; text: "Your watchlist is empty"; detail: "Tap Watchlist on any movie or show to save it for later." }
+              Empty { pic: watchlistIcon; text: str.wlEmpty; detail: str.wlHint }
             } else {
-              Text { text: "${len(wlist)} ${wtype == "show" ? (len(wlist) == 1 ? "show" : "shows") : (len(wlist) == 1 ? "movie" : "movies")}"; style: small; color: muted }
+              Text { text: wtype == "show" ? str.nShows(len(wlist)) : str.nMovies(len(wlist)); style: small; color: muted }
             }
             Grid {
               columns: 3
               gap: 10
               for it in wlist.drop(wpage * 24).take(24) key "${it.t}${it.m.ids.trakt}" {
-                PosterCard { it: it; badge: wtype == "movie" && it.m.released != null && it.m.released > nowIso ? "Out ${months[num(sub(it.m.released, 5, 7)) - 1]} ${num(sub(it.m.released, 8, 10))}" : "" }
+                PosterCard { it: it; badge: wtype == "movie" && it.m.released != null && it.m.released > nowIso ? str.out(str.md(num(sub(it.m.released, 5, 7)), num(sub(it.m.released, 8, 10)))) : "" }
               }
             }
             if wpages > 1 {
               Row {
                 gap: 8
                 align: center
-                Text { text: "‹ prev"; style: small; align: center; padding: [12, 6]; border: 1; borderColor: alpha(muted, 0.4); radius: 14 * corners; width: 90; opacity: wpage > 0 ? 1 : 0.35; onTap: wpage = max(0, wpage - 1) }
-                Text { text: "${wpage * 24 + 1}–${min(len(wlist), wpage * 24 + 24)} of ${len(wlist)}"; style: small; color: muted; weight: 1; align: center }
-                Text { text: "next ›"; style: small; align: center; padding: [12, 6]; border: 1; borderColor: alpha(muted, 0.4); radius: 14 * corners; width: 90; opacity: wpage < wpages - 1 ? 1 : 0.35; onTap: wpage = min(wpages - 1, wpage + 1) }
+                Text { text: str.prev; style: small; align: center; padding: [12, 6]; border: 1; borderColor: alpha(muted, 0.4); radius: 14 * corners; width: 90; opacity: wpage > 0 ? 1 : 0.35; onTap: wpage = max(0, wpage - 1) }
+                Text { text: str.span(wpage * 24 + 1, min(len(wlist), wpage * 24 + 24), len(wlist)); style: small; color: muted; weight: 1; align: center }
+                Text { text: str.next; style: small; align: center; padding: [12, 6]; border: 1; borderColor: alpha(muted, 0.4); radius: 14 * corners; width: 90; opacity: wpage < wpages - 1 ? 1 : 0.35; onTap: wpage = min(wpages - 1, wpage + 1) }
               }
             }
           }
@@ -1277,10 +2394,10 @@ app "couch" {
       Box { height: 1; fill: width; background: alpha(muted, 0.25) }
       Row {
         gap: 0
-        Tab { name: "discover"; text: "discover"; pic: discoverIcon }
-        Tab { name: "upnext"; text: "up next"; pic: upnextIcon }
-        Tab { name: "calendar"; text: "calendar"; pic: calendarIcon }
-        Tab { name: "watchlist"; text: "watchlist"; pic: watchlistIcon }
+        Tab { name: "discover"; text: str.tabs.discover; pic: discoverIcon }
+        Tab { name: "upnext"; text: str.tabs.upnext; pic: upnextIcon }
+        Tab { name: "calendar"; text: str.tabs.calendar; pic: calendarIcon }
+        Tab { name: "watchlist"; text: str.tabs.watchlist; pic: watchlistIcon }
       }
     }
   }
