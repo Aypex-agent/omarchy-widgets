@@ -1,0 +1,4 @@
+widget "x" {
+  meta { owl: 22 }
+  Text { text: mesh([[0, 0, 0], [1, 0, 0]], [[0, 1, 2]]) }
+}

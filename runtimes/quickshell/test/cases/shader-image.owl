@@ -1,0 +1,4 @@
+widget "x" {
+  meta { owl: 22 }
+  Shader { code: "uniform shader photo; uniform float3 pts[4]; half4 main(float2 p) { return photo.eval(p); }"; uniforms: {photo: "a.png", pts: [[0, 0, 0]]} }
+}

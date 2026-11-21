@@ -1,0 +1,4 @@
+widget "x" {
+  meta { owl: 23 }
+  Row { scroll: true; Text { text: 1 } }
+}

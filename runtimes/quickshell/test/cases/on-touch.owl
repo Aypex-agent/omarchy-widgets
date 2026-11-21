@@ -1,0 +1,7 @@
+widget "x" {
+  meta { owl: 22 }
+  state fingers = 0
+  Box { size: 80; onTouch: fingers = len(touches)
+    Text { text: fingers }
+  }
+}

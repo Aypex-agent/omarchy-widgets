@@ -146,7 +146,7 @@ Item {
     sourceComponent: {
       switch (root.kind) {
       case "Column": return root.scrolls ? scrollColumnC : columnC
-      case "Row": return root.p.wrap === true ? flowC : rowC
+      case "Row": return root.p.wrap === true ? flowC : root.p.scroll === true ? scrollRowC : rowC
       case "Flow": return flowC
       case "Box": return boxC
       case "Grid": return root.p.lazy === true ? scrollGridC : gridC
@@ -206,6 +206,43 @@ Item {
       speed = centroid.velocity
       root.handlers.onDrag(dx, dy, centroid.position.x / root.dp, centroid.position.y / root.dp)
     }
+  }
+
+  // onTouch (owl 22): every finger down, as {id, x, y, startX, startY} in dp, on each change, and [] once they've
+  // all lifted. A mouse is one finger while its button is down. Under the node's own content, so what's inside it
+  // is still tapped.
+  MultiPointTouchArea {
+    id: toucher
+    anchors.fill: parent
+    z: -1
+    enabled: !!root.handlers.onTouch
+    visible: enabled
+    mouseEnabled: true
+    maximumTouchPoints: 10
+    // The fingers that are down, by their id, in the order they came.
+    property var down: []
+    function put(points) {
+      for (var i = 0; i < points.length; i++) {
+        var t = points[i]
+        var at = { id: t.pointId, x: t.x / root.dp, y: t.y / root.dp, startX: t.startX / root.dp, startY: t.startY / root.dp }
+        var k = 0
+        while (k < toucher.down.length && toucher.down[k].id !== at.id) k++
+        toucher.down[k] = at
+      }
+      toucher.send()
+    }
+    function lift(points) {
+      var gone = points.map(function(t) { return t.pointId })
+      toucher.down = toucher.down.filter(function(d) { return gone.indexOf(d.id) < 0 })
+      toucher.send()
+    }
+    function send() { if (root.handlers.onTouch) root.handlers.onTouch(toucher.down.slice()) }
+    onPressed: (touchPoints) => toucher.put(touchPoints)
+    onUpdated: (touchPoints) => toucher.put(touchPoints)
+    onReleased: (touchPoints) => toucher.lift(touchPoints)
+    onCanceled: (touchPoints) => { toucher.down = []; toucher.send() }
+    // Gone while fingers were down: none are, any more.
+    onEnabledChanged: if (!enabled && toucher.down.length) toucher.down = []
   }
 
   // onPress as the finger goes down, before it's a tap, and onRelease when it lifts or a scroll takes it (owl 12).
@@ -519,6 +556,28 @@ Item {
   Component {
     id: rowC
     Linear { owner: root; horizontal: true }
+  }
+
+  // A Row with scroll: true (owl 24) scrolls sideways: as wide as its nodes, or as its room when they're narrower.
+  Component {
+    id: scrollRowC
+    Flickable {
+      id: rowFlick
+      implicitWidth: rowInner.implicitWidth
+      implicitHeight: rowInner.implicitHeight
+      contentWidth: rowInner.width
+      contentHeight: height
+      clip: true
+      flickableDirection: Flickable.HorizontalFlick
+      boundsBehavior: Flickable.StopAtBounds
+      Linear {
+        id: rowInner
+        owner: root
+        horizontal: true
+        width: Math.max(rowFlick.width, rowInner.implicitWidth)
+        height: parent.height
+      }
+    }
   }
 
   Component {

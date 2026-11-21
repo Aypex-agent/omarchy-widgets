@@ -1,0 +1,4 @@
+widget "x" {
+  meta { owl: 21 }
+  Text { text: dist([0, 0], [3, 4]) }
+}

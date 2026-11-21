@@ -1,0 +1,4 @@
+widget "x" {
+  meta { owl: 22 }
+  Text { text: terrain([[1, 2, 3]]) }
+}

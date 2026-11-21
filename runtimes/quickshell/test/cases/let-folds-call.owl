@@ -1,0 +1,6 @@
+widget "x" {
+  meta { owl: 22 }
+  let points = [[0, 0, 0], [1, 0, 0]]
+  let faces = [[0, 1, 2]]
+  Text { text: mesh(points, faces) }
+}

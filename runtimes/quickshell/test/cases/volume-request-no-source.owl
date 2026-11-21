@@ -1,0 +1,4 @@
+widget "x" {
+  meta { owl: 25 }
+  Text { text: "allow"; onTap: volume("request") }
+}

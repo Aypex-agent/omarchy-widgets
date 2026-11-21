@@ -1,0 +1,8 @@
+widget "x" {
+  meta { owl: 9 }
+  let size = 32
+  let twice = size * 2
+  state n = 0
+  on twice { n = n + 1 }
+  Text { text: n }
+}

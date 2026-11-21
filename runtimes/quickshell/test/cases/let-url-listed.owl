@@ -1,0 +1,6 @@
+widget "x" {
+  meta { owl: 18 }
+  let host = "https://example.com"
+  state q = "a"
+  Browser { url: "${host}/search?q=${enc(q)}" }
+}

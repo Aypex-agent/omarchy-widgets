@@ -1,0 +1,4 @@
+widget "x" {
+  meta { owl: 21 }
+  Text { text: sphere(8) }
+}

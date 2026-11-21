@@ -1,0 +1,4 @@
+widget "x" {
+  meta { owl: 22 }
+  Canvas { scene({}) { if true { circle(1, 2, 3) } } }
+}

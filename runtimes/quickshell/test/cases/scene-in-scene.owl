@@ -1,0 +1,4 @@
+widget "x" {
+  meta { owl: 22 }
+  Canvas { scene({}) { scene({}) { model(cube()) } } }
+}

@@ -1,0 +1,4 @@
+widget "x" {
+  meta { owl: 22 }
+  Canvas { circle(1, 2, 3, twoSided: true) }
+}

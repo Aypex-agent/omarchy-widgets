@@ -1,0 +1,7 @@
+widget "x" {
+  meta { owl: 24 }
+  source s = android.strip
+  Row { scroll: true; gap: 4
+    for a in s.apps key a.key { Image { src: a.icon; size: 40; onTap: open(a.key) } }
+  }
+}

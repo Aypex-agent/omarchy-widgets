@@ -62,20 +62,29 @@ QtObject {
     return env + "bash '" + root.sourceScript + "' " + kind.replace(/^android\./, "")
   }
 
-  // android.media: {playing, title, artist, album, app}, from the first MPRIS
-  // player. A shell with its own music service can bind this instead.
-  property var media: {
+  // The MPRIS player android.media reads and media(...) steers: the first that plays, else the first.
+  function mprisPlayer() {
     var players = Mpris.players ? Mpris.players.values : []
-    var p = null
-    for (var i = 0; i < players.length; i++) if (players[i].isPlaying) { p = players[i]; break }
-    if (!p && players.length) p = players[0]
-    if (!p) return { playing: false, title: null, artist: null, album: null, app: null }
+    for (var i = 0; i < players.length; i++) if (players[i].isPlaying) return players[i]
+    return players.length ? players[0] : null
+  }
+
+  // android.media: {playing, title, artist, album, app}, from the first MPRIS
+  // player, and (owl 23) whether it can be moved to a point in the track, its
+  // speed, and its own buttons, which MPRIS has none of. A shell with its own
+  // music service can bind this instead.
+  property var media: {
+    var p = root.mprisPlayer()
+    if (!p) return { playing: false, title: null, artist: null, album: null, app: null, canSeek: false, speed: null, actions: [] }
     return {
       playing: !!p.isPlaying,
       title: p.trackTitle || null,
       artist: p.trackArtist || null,
       album: p.trackAlbum || null,
-      app: p.identity || null
+      app: p.identity || null,
+      canSeek: !!p.canSeek,
+      speed: p.rate > 0 ? p.rate : null,
+      actions: []
     }
   }
 
@@ -112,12 +121,17 @@ QtObject {
     case "url": return Quickshell.execDetached(["xdg-open", s(0)])
     case "copy": return Quickshell.execDetached(["wl-copy", "--", s(0)])
     case "notify": return Quickshell.execDetached(["notify-send", "--", s(0), s(1)])
-    case "media": return root.mediaAction(s(0))
+    case "media":
+      if (s(0) === "action") return widget.report("media(\"action\", ...) presses one of an Android player's own buttons, which this shell does not have")
+      return root.mediaAction(s(0), a.length > 1 ? a[1] : null)
     // Only media has a stream here (owl 13): a desktop has no ringer, and its notifications and alarms play
     // at the one volume.
     case "volume":
       if (a.length > 1 && s(1) !== "media")
         return widget.report("volume(..., \"" + s(1) + "\") sets a phone's " + s(1) + " volume, which this shell does not have")
+      // owl 25: nothing here to ask for; the output's battery stays unread and not allowed.
+      if (s(0) === "request")
+        return widget.report("volume(\"request\") asks for Bluetooth to read a headset's battery, which this shell does not have")
       return root.volume(s(0))
     // Do Not Disturb is mako's do-not-disturb mode, as Omarchy toggles it (owl 13).
     case "dnd": return root.dnd(s(0))
@@ -173,9 +187,17 @@ QtObject {
   // workspace first; on a desktop it just starts.
   function launch(command) { Quickshell.execDetached(command) }
 
-  function mediaAction(op) {
+  // media("seek", seconds) from the track's start and media("speed", 1.5) (owl 23) go to the player too.
+  function mediaAction(op, value) {
     var player = { toggle: "play-pause", play: "play", pause: "pause", next: "next", previous: "previous" }[op]
-    if (player) Quickshell.execDetached(["playerctl", player])
+    if (player) return Quickshell.execDetached(["playerctl", player])
+    var v = parseFloat(value)
+    if (isNaN(v) || !isFinite(v)) return
+    if (op === "seek") Quickshell.execDetached(["playerctl", "position", String(Math.max(0, v))])
+    else if (op === "speed" && v > 0) {
+      var p = root.mprisPlayer()
+      if (p) p.rate = v
+    }
   }
 
   function dnd(v) {

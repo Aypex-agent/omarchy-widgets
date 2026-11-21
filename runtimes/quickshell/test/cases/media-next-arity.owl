@@ -1,0 +1,4 @@
+widget "x" {
+  meta { owl: 23 }
+  Text { text: 1; onTap: media("next", 3) }
+}

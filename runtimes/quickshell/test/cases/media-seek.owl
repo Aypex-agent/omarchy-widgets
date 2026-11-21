@@ -1,0 +1,8 @@
+widget "x" {
+  meta { owl: 23 }
+  source m = android.media
+  Column {
+    Text { text: m.speed; onTap: { media("seek", 90); media("seek", m.position + 10); media("speed", 1.5); media("toggle") } }
+    for a in m.actions { Text { text: a.title; onTap: media("action", a.id) } }
+  }
+}

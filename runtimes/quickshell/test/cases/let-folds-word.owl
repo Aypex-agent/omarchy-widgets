@@ -1,0 +1,5 @@
+widget "x" {
+  meta { owl: 23 }
+  let word = "rewind"
+  Text { text: 1; onTap: media(word) }
+}

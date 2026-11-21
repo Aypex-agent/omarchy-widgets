@@ -7,6 +7,7 @@
 # alike to 1e-9:
 #
 #   edge.owl                expressions and nodes chosen to break a port
+#   space.owl               the same for owl 22 to 25: meshes, vectors, scenes
 #   <widget>.fixture.json   store widgets with the data their sources gave once
 #   every store widget      with no source data at all, and every face
 #
@@ -88,6 +89,7 @@ check() {
 }
 
 check "edge cases" "$here/edge.owl" "$here/edge.fixture.json"
+check "3D edge cases" "$here/space.owl" "$here/edge.fixture.json"
 for f in "$here"/*.fixture.json; do
   name=$(basename "$f" .fixture.json)
   case $name in edge | base) continue ;; esac
@@ -106,8 +108,8 @@ mine=$(node -e '
     const src = fs.readFileSync(f, "utf8")
     try { m.exports.compile(src); console.log("OK  " + f) }
     catch (e) { console.log("ERR " + f + ":" + m.exports.formatError(src, e).split("\n")[0]) }
-  }' "$owl" "${widgets[@]}" "$here/edge.owl" "$here"/cases/*.owl | sort)
-theirs=$(java "${java_opts[@]}" -cp "$jar" dev.omalauncher.widgets.cli.MainKt check "${widgets[@]}" "$here/edge.owl" "$here"/cases/*.owl 2>&1 |
+  }' "$owl" "${widgets[@]}" "$here/edge.owl" "$here/space.owl" "$here"/cases/*.owl | sort)
+theirs=$(java "${java_opts[@]}" -cp "$jar" dev.omalauncher.widgets.cli.MainKt check "${widgets[@]}" "$here/edge.owl" "$here/space.owl" "$here"/cases/*.owl 2>&1 |
   grep -E '^(ok|ERR)' | sed -E 's/^ok  ([^ ]+).*/OK  \1/' | sort) || true # it exits 1 for the cases meant to fail
 if [ "$mine" = "$theirs" ]; then
   echo "ok - owl check and Owl.js agree on every widget, face and case"

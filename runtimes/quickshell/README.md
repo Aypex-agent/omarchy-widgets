@@ -91,10 +91,10 @@ Where it differs, because Android is not here:
   and **workApps()** report that there is no Android or launcher drawer, and
   `shortcuts(...)` gives an empty list. A shell that has its own can override
   `act()`.
-- **Apps, panels and key bars** (`app "…" { }`, `panel "…" { }`,
-  `keybar "…" { }`) are refused: there is no app drawer to open an app from, no
-  home screen or prompt bar to swipe a panel out of, and no soft keyboard for
-  the extra keys to sit over. `query` and `screenTop` are therefore unknown here
+- **Apps, panels, key bars and strips** (`app "…" { }`, `panel "…" { }`,
+  `keybar "…" { }`, `strip "…" { }`) are refused: there is no app drawer to open
+  an app from, no home screen or prompt bar to swipe a panel out of or to hold
+  a strip of apps above, and no soft keyboard for the extra keys to sit over. `query` and `screenTop` are therefore unknown here
   too, and `pressKey()`, `typeText()` and `latch()` report that there's no
   on-screen keyboard; `android.modifiers` holds none.
 - **Secrets** (`state token = null secret`) are kept in
@@ -131,6 +131,25 @@ Where it differs, because Android is not here:
   them. **every frame** runs at the OwlHost's `frameRate` while the widget shows,
   with `dt` at most 0.1 s, as on the launcher. `dot` on `android.drawer`'s apps
   (owl 20) never shows, since the drawer here has no apps.
+- **scene(...)** (owl 22) is drawn on the same 2D canvas as the rest: its
+  models' triangles, sorted far to near as the launcher sorts them, each filled
+  with one color, the average of its corners', where the launcher shades from
+  corner to corner. A sphere's light is therefore a little faceted, and a
+  model's `image:` is moved onto each triangle flat, without perspective inside
+  it. The meshes, `project`, `turn` and the vector math are the launcher's.
+- **onTouch** (owl 22) gets every finger of a touch screen, and a mouse as one
+  finger while its button is down. A **Shader**'s images and array uniforms are
+  taken with the rest of it, and it still draws its `fallback`.
+- **media("seek", s)** moves the MPRIS player and **media("speed", x)** sets its
+  rate (owl 23); `android.media` has `canSeek` and `speed` from it and no
+  `actions`, so `media("action", id)` reports that a player here has no buttons
+  of its own. **haptic(...)** does nothing at any strength.
+- **android.strip** (owl 24) has no apps, as `android.recent` has none. A
+  **Row** with `scroll: true` scrolls sideways.
+- **volume("request")** (owl 25) reports that there's nothing to ask: the
+  output's `battery` is null and `granted` false.
+- **match** and **matchAll** take java's flags at the start of a pattern,
+  `(?i)`, `(?s)`, `(?m)`, as the launcher's regular expressions do.
 - **Input**'s `lines` wraps and grows up to that many lines, then scrolls;
   Enter submits when it has `onSubmit`, Shift+Enter starts a new line.
 - `gapsIn`, `gapsOut` and `borderWidth` are the OwlHost's, Omarchy's Hyprland

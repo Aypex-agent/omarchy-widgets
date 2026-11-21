@@ -1,0 +1,5 @@
+widget "x" {
+  meta { owl: 22 }
+  state feel = "light"
+  Text { text: 1; onTap: haptic(feel) }
+}

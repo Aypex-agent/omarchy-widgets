@@ -1,0 +1,6 @@
+widget "x" {
+  meta { owl: 25 }
+  source v = android.volume
+  every 1m { volume("request") }
+  Text { text: v.output.name }
+}

@@ -1,0 +1,5 @@
+widget "x" {
+  meta { owl: 25 }
+  source v = android.volume
+  Text { text: v.output.battery != null ? "${v.output.name} ${v.output.battery}%" : v.output.name; onTap: volume("request") }
+}

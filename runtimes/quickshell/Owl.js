@@ -20,7 +20,7 @@
 // Values are plain JS: null, numbers, strings, booleans, arrays for lists and
 // Maps for objects (a Map keeps "2024" in the order it came in, which a JS
 // object would not). Colors, gradients and functions are the three classes
-// below.
+// below; a 3D mesh (owl 22) is a fourth, Mesh, further down.
 
 // ------------------------------------------------------------------ values
 
@@ -632,15 +632,16 @@ Parser.prototype = {
   },
 
   // What the file is, from its first word: a widget, a face (a whole home
-  // page), an app, a panel or a key bar. This runtime draws widgets and faces; it
-  // has no app drawer, no home screen to swipe a panel out of, and no soft keyboard
-  // for the extra keys to sit over.
+  // page), an app, a panel, a key bar or the strip of apps. This runtime draws widgets and faces; it
+  // has no app drawer, no home screen to swipe a panel out of or to hold a strip above its prompt bar, and no
+  // soft keyboard for the extra keys to sit over.
   widget: function() {
-    var kind = ["widget", "face", "app", "panel", "keybar"].filter(function(w) { return this.isId(this.t(), w) }, this)[0]
-    if (!kind) this.fail("an owl file starts with: widget \"name\" {, face \"name\" {, app \"name\" {, panel \"name\" { or keybar \"name\" {")
+    var kind = ["widget", "face", "app", "panel", "keybar", "strip"].filter(function(w) { return this.isId(this.t(), w) }, this)[0]
+    if (!kind) this.fail("an owl file starts with: widget \"name\" {, face \"name\" {, app \"name\" {, panel \"name\" {, keybar \"name\" { or strip \"name\" {")
     if (kind === "app") this.fail("this is an app, and only the launcher has an app drawer to open it from")
     if (kind === "panel") this.fail("this is a panel, and only the launcher has the home screen and prompt bar that open it")
     if (kind === "keybar") this.fail("this is a key bar, and only the launcher has the soft keyboard it sits over")
+    if (kind === "strip") this.fail("this is a strip of apps, and only the launcher has the home screen and prompt bar it sits above")
     this.next()
     var name = this.t().type === T_STR ? this.literalString(this.next()) : null
     this.punct("{")
@@ -1072,8 +1073,8 @@ var CONSTANTS = { pi: Math.PI, transparent: new Col(null, 0, 1) }
 
 var ACTIONS = {
   terminal: [1, 2], app: [1, 1], run: [1, 1], post: [1, 3], url: [1, 1], launcher: [1, 1], refresh: [0, 1],
-  media: [1, 1], androidApp: [1, 1], copy: [1, 1], notify: [1, 2], volume: [1, 2],
-  notification: [1, 3], screen: [0, 0], close: [0, 0], torch: [1, 1], dnd: [1, 1], share: [1, 1], haptic: [0, 0], sound: [1, 1],
+  media: [1, 2], androidApp: [1, 1], copy: [1, 1], notify: [1, 2], volume: [1, 2],
+  notification: [1, 3], screen: [0, 0], close: [0, 0], torch: [1, 1], dnd: [1, 1], share: [1, 1], haptic: [0, 1], sound: [1, 1],
   open: [1, 1], ask: [1, 2], appAction: [2, 2], workApps: [1, 1], shortcuts: [1, 1], send: [2, 2],
   pressKey: [1, 1], typeText: [1, 1], latch: [1, 2], settings: [1, 1], pickImages: [0, 0], speech: [1, 1],
   web: [1, 1], location: [1, 1], airpods: [1, 2], calendar: [1, 2]
@@ -1330,10 +1331,20 @@ function gradient(radial, a, coords) {
   return new Gradient(radial, cs, colors)
 }
 
+// A pattern as the jar's java.util.regex reads it, where JavaScript's differs: flags written at its start, (?i),
+// (?s), (?m) or several, (?iu), which JavaScript takes beside the pattern. u (Unicode case) and d and U have
+// nothing to switch here. `all` is the same pattern for matchAll, which goes on from match to match.
 var regexCache = {}
-function regex(p) {
-  if (!regexCache.hasOwnProperty(p)) regexCache[p] = new RegExp(p)
-  return regexCache[p]
+function regex(p, all) {
+  var key = (all ? "g" : "-") + p
+  if (regexCache.hasOwnProperty(key)) return regexCache[key]
+  var source = p, flags = all ? "g" : ""
+  var m = /^\(\?([imsudU]+)\)/.exec(p)
+  if (m) {
+    source = p.slice(m[0].length)
+    ;["i", "m", "s"].forEach(function(f) { if (m[1].indexOf(f) >= 0) flags += f })
+  }
+  return regexCache[key] = new RegExp(source, flags)
 }
 
 function groups(m) {
@@ -2316,7 +2327,8 @@ var BUILTINS = {
     return m ? (m.length > 1 ? lst(groups(m)) : m[0]) : null
   }),
   matchAll: B(2, 2, function(a) {
-    var re = new RegExp(regex(a.str(1)).source, "g")
+    var re = regex(a.str(1), true)
+    re.lastIndex = 0
     var s = a.str(0)
     var out = []
     var m
@@ -2633,9 +2645,1025 @@ var OPERATORS = {
   ">=": cmp(function(c) { return c >= 0 })
 }
 
+// ---------------------------------------------------------------------- 3D
+//
+// owl 22: meshes for a Canvas's scene(camera) { model(mesh, ...) }, the vector math of a 3D game, and the
+// scene itself, turned into flat triangles far to near. A port of the jar's Space3d.kt and Bsp.kt. Where a
+// widget can read the result (project, turn) the arithmetic is the jar's, float for float; the scene's own is
+// in doubles, which no widget sees.
+
+var MAX_MESH_TRIANGLES = 65536
+var MAX_SCENE_TRIANGLES = 60000
+// The most triangles a mesh may have for a Bsp; past it the scene sorts it by depth alone.
+var MAX_BSP_TRIANGLES = 8192
+var FLOAT_MAX = 3.4028234663852886e38
+var fr = Math.fround
+
+// A 3D model: points, triangles and what colors them, built once by cube(), sphere(), parseObj() and the like
+// and drawn many times. Opaque to widgets, not a list, and compared by identity.
+//
+// Space is right-handed, as in OBJ files and OpenGL: x right, y up, z toward the viewer of the default camera.
+function Mesh(points, tris, uvs, colorIndex, palette, smooth) {
+  // x, y, z of each point; three point indices per triangle, counterclockwise seen from outside; u, v of each
+  // triangle's corners, six per triangle, or null; each triangle's color as an index into palette, -1 for the
+  // model's, or null; the face colors, as values.
+  this.points = points
+  this.tris = tris
+  this.uvs = uvs
+  this.colorIndex = colorIndex
+  this.palette = palette
+  this.smooth = smooth
+  var n = tris.length / 3
+  this.triangles = n
+  // The unit normal of each triangle, zero for a degenerate one, and twice its area.
+  this.faceNormals = new Float32Array(tris.length)
+  this.areas = new Float32Array(n)
+  for (var t = 0; t < n; t++) {
+    var a = 3 * tris[3 * t], b = 3 * tris[3 * t + 1], c = 3 * tris[3 * t + 2]
+    var ux = points[b] - points[a], uy = points[b + 1] - points[a + 1], uz = points[b + 2] - points[a + 2]
+    var vx = points[c] - points[a], vy = points[c + 1] - points[a + 1], vz = points[c + 2] - points[a + 2]
+    var nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx
+    var l = fr(Math.sqrt(nx * nx + ny * ny + nz * nz))
+    this.areas[t] = l
+    if (l > 0) {
+      this.faceNormals[3 * t] = nx / l
+      this.faceNormals[3 * t + 1] = ny / l
+      this.faceNormals[3 * t + 2] = nz / l
+    }
+  }
+  // The bounding sphere, for skipping a model that's out of view.
+  this.cx = 0
+  this.cy = 0
+  this.cz = 0
+  this.radius = 0
+  var count = points.length / 3
+  if (count > 0) {
+    var minX = Infinity, minY = Infinity, minZ = Infinity, maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity
+    for (var i = 0; i < count; i++) {
+      var x = points[3 * i], y = points[3 * i + 1], z = points[3 * i + 2]
+      if (x < minX) minX = x
+      if (x > maxX) maxX = x
+      if (y < minY) minY = y
+      if (y > maxY) maxY = y
+      if (z < minZ) minZ = z
+      if (z > maxZ) maxZ = z
+    }
+    this.cx = (minX + maxX) / 2
+    this.cy = (minY + maxY) / 2
+    this.cz = (minZ + maxZ) / 2
+    var r = 0
+    for (var j = 0; j < count; j++) {
+      var dx = points[3 * j] - this.cx, dy = points[3 * j + 1] - this.cy, dz = points[3 * j + 2] - this.cz
+      r = Math.max(r, dx * dx + dy * dy + dz * dz)
+    }
+    this.radius = Math.sqrt(r)
+  }
+  this.corners = null
+  this.tree = undefined
+}
+
+Mesh.prototype = {
+  toString: function() { return "<mesh of " + this.triangles + " triangles>" },
+
+  // Normals at each triangle's corners, nine per triangle, for smooth light: the faces that meet at a corner's
+  // point (by position, so seams of a texture don't show), averaged by area, leaving out those turned over 60
+  // degrees from the corner's own face, so a cylinder's rim and a cube's edges stay sharp.
+  cornerNormals: function() {
+    if (this.corners) return this.corners
+    var points = this.points, tris = this.tris, fn = this.faceNormals, n = this.triangles
+    var out = new Float32Array(tris.length * 3)
+    var at = {}
+    // As the jar tells positions apart, by their floats' bits: -0 is not 0, and a sphere's pole has both.
+    function bits(x) { return x === 0 && 1 / x < 0 ? "-0" : String(x) }
+    function key(p) { return bits(points[3 * p]) + "," + bits(points[3 * p + 1]) + "," + bits(points[3 * p + 2]) }
+    for (var t = 0; t < n; t++) for (var k = 0; k < 3; k++) {
+      var id = key(tris[3 * t + k])
+      if (at[id]) at[id].push(t); else at[id] = [t]
+    }
+    for (t = 0; t < n; t++) {
+      for (k = 0; k < 3; k++) {
+        var nx = 0, ny = 0, nz = 0
+        var near = at[key(tris[3 * t + k])]
+        for (var q = 0; q < near.length; q++) {
+          var o = near[q]
+          var d = fn[3 * o] * fn[3 * t] + fn[3 * o + 1] * fn[3 * t + 1] + fn[3 * o + 2] * fn[3 * t + 2]
+          if (d < 0.5) continue
+          var w = this.areas[o]
+          nx += fn[3 * o] * w
+          ny += fn[3 * o + 1] * w
+          nz += fn[3 * o + 2] * w
+        }
+        var l = Math.sqrt(nx * nx + ny * ny + nz * nz)
+        var j = 9 * t + 3 * k
+        if (l > 0) {
+          out[j] = nx / l
+          out[j + 1] = ny / l
+          out[j + 2] = nz / l
+        } else {
+          out[j] = fn[3 * t]
+          out[j + 1] = fn[3 * t + 1]
+          out[j + 2] = fn[3 * t + 2]
+        }
+      }
+    }
+    return this.corners = out
+  },
+
+  // The mesh cut into a tree that orders its faces from any side, or null when it needs none; built on first draw.
+  bsp: function() {
+    if (this.tree === undefined) this.tree = buildBsp(this)
+    return this.tree
+  }
+}
+
+// Collects a mesh's points and triangles.
+function MeshBuilder() {
+  this.points = []
+  this.tris = []
+  this.uvs = null
+  this.colors = null
+  this.palette = []
+}
+
+MeshBuilder.prototype = {
+  point: function(x, y, z) {
+    x = fr(x); y = fr(y); z = fr(z)
+    if (!isFinite(x) || !isFinite(y) || !isFinite(z)) throw new WidgetError("a point of a mesh isn't a number")
+    this.points.push(x, y, z)
+    return this.points.length / 3 - 1
+  },
+
+  // The palette index of a color, -1 for none.
+  color: function(c) {
+    if (c === null || c === undefined) return -1
+    for (var i = 0; i < this.palette.length; i++) if (equals(this.palette[i], c)) return i
+    this.palette.push(c)
+    return this.palette.length - 1
+  },
+
+  tri: function(a, b, c, uv, color) {
+    var nt = this.tris.length / 3, np = this.points.length / 3
+    if (nt >= MAX_MESH_TRIANGLES) throw new WidgetError("a mesh of more than " + MAX_MESH_TRIANGLES + " triangles")
+    var bad = [a, b, c].filter(function(i) { return !(i >= 0 && i < np) })
+    if (bad.length) throw new WidgetError("a face names point " + bad[0] + ", but the mesh has " + np + " points")
+    this.tris.push(a, b, c)
+    if (uv) {
+      if (!this.uvs) this.uvs = []
+      while (this.uvs.length < 6 * nt) this.uvs.push(0)
+      for (var i = 0; i < 6; i++) this.uvs[6 * nt + i] = fr(uv[i])
+    }
+    if (color !== undefined && color >= 0 || this.colors) {
+      if (!this.colors) this.colors = []
+      while (this.colors.length < nt) this.colors.push(-1)
+      this.colors[nt] = color === undefined ? -1 : color
+    }
+  },
+
+  // The mesh. With orient each triangle is turned to face away from the origin (a convex shape around it), or
+  // with up to face up, so a mistake in a builder can't turn a face inside out.
+  build: function(smooth, orient, up) {
+    var nt = this.tris.length / 3
+    var points = new Float32Array(this.points)
+    var t = new Int32Array(this.tris)
+    var uv = null
+    if (this.uvs) {
+      uv = new Float32Array(6 * nt)
+      for (var k = 0; k < this.uvs.length && k < 6 * nt; k++) uv[k] = this.uvs[k]
+    }
+    if (orient || up) {
+      for (var i = 0; i < nt; i++) {
+        var a = 3 * t[3 * i], b = 3 * t[3 * i + 1], c = 3 * t[3 * i + 2]
+        var ux = fr(points[b] - points[a]), uy = fr(points[b + 1] - points[a + 1]), uz = fr(points[b + 2] - points[a + 2])
+        var vx = fr(points[c] - points[a]), vy = fr(points[c + 1] - points[a + 1]), vz = fr(points[c + 2] - points[a + 2])
+        var nx = fr(fr(uy * vz) - fr(uz * vy)), ny = fr(fr(uz * vx) - fr(ux * vz)), nz = fr(fr(ux * vy) - fr(uy * vx))
+        var facing = up ? ny
+          : nx * (points[a] + points[b] + points[c]) + ny * (points[a + 1] + points[b + 1] + points[c + 1]) + nz * (points[a + 2] + points[b + 2] + points[c + 2])
+        if (facing < 0) {
+          var s = t[3 * i + 1]
+          t[3 * i + 1] = t[3 * i + 2]
+          t[3 * i + 2] = s
+          if (uv) {
+            var su = uv[6 * i + 2], sv = uv[6 * i + 3]
+            uv[6 * i + 2] = uv[6 * i + 4]
+            uv[6 * i + 3] = uv[6 * i + 5]
+            uv[6 * i + 4] = su
+            uv[6 * i + 5] = sv
+          }
+        }
+      }
+    }
+    var colors = null
+    if (this.colors) {
+      colors = new Int32Array(nt)
+      for (var q = 0; q < nt; q++) colors[q] = q < this.colors.length ? this.colors[q] : -1
+    }
+    return new Mesh(points, t, uv, colors, this.palette.slice(), smooth)
+  }
+}
+
+// v as numbers: a list's, or a map's x, y and z.
+function vecNumbers(v) {
+  function n(x) { var d = num(x); return d === null ? 0 : d }
+  if (Array.isArray(v)) return v.map(n)
+  if (v instanceof Map) return ["x", "y", "z"].filter(function(k) { return v.has(k) }).map(function(k) { return n(v.get(k)) })
+  return []
+}
+
+function vecXyz(v) {
+  var n = vecNumbers(v)
+  return [n.length > 0 ? n[0] : 0, n.length > 1 ? n[1] : 0, n.length > 2 ? n[2] : 0]
+}
+
+// v as x, y, z floats, missing ones from def: a list, a map's x, y and z, or one number for all three.
+function vec3(v, def) {
+  var out = [def, def, def]
+  if (Array.isArray(v)) {
+    for (var i = 0; i < 3 && i < v.length; i++) {
+      var d = num(v[i])
+      out[i] = d === null ? def : fr(d)
+    }
+  } else if (v instanceof Map) {
+    ["x", "y", "z"].forEach(function(k, j) {
+      var e = v.has(k) ? num(v.get(k)) : null
+      if (e !== null) out[j] = fr(e)
+    })
+  } else if (v !== null && v !== undefined) {
+    var all = num(v)
+    if (all !== null) out = [fr(all), fr(all), fr(all)]
+  }
+  return out
+}
+
+function meshCube() {
+  var b = new MeshBuilder()
+  // Each face's outward normal, and right and up on it as seen from outside (right x up = normal).
+  var faces = [
+    [0, 0, 1, 1, 0, 0, 0, 1, 0], [0, 0, -1, -1, 0, 0, 0, 1, 0], [1, 0, 0, 0, 0, -1, 0, 1, 0],
+    [-1, 0, 0, 0, 0, 1, 0, 1, 0], [0, 1, 0, 1, 0, 0, 0, 0, -1], [0, -1, 0, 1, 0, 0, 0, 0, 1]
+  ]
+  faces.forEach(function(f) {
+    function corner(r, u) { return b.point((f[0] + r * f[3] + u * f[6]) / 2, (f[1] + r * f[4] + u * f[7]) / 2, (f[2] + r * f[5] + u * f[8]) / 2) }
+    var bl = corner(-1, -1), br = corner(1, -1), tr = corner(1, 1), tl = corner(-1, 1)
+    b.tri(bl, br, tr, [0, 1, 1, 1, 1, 0])
+    b.tri(bl, tr, tl, [0, 1, 1, 0, 0, 0])
+  })
+  return b.build(false, true, false)
+}
+
+// A square of n x n cells on the ground (y 0, facing up), one unit across; an image repeats once per cell.
+function meshPlane(cells) {
+  var b = new MeshBuilder()
+  var n = clampNum(cells, 1, 128)
+  for (var i = 0; i <= n; i++) for (var j = 0; j <= n; j++) b.point(fr(fr(j) / n) - 0.5, 0, fr(fr(i) / n) - 0.5)
+  for (i = 0; i < n; i++) {
+    for (j = 0; j < n; j++) {
+      var a = i * (n + 1) + j
+      var c = a + n + 2
+      b.tri(a, a + n + 1, c, [0, 0, 0, 1, 1, 1])
+      b.tri(a, c, a + 1, [0, 0, 1, 1, 1, 0])
+    }
+  }
+  return b.build(false, false, true)
+}
+
+// A sphere one unit across, of n segments around and n / 2 rings.
+function meshSphere(n) {
+  var b = new MeshBuilder()
+  var rings = Math.max(2, Math.floor(n / 2))
+  for (var i = 0; i <= rings; i++) {
+    var th = Math.PI * i / rings
+    for (var j = 0; j <= n; j++) {
+      var ph = 2 * Math.PI * j / n
+      b.point(Math.sin(th) * Math.cos(ph) / 2, Math.cos(th) / 2, Math.sin(th) * Math.sin(ph) / 2)
+    }
+  }
+  for (i = 0; i < rings; i++) {
+    for (j = 0; j < n; j++) {
+      var a = i * (n + 1) + j
+      var d = a + 1
+      var bb = a + n + 1
+      var c = bb + 1
+      var u0 = j / n, u1 = (j + 1) / n, v0 = i / rings, v1 = (i + 1) / rings
+      if (i < rings - 1) b.tri(a, bb, c, [u0, v0, u0, v1, u1, v1])
+      if (i > 0) b.tri(a, c, d, [u0, v0, u1, v1, u1, v0])
+    }
+  }
+  return b.build(true, true, false)
+}
+
+// A cylinder one unit across and one high, standing on y; cone narrows it to a point at the top.
+function meshCylinder(n, cone) {
+  var b = new MeshBuilder()
+  function ring(y, r) {
+    var out = []
+    for (var j = 0; j <= n; j++) out.push(b.point(Math.cos(2 * Math.PI * j / n) * r, y, Math.sin(2 * Math.PI * j / n) * r))
+    return out
+  }
+  var bottom = ring(-0.5, 0.5)
+  var j, u0, u1
+  if (cone) {
+    for (j = 0; j < n; j++) {
+      // A tip of its own per side: the side's light then follows its own slope up to the tip.
+      var tip = b.point(0, 0.5, 0)
+      u0 = j / n
+      u1 = (j + 1) / n
+      b.tri(bottom[j], tip, bottom[j + 1], [u0, 1, (u0 + u1) / 2, 0, u1, 1])
+    }
+  } else {
+    var top = ring(0.5, 0.5)
+    for (j = 0; j < n; j++) {
+      u0 = j / n
+      u1 = (j + 1) / n
+      b.tri(bottom[j], top[j], top[j + 1], [u0, 1, u0, 0, u1, 0])
+      b.tri(bottom[j], top[j + 1], bottom[j + 1], [u0, 1, u1, 0, u1, 1])
+    }
+  }
+  // Caps of their own points, so their edge stays sharp.
+  ;(cone ? [-0.5] : [-0.5, 0.5]).forEach(function(y) {
+    var c = b.point(0, y, 0)
+    var r = ring(y, 0.5)
+    for (var k = 0; k < n; k++) {
+      var a0 = 2 * Math.PI * k / n, a1 = 2 * Math.PI * (k + 1) / n
+      b.tri(c, r[k], r[k + 1], [0.5, 0.5, 0.5 + Math.cos(a0) / 2, 0.5 + Math.sin(a0) / 2, 0.5 + Math.cos(a1) / 2, 0.5 + Math.sin(a1) / 2])
+    }
+  })
+  return b.build(true, true, false)
+}
+
+// Ground from a grid of heights, rows of numbers: one unit between points, centered on the origin, the first
+// row at the back (-z). colors are the cells', rows of one fewer each way; an image repeats once per cell.
+function meshTerrain(heights, colors) {
+  if (!Array.isArray(heights)) throw new WidgetError("terrain takes rows of heights, like [[0, 1], [1, 2]]")
+  var rows = heights.map(function(r) { return Array.isArray(r) ? r : [] })
+  if (rows.length < 2 || rows.some(function(r) { return r.length !== rows[0].length }) || rows[0].length < 2)
+    throw new WidgetError("terrain takes at least two rows of the same length, two or more heights each")
+  var r = rows.length, c = rows[0].length
+  if (2 * (r - 1) * (c - 1) > MAX_MESH_TRIANGLES) throw new WidgetError("a terrain of more than " + MAX_MESH_TRIANGLES + " triangles")
+  var b = new MeshBuilder()
+  for (var i = 0; i < r; i++) for (var j = 0; j < c; j++) {
+    var h = num(rows[i][j])
+    b.point(j - (c - 1) / 2, h === null ? 0 : h, i - (r - 1) / 2)
+  }
+  var cells = Array.isArray(colors) ? colors : null
+  for (i = 0; i < r - 1; i++) {
+    var row = cells && i < cells.length && Array.isArray(cells[i]) ? cells[i] : null
+    for (j = 0; j < c - 1; j++) {
+      var color = b.color(row && j < row.length ? row[j] : null)
+      var a = i * c + j
+      b.tri(a, a + c, a + c + 1, [0, 0, 0, 1, 1, 1], color)
+      b.tri(a, a + c + 1, a + 1, [0, 0, 1, 1, 1, 0], color)
+    }
+  }
+  return b.build(true, false, true)
+}
+
+// A mesh of points ([x, y, z] or {x, y, z}) and faces, lists of three or more point indices, counterclockwise
+// seen from outside.
+function meshOf(points, faces, colors) {
+  var b = new MeshBuilder()
+  if (!Array.isArray(points)) throw new WidgetError("mesh takes a list of points, like [[0, 0, 0], [1, 0, 0], [0, 1, 0]]")
+  points.forEach(function(p) {
+    var v = vecXyz(p)
+    b.point(v[0], v[1], v[2])
+  })
+  var cs = Array.isArray(colors) ? colors : null
+  if (!Array.isArray(faces)) throw new WidgetError("mesh takes a list of faces, like [[0, 1, 2]]")
+  faces.forEach(function(f, i) {
+    var idx = vecNumbers(f).map(toInt)
+    var color = b.color(cs && i < cs.length ? cs[i] : null)
+    for (var k = 1; k < idx.length - 1; k++) b.tri(idx[0], idx[k], idx[k + 1], null, color)
+  })
+  return b.build(false, false, false)
+}
+
+// Kotlin's String.toFloatOrNull and toIntOrNull, for an OBJ file's fields.
+function objFloat(t) {
+  var d = t === undefined ? null : javaDouble(t)
+  return d === null ? 0 : d
+}
+function objInt(t) {
+  if (t === undefined || !/^[+-]?\d+$/.test(t)) return null
+  var n = parseInt(t, 10)
+  return n > 2147483647 || n < -2147483648 ? null : n
+}
+
+// A Wavefront OBJ model: its points (v), texture places (vt) and faces (f), with each face colored by materials,
+// a map from its usemtl name to a color. Smooth where the file turns smoothing on (s 1).
+function meshObj(textIn, materials) {
+  var b = new MeshBuilder()
+  var vt = []
+  var color = -1
+  var smooth = false
+  var mats = materials instanceof Map ? materials : null
+  // Faces whose corners all have a texture place carry it; a file with none has no uvs at all.
+  var faces = [], faceColors = []
+  linesOf(textIn).forEach(function(raw) {
+    var line = raw.trim()
+    if (line === "" || line.charAt(0) === "#") return
+    var parts = line.split(/\s+/)
+    if (parts[0] === "v") b.point(objFloat(parts[1]), objFloat(parts[2]), objFloat(parts[3]))
+    else if (parts[0] === "vt") vt.push(fr(objFloat(parts[1])), fr(objFloat(parts[2])))
+    else if (parts[0] === "usemtl") {
+      var name = parts.length > 1 ? parts[1] : ""
+      color = b.color(mats && mats.has(name) ? mats.get(name) : null)
+    } else if (parts[0] === "s") smooth = smooth || parts.length > 1 && parts[1] !== "off" && parts[1] !== "0"
+    else if (parts[0] === "f") {
+      var corners = parts.slice(1)
+      if (corners.length < 3) return
+      var pts = [], tex = []
+      corners.forEach(function(c) {
+        var bits = c.split("/")
+        var p = objInt(bits[0])
+        if (p === null) throw new WidgetError("parseObj: a face corner '" + c + "' isn't a point number")
+        pts.push(p < 0 ? b.points.length / 3 + p : p - 1)
+        var t = objInt(bits[1])
+        if (t === null) tex = null
+        else if (tex) tex.push(t < 0 ? vt.length / 2 + t : t - 1)
+      })
+      faces.push([pts, tex])
+      faceColors.push(color)
+    }
+  })
+  var anyTex = faces.length > 0 && faces.every(function(f) { return f[1] !== null })
+  faces.forEach(function(f, i) {
+    var pts = f[0], tex = f[1]
+    for (var k = 1; k < pts.length - 1; k++) {
+      var uv = null
+      if (anyTex) {
+        uv = []
+        ;[0, k, k + 1].forEach(function(corner) {
+          var t = tex[corner]
+          uv.push(2 * t >= 0 && 2 * t < vt.length ? vt[2 * t] : 0, fr(1 - (2 * t + 1 >= 0 && 2 * t + 1 < vt.length ? vt[2 * t + 1] : 0)))
+        })
+      }
+      b.tri(pts[0], pts[k], pts[k + 1], uv, faceColors[i])
+    }
+  })
+  return b.build(smooth, false, false)
+}
+
+// Java's Math.toRadians.
+function toRadians(deg) { return deg * 0.017453292519943295 }
+
+// turn(...)'s rotation as a 3x3 matrix of floats, row by row: around z, then x, then y, each counterclockwise
+// seen from its positive end.
+function rotation3(rx, ry, rz) {
+  var a = toRadians(rx), b = toRadians(ry), c = toRadians(rz)
+  var cx = fr(Math.cos(a)), sx = fr(Math.sin(a)), cy = fr(Math.cos(b)), sy = fr(Math.sin(b)), cz = fr(Math.cos(c)), sz = fr(Math.sin(c))
+  // Ry * Rx * Rz
+  return [
+    fr(fr(cy * cz) + fr(fr(sy * sx) * sz)), fr(fr(-cy * sz) + fr(fr(sy * sx) * cz)), fr(sy * cx),
+    fr(cx * sz), fr(cx * cz), -sx,
+    fr(fr(-sy * cz) + fr(fr(cy * sx) * sz)), fr(fr(sy * sz) + fr(fr(cy * sx) * cz)), fr(cy * cx)
+  ]
+}
+
+function dot3f(ax, ay, az, b) { return fr(fr(fr(ax * b[0]) + fr(ay * b[1])) + fr(az * b[2])) }
+
+function unit3f(x, y, z) {
+  var l = fr(Math.sqrt(fr(fr(fr(x * x) + fr(y * y)) + fr(z * z))))
+  return l < fr(1e-6) ? null : [fr(x / l), fr(y / l), fr(z / l)]
+}
+
+function cross3f(a, b) {
+  return [fr(fr(a[1] * b[2]) - fr(a[2] * b[1])), fr(fr(a[2] * b[0]) - fr(a[0] * b[2])), fr(fr(a[0] * b[1]) - fr(a[1] * b[0]))]
+}
+
+// Where a scene is seen from: a map {eye, look, up, fov, near, far}. eye is where the camera is, look the point
+// it looks at, fov how many degrees it sees from the top of the canvas to the bottom.
+function Camera(v) {
+  var o = v instanceof Map ? v : new Map()
+  function field(k, def) {
+    var d = o.has(k) ? num(o.get(k)) : null
+    return fr(d === null ? def : d)
+  }
+  var eye = vec3(o.has("eye") ? o.get("eye") : null, 0)
+  if (!o.has("eye")) eye[2] = 5
+  var look = vec3(o.has("look") ? o.get("look") : null, 0)
+  var up = vec3(o.has("up") ? o.get("up") : [0, 1, 0], 0)
+  var f = unit3f(fr(look[0] - eye[0]), fr(look[1] - eye[1]), fr(look[2] - eye[2])) || [0, 0, -1]
+  // right = forward x up; straight up or down, any right will do.
+  var c = cross3f(f, up)
+  var r = unit3f(c[0], c[1], c[2]) || (Math.abs(f[0]) < fr(0.9) ? unit3f(0, -f[2], f[1]) : unit3f(f[2], 0, -f[0]))
+  this.eye = eye
+  // Right, up and forward, unit vectors; a point's camera coordinates are its offset from the eye along them.
+  this.r = r
+  this.u = cross3f(r, f)
+  this.f = f
+  var fov = field("fov", 60)
+  this.fov = fov < 1 ? 1 : fov > 170 ? 170 : fov
+  var near = field("near", 0.1)
+  this.near = near < fr(0.001) ? fr(0.001) : near
+  this.far = Math.max(fr(this.near * 2), field("far", 1000))
+}
+
+Camera.prototype = {
+  // The focal length on a canvas `height` high: how far one unit ahead, a unit to the side shows.
+  focal: function(height) { return fr(fr(height / 2) / fr(Math.tan(toRadians(this.fov / 2)))) },
+
+  // Where world point x, y, z shows on a canvas w by h, and how far ahead it is, as [x, y, depth]; null nearer than near.
+  project: function(x, y, z, w, h) {
+    var qx = fr(x - this.eye[0]), qy = fr(y - this.eye[1]), qz = fr(z - this.eye[2])
+    var d = dot3f(qx, qy, qz, this.f)
+    if (d < this.near) return null
+    var s = fr(this.focal(h) / d)
+    return [fr(fr(w / 2) + fr(dot3f(qx, qy, qz, this.r) * s)), fr(fr(h / 2) - fr(dot3f(qx, qy, qz, this.u) * s)), d]
+  }
+}
+
+function meshBuiltin(min, max, build) {
+  return B(min, max, function(a) {
+    var m = build(a)
+    a.tick(Math.floor(m.triangles / 16))
+    return m
+  })
+}
+function meshSegments(a, i, def) { return clampNum(a.int(i, def), 3, 128) }
+
+var MESH_BUILTINS = {
+  cube: meshBuiltin(0, 0, function() { return meshCube() }),
+  plane: meshBuiltin(0, 1, function(a) { return meshPlane(a.int(0, 1)) }),
+  sphere: meshBuiltin(0, 1, function(a) { return meshSphere(meshSegments(a, 0, 16)) }),
+  cylinder: meshBuiltin(0, 1, function(a) { return meshCylinder(meshSegments(a, 0, 16), false) }),
+  cone: meshBuiltin(0, 1, function(a) { return meshCylinder(meshSegments(a, 0, 16), true) }),
+  terrain: meshBuiltin(1, 2, function(a) { return meshTerrain(a.get(0), a.get(1)) }),
+  mesh: meshBuiltin(2, 3, function(a) { return meshOf(a.get(0), a.get(1), a.get(2)) }),
+  parseObj: meshBuiltin(1, 2, function(a) {
+    a.tick(Math.floor(a.str(0).length / 64))
+    return meshObj(a.str(0), a.get(1))
+  }),
+  // project(point, camera, width, height): where a point shows on a Canvas of that size, as {x, y, depth}; null behind the camera.
+  project: B(4, 4, function(a) {
+    var cam = new Camera(a.get(1))
+    var p = vec3(a.get(0), 0)
+    var at = cam.project(p[0], p[1], p[2], fr(a.num(2)), fr(a.num(3)))
+    return at === null ? null : new Map([["x", at[0]], ["y", at[1]], ["depth", at[2]]])
+  }),
+  // turn(v, [rx, ry, rz]): v turned as model(..., turn:) turns a model.
+  turn: B(2, 2, function(a) {
+    var r = vec3(a.get(1), 0)
+    var m = rotation3(r[0], r[1], r[2])
+    var v = vecXyz(a.get(0))
+    return [0, 1, 2].map(function(i) { return m[3 * i] * v[0] + m[3 * i + 1] * v[1] + m[3 * i + 2] * v[2] })
+  }),
+  dot: B(2, 2, function(a) {
+    var x = vecNumbers(a.get(0)), y = vecNumbers(a.get(1))
+    var sum = 0
+    for (var i = 0; i < x.length; i++) sum += x[i] * (i < y.length ? y[i] : 0)
+    return sum
+  }),
+  cross: B(2, 2, function(a) {
+    var x = vecXyz(a.get(0)), y = vecXyz(a.get(1))
+    return [x[1] * y[2] - x[2] * y[1], x[2] * y[0] - x[0] * y[2], x[0] * y[1] - x[1] * y[0]]
+  }),
+  norm: B(1, 1, function(a) {
+    var x = vecNumbers(a.get(0))
+    var sum = 0
+    for (var i = 0; i < x.length; i++) sum += x[i] * x[i]
+    var l = Math.sqrt(sum)
+    return l === 0 ? x : x.map(function(v) { return v / l })
+  }),
+  // dist(a, b): how far apart two points are, in 2D or 3D; dist(v) is a vector's length.
+  dist: B(1, 2, function(a) {
+    var x = vecNumbers(a.get(0)), y = a.size > 1 ? vecNumbers(a.get(1)) : []
+    var k = Math.max(x.length, y.length)
+    var sum = 0
+    for (var i = 0; i < k; i++) {
+      var d = (i < x.length ? x[i] : 0) - (i < y.length ? y[i] : 0)
+      sum += d * d
+    }
+    return Math.sqrt(sum)
+  })
+}
+for (var meshName in MESH_BUILTINS) BUILTINS[meshName] = MESH_BUILTINS[meshName]
+
+// A mesh cut into a binary space partition, so a scene can draw its faces in the right order from any side, with
+// no depth buffer: each node is the plane of one of its faces, holding the faces in that plane, with what lies in
+// front of the plane on one side and what lies behind on the other. Seen from the eye, the side away from it is
+// drawn first, then the plane's faces, then the side toward it. Faces a plane passes through are cut in two.
+//
+// Built once per mesh, and only for one that can hide part of itself: a convex mesh (a cube, a sphere, a flat
+// plane) shows its front faces in any order. `mesh` is the cut mesh, three points per face, that the scene draws
+// instead. Null when the mesh needs none or would cut into too many faces.
+function buildBsp(mesh) {
+  var n = mesh.triangles
+  if (n < 2 || n > MAX_BSP_TRIANGLES || meshConvex(mesh)) return null
+  var eps = 1e-4 * Math.max(1, mesh.radius)
+  var pts = mesh.points, tris = mesh.tris, uvs = mesh.uvs, fn = mesh.faceNormals
+  var faces = []
+  for (var t = 0; t < n; t++) {
+    if (fn[3 * t] === 0 && fn[3 * t + 1] === 0 && fn[3 * t + 2] === 0) continue
+    var p = []
+    for (var k = 0; k < 3; k++) { var o = 3 * tris[3 * t + k]; p.push(pts[o], pts[o + 1], pts[o + 2]) }
+    faces.push({ p: p, uv: uvs ? Array.prototype.slice.call(uvs, 6 * t, 6 * t + 6) : null, src: t })
+  }
+  if (faces.length < 2) return null
+  // Cutting can multiply the faces; past this the mesh is drawn as it was.
+  var limit = Math.min(MAX_MESH_TRIANGLES, Math.max(4 * faces.length, faces.length + 2000))
+  var out = [], planes = [], front = [], back = [], first = [], count = []
+  // Nodes are built from a stack of [its faces, the parent, which child], so a deep tree can't overflow the stack.
+  var work = [[faces, -1, false]]
+  var total = faces.length
+  while (work.length) {
+    var w = work.pop()
+    var list = w[0]
+    var node = count.length
+    if (w[1] >= 0) (w[2] ? front : back)[w[1]] = node
+    var splitter = bspSplitter(list, eps)
+    var s = bspPlane(splitter)
+    planes.push(s[0], s[1], s[2], s[3])
+    front.push(-1)
+    back.push(-1)
+    var on = [], fs = [], bs = []
+    for (var i = 0; i < list.length; i++) {
+      var f = list[i]
+      var d0 = s[0] * f.p[0] + s[1] * f.p[1] + s[2] * f.p[2] - s[3]
+      var d1 = s[0] * f.p[3] + s[1] * f.p[4] + s[2] * f.p[5] - s[3]
+      var d2 = s[0] * f.p[6] + s[1] * f.p[7] + s[2] * f.p[8] - s[3]
+      // The splitter stays on its node even when rounding puts a sliver's far corners off its own plane: each
+      // node then takes at least one face, and the tree can't go on forever.
+      if (f === splitter || Math.abs(d0) <= eps && Math.abs(d1) <= eps && Math.abs(d2) <= eps) on.push(f)
+      else if (d0 >= -eps && d1 >= -eps && d2 >= -eps) fs.push(f)
+      else if (d0 <= eps && d1 <= eps && d2 <= eps) bs.push(f)
+      else {
+        var before = fs.length + bs.length
+        bspSplit(f, [d0, d1, d2], eps, fs, bs)
+        total += fs.length + bs.length - before - 1
+        if (total > limit) return null
+      }
+    }
+    first.push(out.length)
+    count.push(on.length)
+    for (var q = 0; q < on.length; q++) out.push(on[q])
+    if (bs.length) work.push([bs, node, false])
+    if (fs.length) work.push([fs, node, true])
+  }
+  // The cut mesh: three points of its own per face, so each face keeps its corners after a cut.
+  var points = new Float32Array(9 * out.length)
+  var ftris = new Int32Array(3 * out.length)
+  var fuv = uvs ? new Float32Array(6 * out.length) : null
+  var ci = mesh.colorIndex ? new Int32Array(out.length) : null
+  for (var j = 0; j < out.length; j++) {
+    points.set(out[j].p, 9 * j)
+    if (fuv && out[j].uv) fuv.set(out[j].uv, 6 * j)
+    if (ci) ci[j] = mesh.colorIndex[out[j].src]
+    ftris[3 * j] = 3 * j
+    ftris[3 * j + 1] = 3 * j + 1
+    ftris[3 * j + 2] = 3 * j + 2
+  }
+  return { mesh: new Mesh(points, ftris, fuv, ci, mesh.palette, mesh.smooth), planes: planes, front: front, back: back, first: first, count: count }
+}
+
+// The faces of a tree's mesh drawn far to near from the eye (in the mesh's own space), into out.
+function bspOrder(bsp, ex, ey, ez, out) {
+  // Without recursion: a tree can be too deep for the stack. Each entry is a node to visit, or (as -1 - node)
+  // one whose faces come next.
+  var stack = [0]
+  var k = 0
+  while (stack.length) {
+    var node = stack.pop()
+    if (node < 0) {
+      var m = -1 - node
+      for (var i = bsp.first[m]; i < bsp.first[m] + bsp.count[m]; i++) out[k++] = i
+      continue
+    }
+    var o = 4 * node
+    var inFront = bsp.planes[o] * ex + bsp.planes[o + 1] * ey + bsp.planes[o + 2] * ez - bsp.planes[o + 3] > 0
+    // Popped last to first: the far side, the node's faces, the near side.
+    var near = inFront ? bsp.front[node] : bsp.back[node]
+    var far = inFront ? bsp.back[node] : bsp.front[node]
+    if (near >= 0) stack.push(near)
+    stack.push(-1 - node)
+    if (far >= 0) stack.push(far)
+  }
+}
+
+// Whether every face has all of the mesh's points on or behind its plane: then no face can hide another that faces the eye.
+function meshConvex(mesh) {
+  var pts = mesh.points, fn = mesh.faceNormals
+  var eps = 1e-4 * Math.max(1, mesh.radius)
+  var count = pts.length / 3
+  for (var t = 0; t < mesh.triangles; t++) {
+    var nx = fn[3 * t], ny = fn[3 * t + 1], nz = fn[3 * t + 2]
+    if (nx === 0 && ny === 0 && nz === 0) continue
+    var a = 3 * mesh.tris[3 * t]
+    var d = nx * pts[a] + ny * pts[a + 1] + nz * pts[a + 2]
+    for (var i = 0; i < count; i++) if (nx * pts[3 * i] + ny * pts[3 * i + 1] + nz * pts[3 * i + 2] - d > eps) return false
+  }
+  return true
+}
+
+// The face whose plane to cut by: of a few spread through the list, the one that cuts the fewest of a sample of
+// the faces, and splits the rest most evenly.
+function bspSplitter(list, eps) {
+  var best = list[0]
+  var bestScore = Infinity
+  var tries = Math.min(list.length, 12)
+  var step = Math.max(1, Math.floor(list.length / 200))
+  for (var c = 0; c < tries; c++) {
+    var f = list[Math.floor(c * list.length / tries)]
+    var pl = bspPlane(f)
+    var cuts = 0, front = 0, back = 0
+    for (var i = 0; i < list.length; i += step) {
+      var g = list[i]
+      var pos = false, neg = false
+      for (var k = 0; k < 3; k++) {
+        var dist = pl[0] * g.p[3 * k] + pl[1] * g.p[3 * k + 1] + pl[2] * g.p[3 * k + 2] - pl[3]
+        if (dist > eps) pos = true
+        if (dist < -eps) neg = true
+      }
+      if (pos && neg) cuts++
+      else if (pos) front++
+      else if (neg) back++
+    }
+    var score = 8 * cuts + Math.abs(front - back)
+    if (score < bestScore) {
+      bestScore = score
+      best = f
+    }
+  }
+  return best
+}
+
+function bspPlane(f) {
+  var p = f.p
+  var ux = p[3] - p[0], uy = p[4] - p[1], uz = p[5] - p[2]
+  var vx = p[6] - p[0], vy = p[7] - p[1], vz = p[8] - p[2]
+  var nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx
+  var l = Math.sqrt(nx * nx + ny * ny + nz * nz)
+  nx /= l
+  ny /= l
+  nz /= l
+  return [nx, ny, nz, nx * p[0] + ny * p[1] + nz * p[2]]
+}
+
+// Cuts f, whose corners are dist from the plane, into the part in front (to fs) and behind (to bs).
+function bspSplit(f, dist, eps, fs, bs) {
+  // Corners as x, y, z, u, v; each side's polygon has at most four.
+  var fp = [], bp = []
+  function corner(k) { return [f.p[3 * k], f.p[3 * k + 1], f.p[3 * k + 2], f.uv ? f.uv[2 * k] : 0, f.uv ? f.uv[2 * k + 1] : 0] }
+  for (var k = 0; k < 3; k++) {
+    var j = (k + 1) % 3
+    var a = corner(k)
+    var da = dist[k], db = dist[j]
+    if (da >= -eps) fp.push(a)
+    if (da <= eps) bp.push(a)
+    if (da > eps && db < -eps || da < -eps && db > eps) {
+      var s = da / (da - db)
+      var b = corner(j)
+      var m = a.map(function(v, i) { return v + (b[i] - v) * s })
+      fp.push(m)
+      bp.push(m)
+    }
+  }
+  bspFan(fp, f, fs)
+  bspFan(bp, f, bs)
+}
+
+function bspFan(poly, f, to) {
+  for (var k = 1; k < poly.length - 1; k++) {
+    var c = [poly[0], poly[k], poly[k + 1]]
+    var p = [], uv = f.uv ? [] : null
+    for (var q = 0; q < 3; q++) {
+      p.push(c[q][0], c[q][1], c[q][2])
+      if (uv) uv.push(c[q][3], c[q][4])
+    }
+    // A sliver with no area left after the cut isn't worth a face.
+    var ux = p[3] - p[0], uy = p[4] - p[1], uz = p[5] - p[2]
+    var vx = p[6] - p[0], vy = p[7] - p[1], vz = p[8] - p[2]
+    var cx = uy * vz - uz * vy, cy = uz * vx - ux * vz, cz = ux * vy - uy * vx
+    if (cx * cx + cy * cy + cz * cz > 1e-12) to.push({ p: p, uv: uv, src: f.src })
+  }
+}
+
+// Where a scene's light comes from without light:, above, a little right and in front.
+var DEFAULT_LIGHT = [fr(0.4), 1, fr(0.6)]
+
+// Turns a scene's models into 2D triangles: each model is moved into the camera's view, skipped whole when it's
+// out of view, its faces turned away dropped, the rest lit, fogged, cut at the near plane and projected; then
+// every triangle of the scene is sorted far to near, so the near ones are painted over the far ones (a painter's
+// algorithm: there's no depth buffer). Within a model that can hide part of itself, its tree decides the order
+// instead, which is right from any side.
+//
+// light is the direction toward the light, in the world; ambient how bright faces turned from it still are, 0 to
+// 1; fog an ARGB color that faces fade into as they near the camera's far end, from halfway there, or null.
+function Scene3d(camera, width, height, light, ambient, fog) {
+  this.cam = camera
+  this.w = width
+  this.h = height
+  this.focal = camera.focal(height)
+  this.tx = (width / 2) / this.focal
+  this.ty = (height / 2) / this.focal
+  var l = Math.sqrt(light[0] * light[0] + light[1] * light[1] + light[2] * light[2]) || 1
+  // Unit vector toward the light, in camera coordinates.
+  this.lx = (light[0] * camera.r[0] + light[1] * camera.r[1] + light[2] * camera.r[2]) / l
+  this.ly = (light[0] * camera.u[0] + light[1] * camera.u[1] + light[2] * camera.u[2]) / l
+  this.lz = (light[0] * camera.f[0] + light[1] * camera.f[1] + light[2] * camera.f[2]) / l
+  this.ambient = clampNum(ambient, 0, 1)
+  this.fog = fog !== null
+  this.fogR = this.fog ? (fog >>> 16) & 255 : 0
+  this.fogG = this.fog ? (fog >>> 8) & 255 : 0
+  this.fogB = this.fog ? fog & 255 : 0
+  this.fogFrom = camera.far / 2
+  // Staged triangles: each [depth, x0, y0, x1, y1, x2, y2, r, g, b, a, texture, u0, v0, u1, v1, u2, v2], its
+  // color the corners' average, 0 to 255, since a 2D canvas fills a triangle with one.
+  this.staged = []
+  // The images models were drawn with, by index.
+  this.textures = []
+}
+
+Scene3d.prototype = {
+  // Adds mesh at `at`, turned by turn (degrees around x, y, z) and scaled by scale, each face its own color from
+  // palette (ARGB by the mesh's palette index) or color. ambient NaN takes the scene's. texture is the src of an
+  // image the mesh's uvs map onto, or null.
+  add: function(mesh, at, turn, scale, color, palette, ambient, smooth, twoSided, texture) {
+    if (mesh.triangles === 0) return
+    var cam = this.cam, staged = this.staged
+    var first = staged.length
+    var amb = ambient !== ambient ? this.ambient : clampNum(ambient, 0, 1)
+    var r = rotation3(turn[0], turn[1], turn[2])
+    var sx = scale[0], sy = scale[1], sz = scale[2]
+    var cr = cam.r, cu = cam.u, cf = cam.f
+    // C = V * R * S, the mesh's points to camera coordinates; o = V * (at - eye).
+    var c00 = (cr[0] * r[0] + cr[1] * r[3] + cr[2] * r[6]) * sx
+    var c01 = (cr[0] * r[1] + cr[1] * r[4] + cr[2] * r[7]) * sy
+    var c02 = (cr[0] * r[2] + cr[1] * r[5] + cr[2] * r[8]) * sz
+    var c10 = (cu[0] * r[0] + cu[1] * r[3] + cu[2] * r[6]) * sx
+    var c11 = (cu[0] * r[1] + cu[1] * r[4] + cu[2] * r[7]) * sy
+    var c12 = (cu[0] * r[2] + cu[1] * r[5] + cu[2] * r[8]) * sz
+    var c20 = (cf[0] * r[0] + cf[1] * r[3] + cf[2] * r[6]) * sx
+    var c21 = (cf[0] * r[1] + cf[1] * r[4] + cf[2] * r[7]) * sy
+    var c22 = (cf[0] * r[2] + cf[1] * r[5] + cf[2] * r[8]) * sz
+    var qx = at[0] - cam.eye[0], qy = at[1] - cam.eye[1], qz = at[2] - cam.eye[2]
+    var ox = cr[0] * qx + cr[1] * qy + cr[2] * qz
+    var oy = cu[0] * qx + cu[1] * qy + cu[2] * qz
+    var oz = cf[0] * qx + cf[1] * qy + cf[2] * qz
+    var tx = this.tx, ty = this.ty
+    // The whole model out of view: nothing to do.
+    var mcx = c00 * mesh.cx + c01 * mesh.cy + c02 * mesh.cz + ox
+    var mcy = c10 * mesh.cx + c11 * mesh.cy + c12 * mesh.cz + oy
+    var mcz = c20 * mesh.cx + c21 * mesh.cy + c22 * mesh.cz + oz
+    var mr = mesh.radius * Math.max(Math.abs(sx), Math.abs(sy), Math.abs(sz))
+    if (mcz + mr < cam.near || mcz - mr > cam.far) return
+    if ((mcx - tx * mcz) > mr * Math.sqrt(1 + tx * tx) || (-mcx - tx * mcz) > mr * Math.sqrt(1 + tx * tx)) return
+    if ((mcy - ty * mcz) > mr * Math.sqrt(1 + ty * ty) || (-mcy - ty * mcz) > mr * Math.sqrt(1 + ty * ty)) return
+    // Normals: N = V * R * S^-1, normalized after.
+    var isx = sx !== 0 ? 1 / sx : 0, isy = sy !== 0 ? 1 / sy : 0, isz = sz !== 0 ? 1 / sz : 0
+    var n00 = c00 * isx * isx, n01 = c01 * isy * isy, n02 = c02 * isz * isz
+    var n10 = c10 * isx * isx, n11 = c11 * isy * isy, n12 = c12 * isz * isz
+    var n20 = c20 * isx * isx, n21 = c21 * isy * isy, n22 = c22 * isz * isz
+
+    // A model that can hide part of itself draws its cut mesh, far to near from where the eye is in the model's
+    // own space (a point's side of a plane doesn't change when the model is moved, turned or stretched).
+    var bsp = sx !== 0 && sy !== 0 && sz !== 0 ? mesh.bsp() : null
+    var drawn = bsp ? bsp.mesh : mesh
+    var order = null
+    if (bsp) {
+      order = new Int32Array(drawn.triangles)
+      // The eye from the model: -(at - eye), turned back (the transpose) and unstretched.
+      bspOrder(bsp, -(r[0] * qx + r[3] * qy + r[6] * qz) / sx, -(r[1] * qx + r[4] * qy + r[7] * qz) / sy, -(r[2] * qx + r[5] * qy + r[8] * qz) / sz, order)
+    }
+    var pts = drawn.points
+    var count = pts.length / 3
+    var px = new Float64Array(count), py = new Float64Array(count), pz = new Float64Array(count)
+    for (var i = 0; i < count; i++) {
+      var x = pts[3 * i], y = pts[3 * i + 1], z = pts[3 * i + 2]
+      px[i] = c00 * x + c01 * y + c02 * z + ox
+      py[i] = c10 * x + c11 * y + c12 * z + oy
+      pz[i] = c20 * x + c21 * y + c22 * z + oz
+    }
+    var uvs = drawn.uvs
+    var texIndex = -1
+    if (texture !== null && uvs) {
+      // One index per image, so models that share it draw together.
+      texIndex = this.textures.indexOf(texture)
+      if (texIndex < 0) texIndex = this.textures.push(texture) - 1
+    }
+    var fn = drawn.faceNormals
+    var cn = smooth ? drawn.cornerNormals() : null
+    var tris = drawn.tris
+    var ci = drawn.colorIndex
+    var near = cam.near, far = cam.far
+    var lx = this.lx, ly = this.ly, lz = this.lz
+    var corner = new Float64Array(27), poly = new Float64Array(36)
+    for (var q = 0; q < drawn.triangles; q++) {
+      var t = bsp ? order[q] : q
+      var a = tris[3 * t], b = tris[3 * t + 1], c = tris[3 * t + 2]
+      var da = pz[a], db = pz[b], dc = pz[c]
+      if (da < near && db < near && dc < near) continue
+      if (da > far && db > far && dc > far) continue
+      // All on the outside of one side of the view.
+      if (px[a] > tx * da && px[b] > tx * db && px[c] > tx * dc) continue
+      if (-px[a] > tx * da && -px[b] > tx * db && -px[c] > tx * dc) continue
+      if (py[a] > ty * da && py[b] > ty * db && py[c] > ty * dc) continue
+      if (-py[a] > ty * da && -py[b] > ty * db && -py[c] > ty * dc) continue
+      var fx = n00 * fn[3 * t] + n01 * fn[3 * t + 1] + n02 * fn[3 * t + 2]
+      var fy = n10 * fn[3 * t] + n11 * fn[3 * t + 1] + n12 * fn[3 * t + 2]
+      var fz = n20 * fn[3 * t] + n21 * fn[3 * t + 1] + n22 * fn[3 * t + 2]
+      // Turned away from the eye, which is at the camera's origin: its back shows, or nothing.
+      var isBack = fx * px[a] + fy * py[a] + fz * pz[a] >= 0
+      if (isBack && !twoSided) continue
+      var flip = isBack ? -1 : 1
+      var pi = ci ? ci[t] : -1
+      var base = pi >= 0 && palette && pi < palette.length ? palette[pi] : color
+      var alpha = (base >>> 24) & 255, br = (base >>> 16) & 255, bg = (base >>> 8) & 255, bb = base & 255
+      var lit = 0
+      if (!cn) {
+        var fl = Math.sqrt(fx * fx + fy * fy + fz * fz) || 1
+        lit = amb + (1 - amb) * Math.max(0, (fx * lx + fy * ly + fz * lz) * flip / fl)
+      }
+      for (var k = 0; k < 3; k++) {
+        var p = tris[3 * t + k]
+        var o = 9 * k
+        corner[o] = px[p]
+        corner[o + 1] = py[p]
+        corner[o + 2] = pz[p]
+        var cl = lit
+        if (cn) {
+          var j = 9 * t + 3 * k
+          var nx = n00 * cn[j] + n01 * cn[j + 1] + n02 * cn[j + 2]
+          var ny = n10 * cn[j] + n11 * cn[j + 1] + n12 * cn[j + 2]
+          var nz = n20 * cn[j] + n21 * cn[j + 1] + n22 * cn[j + 2]
+          var nl = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1
+          cl = amb + (1 - amb) * Math.max(0, (nx * lx + ny * ly + nz * lz) * flip / nl)
+        }
+        var rr = br * cl, gg = bg * cl, bl = bb * cl
+        if (this.fog) {
+          var f = clampNum((pz[p] - this.fogFrom) / (far - this.fogFrom), 0, 1)
+          rr += (this.fogR - rr) * f
+          gg += (this.fogG - gg) * f
+          bl += (this.fogB - bl) * f
+        }
+        corner[o + 3] = rr
+        corner[o + 4] = gg
+        corner[o + 5] = bl
+        corner[o + 6] = alpha
+        if (texIndex >= 0) {
+          corner[o + 7] = uvs[6 * t + 2 * k]
+          corner[o + 8] = uvs[6 * t + 2 * k + 1]
+        }
+      }
+      if (da >= near && db >= near && dc >= near) {
+        this.stage(corner, 0, 1, 2, texIndex)
+      } else {
+        // Cut at the near plane: what's left is a triangle or a quad.
+        var m = 0
+        for (k = 0; k < 3; k++) {
+          var ia = 9 * k, ib = 9 * ((k + 1) % 3)
+          var ina = corner[ia + 2] >= near, inb = corner[ib + 2] >= near
+          if (ina) {
+            for (var e = 0; e < 9; e++) poly[9 * m + e] = corner[ia + e]
+            m++
+          }
+          if (ina !== inb) {
+            var s = (near - corner[ia + 2]) / (corner[ib + 2] - corner[ia + 2])
+            for (e = 0; e < 9; e++) poly[9 * m + e] = corner[ia + e] + (corner[ib + e] - corner[ia + e]) * s
+            m++
+          }
+        }
+        if (m >= 3) this.stage(poly, 0, 1, 2, texIndex)
+        if (m === 4) this.stage(poly, 0, 2, 3, texIndex)
+      }
+    }
+    // The tree's order stands within the model: its faces take the depths they would have had, nearest last, so
+    // across models the scene still sorts by depth.
+    if (bsp && staged.length - first > 1) {
+      var depths = []
+      for (i = first; i < staged.length; i++) depths.push(staged[i][0])
+      depths.sort(function(u, v) { return v - u })
+      for (i = first; i < staged.length; i++) staged[i][0] = depths[i - first]
+    }
+  },
+
+  // Projects corners a, b, c of src (9 numbers each) and stages the triangle.
+  stage: function(src, a, b, c, texIndex) {
+    if (this.staged.length >= MAX_SCENE_TRIANGLES) throw new WidgetError("more than " + MAX_SCENE_TRIANGLES + " triangles in one scene")
+    var t = [(src[9 * a + 2] + src[9 * b + 2] + src[9 * c + 2]) / 3]
+    var at = [a, b, c]
+    for (var k = 0; k < 3; k++) {
+      var o = 9 * at[k]
+      var s = this.focal / src[o + 2]
+      t.push(this.w / 2 + src[o] * s, this.h / 2 - src[o + 1] * s)
+    }
+    for (var ch = 3; ch < 7; ch++)
+      t.push(clampNum(Math.floor((src[9 * a + ch] + src[9 * b + ch] + src[9 * c + ch]) / 3 + 0.5), 0, 255))
+    t.push(texIndex)
+    if (texIndex >= 0) for (k = 0; k < 3; k++) t.push(src[9 * at[k] + 7], src[9 * at[k] + 8])
+    this.staged.push(t)
+  },
+
+  // The staged triangles far to near; ties keep the order the models came in.
+  finish: function() {
+    var staged = this.staged
+    staged.forEach(function(t, i) { t.i = i })
+    staged.sort(function(x, y) { return y[0] - x[0] || x.i - y.i })
+    return staged
+  }
+}
+
 // ---------------------------------------------------------------- compiler
 
-var LEVEL = 21
+var LEVEL = 25
 var MAX_NODES = 500
 var MAX_SCREEN_NODES = 1000
 var MAX_ASSET_BYTES = 2097152
@@ -2651,7 +3679,7 @@ var SHAPE_NUMBER = "\u2039number\u203a"
 
 var KINDS = {
   Column: [["gap", "align", "justify", "scroll", "lazy", "reverse"], "ui"],
-  Row: [["gap", "align", "justify", "wrap"], "ui"],
+  Row: [["gap", "align", "justify", "wrap", "scroll"], "ui"],
   Flow: [["gap", "align", "justify"], "ui"],
   Box: [["align"], "ui"],
   Grid: [["columns", "gap", "lazy", "reverse"], "ui"],
@@ -2693,11 +3721,18 @@ var ENUMS = {
 var DRAW = {
   rect: [4, 4, false], circle: [3, 3, false], arc: [5, 5, false], line: [4, 4, false], path: [1, 1, false],
   text: [3, 3, false], image: [5, 5, false], translate: [2, 2, true], rotate: [1, 3, true], scale: [1, 4, true],
-  clip: [4, 4, true], layer: [1, 1, true], sprite: [4, 4, false]
+  clip: [4, 4, true], layer: [1, 1, true], sprite: [4, 4, false],
+  // owl 22: 3D, models seen through a camera.
+  scene: [1, 1, true], model: [1, 1, false]
 }
 // text(...)'s options beyond size, color, align and bold, as Text has them (owl 10).
 var TEXT_STYLE = ["font", "fontWeight", "italic", "letterSpacing"]
+// The options of scene(...) and model(...), which take only these (owl 22).
+var SCENE_NAMED = ["light", "ambient", "fog"]
+var MODEL_NAMED = ["at", "turn", "scale", "color", "image", "ambient", "smooth", "twoSided"]
+// As the jar's set of them lists them: color comes once, where it first stood.
 var DRAW_NAMED = ["fill", "stroke", "width", "cap", "radius", "closed", "size", "color", "align", "bold", "palette"].concat(TEXT_STYLE)
+  .concat(SCENE_NAMED).concat(MODEL_NAMED.filter(function(n) { return n !== "color" }))
 
 var SINCE = { Terminal: 2, sprite: 3 }
 ;["Slider", "Input", "file", "android.notifications", "android.volume", "volume", "notification", "every", "at", "when", "on"]
@@ -2797,6 +3832,25 @@ SINCE[FRAME_RATE] = 19
 var EVERY_FRAME = "every frame"
 SINCE["android.motion"] = 21
 SINCE[EVERY_FRAME] = 21
+// owl 22: every finger at once, for a game's two thumbs; 3D scenes in a Canvas, the meshes they draw and the
+// vector math of a 3D game; Shader images to sample, and uniforms that are arrays.
+var SHADER_IMAGE = "uniform shader"
+var SHADER_ARRAY = "an array uniform"
+// `uniform shader name;` in a Shader's code, an image it samples, and `uniform float3 name[8];`, an array.
+var SHADER_IMAGE_RE = /\buniform\s+shader\s+(\w+)/
+var SHADER_ARRAY_RE = /\buniform\s+\w+\s+\w+\s*\[/
+// Texts shaderTexts gives at most for one Shader: a few picked between, not every combination of many.
+var MAX_SHADER_TEXTS = 8
+;["onTouch", "scene", "model", "cube", "plane", "sphere", "cylinder", "cone", "terrain", "mesh", "parseObj", "project", "turn",
+  "dot", "cross", "norm", "dist", SHADER_IMAGE, SHADER_ARRAY].forEach(function(k) { SINCE[k] = 22 })
+// owl 23: what's playing moved to a point in it, its speed and the player's own buttons; how strong a haptic() is.
+var HAPTIC_STRENGTH = "haptic(strength)"
+;["media(\"seek\")", "media(\"speed\")", "media(\"action\")", HAPTIC_STRENGTH].forEach(function(k) { SINCE[k] = 23 })
+// owl 24: the strip of apps above home's prompt bar as a file, which only the launcher has, and what it shows;
+// Rows that scroll sideways.
+;["android.strip", "Row.scroll"].forEach(function(k) { SINCE[k] = 24 })
+// owl 25: the battery of the Bluetooth device media plays on, once a tap has allowed Bluetooth.
+SINCE["volume(\"request\")"] = 25
 // What a frame's dt is at most, as on the launcher: after a pause nothing jumps.
 var MAX_FRAME_DT = 0.1
 // The name a widget reads its strings { } by: str.feels.
@@ -2816,6 +3870,8 @@ var HANDLER_PARAMS = { onTap: ["x", "y"], onLongPress: ["x", "y"],
   onDrag: ["dx", "dy", "x", "y"],
   // How fast the finger was moving as it let go, in dp a second.
   onDragEnd: ["vx", "vy"],
+  // owl 22: every finger down, as {id, x, y, startX, startY}, on each change; [] once they've all lifted.
+  onTouch: ["touches"],
   // A Column or Grid that scrolls, pulled down past its top and let go there: refresh(), mostly.
   onPull: [],
   onChange: ["value"], onSubmit: ["value"], onDismiss: [],
@@ -2828,10 +3884,10 @@ var HANDLER_KINDS = { onChange: ["Slider", "Input"], onSubmit: ["Input"], onDism
   onNavigate: ["Browser"], onTitle: ["Browser"], onProgress: ["Browser"] }
 var TRIGGER_PARAMS = { on: ["value", "old"] }
 var ANDROID = ["battery", "device", "media", "notifications", "volume", "system", "network", "power", "sim", "alarm", "modes",
-  "apps", "agents", "recent", "drawer", "modifiers", "speech", "location", "airpods", "calendar", "motion"]
+  "apps", "agents", "recent", "drawer", "modifiers", "speech", "location", "airpods", "calendar", "motion", "strip"]
 // The android sources a widget asks Android's permission for, each with x("request") from a tap: never a press,
 // before the finger lifts, or a trigger, so a widget can't ask on its own.
-var ASKS = ["location", "calendar", "airpods"]
+var ASKS = ["location", "calendar", "airpods", "volume"]
 // What the store's review lists for a widget that reads or changes AirPods, from the source or airpods(...).
 var AIRPODS_COMMAND = "read and change the AirPods connected to the phone over Bluetooth, once you allow it"
 // AirPods' listening modes, as android.airpods' `mode` and `modes` name them.
@@ -2848,9 +3904,19 @@ var SETTINGS_PAGES = ["internet", "wifi", "bluetooth", "airplane", "data", "loca
 var LATCHES = ["ctrl", "alt", "shift"]
 var LATCH_HOWS = ["once", "locked", "off"]
 var ACTION_WORDS = {
-  media: words(["toggle", "play", "pause", "next", "previous", "open"], "media takes toggle, play, pause, next, previous, open"),
+  // seek takes where to go, in seconds from the start, speed how fast, action which of the app's buttons (owl 23);
+  // the others take nothing more.
+  media: (function() {
+    var plain = ["toggle", "play", "pause", "next", "previous", "open"]
+    var f = {}
+    plain.forEach(function(w) { f[w] = [1, 1, "media(\"" + w + "\")"] })
+    f.seek = [2, 2, "media(\"seek\", seconds)"]
+    f.speed = [2, 2, "media(\"speed\", 1.5)"]
+    f.action = [2, 2, "media(\"action\", a.id), with a from the source's actions"]
+    return words(plain.concat(["seek", "speed", "action"]), "media takes " + plain.join(", ") + ", seek, speed or action", false, f)
+  })(),
   // A number sets the level in percent.
-  volume: words(["up", "down", "mute", "unmute", "toggle"], "volume takes a level in percent, or up, down, mute, unmute, toggle", true),
+  volume: words(["up", "down", "mute", "unmute", "toggle", "request"], "volume takes a level in percent, or up, down, mute, unmute, toggle, request", true),
   // true and false also turn it on and off; a number turns it on at that brightness, in percent.
   torch: words(["on", "off", "toggle"], "torch takes a brightness in percent, true, false, on, off, toggle", true),
   // Besides on, off and toggle, what android.modes' dndAllows says, so dnd(m.dndAllows) sets back what it read.
@@ -2867,6 +3933,8 @@ var ACTION_WORDS = {
       unsnooze: [2, 2, "notification(\"unsnooze\", key)"],
       unsnoozeAll: [1, 1, "notification(\"unsnoozeAll\")"]
     }),
+  // How strong, from Android's own touch feedback; haptic() alone is medium.
+  haptic: words(["light", "medium", "strong"], "haptic takes light, medium, strong, or nothing for medium"),
   // Android's panel (a sheet over home) where it has one, else its settings screen.
   settings: words(SETTINGS_PAGES, "settings takes " + SETTINGS_PAGES.join(", ")),
   appAction: words(["pin", "info", "uninstall", "remove", "edit", "share"], "appAction takes pin, info, uninstall, remove, edit, share and an app's key"),
@@ -3081,6 +4149,10 @@ function Compiler(ast, language) {
   // still loading is null, and waits, rather than asked for with "…" in it.
   this.wholeOnly = false
   this.nodeLetNames = null
+  // While a scene's body is compiled: it holds model(...) calls, and only it does.
+  this.inScene = false
+  // While reviewed() works out a command or URL: lets read as values again, not as what they folded to.
+  this.reviewing = false
 }
 
 function messageOf(e) {
@@ -3155,7 +4227,7 @@ Compiler.prototype = {
   servers: function(e, s, name) {
     if (e.k === "cond") return this.servers(e.a, s, name).concat(this.servers(e.b, s, name))
     // A URL that's null pauses its source: it goes nowhere.
-    var ev = this.ex(e, s)
+    var ev = this.reviewed(e, s)
     if (ev.k && ev.c === null) return []
     var host = this.server(e, s)
     if (host === null) this.fail(name + " is a secret, so the server it goes to is written out: \"https://api.example.com/…\", not a value", e.pos)
@@ -3193,6 +4265,14 @@ Compiler.prototype = {
   },
 
   isUnset: function(e) { return e.k === "lit" && (e.v === null || e.v === "") },
+
+  // e compiled as the store's review sees it: a let stays a value, as it did before lets folded, so a URL or a
+  // command that reads one is still listed by its shape and not by the let's whole text.
+  reviewed: function(e, s) {
+    var was = this.reviewing
+    this.reviewing = true
+    try { return this.ex(e, s) } finally { this.reviewing = was }
+  },
 
   // Every let written inside a node, anywhere in the file, for letHint.
   nodeLets: function() {
@@ -3510,7 +4590,7 @@ Compiler.prototype = {
       this.since("android." + e.name, e.pos)
       if (e.name === "notifications") this.commands.push("read Android notifications (apps, titles and text)")
       if (e.name === "apps") this.commands.push("read installed Android apps (names, packages and icons)")
-      if (e.name === "recent") this.commands.push("read the recently opened apps")
+      if (e.name === "recent" || e.name === "strip") this.commands.push("read the recently opened apps")
       if (e.name === "drawer") this.commands.push("read the launcher's apps (names and icons)")
       if (e.name === "speech") this.commands.push("listen through the microphone after a tap, and read what you say")
       if (e.name === "location") this.commands.push("read the phone's approximate location, once you allow it")
@@ -3764,6 +4844,16 @@ Compiler.prototype = {
     c.named.forEach(function(n) {
       if (DRAW_NAMED.indexOf(n[0]) < 0) self.fail("unknown option '" + n[0] + "' (" + DRAW_NAMED.join(", ") + ")", n[1].pos)
     })
+    // A scene's and a model's options are theirs alone, and theirs are only those.
+    var own = c.name === "scene" ? SCENE_NAMED : c.name === "model" ? MODEL_NAMED : null
+    c.named.forEach(function(n) {
+      if (own !== null && own.indexOf(n[0]) < 0) self.fail(c.name + " takes " + own.join(", ") + ", not '" + n[0] + "'", n[1].pos)
+      if (own === null && n[0] !== "color" && (SCENE_NAMED.indexOf(n[0]) >= 0 || MODEL_NAMED.indexOf(n[0]) >= 0))
+        self.fail("'" + n[0] + "' is an option of scene(...) or model(...)", n[1].pos)
+    })
+    if (c.name === "model" && !this.inScene) this.fail("model(...) draws in 3D, so it goes inside scene(camera) { ... }", c.pos)
+    if (c.name === "scene" && this.inScene) this.fail("a scene can't hold another scene", c.pos)
+    if (this.inScene && c.name !== "model") this.fail("a scene holds model(...) calls; draw " + c.name + "(...) on the Canvas after the scene, over it", c.pos)
     this.since(c.name, c.pos)
     if (c.name === "image") this.webFile(c.args[0], scope, "image")
     if (c.name === "text" && c.named.some(function(n) { return TEXT_STYLE.indexOf(n[0]) >= 0 })) this.since(CANVAS_TEXT_STYLE, c.pos)
@@ -3779,7 +4869,13 @@ Compiler.prototype = {
     var children = null
     if (it.body) {
       this.noProps(it.body, c.name)
-      children = this.items(it.body.items, scope, "draw")
+      var scene = c.name === "scene"
+      if (scene) this.inScene = true
+      try {
+        children = this.items(it.body.items, scope, "draw")
+      } finally {
+        if (scene) this.inScene = false
+      }
     }
     return { t: "draw", op: c.name, args: args, named: named, children: children, pos: it.pos }
   },
@@ -3805,6 +4901,8 @@ Compiler.prototype = {
       self.since(n.type + "." + p.name, p.pos)
       if (p.name === "reverse" && !body.props.some(function(q) { return q.name === "lazy" }))
         self.fail("reverse lists a lazy " + n.type + " from its end: add lazy: true", p.pos)
+      if (n.type === "Row" && p.name === "scroll" && body.props.some(function(q) { return q.name === "wrap" }))
+        self.fail("a Row that wraps grows down instead of scrolling: drop scroll or wrap", p.pos)
       if (p.name === "background" && self.gradient(p.value)) self.since(GRADIENT_BACKGROUND, p.pos)
       if (p.name === "frost") self.since("frost", p.pos)
       if (p.name === "drag") {
@@ -3865,7 +4963,7 @@ Compiler.prototype = {
         this.fail("a Browser can't go inside a for or a component: its page is the node's, so each copy would close the others'; write it out, two at most", n.pos)
       // A home tile's or a face's only: elsewhere nothing gives its touches back to home or lets Back reach its history.
       if (this.inScreen !== false)
-        this.fail("a Browser goes on a widget's tile or a face, not in a screen { }, an app, a panel or the key bar", n.pos)
+        this.fail("a Browser goes on a widget's tile or a face, not in a screen { }, an app, a panel, the key bar or the strip", n.pos)
       if (++this.browsers > MAX_BROWSERS)
         this.fail("a widget has room for " + MAX_BROWSERS + " Browsers, each a web view of its own: show another page by setting a Browser's url instead", n.pos)
       var url = body.props.filter(function(p) { return p.name === "url" })[0]
@@ -3879,6 +4977,12 @@ Compiler.prototype = {
     // A shader animates only if its code reads `time`; code that's worked out at run time might.
     if (n.type === "Shader") {
       var code = props.code
+      var codeProp = body.props.filter(function(p) { return p.name === "code" })[0]
+      // An image to sample, or an array uniform: older launchers pass neither.
+      if (codeProp) (this.shaderTexts(codeProp.value, scope) || []).forEach(function(t) {
+        if (SHADER_IMAGE_RE.test(t)) self.since(SHADER_IMAGE, codeProp.pos)
+        if (SHADER_ARRAY_RE.test(t)) self.since(SHADER_ARRAY, codeProp.pos)
+      })
       if (!code || !code.k || /\btime\b/.test(show(code.c))) this.animated = true
     }
     if (kind[1] === "none" && body.items.length) this.fail(n.type + " can't hold other nodes", body.items[0].pos)
@@ -3916,6 +5020,24 @@ Compiler.prototype = {
     var ripple = body.props.filter(function(p) { return p.name === "ripple" && c.params.indexOf(p.name) < 0 })[0]
     if (ripple) this.fail("ripple goes on the node inside " + n.type + " that has onTap", ripple.pos)
     return { t: "use", component: n.type, args: args, wrapper: wrapper, body: c.body, pos: n.pos }
+  },
+
+  // The texts a Shader's code can turn out as when they're all written in the file, picked between with ternaries
+  // and joined with +; null when a value goes into it.
+  shaderTexts: function(e, s) {
+    if (e.k === "cond") {
+      var x = this.shaderTexts(e.a, s), y = x === null ? null : this.shaderTexts(e.b, s)
+      return y === null ? null : x.concat(y)
+    }
+    if (e.k === "bin" && e.op === "+") {
+      var a = this.shaderTexts(e.a, s), b = a === null ? null : this.shaderTexts(e.b, s)
+      if (b === null) return null
+      var out = []
+      a.forEach(function(p) { b.forEach(function(q) { out.push(p + q) }) })
+      return out.slice(0, MAX_SHADER_TEXTS)
+    }
+    var t = this.constText(e, s)
+    return t === null ? null : [t]
   },
 
   // Whether a background is written as a gradient, linear(...) or radial(...), or chooses one: they need owl 10 there.
@@ -4077,6 +5199,8 @@ Compiler.prototype = {
     // A written-out brightness; one from a value, like a Slider's, can't be told from on and off here.
     if (c.name === "torch" && args[0].k && (typeof args[0].c === "number" || first !== null && javaDouble(first) !== null))
       this.since(TORCH_LEVEL, c.pos)
+    // One from a value counts too: it couldn't run on an older launcher.
+    if (c.name === "haptic" && c.args.length) this.since(HAPTIC_STRENGTH, c.pos)
     if (c.name === "volume" && c.args.length === 2) {
       if (args[1].k && typeof args[1].c === "string" && VOLUME_STREAMS.indexOf(args[1].c) < 0)
         this.fail("volume's stream is " + VOLUME_STREAMS.join(", "), c.args[1].pos)
@@ -4108,7 +5232,8 @@ Compiler.prototype = {
       var ask = c.name + "(\"request\")"
       // Asking for what nothing reads: what it allows is only in the source.
       if (!this.androidSources(c.name).length)
-        this.fail(ask + " asks for what source x = android." + c.name + " reads: declare it, then x.granted says whether it's allowed", c.pos)
+        this.fail(ask + " asks for what source x = android." + c.name + " reads: declare it, then " + (c.name === "volume" ? "x.output.granted" : "x.granted")
+          + " says whether it's allowed", c.pos)
       // The permission dialog covers the widget before the finger lifts, and comes only for a touch.
       if (this.handlerName === "onPress" || this.handlerName === "onRelease")
         this.fail(ask + " opens Android's permission dialog over the widget before the finger lifts: put it in onTap", c.pos)
@@ -4277,7 +5402,7 @@ Compiler.prototype = {
   // SHAPE_NUMBER. Null when a value goes in any other way, or there are more than MAX_SHAPES.
   shapes: function(e, s, value) {
     var self = this
-    var ev = this.ex(e, s)
+    var ev = this.reviewed(e, s)
     if (ev.k) {
       // A URL that's null pauses its source: no shape.
       if (typeof ev.c === "string" || typeof ev.c === "number") return [show(ev.c)]
@@ -4329,7 +5454,7 @@ Compiler.prototype = {
       if (p.k === "bin" && p.op === "+") return bad(p.a, false) || bad(p.b, false)
       if (p.k === "cond") return bad(p.a, top) || bad(p.b, top)
       if (p.k === "call" && (p.name === "enc" || NUMBERS.indexOf(p.name) >= 0)) return null
-      var ev = self.ex(p, s)
+      var ev = self.reviewed(p, s)
       if (ev.k && ev.c === null) return null
       whole = top
       return p
@@ -4352,7 +5477,7 @@ Compiler.prototype = {
     // Every value is encoded: so either the server comes from one, or the URL has too many ways to turn out to list.
     function fixed(p) {
       if (p.k === "cond") return fixed(p.a) && fixed(p.b)
-      var ev = self.ex(p, s)
+      var ev = self.reviewed(p, s)
       return ev.k && ev.c === null || self.server(p, s) !== null
     }
     if (fixed(e))
@@ -4411,7 +5536,7 @@ Compiler.prototype = {
       }
       return out
     }
-    var ev = this.ex(e, s)
+    var ev = this.reviewed(e, s)
     var c = ev.k ? ev.c : null
     if (!ev.k && e.k === "name") {
       var ref = this.lookup(e.name, s)
@@ -4548,6 +5673,11 @@ Compiler.prototype = {
           this.fail(e.name + " is a secret: it goes only into http(...)'s and post(...)'s headers and body, written out in them, not through a let "
             + "({Authorization: \"Bearer ${" + e.name + "}\"}), into their URL as enc(" + e.name + "), or into " + e.name + " == null, != null or != \"\"", e.pos)
       }
+      // A let folded to a constant (`let C = 32`, `let BOX = cube()`) reads as its value, and what uses it folds too.
+      if (!this.reviewing) {
+        var g = this.globals[slot]
+        if (g && g.type === "let" && g.value.k) return evOf(g.value.c)
+      }
       return new Ev(function(env) { return env.host.read(slot) })
     }
     if (CONSTANTS.hasOwnProperty(e.name)) return evOf(CONSTANTS[e.name])
@@ -4650,6 +5780,9 @@ Compiler.prototype = {
 function compile(src, language) {
   var c = new Compiler(parse(src), language || "en")
   c.src = src
+  // What folds while this file compiles has a budget of its own, as the jar's compiler has: steps counted
+  // across every file a shell ever compiled would one day fail a file that did nothing wrong.
+  CONST_HOST.budget.steps = 0
   return c.program()
 }
 
@@ -5201,6 +6334,9 @@ Instance.prototype = {
       // frame failed (the koi pond went blank after four seconds).
       this.budget.run(function() {
         self.drawBudget.run(function() {
+          // The canvas's size in dp, which a scene's camera fills.
+          self.canvasSize = [width, height]
+          self.scene = null
           self.drawList(list, new Env(self.drawBridge, env, [width, height]), out, count)
         })
       })
@@ -5229,6 +6365,8 @@ Instance.prototype = {
     for (var i = 0; i < n.args.length; i++) args.push(run(n.args[i], env))
     var named = {}
     for (var k in n.named) named[k] = run(n.named[k], env)
+    if (n.op === "scene") return this.drawScene(n, env, args[0], named, out, count)
+    if (n.op === "model") return this.drawModel(args[0], named)
     var op = { op: n.op, args: args.map(function(a) { return num(a) }) }
     var self = this
     function paint(v) {
@@ -5296,6 +6434,66 @@ Instance.prototype = {
   }
 }
 
+// A scene (owl 22): its models, gathered from its body, as one call of flat triangles far to near,
+// {op: "scene", xy: six numbers a triangle, cols: a color each}, and for the ones an image covers, tex (its
+// index into srcs, or -1) and uv, six numbers a triangle. A 2D canvas fills a triangle with one color, so each
+// has its corners' average, where the launcher shades from corner to corner.
+Instance.prototype.drawScene = function(n, env, camera, named, out, count) {
+  var size = this.canvasSize
+  var light = named.light !== undefined ? vec3(named.light, 0) : DEFAULT_LIGHT
+  var ambient = named.ambient !== undefined ? num(named.ambient) : null
+  var fog = named.fog !== undefined ? argb(named.fog, this.hostBridge) : null
+  var s = new Scene3d(new Camera(camera), size[0], size[1], light, ambient === null ? 0.35 : ambient, fog)
+  this.scene = s
+  try {
+    this.drawList(n.children, env, [], count)
+  } finally {
+    this.scene = null
+  }
+  var tris = s.finish()
+  if (!tris.length) return
+  var op = { op: "scene", xy: [], cols: [] }
+  if (s.textures.length) {
+    op.srcs = s.textures
+    op.tex = []
+    op.uv = []
+  }
+  function r2(x) { return Math.round(x * 100) / 100 }
+  for (var i = 0; i < tris.length; i++) {
+    var t = tris[i]
+    op.xy.push(r2(t[1]), r2(t[2]), r2(t[3]), r2(t[4]), r2(t[5]), r2(t[6]))
+    op.cols.push(hex8(((t[10] << 24) | (t[7] << 16) | (t[8] << 8) | t[9]) >>> 0))
+    if (op.tex) {
+      op.tex.push(t[11])
+      for (var k = 12; k < 18; k++) op.uv.push(t[11] >= 0 ? Math.round(t[k] * 10000) / 10000 : 0)
+    }
+  }
+  out.push(op)
+}
+
+// A model in the scene being drawn.
+Instance.prototype.drawModel = function(first, named) {
+  var s = this.scene
+  if (!s) return
+  // A mesh still loading, from a file or the web, draws nothing yet.
+  if (first === null || first === undefined) return
+  if (!(first instanceof Mesh)) throw new WidgetError("model(...) takes a mesh, like cube() or parseObj(text), not " + text(first).substring(0, 40))
+  var host = this.hostBridge
+  var color = named.color !== undefined ? argb(named.color, host) : null
+  if (color === null) color = host.theme("foreground")
+  if (color === null || color === undefined) color = 0xFFFFFFFF
+  var palette = first.palette.length ? first.palette.map(function(c) {
+    var v = argb(c, host)
+    return v === null ? color : v
+  }) : null
+  var ambient = named.ambient !== undefined ? num(named.ambient) : null
+  s.add(first, vec3(named.at, 0), vec3(named.turn, 0), vec3(named.scale, 1), color >>> 0, palette,
+    ambient === null ? NaN : ambient,
+    named.smooth !== undefined ? truthy(named.smooth) : first.smooth,
+    named.twoSided !== undefined && truthy(named.twoSided),
+    named.image !== undefined && named.image !== null ? show(named.image) : null)
+}
+
 function trimRows(s) {
   var rows = linesOf(s).map(function(l) { return l.trim() })
   while (rows.length && rows[0] === "") rows.shift()
@@ -5318,6 +6516,7 @@ function plain(v) {
   }
   if (v instanceof Col) return v.theme !== null ? v.theme : hex8(v.argb)
   if (v instanceof Fn) return null
+  if (v instanceof Mesh) return show(v)
   return v
 }
 

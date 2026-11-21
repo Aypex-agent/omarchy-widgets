@@ -1,0 +1,6 @@
+widget "x" {
+  meta { owl: 12 }
+  source v = android.volume
+  every 1m { volume("up") }
+  Text { text: "v"; onPress: volume(50) }
+}

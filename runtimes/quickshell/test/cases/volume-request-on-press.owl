@@ -1,0 +1,5 @@
+widget "x" {
+  meta { owl: 25 }
+  source v = android.volume
+  Text { text: v.output.name; onPress: volume("request") }
+}

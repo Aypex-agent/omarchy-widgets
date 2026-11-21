@@ -1,0 +1,5 @@
+widget "x" {
+  meta { owl: 21 }
+  state night = false
+  Shader { code: night ? "half4 main(float2 p) { return half4(0); }" : "uniform shader photo; half4 main(float2 p) { return photo.eval(p); }" }
+}

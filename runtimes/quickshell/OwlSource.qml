@@ -275,6 +275,9 @@ Item {
     left: null, right: null, "case": null, headset: null, mode: null, modes: [], adaptiveLevel: null, conversation: null, speaking: null,
     oneBud: null, earDetection: null })
 
+  // The strip of apps above home's prompt bar (owl 24): there is none here, so no apps in it.
+  readonly property var noStrip: ({ apps: [], vertical: false, monochrome: false, bare: false, border: root.widget ? root.widget.ink("border") : "#ff888888" })
+
   // The sources that are pushed rather than polled, as they start.
   function pushNow() {
     if (!root.active) return
@@ -293,6 +296,7 @@ Item {
     if (root.kind === "android.calendar") root.widget.sourceObject(root.spec.slot, root.noCalendar)
     if (root.kind === "android.airpods") root.widget.sourceObject(root.spec.slot, root.noAirpods)
     if (root.kind === "android.motion") root.widget.sourceObject(root.spec.slot, root.noMotion)
+    if (root.kind === "android.strip") root.widget.sourceObject(root.spec.slot, root.noStrip)
     if (root.kind === "android.media") root.widget.sourceObject(root.spec.slot, root.media)
   }
   onActiveChanged: root.pushNow()
