@@ -1,0 +1,240 @@
+widget "paginated app dock" {
+  meta { owl: 24; description: "A paginated home-screen app dock with configurable slots, optional labels and swipe navigation"; version: "1.0"; license: "MIT"; category: "home" }
+  size: 6x1
+  minSize: 6x1
+  padding: 4
+  requires { pacman: [] }
+
+  strings {
+    en {
+      title: "paginated app dock"
+      configure: "configure"
+      close: "close"
+      appDock: "Paginated app dock"
+      configureDock: "Configure dock"
+      labelsOn: "labels on"
+      labelsOff: "labels off"
+      done: "done"
+      add: "Add"
+      chooseSlot: n => "Choose an app for slot ${n}"
+      clear: "clear"
+    }
+  }
+
+  source drawer = android.drawer
+  state slots = ["", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""] persist
+  state showLabels = false persist
+  state page = 0 persist
+  state screenMode = "dock"
+  state selected = 0
+  state swipeX = 0
+  state tracking = false
+
+  let apps = drawer.apps ?? []
+  let dock = range(18).map(i => find(apps, a => a.key == slots[i]))
+  let pages = chunk(dock, 6)
+  let visible = pages[page] ?? []
+  let tileIconSize = clamp((tileHeight ?? 64) * 0.62, 28, 44)
+
+  component AppIcon(a, size) {
+    Box {
+      size: size
+      align: center
+      if a != null {
+        Box {
+          size: size
+          align: center
+          background: surface
+          radius: size * 0.5 * corners
+          if a.mask != null || a.hasIcon {
+            Image {
+              src: a.mask ?? a.icon
+              size: a.mask != null ? size * 0.72 : size
+              tint: a.mask != null ? accent : null
+              label: a.label
+            }
+          } else {
+            Text { text: a.initials; color: accent; style: small }
+          }
+        }
+      } else {
+        Text { text: "+"; color: accent; style: title }
+      }
+    }
+  }
+
+  lock: tracking
+
+  Box {
+    fill: true
+
+    Row {
+      fill: width
+      height: tileHeight - 8
+      gap: 0
+      align: center
+      drag: horizontal
+      offset: [swipeX, 0]
+      animate offset: spring(0.8, 400)
+      onPress: { swipeX = 0; tracking = true }
+      onRelease: tracking = false
+      onDrag: swipeX = swipeX + dx
+      onDragEnd: {
+        tracking = false
+        if swipeX < -40 || vx < -500 {
+          if page < len(pages) - 1 { page = page + 1 }
+          else { screenMode = "dock"; screen() }
+        } else if swipeX > 40 || vx > 500 {
+          page = max(0, page - 1)
+        }
+        swipeX = 0
+      }
+      for a, i in visible {
+        Column {
+          weight: 1
+          gap: 1
+          align: center
+          onTap: {
+            if a != null { open(a.key) }
+            else { selected = page * 6 + i; screenMode = "configure"; screen() }
+          }
+          AppIcon { a: a; size: tileIconSize }
+          if showLabels && a != null {
+            Text { text: a.name; style: small; fontSize: 9; maxLines: 1; align: center }
+          }
+        }
+      }
+    }
+
+    Box {
+      fill: true
+      align: bottom
+      Row {
+        gap: 5
+        for i in range(len(pages)) {
+          Box {
+            width: 6
+            height: 3
+            radius: 2
+            background: i == page ? accent : muted
+          }
+        }
+      }
+    }
+
+    Box {
+      fill: true
+      align: topEnd
+      Box {
+        size: 20
+        align: center
+        background: alpha(surface, 0.8)
+        radius: 10 * corners
+        onTap: { selected = 0; screenMode = "configure"; screen() }
+        Text { text: "⚙"; color: foreground; fontSize: 13 }
+      }
+    }
+  }
+
+  screen {
+    title: str.title
+    if screenMode == "dock" {
+      Column {
+        fill: true
+        gap: 12
+        padding: 16
+        Row {
+          align: center
+          Text { text: str.appDock; style: title; weight: 1 }
+          Button { text: str.configure; color: accent; onTap: screenMode = "configure" }
+          Button { text: str.close; onTap: close() }
+        }
+        Box {
+          weight: 1
+          fill: true
+          align: center
+          Grid {
+            columns: 6
+            gap: 8
+            fill: width
+            for a, i in dock {
+              Column {
+                weight: 1
+                gap: 4
+                align: center
+                onTap: {
+                  if a != null { open(a.key) }
+                  else { selected = i; screenMode = "configure" }
+                }
+                AppIcon { a: a; size: 64 }
+                if showLabels {
+                  Text { text: a != null ? a.name : str.add; style: small; maxLines: 1; align: center }
+                }
+              }
+            }
+          }
+        }
+      }
+    } else {
+      Column {
+        fill: true
+        gap: 8
+        padding: 12
+        Row {
+          align: center
+          Text { text: str.configureDock; style: title; weight: 1 }
+          Button { text: showLabels ? str.labelsOn : str.labelsOff; onTap: showLabels = !showLabels }
+          Button { text: str.done; color: accent; onTap: { screenMode = "dock"; close() } }
+        }
+        Grid {
+          columns: 6
+          gap: 4
+          for a, i in dock {
+            Column {
+              gap: 2
+              align: center
+              onTap: selected = i
+              Box {
+                size: 52
+                background: surface
+                border: selected == i ? 2 : 1
+                borderColor: selected == i ? accent : border
+                align: center
+                AppIcon { a: a; size: 44 }
+              }
+              Text { text: a != null ? a.name : "${i + 1}"; style: small; maxLines: 1; align: center }
+            }
+          }
+        }
+        Row {
+          align: center
+          Text { text: str.chooseSlot(selected + 1); style: label; weight: 1 }
+          Button {
+            text: str.clear
+            visible: slots[selected] != ""
+            onTap: slots = range(18).map(i => i == selected ? "" : slots[i])
+          }
+        }
+        Column {
+          lazy: true
+          weight: 1
+          gap: 3
+          for a in apps key a.key {
+            Row {
+              gap: 8
+              align: center
+              padding: [6, 4]
+              background: surface
+              border: slots[selected] == a.key ? 2 : 1
+              borderColor: slots[selected] == a.key ? accent : border
+              onTap: slots = range(18).map(i => i == selected ? a.key : slots[i])
+              AppIcon { a: a; size: 44 }
+              Text { text: a.name; maxLines: 1; weight: 1 }
+              if slots[selected] == a.key { Text { text: "✓"; color: accent } }
+            }
+          }
+        }
+      }
+    }
+  }
+}
