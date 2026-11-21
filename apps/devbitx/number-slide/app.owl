@@ -1,0 +1,295 @@
+app "number slide" {
+  meta {
+    owl: 23
+    description: "A sliding number puzzle with six campaign levels and custom boards, with offline sounds"
+    version: "1.0"
+    license: "MIT"
+    category: "games"
+  }
+
+  // No shell commands or packages: slides, sound and haptics are built into the launcher.
+  requires { pacman: [] }
+
+  // Tiny embedded WAV clips (16-bit PCM, 11 kHz) keep sound offline.
+  asset slideSound = base64"UklGRuAEAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YbwEAAAAAHUPIhaEFWAVDBk4Gx4Vfgc1+kvz7PBQ7R3ngeOw51jyCP2JA88H/g0RFi0bTBnvESQKqQSQ//T3wO5c6Ofn9eu+8LD0q/miATILchL4FPgTGxIGEO0LgARX+8XzqO8T7k7tZu0U8EH2X/6tBcQKTQ5CERMTFxKjDRQHlgAt+2P20fFc7pjtF/DC9Pz5G/9sBPkJqw4EEXsQ2A00CucFtQDT+mP1yPGL8DLxG/Mz9rb6VgD8BWoKFg00DgQOWQzuCA4Etf7x+Uf2vPNe8o7yofRh+AD9nwHKBVMJ9AsmDX8MGQqJBngCSf46+rf2XvSs86f08/Yh+un9BQL+BSwJBQtiC2oKVwhOBYsBiP3m+TL3rvVh9UT2U/hm+xT/yAL9BWEIxgkKChEJ6AbfA3EAGP0q+u73p/aO9rD33fm5/OH//wLDBdQH4gjHCJMHfwXRAtX/3PxJ+nf4pfff9w75DPuf/X0ASAOcBS4H2QeSB2QGbwTuATf/pvyP+ir5mvjx+Cf6F/x8/gMBXgNHBYkG+waOBlAFbgMrAdD+oPze+sL5cfny+TD7/fwh/1kBYgP7BPAFIwaWBV4EogKYAIH+n/wx+2D6QvrX+gv8uf2q/54BWAOgBFQFXwXCBJAD8QEbAEv+tvyO+/T6+/qg+878XP4WAMcBOwNGBMYErgQCBNsCXwG//yv+1fzo+3/7pvtV/HT93/5oAOABGAPqAz0ECwRaA0MC6AB1/xn+/fxE/AP8QPzy/AH+TP+oAOoB7AKOA78DeQPHAsABhQBA/xb+LP2e/Hz8yvx8/Xr+pP/VAOgBvAI3A0sD9gJHAlIBNwAa/xz+Xf30/Oz8Rf3z/d7+6v/1AN4BiQLiAuACgwLYAfYA+f8A/yr+kf1G/VL9sv1a/jL/IQAIAcwBVQKTAn4CHAJ5AakAyf/y/j7+xf2T/a/9E/6y/nj/SwATAbYBIQJIAiYCwgEnAWsApP/r/lf++P3b/QL+Z/79/rD/agAVAZwB7gEDAtgBcwHiADgAiv/s/nL+Kv4e/k3+sP48/97/gAASAYABvQHDAZEBLwGoAA8Ad//x/o7+Wv5b/o/+8P5x/wEAjwAKAWMBjwGJAVMB9AB4APD/bP/7/qz+iP6S/sr+J/+d/x0AmAD/AEYBYwFUARwBwQBQANj/Zf8H/8n+sv7E/v3+Vf/B/zIAnADyACgBOgEkAesAlgAwAMb/Y/8W/+b+2v7y/ir/ff/e/0EAnADjAAwBFAH6AMEAcgAVALn/Zf8l/wL//v4a/1L/nv/2/0wAmQDSAPEA8QDUAJ0AUwABALD/af82/xz/H/8+/3P/uv8HAFMAlADCANcA0QCyAH0AOgDx/6r/b/9H/zX/Pf9d/5D/0f8VAFcAjQCxAL8AtQCVAGMAJQDl/6j/d/9X/03/WP95/6n/5P8gAFgAhQChAKgAmwB7AEwAFADc/6j/f/9n/2L/cf+R/77/8/8oAFgAfACRAJQAhABkADkABwDW/6n/iP93/3b/h/+m/9D///8tAFUAcwCCAIEAcABRACkA/f/R/6z/kv+F/4j/mv+4/97/BwAwAFIAagB0AG8AXgBAABwA9f/P/7D/m/+T/5n/q//H/+r/DwA="
+  asset winSound = base64"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"
+  // Campaign mode is the six built-in levels; custom mode is one
+  // player-defined puzzle. Drafts hold the setup screen's choices.
+  state mode = "campaign"
+  state view = "game"
+  state customN = 4
+  state customSteps = 90
+  state draftN = 4
+  state draftSteps = 90
+
+  title: view == "setup" ? "custom difficulty" : (mode == "custom" ? "custom ${customN}×${customN}" : "number slide")
+  back: view == "setup"
+  onBack: view = "game"
+  icon: """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+    <rect width="256" height="256" rx="56" fill="#1A1B26"/>
+    <rect x="40" y="40" width="52" height="52" rx="10" fill="#7AA2F7"/>
+    <rect x="102" y="40" width="52" height="52" rx="10" fill="#BB9AF7"/>
+    <rect x="164" y="40" width="52" height="52" rx="10" fill="#7DCFFF"/>
+    <rect x="40" y="102" width="52" height="52" rx="10" fill="#9ECE6A"/>
+    <rect x="102" y="102" width="52" height="52" rx="10" fill="#E0AF68"/>
+    <rect x="164" y="102" width="52" height="52" rx="10" fill="#F7768E"/>
+    <rect x="40" y="164" width="52" height="52" rx="10" fill="#7AA2F7"/>
+    <rect x="102" y="164" width="52" height="52" rx="10" fill="#BB9AF7"/>
+    <rect x="164" y="164" width="52" height="52" rx="10" fill="none" stroke="#565B78" stroke-width="6" stroke-dasharray="10 8"/>
+  </svg>"""
+
+  // Six levels: two 3x3, two 4x4, two 5x5. Later levels get a deeper
+  // scramble and a higher par score.
+  let maxLevel = 6
+  let levelSize = l => l <= 2 ? 3 : l <= 4 ? 4 : 5
+  let levelScramble = l => [30, 65, 100, 150, 220, 300][l - 1]
+  let levelPar = l => [25, 60, 110, 170, 260, 360][l - 1]
+
+  let GOAL = n => range(1, n * n) + [0]
+  let NEIGH = a => range(a.n * a.n).filter(j =>
+      (floor(a.i / a.n) == floor(j / a.n) && abs(a.i % a.n - j % a.n) == 1) ||
+      (a.i % a.n == j % a.n && abs(floor(a.i / a.n) - floor(j / a.n)) == 1)
+    )
+
+  // Random legal slides that never immediately undo the previous one. That
+  // makes the deeper scrambles on later levels actually harder, and every
+  // board stays solvable.
+  let walk = a => [reduce(range(a.steps), (st, step) =>
+      [[{n: a.n, i: indexOf(st.b, 0)}].map(NEIGH)[0].filter(j => j != st.prev)].map(cs =>
+        [cs[floor(hash(a.s, step) * len(cs))]].map(p => {
+          b: set(set(st.b, indexOf(st.b, 0), st.b[p]), p, 0),
+          prev: indexOf(st.b, 0)
+        })[0]
+      )[0],
+      {b: [a.n].map(GOAL)[0], prev: -1}
+    )].map(st => st.b)[0]
+
+  let scramble = a => [[a].map(walk)[0]].map(b =>
+      b == [a.n].map(GOAL)[0] ? [merge(a, {s: a.s + 1})].map(walk)[0] : b
+    )[0]
+
+  let begin = a => [{n: [a.lv].map(levelSize)[0], s: a.s, steps: [a.lv].map(levelScramble)[0]}].map(scramble)[0]
+  let beginCustom = a => [{n: a.n, s: a.s, steps: a.steps}].map(scramble)[0]
+
+  state level = 1
+  state seed = random(1000000)
+  state board = [{lv: level, s: seed}].map(begin)[0]
+  state moves = 0
+  state best = {} persist
+  state sound = true
+
+  let n = mode == "custom" ? customN : [level].map(levelSize)[0]
+  let par = mode == "custom" ? round(customSteps * 0.25 + customN * customN * 2) : [level].map(levelPar)[0]
+  let draftPar = round(draftSteps * 0.25 + draftN * draftN * 2)
+  let bestKey = mode == "custom" ? "c${customN}x${customN}-${customSteps}" : level
+  let blank = indexOf(board, 0)
+  let won = board == [n].map(GOAL)[0]
+  let W = screenWidth ?? 412
+  let H = screenHeight ?? 820
+  let side = max(240, min(W - 32, H - 214))
+  let pad = 8
+  let gap = n == 5 ? 6 : 8
+  let cell = (side - 2 * pad - (n - 1) * gap) / n
+  let numSize = cell * (n <= 3 ? 0.42 : n == 4 ? 0.38 : 0.32)
+
+  when won {
+    let b = get(best, bestKey, 0)
+    if b == 0 || moves < b { best = set(best, bestKey, moves) }
+    haptic()
+    if sound { sound(winSound) }
+  }
+
+  if view == "game" {
+  Column {
+    padding: [16, 12]
+    gap: 14
+
+    Row {
+      gap: 8
+      align: center
+      Column { gap: 2; weight: 1
+        Text { text: mode == "custom" ? "CUSTOM · ${n}×${n}" : "LEVEL ${level}/${maxLevel} · ${n}×${n}"; style: title }
+        Text { text: "arrange 1–${n * n - 1} in order"; style: small; color: muted }
+      }
+      Column { gap: 2
+        Text { text: "${moves}"; style: title; bold: true; align: end; color: moves > par ? yellow : accent }
+        Text { text: "par ${par} · best ${get(best, bestKey, 0) > 0 ? get(best, bestKey, 0) : "–"}"; style: small; color: muted; align: end }
+      }
+    }
+
+    Box {
+      width: side
+      height: side
+      align: topStart
+      background: alpha(surface, 0.75)
+      border: 1
+      borderColor: alpha(accent, 0.3)
+      radius: 18 * corners
+
+      // Bare cells sit underneath; the empty square is just a cell with no tile.
+      for i in range(n * n) key "${mode}-${n}-${level}-${i}" {
+        Box {
+          width: cell
+          height: cell
+          offset: [pad + (i % n) * (cell + gap), pad + floor(i / n) * (cell + gap)]
+          radius: 12 * corners
+          background: alpha(background, 0.35)
+        }
+      }
+
+      // One persistent node per tile, keyed by level and number. Only its
+      // offset changes on a move, and that change is tweened into a slide.
+      for v in range(1, n * n) key "${mode}-${n}-${level}-${v}" {
+        let p = indexOf(board, v)
+        let pr = floor(p / n)
+        let pc = p % n
+        let br = floor(blank / n)
+        let bc = blank % n
+        let movable = (pr == br && abs(pc - bc) == 1) || (pc == bc && abs(pr - br) == 1)
+        Box {
+          width: cell
+          height: cell
+          offset: [pad + pc * (cell + gap), pad + pr * (cell + gap)]
+          animate offset: tween(220ms, "out")
+          radius: 12 * corners
+          background: won ? alpha(green, 0.28) : movable ? alpha(accent, 0.38) : alpha(accent, 0.12)
+          border: 1
+          borderColor: alpha(accent, movable ? 0.55 : 0.22)
+          onTap: {
+            if !won && movable {
+              let z = blank
+              board = set(set(board, z, v), p, 0)
+              moves = moves + 1
+              haptic("light")
+              if sound { sound(slideSound) }
+            }
+          }
+          Column { fill: true; align: center; justify: center
+            Text { text: "${v}"; fontSize: numSize; bold: true; color: won ? green : foreground }
+          }
+        }
+      }
+
+      if won {
+        Box {
+          fill: true
+          radius: 18 * corners
+          background: alpha(background, 0.96)
+          Column { fill: true; align: center; justify: center; gap: 12
+            Text { text: mode == "custom" ? "PUZZLE CLEARED" : level < maxLevel ? "LEVEL ${level} CLEARED" : "ALL LEVELS CLEARED"; style: title; bold: true; color: green; align: center }
+            Text { text: "${moves} moves · par ${par}"; color: foreground; align: center }
+            Button { text: mode == "custom" || level == maxLevel ? "play again" : "next level"; onTap: {
+              let s = random(1000000)
+              seed = s
+              if mode == "custom" {
+                board = [{n: customN, steps: customSteps, s: s}].map(beginCustom)[0]
+              } else {
+                let lv = level < maxLevel ? level + 1 : 1
+                level = lv
+                board = [{lv: lv, s: s}].map(begin)[0]
+              }
+              moves = 0
+            } }
+          }
+        }
+      }
+    }
+
+    Row { gap: 8
+      if mode == "campaign" {
+        Button { text: "◀"; onTap: {
+          let lv = max(1, level - 1)
+          let s = random(1000000)
+          level = lv
+          seed = s
+          board = [{lv: lv, s: s}].map(begin)[0]
+          moves = 0
+        } }
+        Button { text: "new game"; weight: 1; onTap: {
+          let s = random(1000000)
+          seed = s
+          board = [{lv: level, s: s}].map(begin)[0]
+          moves = 0
+        } }
+        Button { text: "▶"; onTap: {
+          let lv = min(maxLevel, level + 1)
+          let s = random(1000000)
+          level = lv
+          seed = s
+          board = [{lv: lv, s: s}].map(begin)[0]
+          moves = 0
+        } }
+      } else {
+        Button { text: "new puzzle"; weight: 1; onTap: {
+          let s = random(1000000)
+          seed = s
+          board = [{n: customN, steps: customSteps, s: s}].map(beginCustom)[0]
+          moves = 0
+        } }
+        Button { text: "campaign"; onTap: {
+          mode = "campaign"
+          level = 1
+          let s = random(1000000)
+          seed = s
+          board = [{lv: level, s: s}].map(begin)[0]
+          moves = 0
+        } }
+      }
+      Button { text: "custom"; onTap: {
+        draftN = customN
+        draftSteps = customSteps
+        view = "setup"
+      } }
+      Button { text: sound ? "♪ on" : "♪ off"; onTap: {
+        sound = !sound
+        if sound { sound(slideSound) }
+      } }
+    }
+    Text { text: "tap a tile beside the empty square to slide it"; style: small; color: muted; align: center }
+  }
+  }
+
+  if view == "setup" {
+    Column {
+      padding: [16, 12]
+      gap: 14
+
+      Column { gap: 2
+        Text { text: "custom difficulty"; style: title }
+        Text { text: "choose a board and how far to scramble it"; style: small; color: muted }
+      }
+
+      Text { text: "presets"; style: label; color: accent }
+      Row { gap: 8
+        Button { text: "easy"; weight: 1; onTap: { draftN = 3; draftSteps = 25 } }
+        Button { text: "normal"; weight: 1; onTap: { draftN = 4; draftSteps = 90 } }
+        Button { text: "hard"; weight: 1; onTap: { draftN = 5; draftSteps = 180 } }
+        Button { text: "expert"; weight: 1; onTap: { draftN = 6; draftSteps = 300 } }
+      }
+
+      Column { gap: 4
+        Text { text: "board: ${draftN}×${draftN} · ${draftN * draftN - 1} tiles"; style: small }
+        Slider { value: draftN; min: 3; max: 6; step: 1; color: accent; track: background; onChange: draftN = round(value) }
+      }
+
+      Column { gap: 4
+        Text { text: "scramble: ${draftSteps} moves"; style: small }
+        Slider { value: draftSteps; min: 10; max: 400; step: 10; color: accent; track: background; onChange: draftSteps = round(value) }
+      }
+
+      Text { text: "par ${draftPar} · every board is solvable"; style: small; color: muted }
+
+      Button { text: "start custom game"; onTap: {
+        let s = random(1000000)
+        mode = "custom"
+        customN = draftN
+        customSteps = draftSteps
+        seed = s
+        board = [{n: draftN, steps: draftSteps, s: s}].map(beginCustom)[0]
+        moves = 0
+        view = "game"
+      } }
+      Button { text: "cancel"; color: muted; onTap: view = "game" }
+    }
+  }
+}
