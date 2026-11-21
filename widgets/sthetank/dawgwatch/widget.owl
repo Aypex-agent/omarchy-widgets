@@ -1,7 +1,7 @@
 widget "dawgwatch" {
   meta {
-    description: "Washington Huskies football dashboard: live score, schedule, Big Ten standings, and team news"
-    version: "1.0"
+    description: "Washington Huskies football dashboard: live score, live betting odds, ESPN win probability, schedule, Big Ten standings, and team news"
+    version: "1.1"
     license: "MIT"
     category: "sport"
     owl: 17
@@ -16,12 +16,13 @@ widget "dawgwatch" {
   source standings = http("https://site.api.espn.com/apis/v2/sports/football/college-football/standings?group=5") every 30m json timeout 20s
   source newsFeed = http("https://site.api.espn.com/apis/site/v2/sports/football/college-football/news?team=264") every 15m json timeout 20s
   source uwNews = http("https://gohuskies.com/api/v2/stories?sportId=3") every 15m json timeout 20s
-  source foxRss = http("https://api.foxsports.com/v2/content/optimized-rss?partnerKey=MB0Wehpmuj2lUhuRhQaafhBjAJqaPU244mlTDK1i&size=15&tags=washington-huskies") every 15m timeout 20s
+  source foxRss = http("https://api.foxsports.com/v2/content/optimized-rss?partnerKey=MB0Wehpmuj2lUhuRhQaafhBjAJqaPU244mlTDK1i&size=15&tags=washington-huskies") every 15m timeout 20s status
   source b1gRss = http("https://bigten.org/rss.aspx?path=football") every 15m timeout 20s
 
   state tab = "score"
   state screenTab = "game"
   state newsFilter = "all"
+  state lastLiveProb = null
 
   let uwPurple = mix(#4b2e83, foreground, 0.55)
   let uwGold = mix(#c5a45c, foreground, 0.25)
@@ -108,6 +109,74 @@ widget "dawgwatch" {
   let fgDownDist = fgSit != null ? (fgSit.downDistanceText ?? fgSit.shortDownDistanceText ?? '') : ''
   let fgIsRedZone = fgSit != null && fgSit.isRedZone == true
 
+  // Live & pregame betting odds + ESPN win probability
+  let fgId = featuredGame.id != null ? str(featuredGame.id) : ""
+  let espnCore = "https://sports.core.api.espn.com/v2/sports/football/leagues/college-football"
+  source liveOdds = http(fgIsLive && fgId != "" ? "${espnCore}/events/${enc(fgId)}/competitions/${enc(fgId)}/odds" : null) every 30s json timeout 15s status
+  source preOdds = http(!fgIsLive && fgId != "" ? "${espnCore}/events/${enc(fgId)}/competitions/${enc(fgId)}/odds" : null) every 15m json timeout 15s status
+  source gamePredictor = http(!fgIsFinal && fgId != "" ? "${espnCore}/events/${enc(fgId)}/competitions/${enc(fgId)}/predictor" : null) every 30m json timeout 15s status
+
+  let gameOdds = fgIsLive ? (liveOdds ?? preOdds) : preOdds
+  let oddsItems = (gameOdds != null && gameOdds.ok ? gameOdds.out.items : null) ?? []
+  let liveOddsItem = oddsItems.find(o => str(o.provider.id ?? "") == "200" || contains(lower(o.provider.name ?? ""), "live"))
+  let preOddsItem = oddsItems.find(o => str(o.provider.id ?? "") == "100") ?? oddsItems.find(o => str(o.provider.id ?? "") != "200")
+  let fallbackSbOdds = first(fgComp.odds ?? [])
+  let hasLiveOdds = !fgIsFinal && liveOddsItem != null
+  let activeOdds = hasLiveOdds ? liveOddsItem : (preOddsItem ?? fallbackSbOdds)
+  let hasOdds = activeOdds != null
+
+  let oddsProvider = replace(activeOdds.provider.name ?? "DraftKings", " - Live Odds", "")
+  let oddsDetails = activeOdds.details ?? ""
+  let oddsOuStr = activeOdds.current.total.american ?? (activeOdds.overUnder != null ? "${activeOdds.overUnder}" : "")
+  let oddsOverJuice = activeOdds.current.over.american ?? (activeOdds.overOdds != null ? (activeOdds.overOdds > 0 ? "+${int(activeOdds.overOdds)}" : "${int(activeOdds.overOdds)}") : "")
+  let oddsUnderJuice = activeOdds.current.under.american ?? (activeOdds.underOdds != null ? (activeOdds.underOdds > 0 ? "+${int(activeOdds.underOdds)}" : "${int(activeOdds.underOdds)}") : "")
+
+  let oddsAwaySpread = activeOdds.awayTeamOdds.current.pointSpread.american ?? (activeOdds.spread != null ? (activeOdds.spread == 0 ? "PK" : (-activeOdds.spread > 0 ? "+${-activeOdds.spread}" : "${-activeOdds.spread}")) : "")
+  let oddsHomeSpread = activeOdds.homeTeamOdds.current.pointSpread.american ?? (activeOdds.spread != null ? (activeOdds.spread == 0 ? "PK" : (activeOdds.spread > 0 ? "+${activeOdds.spread}" : "${activeOdds.spread}")) : "")
+  let oddsAwaySpreadJuice = activeOdds.awayTeamOdds.current.spread.american ?? (activeOdds.awayTeamOdds.spreadOdds != null ? (activeOdds.awayTeamOdds.spreadOdds > 0 ? "+${int(activeOdds.awayTeamOdds.spreadOdds)}" : "${int(activeOdds.awayTeamOdds.spreadOdds)}") : "")
+  let oddsHomeSpreadJuice = activeOdds.homeTeamOdds.current.spread.american ?? (activeOdds.homeTeamOdds.spreadOdds != null ? (activeOdds.homeTeamOdds.spreadOdds > 0 ? "+${int(activeOdds.homeTeamOdds.spreadOdds)}" : "${int(activeOdds.homeTeamOdds.spreadOdds)}") : "")
+
+  let oddsAwayMl = activeOdds.awayTeamOdds.current.moneyLine.american ?? (activeOdds.awayTeamOdds.moneyLine != null ? (activeOdds.awayTeamOdds.moneyLine > 0 ? "+${int(activeOdds.awayTeamOdds.moneyLine)}" : "${int(activeOdds.awayTeamOdds.moneyLine)}") : "")
+  let oddsHomeMl = activeOdds.homeTeamOdds.current.moneyLine.american ?? (activeOdds.homeTeamOdds.moneyLine != null ? (activeOdds.homeTeamOdds.moneyLine > 0 ? "+${int(activeOdds.homeTeamOdds.moneyLine)}" : "${int(activeOdds.homeTeamOdds.moneyLine)}") : "")
+  let oddsMlCompact = oddsAwayMl != "" && oddsHomeMl != "" ? "${fgAwayAbbr} ${oddsAwayMl} / ${fgHomeAbbr} ${oddsHomeMl}" : (oddsAwayMl != "" ? "${fgAwayAbbr} ${oddsAwayMl}" : (oddsHomeMl != "" ? "${fgHomeAbbr} ${oddsHomeMl}" : ""))
+
+  let oddsSpreadHeadline = oddsDetails != "" ? oddsDetails : (oddsHomeSpread != "" ? "${fgHomeAbbr} ${oddsHomeSpread}" : "")
+  let oddsBadgeText = hasLiveOdds ? "● LIVE" : (fgIsLive || fgIsFinal ? "CLOSE" : "ODDS")
+
+  let preCloseDetails = preOddsItem.details ?? ""
+  let preCloseOu = preOddsItem.overUnder != null ? "O/U ${preOddsItem.overUnder}" : ""
+  let preCloseRef = preCloseDetails != "" && preCloseOu != "" ? "${preCloseDetails} • ${preCloseOu}" : (preCloseDetails != "" ? preCloseDetails : preCloseOu)
+
+  let openAwaySp = activeOdds.awayTeamOdds.open.pointSpread.american ?? ""
+  let openHomeSp = activeOdds.homeTeamOdds.open.pointSpread.american ?? ""
+  let openSpreadStr = activeOdds.awayTeamOdds.open.favorite == true && openAwaySp != "" ? "${fgAwayAbbr} ${openAwaySp}" : (activeOdds.homeTeamOdds.open.favorite == true && openHomeSp != "" ? "${fgHomeAbbr} ${openHomeSp}" : (openAwaySp != "" ? "${fgAwayAbbr} ${openAwaySp}" : ""))
+  let openTotalStr = activeOdds.open.total.american != null ? "O/U ${activeOdds.open.total.american}" : ""
+  let openRef = openSpreadStr != "" && openTotalStr != "" ? "${openSpreadStr} • ${openTotalStr}" : (openSpreadStr != "" ? openSpreadStr : openTotalStr)
+  let oddsRefLabel = hasLiveOdds && preCloseRef != "" ? "Pregame Close: ${preCloseRef}" : (!hasLiveOdds && openRef != "" ? "Open: ${openRef}" : "")
+
+  let sbLiveAwayProb = fgSit.lastPlay.probability.awayWinPercentage
+  let sbLiveHomeProb = fgSit.lastPlay.probability.homeWinPercentage
+  let sbLiveProbPair = fgIsLive && fgId != "" && sbLiveAwayProb != null && sbLiveHomeProb != null ? {id: fgId, away: sbLiveAwayProb, home: sbLiveHomeProb} : null
+  on sbLiveProbPair first {
+    if value != null { lastLiveProb = value }
+  }
+  let cachedLiveProb = fgIsLive && lastLiveProb != null && lastLiveProb.id == fgId ? lastLiveProb : null
+  let liveAwayProbRaw = sbLiveAwayProb ?? cachedLiveProb.away
+  let liveHomeProbRaw = sbLiveHomeProb ?? cachedLiveProb.home
+  let hasLiveProb = fgIsLive && liveAwayProbRaw != null && liveHomeProbRaw != null
+
+  let predData = gamePredictor != null && gamePredictor.ok ? gamePredictor.out : null
+  let predAwayStat = (predData.awayTeam.statistics ?? []).find(s => s.name == "gameProjection")
+  let predHomeStat = (predData.homeTeam.statistics ?? []).find(s => s.name == "gameProjection")
+  let predAwayPct = predAwayStat.value != null ? num(predAwayStat.value) : null
+  let predHomePct = predHomeStat.value != null ? num(predHomeStat.value) : null
+
+  let awayWinPct = hasLiveProb ? liveAwayProbRaw * 100 : predAwayPct
+  let homeWinPct = hasLiveProb ? liveHomeProbRaw * 100 : predHomePct
+  let hasWinProb = !fgIsFinal && awayWinPct != null && homeWinPct != null
+  let awayWinPctStr = hasWinProb ? fixed(awayWinPct, 1) : ""
+  let homeWinPctStr = hasWinProb ? fixed(homeWinPct, 1) : ""
+
   // Previous game details
   let pgComp = prevGame.competitions[0]
   let pgAway = pgComp.competitors.filter(t => t.homeAway == 'away')[0] ?? pgComp.competitors[1]
@@ -140,7 +209,7 @@ widget "dawgwatch" {
     ts: parseTime(a.published)
   }))
 
-  let foxItems = matchAll(foxRss ?? "", "<item>[\\s\\S]*?<title>\\s*(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?\\s*</title>[\\s\\S]*?<link>\\s*([^<]+?)\\s*</link>[\\s\\S]*?<category>([^<]+)</category>[\\s\\S]*?<description>\\s*(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?\\s*</description>[\\s\\S]*?<pubDate>\\s*([^<]+?)\\s*</pubDate>")
+  let foxItems = matchAll((foxRss != null && foxRss.ok ? foxRss.out : "") ?? "", "<item>[\\s\\S]*?<title>\\s*(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?\\s*</title>[\\s\\S]*?<link>\\s*([^<]+?)\\s*</link>[\\s\\S]*?<category>([^<]+)</category>[\\s\\S]*?<description>\\s*(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?\\s*</description>[\\s\\S]*?<pubDate>\\s*([^<]+?)\\s*</pubDate>")
     .filter(m => trim(m[2]) == "college-football")
     .map(m => ({
       id: "fox-${trim(m[1])}",
@@ -189,7 +258,7 @@ widget "dawgwatch" {
   onTap: { haptic(); screen() }
 
   Column {
-    gap: 5
+    gap: 4
     fill: width
 
     // Header
@@ -311,32 +380,34 @@ widget "dawgwatch" {
       weight: 1
       scroll: true
       onPull: refresh()
-      gap: 5
+      gap: 4
 
       if tab == "score" {
         // Featured Game Card (Upcoming or Live)
         Box {
           fill: width
-          padding: [8, 6]
+          padding: [8, 5]
           radius: 8 * corners
           background: alpha(surface, 0.6)
           border: 1
           borderColor: fgIsLive ? uwPurple : border
 
           Column {
-            gap: 4
+            gap: 3
             fill: width
 
             Row {
               fill: width
               align: center
+              gap: 6
               Text {
-                text: fgIsLive ? "LIVE GAME" : (fgIsFinal ? "RECENT GAME" : "UPCOMING • WEEK ${featuredGame.week.number ?? ''}")
+                text: fgIsLive ? "LIVE GAME" : (fgIsFinal ? "RECENT GAME" : (fgVenue != "" ? "W${featuredGame.week.number ?? ''} • ${fgVenue}" : "UPCOMING • WEEK ${featuredGame.week.number ?? ''}"))
                 style: small
                 bold: true
                 color: fgIsLive ? uwPurple : (fgIsPre ? uwGold : muted)
+                weight: 1
+                maxLines: 1
               }
-              Spacer { weight: 1 }
               if fgBroadcast != "" {
                 Text {
                   text: fgBroadcast
@@ -360,8 +431,8 @@ widget "dawgwatch" {
               Column {
                 weight: 1
                 align: center
-                gap: 2
-                TeamLogo { id: fgAway.team.id; px: 32 }
+                gap: 1
+                TeamLogo { id: fgAway.team.id; px: 26 }
                 Text {
                   text: fgAwayRank != null ? "#${fgAwayRank} ${fgAwayAbbr}" : fgAwayAbbr
                   bold: true
@@ -414,8 +485,8 @@ widget "dawgwatch" {
               Column {
                 weight: 1
                 align: center
-                gap: 2
-                TeamLogo { id: fgHome.team.id; px: 32 }
+                gap: 1
+                TeamLogo { id: fgHome.team.id; px: 26 }
                 Text {
                   text: fgHomeRank != null ? "#${fgHomeRank} ${fgHomeAbbr}" : fgHomeAbbr
                   bold: true
@@ -429,7 +500,7 @@ widget "dawgwatch" {
               }
             }
 
-            // Live down & distance or venue
+            // Live down & distance
             if fgIsLive && fgDownDist != "" {
               Row {
                 align: center
@@ -447,8 +518,89 @@ widget "dawgwatch" {
                   }
                 }
               }
-            } else if fgVenue != "" && fgIsPre {
-              Text { text: "📍 ${fgVenue}"; style: label; color: muted; align: center; maxLines: 1 }
+            }
+
+            // Compact Betting Odds Strip
+            if hasOdds {
+              Box {
+                fill: width
+                padding: [6, 3]
+                radius: 5 * corners
+                background: hasLiveOdds ? alpha(red, 0.12) : alpha(background, 0.35)
+                border: hasLiveOdds ? 1 : 0
+                borderColor: alpha(red, 0.45)
+
+                Row {
+                  fill: width
+                  align: center
+                  gap: 6
+                  Text {
+                    text: oddsBadgeText
+                    style: label
+                    bold: true
+                    color: hasLiveOdds ? red : (fgIsPre ? uwGold : muted)
+                  }
+                  if oddsSpreadHeadline != "" {
+                    Text { text: oddsSpreadHeadline; style: label; bold: true; color: foreground; maxLines: 1 }
+                  }
+                  if oddsOuStr != "" {
+                    Text { text: "O/U ${oddsOuStr}"; style: label; color: muted; maxLines: 1 }
+                  }
+                  Spacer { weight: 1 }
+                  if oddsMlCompact != "" {
+                    Text { text: oddsMlCompact; style: label; color: foreground; align: end; maxLines: 1 }
+                  }
+                }
+              }
+            }
+
+            // Compact ESPN Percentage Odds Bar
+            if hasWinProb {
+              Column {
+                fill: width
+                gap: 2
+                Row {
+                  fill: width
+                  align: center
+                  Text {
+                    text: "${fgAwayAbbr} ${awayWinPctStr}%"
+                    style: label
+                    bold: !fgIsHome || awayWinPct >= homeWinPct
+                    color: !fgIsHome ? uwGold : (awayWinPct >= homeWinPct ? foreground : muted)
+                  }
+                  Spacer { weight: 1 }
+                  Text {
+                    text: hasLiveProb ? "● ESPN LIVE" : "ESPN WIN PROB"
+                    style: label
+                    bold: hasLiveProb
+                    color: hasLiveProb ? red : muted
+                  }
+                  Spacer { weight: 1 }
+                  Text {
+                    text: "${fgHomeAbbr} ${homeWinPctStr}%"
+                    style: label
+                    bold: fgIsHome || homeWinPct >= awayWinPct
+                    color: fgIsHome ? uwGold : (homeWinPct >= awayWinPct ? foreground : muted)
+                  }
+                }
+                Row {
+                  fill: width
+                  height: 4
+                  radius: 2
+                  clip: true
+                  gap: 2
+                  Box {
+                    weight: clamp(awayWinPct, 2, 98)
+                    height: 4
+                    background: !fgIsHome ? uwGold : alpha(muted, 0.55)
+                  }
+                  Box {
+                    weight: clamp(homeWinPct, 2, 98)
+                    height: 4
+                    background: fgIsHome ? uwGold : alpha(muted, 0.55)
+                  }
+                }
+              }
             }
           }
         }
@@ -937,7 +1089,8 @@ widget "dawgwatch" {
 
                   if fgIsPre {
                     Text { text: "AT"; style: title; color: muted; bold: true; align: center }
-                    Text { text: "${fgKickDate} • ${fgKickTime}"; style: small; color: uwPurple; align: center; bold: true }
+                    Text { text: fgKickDate; style: small; color: uwPurple; align: center; bold: true }
+                    Text { text: fgKickTime; style: small; color: uwGold; align: center; bold: true }
                   } else {
                     Row {
                       gap: 10
@@ -1027,6 +1180,252 @@ widget "dawgwatch" {
                 text: "ESPN Gamecast & Preview ↗"
                 fill: width
                 onTap: { haptic(); url("https://www.espn.com/college-football/game/_/gameId/${featuredGame.id}") }
+              }
+            }
+          }
+
+          // Betting Odds & ESPN Win Probability Card
+          if hasOdds || hasWinProb {
+            Text {
+              text: (hasLiveOdds || hasLiveProb) ? "LIVE ODDS & WIN PROBABILITY" : (fgIsFinal ? "CLOSING BETTING ODDS" : "BETTING ODDS & WIN PROBABILITY")
+              style: label
+              color: muted
+            }
+            Box {
+              fill: width
+              padding: 12
+              radius: 10 * corners
+              background: alpha(surface, 0.6)
+              border: 1
+              borderColor: (hasLiveOdds || hasLiveProb) ? uwPurple : border
+
+              Column {
+                gap: 10
+                fill: width
+
+                if hasWinProb {
+                  Column {
+                    gap: 6
+                    fill: width
+                    Row {
+                      fill: width
+                      align: center
+                      gap: 6
+                      if hasLiveProb {
+                        Text {
+                          text: "● LIVE"
+                          style: label
+                          bold: true
+                          color: red
+                          padding: [4, 1]
+                          radius: 3
+                          background: alpha(red, 0.2)
+                        }
+                      }
+                      Text {
+                        text: hasLiveProb ? "ESPN Win Probability" : "ESPN Matchup Predictor"
+                        style: small
+                        bold: true
+                        color: hasLiveProb ? red : foreground
+                      }
+                      Spacer { weight: 1 }
+                      Text { text: "ESPN Analytics"; style: label; color: muted }
+                    }
+
+                    Row {
+                      fill: width
+                      align: center
+                      gap: 6
+                      TeamLogo { id: fgAway.team.id; px: 16 }
+                      Text {
+                        text: "${fgAwayName} ${awayWinPctStr}%"
+                        style: small
+                        bold: !fgIsHome || awayWinPct >= homeWinPct
+                        color: !fgIsHome ? uwGold : (awayWinPct >= homeWinPct ? foreground : muted)
+                      }
+                      Spacer { weight: 1 }
+                      Text {
+                        text: "${homeWinPctStr}% ${fgHomeName}"
+                        style: small
+                        bold: fgIsHome || homeWinPct >= awayWinPct
+                        color: fgIsHome ? uwGold : (homeWinPct >= awayWinPct ? foreground : muted)
+                      }
+                      TeamLogo { id: fgHome.team.id; px: 16 }
+                    }
+
+                    Row {
+                      fill: width
+                      height: 8
+                      radius: 4
+                      clip: true
+                      gap: 2
+                      Box {
+                        weight: clamp(awayWinPct, 2, 98)
+                        height: 8
+                        background: !fgIsHome ? uwGold : alpha(muted, 0.55)
+                      }
+                      Box {
+                        weight: clamp(homeWinPct, 2, 98)
+                        height: 8
+                        background: fgIsHome ? uwGold : alpha(muted, 0.55)
+                      }
+                    }
+                  }
+                }
+
+                if hasWinProb && hasOdds {
+                  Box {
+                    fill: width
+                    height: 1
+                    background: alpha(border, 0.6)
+                  }
+                }
+
+                if hasOdds {
+                  Column {
+                    gap: 4
+                    fill: width
+                    Row {
+                      fill: width
+                      align: center
+                      gap: 6
+                      if hasLiveOdds {
+                        Text {
+                          text: "● LIVE"
+                          style: label
+                          bold: true
+                          color: red
+                          padding: [4, 1]
+                          radius: 3
+                          background: alpha(red, 0.2)
+                        }
+                      }
+                      Text {
+                        text: hasLiveOdds ? "Live Betting Lines" : (fgIsLive ? "Pregame Closing Lines (Live Paused)" : (fgIsFinal ? "Closing Lines" : "Game Lines"))
+                        style: small
+                        bold: true
+                        color: hasLiveOdds ? red : foreground
+                      }
+                      Spacer { weight: 1 }
+                      Text {
+                        text: oddsProvider
+                        style: label
+                        bold: true
+                        color: uwGold
+                        padding: [5, 2]
+                        radius: 4
+                        background: alpha(uwGold, 0.16)
+                      }
+                    }
+
+                    Row {
+                      fill: width
+                      align: center
+                      gap: 6
+                      padding: [4, 0]
+                      Text { text: "TEAM"; style: label; color: muted; weight: 1 }
+                      Text { text: "SPREAD"; style: label; color: muted; width: 74; align: end }
+                      Text { text: "ML"; style: label; color: muted; width: 50; align: end }
+                      Text { text: "TOTAL"; style: label; color: muted; width: 90; align: end }
+                    }
+
+                    Row {
+                      fill: width
+                      align: center
+                      gap: 6
+                      padding: [6, 4]
+                      radius: 4
+                      background: !fgIsHome ? alpha(uwPurple, 0.16) : rgb(0, 0, 0, 0)
+                      TeamLogo { id: fgAway.team.id; px: 18 }
+                      Text {
+                        text: fgAwayName
+                        style: small
+                        bold: !fgIsHome
+                        color: !fgIsHome ? uwGold : foreground
+                        weight: 1
+                        maxLines: 1
+                      }
+                      Text {
+                        text: oddsAwaySpread != "" ? (oddsAwaySpreadJuice != "" ? "${oddsAwaySpread} (${oddsAwaySpreadJuice})" : oddsAwaySpread) : "–"
+                        style: small
+                        bold: true
+                        width: 74
+                        align: end
+                        maxLines: 1
+                      }
+                      Text {
+                        text: oddsAwayMl != "" ? oddsAwayMl : "–"
+                        style: small
+                        bold: true
+                        color: !fgIsHome ? uwGold : foreground
+                        width: 50
+                        align: end
+                        maxLines: 1
+                      }
+                      Text {
+                        text: oddsOuStr != "" ? (oddsOverJuice != "" ? "O ${oddsOuStr} (${oddsOverJuice})" : "O ${oddsOuStr}") : "–"
+                        style: small
+                        color: muted
+                        width: 90
+                        align: end
+                        maxLines: 1
+                      }
+                    }
+
+                    Row {
+                      fill: width
+                      align: center
+                      gap: 6
+                      padding: [6, 4]
+                      radius: 4
+                      background: fgIsHome ? alpha(uwPurple, 0.16) : rgb(0, 0, 0, 0)
+                      TeamLogo { id: fgHome.team.id; px: 18 }
+                      Text {
+                        text: fgHomeName
+                        style: small
+                        bold: fgIsHome
+                        color: fgIsHome ? uwGold : foreground
+                        weight: 1
+                        maxLines: 1
+                      }
+                      Text {
+                        text: oddsHomeSpread != "" ? (oddsHomeSpreadJuice != "" ? "${oddsHomeSpread} (${oddsHomeSpreadJuice})" : oddsHomeSpread) : "–"
+                        style: small
+                        bold: true
+                        width: 74
+                        align: end
+                        maxLines: 1
+                      }
+                      Text {
+                        text: oddsHomeMl != "" ? oddsHomeMl : "–"
+                        style: small
+                        bold: true
+                        color: fgIsHome ? uwGold : foreground
+                        width: 50
+                        align: end
+                        maxLines: 1
+                      }
+                      Text {
+                        text: oddsOuStr != "" ? (oddsUnderJuice != "" ? "U ${oddsOuStr} (${oddsUnderJuice})" : "U ${oddsOuStr}") : "–"
+                        style: small
+                        color: muted
+                        width: 90
+                        align: end
+                        maxLines: 1
+                      }
+                    }
+
+                    if oddsRefLabel != "" {
+                      Box {
+                        fill: width
+                        padding: [8, 4]
+                        radius: 4 * corners
+                        background: alpha(surface, 0.4)
+                        Text { text: oddsRefLabel; style: label; color: muted }
+                      }
+                    }
+                  }
+                }
               }
             }
           }
