@@ -1,0 +1,1077 @@
+widget "Weather companion" {
+  meta { owl: 19; description: "A pixel-art soldier dresses for your local weather. Tap for hourly and daily forecasts."; version: "5.0"; license: "MIT"; category: "world" }
+  requires { pacman: [] }
+
+  strings {
+    en {
+      placeLanguage: "en"
+      title: "Weather companion"
+      weather0: "Clear"
+      weather1: "Mostly clear"
+      weather2: "Partly cloudy"
+      weather3: "Overcast"
+      weather45: "Fog"
+      weather48: "Rime fog"
+      weather51: "Light drizzle"
+      weather53: "Drizzle"
+      weather55: "Heavy drizzle"
+      weather56: "Freezing drizzle"
+      weather57: "Heavy freezing drizzle"
+      weather61: "Light rain"
+      weather63: "Rain"
+      weather65: "Heavy rain"
+      weather66: "Freezing rain"
+      weather67: "Heavy freezing rain"
+      weather71: "Light snow"
+      weather73: "Snow"
+      weather75: "Heavy snow"
+      weather77: "Snow grains"
+      weather80: "Light showers"
+      weather81: "Showers"
+      weather82: "Heavy showers"
+      weather85: "Snow showers"
+      weather86: "Heavy snow showers"
+      weather95: "Thunderstorm"
+      weather96: "Thunderstorm with hail"
+      weather97: "Severe thunderstorm"
+      weather99: "Severe thunderstorm with hail"
+      uvExtreme: "extreme"
+      uvVeryHigh: "very high"
+      uvHigh: "high"
+      uvModerate: "moderate"
+      uvLow: "low"
+      rain: "Rain"
+      likelyRain: "Likely rain"
+      classic: "Classic"
+      viking: "Viking"
+      military: "Military"
+      samurai: "Samurai"
+      astronaut: "Astronaut"
+      allowLocation: "Allow location"
+      enableLocation: "Turn on location"
+      weatherUnavailable: "Weather unavailable"
+      cachedData: "Cached data"
+      locationExplanation: "Allow approximate location to see local weather."
+      grantLocation: "Grant location access"
+      findingLocation: "Finding your location."
+      locationSettings: "Location settings"
+      coldSensitivity: "Cold sensitivity"
+      lighterLayers: "Lighter layers"
+      warmerLayers: "Warmer layers"
+      showingCached: "Showing cached data"
+      humidity: "Humidity"
+      precipToday: "Precipitation today"
+      uvIndex: "UV index"
+      pressure: "Pressure"
+      visibility: "Visibility"
+      sunrise: "Sunrise"
+      sunset: "Sunset"
+      driestWindow: "Driest window"
+      bestTimeOut: "Best time to go out"
+      next24h: "Next 24 hours"
+      tapOrSwipe: "Tap or swipe"
+      tapDay: "Tap a day"
+      chartLegend: "— Temperature   ▮ Rain chance"
+      attribution: "Weather data from Open-Meteo"
+      southwest: "SW"
+      west: "W"
+      northwest: "NW"
+      rainSoon: prefix => "${prefix} soon"
+      rainInMinutes: (prefix, minutes) => "${prefix} in ${minutes} min"
+      rainBreak: time => "Possible break · ${time}"
+      gustsShort: speed => "Gusts · ${speed} km/h"
+      cooling: time => "Cooler around ${time}"
+      relativeHumidity: percent => "${percent}% RH"
+      gearThemeLabel: (name, marker) => "Gear theme · ${name} ${marker}"
+      cachedAt: time => "Cached data · ${time}"
+      feelsAndRange: (feels, high, low) => "Feels like ${feels} · ${high} ${low}"
+      windReading: suffix => "Wind${suffix}"
+      gustsLong: speed => "Gusts up to ${speed} km/h"
+      outing: (start, end, rain, wind) => "${start}–${end} · Rain ${rain}% · Wind up to ${wind} km/h"
+      hourDetail: (feels, rain, wind) => "Feels like ${feels} · Rain ${rain} · Wind ${wind}"
+      nextDays: count => "${count == 1 ? "Next day" : "Next ${count} days"}"
+    }
+    es {
+      placeLanguage: "es"
+      title: "Weather companion"
+      weather0: "Despejado"
+      weather1: "Casi despejado"
+      weather2: "Nubes y claros"
+      weather3: "Cubierto"
+      weather45: "Niebla"
+      weather48: "Niebla con escarcha"
+      weather51: "Llovizna leve"
+      weather53: "Llovizna"
+      weather55: "Llovizna intensa"
+      weather56: "Llovizna helada"
+      weather57: "Llovizna helada fuerte"
+      weather61: "Lluvia leve"
+      weather63: "Lluvia"
+      weather65: "Lluvia intensa"
+      weather66: "Lluvia helada"
+      weather67: "Lluvia helada fuerte"
+      weather71: "Nevada leve"
+      weather73: "Nevada"
+      weather75: "Nevada intensa"
+      weather77: "Nieve granulada"
+      weather80: "Chubascos leves"
+      weather81: "Chubascos"
+      weather82: "Chubascos fuertes"
+      weather85: "Chubascos de nieve"
+      weather86: "Chubascos de nieve fuertes"
+      weather95: "Tormenta"
+      weather96: "Tormenta con granizo"
+      weather97: "Tormenta fuerte"
+      weather99: "Tormenta con granizo fuerte"
+      uvExtreme: "extremo"
+      uvVeryHigh: "muy alto"
+      uvHigh: "alto"
+      uvModerate: "moderado"
+      uvLow: "bajo"
+      rain: "Lluvia"
+      likelyRain: "Lluvia probable"
+      classic: "Clásico"
+      viking: "Vikingo"
+      military: "Militar"
+      samurai: "Samurái"
+      astronaut: "Astronauta"
+      allowLocation: "Dar ubicación"
+      enableLocation: "Activa la ubicación"
+      weatherUnavailable: "Tiempo no disponible"
+      cachedData: "Datos guardados"
+      locationExplanation: "Permite la ubicación aproximada para ver el tiempo local."
+      grantLocation: "Dar permiso de ubicación"
+      findingLocation: "Buscando tu ubicación."
+      locationSettings: "Ajustes de ubicación"
+      coldSensitivity: "Sensibilidad al frío"
+      lighterLayers: "Menos abrigo"
+      warmerLayers: "Más abrigo"
+      showingCached: "Mostrando datos guardados"
+      humidity: "Humedad"
+      precipToday: "Precipitación hoy"
+      uvIndex: "Índice UV"
+      pressure: "Presión"
+      visibility: "Visibilidad"
+      sunrise: "Amanecer"
+      sunset: "Puesta de sol"
+      driestWindow: "Franja menos lluviosa"
+      bestTimeOut: "Mejor rato para salir"
+      next24h: "Próximas 24 horas"
+      tapOrSwipe: "Toca o desliza"
+      tapDay: "Toca un día"
+      chartLegend: "— Temperatura   ▮ Prob. de lluvia"
+      attribution: "Datos meteorológicos de Open-Meteo"
+      southwest: "SO"
+      west: "O"
+      northwest: "NO"
+      rainSoon: prefix => "${prefix} en breve"
+      rainInMinutes: (prefix, minutes) => "${prefix} en ${minutes} min"
+      rainBreak: time => "Posible tregua · ${time}"
+      gustsShort: speed => "Rachas · ${speed} km/h"
+      cooling: time => "Refresca hacia las ${time}"
+      relativeHumidity: percent => "${percent}% HR"
+      gearThemeLabel: (name, marker) => "Tema del equipo · ${name} ${marker}"
+      cachedAt: time => "Datos guardados · ${time}"
+      feelsAndRange: (feels, high, low) => "Sens. ${feels} · ${high} ${low}"
+      windReading: suffix => "Viento${suffix}"
+      gustsLong: speed => "Rachas de ${speed} km/h"
+      outing: (start, end, rain, wind) => "${start}–${end} · Lluvia ${rain}% · Viento hasta ${wind} km/h"
+      hourDetail: (feels, rain, wind) => "Sens. ${feels} · Lluvia ${rain} · Viento ${wind}"
+      nextDays: count => "${count == 1 ? "Próximo día" : "Próximos ${count} días"}"
+    }
+  }
+  size: 3x2
+  minSize: 2x2
+  fps: 6
+
+  source modes = android.modes
+  source now = clock every 1s
+  state pose = "normal"
+  state poseEnds = 0
+  state armorTier = 0
+  state selectedHour = null
+  state chartDrag = 0
+  state selectedDay = null
+  state comfort = "Normal" persist
+  state coldShift = null persist
+  state gearTheme = "classic" persist
+  state gearMenu = false
+  state savedWeather = null persist
+  state savedPlace = null persist
+
+  on now {
+    if !modes.saver && floor(value) % 6 == 0 && pose == "normal" {
+      let chance = random(12)
+      pose = storm ? "shiver" : windy && helmet && chance < 4 ? "hold" : muggy && chance < 4 ? "wipe" : chance == 0 ? "left" : chance == 1 ? "right" : chance == 2 ? "crouch" : "blink"
+      poseEnds = value + 1
+    }
+  }
+  at poseEnds {
+    pose = "normal"
+    poseEnds = 0
+  }
+
+  source solarClock = clock every 1m
+  source here = android.location
+  source forecast = http(here.available ? "https://api.open-meteo.com/v1/forecast?latitude=${enc(fixed(here.lat, 2))}&longitude=${enc(fixed(here.lon, 2))}&timezone=auto&past_days=1&forecast_days=6&past_minutely_15=24&forecast_minutely_15=28&minutely_15=precipitation,snowfall,wind_gusts_10m&current=temperature_2m,apparent_temperature,is_day,weather_code,relative_humidity_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m,uv_index,visibility,pressure_msl&hourly=temperature_2m,apparent_temperature,wind_speed_10m,weather_code,precipitation_probability,is_day&daily=weather_code,temperature_2m_min,temperature_2m_max,precipitation_probability_max,precipitation_sum,sunrise,sunset,moonrise,moonset,moon_phase" : null) every 15m timeout 12s status json
+
+  source placeLookup = http(here.available ? "https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${enc(fixed(here.lat, 2))}&longitude=${enc(fixed(here.lon, 2))}&localityLanguage=${enc(str.placeLanguage)}" : null) every 12h timeout 8s json
+
+  let positionKey = here.available ? "${fixed(here.lat, 2)},${fixed(here.lon, 2)}" : null
+  on forecast first {
+    if positionKey != null && value.ok && value.out.current.temperature_2m != null &&
+      abs(value.out.latitude - here.lat) <= 0.3 && abs((value.out.longitude - here.lon + 540) % 360 - 180) <= 0.3 {
+      savedWeather = {key: positionKey, payload: value.out, received: solarClock ?? now}
+    }
+  }
+  on placeLookup first {
+    if positionKey != null && value.latitude != null && value.longitude != null &&
+      abs(value.latitude - here.lat) <= 0.01 && abs(value.longitude - here.lon) <= 0.01 {
+      savedPlace = {key: positionKey, payload: value}
+    }
+  }
+  let weather = here.granted && (!here.available || savedWeather.key == positionKey) ? savedWeather.payload : null
+  let place = here.granted && savedPlace.key == (positionKey ?? savedWeather.key) ? savedPlace.payload : null
+  let usingSaved = weather != null && (!here.available || !forecast.ok || savedWeather.received == null || solarClock - savedWeather.received > 30m)
+  let shortRangeFresh = weather != null && savedWeather.received != null && solarClock - savedWeather.received <= 1h
+
+  let locality = trim(place.locality ?? "")
+  let city = trim(place.city ?? "")
+  let placeName = locality != "" ? locality : city
+  let detailPlace = city != "" && lower(city) != lower(placeName) ? "${placeName}, ${city}" : placeName
+  let compact = (tileWidth ?? 180) < 155
+  let locationSize = compact ? 8 : 9
+  // Reserve room for the footer padding and the current monospace font.
+  let shortTile = compact && (tileHeight ?? 0) < 155
+  let locationFits = here.granted && placeName != "" && (tileHeight ?? 0) >= 110 && len(placeName) * locationSize * 0.7 <= (tileWidth ?? 0) - 36
+
+  let labels = {
+    "0": str.weather0, "1": str.weather1, "2": str.weather2, "3": str.weather3,
+    "45": str.weather45, "48": str.weather48,
+    "51": str.weather51, "53": str.weather53, "55": str.weather55,
+    "56": str.weather56, "57": str.weather57,
+    "61": str.weather61, "63": str.weather63, "65": str.weather65,
+    "66": str.weather66, "67": str.weather67,
+    "71": str.weather71, "73": str.weather73, "75": str.weather75, "77": str.weather77,
+    "80": str.weather80, "81": str.weather81, "82": str.weather82,
+    "85": str.weather85, "86": str.weather86,
+    "95": str.weather95, "96": str.weather96, "97": str.weather97, "99": str.weather99
+  }
+  let current = weather.current
+  let daily = weather.daily
+  let zone = weather.timezone
+  let date = fmtTime(solarClock, "yyyy-MM-dd", zone)
+  let dayIndex = indexOf(daily.time ?? [], date)
+  let sunrise = dayIndex >= 0 ? daily.sunrise[dayIndex] : null
+  let sunset = dayIndex >= 0 ? daily.sunset[dayIndex] : null
+  let riseTime = sunrise == null ? null : parseTime(sunrise, null, zone)
+  let setTime = sunset == null ? null : parseTime(sunset, null, zone)
+  let solarHours = riseTime != null && setTime != null && setTime > riseTime
+  let temperature = current.temperature_2m
+  let feels = current.apparent_temperature ?? temperature
+  let coldOffset = coldShift ?? (comfort == "Friolero" ? 3 : comfort == "Caluroso" ? -3 : 0)
+  let coldProfile = coldOffset > 0
+  let warmProfile = coldOffset < 0
+  let outfitFeels = feels == null ? null : feels - coldOffset
+  // Keep each layer on until the apparent temperature rises one degree above its threshold.
+  let thermalTier = outfitFeels == null ? 0 :
+    outfitFeels < (armorTier >= 6 ? 1 : 0) ? 6 :
+    outfitFeels < (armorTier >= 5 ? 4 : 3) ? 5 :
+    outfitFeels < (armorTier >= 4 ? 8 : 7) ? 4 :
+    outfitFeels < (armorTier >= 3 ? 13 : 12) ? 3 :
+    outfitFeels < (armorTier >= 2 ? 17 : 16) ? 2 :
+    outfitFeels < (armorTier >= 1 ? 25 : 24) ? 1 : 0
+  on outfitFeels first { armorTier = thermalTier }
+  let code = current.weather_code
+  let night = solarHours ? solarClock < riseTime || solarClock >= setTime : current.is_day == 0 && code != null
+  let sunStep = solarHours ? clamp(round((solarClock - riseTime) / (setTime - riseTime) * 16), 0, 16) : 8
+  let moonRises = (daily.moonrise ?? []).filter(t => t != null).map(t => parseTime(t, null, zone)).filter(t => t != null && t <= solarClock)
+  let moonSets = (daily.moonset ?? []).filter(t => t != null).map(t => parseTime(t, null, zone)).filter(t => t != null && t <= solarClock)
+  let moonPhase = dayIndex >= 0 ? daily.moon_phase[dayIndex] : null
+  let moonUp = len(moonRises) > 0 && (len(moonSets) == 0 || max(moonRises) > max(moonSets))
+  let moonRight = (moonPhase < 0.5) == ((here.lat ?? weather.latitude ?? 0) >= 0)
+  let moonLight = moonPhase == null ? null : cos(moonPhase * 6.2831853)
+  let twilight = solarHours && (abs(solarClock - riseTime) <= 1800 || abs(solarClock - setTime) <= 1800)
+  let wind = current.wind_speed_10m
+  let gust = current.wind_gusts_10m
+  let windDirection = current.wind_direction_10m
+  let windCompass = windDirection == null ? null : ["N", "NE", "E", "SE", "S", str.southwest, str.west, str.northwest][round(windDirection / 45) % 8]
+  let windSide = windDirection != null && windDirection > 0 && windDirection < 180 ? -1 : 1
+  let windy = wind != null && (wind >= 20 || gust >= 35)
+  let humidity = current.relative_humidity_2m
+  let muggy = humidity != null && humidity >= 80 && temperature >= 23
+  let uv = current.uv_index
+  let highUv = !night && uv >= 6
+  let visibility = current.visibility
+  let haze = visibility != null && visibility < 5000
+  let forecastDays = (daily.time ?? []).filter(d => d > date)
+  let hourly = weather.hourly
+  let hourKey = fmtTime(solarClock, "yyyy-MM-dd'T'HH", zone) + ":00"
+  let firstHour = indexOf(hourly.time ?? [], hourKey)
+  let outingStarts = firstHour < 0 || !shortRangeFresh ? [] : range(firstHour + 1, firstHour + 5).filter(i =>
+    hourly.apparent_temperature[i] != null && hourly.apparent_temperature[i + 1] != null &&
+    hourly.wind_speed_10m[i] != null && hourly.wind_speed_10m[i + 1] != null &&
+    hourly.precipitation_probability[i + 1] != null && hourly.precipitation_probability[i + 2] != null)
+  let outingOptions = outingStarts.map(i => {
+    start: sub(hourly.time[i], 11, 16), end: sub(hourly.time[i + 2], 11, 16),
+    rain: max(hourly.precipitation_probability[i + 1], hourly.precipitation_probability[i + 2]),
+    wind: max(hourly.wind_speed_10m[i], hourly.wind_speed_10m[i + 1]),
+    discomfort: max(abs(hourly.apparent_temperature[i] - 18), abs(hourly.apparent_temperature[i + 1] - 18))
+  })
+  let outing = sortBy(outingOptions, slot => slot.rain * 2 + slot.wind + slot.discomfort * 2)[0]
+  let dayHours = selectedDay == null ? [] : range(len(hourly.time ?? [])).filter(i => startsWith(hourly.time[i], selectedDay + "T"))
+  let hours = firstHour < 0 ? [] : range(8).map(i => firstHour + i * 3).filter(i => hourly.temperature_2m[i] != null)
+  let hourlyRainIndex = firstHour < 0 ? null : find(range(firstHour + 1, firstHour + 7), i => (hourly.precipitation_probability[i] ?? 0) >= 50)
+  let hourlyRainTime = hourlyRainIndex == null ? null : parseTime(hourly.time[hourlyRainIndex], null, zone)
+  let quarters = weather.minutely_15
+  let quarterTimes = (quarters.time ?? []).map(t => parseTime(t, null, zone))
+  let quarterIndices = range(len(quarterTimes))
+  let futureQuarters = quarterIndices.filter(i => quarterTimes[i] != null && quarterTimes[i] > solarClock && quarterTimes[i] <= solarClock + 6h)
+  let wetQuarter = find(futureQuarters, i => quarters.precipitation[i] >= 0.1 && (quarters.snowfall[i] ?? 0) < 0.05)
+  let dryQuarter = find(futureQuarters, i => quarterTimes[i] > solarClock + 15m && quarters.precipitation[i] != null && quarters.precipitation[i + 1] != null && quarters.precipitation[i] < 0.1 && quarters.precipitation[i + 1] < 0.1)
+  let rainStart = wetQuarter == null ? hourlyRainTime : max(solarClock, quarterTimes[wetQuarter] - 15m)
+  let rainBreak = dryQuarter == null ? null : quarterTimes[dryQuarter] - 15m
+  let minutesToRain = rainStart == null ? null : ceil(max(0, rainStart - solarClock) / 300) * 5
+  let recentQuarters = quarterIndices.filter(i => quarterTimes[i] != null && quarterTimes[i] <= solarClock && quarterTimes[i] >= solarClock - 6h)
+  let puddles = any(recentQuarters, i => quarterTimes[i] >= solarClock - 2h && quarters.precipitation[i] >= 0.2 && (quarters.snowfall[i] ?? 0) < 0.05)
+  let snowCover = temperature != null && temperature <= 4 && any(recentQuarters, i => quarters.snowfall[i] >= 0.1)
+  let looseLeaves = windy || any(recentQuarters, i => quarterTimes[i] >= solarClock - 2h && quarters.wind_gusts_10m[i] >= 35)
+  let coolingHour = firstHour < 0 || !shortRangeFresh ? null : find(range(firstHour + 1, firstHour + 4), i => hourly.apparent_temperature[i] != null && feels != null && hourly.apparent_temperature[i] <= 16 && feels - hourly.apparent_temperature[i] >= 4)
+  let coolingTime = coolingHour == null ? null : sub(hourly.time[coolingHour], 11, 16)
+  let todayLow = dayIndex >= 0 ? daily.temperature_2m_min[dayIndex] : null
+  let todayHigh = dayIndex >= 0 ? daily.temperature_2m_max[dayIndex] : null
+  let todayRain = dayIndex >= 0 ? daily.precipitation_probability_max[dayIndex] : null
+  let todayRainAmount = dayIndex >= 0 ? daily.precipitation_sum[dayIndex] : null
+  let pressure = current.pressure_msl
+  let uvLevel = uv >= 11 ? str.uvExtreme : uv >= 8 ? str.uvVeryHigh : uv >= 6 ? str.uvHigh : uv >= 3 ? str.uvModerate : str.uvLow
+  // weatherIcon uses wttr.in codes. These representatives match the WMO condition groups.
+  let icons = {"0": 113, "1": 116, "2": 116, "3": 122, "45": 248, "48": 260,
+    "51": 266, "53": 266, "55": 266, "56": 281, "57": 284,
+    "61": 296, "63": 302, "65": 308, "66": 311, "67": 314,
+    "71": 326, "73": 332, "75": 338, "77": 350, "80": 353, "81": 356, "82": 359,
+    "85": 368, "86": 371, "95": 389, "96": 392, "97": 389, "99": 395}
+  let chart = hours.map(i => {
+    key: hourly.time[i], hour: sub(hourly.time[i], 11, 13), temp: hourly.temperature_2m[i],
+    feels: hourly.apparent_temperature[i], wind: hourly.wind_speed_10m[i],
+    code: hourly.weather_code[i], night: hourly.is_day[i] == 0, rain: hourly.precipitation_probability[i]
+  })
+  let hourDetail = find(chart, h => h.key == selectedHour)
+  let openDays = forecastDays.map(d => { date: d, index: indexOf(daily.time, d) })
+  let days = openDays.map(day => {
+    date: day.date, min: daily.temperature_2m_min[day.index], max: daily.temperature_2m_max[day.index],
+    code: daily.weather_code[day.index], rain: daily.precipitation_probability_max[day.index]
+  })
+  let dailyLow = min(days.map(d => d.min).filter(t => t != null))
+  let dailyHigh = max(days.map(d => d.max).filter(t => t != null))
+  let activePose = modes.saver ? "normal" : pose
+  let description = code == null ? null : get(labels, "${code}")
+  let fog = contains([45, 48], code)
+  let drizzle = contains([51, 53, 55, 56, 57], code)
+  let icy = contains([56, 57, 66, 67], code)
+  let snow = contains([71, 73, 75, 77, 85, 86], code)
+  let storm = contains([95, 96, 97, 99], code)
+  let hail = contains([96, 99], code)
+  let rain = storm || drizzle || contains([61, 63, 65, 66, 67, 80, 81, 82], code)
+  let heavy = contains([55, 57, 65, 67, 75, 82, 86, 97, 99], code)
+  let medium = contains([53, 63, 73, 81, 85, 95, 96], code)
+  let clouds = code == 1 ? 1 : code == 2 ? 2 : code == 3 || rain || snow ? 3 : 0
+  let vest = storm || thermalTier >= 1
+  let plate = storm || thermalTier >= 2
+  let neckWrap = storm || thermalTier >= 3
+  let winter = storm || thermalTier >= 4
+  let insulated = thermalTier >= 5
+  let frostCape = thermalTier >= 6
+  let headband = outfitFeels != null && outfitFeels >= 29
+  let canteen = outfitFeels != null && outfitFeels >= 34
+  let helmet = rain || snow || winter
+  let rainSoon = shortRangeFresh && code != null && !rain && !snow && rainStart != null
+  let carryHelmet = rainSoon && !helmet
+  let carryScarf = coolingTime != null && !neckWrap && !carryHelmet
+  let rainPrefix = shortTile ? str.rain : str.likelyRain
+  let rainClock = rainStart == null ? null : fmtTime(rainStart, "HH:mm", zone)
+  let weatherNote = rainSoon ?
+    (minutesToRain <= 5 ? str.rainSoon(rainPrefix) : minutesToRain < 60 ?
+      str.rainInMinutes(rainPrefix, minutesToRain) : "${rainPrefix} · ${rainClock}") :
+    shortRangeFresh && rain && rainBreak != null ? str.rainBreak(fmtTime(rainBreak, "HH:mm", zone)) :
+    windy && gust != null ? str.gustsShort(round(gust)) :
+    carryScarf ? str.cooling(coolingTime) : null
+  let camp = night && feels != null && feels < 7 && !rain && !snow && !windy
+  let ground = snow || snowCover || code == 48 ? "#C1DEE5" : icy ? "#79A6B6" : rain || fog ? "#44656A" : night ? "#324C5A" : "#54905C"
+  let sky = description == null ? "#364861" : storm ? "#2D3049" : twilight ? (night ? "#594969" : "#A87479") : night ? "#192742" : snow || fog ? "#90ABB8" : rain || code == 3 ? "#647E93" : "#527EAB"
+
+  let head = [
+    "...kkkkkkk...", "..khhhhhhhk..", ".khHHhhhhhkk.", ".khhhsshhhhk.",
+    ".khsssssshhk.", ".ksssksskskk.", ".kssSssssSsk.", "..ksssssssk..",
+    "...kksskkk..."
+  ]
+  let cap = [
+    "....kkkkk....", "..kkbbbbakk..", ".kbbbbbbaadk.", "kbbbbbaaaaadk",
+    "kaaaaaaaaaadk", ".kdkkkkkkkdk."
+  ]
+  let body = [
+    "....kkkkk....", "..kktTTttkk..", ".ktttTTttttk.", "kttktttttkttk",
+    "kssktttttkssk", ".kkkgggggkkk.", "...ktttttk...",
+    "...kttkttk...", "...kttkttk...", "..kggkkkggk..", "..kkkkkkkkk.."
+  ]
+  let armor = [
+    "....kkkkk....", "..kbbabbadk..", ".kbbabbbaddk.", "kdbkabbbdkddk",
+    ".kkkabbdkkk..", "...kabddk...."
+  ]
+  let gearThemes = [
+    {id: "classic", name: str.classic},
+    {id: "viking", name: str.viking},
+    {id: "modern", name: str.military},
+    {id: "samurai", name: str.samurai},
+    {id: "space", name: str.astronaut}
+  ]
+  let gearName = (find(gearThemes, item => item.id == gearTheme)).name ?? str.classic
+  let gearStyles = {
+    viking: {
+      tunic: "#765039", vest: "#4E5D53", trim: "#D9AC6B", detail: "#AF8056",
+      light: "#EAD4A1", metal: "#A7A7A2", shade: "#5A626B", accent: "#C58C4A",
+      scarf: "#783F38", scarfLight: "#CA6755", cape: "#795745",
+      cap: [
+        ".....kkk.....", "...kkbabkk...", "..kdbbabbdk..", ".kdbbbabbbdk.",
+        ".kccccccccck.", ".kd...a...dk.", "..k...d...k.."
+      ],
+      plate: [
+        "...kkccckk...", "..kcdbbdckk..", ".kcbbabbddck.", "kcbkabbbdkdck",
+        ".kkkbdabkkk..", "...kccbbk...."
+      ]
+    },
+    modern: {
+      tunic: "#787949", vest: "#4C5940", trim: "#C6B178", detail: "#8B9163",
+      light: "#CACE9B", metal: "#7A845B", shade: "#4B5843", accent: "#A29B64",
+      scarf: "#606A47", scarfLight: "#A5AF78", cape: "#4F624E",
+      cap: [
+        "....kkkkkk...", "..kkbbbbbdk..", ".kbcbbbdbddk.", ".kbbabbbdddk.",
+        "kbbbbcdddddk.", "kkkkkkkkkkdk.", ".........dkk."
+      ],
+      plate: [
+        "...kdddddkk..", "..kdbabbdkk..", ".kddcacacddk.", "kddkccccdkddk",
+        ".kkkdcdckkk..", "...kdddk....."
+      ],
+      uniform: [
+        "....kkkkk....", "..kkmTTmmkk..", ".kmtmTTmttmk.", "kmtkttmttktmk",
+        "ksskmtmmtkssk", ".kkkgggggkkk.", "...kmtmtmk...",
+        "...ktmktmk...", "...kmtkmtk...", "..kggkkkggk..", "..kkkkkkkkk.."
+      ]
+    },
+    samurai: {
+      tunic: "#3D486C", vest: "#493F64", trim: "#D4B287", detail: "#646491",
+      light: "#F1C47B", metal: "#A84C58", shade: "#4C2D46", accent: "#DD775E",
+      scarf: "#586A90", scarfLight: "#A6A8CF", cape: "#4E3D64",
+      cap: [
+        "....a...a....", "....aakaa....", "...kkacakkk..", "..kbbbbbbbdk.",
+        ".kccccccccddk", "kddk.....kddk", "kcc.......cck", ".kd.......dk."
+      ],
+      plate: [
+        "...kccccck...", ".kcbbbbbbcdk.", "kcakccccdkack",
+        "kddkabbbdkddk", ".kckcccdkck..", "...kbbddk...."
+      ],
+      uniform: [
+        "....kkkkk....", "..kkTttTtkk..", ".kmtTTmtttmk.", "kmtktmTTtkmtk",
+        "ksskmttTTkssk", ".kkkgggggkkk.", "...kmtmtmk...",
+        "...ktmktmk...", "...kttkttk...", "..kggkkkggk..", "..kkkkkkkkk.."
+      ]
+    },
+    space: {
+      tunic: "#C6BEA8", vest: "#929EA8", trim: "#F79267", detail: "#F5E6C8",
+      light: "#F9EED3", metal: "#DAD8C5", shade: "#778DA4", accent: "#62B8C4",
+      scarf: "#B96956", scarfLight: "#F2A478", cape: "#788396",
+      cap: [
+        "....kkkkk....", "..kkabbbbkk..", ".kabccccccbk.", "kac........bk",
+        "kac........bk", "kb.........bk", "kb.........bk", ".kb.......bk.",
+        "..kccccccck..", "...kkkkkkk..."
+      ],
+      plate: [
+        "...kkkkkkk...", "..kbbbbbbdk..", ".kbacacacbdk.", "kdbkbbbbbkdck",
+        ".kkkcdcddkk..", "...kbbddk...."
+      ],
+      uniform: [
+        "....kkkkk....", "..kkmTTmmkk..", ".kmmTTTmmttk.", "kmtkmmtmtktmk",
+        "ksskmtmmtkssk", ".kkkgggggkkk.", "...kmtmtmk...",
+        "...kmmkmtk...", "...kmtkmtk...", "..kggkkkggk..", "..kkkkkkkkk.."
+      ]
+    }
+  }
+  let gear = get(gearStyles, gearTheme)
+  let suitArt = gear.uniform ?? body
+  let armorArt = gear.plate ?? armor
+  let helmetArt = gear.cap ?? cap
+  let scarfPalette = { r: gear.scarf ?? "#AA494D", R: gear.scarfLight ?? "#E4756A" }
+
+  let cloudArt = [
+    "....llll....", "..llccccll..", ".lccccccccl.", "lcccccccccdl",
+    "lccccddddddl", ".dddddddddd."
+  ]
+
+  onTap: { gearMenu = false; screen() }
+
+  component Rule {
+    Box { fill: width; height: 1; background: alpha(muted, 0.25) }
+  }
+
+  component Reading(glyph, label, value, tint) {
+    Row {
+      padding: [6, 8]
+      gap: 7
+      align: center
+      border: 1
+      borderColor: alpha(muted, 0.35)
+      radius: 6
+      Text { text: glyph; font: icon; fontSize: 17; width: 26; align: center; color: tint }
+      Column {
+        weight: 1
+        gap: 1
+        Text { text: label; fontSize: 10; color: muted; maxLines: 1 }
+        Text { text: value; fontSize: 11; maxLines: 1 }
+      }
+    }
+  }
+
+  Column {
+    fill: width
+    gap: 0
+    Canvas {
+      fill: width
+      weight: 1
+      let px = max(1, min(width / (compact ? 27 : 34), height / 23))
+      let x = floor((width - 13 * px) / 2)
+      let holding = !storm && activePose == "hold" && windy && helmet
+      let wiping = !storm && activePose == "wipe" && muggy
+      let raisedArm = holding || wiping
+      let crouching = !storm && activePose == "crouch"
+      let bodyY = height - 21 * px
+      let y = bodyY + (crouching ? px : 0)
+      let jitter = storm && activePose == "shiver" ? floor(time * 6) % 3 - 1 : 0
+      let soldierX = x + jitter * px
+      let cloudPalette = { l: storm ? "#6C6C85" : night ? "#788BAE" : "#E0EDF0", c: storm ? "#53546E" : night ? "#526685" : "#C2D4DE", d: storm ? "#41425D" : night ? "#364968" : "#A1B8C8" }
+      let tunic = coldProfile ? (vest ? "#793D53" : "#A65D64") :
+        warmProfile ? (vest ? "#386E79" : "#438D90") : (vest ? "#5E7055" : "#94754C")
+      let trimColor = coldProfile ? "#E9A479" : warmProfile ? "#9DE0D3" : vest ? "#A6AA69" : "#D5B77C"
+      let uniform = {
+        k: "#202432", t: gear == null ? tunic : vest ? gear.vest : gear.tunic,
+        T: gear.trim ?? trimColor, m: gear.detail ?? trimColor,
+        s: insulated ? "#BEA48C" : "#E7A36D", g: insulated ? "#715D58" : "#4B3740"
+      }
+      let steel = {
+        k: "#202432", a: gear.light ?? (coldProfile ? "#FFDAAA" : warmProfile ? "#DAF8ED" : "#E8EFF3"),
+        b: gear.metal ?? (coldProfile ? "#C88B6F" : warmProfile ? "#86C5C5" : "#ADBFCC"),
+        d: gear.shade ?? (coldProfile ? "#8D515C" : warmProfile ? "#406F8B" : "#607A91"),
+        c: gear.accent ?? "#7196AA"
+      }
+
+      rect(0, 0, width, height, fill: sky)
+      if description != null && clouds < 3 && !fog {
+        if night {
+          if moonUp && moonLight != null && (code == 0 || code == 1) {
+            let moonArt = range(7).map(iy => join(range(7).map(ix =>
+              (ix - 3) * (ix - 3) + (iy - 3) * (iy - 3) > 11 ? "." :
+              (moonRight ? ix - 3 : 3 - ix) >= moonLight * sqrt(11 - (iy - 3) * (iy - 3)) ? "l" : "d"
+            ), ""))
+            sprite(moonArt, width - 9 * px, 2 * px, px, palette: { l: "#F1E9CA", d: "#303B54" })
+          }
+          for i in range(7) {
+            rect(width * (0.05 + i * 0.13), (1 + (i * 3) % 5) * px, px / 2, px / 2, fill: "#BCD3E8")
+          }
+        } else {
+          let sunX = min(width - 7 * px, width * (0.10 + sunStep / 16 * 0.65))
+          let sunY = (1 + abs(sunStep - 8) / 8 * 6) * px
+          sprite(["...a...", "..bbb..", ".bbccb.", "abbccba", ".bbbbb.", "..bbb..", "...a..."], sunX, sunY, px, palette: { a: "#FFEFC1", b: highUv ? "#FFAD54" : "#F5C666", c: "#FFE29A" })
+        }
+      }
+      if clouds > 0 {
+        sprite(cloudArt, width * 0.06, 2 * px, px, palette: cloudPalette)
+      }
+      if clouds > 1 {
+        sprite(cloudArt, min(width * 0.66, width - 12 * px), 4 * px, px, palette: cloudPalette)
+      }
+      if clouds > 2 {
+        sprite(cloudArt, width / 2 - 6 * px, px, px, palette: cloudPalette)
+      }
+
+      rect(0, height - 4 * px, width, 4 * px, fill: ground)
+      for i in range(12) {
+        rect(i * width / 12, height - (1 + i % 3) * px, (1 + i % 2) * px, px / 2, fill: night || rain ? "#6F8B91" : "#C2DDA3")
+      }
+      if camp {
+        let fireX = width * 0.78
+        let fireY = height - 8 * px
+        rect(fireX - 2 * px, fireY + 2 * px, 9 * px, 5 * px, fill: alpha("#F1A962", 0.19))
+        sprite(["..o..", ".ooo.", ".oyo.", "oyyyo", "bbbbb"], fireX, fireY, px, palette: { o: "#E67D51", y: "#FFD27C", b: "#67433E" })
+      }
+      if puddles && !snow && !snowCover {
+        for i in range(3) {
+          let puddleX = width * [0.09, 0.67, 0.84][i]
+          let puddleY = height - (1 + i % 2) * px
+          rect(puddleX, puddleY, 3 * px, px / 2, fill: "#517F99")
+          rect(puddleX + px / 2, puddleY, px, px / 4, fill: "#A4C7D7")
+        }
+      }
+      if looseLeaves && !snow && !snowCover {
+        for i in range(5) {
+          let leafX = width * [0.05, 0.21, 0.69, 0.78, 0.91][i]
+          sprite([".l.", "ll."], leafX, height - (1 + i % 2) * px, px / 3, palette: { l: night ? "#B88758" : "#C78548" })
+        }
+      }
+      rect(x - px, height - 3 * px, 15 * px, px, fill: "#344756")
+
+      if rain || snow {
+        for i in range(heavy ? 36 : medium ? 24 : 13) {
+          let dropX = clamp(((i * 31) % 103) * width / 103, 2 * px, width - 2 * px)
+          let dropY = (7 + (i * 7) % 14) * px
+          if snow || (hail && i % 3 == 0) {
+            rect(dropX, dropY, 0.75 * px, 0.75 * px, fill: "#F1F7FC")
+            if snow && code != 77 && i % 3 == 0 {
+              rect(dropX - px / 2, dropY + px / 4, 1.75 * px, px / 3, fill: "#E0F1FA")
+            }
+          } else {
+            line(dropX, dropY, dropX + (windy ? windSide * 1.25 * px : drizzle ? 0 : -px / 2), dropY + (drizzle ? 0.65 : 1.8) * px, stroke: icy ? "#C9F4FF" : "#8CC6F4", width: max(1, px / 3))
+          }
+        }
+      }
+      if windy {
+        for i in range(4) {
+          let streakX = ((i * 27 + 12) % 95) * width / 100
+          let streakY = (9 + i * 2) * px
+          rect(streakX, streakY, (gust >= 50 ? 5 : 3) * px, max(1, px / 4), fill: alpha("#E0F3FA", 0.55))
+        }
+      }
+      if fog || haze {
+        for i in range(fog || visibility < 1000 ? 6 : 3) {
+          rect((i % 3) * 3 * px, (5 + i * 2) * px, width - (4 + i % 3) * px, px / 2, fill: code == 48 ? "#D5EDF3" : alpha("#CFDEE2", fog ? 0.8 : 0.45))
+        }
+      }
+      if storm {
+        sprite(["..yy.", ".yy..", "yyyy.", "..yy.", ".yy..", ".y..."], width * 0.76, 7 * px, px, palette: { y: "#FFE58A" })
+      }
+
+      if frostCape {
+        sprite([
+          "...kkkkkkkkkkk...", "..kccccccccccck..", ".kccccccccccccck.",
+          ".kccccccccccccck.", ".kcdddccccdddck.", "kcdddccccccdddck",
+          "kcdddccccccdddck", "kcdddccccccdddck", "kccddccccccddcck",
+          ".kwwkkkkkkkkwwk.", "..kk........kk.."
+        ], soldierX - 1.5 * px, bodyY + 8 * px, px,
+          palette: { k: "#232639", c: gear.cape ?? (coldProfile ? "#874F63" : warmProfile ? "#4A7687" : "#585B79"), d: "#393D55", w: "#E7D8BB" })
+      }
+      if gearTheme == "space" && plate {
+        sprite([".kkkk..", "kbbbdk.", "kabbdk.", "kbbbdk.", "kccddk.", ".kkkk.."],
+          soldierX - 2 * px, y + 8 * px, px, palette: steel)
+      }
+      if crouching {
+        sprite(take(suitArt, 7), soldierX, y + 8 * px, px, palette: uniform)
+        sprite(drop(suitArt, 8), soldierX, bodyY + 16 * px, px, palette: uniform)
+      } else {
+        let uniformRows = raisedArm ? range(len(suitArt)).map(i => i >= 2 && i <= 5 ? sub(suitArt[i], 0, 10) : suitArt[i]) : suitArt
+        sprite(uniformRows, soldierX, bodyY + 8 * px, px, palette: uniform)
+      }
+      if plate {
+        let armorRows = raisedArm ? range(len(armorArt)).map(i => sub(armorArt[i], 0, 10)) : armorArt
+        sprite(armorRows, soldierX, y + 8 * px, px, palette: steel)
+      }
+      if winter {
+        sprite(["...aakkkaa...", "...addaada..."], soldierX, bodyY + 14 * px, px, palette: steel)
+      }
+      sprite(head, soldierX, y, px, palette: { k: "#252333", h: "#835147", H: "#B17750", s: storm ? "#D9B6A7" : "#EFAD78", S: storm ? "#BD8891" : "#D98367" })
+      if gearTheme == "viking" {
+        sprite(["..r.......r..", "..rr.....rr..", "...rRRRRRr...", "....rrrrr...."],
+          soldierX, y + 6 * px, px, palette: { r: "#844731", R: "#C17C4E" })
+      }
+      if !helmet && !highUv {
+        if gearTheme == "modern" {
+          sprite(["...kkkkkkk...", "..kbbbdkk....", ".kbbccddk....", "..kkkkkk....."],
+            soldierX, y, px, palette: steel)
+        }
+        if gearTheme == "samurai" && !headband {
+          sprite([".....kkk.....", "....khhhk....", ".....kkk....."],
+            soldierX, y - 2 * px, px, palette: { k: "#252333", h: "#523C45" })
+        }
+        if gearTheme == "space" {
+          sprite(["...kkkkkk....", "..kbbbbbbk...", ".kbbccbddk...", "..kkkkkkkkkk."],
+            soldierX, y, px, palette: steel)
+        }
+      }
+      if helmet {
+        sprite(helmetArt, soldierX, y - px, px, palette: steel)
+      }
+      if headband && !helmet {
+        sprite(["..rrrrrrrrr..", ".rRRRRrrrRRr."], soldierX, y + 3 * px, px,
+          palette: { r: "#36899C", R: "#72E3DE" })
+      }
+      if canteen {
+        sprite([".aa.", ".dd.", "dbbd", "dbbd", ".dd."], soldierX - px, y + 11 * px, px,
+          palette: { a: "#F2E3BD", d: "#355362", b: "#65BDD0" })
+      }
+      if highUv && !helmet {
+        sprite(["..aaaaaaa....", ".adddddddda..", "........aaaa."], soldierX, y, px, palette: { a: "#F5CB78", d: "#8E5E45" })
+      }
+      if carryHelmet && !raisedArm {
+        sprite(helmetArt, soldierX + 11 * px, y + 11 * px, px / 2, palette: steel)
+      }
+      if carryScarf && !raisedArm {
+        sprite([".RRRR.", "RRrrrr", ".rrr..", "..rr..", "..rR..", "..rR..", "..rr.."], soldierX + 11 * px, y + 11 * px, px / 2, palette: scarfPalette)
+      }
+      if holding {
+        sprite(["..ssk", "..ssk", "..tk.", "..tk.", "..tk.", ".ttk.", ".tk..", "ttk.."], soldierX + 9 * px, y + 2 * px, px, palette: uniform)
+      }
+      if wiping {
+        sprite(["ssk...", "sstk..", "..ttk.", "...tk.", "...tk.", "..ttk."], soldierX + 8 * px, y + 4 * px, px, palette: uniform)
+      }
+      if muggy && !storm && !wiping {
+        rect(soldierX + 12 * px, y + 6 * px, px / 2, px, fill: "#BCE9EF")
+      }
+      if neckWrap {
+        let scarf = winter ? ["...rrrrrrr...", "...rRRrrr....", ".......rr...."] : ["....rrrrr....", ".......RR...."]
+        sprite(scarf, soldierX, y + 8 * px, px, palette: scarfPalette)
+      }
+      if insulated {
+        sprite(["...w....w....", "..wgg..ggw..."], soldierX, bodyY + 17 * px, px,
+          palette: { w: "#D8C6A9", g: "#715D58" })
+      }
+      if !storm {
+        if activePose == "blink" || activePose == "left" || activePose == "right" {
+          rect(soldierX + 5 * px, y + 5 * px, 4 * px, px, fill: "#EFAD78")
+          let glance = activePose == "left" ? -1 : activePose == "right" ? 1 : 0
+          let eyeHeight = activePose == "blink" ? px / 2 : px
+          rect(soldierX + (5 + glance) * px, y + 5.5 * px - eyeHeight / 2, px, eyeHeight, fill: "#252333")
+          rect(soldierX + (8 + glance) * px, y + 5.5 * px - eyeHeight / 2, px, eyeHeight, fill: "#252333")
+        }
+      }
+      if storm {
+        sprite([".....w..w....", ".....k..k....", "......kk....."], soldierX, y + 5 * px, px, palette: { w: "#FFF4EA", k: "#372B3B" })
+        sprite([".cc..", "cc.cc", ".cc.."], x + 14 * px, y + 7 * px, px / 2, palette: { c: "#D5F1FF" })
+      }
+    }
+    Column {
+      fill: width
+      padding: [3, 4, 0, 4]
+      gap: 1
+      Row {
+        fill: width
+        gap: 4
+        align: center
+        if temperature != null {
+          Text { text: "${round(temperature)}°C"; fontSize: compact ? 12 : 14; maxLines: 1 }
+        }
+        Text {
+          weight: 1
+          text: !here.granted ? str.allowLocation : !here.available && weather == null ? str.enableLocation : description ?? str.weatherUnavailable
+          fontSize: compact ? 9 : 11
+          align: temperature == null ? "start" : "end"
+          maxLines: 1
+        }
+      }
+      if temperature != null {
+        Row {
+          fill: width
+          gap: 4
+          if todayHigh != null && todayLow != null {
+            Text { text: "↑${round(todayHigh)}° ↓${round(todayLow)}°"; fontSize: compact ? 8 : 9; color: muted; maxLines: 1 }
+          }
+          Text {
+            weight: 1
+            text: shortTile && !windy && humidity != null ? str.relativeHumidity(round(humidity)) :
+              wind == null ? " " : "${round(wind)} km/h${shortTile || humidity == null ? "" : " · ${round(humidity)}%"}"
+            fontSize: compact ? 8 : 9
+            color: muted
+            align: end
+            maxLines: 1
+          }
+        }
+      }
+      if usingSaved {
+        Text { text: str.cachedData; fontSize: locationSize; color: yellow; maxLines: 1 }
+      } else if weatherNote != null {
+        Text { text: weatherNote; fontSize: compact ? 8 : 9; color: accent; maxLines: 1 }
+      }
+      if locationFits && (!shortTile || (weatherNote == null && !usingSaved)) {
+        Text { text: placeName; font: mono; fontSize: locationSize; color: muted; maxLines: 1 }
+      }
+    }
+  }
+
+  screen {
+    title: str.title
+    Column {
+      fill: width
+      scroll: true
+      padding: 8
+      gap: 8
+      if !here.granted {
+        Text { text: str.locationExplanation; style: body }
+        Button { text: str.grantLocation; onTap: location("request") }
+      } else {
+        if !here.available && weather == null {
+          Text { text: str.findingLocation; style: body }
+          Button { text: str.locationSettings; onTap: settings("location") }
+        } else {
+          if detailPlace != "" {
+            Text { text: detailPlace; style: body; color: accent; maxLines: 2 }
+          }
+          Button {
+            text: str.gearThemeLabel(gearName, gearMenu ? "▴" : "▾")
+            fill: width
+            onTap: gearMenu = !gearMenu
+          }
+          if gearMenu {
+            Grid {
+              columns: 2
+              gap: 6
+              for option in gearThemes key option.id {
+                Button {
+                  fill: width
+                  text: gearTheme == option.id ? "✓ ${option.name}" : option.name
+                  onTap: { gearTheme = option.id; gearMenu = false }
+                }
+              }
+            }
+          }
+          Column {
+            fill: width
+            gap: 3
+            Row {
+              fill: width
+              gap: 6
+              align: center
+              Text { text: str.coldSensitivity; style: small; weight: 1; color: muted }
+              Text { text: "${coldOffset > 0 ? "+" : ""}${coldOffset} °C"; style: small; align: end }
+            }
+            Row {
+              fill: width
+              gap: 6
+              align: center
+              Text { text: str.lighterLayers; fontSize: 9; color: muted }
+              Slider { value: coldOffset; min: -6; max: 6; step: 1; live: true; weight: 1; onChange: coldShift = round(value) }
+              Text { text: str.warmerLayers; fontSize: 9; color: muted }
+            }
+          }
+          if usingSaved {
+            Text {
+              text: savedWeather.received == null ? str.showingCached : str.cachedAt(fmtTime(savedWeather.received, "d MMM · HH:mm", zone))
+              style: small
+              color: yellow
+            }
+          }
+          Row {
+            align: center
+            gap: 14
+            if code != null {
+              Text { text: weatherIcon(get(icons, "${code}", 122), night); font: icon; fontSize: 46; width: 59; align: center; color: yellow }
+            }
+            Column {
+              weight: 1
+              gap: 0
+              Text { text: temperature == null ? "—" : "${round(temperature)}°C"; fontSize: 43; color: green }
+              Text { text: description ?? str.weatherUnavailable; style: body }
+            }
+          }
+          if current != null {
+            let feels = current.apparent_temperature
+            Text {
+              text: str.feelsAndRange(feels == null ? "—" : "${round(feels)}°", todayHigh == null ? "—" : "↑${round(todayHigh)}°", todayLow == null ? "—" : "↓${round(todayLow)}°")
+              fontSize: 10
+              color: muted
+            }
+            Rule { }
+            Grid {
+              columns: 2
+              gap: 6
+              Reading { glyph: ""; label: str.windReading(windCompass == null ? "" : " · ${windCompass}"); value: wind == null ? "—" : "${round(wind)} km/h"; tint: green }
+              Reading { glyph: ""; label: str.humidity; value: humidity == null ? "—" : "${round(humidity)} %"; tint: blue }
+              Reading { glyph: ""; label: str.precipToday; value: todayRain == null ? "—" : "${todayRain}%${todayRainAmount == null ? "" : " · ${fixed(todayRainAmount, 1)} mm"}"; tint: blue }
+              Reading { glyph: ""; label: str.uvIndex; value: uv == null ? "—" : "${fixed(uv, 1)} · ${uvLevel}"; tint: uv >= 6 ? red : yellow }
+              Reading { glyph: ""; label: str.pressure; value: pressure == null ? "—" : "${round(pressure)} hPa"; tint: foreground }
+              Reading { glyph: ""; label: str.visibility; value: visibility == null ? "—" : visibility < 1000 ? "${round(visibility)} m" : "${fixed(visibility / 1000, 1)} km"; tint: foreground }
+              Reading { glyph: ""; label: str.sunrise; value: riseTime == null ? "—" : fmtTime(riseTime, "HH:mm", zone); tint: yellow }
+              Reading { glyph: ""; label: str.sunset; value: setTime == null ? "—" : fmtTime(setTime, "HH:mm", zone); tint: yellow }
+            }
+            if gust != null {
+              Text { text: str.gustsLong(round(gust)); fontSize: 10; color: muted }
+            }
+          }
+          if outing != null {
+            Rule { }
+            Column {
+              fill: width
+              padding: [7, 8]
+              gap: 3
+              background: surface
+              radius: 6
+              Text { text: outing.rain >= 60 ? str.driestWindow : str.bestTimeOut; style: label; color: accent }
+              Text { text: str.outing(outing.start, outing.end, round(outing.rain), round(outing.wind)); fontSize: 10 }
+            }
+          }
+          if len(chart) > 0 {
+            Rule { }
+            Row {
+              fill: width
+              align: center
+              gap: 6
+              Text { text: str.next24h; weight: 1; style: label; color: accent }
+              Text { text: str.tapOrSwipe; fontSize: 9; color: muted }
+            }
+            Column {
+              gap: 2
+              Row {
+                gap: 0
+                for h in chart key h.key {
+                  Column {
+                    gap: 2
+                    weight: 1
+                    radius: 4
+                    background: selectedHour == h.key ? surface : transparent
+                    onTap: selectedHour = selectedHour == h.key ? null : h.key
+                    Text { text: h.hour; fontSize: 10; color: selectedHour == h.key ? accent : muted; align: center }
+                    Text { text: weatherIcon(get(icons, "${h.code}", 122), h.night); font: icon; fontSize: 15; align: center }
+                  }
+                }
+              }
+              Box {
+                fill: width
+                Canvas {
+                  height: 62
+                  fill: width
+                  let temps = chart.map(h => h.temp)
+                  let low = min(temps)
+                  let high = max(temps)
+                  let xs = range(len(chart)).map(i => (i + 0.5) * width / len(chart))
+                  let ys = temps.map(t => 19 + (high - t) / max(1, high - low) * 16)
+                  if len(chart) > 1 {
+                    path(range(len(chart)).map(i => [xs[i], ys[i]]), stroke: accent, width: 1.5)
+                  }
+                  for h, i in chart {
+                    let rainChance = h.rain
+                    circle(xs[i], ys[i], selectedHour == h.key ? 4 : 2, fill: selectedHour == h.key ? yellow : accent)
+                    text("${round(temps[i])}°", xs[i], ys[i] - 10, size: 10, align: center, color: foreground)
+                    if rainChance != null {
+                      text("${rainChance}%", xs[i], 48, size: 9, align: center, color: rainChance >= 30 ? accent : muted)
+                      rect(xs[i] - 8, 56, 16, 2, radius: 1, fill: surface)
+                      rect(xs[i] - 8, 56, 16 * rainChance / 100, 2, radius: 1, fill: accent)
+                    }
+                  }
+                }
+                Row {
+                  fill: width
+                  height: 62
+                  gap: 0
+                  for h, i in chart key h.key {
+                    Box {
+                      weight: 1
+                      height: 62
+                      drag: horizontal
+                      onPress: chartDrag = 0
+                      onDrag: {
+                        chartDrag = chartDrag + dx
+                        let slot = max(18, ((screenWidth ?? 360) - 40) / len(chart))
+                        let target = clamp(i + round(chartDrag / slot), 0, len(chart) - 1)
+                        selectedHour = chart[target].key
+                      }
+                      onTap: selectedHour = selectedHour == h.key ? null : h.key
+                    }
+                  }
+                }
+              }
+            }
+            if hourDetail != null {
+              Column {
+                fill: width
+                padding: [6, 8]
+                gap: 4
+                radius: 6
+                background: surface
+                Text { text: "${hourDetail.hour}:00 · ${round(hourDetail.temp)} °C"; style: small; color: accent }
+                Text {
+                  text: str.hourDetail(hourDetail.feels == null ? "—" : "${round(hourDetail.feels)} °C", hourDetail.rain == null ? "—" : "${hourDetail.rain}%", hourDetail.wind == null ? "—" : "${round(hourDetail.wind)} km/h")
+                  fontSize: 10
+                }
+              }
+            }
+          }
+          if len(days) > 0 {
+            Rule { }
+            Row {
+              fill: width
+              align: center
+              gap: 6
+              Text { text: str.nextDays(len(days)); weight: 1; style: label; color: accent }
+              Text { text: str.tapDay; fontSize: 9; color: muted }
+            }
+            for day in days key day.date {
+              let dayCode = day.code
+              let maximum = day.max
+              let minimum = day.min
+              let probability = day.rain
+              let dayStamp = parseTime("${day.date}T12:00", null, zone)
+              Row {
+                gap: 6
+                align: center
+                radius: 6
+                background: selectedDay == day.date ? surface : transparent
+                onTap: selectedDay = selectedDay == day.date ? null : day.date
+                Column {
+                  width: 88
+                  gap: 1
+                  Text { text: fmtTime(dayStamp, "EEE d MMM", zone); fontSize: 11 }
+                  Text { text: get(labels, "${dayCode}") ?? "—"; fontSize: 9; color: muted; maxLines: 2 }
+                }
+                Text { text: weatherIcon(get(icons, "${dayCode}", 122), false); font: icon; fontSize: 17; width: 20; align: center; color: yellow }
+                Text { text: probability == null ? "—" : "${probability}%"; fontSize: 10; width: 27; align: end; color: accent }
+                Text { text: minimum == null ? "—" : "${round(minimum)}°"; fontSize: 10; width: 24; align: end; color: muted }
+                Canvas {
+                  weight: 1
+                  height: 12
+                  rect(0, 4, width, 4, radius: 2, fill: surface)
+                  if minimum != null && maximum != null {
+                    let span = max(1, dailyHigh - dailyLow)
+                    let start = (minimum - dailyLow) / span
+                    let size = (maximum - minimum) / span
+                    rect(start * width, 4, max(2, size * width), 4, radius: 2, fill: yellow)
+                  }
+                }
+                Text { text: maximum == null ? "—" : "${round(maximum)}°"; fontSize: 10; width: 23 }
+              }
+              if selectedDay == day.date && len(dayHours) > 0 {
+                Column {
+                  fill: width
+                  padding: [4, 6, 2, 6]
+                  gap: 1
+                  background: surface
+                  radius: 6
+                  Text { text: str.chartLegend; fontSize: 8; color: muted }
+                  Canvas {
+                    fill: width
+                    height: 48
+                    let temps = dayHours.map(i => hourly.temperature_2m[i])
+                    let low = min(temps.filter(t => t != null))
+                    let high = max(temps.filter(t => t != null))
+                    let slot = width / len(dayHours)
+                    let xs = range(len(dayHours)).map(i => (i + 0.5) * slot)
+                    let ys = temps.map(t => t == null ? null : 17 - (t - low) / max(1, high - low) * 13)
+                    line(0, 33, width, 33, stroke: alpha(muted, 0.25), width: 1)
+                    for h, i in dayHours {
+                      let rainChance = hourly.precipitation_probability[h]
+                      if i > 0 && ys[i - 1] != null && ys[i] != null {
+                        line(xs[i - 1], ys[i - 1], xs[i], ys[i], stroke: yellow, width: 1.25)
+                      }
+                      if rainChance != null && rainChance > 0 {
+                        let bar = max(1, rainChance * 0.12)
+                        rect(xs[i] - slot * 0.3, 33 - bar, slot * 0.6, bar, fill: alpha(accent, 0.75))
+                      }
+                      let hour = sub(hourly.time[h], 11, 13)
+                      if contains(["00", "06", "12", "18"], hour) {
+                        text(hour + " h", clamp(xs[i], 11, max(11, width - 11)), 42, size: 8, align: center, color: muted)
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      Text { text: str.attribution; fontSize: 9; color: muted }
+    }
+  }
+}
