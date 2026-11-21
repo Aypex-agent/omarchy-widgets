@@ -1,0 +1,560 @@
+widget "Chroma Clock" {
+  meta {
+    owl: 19
+    description: "Digits smoothly morph at each tick as gradients drift behind them. Outlines adapted from Adnan A M's TimelyTextView, inspired by Sriram Ramasubramanian's Number Tweening."
+    version: "1.0"
+    license: "Apache-2.0"
+    category: "time"
+  }
+  requires { pacman: [] }
+  size: 6x2
+  minSize: 2x2
+  padding: 0
+  onTap: screen()
+
+  source now = clock every 1s
+  source modes = android.modes
+
+  state paletteIndex = 0 persist
+  state transparentBackground = false persist
+  state inkIndex = 0 persist
+  state use24Hour = true persist
+  state showSeconds = true persist
+  state showDate = true persist
+  state morphDigits = true persist
+  state driftBackground = true persist
+
+  state tick = {target: null, from: null, started: 0, expires: 0}
+
+  let palettes = [
+    {name: "Sunset", shade: #591635, base: #ac3441, glow: #fbc066, flare: #f37443},
+    {name: "Lagoon", shade: #132e72, base: #145b91, glow: #56ddcf, flare: #2599df},
+    {name: "Violet", shade: #35144f, base: #692c85, glow: #f78abf, flare: #9160ea},
+    {name: "Midnight", shade: #080e28, base: #142447, glow: #4265a5, flare: #33478a},
+    {name: "Meadow", shade: #0c383e, base: #17695b, glow: #b3d27d, flare: #2bc4a0},
+    {name: "Dawn", shade: #38224e, base: #773f77, glow: #ffab98, flare: #c16dae}
+  ]
+  let inks = [
+    {name: "Pearl", tint: #fff9f4},
+    {name: "Honey", tint: #ffe49b},
+    {name: "Mint", tint: #baffdc},
+    {name: "Ice", tint: #bcf5ff},
+    {name: "Lilac", tint: #e7d1ff}
+  ]
+  let palette = palettes[paletteIndex] ?? palettes[0]
+  let ink = inks[inkIndex] ?? inks[0]
+  let drifting = driftBackground && !transparentBackground && !modes.saver
+  let morphing = morphDigits && tick.from != null
+  let morphDuration = showSeconds ? 0.48 : 0.78
+  // Give the frame clock time to switch from the background's idle rate.
+  let morphLead = 0.08
+  fps: morphing && time - tick.started < morphLead + morphDuration ? (modes.saver ? 30 : 60) : 10
+
+  // Digit control points adapted from TimelyTextView (Copyright 2014 Adnan A M),
+  // licensed under Apache-2.0. The coordinates were rounded and ported to OWL.
+  // https://github.com/adnan-SM/TimelyTextView
+  // TimelyTextView credits Sriram Ramasubramanian's Number Tweening write-up:
+  // https://sriramramani.wordpress.com/2013/10/14/number-tweening/
+  // Each glyph is aligned on the same four cubic segments.
+  let controls = [
+    [ // Zero
+      [0.24586, 0.55249], [0.24586, 0.33149], [0.37017, 0.09945], [0.55249, 0.09945],
+      [0.73481, 0.09945], [0.86188, 0.33149], [0.86188, 0.55249], [0.86188, 0.77348],
+      [0.73481, 0.99448], [0.55249, 0.99448], [0.37017, 0.99448], [0.24586, 0.77348],
+      [0.24586, 0.55249]
+    ],
+    [ // One
+      [0.42541, 0.11326], [0.42541, 0.11326], [0.57735, 0.11326], [0.57735, 0.11326],
+      [0.57735, 0.11326], [0.57735, 1.00000], [0.57735, 1.00000], [0.57735, 1.00000],
+      [0.57735, 1.00000], [0.57735, 1.00000], [0.57735, 1.00000], [0.57735, 1.00000],
+      [0.57735, 1.00000]
+    ],
+    [ // Two
+      [0.30939, 0.33149], [0.32597, 0.01105], [0.79006, 0.02210], [0.79834, 0.33702],
+      [0.79834, 0.43094], [0.71823, 0.54144], [0.59669, 0.67403], [0.51934, 0.76243],
+      [0.40884, 0.85635], [0.31492, 0.97790], [0.31492, 0.97790], [0.81215, 0.97790],
+      [0.81215, 0.97790]
+    ],
+    [ // Three
+      [0.36188, 0.29834], [0.34807, 0.14917], [0.47514, 0.09945], [0.54972, 0.09945],
+      [0.86188, 0.09945], [0.80663, 0.53039], [0.54972, 0.53039], [0.87293, 0.53039],
+      [0.82873, 0.99448], [0.55249, 0.99448], [0.29834, 0.99448], [0.30939, 0.82873],
+      [0.31215, 0.79006]
+    ],
+    [ // Four
+      [0.85635, 0.80663], [0.85635, 0.80663], [0.23757, 0.80663], [0.23757, 0.80663],
+      [0.23757, 0.80663], [0.71271, 0.13812], [0.71271, 0.13812], [0.71271, 0.13812],
+      [0.71271, 0.80663], [0.71271, 0.80663], [0.71271, 0.80663], [0.71271, 0.98895],
+      [0.71271, 0.98895]
+    ],
+    [ // Five
+      [0.80663, 0.11050], [0.50276, 0.11050], [0.50276, 0.11050], [0.50276, 0.11050],
+      [0.39779, 0.43094], [0.39779, 0.43094], [0.39779, 0.43094], [0.53591, 0.36464],
+      [0.80110, 0.46961], [0.80110, 0.71271], [0.77348, 1.01105], [0.37569, 1.09392],
+      [0.24862, 0.85083]
+    ],
+    [ // Six
+      [0.60773, 0.11050], [0.60773, 0.11050], [0.60773, 0.11050], [0.60773, 0.11050],
+      [0.39227, 0.43646], [0.26519, 0.50829], [0.25414, 0.69613], [0.28729, 1.13017],
+      [0.87293, 1.06077], [0.84530, 0.69613], [0.80663, 0.36464], [0.41989, 0.35359],
+      [0.29558, 0.55249]
+    ],
+    [ // Seven
+      [0.25967, 0.11602], [0.25967, 0.11602], [0.87293, 0.11602], [0.87293, 0.11602],
+      [0.87293, 0.11602], [0.70000, 0.42210], [0.70000, 0.42210], [0.70000, 0.42210],
+      [0.47735, 0.73315], [0.47735, 0.73315], [0.47735, 0.73315], [0.25414, 1.00000],
+      [0.25414, 1.00000]
+    ],
+    [ // Eight
+      [0.55801, 0.53039], [0.24309, 0.52486], [0.24309, 0.10497], [0.55801, 0.10497],
+      [0.85083, 0.10497], [0.85083, 0.53039], [0.55801, 0.53039], [0.24309, 0.53039],
+      [0.19890, 0.98895], [0.55801, 0.98895], [0.85083, 0.98895], [0.85083, 0.53039],
+      [0.55801, 0.53039]
+    ],
+    [ // Nine
+      [0.80939, 0.55249], [0.68508, 0.75138], [0.29834, 0.74033], [0.25967, 0.40884],
+      [0.23204, 0.04420], [0.81768, -0.04420], [0.85083, 0.40884], [0.83978, 0.59669],
+      [0.71271, 0.66851], [0.49724, 0.99448], [0.49724, 0.99448], [0.49724, 0.99448],
+      [0.49724, 0.99448]
+    ]
+  ]
+
+  // At fixed sample parameters the cubic basis is linear in its control
+  // points, so interpolating these samples produces the same morph as
+  // interpolating the controls first, with no per-frame cubic evaluation.
+  let samplesPerSegment = 28
+  let sampleTimes = range(samplesPerSegment).map(i => (i + 1) / samplesPerSegment)
+  let basis = sampleTimes.map(t => [pow(1-t, 3), 3*t*pow(1-t, 2), 3*t*t*(1-t), t*t*t])
+  let outlines = controls.map(g => flatten(range(5).map(s =>
+    s == 0 ? [g[0]] : basis.map(b => [
+      g[s*3-3][0]*b[0] + g[s*3-2][0]*b[1] + g[s*3-1][0]*b[2] + g[s*3][0]*b[3],
+      g[s*3-3][1]*b[0] + g[s*3-2][1]*b[1] + g[s*3-1][1]*b[2] + g[s*3][1]*b[3]
+    ])
+  )))
+
+  // Quantize the display to minute boundaries when seconds are hidden.
+  let clockTime = showSeconds ? now : floor(now / 60) * 60
+  let shownTime = tick.target ?? clockTime
+  let timePattern = (use24Hour ? "HHmm" : "hhmm") + (showSeconds ? "ss" : "")
+  let timeText = fmtTime(shownTime, timePattern, null, "en")
+  let beforeText = morphing ? fmtTime(tick.from, timePattern, null, "en") : timeText
+  let digitCount = showSeconds ? 6 : 4
+  let digits = range(digitCount).map(i => num(sub(timeText, i, i+1), 0))
+  let oldDigits = range(digitCount).map(i => num(sub(beforeText, i, i+1), digits[i]))
+  let dateText = showDate ? fmtTime(shownTime, "EEE, d MMM") : ""
+  let periodText = use24Hour ? "" : fmtTime(shownTime, "a")
+  let footerParts = [dateText, periodText].filter(s => s != "" && s != null)
+
+  on clockTime first {
+    if value != tick.target {
+      // Publish both endpoints with the start time so the target can't flash first.
+      let previous = tick.target
+      let animateTick = morphDigits && previous != null && value - previous == (showSeconds ? 1 : 60)
+      tick = {
+        target: value,
+        from: animateTick ? previous : null,
+        started: animateTick ? time : 0,
+        expires: animateTick ? now + (showSeconds ? 0.9 : 1.2) : 0
+      }
+    }
+  }
+  at tick.expires { tick = {target: tick.target, from: null, started: 0, expires: 0} }
+
+  component ClockFace() {
+    Box {
+      fill: true
+      radius: 8 * corners
+      clip: true
+
+      Canvas {
+        visible: !transparentBackground
+        let phase = drifting ? 2 * pi * time / 48 : 0
+        let span = max(width, height)
+        let lightX = width * (0.14 + 0.12 * sin(phase))
+        let lightY = height * (-0.34 + 0.19 * cos(phase))
+        let hazeX = width * (0.85 + 0.14 * cos(phase))
+        let hazeY = height * (0.88 + 0.34 * sin(phase))
+        let lightRadius = span * 0.83
+        let hazeRadius = span * 0.69
+
+        rect(0, 0, width, height, fill: linear(0, 0, width, height, [
+          palette.base, mix(palette.base, palette.shade, 0.35), palette.shade
+        ]))
+        rect(0, 0, width, height, fill: radial(lightX, lightY, lightRadius, [
+          alpha(palette.glow, 0.88), alpha(palette.glow, 0.36), alpha(palette.glow, 0)
+        ]))
+        rect(0, 0, width, height, fill: radial(hazeX, hazeY, hazeRadius, [
+          alpha(palette.flare, 0.67), alpha(palette.flare, 0.23), alpha(palette.flare, 0)
+        ]))
+        rect(0, 0, width, height, fill: radial(width * 0.53, height * 1.4, span * 0.65, [
+          alpha(palette.shade, 0.62), alpha(palette.shade, 0)
+        ]))
+      }
+
+      Canvas {
+        let stacked = height >= width * 1.25
+        let pairCount = digitCount / 2
+        let hasFooter = len(footerParts) > 0
+        let captionLines = stacked ? footerParts : (hasFooter ? [join(footerParts, "  ·  ")] : [])
+        let glyphSize = stacked
+          ? min(width / 1.76, height / (pairCount * 1.24 + len(captionLines) * 0.44))
+          : min(width / (showSeconds ? 5.65 : 4.02), height * (hasFooter ? 0.64 : 0.79))
+        let captionSize = clamp(glyphSize * 0.174, 10, 17)
+        let captionPitch = captionSize * 1.35
+        let rowPitch = clamp(height * 0.68 / pairCount, glyphSize * 1.16, glyphSize * 1.48)
+        let stackHalfSpan = stacked ? (pairCount - 1) * rowPitch / 2 : 0
+        let centerX = width / 2
+        let footerOffset = hasFooter ? glyphSize * 0.105 + (len(captionLines) - 1) * captionPitch / 2 : 0
+        let centerY = height / 2 - footerOffset
+        let strokeSize = max(1.3, glyphSize * 0.037)
+        let offsets = showSeconds ? [-2.3, -1.5, -0.4, 0.4, 1.5, 2.3] : [-1.35, -0.55, 0.55, 1.35]
+        let separators = stacked ? [] : (showSeconds ? [-0.95, 0.95] : [0])
+        let elapsed = morphing ? time - tick.started : morphLead + morphDuration
+        let progress = elapsed < 0 ? 1 : clamp((elapsed - morphLead) / morphDuration, 0, 1)
+        let blend = progress * progress * (3 - 2 * progress)
+
+        if now != null {
+          for digit, i in digits {
+            let target = outlines[digit]
+            let start = outlines[oldDigits[i]]
+            let points = blend >= 1 || oldDigits[i] == digit ? target : blend <= 0 ? start : target.map((p, j) => [
+              lerp(start[j][0], p[0], blend), lerp(start[j][1], p[1], blend)
+            ])
+            let xOffset = stacked ? (i % 2 - 0.5) * 0.8 : offsets[i]
+            let glyphX = centerX + xOffset * glyphSize
+            let glyphY = stacked ? centerY - stackHalfSpan + floor(i / 2) * rowPitch : centerY
+            translate(glyphX - 0.55 * glyphSize, glyphY - 0.55 * glyphSize) {
+              scale(glyphSize, glyphSize, 0, 0) {
+                path(points, stroke: ink.tint, width: strokeSize / glyphSize, cap: round)
+              }
+            }
+          }
+          for offset in separators {
+            let separatorX = centerX + offset * glyphSize
+            circle(separatorX, centerY - glyphSize * 0.13, strokeSize * 0.63, fill: ink.tint)
+            circle(separatorX, centerY + glyphSize * 0.13, strokeSize * 0.63, fill: ink.tint)
+          }
+        }
+        for caption, i in captionLines {
+          text(caption, centerX, centerY + stackHalfSpan + glyphSize * 0.59 + i * captionPitch, size: captionSize,
+            letterSpacing: 0.8, fontWeight: 500, align: center, color: alpha(ink.tint, 0.92))
+        }
+      }
+    }
+  }
+
+  component SettingLabel(titleText) {
+    Text { text: titleText; style: label; color: muted; letterSpacing: 0.8 }
+  }
+
+  ClockFace {}
+
+  screen {
+    title: "Clock settings"
+
+    Column {
+      fill: true
+      scroll: true
+      padding: 16
+      gap: 12
+
+      Box {
+        fill: width
+        height: 124
+        ClockFace {}
+      }
+
+      SettingLabel { titleText: "Background" }
+      Grid {
+        columns: 3
+        gap: 8
+        for option, i in palettes key option.name {
+          Box {
+            height: 48
+            radius: 8 * corners
+            align: center
+            background: linear(0, 0, 1, 1, [mix(option.glow, option.base, 0.55), option.base, option.shade])
+            border: !transparentBackground && paletteIndex == i ? 2 : 1
+            borderColor: !transparentBackground && paletteIndex == i ? #fff9f4 : alpha(#fff9f4, 0.18)
+            onTap: { paletteIndex = i; transparentBackground = false }
+            Text { text: option.name; align: center; color: #fff9f4; style: small; fontWeight: 600 }
+          }
+        }
+      }
+      Box {
+        fill: width
+        height: 44
+        radius: 8 * corners
+        align: center
+        border: transparentBackground ? 2 : 1
+        borderColor: transparentBackground ? foreground : border
+        onTap: transparentBackground = true
+        Text { text: "Transparent"; align: center; style: small; fontWeight: 600 }
+      }
+
+      SettingLabel { titleText: "Clock color" }
+      Row {
+        gap: 6
+        for option, i in inks key option.name {
+          Box {
+            weight: 1
+            align: center
+            height: 44
+            radius: 8 * corners
+            background: option.tint
+            border: inkIndex == i ? 2 : 0
+            borderColor: accent
+            onTap: inkIndex = i
+            Text { text: option.name; align: center; color: #252138; style: small; fontWeight: inkIndex == i ? 700 : 500 }
+          }
+        }
+      }
+
+      SettingLabel { titleText: "Display" }
+      Column {
+        gap: 6
+        Row {
+          align: center
+          Text { text: "Time format"; weight: 1 }
+          Button { text: use24Hour ? "24-hour" : "12-hour"; width: 96; onTap: use24Hour = !use24Hour }
+        }
+        Row {
+          align: center
+          Text { text: "Show date"; weight: 1 }
+          Button { text: showDate ? "On" : "Off"; width: 96; onTap: showDate = !showDate }
+        }
+        Row {
+          align: center
+          Text { text: "Show seconds"; weight: 1 }
+          Button {
+            text: showSeconds ? "On" : "Off"
+            width: 96
+            onTap: {
+              showSeconds = !showSeconds
+              tick = {target: clockTime, from: null, started: 0, expires: 0}
+            }
+          }
+        }
+      }
+
+      SettingLabel { titleText: "Motion" }
+      Column {
+        gap: 6
+        Row {
+          align: center
+          Text { text: "Digit morphing"; weight: 1 }
+          Button { text: morphDigits ? "On" : "Off"; width: 96; onTap: morphDigits = !morphDigits }
+        }
+        Row {
+          align: center
+          Text { text: "Gradient drift"; weight: 1 }
+          Button { text: driftBackground ? "On" : "Off"; width: 96; onTap: driftBackground = !driftBackground }
+        }
+      }
+    }
+  }
+}
+
+/*
+                                 Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      (except as stated in this section) patent license to make, have made,
+      use, offer to sell, sell, import, and otherwise transfer the Work,
+      where such license applies only to those patent claims licensable
+      by such Contributor that are necessarily infringed by their
+      Contribution(s) alone or by combination of their Contribution(s)
+      with the Work to which such Contribution(s) was submitted. If You
+      institute patent litigation against any entity (including a
+      cross-claim or counterclaim in a lawsuit) alleging that the Work
+      or a Contribution incorporated within the Work constitutes direct
+      or contributory patent infringement, then any patent licenses
+      granted to You under this License for that Work shall terminate
+      as of the date such litigation is filed.
+
+   4. Redistribution. You may reproduce and distribute copies of the
+      Work or Derivative Works thereof in any medium, with or without
+      modifications, and in Source or Object form, provided that You
+      meet the following conditions:
+
+      (a) You must give any other recipients of the Work or
+          Derivative Works a copy of this License; and
+
+      (b) You must cause any modified files to carry prominent notices
+          stating that You changed the files; and
+
+      (c) You must retain, in the Source form of any Derivative Works
+          that You distribute, all copyright, patent, trademark, and
+          attribution notices from the Source form of the Work,
+          excluding those notices that do not pertain to any part of
+          the Derivative Works; and
+
+      (d) If the Work includes a "NOTICE" text file as part of its
+          distribution, then any Derivative Works that You distribute must
+          include a readable copy of the attribution notices contained
+          within such NOTICE file, excluding those notices that do not
+          pertain to any part of the Derivative Works, in at least one
+          of the following places: within a NOTICE text file distributed
+          as part of the Derivative Works; within the Source form or
+          documentation, if provided along with the Derivative Works; or,
+          within a display generated by the Derivative Works, if and
+          wherever such third-party notices normally appear. The contents
+          of the NOTICE file are for informational purposes only and
+          do not modify the License. You may add Your own attribution
+          notices within Derivative Works that You distribute, alongside
+          or as an addendum to the NOTICE text from the Work, provided
+          that such additional attribution notices cannot be construed
+          as modifying the License.
+
+      You may add Your own copyright statement to Your modifications and
+      may provide additional or different license terms and conditions
+      for use, reproduction, or distribution of Your modifications, or
+      for any such Derivative Works as a whole, provided Your use,
+      reproduction, and distribution of the Work otherwise complies with
+      the conditions stated in this License.
+
+   5. Submission of Contributions. Unless You explicitly state otherwise,
+      any Contribution intentionally submitted for inclusion in the Work
+      by You to the Licensor shall be under the terms and conditions of
+      this License, without any additional terms or conditions.
+      Notwithstanding the above, nothing herein shall supersede or modify
+      the terms of any separate license agreement you may have executed
+      with Licensor regarding such Contributions.
+
+   6. Trademarks. This License does not grant permission to use the trade
+      names, trademarks, service marks, or product names of the Licensor,
+      except as required for reasonable and customary use in describing the
+      origin of the Work and reproducing the content of the NOTICE file.
+
+   7. Disclaimer of Warranty. Unless required by applicable law or
+      agreed to in writing, Licensor provides the Work (and each
+      Contributor provides its Contributions) on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+      implied, including, without limitation, any warranties or conditions
+      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+      PARTICULAR PURPOSE. You are solely responsible for determining the
+      appropriateness of using or redistributing the Work and assume any
+      risks associated with Your exercise of permissions under this License.
+
+   8. Limitation of Liability. In no event and under no legal theory,
+      whether in tort (including negligence), contract, or otherwise,
+      unless required by applicable law (such as deliberate and grossly
+      negligent acts) or agreed to in writing, shall any Contributor be
+      liable to You for damages, including any direct, indirect, special,
+      incidental, or consequential damages of any character arising as a
+      result of this License or out of the use or inability to use the
+      Work (including but not limited to damages for loss of goodwill,
+      work stoppage, computer failure or malfunction, or any and all
+      other commercial damages or losses), even if such Contributor
+      has been advised of the possibility of such damages.
+
+   9. Accepting Warranty or Additional Liability. While redistributing
+      the Work or Derivative Works thereof, You may choose to offer,
+      and charge a fee for, acceptance of support, warranty, indemnity,
+      or other liability obligations and/or rights consistent with this
+      License. However, in accepting such obligations, You may act only
+      on Your own behalf and on Your sole responsibility, not on behalf
+      of any other Contributor, and only if You agree to indemnify,
+      defend, and hold each Contributor harmless for any liability
+      incurred by, or claims asserted against, such Contributor by reason
+      of your accepting any such warranty or additional liability.
+
+   END OF TERMS AND CONDITIONS
+
+   APPENDIX: How to apply the Apache License to your work.
+
+      To apply the Apache License to your work, attach the following
+      boilerplate notice, with the fields enclosed by brackets "[]"
+      replaced with your own identifying information. (Don't include
+      the brackets!)  The text should be enclosed in the appropriate
+      comment syntax for the file format. We also recommend that a
+      file or class name and description of purpose be included on the
+      same "printed page" as the copyright notice for easier
+      identification within third-party archives.
+
+   Copyright [yyyy] [name of copyright owner]
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
