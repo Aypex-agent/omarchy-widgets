@@ -1,4 +1,4 @@
-# Todoist for Omalauncher — 0.7.0 beta
+# Todoist for Omalauncher — 0.7.1 beta
 
 A community Todoist widget for Omalauncher. Not affiliated with or endorsed by Todoist.
 
@@ -15,12 +15,17 @@ Requires **OWL 17 support** (Omalauncher 0.16.0 or newer), a Todoist account and
 
 Keep the existing widget when updating. Do not delete it, disconnect the account or reinstall Omalauncher as an update procedure. An update can request approval again because this release has a different command/language surface from 0.5.1.
 
+## What's new in 0.7.1 (since 0.7.0)
+
+- **Priority order:** within each section, higher-priority tasks come first. Overdue and Upcoming sort by day, then priority (P1 first), then time; Today and No date sort by priority, then time.
+- **Six new UI languages:** French, Japanese, Russian, Turkish, Ukrainian and Italian, following the launcher language. Filters typed in French, Japanese, Russian, Turkish and Italian were checked against Todoist; Todoist does not interpret Ukrainian filters, so Ukrainian uses English filters, explained next to the filter field, as Indonesian does.
+
 ## What's new since 0.5.1
 
 - **Filters:** local named shortcuts, independent removal and Undo; saved queries retain their interpretation language.
-- **Languages:** native English, Portuguese, Spanish, German, Simplified Chinese and Indonesian UI, with English fallback. New filters follow the supported UI language; Indonesian filters use English, as explained next to that field.
+- **Languages:** native English, Portuguese, Spanish, German, Simplified Chinese, Indonesian, French, Japanese, Russian, Turkish, Ukrainian and Italian UI, with English fallback. New filters follow the supported UI language; Indonesian and Ukrainian filters use English, as explained next to that field.
 - **Task context and presentation:** optional projects, labels and times; fixed priority-circle colors; cleaner settings; compact/comfortable spacing and text sizes.
-- **Complete supported result sets:** one API response of up to 200 tasks, sorted by date before local pages of 30. Partial/continued results are hidden rather than presented as complete. Pull to refresh joins the menu action.
+- **Complete supported result sets:** one API response of up to 200 tasks, sorted (section, day, priority, time) before local pages of 30. Partial/continued results are hidden rather than presented as complete. Pull to refresh joins the menu action.
 - **Local correctness:** details read the current local task, removed/changed occurrences invalidate old completion controls, replies preserve newer drafts and selections, and replies from a prior account session do not overwrite the new session's local feedback.
 
 These are local corrections, not a claim of atomic writes against changes made in another Todoist client.
@@ -55,9 +60,9 @@ The widget reads the installed Android app list locally to find Todoist for **Op
 
 ## Verification and previews
 
-Release checks cover the official store checker/reviewer, OWL evaluator actions, the pinned official JVM runtime with simulated network/peripheral services, state migration and the official sharing codec. They do not establish new Android rendering, touch, keystore or live Todoist validation for 0.7.0. Earlier device checks are not described as a full test of this release.
+Release checks cover the official store checker/reviewer, OWL evaluator actions, the pinned official JVM runtime with simulated network/peripheral services, state migration and the official sharing codec. They do not establish new Android rendering, touch, keystore or live Todoist validation for 0.7.1. Earlier device checks are not described as a full test of this release.
 
-The existing store previews are retained as **legacy demo illustrations**, not newly captured screenshots of 0.7.0; some colors and details may differ. No token or real-account task is shown in the demo preview. Translations are assisted contributions, not a claim of native human review in every language.
+The existing store previews are retained as **legacy demo illustrations**, not newly captured screenshots of 0.7.1; some colors and details may differ. No token or real-account task is shown in the demo preview. Translations are model-assisted contributions with cross-review by a second model; there was no native-speaker review in any language.
 
 ## Contributing
 
@@ -71,7 +76,7 @@ License: MIT, as declared in the widget metadata.
 
 ## Português
 
-**0.7.0 beta para uma conta fixa**, com OWL 17 (Omalauncher 0.16.0 ou posterior). Atualiza filtros salvos, idiomas, contexto das tarefas, paginação local e configurações; incorpora os consertos locais de detalhes, rascunhos e respostas antigas.
+**0.7.1 beta para uma conta fixa**, com OWL 17 (Omalauncher 0.16.0 ou posterior). Atualiza filtros salvos, idiomas, contexto das tarefas, paginação local e configurações; incorpora os consertos locais de detalhes, rascunhos e respostas antigas. Novidades da 0.7.1: tarefas de maior prioridade aparecem primeiro dentro de cada seção, e a interface ganhou francês, japonês, russo, turco, ucraniano e italiano (traduções por modelo, sem revisão de falante nativo).
 
 Atualize a instância existente pela mesma origem de instalação, sem apagá-la ou desconectar a conta. Cole o token somente no campo protegido do aplicativo. A instalação compartilhada e a instalação da loja têm identidades diferentes: importar um compartilhamento não atualiza automaticamente a instância da loja.
 
