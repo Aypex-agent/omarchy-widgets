@@ -1,16 +1,18 @@
 widget "dawgwatch" {
   meta {
     description: "Washington Huskies football dashboard: live score, live betting odds, ESPN win probability, schedule, Big Ten standings, and team news"
-    version: "1.1"
+    version: "1.2"
     license: "MIT"
     category: "sport"
-    owl: 17
+    owl: 19
   }
 
   size: 6x4
   minSize: 3x3
+  padding: [10, 8]
 
   source now = clock every 1m
+  source modes = android.modes
   source scoreboard = http("https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?groups=5") every 1m json timeout 20s
   source schedule = http("https://site.api.espn.com/apis/site/v2/sports/football/college-football/teams/264/schedule") every 10m json timeout 20s
   source standings = http("https://site.api.espn.com/apis/v2/sports/football/college-football/standings?group=5") every 30m json timeout 20s
@@ -24,8 +26,9 @@ widget "dawgwatch" {
   state newsFilter = "all"
   state lastLiveProb = null
 
-  let uwPurple = mix(#4b2e83, foreground, 0.55)
-  let uwGold = mix(#c5a45c, foreground, 0.25)
+  let uwPurple = mix(#8b5cf6, foreground, 0.22)
+  let uwGold = mix(#e0be6f, foreground, 0.12)
+  let winGreen = #3ddc84
 
   let teamInfo = schedule.team ?? {}
   let recordStr = teamInfo.recordSummary ?? "–"
@@ -43,10 +46,14 @@ widget "dawgwatch" {
   let sbEvents = scoreboard.events ?? []
   let sbUwGame = sbEvents.find(e => any(e.competitions[0].competitors ?? [], c => (c.team.id ?? '') == '264'))
   let isSbLive = sbUwGame != null && sbUwGame.competitions[0].status.type.state == 'in'
+  let isSbFinal = sbUwGame != null && sbUwGame.competitions[0].status.type.state == 'post'
 
-  let liveGame = isSbLive ? sbUwGame : first(liveSchedGames)
-  // Featured game: live game first; if not live, next upcoming matchup; fallback to last game
-  let featuredGame = liveGame ?? nextSchedGame ?? lastGame ?? sbUwGame
+  let recentFinalCandidate = isSbFinal ? sbUwGame : lastGame
+  let recentFinalTs = parseTime(recentFinalCandidate.date)
+  let showRecentFinal = recentFinalCandidate != null && recentFinalTs != null && now >= recentFinalTs && (now - recentFinalTs) < 86400
+  let liveGame = isSbLive ? sbUwGame : (!isSbFinal ? first(liveSchedGames) : null)
+  // Featured game: live game first, then a final game within 24h of kickoff (~20h post-game), then next upcoming matchup, fallback to last game
+  let featuredGame = liveGame ?? (showRecentFinal ? recentFinalCandidate : null) ?? nextSchedGame ?? lastGame ?? sbUwGame
   let prevGame = lastGame
 
   // Big Ten Standings (18 teams)
@@ -89,11 +96,12 @@ widget "dawgwatch" {
   let fgIsFinal = fgState == 'post'
   let fgIsPre = fgState == 'pre'
 
+  let fgWeekNum = featuredGame.week.number ?? scoreboard.week.number
   let fgTimeValid = fgComp.timeValid != false
   let fgDate = parseTime(featuredGame.date)
   let fgKickDate = fgDate != null ? (fgTimeValid ? fmtTime(fgDate, "EEE, M/d") : fmtTime(fgDate, "EEE, M/d", "America/New_York")) : 'Upcoming'
   let fgKickTime = fgDate != null && fgTimeValid ? fmtTime(fgDate, "h:mm a") : (fgComp.status.type.shortDetail ?? 'TBD')
-  let fgStatusText = fgIsLive ? "${fgComp.status.displayClock} Q${fgComp.status.period}" : (fgIsFinal ? "Final" : "${fgKickDate} • ${fgKickTime}")
+  let fgStatusText = fgIsLive ? "${fgComp.status.displayClock} Q${fgComp.status.period}" : (fgIsFinal ? (fgComp.status.type.shortDetail ?? "Final") : "${fgKickDate} • ${fgKickTime}")
   let fgVenue = fgComp.venue.fullName ?? 'Husky Stadium'
   let fgCity = fgComp.venue.address.city ?? ''
   let fgStateCode = fgComp.venue.address.state ?? ''
@@ -114,7 +122,7 @@ widget "dawgwatch" {
   let espnCore = "https://sports.core.api.espn.com/v2/sports/football/leagues/college-football"
   source liveOdds = http(fgIsLive && fgId != "" ? "${espnCore}/events/${enc(fgId)}/competitions/${enc(fgId)}/odds" : null) every 30s json timeout 15s status
   source preOdds = http(!fgIsLive && fgId != "" ? "${espnCore}/events/${enc(fgId)}/competitions/${enc(fgId)}/odds" : null) every 15m json timeout 15s status
-  source gamePredictor = http(!fgIsFinal && fgId != "" ? "${espnCore}/events/${enc(fgId)}/competitions/${enc(fgId)}/predictor" : null) every 30m json timeout 15s status
+  source gamePredictor = http(fgId != "" ? "${espnCore}/events/${enc(fgId)}/competitions/${enc(fgId)}/predictor" : null) every 30m json timeout 15s status
 
   let gameOdds = fgIsLive ? (liveOdds ?? preOdds) : preOdds
   let oddsItems = (gameOdds != null && gameOdds.ok ? gameOdds.out.items : null) ?? []
@@ -127,21 +135,21 @@ widget "dawgwatch" {
 
   let oddsProvider = replace(activeOdds.provider.name ?? "DraftKings", " - Live Odds", "")
   let oddsDetails = activeOdds.details ?? ""
-  let oddsOuStr = activeOdds.current.total.american ?? (activeOdds.overUnder != null ? "${activeOdds.overUnder}" : "")
-  let oddsOverJuice = activeOdds.current.over.american ?? (activeOdds.overOdds != null ? (activeOdds.overOdds > 0 ? "+${int(activeOdds.overOdds)}" : "${int(activeOdds.overOdds)}") : "")
-  let oddsUnderJuice = activeOdds.current.under.american ?? (activeOdds.underOdds != null ? (activeOdds.underOdds > 0 ? "+${int(activeOdds.underOdds)}" : "${int(activeOdds.underOdds)}") : "")
+  let oddsOuStr = (fgIsFinal ? activeOdds.close.total.american : null) ?? activeOdds.current.total.american ?? (activeOdds.overUnder != null ? "${activeOdds.overUnder}" : "")
+  let oddsOverJuice = (fgIsFinal ? activeOdds.close.over.american : null) ?? activeOdds.current.over.american ?? (activeOdds.overOdds != null ? (activeOdds.overOdds > 0 ? "+${int(activeOdds.overOdds)}" : "${int(activeOdds.overOdds)}") : "")
+  let oddsUnderJuice = (fgIsFinal ? activeOdds.close.under.american : null) ?? activeOdds.current.under.american ?? (activeOdds.underOdds != null ? (activeOdds.underOdds > 0 ? "+${int(activeOdds.underOdds)}" : "${int(activeOdds.underOdds)}") : "")
 
-  let oddsAwaySpread = activeOdds.awayTeamOdds.current.pointSpread.american ?? (activeOdds.spread != null ? (activeOdds.spread == 0 ? "PK" : (-activeOdds.spread > 0 ? "+${-activeOdds.spread}" : "${-activeOdds.spread}")) : "")
-  let oddsHomeSpread = activeOdds.homeTeamOdds.current.pointSpread.american ?? (activeOdds.spread != null ? (activeOdds.spread == 0 ? "PK" : (activeOdds.spread > 0 ? "+${activeOdds.spread}" : "${activeOdds.spread}")) : "")
-  let oddsAwaySpreadJuice = activeOdds.awayTeamOdds.current.spread.american ?? (activeOdds.awayTeamOdds.spreadOdds != null ? (activeOdds.awayTeamOdds.spreadOdds > 0 ? "+${int(activeOdds.awayTeamOdds.spreadOdds)}" : "${int(activeOdds.awayTeamOdds.spreadOdds)}") : "")
-  let oddsHomeSpreadJuice = activeOdds.homeTeamOdds.current.spread.american ?? (activeOdds.homeTeamOdds.spreadOdds != null ? (activeOdds.homeTeamOdds.spreadOdds > 0 ? "+${int(activeOdds.homeTeamOdds.spreadOdds)}" : "${int(activeOdds.homeTeamOdds.spreadOdds)}") : "")
+  let oddsAwaySpread = (fgIsFinal ? activeOdds.awayTeamOdds.close.pointSpread.american : null) ?? activeOdds.awayTeamOdds.current.pointSpread.american ?? (activeOdds.spread != null ? (activeOdds.spread == 0 ? "PK" : (-activeOdds.spread > 0 ? "+${-activeOdds.spread}" : "${-activeOdds.spread}")) : "")
+  let oddsHomeSpread = (fgIsFinal ? activeOdds.homeTeamOdds.close.pointSpread.american : null) ?? activeOdds.homeTeamOdds.current.pointSpread.american ?? (activeOdds.spread != null ? (activeOdds.spread == 0 ? "PK" : (activeOdds.spread > 0 ? "+${activeOdds.spread}" : "${activeOdds.spread}")) : "")
+  let oddsAwaySpreadJuice = (fgIsFinal ? activeOdds.awayTeamOdds.close.spread.american : null) ?? activeOdds.awayTeamOdds.current.spread.american ?? (activeOdds.awayTeamOdds.spreadOdds != null ? (activeOdds.awayTeamOdds.spreadOdds > 0 ? "+${int(activeOdds.awayTeamOdds.spreadOdds)}" : "${int(activeOdds.awayTeamOdds.spreadOdds)}") : "")
+  let oddsHomeSpreadJuice = (fgIsFinal ? activeOdds.homeTeamOdds.close.spread.american : null) ?? activeOdds.homeTeamOdds.current.spread.american ?? (activeOdds.homeTeamOdds.spreadOdds != null ? (activeOdds.homeTeamOdds.spreadOdds > 0 ? "+${int(activeOdds.homeTeamOdds.spreadOdds)}" : "${int(activeOdds.homeTeamOdds.spreadOdds)}") : "")
 
-  let oddsAwayMl = activeOdds.awayTeamOdds.current.moneyLine.american ?? (activeOdds.awayTeamOdds.moneyLine != null ? (activeOdds.awayTeamOdds.moneyLine > 0 ? "+${int(activeOdds.awayTeamOdds.moneyLine)}" : "${int(activeOdds.awayTeamOdds.moneyLine)}") : "")
-  let oddsHomeMl = activeOdds.homeTeamOdds.current.moneyLine.american ?? (activeOdds.homeTeamOdds.moneyLine != null ? (activeOdds.homeTeamOdds.moneyLine > 0 ? "+${int(activeOdds.homeTeamOdds.moneyLine)}" : "${int(activeOdds.homeTeamOdds.moneyLine)}") : "")
+  let oddsAwayMl = (fgIsFinal ? activeOdds.awayTeamOdds.close.moneyLine.american : null) ?? activeOdds.awayTeamOdds.current.moneyLine.american ?? (activeOdds.awayTeamOdds.moneyLine != null ? (activeOdds.awayTeamOdds.moneyLine > 0 ? "+${int(activeOdds.awayTeamOdds.moneyLine)}" : "${int(activeOdds.awayTeamOdds.moneyLine)}") : "")
+  let oddsHomeMl = (fgIsFinal ? activeOdds.homeTeamOdds.close.moneyLine.american : null) ?? activeOdds.homeTeamOdds.current.moneyLine.american ?? (activeOdds.homeTeamOdds.moneyLine != null ? (activeOdds.homeTeamOdds.moneyLine > 0 ? "+${int(activeOdds.homeTeamOdds.moneyLine)}" : "${int(activeOdds.homeTeamOdds.moneyLine)}") : "")
   let oddsMlCompact = oddsAwayMl != "" && oddsHomeMl != "" ? "${fgAwayAbbr} ${oddsAwayMl} / ${fgHomeAbbr} ${oddsHomeMl}" : (oddsAwayMl != "" ? "${fgAwayAbbr} ${oddsAwayMl}" : (oddsHomeMl != "" ? "${fgHomeAbbr} ${oddsHomeMl}" : ""))
 
   let oddsSpreadHeadline = oddsDetails != "" ? oddsDetails : (oddsHomeSpread != "" ? "${fgHomeAbbr} ${oddsHomeSpread}" : "")
-  let oddsBadgeText = hasLiveOdds ? "● LIVE" : (fgIsLive || fgIsFinal ? "CLOSE" : "ODDS")
+  let oddsBadgeText = hasLiveOdds ? "● LIVE" : (fgIsFinal || fgIsLive ? "CLOSE" : "ODDS")
 
   let preCloseDetails = preOddsItem.details ?? ""
   let preCloseOu = preOddsItem.overUnder != null ? "O/U ${preOddsItem.overUnder}" : ""
@@ -173,7 +181,7 @@ widget "dawgwatch" {
 
   let awayWinPct = hasLiveProb ? liveAwayProbRaw * 100 : predAwayPct
   let homeWinPct = hasLiveProb ? liveHomeProbRaw * 100 : predHomePct
-  let hasWinProb = !fgIsFinal && awayWinPct != null && homeWinPct != null
+  let hasWinProb = awayWinPct != null && homeWinPct != null
   let awayWinPctStr = hasWinProb ? fixed(awayWinPct, 1) : ""
   let homeWinPctStr = hasWinProb ? fixed(homeWinPct, 1) : ""
 
@@ -190,6 +198,18 @@ widget "dawgwatch" {
   let pgOppId = pgOpp.team.id ?? ''
   let pgOppAbbr = pgOpp.team.abbreviation ?? ''
   let pgResult = "${pgWon ? 'W' : 'L'} ${pgUwScore}-${pgOppScore} ${pgIsHome ? 'vs' : '@'} ${pgOppAbbr}"
+
+  // Next upcoming game summary (shown when featured is a recent final)
+  let ngComp = nextSchedGame.competitions[0]
+  let ngComps = ngComp.competitors ?? []
+  let ngOpp = ngComps.find(t => (t.team.id ?? '') != '264')
+  let ngOppId = ngOpp.team.id ?? ''
+  let ngOppAbbr = ngOpp.team.abbreviation ?? ''
+  let ngOppRankNum = ngOpp.curatedRank.current ?? 99
+  let ngOppLabel = ngOppRankNum <= 25 ? "#${ngOppRankNum} ${ngOppAbbr}" : ngOppAbbr
+  let ngDate = parseTime(nextSchedGame.date)
+  let ngTimeValid = ngComp.timeValid != false
+  let ngWhen = ngDate != null ? (ngTimeValid ? fmtTime(ngDate, "EEE, M/d h:mma") : "${fmtTime(ngDate, "EEE, M/d", "America/New_York")} • TBD") : (ngComp.status.type.shortDetail ?? 'TBD')
 
   let uwItems = (uwNews.items ?? []).map(s => ({
     id: "uw-${s.contentId}",
@@ -244,22 +264,567 @@ widget "dawgwatch" {
 
   let articles = newsFilter == "all" ? allArticles : allArticles.filter(a => a.src == newsFilter)
 
-  component TeamLogo(id, px = 20) {
+  // Responsive tile scaling (adapts to tile size and visible content strips)
+  let th = tileHeight ?? 282
+  let tw = tileWidth ?? 414
+  let hasSubStrip = (fgIsPre && prevGame != null) || (fgIsFinal && nextSchedGame != null)
+  let hasLiveSit = fgIsLive && fgDownDist != ""
+  let scoreBaseH = 173 + (hasSubStrip ? 23 : 0) + (hasLiveSit ? 19 : 0) + (hasOdds ? 21 : 0) + (hasWinProb ? 21 : 0)
+  let scoreSpare = th - scoreBaseH
+  let isCompactTile = scoreSpare < 26
+  let isNarrowTile = tw < 290
+  let isTightWidth = tw < 340
+  let extraSpace = max(0, scoreSpare - 46)
+  let tileGap = int(clamp(3 + extraSpace * 0.04, 3, 6))
+  let cardPadY = int(clamp(4 + extraSpace * 0.06, 4, 8))
+  let cardPadX = isNarrowTile ? 6 : 8
+  let cardGap = int(clamp(2 + extraSpace * 0.05, 2, 5))
+  let tabPadY = int(clamp(3 + extraSpace * 0.04, 3, 6))
+  let stripPadY = int(clamp(3 + extraSpace * 0.04, 3, 6))
+  let barH = scoreSpare >= 64 ? 4 : 3
+  let baseLogoPx = isCompactTile ? 22 : int(clamp(scoreSpare * 0.64, 24, 42))
+  let winLogoPx = int(clamp(round(baseLogoPx * 1.08), 26, 40))
+  let loseLogoPx = int(max(18, round(baseLogoPx * 0.78)))
+  let fgHasWinner = fgIsFinal && (fgAway.winner == true || fgHome.winner == true)
+  let awayIsWinner = fgHasWinner && fgAway.winner == true
+  let homeIsWinner = fgHasWinner && fgHome.winner == true
+  let uwWonFeatured = fgHasWinner && fgUw.winner == true
+  let awayLogoPx = fgHasWinner ? (awayIsWinner ? winLogoPx : loseLogoPx) : baseLogoPx
+  let homeLogoPx = fgHasWinner ? (homeIsWinner ? winLogoPx : loseLogoPx) : baseLogoPx
+  let auraW = fgHasWinner ? min(int(tw * 0.25), int(round(winLogoPx * 2.65))) : baseLogoPx
+  let logoSlotH = fgHasWinner ? int(round(winLogoPx * 1.38)) : baseLogoPx
+  let screenAwayLogoPx = fgHasWinner ? (awayIsWinner ? 56 : 44) : 54
+  let screenHomeLogoPx = fgHasWinner ? (homeIsWinner ? 56 : 44) : 54
+  let screenAuraW = fgHasWinner ? 114 : 58
+  let screenLogoSlotH = fgHasWinner ? 86 : 58
+  let expandBtnSz = int(clamp(min(tw, th) * 0.095, 22, 32))
+  let expandIconSz = int(clamp(round(expandBtnSz * 0.56), 13, 18))
+  let scoreFontSize = int(clamp(20 + extraSpace * 0.08, 20, 28))
+  let centerColW = int(clamp(tw * 0.30, 86, 130))
+  let b1gTop2 = take(b1gEntries, 2)
+  let uwInTop2 = any(b1gTop2, e => (e.team.id ?? '') == '264')
+  let b1gStripTight = uwInTop2 ? take(b1gEntries, 3) : (uwStandingsEntry != null ? flatten([b1gTop2, [uwStandingsEntry]]) : b1gTop2)
+  let b1gTop1 = take(b1gEntries, 1)
+  let uwInTop1 = any(b1gTop1, e => (e.team.id ?? '') == '264')
+  let b1gStripNarrow = uwInTop1 ? take(b1gEntries, 2) : (uwStandingsEntry != null ? flatten([b1gTop1, [uwStandingsEntry]]) : b1gTop1)
+  let b1gQuickStrip = isNarrowTile ? b1gStripNarrow : (isTightWidth ? b1gStripTight : b1gStrip)
+
+  component TeamLogo(id, px = 20, plate = false) {
     let tid = str(id ?? '')
     if tid != '' && tid != 'null' {
-      Image {
-        src: "https://a.espncdn.com/i/teamlogos/ncaa/500/${tid}.png"
-        size: px
-        fit: contain
+      if plate {
+        let boxSz = px <= 20 ? px : px + 4
+        let imgSz = px <= 20 ? max(12, px - 2) : px
+        Box {
+          size: boxSz
+          radius: boxSz / 2
+          background: alpha(#ffffff, px <= 20 ? 0.11 : 0.08)
+          align: center
+          Image {
+            src: "https://a.espncdn.com/i/teamlogos/ncaa/500/${tid}.png"
+            size: imgSz
+            fit: contain
+          }
+        }
+      } else {
+        Image {
+          src: "https://a.espncdn.com/i/teamlogos/ncaa/500/${tid}.png"
+          size: px
+          fit: contain
+        }
       }
     }
   }
 
+  component WinnerAura(w, h, col) {
+    Canvas {
+      width: w
+      height: h
+      let cx = width / 2
+      let cy = height / 2
+      let r = min(width, height) / 2
+      let rRing = r * 0.88
+      let pulse = 0.94 + 0.06 * sin(time * 2.2)
+      let rGlow = r * 0.98 * pulse
+      circle(cx, cy, rGlow, fill: radial(cx, cy, rGlow, [alpha(col, 0.34), alpha(col, 0.13), alpha(col, 0.0)]))
+      circle(cx, cy, rRing, fill: alpha(col, 0.11), stroke: alpha(col, 0.50), width: 1.3)
+      let stars = [
+        {dx: -1.24, dy: -0.58, ph: 0.2, s: 1.02},
+        {dx: 1.24, dy: -0.54, ph: 1.6, s: 1.10},
+        {dx: -1.34, dy: 0.34, ph: 3.1, s: 0.86},
+        {dx: 1.32, dy: 0.38, ph: 4.5, s: 0.94},
+        {dx: 1.12, dy: -0.84, ph: 2.3, s: 0.72}
+      ]
+      for st in stars {
+        let twk = 0.32 + 0.68 * pow(0.5 + 0.5 * sin(time * 3.0 + st.ph), 2)
+        let drift = sin(time * 1.6 + st.ph) * (r * 0.05)
+        let sx = clamp(cx + st.dx * rRing, 5, width - 5)
+        let sy = clamp(cy + st.dy * rRing + drift, 5, height - 5)
+        let sr = max(2.2, r * 0.15 * st.s * (0.65 + 0.55 * twk))
+        path([
+          [sx, sy - sr], [sx + sr * 0.28, sy - sr * 0.28],
+          [sx + sr, sy], [sx + sr * 0.28, sy + sr * 0.28],
+          [sx, sy + sr], [sx - sr * 0.28, sy + sr * 0.28],
+          [sx - sr, sy], [sx - sr * 0.28, sy - sr * 0.28]
+        ], closed: true, fill: alpha(mix(col, foreground, 0.35), 0.40 + 0.60 * twk))
+      }
+    }
+  }
+
+  component BooAura(w, h) {
+    Canvas {
+      width: w
+      height: h
+      let cx = width / 2
+      let cy = height / 2
+      let r = min(width, height) / 2
+      let rRing = r * 0.88
+      let pulse = 0.94 + 0.06 * sin(time * 2.0)
+      let rGlow = r * 0.98 * pulse
+      circle(cx, cy, rGlow, fill: radial(cx, cy, rGlow, [alpha(red, 0.28), alpha(red, 0.10), alpha(red, 0.0)]))
+      circle(cx, cy, rRing, fill: alpha(red, 0.08), stroke: alpha(red, 0.44), width: 1.2)
+      let b1 = sin(time * 2.6) * (r * 0.08)
+      let b2 = sin(time * 2.6 + 2.2) * (r * 0.08)
+      let a1 = 0.55 + 0.45 * (0.5 + 0.5 * sin(time * 3.0))
+      let a2 = 0.55 + 0.45 * (0.5 + 0.5 * sin(time * 3.0 + 2.4))
+      let tx1 = max(14, cx - rRing * 1.28)
+      let ty1 = max(7, cy - rRing * 0.62) + b1
+      let tx2 = min(width - 17, cx + rRing * 1.28)
+      let ty2 = min(height - 7, cy + rRing * 0.58) + b2
+      rotate(-14, tx1, ty1) {
+        text("BOO!", tx1, ty1, size: max(7, r * 0.26), color: alpha(red, a1), align: center, bold: true)
+      }
+      rotate(11, tx2, ty2) {
+        text("BOOOO", tx2, ty2, size: max(6.5, r * 0.23), color: alpha(red, a2), align: center, bold: true)
+      }
+      let d1 = (time * 0.55) % 1
+      let d2 = (time * 0.55 + 0.5) % 1
+      let vx1 = min(width - 9, cx + rRing * 1.22)
+      let vy1 = max(6, cy - rRing * 0.65) + d1 * (r * 0.32)
+      let vx2 = max(9, cx - rRing * 1.22)
+      let vy2 = max(10, cy + rRing * 0.22) + d2 * (r * 0.32)
+      let cr = max(2.2, r * 0.11)
+      path([[vx1 - cr, vy1 - cr * 0.5], [vx1, vy1 + cr * 0.5], [vx1 + cr, vy1 - cr * 0.5]], stroke: alpha(red, (1 - d1) * 0.75), width: 1.4, cap: round)
+      path([[vx2 - cr, vy2 - cr * 0.5], [vx2, vy2 + cr * 0.5], [vx2 + cr, vy2 - cr * 0.5]], stroke: alpha(red, (1 - d2) * 0.75), width: 1.4, cap: round)
+    }
+  }
+
+  component ExpandButton(sz, iconSz, col) {
+    Box {
+      size: sz
+      align: center
+      radius: 6 * corners
+      background: alpha(surface, 0.55)
+      border: 1
+      borderColor: alpha(border, 0.55)
+      onTap: { haptic(); screen() }
+      Canvas {
+        width: iconSz
+        height: iconSz
+        let m = iconSz * 0.14
+        let h = iconSz * 0.38
+        let sw = max(1.6, iconSz * 0.10)
+        line(m, iconSz - m, iconSz - m, m, stroke: col, width: sw, cap: round)
+        line(iconSz - m - h, m, iconSz - m, m, stroke: col, width: sw, cap: round)
+        line(iconSz - m, m, iconSz - m, m + h, stroke: col, width: sw, cap: round)
+        line(m, iconSz - m, m + h, iconSz - m, stroke: col, width: sw, cap: round)
+        line(m, iconSz - m, m, iconSz - m - h, stroke: col, width: sw, cap: round)
+      }
+    }
+  }
+
+  component ScoreFeaturedCard(expand = false) {
+    Column {
+      fill: width
+      weight: expand ? 1 : 0
+      padding: [cardPadX, cardPadY]
+      radius: 8 * corners
+      background: alpha(surface, 0.6)
+      border: 1
+      borderColor: fgIsLive ? uwPurple : border
+      gap: cardGap
+
+      Row {
+        fill: width
+        align: center
+        gap: 6
+        Text {
+          text: fgIsLive ? "LIVE GAME" : (fgIsFinal ? (fgVenue != "" ? "FINAL • W${fgWeekNum ?? ''} • ${fgVenue}" : "FINAL • WEEK ${fgWeekNum ?? ''}") : (fgVenue != "" ? "W${fgWeekNum ?? ''} • ${fgVenue}" : "UPCOMING • WEEK ${fgWeekNum ?? ''}"))
+          style: small
+          bold: true
+          color: fgIsLive ? uwPurple : (fgIsFinal ? (fgUw.winner == true ? uwGold : muted) : uwGold)
+          weight: 1
+          maxLines: 1
+        }
+        if fgIsFinal {
+          Text {
+            text: fgUw.winner == true ? "WIN" : "LOSS"
+            style: label
+            bold: true
+            color: fgUw.winner == true ? winGreen : red
+            padding: [4, 1]
+            radius: 3 * corners
+            background: fgUw.winner == true ? alpha(winGreen, 0.2) : alpha(red, 0.2)
+          }
+        } else if fgBroadcast != "" {
+          Text {
+            text: fgBroadcast
+            style: label
+            bold: true
+            color: foreground
+            padding: [4, 1]
+            radius: 3 * corners
+            background: alpha(uwGold, 0.25)
+          }
+        }
+      }
+
+      // Teams and scores/time
+      Row {
+        fill: width
+        weight: expand ? 1 : 0
+        align: center
+        gap: 4
+
+        // Away Team
+        Column {
+          weight: 1
+          align: center
+          gap: 1
+          Box {
+            width: awayIsWinner ? auraW : awayLogoPx
+            height: logoSlotH
+            align: center
+            if awayIsWinner {
+              if uwWonFeatured {
+                WinnerAura { w: auraW; h: logoSlotH; col: uwGold }
+              } else {
+                BooAura { w: auraW; h: logoSlotH }
+              }
+            }
+            Box {
+              opacity: fgHasWinner && !awayIsWinner ? 0.82 : 1
+              TeamLogo { id: fgAway.team.id; px: awayLogoPx; plate: !awayIsWinner }
+            }
+          }
+          Text {
+            text: fgAwayRank != null ? "#${fgAwayRank} ${fgAwayAbbr}" : fgAwayAbbr
+            bold: true
+            style: small
+            color: fgIsFinal && !fgAway.winner ? muted : foreground
+            align: center
+          }
+          if fgAwayRec != "" {
+            Text { text: fgAwayRec; style: label; color: muted; align: center }
+          }
+        }
+
+        // Center Score or Kickoff
+        Column {
+          align: center
+          gap: 1
+          width: centerColW
+          if fgIsPre {
+            Text { text: "AT"; style: label; color: muted; bold: true; align: center }
+            Text { text: fgKickDate; style: small; color: uwPurple; bold: true; align: center }
+            Text { text: fgKickTime; style: small; color: uwGold; align: center; bold: true }
+          } else {
+            Row {
+              gap: 6
+              align: center
+              Text {
+                text: fgAwayScore
+                fontSize: scoreFontSize
+                bold: true
+                color: fgIsFinal && !fgAway.winner ? muted : foreground
+              }
+              Text { text: "-"; fontSize: scoreFontSize; color: muted }
+              Text {
+                text: fgHomeScore
+                fontSize: scoreFontSize
+                bold: true
+                color: fgIsFinal && !fgHome.winner ? muted : foreground
+              }
+            }
+            Text {
+              text: fgStatusText
+              style: small
+              color: fgIsLive ? uwPurple : muted
+              bold: fgIsLive
+              align: center
+              maxLines: 1
+            }
+          }
+        }
+
+        // Home Team
+        Column {
+          weight: 1
+          align: center
+          gap: 1
+          Box {
+            width: homeIsWinner ? auraW : homeLogoPx
+            height: logoSlotH
+            align: center
+            if homeIsWinner {
+              if uwWonFeatured {
+                WinnerAura { w: auraW; h: logoSlotH; col: uwGold }
+              } else {
+                BooAura { w: auraW; h: logoSlotH }
+              }
+            }
+            Box {
+              opacity: fgHasWinner && !homeIsWinner ? 0.82 : 1
+              TeamLogo { id: fgHome.team.id; px: homeLogoPx; plate: !homeIsWinner }
+            }
+          }
+          Text {
+            text: fgHomeRank != null ? "#${fgHomeRank} ${fgHomeAbbr}" : fgHomeAbbr
+            bold: true
+            style: small
+            color: fgIsFinal && !fgHome.winner ? muted : foreground
+            align: center
+          }
+          if fgHomeRec != "" {
+            Text { text: fgHomeRec; style: label; color: muted; align: center }
+          }
+        }
+      }
+
+      // Live down & distance
+      if fgIsLive && fgDownDist != "" {
+        Row {
+          align: center
+          gap: 6
+          Text { text: "🏈 ${fgDownDist}"; style: small; bold: true; color: uwPurple }
+          if fgIsRedZone {
+            Text {
+              text: "RED ZONE"
+              style: label
+              bold: true
+              color: red
+              padding: [4, 1]
+              radius: 3
+              background: alpha(red, 0.2)
+            }
+          }
+        }
+      }
+
+      // Compact Betting Odds Strip
+      if hasOdds {
+        Box {
+          fill: width
+          padding: [6, 2]
+          radius: 5 * corners
+          background: hasLiveOdds ? alpha(red, 0.12) : alpha(background, 0.35)
+          border: hasLiveOdds ? 1 : 0
+          borderColor: alpha(red, 0.45)
+
+          Row {
+            fill: width
+            align: center
+            gap: 6
+            Text {
+              text: oddsBadgeText
+              style: label
+              bold: true
+              color: hasLiveOdds ? red : (fgIsPre || fgIsFinal ? uwGold : muted)
+            }
+            if oddsSpreadHeadline != "" {
+              Text { text: oddsSpreadHeadline; style: label; bold: true; color: foreground; maxLines: 1 }
+            }
+            if oddsOuStr != "" {
+              Text { text: "O/U ${oddsOuStr}"; style: label; color: muted; maxLines: 1 }
+            }
+            Spacer { weight: 1 }
+            if !isNarrowTile && oddsMlCompact != "" {
+              Text { text: oddsMlCompact; style: label; color: foreground; align: end; maxLines: 1 }
+            }
+          }
+        }
+      }
+
+      // Compact ESPN Percentage Odds Bar
+      if hasWinProb {
+        Column {
+          fill: width
+          gap: 1
+          Row {
+            fill: width
+            align: center
+            Text {
+              text: "${fgAwayAbbr} ${awayWinPctStr}%"
+              style: label
+              bold: !fgIsHome || awayWinPct >= homeWinPct
+              color: !fgIsHome ? uwGold : (awayWinPct >= homeWinPct ? foreground : muted)
+            }
+            Spacer { weight: 1 }
+            Text {
+              text: isNarrowTile ? (hasLiveProb ? "● LIVE" : (fgIsFinal ? "PREGAME" : "WIN PROB")) : (hasLiveProb ? "● ESPN LIVE" : (fgIsFinal ? "PREGAME WIN PROB" : "ESPN WIN PROB"))
+              style: label
+              bold: hasLiveProb
+              color: hasLiveProb ? red : muted
+            }
+            Spacer { weight: 1 }
+            Text {
+              text: "${fgHomeAbbr} ${homeWinPctStr}%"
+              style: label
+              bold: fgIsHome || homeWinPct >= awayWinPct
+              color: fgIsHome ? uwGold : (homeWinPct >= awayWinPct ? foreground : muted)
+            }
+          }
+          Row {
+            fill: width
+            height: barH
+            radius: 2 * corners
+            clip: true
+            gap: 2
+            Box {
+              weight: clamp(awayWinPct, 2, 98)
+              height: barH
+              background: !fgIsHome ? uwGold : alpha(foreground, 0.32)
+            }
+            Box {
+              weight: clamp(homeWinPct, 2, 98)
+              height: barH
+              background: fgIsHome ? uwGold : alpha(foreground, 0.32)
+            }
+          }
+        }
+      }
+    }
+  }
+
+  component ScoreBottomStrips() {
+    Column {
+      fill: width
+      gap: tileGap
+
+      // Previous Game Summary (when featured is upcoming)
+      if fgIsPre && prevGame != null {
+        Box {
+          fill: width
+          padding: [6, stripPadY]
+          radius: 6 * corners
+          background: alpha(surface, 0.6)
+          border: 1
+          borderColor: border
+
+          Row {
+            fill: width
+            align: center
+            gap: 6
+            Text { text: "Last:"; style: small; color: muted }
+            Text {
+              text: pgWon ? "W" : "L"
+              style: small
+              bold: true
+              color: pgWon ? winGreen : red
+              padding: [4, 1]
+              radius: 3 * corners
+              background: pgWon ? alpha(winGreen, 0.2) : alpha(red, 0.2)
+            }
+            TeamLogo { id: pgOppId; px: 16; plate: true }
+            Text {
+              text: "${pgUwScore}-${pgOppScore} ${pgIsHome ? 'vs' : '@'} ${pgOppAbbr}"
+              style: small
+              bold: true
+            }
+            Spacer { weight: 1 }
+            Text { text: "W${prevGame.week.number} Final"; style: label; color: muted; maxLines: 1 }
+          }
+        }
+      }
+
+      // Next Upcoming Game Strip (when featured is a recent final)
+      if fgIsFinal && nextSchedGame != null {
+        Box {
+          fill: width
+          padding: [6, stripPadY]
+          radius: 6 * corners
+          background: alpha(surface, 0.6)
+          border: 1
+          borderColor: border
+
+          Row {
+            fill: width
+            align: center
+            gap: 6
+            Text { text: "Next:"; style: small; color: muted }
+            TeamLogo { id: ngOppId; px: 16; plate: true }
+            Text {
+              text: "${ngOpp.homeAway == 'home' ? '@' : 'vs'} ${ngOppLabel}"
+              style: small
+              bold: true
+            }
+            Spacer { weight: 1 }
+            Text { text: ngWhen; style: label; color: uwGold; maxLines: 1 }
+          }
+        }
+      }
+
+      // Big Ten Quick Strip (Top 3 + WASH)
+      Box {
+        fill: width
+        padding: [6, stripPadY]
+        radius: 6 * corners
+        background: alpha(surface, 0.6)
+        border: 1
+        borderColor: border
+        onTap: { haptic(); tab = "standings" }
+
+        Row {
+          fill: width
+          align: center
+          gap: 4
+
+          Text { text: "B1G"; style: label; bold: true; color: muted; width: 22 }
+
+          for entry, i in b1gQuickStrip key entry.team.id {
+            let isUw = (entry.team.id ?? '') == '264'
+            let rec = (entry.stats.find(s => s.name == 'overall') ?? {}).displayValue ?? '–'
+
+            if i > 0 {
+              Box {
+                width: 1
+                height: 9
+                background: alpha(border, 0.55)
+              }
+            }
+            Row {
+              align: center
+              gap: 3
+              TeamLogo { id: entry.team.id; px: 14; plate: true }
+              Text {
+                text: "${entry.team.abbreviation} ${rec}"
+                style: label
+                bold: isUw
+                color: isUw ? uwGold : muted
+              }
+              if isUw {
+                Box {
+                  width: 4
+                  height: 4
+                  radius: 2 * corners
+                  background: uwGold
+                }
+              }
+            }
+          }
+          Spacer { weight: 1 }
+          Text { text: "›"; style: small; color: muted }
+        }
+      }
+    }
+  }
+
+  fps: fgHasWinner ? (modes.saver ? 5 : 15) : 1
   onTap: { haptic(); screen() }
 
   Column {
-    gap: 4
-    fill: width
+    gap: tileGap
+    fill: true
 
     // Header
     Row {
@@ -268,7 +833,7 @@ widget "dawgwatch" {
       align: center
       Image {
         src: "https://a.espncdn.com/i/teamlogos/ncaa/500/264.png"
-        size: 24
+        size: 28
         fit: contain
       }
       Column {
@@ -283,25 +848,28 @@ widget "dawgwatch" {
             bold: true
             color: uwGold
             padding: [4, 1]
-            radius: 4
+            radius: 4 * corners
             background: alpha(uwGold, 0.2)
           }
         }
-        Text { text: standingStr; style: small; color: muted; maxLines: 1 }
+        Text { text: standingStr; style: label; color: muted; maxLines: 1 }
       }
       Spacer { weight: 1 }
-      if fgIsLive {
-        Text {
-          text: "● LIVE"
-          style: small
-          bold: true
-          color: red
-          padding: [5, 2]
-          radius: 4
-          background: alpha(red, 0.2)
+      Row {
+        gap: 6
+        align: center
+        if fgIsLive {
+          Text {
+            text: "● LIVE"
+            style: small
+            bold: true
+            color: red
+            padding: [5, 2]
+            radius: 4 * corners
+            background: alpha(red, 0.2)
+          }
         }
-      } else {
-        Text { text: "⤢"; style: body; color: muted; onTap: { haptic(); screen() } }
+        ExpandButton { sz: expandBtnSz; iconSz: expandIconSz; col: mix(foreground, muted, 0.35) }
       }
     }
 
@@ -311,7 +879,7 @@ widget "dawgwatch" {
       gap: 4
       Box {
         weight: 1
-        padding: [0, 5]
+        padding: [0, tabPadY]
         radius: 6 * corners
         background: tab == "score" ? alpha(uwPurple, 0.22) : alpha(surface, 0.4)
         border: 1
@@ -327,7 +895,7 @@ widget "dawgwatch" {
       }
       Box {
         weight: 1
-        padding: [0, 5]
+        padding: [0, tabPadY]
         radius: 6 * corners
         background: tab == "standings" ? alpha(uwPurple, 0.22) : alpha(surface, 0.4)
         border: 1
@@ -343,7 +911,7 @@ widget "dawgwatch" {
       }
       Box {
         weight: 1
-        padding: [0, 5]
+        padding: [0, tabPadY]
         radius: 6 * corners
         background: tab == "news" ? alpha(uwPurple, 0.22) : alpha(surface, 0.4)
         border: 1
@@ -359,7 +927,7 @@ widget "dawgwatch" {
       }
       Box {
         weight: 1
-        padding: [0, 5]
+        padding: [0, tabPadY]
         radius: 6 * corners
         background: tab == "schedule" ? alpha(uwPurple, 0.22) : alpha(surface, 0.4)
         border: 1
@@ -376,317 +944,26 @@ widget "dawgwatch" {
     }
 
     // Tab content
-    Column {
-      weight: 1
-      scroll: true
-      onPull: refresh()
-      gap: 4
-
-      if tab == "score" {
-        // Featured Game Card (Upcoming or Live)
-        Box {
-          fill: width
-          padding: [8, 5]
-          radius: 8 * corners
-          background: alpha(surface, 0.6)
-          border: 1
-          borderColor: fgIsLive ? uwPurple : border
-
-          Column {
-            gap: 3
-            fill: width
-
-            Row {
-              fill: width
-              align: center
-              gap: 6
-              Text {
-                text: fgIsLive ? "LIVE GAME" : (fgIsFinal ? "RECENT GAME" : (fgVenue != "" ? "W${featuredGame.week.number ?? ''} • ${fgVenue}" : "UPCOMING • WEEK ${featuredGame.week.number ?? ''}"))
-                style: small
-                bold: true
-                color: fgIsLive ? uwPurple : (fgIsPre ? uwGold : muted)
-                weight: 1
-                maxLines: 1
-              }
-              if fgBroadcast != "" {
-                Text {
-                  text: fgBroadcast
-                  style: label
-                  bold: true
-                  color: foreground
-                  padding: [4, 1]
-                  radius: 3
-                  background: alpha(uwGold, 0.25)
-                }
-              }
-            }
-
-            // Teams and scores/time
-            Row {
-              fill: width
-              align: center
-              gap: 4
-
-              // Away Team
-              Column {
-                weight: 1
-                align: center
-                gap: 1
-                TeamLogo { id: fgAway.team.id; px: 26 }
-                Text {
-                  text: fgAwayRank != null ? "#${fgAwayRank} ${fgAwayAbbr}" : fgAwayAbbr
-                  bold: true
-                  style: small
-                  color: fgIsFinal && !fgAway.winner ? muted : foreground
-                  align: center
-                }
-                if fgAwayRec != "" {
-                  Text { text: fgAwayRec; style: label; color: muted; align: center }
-                }
-              }
-
-              // Center Score or Kickoff
-              Column {
-                align: center
-                gap: 2
-                width: 120
-                if fgIsPre {
-                  Text { text: "VS"; style: label; color: muted; bold: true; align: center }
-                  Text { text: fgKickDate; style: small; color: uwPurple; bold: true; align: center }
-                  Text { text: fgKickTime; style: small; color: uwGold; align: center; bold: true }
-                } else {
-                  Row {
-                    gap: 6
-                    align: center
-                    Text {
-                      text: fgAwayScore
-                      style: title
-                      bold: true
-                    }
-                    Text { text: "-"; style: title; color: muted }
-                    Text {
-                      text: fgHomeScore
-                      style: title
-                      bold: true
-                    }
-                  }
-                  Text {
-                    text: fgStatusText
-                    style: small
-                    color: fgIsLive ? uwPurple : muted
-                    bold: fgIsLive
-                    align: center
-                    maxLines: 1
-                  }
-                }
-              }
-
-              // Home Team
-              Column {
-                weight: 1
-                align: center
-                gap: 1
-                TeamLogo { id: fgHome.team.id; px: 26 }
-                Text {
-                  text: fgHomeRank != null ? "#${fgHomeRank} ${fgHomeAbbr}" : fgHomeAbbr
-                  bold: true
-                  style: small
-                  color: fgIsFinal && !fgHome.winner ? muted : foreground
-                  align: center
-                }
-                if fgHomeRec != "" {
-                  Text { text: fgHomeRec; style: label; color: muted; align: center }
-                }
-              }
-            }
-
-            // Live down & distance
-            if fgIsLive && fgDownDist != "" {
-              Row {
-                align: center
-                gap: 6
-                Text { text: "🏈 ${fgDownDist}"; style: small; bold: true; color: uwPurple }
-                if fgIsRedZone {
-                  Text {
-                    text: "RED ZONE"
-                    style: label
-                    bold: true
-                    color: red
-                    padding: [4, 1]
-                    radius: 3
-                    background: alpha(red, 0.2)
-                  }
-                }
-              }
-            }
-
-            // Compact Betting Odds Strip
-            if hasOdds {
-              Box {
-                fill: width
-                padding: [6, 3]
-                radius: 5 * corners
-                background: hasLiveOdds ? alpha(red, 0.12) : alpha(background, 0.35)
-                border: hasLiveOdds ? 1 : 0
-                borderColor: alpha(red, 0.45)
-
-                Row {
-                  fill: width
-                  align: center
-                  gap: 6
-                  Text {
-                    text: oddsBadgeText
-                    style: label
-                    bold: true
-                    color: hasLiveOdds ? red : (fgIsPre ? uwGold : muted)
-                  }
-                  if oddsSpreadHeadline != "" {
-                    Text { text: oddsSpreadHeadline; style: label; bold: true; color: foreground; maxLines: 1 }
-                  }
-                  if oddsOuStr != "" {
-                    Text { text: "O/U ${oddsOuStr}"; style: label; color: muted; maxLines: 1 }
-                  }
-                  Spacer { weight: 1 }
-                  if oddsMlCompact != "" {
-                    Text { text: oddsMlCompact; style: label; color: foreground; align: end; maxLines: 1 }
-                  }
-                }
-              }
-            }
-
-            // Compact ESPN Percentage Odds Bar
-            if hasWinProb {
-              Column {
-                fill: width
-                gap: 2
-                Row {
-                  fill: width
-                  align: center
-                  Text {
-                    text: "${fgAwayAbbr} ${awayWinPctStr}%"
-                    style: label
-                    bold: !fgIsHome || awayWinPct >= homeWinPct
-                    color: !fgIsHome ? uwGold : (awayWinPct >= homeWinPct ? foreground : muted)
-                  }
-                  Spacer { weight: 1 }
-                  Text {
-                    text: hasLiveProb ? "● ESPN LIVE" : "ESPN WIN PROB"
-                    style: label
-                    bold: hasLiveProb
-                    color: hasLiveProb ? red : muted
-                  }
-                  Spacer { weight: 1 }
-                  Text {
-                    text: "${fgHomeAbbr} ${homeWinPctStr}%"
-                    style: label
-                    bold: fgIsHome || homeWinPct >= awayWinPct
-                    color: fgIsHome ? uwGold : (homeWinPct >= awayWinPct ? foreground : muted)
-                  }
-                }
-                Row {
-                  fill: width
-                  height: 4
-                  radius: 2
-                  clip: true
-                  gap: 2
-                  Box {
-                    weight: clamp(awayWinPct, 2, 98)
-                    height: 4
-                    background: !fgIsHome ? uwGold : alpha(muted, 0.55)
-                  }
-                  Box {
-                    weight: clamp(homeWinPct, 2, 98)
-                    height: 4
-                    background: fgIsHome ? uwGold : alpha(muted, 0.55)
-                  }
-                }
-              }
-            }
-          }
-        }
-
-        // Previous Game Summary (when featured is upcoming)
-        if fgIsPre && prevGame != null {
-          Box {
-            fill: width
-            padding: [6, 4]
-            radius: 6 * corners
-            background: alpha(surface, 0.6)
-            border: 1
-            borderColor: border
-
-            Row {
-              fill: width
-              align: center
-              gap: 6
-              Text { text: "Last:"; style: small; color: muted }
-              Text {
-                text: pgWon ? "W" : "L"
-                style: small
-                bold: true
-                color: pgWon ? green : red
-                padding: [4, 1]
-                radius: 3
-                background: pgWon ? alpha(green, 0.2) : alpha(red, 0.2)
-              }
-              TeamLogo { id: pgOppId; px: 18 }
-              Text {
-                text: "${pgUwScore}-${pgOppScore} ${pgIsHome ? 'vs' : '@'} ${pgOppAbbr}"
-                style: small
-                bold: true
-              }
-              Spacer { weight: 1 }
-              Text { text: "W${prevGame.week.number} Final"; style: label; color: muted; maxLines: 1 }
-            }
-          }
-        }
-
-        // Big Ten Quick Strip (Top 3 + WASH)
-        Box {
-          fill: width
-          padding: [6, 4]
-          radius: 6 * corners
-          background: alpha(surface, 0.6)
-          border: 1
-          borderColor: border
-          onTap: { haptic(); tab = "standings" }
-
-          Row {
-            fill: width
-            align: center
-            gap: 6
-
-            Text { text: "B1G"; style: label; bold: true; color: muted; width: 26 }
-
-            for entry in b1gStrip key entry.team.id {
-              let isUw = (entry.team.id ?? '') == '264'
-              let rec = (entry.stats.find(s => s.name == 'overall') ?? {}).displayValue ?? '–'
-
-              Row {
-                align: center
-                gap: 3
-                TeamLogo { id: entry.team.id; px: 14 }
-                Text {
-                  text: "${entry.team.abbreviation} ${rec}"
-                  style: label
-                  bold: isUw
-                  color: isUw ? uwPurple : muted
-                }
-                if isUw {
-                  Box {
-                    width: 4
-                    height: 4
-                    radius: 2
-                    background: uwGold
-                  }
-                }
-              }
-            }
-            Spacer { weight: 1 }
-            Text { text: "›"; style: small; color: muted }
-          }
-        }
+    if tab == "score" && !isCompactTile {
+      Column {
+        weight: 1
+        fill: width
+        gap: tileGap
+        ScoreFeaturedCard { expand: true }
+        ScoreBottomStrips {}
       }
+    } else {
+      Column {
+        weight: 1
+        fill: width
+        scroll: true
+        onPull: refresh()
+        gap: tileGap
+
+        if tab == "score" {
+          ScoreFeaturedCard { expand: false }
+          ScoreBottomStrips {}
+        }
 
       if tab == "standings" {
         Box {
@@ -726,11 +1003,11 @@ widget "dawgwatch" {
                 align: center
                 gap: 6
                 padding: [4, 3]
-                radius: 4
+                radius: 4 * corners
                 background: isUw ? alpha(uwPurple, 0.16) : rgb(0, 0, 0, 0)
 
                 Text { text: "${i + 1}"; style: small; color: isUw ? uwGold : muted; bold: isUw; width: 16 }
-                TeamLogo { id: entry.team.id; px: 18 }
+                TeamLogo { id: entry.team.id; px: 18; plate: true }
                 Text {
                   text: entry.team.shortDisplayName ?? entry.team.displayName
                   style: small
@@ -757,14 +1034,14 @@ widget "dawgwatch" {
                 Text {
                   text: strk
                   style: small
-                  color: startsWith(strk, 'W') ? green : (startsWith(strk, 'L') ? red : muted)
+                  color: startsWith(strk, 'W') ? winGreen : (startsWith(strk, 'L') ? red : muted)
                   width: 34
                   align: end
                 }
                 Text {
                   text: diff
                   style: label
-                  color: startsWith(diff, '+') ? green : (startsWith(diff, '-') ? red : muted)
+                  color: startsWith(diff, '+') ? winGreen : (startsWith(diff, '-') ? red : muted)
                   width: 36
                   align: end
                 }
@@ -894,7 +1171,7 @@ widget "dawgwatch" {
                   text: "${gWon ? 'W' : 'L'} ${scUw}-${scOpp}"
                   style: small
                   bold: true
-                  color: gWon ? green : red
+                  color: gWon ? winGreen : red
                   align: end
                 }
               } else if gState == 'in' {
@@ -913,6 +1190,7 @@ widget "dawgwatch" {
         }
       }
     }
+    }
   }
 
   // Full-screen Game Center
@@ -928,8 +1206,8 @@ widget "dawgwatch" {
       // Top Hero Banner
       Box {
         fill: width
-        padding: 14
-        radius: 12 * corners
+        padding: [12, 9]
+        radius: 10 * corners
         background: alpha(surface, 0.6)
         border: 1
         borderColor: uwPurple
@@ -937,23 +1215,23 @@ widget "dawgwatch" {
         Row {
           fill: width
           align: center
-          gap: 12
+          gap: 10
           Image {
             src: "https://a.espncdn.com/i/teamlogos/ncaa/500/264.png"
-            size: 52
+            size: 38
             fit: contain
           }
           Column {
-            gap: 2
+            gap: 1
             weight: 1
-            Text { text: "DawgWatch"; style: title; bold: true }
-            Text { text: standingStr; style: small; color: uwGold; bold: true }
+            Text { text: "Washington Huskies"; style: body; bold: true }
+            Text { text: standingStr; style: label; color: muted }
           }
           Column {
             align: end
-            width: 95
-            gap: 2
-            Text { text: recordStr; style: title; bold: true; color: uwPurple; align: end }
+            width: 72
+            gap: 1
+            Text { text: recordStr; style: title; bold: true; color: uwGold; align: end }
             Text { text: "RECORD"; style: label; color: muted; align: end }
           }
         }
@@ -1019,7 +1297,7 @@ widget "dawgwatch" {
           gap: 10
           fill: width
 
-          Text { text: "CURRENT / UPCOMING GAME"; style: label; color: muted }
+          Text { text: fgIsLive ? "LIVE GAME" : (fgIsFinal ? "FINAL RESULT" : "NEXT MATCHUP"); style: label; color: muted }
 
           Box {
             fill: width
@@ -1043,13 +1321,23 @@ widget "dawgwatch" {
                   color: fgIsLive ? uwPurple : uwGold
                 }
                 Spacer { weight: 1 }
-                if fgBroadcast != "" {
+                if fgIsFinal {
+                  Text {
+                    text: fgUw.winner == true ? "WIN" : "LOSS"
+                    style: small
+                    bold: true
+                    color: fgUw.winner == true ? winGreen : red
+                    padding: [6, 2]
+                    radius: 4 * corners
+                    background: fgUw.winner == true ? alpha(winGreen, 0.2) : alpha(red, 0.2)
+                  }
+                } else if fgBroadcast != "" {
                   Text {
                     text: "TV: ${fgBroadcast}"
                     style: small
                     color: uwGold
                     padding: [6, 2]
-                    radius: 4
+                    radius: 4 * corners
                     background: alpha(uwGold, 0.15)
                   }
                 }
@@ -1065,13 +1353,29 @@ widget "dawgwatch" {
                   weight: 1
                   align: center
                   gap: 4
-                  TeamLogo { id: fgAway.team.id; px: 56 }
+                  Box {
+                    width: awayIsWinner ? screenAuraW : screenAwayLogoPx + 4
+                    height: screenLogoSlotH
+                    align: center
+                    if awayIsWinner {
+                      if uwWonFeatured {
+                        WinnerAura { w: screenAuraW; h: screenLogoSlotH; col: uwGold }
+                      } else {
+                        BooAura { w: screenAuraW; h: screenLogoSlotH }
+                      }
+                    }
+                    Box {
+                      opacity: fgHasWinner && !awayIsWinner ? 0.82 : 1
+                      TeamLogo { id: fgAway.team.id; px: screenAwayLogoPx; plate: !awayIsWinner }
+                    }
+                  }
                   Text {
                     text: fgAwayRank != null ? "#${fgAwayRank} ${fgAwayName}" : fgAwayName
-                    style: body
+                    fontSize: 13
                     bold: true
+                    color: fgHasWinner && !fgAway.winner ? muted : foreground
                     align: center
-                    maxLines: 1
+                    maxLines: 2
                   }
                   Text {
                     text: fgAwayRec
@@ -1083,33 +1387,35 @@ widget "dawgwatch" {
 
                 // Middle Score / Clock
                 Column {
-                  width: 130
+                  width: 116
                   align: center
                   gap: 4
 
                   if fgIsPre {
                     Text { text: "AT"; style: title; color: muted; bold: true; align: center }
-                    Text { text: fgKickDate; style: small; color: uwPurple; align: center; bold: true }
+                    Text { text: fgKickDate; style: small; color: foreground; align: center; bold: true }
                     Text { text: fgKickTime; style: small; color: uwGold; align: center; bold: true }
                   } else {
                     Row {
-                      gap: 10
+                      gap: 6
                       align: center
                       Text {
                         text: fgAwayScore
-                        style: huge
+                        fontSize: 28
                         bold: true
+                        color: fgHasWinner && !fgAway.winner ? muted : foreground
                       }
-                      Text { text: "-"; style: huge; color: muted }
+                      Text { text: "-"; fontSize: 28; color: muted }
                       Text {
                         text: fgHomeScore
-                        style: huge
+                        fontSize: 28
                         bold: true
+                        color: fgHasWinner && !fgHome.winner ? muted : foreground
                       }
                     }
                     Text {
                       text: fgStatusText
-                      style: body
+                      style: small
                       color: fgIsLive ? uwPurple : muted
                       bold: true
                       align: center
@@ -1132,13 +1438,29 @@ widget "dawgwatch" {
                   weight: 1
                   align: center
                   gap: 4
-                  TeamLogo { id: fgHome.team.id; px: 56 }
+                  Box {
+                    width: homeIsWinner ? screenAuraW : screenHomeLogoPx + 4
+                    height: screenLogoSlotH
+                    align: center
+                    if homeIsWinner {
+                      if uwWonFeatured {
+                        WinnerAura { w: screenAuraW; h: screenLogoSlotH; col: uwGold }
+                      } else {
+                        BooAura { w: screenAuraW; h: screenLogoSlotH }
+                      }
+                    }
+                    Box {
+                      opacity: fgHasWinner && !homeIsWinner ? 0.82 : 1
+                      TeamLogo { id: fgHome.team.id; px: screenHomeLogoPx; plate: !homeIsWinner }
+                    }
+                  }
                   Text {
                     text: fgHomeRank != null ? "#${fgHomeRank} ${fgHomeName}" : fgHomeName
-                    style: body
+                    fontSize: 13
                     bold: true
+                    color: fgHasWinner && !fgHome.winner ? muted : foreground
                     align: center
-                    maxLines: 1
+                    maxLines: 2
                   }
                   Text {
                     text: fgHomeRec
@@ -1159,12 +1481,18 @@ widget "dawgwatch" {
                 Column {
                   gap: 4
                   Row {
-                    Text { text: "Stadium:"; style: small; color: muted; width: 70 }
+                    Text { text: "Stadium:"; style: small; color: muted; width: 60 }
                     Text { text: fgLocation; style: small; weight: 1 }
+                  }
+                  if fgIsFinal && fgBroadcast != "" {
+                    Row {
+                      Text { text: "Network:"; style: small; color: muted; width: 60 }
+                      Text { text: fgBroadcast; style: small; weight: 1 }
+                    }
                   }
                   if featuredGame.weather != null {
                     Row {
-                      Text { text: "Weather:"; style: small; color: muted; width: 70 }
+                      Text { text: "Weather:"; style: small; color: muted; width: 60 }
                       Text {
                         text: "${featuredGame.weather.displayValue ?? ''}, ${featuredGame.weather.temperature ?? ''}°F"
                         style: small
@@ -1176,10 +1504,21 @@ widget "dawgwatch" {
               }
 
               // ESPN Gamecast button
-              Button {
-                text: "ESPN Gamecast & Preview ↗"
+              Box {
                 fill: width
+                padding: [12, 9]
+                radius: 6 * corners
+                background: alpha(uwGold, 0.12)
+                border: 1
+                borderColor: alpha(uwGold, 0.6)
                 onTap: { haptic(); url("https://www.espn.com/college-football/game/_/gameId/${featuredGame.id}") }
+                Text {
+                  text: fgIsLive ? "ESPN Live Gamecast ↗" : (fgIsFinal ? "ESPN Box Score & Recap ↗" : "ESPN Matchup Preview ↗")
+                  style: small
+                  bold: true
+                  color: uwGold
+                  align: center
+                }
               }
             }
           }
@@ -1187,7 +1526,7 @@ widget "dawgwatch" {
           // Betting Odds & ESPN Win Probability Card
           if hasOdds || hasWinProb {
             Text {
-              text: (hasLiveOdds || hasLiveProb) ? "LIVE ODDS & WIN PROBABILITY" : (fgIsFinal ? "CLOSING BETTING ODDS" : "BETTING ODDS & WIN PROBABILITY")
+              text: (hasLiveOdds || hasLiveProb) ? "LIVE ODDS & WIN PROBABILITY" : (fgIsFinal ? "PREGAME ODDS & WIN PROBABILITY" : "BETTING ODDS & WIN PROBABILITY")
               style: label
               color: muted
             }
@@ -1218,12 +1557,12 @@ widget "dawgwatch" {
                           bold: true
                           color: red
                           padding: [4, 1]
-                          radius: 3
+                          radius: 3 * corners
                           background: alpha(red, 0.2)
                         }
                       }
                       Text {
-                        text: hasLiveProb ? "ESPN Win Probability" : "ESPN Matchup Predictor"
+                        text: hasLiveProb ? "ESPN Win Probability" : (fgIsFinal ? "ESPN Pregame Win Probability" : "ESPN Matchup Predictor")
                         style: small
                         bold: true
                         color: hasLiveProb ? red : foreground
@@ -1236,7 +1575,7 @@ widget "dawgwatch" {
                       fill: width
                       align: center
                       gap: 6
-                      TeamLogo { id: fgAway.team.id; px: 16 }
+                      TeamLogo { id: fgAway.team.id; px: 16; plate: true }
                       Text {
                         text: "${fgAwayName} ${awayWinPctStr}%"
                         style: small
@@ -1250,24 +1589,24 @@ widget "dawgwatch" {
                         bold: fgIsHome || homeWinPct >= awayWinPct
                         color: fgIsHome ? uwGold : (homeWinPct >= awayWinPct ? foreground : muted)
                       }
-                      TeamLogo { id: fgHome.team.id; px: 16 }
+                      TeamLogo { id: fgHome.team.id; px: 16; plate: true }
                     }
 
                     Row {
                       fill: width
                       height: 8
-                      radius: 4
+                      radius: 4 * corners
                       clip: true
                       gap: 2
                       Box {
                         weight: clamp(awayWinPct, 2, 98)
                         height: 8
-                        background: !fgIsHome ? uwGold : alpha(muted, 0.55)
+                        background: !fgIsHome ? uwGold : alpha(foreground, 0.32)
                       }
                       Box {
                         weight: clamp(homeWinPct, 2, 98)
                         height: 8
-                        background: fgIsHome ? uwGold : alpha(muted, 0.55)
+                        background: fgIsHome ? uwGold : alpha(foreground, 0.32)
                       }
                     }
                   }
@@ -1296,12 +1635,12 @@ widget "dawgwatch" {
                           bold: true
                           color: red
                           padding: [4, 1]
-                          radius: 3
+                          radius: 3 * corners
                           background: alpha(red, 0.2)
                         }
                       }
                       Text {
-                        text: hasLiveOdds ? "Live Betting Lines" : (fgIsLive ? "Pregame Closing Lines (Live Paused)" : (fgIsFinal ? "Closing Lines" : "Game Lines"))
+                        text: hasLiveOdds ? "Live Betting Lines" : (fgIsLive ? "Closing Lines (Live Paused)" : (fgIsFinal ? "Closing Pregame Lines" : "Game Lines"))
                         style: small
                         bold: true
                         color: hasLiveOdds ? red : foreground
@@ -1313,7 +1652,7 @@ widget "dawgwatch" {
                         bold: true
                         color: uwGold
                         padding: [5, 2]
-                        radius: 4
+                        radius: 4 * corners
                         background: alpha(uwGold, 0.16)
                       }
                     }
@@ -1322,21 +1661,21 @@ widget "dawgwatch" {
                       fill: width
                       align: center
                       gap: 6
-                      padding: [4, 0]
+                      padding: [6, 2]
                       Text { text: "TEAM"; style: label; color: muted; weight: 1 }
-                      Text { text: "SPREAD"; style: label; color: muted; width: 74; align: end }
-                      Text { text: "ML"; style: label; color: muted; width: 50; align: end }
-                      Text { text: "TOTAL"; style: label; color: muted; width: 90; align: end }
+                      Text { text: "SPREAD"; style: label; color: muted; width: 78; align: end }
+                      Text { text: "ML"; style: label; color: muted; width: 44; align: end }
+                      Text { text: "TOTAL"; style: label; color: muted; width: 88; align: end }
                     }
 
                     Row {
                       fill: width
                       align: center
                       gap: 6
-                      padding: [6, 4]
-                      radius: 4
+                      padding: [6, 5]
+                      radius: 4 * corners
                       background: !fgIsHome ? alpha(uwPurple, 0.16) : rgb(0, 0, 0, 0)
-                      TeamLogo { id: fgAway.team.id; px: 18 }
+                      TeamLogo { id: fgAway.team.id; px: 18; plate: true }
                       Text {
                         text: fgAwayName
                         style: small
@@ -1347,26 +1686,26 @@ widget "dawgwatch" {
                       }
                       Text {
                         text: oddsAwaySpread != "" ? (oddsAwaySpreadJuice != "" ? "${oddsAwaySpread} (${oddsAwaySpreadJuice})" : oddsAwaySpread) : "–"
-                        style: small
+                        fontSize: 11
                         bold: true
-                        width: 74
+                        width: 78
                         align: end
                         maxLines: 1
                       }
                       Text {
                         text: oddsAwayMl != "" ? oddsAwayMl : "–"
-                        style: small
+                        fontSize: 11
                         bold: true
                         color: !fgIsHome ? uwGold : foreground
-                        width: 50
+                        width: 44
                         align: end
                         maxLines: 1
                       }
                       Text {
-                        text: oddsOuStr != "" ? (oddsOverJuice != "" ? "O ${oddsOuStr} (${oddsOverJuice})" : "O ${oddsOuStr}") : "–"
-                        style: small
+                        text: oddsOuStr != "" ? (oddsOverJuice != "" ? "O${oddsOuStr} (${oddsOverJuice})" : "O${oddsOuStr}") : "–"
+                        fontSize: 11
                         color: muted
-                        width: 90
+                        width: 88
                         align: end
                         maxLines: 1
                       }
@@ -1376,10 +1715,10 @@ widget "dawgwatch" {
                       fill: width
                       align: center
                       gap: 6
-                      padding: [6, 4]
-                      radius: 4
+                      padding: [6, 5]
+                      radius: 4 * corners
                       background: fgIsHome ? alpha(uwPurple, 0.16) : rgb(0, 0, 0, 0)
-                      TeamLogo { id: fgHome.team.id; px: 18 }
+                      TeamLogo { id: fgHome.team.id; px: 18; plate: true }
                       Text {
                         text: fgHomeName
                         style: small
@@ -1390,26 +1729,26 @@ widget "dawgwatch" {
                       }
                       Text {
                         text: oddsHomeSpread != "" ? (oddsHomeSpreadJuice != "" ? "${oddsHomeSpread} (${oddsHomeSpreadJuice})" : oddsHomeSpread) : "–"
-                        style: small
+                        fontSize: 11
                         bold: true
-                        width: 74
+                        width: 78
                         align: end
                         maxLines: 1
                       }
                       Text {
                         text: oddsHomeMl != "" ? oddsHomeMl : "–"
-                        style: small
+                        fontSize: 11
                         bold: true
                         color: fgIsHome ? uwGold : foreground
-                        width: 50
+                        width: 44
                         align: end
                         maxLines: 1
                       }
                       Text {
-                        text: oddsOuStr != "" ? (oddsUnderJuice != "" ? "U ${oddsOuStr} (${oddsUnderJuice})" : "U ${oddsOuStr}") : "–"
-                        style: small
+                        text: oddsOuStr != "" ? (oddsUnderJuice != "" ? "U${oddsOuStr} (${oddsUnderJuice})" : "U${oddsOuStr}") : "–"
+                        fontSize: 11
                         color: muted
-                        width: 90
+                        width: 88
                         align: end
                         maxLines: 1
                       }
@@ -1469,11 +1808,11 @@ widget "dawgwatch" {
                   align: center
                   gap: 6
                   padding: [6, 4]
-                  radius: 4
+                  radius: 4 * corners
                   background: isUw ? alpha(uwPurple, 0.16) : rgb(0, 0, 0, 0)
 
                   Text { text: "${i + 1}"; style: small; color: isUw ? uwGold : muted; bold: isUw; width: 18 }
-                  TeamLogo { id: entry.team.id; px: 20 }
+                  TeamLogo { id: entry.team.id; px: 20; plate: true }
                   Text {
                     text: entry.team.shortDisplayName ?? entry.team.displayName
                     style: small
@@ -1500,14 +1839,14 @@ widget "dawgwatch" {
                   Text {
                     text: strk
                     style: small
-                    color: startsWith(strk, 'W') ? green : (startsWith(strk, 'L') ? red : muted)
+                    color: startsWith(strk, 'W') ? winGreen : (startsWith(strk, 'L') ? red : muted)
                     width: 38
                     align: end
                   }
                   Text {
                     text: diff
                     style: label
-                    color: startsWith(diff, '+') ? green : (startsWith(diff, '-') ? red : muted)
+                    color: startsWith(diff, '+') ? winGreen : (startsWith(diff, '-') ? red : muted)
                     width: 44
                     align: end
                   }
@@ -1517,7 +1856,7 @@ widget "dawgwatch" {
           }
 
           // Previous Result
-          if prevGame != null {
+          if prevGame != null && prevGame.id != featuredGame.id {
             Text { text: "PREVIOUS RESULT"; style: label; color: muted }
             Box {
               fill: width
@@ -1536,12 +1875,12 @@ widget "dawgwatch" {
                   text: pgWon ? "WIN" : "LOSS"
                   style: small
                   bold: true
-                  color: pgWon ? green : red
+                  color: pgWon ? winGreen : red
                   padding: [6, 3]
-                  radius: 4
-                  background: pgWon ? alpha(green, 0.2) : alpha(red, 0.2)
+                  radius: 4 * corners
+                  background: pgWon ? alpha(winGreen, 0.2) : alpha(red, 0.2)
                 }
-                TeamLogo { id: pgOppId; px: 28 }
+                TeamLogo { id: pgOppId; px: 28; plate: true }
                 Column {
                   gap: 1
                   weight: 1
@@ -1710,10 +2049,10 @@ widget "dawgwatch" {
                     text: "${gWon ? 'W' : 'L'} ${scUw}-${scOpp}"
                     style: small
                     bold: true
-                    color: gWon ? green : red
+                    color: gWon ? winGreen : red
                     padding: [6, 2]
                     radius: 4
-                    background: gWon ? alpha(green, 0.2) : alpha(red, 0.2)
+                    background: gWon ? alpha(winGreen, 0.2) : alpha(red, 0.2)
                   }
                 } else if gState == 'in' {
                   Text {
