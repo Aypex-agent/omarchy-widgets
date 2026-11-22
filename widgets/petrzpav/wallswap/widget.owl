@@ -3,9 +3,9 @@ widget "wallswap" {
   order: 5
   size: 3x3
   minSize: 1x1
-  meta { owl: 13; description: "Keeps the wallpaper fresh: a new image from NASA APOD, Bing, Wikimedia Commons, Wallhaven or your own folder in the phone or Linux, once a day, cropped to the phone, with credits, previous and keep"; version: "1.5.0"; license: "MIT"; category: "media" }
+  meta { owl: 13; description: "Keeps the wallpaper fresh: a new image from NASA APOD, Bing, Wikimedia Commons, Wallhaven or your own folder in the phone or Linux, once a day, cropped to the phone, with credits, previous and keep"; version: "1.5.1"; license: "MIT"; category: "media" }
 
-  requires { pacman: ["curl", "jq", "file", "imagemagick", "libjpeg-turbo", "libwebp", "iproute2"] }
+  requires { pacman: ["curl", "jq", "file", "imagemagick", "libjpeg-turbo", "libwebp", "iproute2", "findutils", "util-linux"] }
 
   // The whole wallswap script, run with bash -c: wallswap.sh in https://github.com/petrzpav/omalauncher-wallswap,
   // spliced in by build.sh. It fetches, crops the image to the screen into
@@ -30,6 +30,8 @@ widget "wallswap" {
 #    "phoneDir": "Pictures/Wallpapers", "wifiOnly": true}
 # With wifiOnly, automatic swaps wait for Wi-Fi; next always swaps. phone is a folder in the
 # phone, reached with `omalauncher ls` and `get`; local is a folder in Linux.
+# Offline, or on a connection too slow to finish in time, automatic swaps try again in 10
+# minutes, and next shows a saved image instead.
 #
 # The wallpaper is set the way the launcher's Style menu sets it: the image goes into
 # ~/.config/omarchy/backgrounds/<theme>/ as wallswap-*.jpg, cropped to the screen, and
@@ -53,7 +55,11 @@ BG_ROOT=$HOME/.config/omarchy/backgrounds
 UA="wallswap/1.0 (omalauncher wallpaper widget)"
 ATTEMPTS=6
 KEEP=40
-RETRY=600 # after a failed swap, or without Wi-Fi, try again in 10 minutes
+RETRY=600 # after a failed swap, without Wi-Fi or offline, try again in 10 minutes
+# The launcher stops a widget's command after 30 s and the widget stops this script after 27, so
+# next and tick use the network only until NET_BUDGET seconds after the start, leaving time to
+# crop and set the image. A download cut short goes on from there at the next try.
+NET_BUDGET=15
 
 log() { echo "wallswap: $*" >&2; }
 die() { log "$*"; printf '%s\n' "$*" | write_state error 2>/dev/null; exit 1; }
@@ -79,7 +85,24 @@ private_dir() {
 
 # HTTPS only, no redirects, a ceiling on bytes and time.
 CURL_POLICY=(--fail --silent --show-error --proto =https --max-redirs 0 -A "$UA")
-http() { curl "${CURL_POLICY[@]}" --max-time 30 --max-filesize 2000000 "$@"; }
+# Each request gets what is left of the time, at most max-seconds. How each went goes into
+# $NETDOWN (a file, as sources run in subshells): no host found, a first request that got no
+# answer, or two in all, means offline, and the other sources aren't tried in vain.
+fetch() { # max-seconds max-bytes curl-args...
+  local t=$(( NET_DEADLINE - SECONDS )) rc
+  net_ok || return 28
+  (( t > $1 )) && t=$1
+  curl "${CURL_POLICY[@]}" --connect-timeout $(( t < 5 ? t : 5 )) --max-time "$t" --max-filesize "$2" "${@:3}"; rc=$?
+  case $rc in 0) echo ok >> "$NETDOWN" ;; 5|6|7|28|35|55|56) echo "$rc" >> "$NETDOWN" ;; esac
+  return "$rc"
+}
+http() { fetch 30 2000000 "$@"; }
+offline() {
+  local failed
+  failed=$(grep -c '^[0-9]' "$NETDOWN" 2>/dev/null)
+  grep -qx 6 "$NETDOWN" 2>/dev/null || (( failed >= 2 )) || { (( failed )) && ! grep -qx ok "$NETDOWN" 2>/dev/null; }
+}
+net_ok() { ! offline && (( NET_DEADLINE - SECONDS >= 2 )); }
 
 # Each source may only hand back images, and link to pages, on its own hosts.
 allowed_image() {
@@ -267,6 +290,9 @@ needs_network() {
 }
 # When a swap last waited for Wi-Fi (0: it doesn't wait).
 nowifi_at() { needs_network && cat "$STATE_DIR/nowifi" 2>/dev/null || echo 0; }
+# When a swap last found no network, or too slow a one, and which ("offline" or "slow").
+offline_at() { local t; needs_network && read -r t _ 2>/dev/null < "$STATE_DIR/offline" && [[ $t =~ ^[0-9]+$ ]] && echo "$t" || echo 0; }
+offline_why() { local w; needs_network && read -r _ w 2>/dev/null < "$STATE_DIR/offline" && echo "$w"; }
 
 # Big enough to cover the screen without blowing it up more than 1.5 times.
 acceptable() { # width height
@@ -332,6 +358,8 @@ prune_cache() {
   done
   [[ -f $STATE_DIR/history ]] && while read -r m; do [[ -f $m ]] && echo "$m"; done < "$STATE_DIR/history" | tail -n "$KEEP" | write_state history
   [[ -f $STATE_DIR/seen ]] && tail -n 2000 "$STATE_DIR/seen" | write_state seen
+  # Downloads left behind a day ago: cut short and never gone on with, or from a stopped run.
+  find "$CACHE_DIR" -maxdepth 1 -type f \( -name '.part-*' -o -name '.download.*' \) -mmin +1440 -delete 2>/dev/null
 }
 
 try_candidate() { # source url title credit page w h
@@ -358,12 +386,23 @@ try_candidate() { # source url title credit page w h
     fi
     mv -f -- "$tmp/image" "$file"; rm -rf -- "$tmp"
   elif [[ -L $file || ! -s $file ]]; then
-    tmp=$(mktemp -- "$CACHE_DIR/.download.XXXXXX") || return 1
+    # Into a part file named after the image, in the private cache, so that a download cut
+    # short goes on where it stopped: this image is tried first at the next swap (pending).
+    local part="$CACHE_DIR/.part-${file##*/}" rc
+    [[ -L $part || ( -e $part && ! -f $part ) ]] && rm -rf -- "$part"
     log "downloading $url"
-    if ! curl "${CURL_POLICY[@]}" --max-time 120 --max-filesize 80000000 -o "$tmp" -- "$url"; then
-      rm -f -- "$tmp"; return 1
+    fetch 120 80000000 -C - -o "$part" -- "$url"; rc=$?
+    if (( rc )); then
+      if [[ -s $part ]] && (( rc == 18 || rc == 28 || rc == 56 )); then
+        jq -nc --arg s "$source" --arg u "$url" --arg t "$title" --arg c "$credit" --arg p "$page" --arg w "$w" --arg h "$h" \
+          '[$s, $u, $t, $c, $p, $w, $h]' | write_state pending
+        log "download cut short, going on with it next time"
+      else
+        rm -f -- "$part"
+      fi
+      return 1
     fi
-    mv -f -- "$tmp" "$file"
+    mv -f -- "$part" "$file"
   fi
 
   coder=$(image_coder "$file") || coder=""
@@ -409,7 +448,7 @@ apply() { # meta.json [--no-history]
   jq --arg bg "$bg" '. + {bg: $bg}' "$1" | write_state current.json
   [[ $2 == --no-history ]] || append_state history "$1"
   date +%s | write_state last
-  rm -f -- "$STATE_DIR/error" "$STATE_DIR/failed" "$STATE_DIR/nowifi"
+  rm -f -- "$STATE_DIR/error" "$STATE_DIR/failed" "$STATE_DIR/nowifi" "$STATE_DIR/offline"
   log "set $(jq -r '"\(.title) — \(.credit)"' "$1")"
 }
 
@@ -433,6 +472,7 @@ try_source() { # source  -> 0 set, 1 nothing new, 2 can't set any
   mapfile -t candidates < <("src_$1" 2>/dev/null | shuf)
   FOLDER_TOTAL=${#candidates[@]}
   for line in "${candidates[@]}"; do
+    is_folder "$1" || net_ok || return 1
     IFS=$'\t' read -r url title credit page w h <<< "$line"
     try_candidate "$1" "$url" "$title" "$credit" "$page" "$w" "$h"; rc=$?
     (( rc == 1 )) || return "$rc"
@@ -443,11 +483,26 @@ try_source() { # source  -> 0 set, 1 nothing new, 2 can't set any
 cmd_next() {
   (( ${#SOURCES[@]} )) || die "no sources switched on"
   theme_name >/dev/null || die "unexpected theme name"
-  local attempt source rc s problem usable
+  # Until it ends well, a swap counts as failed: one stopped from outside waits RETRY too.
+  date +%s | write_state failed
+  local attempt source rc s problem usable why
   local -A round_done=()
+  local -a pending
+  # A download cut short last time goes on first, while its source is still switched on.
+  if [[ -s $STATE_DIR/pending ]]; then
+    mapfile -t pending < <(jq -r 'select(type == "array" and length == 7) | .[] | tostring | gsub("[\n\r]"; " ")' "$STATE_DIR/pending" 2>/dev/null)
+    rm -f -- "$STATE_DIR/pending"
+    if (( ${#pending[@]} == 7 )) && switched_on "${pending[0]}" && ! is_folder "${pending[0]}"; then
+      log "${pending[0]}: going on with ${pending[1]}"
+      try_candidate "${pending[@]}"; rc=$?
+      (( rc == 0 )) && { prune_cache; return 0; }
+      (( rc == 2 )) && { date +%s | write_state failed; die "couldn't set the background"; }
+    fi
+  fi
   for (( attempt = 0; attempt < ATTEMPTS; attempt++ )); do
     source=${SOURCES[RANDOM % ${#SOURCES[@]}]}
     declare -F "src_$source" >/dev/null || { log "unknown source: $source"; continue; }
+    is_folder "$source" || net_ok || continue
     is_folder "$source" && [[ -n ${round_done[$source]} ]] && continue
     try_source "$source"; rc=$?
     # Every image in the folder has had its turn: start the next round.
@@ -460,6 +515,15 @@ cmd_next() {
     (( rc == 2 )) && { date +%s | write_state failed; die "couldn't set the background"; }
     log "$source: nothing new, trying another source"
   done
+  # Offline, or out of time: automatic swaps wait and try again; next shows a saved image.
+  if needs_network && ! net_ok; then
+    # A download cut short (pending) means a network that answers, slowly.
+    why=offline; [[ -s $STATE_DIR/pending ]] && why=slow
+    printf '%s %s\n' "$(date +%s)" "$why" | write_state offline
+    if [[ $cmd == tick ]]; then log "$why, trying again in $(( RETRY / 60 )) minutes"; return 0; fi
+    fallback_cached && return 0
+    if [[ $why == offline ]]; then die "offline: no saved image to show"; else die "the connection is too slow, trying again soon"; fi
+  fi
   fallback_cached && return 0
   if ! needs_network; then
     # Only folders are on: say what's wrong with them.
@@ -471,7 +535,7 @@ cmd_next() {
     s=$(jq -r '.source // empty' "$STATE_DIR/current.json" 2>/dev/null)
     if is_folder "$s" && switched_on "$s"; then
       # Nothing but the image showing: on the schedule that's no error, just wait for the next one.
-      if [[ $cmd == tick ]]; then date +%s | write_state last; rm -f -- "$STATE_DIR/error"; return 0; fi
+      if [[ $cmd == tick ]]; then date +%s | write_state last; rm -f -- "$STATE_DIR/error" "$STATE_DIR/failed"; return 0; fi
       die "no other usable image in $(pretty_folder "$usable")"
     fi
     date +%s | write_state failed
@@ -504,12 +568,13 @@ cmd_toggle() { if [[ -f $STATE_DIR/paused ]]; then cmd_resume; else cmd_pause; f
 cmd_tick() {
   (( INTERVAL > 0 )) || return 0
   [[ -f $STATE_DIR/paused ]] && return 0
-  local last failed nowifi now
+  local last failed nowifi off now
   last=$(cat "$STATE_DIR/last" 2>/dev/null || echo 0)
   failed=$(cat "$STATE_DIR/failed" 2>/dev/null || echo 0)
   nowifi=$(nowifi_at)
+  off=$(offline_at)
   now=$(date +%s)
-  (( now - last >= INTERVAL * 60 && now - failed >= RETRY && now - nowifi >= RETRY )) || return 0
+  (( now - last >= INTERVAL * 60 && now - failed >= RETRY && now - nowifi >= RETRY && now - off >= RETRY )) || return 0
   if [[ $WIFI_ONLY == true ]] && needs_network && ! on_wifi; then
     log "not on Wi-Fi, waiting"
     echo "$now" | write_state nowifi
@@ -521,14 +586,16 @@ cmd_tick() {
 # When the next automatic swap is due, as Unix seconds (0: none).
 next_at() {
   (( INTERVAL > 0 )) && [[ ! -f $STATE_DIR/paused ]] || { echo 0; return; }
-  local last failed nowifi at
+  local last failed nowifi off at
   last=$(cat "$STATE_DIR/last" 2>/dev/null || echo 0)
   failed=$(cat "$STATE_DIR/failed" 2>/dev/null || echo 0)
   nowifi=$(nowifi_at)
+  off=$(offline_at)
   (( last > 0 )) || last=$(( $(date +%s) - INTERVAL * 60 ))
   at=$(( last + INTERVAL * 60 ))
   (( failed + RETRY > at )) && at=$(( failed + RETRY ))
   (( nowifi + RETRY > at )) && at=$(( nowifi + RETRY ))
+  (( off + RETRY > at )) && at=$(( off + RETRY ))
   echo "$at"
 }
 
@@ -541,10 +608,11 @@ cmd_info() {
   jq -c --argjson next "$(next_at)" \
     --argjson paused "$([[ -f $STATE_DIR/paused ]] && echo true || echo false)" \
     --argjson waitingWifi "$([[ $WIFI_ONLY == true && -f $STATE_DIR/nowifi ]] && needs_network && echo true || echo false)" \
+    --arg offline "$(offline_why)" \
     --argjson history "$(wc -l 2>/dev/null < "$STATE_DIR/history" || echo 0)" \
     --arg error "$(cat "$STATE_DIR/error" 2>/dev/null)" \
     --arg style "$(sed -n 's/^background[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' "$STYLE" 2>/dev/null | head -1)" \
-    '. + {nextAt: $next, paused: $paused, waitingWifi: $waitingWifi, hasPrevious: ($history >= 2), error: $error,
+    '. + {nextAt: $next, paused: $paused, waitingWifi: $waitingWifi, offline: $offline, hasPrevious: ($history >= 2), error: $error,
       shown: (.bg != null and ((.bg | split("/") | last) as $b | $style == $b or ("wallswap-" + $style) == $b))}' <<< "$cur"
 }
 
@@ -624,6 +692,8 @@ PHONE_DIR=${PHONE_DIR#/}; PHONE_DIR=${PHONE_DIR%/}
 BROWSE_SOURCE=${3-}
 BROWSE=${4-}
 FOLDER_TOTAL=0
+NETDOWN=/dev/null
+NET_DEADLINE=999999
 [[ $LOCAL_DIR == "~" || $LOCAL_DIR == "~/"* ]] && LOCAL_DIR=$HOME${LOCAL_DIR#\~}
 [[ $LOCAL_DIR == /* ]] || LOCAL_DIR=$HOME/$LOCAL_DIR # relative to home
 read -r SCREEN_W SCREEN_H < <(jq -r '(.screen // [1080, 2400]) | map(tostring) | join(" ")' <<< "$cfg")
@@ -640,9 +710,14 @@ case $cmd in
     # One swap at a time: lock the private state directory itself.
     exec 9< "$STATE_DIR"
     flock -n 9 || { log "another swap is running"; exit 0; }
+    # Markers of runs that were stopped before they could remove their own.
+    find "$STATE_DIR" -maxdepth 1 -name '.netdown.*' -delete 2>/dev/null
+    NETDOWN=$(mktemp -- "$STATE_DIR/.netdown.XXXXXX") || exit 1
+    trap 'rm -f -- "$NETDOWN"' EXIT
+    NET_DEADLINE=$NET_BUDGET
     "cmd_$cmd" ;;
   info|keep|pause|resume|toggle|browse) "cmd_$cmd" ;;
-  *) sed -n '2,19p' "$0" 2>/dev/null | sed 's/^# \{0,1\}//'; [[ $cmd == help ]] ;;
+  *) sed -n '2,21p' "$0" 2>/dev/null | sed 's/^# \{0,1\}//'; [[ $cmd == help ]] ;;
 esac
 """
 
@@ -666,23 +741,51 @@ esac
   // The schedule: `at` runs even while the page is off screen, and a time missed while the launcher
   // was closed runs at its next start. The script decides whether a swap is due and when the next is.
   state nextAt = 0 persist
+  // The time the schedule last went off: st says it still until the script has run, so it isn't set again.
+  // (The clock source stands still while the page is off screen, so the schedule doesn't go by `now`.)
+  state firedAt = 0
   state busy = false
   state out = ""
-  at nextAt {
-    nextAt = 0
-    if !busy && !asleep {
+  // What the taps and the schedule ask the script for, "next", "prev" or "tick", run here one at a time.
+  state request = ""
+  // When the tile lets go of a run that never came back (0: none).
+  state busyUntil = 0
+  // The launcher stops a command after 30 s, so the script gets 27 and the date still comes after it.
+  // With "…" set first, a run cut short (no output) changes `out` too.
+  when request != "" {
+    let c = request
+    request = ""
+    if !busy {
       busy = true
-      out = run("bash -c ${sh(ws)} wallswap tick ${sh(cfg)} 2>&1 | tail -1; date +%s%N")
+      busyUntil = now == null ? 0 : now + 90
+      if c == "next" { nextAt = 0 }
+      out = "…"
+      out = run("timeout -k 1 27 bash -c ${sh(ws)} wallswap ${sh(c)} ${sh(cfg)} 2>&1 | tail -1; date +%s%N")
     }
   }
-  // The date makes every run's output differ, so this fires each time one finishes.
-  on out { busy = false }
-  on st first { if !busy { nextAt = value.nextAt ?? 0 } }
-  // A swap that came due while asleep runs on waking; tick does nothing when none is due.
-  on asleep { if !value && !busy {
-    busy = true
-    out = run("bash -c ${sh(ws)} wallswap tick ${sh(cfg)} 2>&1 | tail -1; date +%s%N")
+  at nextAt {
+    firedAt = nextAt
+    nextAt = 0
+    if !asleep { request = "tick" }
+  }
+  // The date makes every run's output differ, so this fires each time one finishes. The schedule goes on
+  // from st: a swap counts as failed until it ends well, so even one cut short tries again in 10 minutes.
+  on out { if value != "…" {
+    busy = false
+    busyUntil = 0
+    if st != null && st.nextAt > firedAt { nextAt = st.nextAt }
   } }
+  // A run whose shell died never answers: let go of it, so next works again.
+  at busyUntil {
+    busyUntil = 0
+    if busy {
+      busy = false
+      if st != null && st.nextAt > firedAt { nextAt = st.nextAt }
+    }
+  }
+  on st first { if !busy { nextAt = value.nextAt > firedAt ? value.nextAt : 0 } }
+  // A swap that came due while asleep runs on waking; tick does nothing when none is due.
+  on asleep { if !value { request = "tick" } }
 
   let hasImg = st != null && st.bg != null
   // A one-column tile stacks the caption over the next button; a one-row tile puts them in a line.
@@ -691,9 +794,12 @@ esac
   let err = st == null ? "" : st.error ?? ""
   let paused = st != null && st.paused == true
   let waitingWifi = st != null && st.waitingWifi == true
+  // The last swap found no network ("offline") or too slow a one ("slow"), and waits to try again.
+  let netWait = st == null ? "" : st.offline ?? ""
+  let netLabel = netWait == "slow" ? "slow connection" : "offline"
   let intervals = [15, 30, 60, 180, 360, 1440, 0]
   let everyLabel = interval <= 0 ? "only when you ask" : interval % 1440 == 0 ? "once a day" : interval % 60 == 0 ? (interval == 60 ? "every hour" : "every ${interval / 60} hours") : "every ${interval} minutes"
-  let statusText = busy ? "fetching a new wallpaper…" : err != "" ? err : paused ? "paused" : interval <= 0 ? "swaps only when you ask" : waitingWifi ? "waiting for Wi-Fi" : asleep && st != null && now != null && st.nextAt > 0 && st.nextAt <= now ? "waiting until Do Not Disturb is off" : st == null || now == null || st.nextAt <= 0 ? "" : st.nextAt <= now ? "swapping soon" : "next swap ${fmtAgo(st.nextAt, now)}"
+  let statusText = busy ? "fetching a new wallpaper…" : err != "" ? err : paused ? "paused" : interval <= 0 ? "swaps only when you ask" : waitingWifi ? "waiting for Wi-Fi" : netWait != "" ? (now != null && st.nextAt > now ? "${netLabel}, next try ${fmtAgo(st.nextAt, now)}" : "${netLabel}, trying again soon") : asleep && st != null && now != null && st.nextAt > 0 && st.nextAt <= now ? "waiting until Do Not Disturb is off" : st == null || now == null || st.nextAt <= 0 ? "" : st.nextAt <= now ? "swapping soon" : "next swap ${fmtAgo(st.nextAt, now)}"
   let allSources = [
     {id: "apod", label: "NASA APOD", detail: "Astronomy Picture of the Day"},
     {id: "bing", label: "Bing", detail: "Image of the day, in the phone's size"},
@@ -763,7 +869,7 @@ esac
       // One cell: only the next button.
       Box { fill: true; align: center
         Box { width: 36; height: 36; radius: 18; align: center; background: alpha(accent, 0.22); opacity: busy ? 0.4 : 1
-          onTap: { if !busy { haptic(); busy = true; nextAt = 0; out = run("bash -c ${sh(ws)} wallswap next ${sh(cfg)} 2>&1 | tail -1; date +%s%N") } }
+          onTap: { if !busy { haptic(); request = "next" } }
           Glyph { s: 18 }
         }
       }
@@ -781,7 +887,7 @@ esac
           Text { text: statusText != "" ? statusText : hasImg ? st.credit : ""; fontSize: 9; color: err != "" && !busy ? red : muted; maxLines: 1 }
         }
         Box { width: 32; height: 32; radius: 16; align: center; background: alpha(accent, 0.22); opacity: busy ? 0.4 : 1
-          onTap: { if !busy { haptic(); busy = true; nextAt = 0; out = run("bash -c ${sh(ws)} wallswap next ${sh(cfg)} 2>&1 | tail -1; date +%s%N") } }
+          onTap: { if !busy { haptic(); request = "next" } }
           Glyph { s: 16 }
         }
       }
@@ -801,7 +907,7 @@ esac
               Text { text: statusText != "" ? statusText : hasImg ? st.credit : ""; fontSize: 9; color: err != "" && !busy ? red : muted; maxLines: 2 }
             }
             Box { width: 32; height: 32; radius: 16; align: center; background: alpha(accent, 0.22); opacity: busy ? 0.4 : 1
-              onTap: { if !busy { haptic(); busy = true; nextAt = 0; out = run("bash -c ${sh(ws)} wallswap next ${sh(cfg)} 2>&1 | tail -1; date +%s%N") } }
+              onTap: { if !busy { haptic(); request = "next" } }
               Glyph { s: 16 }
             }
           }
@@ -824,7 +930,7 @@ esac
               align: center
               background: alpha(accent, 0.22)
               opacity: busy ? 0.4 : 1
-              onTap: { if !busy { haptic(); busy = true; nextAt = 0; out = run("bash -c ${sh(ws)} wallswap next ${sh(cfg)} 2>&1 | tail -1; date +%s%N") } }
+              onTap: { if !busy { haptic(); request = "next" } }
               Glyph { s: 16 }
             }
           }
@@ -864,10 +970,10 @@ esac
       }
       Row {
         justify: spaceEvenly
-        Box { weight: 1; onTap: { if !busy { haptic(); busy = true; nextAt = 0; out = run("bash -c ${sh(ws)} wallswap next ${sh(cfg)} 2>&1 | tail -1; date +%s%N") } }
+        Box { weight: 1; onTap: { if !busy { haptic(); request = "next" } }
           Action { label: "next"; active: !busy }
         }
-        Box { weight: 1; onTap: { if !busy && st.hasPrevious == true { haptic(); busy = true; out = run("bash -c ${sh(ws)} wallswap prev ${sh(cfg)} 2>&1 | tail -1; date +%s%N") } }
+        Box { weight: 1; onTap: { if !busy && st.hasPrevious == true { haptic(); request = "prev" } }
           Action { label: "previous"; turn: 180; active: !busy && st != null && st.hasPrevious == true }
         }
         Box { weight: 1; onTap: { if hasImg && st.page != "" { url(st.page) } }

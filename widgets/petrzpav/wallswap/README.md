@@ -22,4 +22,8 @@ https://github.com/petrzpav/omalauncher-wallswap
   the folder.
 - Automatic swaps wait for Wi-Fi and while Do Not Disturb or Bedtime mode is on (both switchable);
   **next** always swaps. With only the folders on, nothing waits for Wi-Fi.
-- Needs `curl`, `jq`, `file`, `imagemagick` with `libjpeg-turbo` and `libwebp`, and `iproute2`.
+- Offline, automatic swaps try again every 10 minutes and the tile says so; **next** shows an image
+  already cached. A swap uses the network for at most 15 seconds, and a download cut short by a slow
+  connection goes on where it stopped at the next swap.
+- Needs `curl`, `jq`, `file`, `imagemagick` with `libjpeg-turbo` and `libwebp`, `iproute2`, `findutils`
+  and `util-linux`.
