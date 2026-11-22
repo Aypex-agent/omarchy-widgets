@@ -1,0 +1,80 @@
+widget "calendar" {
+  size: 6x4
+  minSize: 3x2
+
+  meta { owl: 18; description: "Your next Google Calendar events, with a + to create one. Reads the phone's calendars through the Android calendar connector (android.calendar), not an ICS feed or a Google login."; version: "1.0"; license: "MIT"; category: "productivity" }
+
+  // Reads the phone's calendars, which include the Google account synced on the phone.
+  source c = android.calendar
+  source now = clock every 1m
+  let days = unique(map(c.events, e => fmtTime(e.start, "yyyy-MM-dd")))
+  let wide = (tileWidth ?? 0) >= 360
+  let lines = chunk(days, wide ? 2 : 1)
+  let today = fmtTime(now, "EEE, d MMM")
+
+  if !c.granted {
+    Column {
+      justify: center
+      align: center
+      fill: true
+      gap: 6
+      Text { text: "Agenda"; style: muted }
+      Text { text: "Show your Google Calendar events"; style: small }
+      Button { text: "Allow calendar"; onTap: calendar("request") }
+    }
+  } else {
+    Column {
+      gap: 8
+      fill: true
+      Row {
+        align: center
+        Text { text: today; fontSize: 16; bold: true; weight: 1; maxLines: 1; onTap: calendar("open") }
+        Box {
+          background: accent
+          radius: 20
+          width: 44
+          height: 30
+          align: center
+          onTap: url("https://calendar.google.com/calendar/render?action=TEMPLATE")
+          Text { text: "+"; fontSize: 18; color: background; align: center }
+        }
+      }
+      if len(c.events) == 0 {
+        Text { text: "Nothing coming up"; style: muted }
+      }
+      Column {
+        weight: 1
+        scroll: true
+        gap: 12
+        for line in lines key hash(line) {
+          Row {
+            gap: 12
+            align: top
+            for d in line key d {
+              Column {
+                gap: 5
+                weight: 1
+                Text { text: fmtTime(first(filter(c.events, e => fmtTime(e.start, "yyyy-MM-dd") == d)).start, "EEE, d MMM"); bold: true; padding: 4 }
+              Box { height: 1; background: muted; fill: width }
+              for e in filter(c.events, e => fmtTime(e.start, "yyyy-MM-dd") == d) key e.id {
+                Column {
+                  gap: 0
+                  padding: e.allDay ? 5 : 8
+                  radius: 14
+                  background: e.color
+                  onTap: calendar("open", e)
+                  Text { text: e.title; color: "#ffffff"; bold: true; maxLines: 1 }
+                  if !e.allDay {
+                    Text { text: fmtTime(e.start, "HH:mm") + "–" + fmtTime(e.end, "HH:mm") + (e.location != "" ? " · " + e.location : ""); color: "#ffffff"; style: small; maxLines: 1 }
+                  }
+                }
+              }
+              }
+            }
+            if wide && len(line) == 1 { Spacer { weight: 1 } }
+          }
+        }
+      }
+    }
+  }
+}
