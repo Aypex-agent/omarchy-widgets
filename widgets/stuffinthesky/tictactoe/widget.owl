@@ -1,0 +1,100 @@
+// Two players alternate tapping the grid, or play the computer (O). The first to
+// three in a line wins; a full board ends as a draw. X starts every game; "new game"
+// restarts it, and the mode button switches between two players and vs computer.
+widget "tictactoe" {
+  meta { owl: 18; description: "Tap the grid to play X and O against a friend or the computer: first to three in a line wins, a full board is a draw"; version: "1.1"; license: "MIT"; category: "fun" }
+  size: 3x3
+
+  state board = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+  state turn = 0
+  state over = ""
+  state vsComputer = false persist
+
+  let wins = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]]
+  let status = over != "" ? (over == "draw" ? "draw" : over + " wins") : (turn == 0 ? "X's turn" : "O's turn")
+
+  // Home stays locked while the game runs, so a thumb's swipe can't turn the page.
+  lock: over == ""
+
+  // The computer plays O: a win if it has one, else block X, else the center, a corner or any free cell.
+  on turn {
+    if vsComputer && turn == 1 && over == "" {
+      let win = flatten(map(filter(wins, l => sum(map(l, c => board[c])) == -2), l => filter(l, c => board[c] == 0)), 1)
+      let block = flatten(map(filter(wins, l => sum(map(l, c => board[c])) == 2), l => filter(l, c => board[c] == 0)), 1)
+      let m = first(win) ?? first(block) ?? (board[4] == 0 ? 4 : first(filter(range(9), i => board[i] == 0)))
+      let b = set(board, m, -1)
+      let w = wins.find(l => b[l[0]] == -1 && b[l[1]] == -1 && b[l[2]] == -1)
+      board = b
+      if w != null {
+        over = "O"
+      } else if find(b, x => x == 0) == null {
+        over = "draw"
+      } else {
+        turn = 0
+      }
+    }
+  }
+
+  component Cell(i) {
+    Box {
+      weight: 1
+      align: center
+      radius: 8 * corners
+      background: board[i] == 1 ? accent : board[i] == -1 ? red : surface
+      onTap: {
+        if over == "" && board[i] == 0 {
+          let t = turn == 0 ? 1 : -1
+          let b = set(board, i, t)
+          let w = wins.find(l => b[l[0]] == t && b[l[1]] == t && b[l[2]] == t)
+          board = b
+          if w != null {
+            over = t == 1 ? "X" : "O"
+          } else if find(b, x => x == 0) == null {
+            over = "draw"
+          } else {
+            turn = 1 - turn
+          }
+        }
+      }
+      Text { text: board[i] == 1 ? "X" : board[i] == -1 ? "O" : ""; style: title; bold: true; fontWeight: 900; align: center; color: board[i] == 0 ? surface : background }
+    }
+  }
+
+  Column {
+    padding: 8
+    gap: 6
+    align: center
+    Row {
+      weight: 1
+      gap: 6
+      Cell { i: 0 }
+      Cell { i: 1 }
+      Cell { i: 2 }
+    }
+    Row {
+      weight: 1
+      gap: 6
+      Cell { i: 3 }
+      Cell { i: 4 }
+      Cell { i: 5 }
+    }
+    Row {
+      weight: 1
+      gap: 6
+      Cell { i: 6 }
+      Cell { i: 7 }
+      Cell { i: 8 }
+    }
+    Row {
+      justify: center
+      gap: 8
+      Text { text: status; style: body; color: muted }
+    }
+    Row {
+      justify: center
+      gap: 8
+      Button { text: vsComputer ? "vs CPU" : "vs human"; onTap: { vsComputer = !vsComputer; board = [0, 0, 0, 0, 0, 0, 0, 0, 0]; turn = 0; over = "" } }
+      Button { text: "reset"; onTap: { board = [0, 0, 0, 0, 0, 0, 0, 0, 0]; turn = 0; over = "" } }
+    }
+  }
+}
