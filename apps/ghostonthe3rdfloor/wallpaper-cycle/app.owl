@@ -5,7 +5,7 @@ app "wallpaper cycle" {
   // Android won't let an app set the system wallpaper silently; the live-wallpaper route is the supported way.
   // The detached Linux loop keeps cycling after you leave the app; the JSON config keeps each theme's own settings.
 
-  meta { description: "Auto-cycle theme wallpapers: hours-based interval, per-theme order, add or exclude images"; version: "2.1"; license: "MIT"; category: "system"; owl: 11 }
+  meta { description: "Auto-cycle theme wallpapers: hours-based interval, per-theme order, add or exclude images"; version: "2.2"; license: "MIT"; category: "system"; owl: 11 }
   title: "wallpaper cycle"
   icon: """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
     <rect width="256" height="256" rx="56" fill="#1A1B26"/>
@@ -314,17 +314,22 @@ case "${1:-status}" in
     [ -f "$pid" ] && p=$(cat "$pid" 2>/dev/null) && kill -0 "$p" 2>/dev/null && exit 0
     echo $$ > "$pid"
     trap '[ "$(cat "$pid" 2>/dev/null)" = "$$" ] && rm -f "$pid"; exit 0' TERM INT EXIT
+    # Opening the app restarts the loop, so the first change waits a whole interval.
+    # Settings are checked every 30 s, not every second: start and stop kill the loop themselves.
+    first=1
     while true; do
       sync
       read_light
       [ "$CFG_ENABLED" = 1 ] || break
       t=${TNAME:-$(theme_name)}
-      [ -n "$t" ] || { sleep 1; continue; }
-      step
+      [ -n "$t" ] || { sleep 30; continue; }
+      [ -n "$first" ] || step
+      first=
       waited=0
       while [ "$waited" -lt "$CFG_INTERVAL" ]; do
-        sleep 1
-        waited=$((waited + 1))
+        s=$((CFG_INTERVAL - waited < 30 ? CFG_INTERVAL - waited : 30))
+        sleep "$s"
+        waited=$((waited + s))
         read_light
         [ "$CFG_ENABLED" = 1 ] || break 2
         [ "${TNAME:-}" = "$t" ] || break
