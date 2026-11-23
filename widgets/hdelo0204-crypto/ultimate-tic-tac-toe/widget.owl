@@ -1,0 +1,283 @@
+widget "ultimate tic-tac-toe" {
+  meta { owl: 23; description: "Ultimate Tic-Tac-Toe for two players: the square you play in sends your opponent to the matching board. Undo, score and a full-screen view."; version: "2.0"; license: "MIT"; category: "games" }
+
+  size: 6x5
+  minSize: 4x4
+  padding: 8
+  fps: 12
+
+  // Rules (the standard game):
+  //  - X moves first, anywhere.
+  //  - The square you take inside a small board sends your opponent to the board in the same spot
+  //    on the big grid: take the top-right square, and they must play in the top-right board.
+  //  - If that board is already won or full, they may play in any open board.
+  //  - Three in a row on a small board wins it; it is then closed.
+  //  - Three won boards in a row on the big grid wins the game. If no board is left open, it's a draw.
+
+  // The 81 squares in one flat list: board b (0..8, left to right, top to bottom) holds b*9 .. b*9+8.
+  state cells = range(81).map(i => "") persist
+  state turn = "X" persist
+  state target = -1 persist          // the board the player to move must use; -1 = any open board
+  state history = [] persist         // moves so far, as {i: square, t: target before the move}
+  state lastAt = -100
+  state notice = ""
+  state xWins = 0 persist
+  state oWins = 0 persist
+  state draws = 0 persist
+
+  let lines = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]]
+  let spots = ["top-left", "top", "top-right", "left", "centre", "right", "bottom-left", "bottom", "bottom-right"]
+
+  let xBoards = range(9).map(b => any(lines, l => cells[b * 9 + l[0]] == "X" && cells[b * 9 + l[1]] == "X" && cells[b * 9 + l[2]] == "X"))
+  let oBoards = range(9).map(b => any(lines, l => cells[b * 9 + l[0]] == "O" && cells[b * 9 + l[1]] == "O" && cells[b * 9 + l[2]] == "O"))
+  let fullBoards = range(9).map(b => all(range(9), i => cells[b * 9 + i] != ""))
+  let closedBoards = range(9).map(b => xBoards[b] || oBoards[b] || fullBoards[b])
+  let winLine = find(lines, l => (xBoards[l[0]] && xBoards[l[1]] && xBoards[l[2]]) || (oBoards[l[0]] && oBoards[l[1]] && oBoards[l[2]]))
+  let winner = winLine == null ? "" : (xBoards[winLine[0]] ? "X" : "O")
+  let gameOver = winner != "" || all(closedBoards, c => c)
+  let playable = range(9).map(b => !gameOver && !closedBoards[b] && (target < 0 || target == b))
+  let lastIdx = len(history) > 0 ? last(history).i : -1
+  let canUndo = len(history) > 0 && !gameOver
+
+  let statusText = gameOver ? (winner != "" ? "${winner} wins!" : "Draw") : "${turn} to move"
+  let statusColor = winner == "X" ? cyan : (winner == "O" ? orange : (gameOver ? foreground : (turn == "X" ? cyan : orange)))
+  let hintText = gameOver ? (winner != "" ? "Three boards in a row — tap ↻ for a new game" : "No open boards left — tap ↻ for a new game") : (notice != "" ? notice : (target < 0 ? (len(history) == 0 ? "Play anywhere to start" : "Free move: any open board") : "Play in the ${spots[target]} board"))
+
+  component GameBoard(boardW, boardH) {
+    Canvas {
+      width: boardW
+      height: boardH
+      ripple: false
+
+      let margin = clamp(min(width, height) * 0.03, 4, 12)
+      let gap = clamp(min(width, height) * 0.025, 4, 12)
+      let side = max(1, min(width, height) - 2 * margin)
+      let mini = (side - 2 * gap) / 3
+      let cell = mini / 3
+      let left = (width - side) / 2
+      let top = (height - side) / 2
+      let pulse = clamp(1 - (time - lastAt) / 0.6, 0, 1)
+
+      onTap: {
+        // A handler can't see the Canvas's lets, so the geometry is worked out again here.
+        let hMargin = clamp(min(boardW, boardH) * 0.03, 4, 12)
+        let hGap = clamp(min(boardW, boardH) * 0.025, 4, 12)
+        let hSide = max(1, min(boardW, boardH) - 2 * hMargin)
+        let hMini = (hSide - 2 * hGap) / 3
+        let hCell = hMini / 3
+        let hLeft = (boardW - hSide) / 2
+        let hTop = (boardH - hSide) / 2
+        let bx = floor((x - hLeft) / (hMini + hGap))
+        let by = floor((y - hTop) / (hMini + hGap))
+        let lx = x - (hLeft + bx * (hMini + hGap))
+        let ly = y - (hTop + by * (hMini + hGap))
+        if bx >= 0 && bx < 3 && by >= 0 && by < 3 && lx >= 0 && lx < hMini && ly >= 0 && ly < hMini {
+          let b = by * 3 + bx
+          let sq = min(2, floor(ly / hCell)) * 3 + min(2, floor(lx / hCell))
+          let idx = b * 9 + sq
+          if gameOver {
+            notice = ""
+            haptic("light")
+          } else if closedBoards[b] {
+            notice = "That board is already decided"
+            haptic("light")
+          } else if target >= 0 && target != b {
+            notice = "You must play in the ${spots[target]} board"
+            haptic("light")
+          } else if cells[idx] != "" {
+            notice = "That square is taken"
+            haptic("light")
+          } else {
+            let next = set(cells, idx, turn)
+            let nX = range(9).map(q => any(lines, l => next[q * 9 + l[0]] == "X" && next[q * 9 + l[1]] == "X" && next[q * 9 + l[2]] == "X"))
+            let nO = range(9).map(q => any(lines, l => next[q * 9 + l[0]] == "O" && next[q * 9 + l[1]] == "O" && next[q * 9 + l[2]] == "O"))
+            let nClosed = range(9).map(q => nX[q] || nO[q] || all(range(9), i => next[q * 9 + i] != ""))
+            let nWinX = any(lines, l => nX[l[0]] && nX[l[1]] && nX[l[2]])
+            let nWinO = any(lines, l => nO[l[0]] && nO[l[1]] && nO[l[2]])
+
+            cells = next
+            history = history + [{i: idx, t: target}]
+            lastAt = time
+            notice = ""
+            // The square played (sq) picks the opponent's board; a decided board means a free move.
+            target = nClosed[sq] ? -1 : sq
+            turn = turn == "X" ? "O" : "X"
+
+            if nWinX {
+              xWins = xWins + 1
+              haptic("strong")
+            } else if nWinO {
+              oWins = oWins + 1
+              haptic("strong")
+            } else if all(nClosed, c => c) {
+              draws = draws + 1
+              haptic("strong")
+            } else {
+              haptic()
+            }
+          }
+        }
+      }
+
+      // Board panels: the boards the player may use light up, the rest dim.
+      for b in range(9) {
+        let x0 = left + (b % 3) * (mini + gap)
+        let y0 = top + floor(b / 3) * (mini + gap)
+        let onLine = winLine != null && (winLine[0] == b || winLine[1] == b || winLine[2] == b)
+        rect(x0, y0, mini, mini, radius: 8 * corners, fill: playable[b] ? alpha(statusColor, 0.14) : (onLine ? alpha(statusColor, 0.2) : (closedBoards[b] ? alpha(background, 0.55) : alpha(surface, 0.9))), stroke: playable[b] ? alpha(statusColor, 0.85) : (onLine ? statusColor : alpha(foreground, 0.12)), width: playable[b] || onLine ? 2 : 1)
+      }
+
+      for b in range(9) {
+        let x0 = left + (b % 3) * (mini + gap)
+        let y0 = top + floor(b / 3) * (mini + gap)
+        let owner = xBoards[b] ? "X" : (oBoards[b] ? "O" : "")
+        let fade = closedBoards[b] ? 0.45 : 1
+
+        for k in range(1, 3) {
+          line(x0 + k * cell, y0 + 4, x0 + k * cell, y0 + mini - 4, stroke: alpha(foreground, 0.16), width: 1)
+          line(x0 + 4, y0 + k * cell, x0 + mini - 4, y0 + k * cell, stroke: alpha(foreground, 0.16), width: 1)
+        }
+
+        for sq in range(9) {
+          let mark = cells[b * 9 + sq]
+          if mark != "" {
+            let cx = x0 + (sq % 3 + 0.5) * cell
+            let cy = y0 + (floor(sq / 3) + 0.5) * cell
+            let r = cell * 0.28
+            let tint = alpha(mark == "X" ? cyan : orange, fade)
+            if mark == "X" {
+              line(cx - r, cy - r, cx + r, cy + r, stroke: tint, width: max(1.4, cell * 0.09), cap: round)
+              line(cx + r, cy - r, cx - r, cy + r, stroke: tint, width: max(1.4, cell * 0.09), cap: round)
+            } else {
+              circle(cx, cy, r, stroke: tint, width: max(1.4, cell * 0.09))
+            }
+            if b * 9 + sq == lastIdx {
+              circle(cx, cy, cell * 0.42, stroke: alpha(foreground, 0.35 + 0.5 * pulse), width: max(1, cell * 0.04))
+            }
+          }
+        }
+
+        // A won board is covered by one big mark of its owner.
+        if owner != "" {
+          let cx = x0 + mini / 2
+          let cy = y0 + mini / 2
+          let r = mini * 0.32
+          let tint = owner == "X" ? cyan : orange
+          if owner == "X" {
+            line(cx - r, cy - r, cx + r, cy + r, stroke: tint, width: max(3, mini * 0.07), cap: round)
+            line(cx + r, cy - r, cx - r, cy + r, stroke: tint, width: max(3, mini * 0.07), cap: round)
+          } else {
+            circle(cx, cy, r, stroke: tint, width: max(3, mini * 0.07))
+          }
+        }
+      }
+
+      // The line through the three boards that won the game.
+      if winLine != null {
+        let x1 = left + (winLine[0] % 3) * (mini + gap) + mini / 2
+        let y1 = top + floor(winLine[0] / 3) * (mini + gap) + mini / 2
+        let x2 = left + (winLine[2] % 3) * (mini + gap) + mini / 2
+        let y2 = top + floor(winLine[2] / 3) * (mini + gap) + mini / 2
+        line(x1, y1, x2, y2, stroke: alpha(foreground, 0.85), width: max(3, cell * 0.12), cap: round)
+      }
+    }
+  }
+
+  component IconButton(label, kind, wide = false) {
+    Box {
+      width: wide ? 104 : 36
+      height: 36
+      background: alpha(foreground, kind == "undo" && !canUndo ? 0.03 : 0.08)
+      border: 1
+      borderColor: alpha(foreground, 0.13)
+      radius: 10 * corners
+      align: center
+      onTap: {
+        if kind == "new" {
+          cells = range(81).map(i => "")
+          turn = "X"
+          target = -1
+          history = []
+          lastAt = -100
+          notice = ""
+          haptic()
+        } else if kind == "undo" {
+          if canUndo {
+            let mv = last(history)
+            cells = set(cells, mv.i, "")
+            target = mv.t
+            turn = turn == "X" ? "O" : "X"
+            history = take(history, len(history) - 1)
+            notice = ""
+            haptic("light")
+          }
+        } else {
+          screen()
+        }
+      }
+      Text { text: label; color: kind == "undo" && !canUndo ? alpha(foreground, 0.3) : foreground; fontSize: wide ? 14 : 18; bold: true; align: center }
+    }
+  }
+
+  component Header(big = false) {
+    Row {
+      fill: width
+      align: center
+      Box {
+        width: big ? 38 : 32
+        height: big ? 38 : 32
+        background: alpha(statusColor, 0.16)
+        border: 1
+        borderColor: alpha(statusColor, 0.35)
+        radius: 9 * corners
+        align: center
+        Text { text: gameOver ? (winner != "" ? winner : "=") : turn; color: statusColor; fontSize: big ? 21 : 18; bold: true; align: center }
+      }
+      Column {
+        weight: 1
+        gap: 0
+        Text { text: statusText; style: title; color: statusColor; maxLines: 1 }
+        Text { text: hintText; style: small; color: muted; maxLines: 1 }
+      }
+      IconButton { label: "↶"; kind: "undo" }
+      if big {
+        IconButton { label: "↻ New game"; kind: "new"; wide: true }
+      } else {
+        IconButton { label: "↻"; kind: "new" }
+        IconButton { label: "⛶"; kind: "screen" }
+      }
+    }
+  }
+
+  // Home-screen tile: the whole game is playable right here.
+  Column {
+    let boardW = max(1, (tileWidth ?? 300) - 16)
+    let boardH = max(1, (tileHeight ?? 220) - 58)
+    fill: true
+    gap: 6
+    align: center
+    Header {}
+    GameBoard { boardW: boardW; boardH: boardH }
+  }
+
+  screen {
+    title: "Ultimate Tic-Tac-Toe"
+    Column {
+      let side = max(240, min((screenWidth ?? 400) - 24, (screenHeight ?? 700) - 200))
+      fill: true
+      padding: 12
+      gap: 10
+      justify: center
+      Header { big: true }
+      GameBoard { boardW: side; boardH: side }
+      Text {
+        text: "The square you play in sends your opponent to the board in the same spot. If that board is won or full, they may play in any open board. Win three boards in a row to win."
+        style: small
+        color: muted
+        align: center
+        maxLines: 4
+      }
+      Text { text: "X ${xWins}  ·  O ${oWins}  ·  Draws ${draws}"; style: small; color: muted; align: center }
+    }
+  }
+}
