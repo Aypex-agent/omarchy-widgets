@@ -1,0 +1,149 @@
+widget "nuvio" {
+  meta {
+    owl: 16
+    description: "Popular movies and series from Cinemeta, with quick links to open them in Nuvio"
+    version: "1.0"
+    license: "MIT"
+    category: "media"
+  }
+  size: 8x4
+  minSize: 6x4
+  padding: 10
+  requires { pacman: ["curl", "jq"] }
+
+  strings {
+    en {
+      popular: "popular"
+      popularTitle: "Popular"
+      loading: "Loading catalog…"
+      movies: "MOVIES"
+      series: "SERIES"
+      movieTab: "Movies"
+      seriesTab: "Series"
+      open: "Open Nuvio"
+      refresh: "Refresh"
+      screenTitle: "Nuvio · popular"
+      footer: "Cinemeta catalog (Stremio/Nuvio). Tap a title to open it in Nuvio."
+    }
+    pt {
+      popular: "populares"
+      popularTitle: "Populares"
+      loading: "carregando catálogo…"
+      movies: "FILMES"
+      series: "SÉRIES"
+      movieTab: "filmes"
+      seriesTab: "séries"
+      open: "abrir Nuvio"
+      refresh: "atualizar"
+      screenTitle: "Nuvio · populares"
+      footer: "Catálogo Cinemeta (Stremio/Nuvio). Toque num título para abri-lo no Nuvio."
+    }
+  }
+
+  // Public Cinemeta catalogs, the same ones Stremio and Nuvio use for their popular lists.
+  source movies = cmd("curl -fsSL --max-time 20 https://v3-cinemeta.strem.io/catalog/movie/top.json | jq -c '[.metas[:12][] | {id, name, year, rating: .imdbRating, poster, genre: .genre[0]}]'") every 6h json
+  source series = cmd("curl -fsSL --max-time 20 https://v3-cinemeta.strem.io/catalog/series/top.json | jq -c '[.metas[:12][] | {id, name, year, rating: .imdbRating, poster, genre: .genre[0]}]'") every 6h json
+  source apps = android.apps
+
+  let filmes = movies ?? []
+  let shows = series ?? []
+  let nuvio = find(apps ?? [], a => a.package == "com.nuvio.app" || a.package == "com.nuvio.tv" || contains(lower(a.name ?? ""), "nuvio"))
+  state tab = "movie"
+
+  onTap: screen()
+
+  component PosterCard(m, type) {
+    Row {
+      padding: 6
+      gap: 10
+      radius: 8 * corners
+      onTap: url("nuvio://meta?type=${enc(type)}&id=${enc(m.id)}")
+      Image { src: m.poster; width: 44; height: 66; radius: 4 * corners; fit: cover; label: m.name }
+      Column { weight: 1; gap: 2
+        Text { text: m.name; bold: true; maxLines: 2 }
+        Text { text: m.year ?? ""; style: small; color: muted }
+        Text { text: m.genre ?? ""; style: small; color: muted }
+      }
+      Text { text: len(m.rating ?? "") > 0 ? m.rating : "—"; width: 34; align: end; color: yellow; bold: true }
+    }
+  }
+
+  component TilePoster(m, type) {
+    Box {
+      weight: 1
+      height: 84
+      radius: 6 * corners
+      clip: true
+      onTap: url("nuvio://meta?type=${enc(type)}&id=${enc(m.id)}")
+      Image { src: m.poster; fill: true; fit: cover; label: m.name }
+      Column {
+        fill: true
+        justify: end
+        padding: 5
+        background: linear(0, 0, 0, 1, [alpha("#000000", 0), alpha("#000000", 0.85)])
+        Text { text: m.name; style: label; color: "#ffffff"; bold: true; maxLines: 2 }
+      }
+    }
+  }
+
+  Column {
+    gap: 5
+    Row {
+      Text { text: "Nuvio"; style: title; weight: 1 }
+      Text { text: str.popular; style: muted }
+    }
+    if len(filmes) + len(shows) == 0 {
+      Text { text: str.loading; style: muted; weight: 1 }
+    } else {
+      Text { text: str.movies; style: label; color: muted }
+      Row {
+        gap: 6
+        for m in filmes.take(3) key m.id {
+          TilePoster { m: m; type: "movie" }
+        }
+      }
+      Text { text: str.series; style: label; color: muted }
+      Row {
+        gap: 6
+        for s in shows.take(3) key s.id {
+          TilePoster { m: s; type: "series" }
+        }
+      }
+    }
+  }
+
+  screen {
+    title: str.screenTitle
+    Column {
+      padding: 16
+      gap: 10
+      Row {
+        Text { text: str.popularTitle; style: title }
+        Spacer { weight: 1 }
+        Button { text: str.open; background: alpha(surface, 0.8); onTap: if nuvio { open(nuvio.key) } else { androidApp("com.nuvio.app") } }
+      }
+      Row {
+        gap: 6
+        Button { text: str.movieTab; color: tab == "movie" ? accent : muted; background: alpha(surface, 0.8); onTap: tab = "movie" }
+        Button { text: str.seriesTab; color: tab == "series" ? accent : muted; background: alpha(surface, 0.8); onTap: tab = "series" }
+        Spacer { weight: 1 }
+        Button { text: str.refresh; background: alpha(surface, 0.8); onTap: refresh() }
+      }
+      Column {
+        weight: 1
+        scroll: true
+        gap: 4
+        if tab == "movie" {
+          for m in filmes key m.id {
+            PosterCard { m: m; type: "movie" }
+          }
+        } else {
+          for s in shows key s.id {
+            PosterCard { m: s; type: "series" }
+          }
+        }
+      }
+      Text { text: str.footer; style: small; color: muted }
+    }
+  }
+}
