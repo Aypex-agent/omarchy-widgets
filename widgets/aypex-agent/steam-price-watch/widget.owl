@@ -1,0 +1,650 @@
+widget "steam price watch" {
+  size: 6x4
+  minSize: 3x3
+  padding: 10
+
+  meta {
+    owl: 17
+    description: "Track Steam games and DLC on Steam and licensed key stores: see where each is cheapest and get told when one hits your discount or price target."
+    version: "1.3"
+    license: "MIT"
+    category: "games"
+  }
+
+  // ---- kept across restarts ----
+  // one map per tracked game: {id, name, mode: "pct" | "price", target, pin, met, onSale, sales: [{t, fmt, p}]}
+  state tracked = [] persist
+  state view = "top" persist          // what the tile lists: top | all | met | star
+  state cc = "us" persist             // Steam store country, sets the currency
+  state steamId = "" persist          // public SteamID64, for the wishlist
+  state lastCheck = 0 persist
+  state priceSrc = "cs" persist       // where store prices come from: cs (CheapShark) | itad (IsThereAnyDeal)
+  state itadOn = false persist        // an IsThereAnyDeal API key has been entered
+  state itadKey = null secret
+
+  // ---- this session only ----
+  state tab = "tracked"
+  state q = ""
+  state sel = null                    // {id, name} of the game being set up
+  state selMode = "pct"
+  state selInit = ""
+  state selTarget = ""
+  state viewMenu = false
+  state modeMenu = false
+  state idMsg = ""
+  state warned = false                // the "never been this low" warning is showing
+  state itadGids = null               // IsThereAnyDeal's ids for our Steam apps: {ok, code, out: {"app/221100": id}}
+  state itadRes = null                // IsThereAnyDeal's prices: {ok, code, out: [{id, historyLow, deals}]}
+
+  source now = clock every 1h
+
+  let views = [{k: "top", label: "on target first"}, {k: "all", label: "all tracked"}, {k: "met", label: "on target"}, {k: "star", label: "starred"}]
+  let tabs = [{k: "tracked", label: "tracked"}, {k: "search", label: "search"}, {k: "wishlist", label: "wishlist"}, {k: "settings", label: "settings"}]
+  let viewLabel = (views.find(v => v.k == view) ?? views[0]).label
+
+  // CheapShark asks every app to name itself
+  let ua = {"User-Agent": "steam-price-watch/1.3 (omalauncher widget)"}
+  let csApi = "https://www.cheapshark.com/api/1.0"
+  // stores CheapShark lists that sell publisher-licensed Steam keys (GOG, Epic and Ubisoft sell their own launchers' copies, so they're left out)
+  let csStores = [{id: "2", name: "GamersGate"}, {id: "3", name: "Green Man Gaming"}, {id: "11", name: "Humble Store"}, {id: "15", name: "Fanatical"}, {id: "21", name: "WinGameStore"}, {id: "23", name: "GameBillet"}, {id: "27", name: "Gamesplanet"}, {id: "30", name: "IndieGala"}, {id: "35", name: "DreamGame"}]
+
+  // ---- the games priced: everything tracked, then the one being set up if it isn't ----
+  let ids = tracked.map(t => int(t.id))
+  let apps = sel == null || ids.contains(int(sel.id)) ? ids : ids + [int(sel.id)]
+
+  // Steam's own price, in the store country's currency: one batched request
+  source prices = http(len(apps) == 0 ? null : "https://store.steampowered.com/api/appdetails?appids=${enc(join(apps, ","))}&cc=${enc(cc)}&filters=price_overview") every 1h json
+  let quotes = apps.map(i => get(prices ?? {}, str(i), null).data.price_overview)
+  let homeCur = (quotes.find(x => x != null)).currency ?? (cc == "us" ? "USD" : upper(cc))
+
+  let wantItad = priceSrc == "itad" && itadOn && itadKey != null
+  let usingItad = wantItad && itadGids.ok != false && itadRes.ok != false     // falls back to CheapShark while IsThereAnyDeal fails
+
+  // CheapShark: its id for each app (from the Steam listing), then every store's price and the lowest ever
+  source csSteam = http(usingItad || len(apps) == 0 ? null : "${csApi}/deals?storeID=1&pageSize=60&steamAppID=${enc(join(apps, ","))}", ua) every 1h json
+  let csGid = apps.map(i => ((csSteam ?? []).find(d => int(d.steamAppID) == i)).gameID)
+  let csGids = csGid.filter(g => g != null).unique().take(25)
+  source csGames = http(usingItad || len(csGids) == 0 ? null : "${csApi}/games?ids=${enc(join(csGids, ","))}", ua) every 1h json
+  let csData = csGid.map(g => g == null ? null : get(csGames ?? {}, str(g), null))
+
+  // IsThereAnyDeal: fetched by the triggers below
+  let itadList = itadRes.out ?? []
+  let itadGidList = values(itadGids.out ?? {}).filter(g => g != null)
+  let itadEntries = apps.map(a => itadList.find(e => e.id == get(itadGids.out ?? {}, "app/${a}", null)))
+
+  // every place to buy each app as a Steam key: {store, price, fmt, cut, cur, url}, cheapest first
+  let steamOffers = range(len(apps)).map(i => quotes[i] == null ? [] : [{store: "Steam", price: quotes[i].final / 100, fmt: quotes[i].final_formatted, cut: quotes[i].discount_percent ?? 0, cur: quotes[i].currency, url: "https://store.steampowered.com/app/${enc(str(apps[i]))}/"}])
+  let csOffers = csData.map(g => (g.deals ?? []).filter(d => csStores.any(s => s.id == d.storeID)).map(d => {store: (csStores.find(s => s.id == d.storeID)).name, price: num(d.price, 0), fmt: "$" + d.price, cut: round(num(d.savings, 0)), cur: "USD", url: "https://www.cheapshark.com/redirect?dealID=${enc(replace(replace(replace(d.dealID, "%2B", "+"), "%3D", "="), "%2F", "/"))}"}))
+  let itadOffers = itadEntries.map(e => (e.deals ?? []).filter(d => d.shop.id == 61 || (d.drm ?? []).any(x => lower(x.name) == "steam")).map(d => {store: d.shop.name, price: d.price.amount, fmt: d.price.currency == "USD" ? "$" + fixed(d.price.amount, 2) : "${fixed(d.price.amount, 2)} ${d.price.currency}", cut: d.cut ?? 0, cur: d.price.currency, url: startsWith(d.url ?? "", "https://itad.link/") || startsWith(d.url ?? "", "https://isthereanydeal.com/") ? d.url : "https://isthereanydeal.com/"}))
+  let offers = range(len(apps)).map(i => (usingItad ? itadOffers[i] : steamOffers[i] + csOffers[i]).sortBy(o => (o.cur == homeCur ? 0 : 1000000) + o.price))
+  // the lowest price each app has ever had, at any store, and its usual Steam price
+  let lows = range(len(apps)).map(i => usingItad ? {price: itadEntries[i].historyLow.all.amount, cur: itadEntries[i].historyLow.all.currency, date: null, regular: ((itadEntries[i].deals ?? []).find(d => d.shop.id == 61)).regular.amount} : {price: num(csData[i].cheapestPriceEver.price, null), cur: "USD", date: csData[i].cheapestPriceEver.date, regular: num(((csData[i].deals ?? []).find(d => d.storeID == "1")).retailPrice, null)})
+  let ready = usingItad ? itadRes != null : prices != null && csSteam != null && (len(csGids) == 0 || csGames != null)
+
+  // a game is on target when Steam or any licensed key store meets it
+  let hitNow = range(len(tracked)).map(i => offers[i].any(o => tracked[i].mode == "pct" ? o.cut >= tracked[i].target : o.cur == homeCur && o.price <= tracked[i].target))
+  let rows = range(len(tracked)).map(i => merge(tracked[i], {q: quotes[i], best: offers[i][0], hit: hitNow[i], idx: i, loaded: ready}))
+  let metCount = count(hitNow, h => h)
+  let shown = view == "met" ? rows.filter(r => r.hit) : view == "star" ? rows.filter(r => r.pin ?? false) : view == "top" ? rows.sortBy(r => (r.hit ? 0 : 10000) + r.idx) : rows
+  let screenRows = rows.sortBy(r => (r.hit ? 0 : 10000) + r.idx)
+  // a Steam sale is logged when a game goes on sale, and its entry deepened if the discount grows
+  let newSales = range(len(tracked)).map(i => (quotes[i].discount_percent ?? 0) == 0 ? (tracked[i].sales ?? []) : (!(tracked[i].onSale ?? false) || len(tracked[i].sales ?? []) == 0) ? ([{t: now ?? 0, fmt: quotes[i].final_formatted, p: quotes[i].discount_percent}] + (tracked[i].sales ?? [])).take(5) : quotes[i].discount_percent > (tracked[i].sales[0].p ?? 0) ? set(tracked[i].sales, 0, {t: tracked[i].sales[0].t, fmt: quotes[i].final_formatted, p: quotes[i].discount_percent}) : tracked[i].sales)
+  // games whose saved "met" no longer matches what the stores say
+  let stale = range(len(tracked)).map(i => ready && len(offers[i]) > 0 && hitNow[i] != (tracked[i].met ?? false))
+
+  // log Steam's sales as they're seen
+  on prices first {
+    if value != null {
+      tracked = range(len(tracked)).map(i => quotes[i] == null ? tracked[i] : merge(tracked[i], {onSale: (quotes[i].discount_percent ?? 0) > 0, sales: newSales[i]}))
+      lastCheck = now ?? 0
+    }
+  }
+
+  // notify when a target is newly met at any store, and remember it so it's said once
+  on stale first {
+    if any(stale, s => s) {
+      let hits = rows.filter(r => r.hit && !(r.met ?? false))
+      if len(hits) > 0 {
+        notify(len(hits) == 1 ? "${hits[0].name} hit your target" : "${len(hits)} games hit your targets", join(hits.map(h => "${h.name}: ${h.best.fmt} at ${h.best.store} (-${h.best.cut}%)"), "\n"))
+      }
+      tracked = range(len(tracked)).map(i => stale[i] ? merge(tracked[i], {met: hitNow[i]}) : tracked[i])
+    }
+  }
+
+  // IsThereAnyDeal: look up its ids for our apps (no key needed), then their prices (with the key), hourly
+  on wantItad {
+    if value && len(apps) > 0 { itadGids = post("https://api.isthereanydeal.com/lookup/id/shop/61/v1", apps.map(a => "app/${a}")) }
+  }
+  // only when a game has never been looked up, so opening and closing games doesn't post again
+  let itadMissing = apps.filter(a => !keys(itadGids.out ?? {}).contains("app/${a}"))
+  on apps first {
+    if wantItad && len(itadMissing) > 0 { itadGids = post("https://api.isthereanydeal.com/lookup/id/shop/61/v1", apps.map(a => "app/${a}")) }
+  }
+  on itadGids first {
+    let gids = values(value.out ?? {}).filter(g => g != null)
+    if wantItad && len(gids) > 0 { itadRes = post("https://api.isthereanydeal.com/games/prices/v3?country=${enc(upper(cc))}", gids, {"ITAD-API-Key": itadKey}) }
+  }
+  // a plain timer: a successful post() refreshes every source, clock included, so `on now` could chain posts
+  every 1h {
+    if wantItad && len(apps) > 0 && len(itadGidList) == 0 { itadGids = post("https://api.isthereanydeal.com/lookup/id/shop/61/v1", apps.map(a => "app/${a}")) }
+    if wantItad && len(itadGidList) > 0 { itadRes = post("https://api.isthereanydeal.com/games/prices/v3?country=${enc(upper(cc))}", itadGidList, {"ITAD-API-Key": itadKey}) }
+  }
+  on cc {
+    if wantItad && len(itadGidList) > 0 { itadRes = post("https://api.isthereanydeal.com/games/prices/v3?country=${enc(upper(cc))}", itadGidList, {"ITAD-API-Key": itadKey}) }
+  }
+
+  // ---- search ----
+  source found = http(q == "" || tab != "search" ? null : "https://store.steampowered.com/api/storesearch/?term=${enc(q)}&l=english&cc=${enc(cc)}") every 1h json
+  let results = (found.items ?? []).take(25)
+
+  // ---- the game being set up: full details (name, price), its best offers and its lowest ever ----
+  source selInfo = http(sel == null ? null : "https://store.steampowered.com/api/appdetails?appids=${enc(str(sel.id))}&cc=${enc(cc)}") every 1h json
+  let selData = sel == null ? null : get(selInfo ?? {}, str(sel.id), null).data
+  let selPo = selData.price_overview
+  let selName = selData.name ?? sel.name ?? "…"
+  let selEntry = sel == null ? null : tracked.find(t => t.id == sel.id)
+  let isTracked = selEntry != null
+  let selSales = (selEntry.sales ?? []).take(3)
+  let tv0 = num(replace(trim(selTarget), ",", "."), 0)
+  let tv = tv0 < 100000 ? tv0 : 0
+  let selIdx = sel == null ? -1 : apps.indexOf(int(sel.id))
+  let selTop = selIdx < 0 ? [] : offers[selIdx].take(3)
+  let selLow = selIdx < 0 ? null : lows[selIdx]
+  let selLowCut = selLow.price != null && (selLow.regular ?? 0) > 0 ? max(0, round((1 - selLow.price / selLow.regular) * 100)) : null
+  let selLowFmt = selLow.price == null ? null : selLow.cur == "USD" ? "$" + fixed(selLow.price, 2) : "${fixed(selLow.price, 2)} ${selLow.cur}"
+  // a target no store has ever reached
+  let neverHit = tv > 0 && (selMode == "pct" ? selLowCut != null && tv > selLowCut : selLow.price != null && selLow.cur == homeCur && tv < selLow.price)
+
+  // ---- wishlist (public profile) ----
+  source wl = http(steamId == "" || tab != "wishlist" ? null : "https://api.steampowered.com/IWishlistService/GetWishlist/v1/?steamid=${enc(steamId)}") every 6h json status
+  let wlIds = ((wl.out.response.items ?? []).sortBy(i => i.priority ?? 0)).map(i => int(i.appid)).take(60)
+  // Steam answers 400 for an account that doesn't exist: forget it rather than retry it every 30 s
+  on wl first { if value.code == 400 { steamId = ""; idMsg = "Steam has no account with that SteamID64" } }
+  let wlReq = toJson({ids: wlIds.map(a => {appid: a}), context: {language: "english", country_code: upper(cc)}, data_request: {include_basic_info: true}})
+  source wlNames = http(len(wlIds) == 0 || tab != "wishlist" ? null : "https://api.steampowered.com/IStoreBrowseService/GetItems/v1/?input_json=${enc(wlReq)}") every 6h json
+  source wlPrices = http(len(wlIds) == 0 || tab != "wishlist" ? null : "https://store.steampowered.com/api/appdetails?appids=${enc(join(wlIds, ","))}&cc=${enc(cc)}&filters=price_overview") every 1h json
+  let wlItems = (wlNames.response.store_items ?? [])
+  let wlRows = wlIds.map(a => merge({id: a}, {name: (wlItems.find(s => int(s.appid ?? s.id) == a)).name ?? "app ${a}", po: get(wlPrices ?? {}, str(a), null).data.price_overview, have: ids.contains(a)}))
+
+  onTap: { viewMenu = false; screen() }
+
+  // ---- pieces ----
+  component Badge(label, tint = accent) {
+    Text { text: label; style: small; bold: true; color: background; background: tint; padding: [6, 1]; radius: 4 * corners }
+  }
+
+  component GameRow(r, showImg = true) {
+    Row {
+      gap: 8
+      align: center
+      padding: [8, 6]
+      radius: 6 * corners
+      background: r.hit ? alpha(green, 0.16) : alpha(surface, 0.55)
+      border: r.hit ? 1 : 0
+      borderColor: alpha(green, 0.6)
+      if showImg {
+        Image { src: "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${enc(str(r.id))}/capsule_184x69.jpg"; width: 80; height: 30; fit: cover; radius: 3 * corners }
+      }
+      Column {
+        gap: 1
+        weight: 1
+        Text { spans: [(r.pin ?? false) ? {text: "★ ", color: yellow} : "", r.name]; style: body; bold: true; maxLines: 1 }
+        Text { text: r.mode == "pct" ? "alert at ${r.target}% off" : "alert at ≤ ${fixed(r.target, 2)} ${r.q.currency ?? ""}"; style: small; color: r.hit ? green : muted; maxLines: 1 }
+      }
+      Column {
+        gap: 2
+        align: end
+        Row {
+          gap: 6
+          align: center
+          if (r.best.cut ?? 0) > 0 {
+            Badge { label: "-${r.best.cut}%"; tint: r.hit ? green : accent }
+          }
+          Text { text: !r.loaded ? "…" : r.best == null ? "n/a" : r.best.fmt; style: body; bold: true; color: r.hit ? green : foreground }
+        }
+        if r.best != null {
+          Text { text: "at ${r.best.store}"; style: small; color: muted; maxLines: 1 }
+        }
+      }
+    }
+  }
+
+  // ---- the tile ----
+  Column {
+    gap: 6
+    fill: true
+    Row {
+      gap: 6
+      align: center
+      Text { text: "steam price watch"; style: label; color: accent; weight: 1; maxLines: 1 }
+      if metCount > 0 {
+        Badge { label: "${metCount} on target"; tint: green }
+      }
+      Text { text: "${viewLabel} ▾"; style: small; color: muted; padding: [6, 2]; border: 1; borderColor: border; radius: 4 * corners; onTap: viewMenu = !viewMenu }
+      Popup {
+        visible: viewMenu
+        position: below
+        align: end
+        onDismiss: viewMenu = false
+        Column {
+          gap: 2
+          padding: 4
+          for v in views key v.k {
+            Text { text: (v.k == view ? "● " : "○ ") + v.label; color: v.k == view ? accent : foreground; padding: [10, 8]; onTap: { view = v.k; viewMenu = false } }
+          }
+        }
+      }
+    }
+    if len(shown) == 0 {
+      Column {
+        weight: 1
+        justify: center
+        align: center
+        gap: 2
+        Text { text: len(tracked) == 0 ? "nothing tracked yet" : view == "met" ? "no game is on target yet" : "no starred games"; style: body; color: muted; align: center }
+        Text { text: "tap to add games or change targets"; style: small; color: muted; align: center }
+      }
+    } else {
+      Column {
+        weight: 1
+        scroll: true
+        gap: 4
+        for r in shown key r.id {
+          GameRow { r: r; showImg: (tileWidth ?? 0) >= 320 }
+        }
+      }
+    }
+  }
+
+  // ---- the full screen ----
+  screen {
+    title: "steam price watch"
+    Column {
+      padding: 12
+      gap: 10
+      fill: true
+
+      if sel == null {
+        Flow {
+          gap: 6
+          for t in tabs key t.k {
+            Text { text: t.label; style: small; color: tab == t.k ? background : foreground; background: tab == t.k ? accent : alpha(surface, 0.9); border: tab == t.k ? 0 : 1; borderColor: border; padding: [12, 6]; radius: 14 * corners; onTap: tab = t.k }
+          }
+        }
+
+        // tracked games
+        if tab == "tracked" {
+          Column {
+            gap: 6
+            Text { text: "tile shows"; style: label; color: muted }
+            Flow {
+              gap: 6
+              for v in views key v.k {
+                Text { text: v.label; style: small; color: view == v.k ? background : foreground; background: view == v.k ? accent : alpha(surface, 0.9); border: view == v.k ? 0 : 1; borderColor: border; padding: [12, 6]; radius: 14 * corners; onTap: view = v.k }
+              }
+            }
+          }
+          Column {
+            weight: 1
+            scroll: true
+            gap: 6
+            onPull: {
+              refresh()
+              if wantItad && len(itadGidList) > 0 { itadRes = post("https://api.isthereanydeal.com/games/prices/v3?country=${enc(upper(cc))}", itadGidList, {"ITAD-API-Key": itadKey}) }
+            }
+            if len(tracked) == 0 {
+              Text { text: "nothing tracked yet: search for a game or pick one from your wishlist."; color: muted; padding: [0, 16] }
+            }
+            for r in screenRows key r.id {
+              Box {
+                onTap: { sel = {id: r.id, name: r.name}; selMode = r.mode; selInit = str(r.target); selTarget = str(r.target); modeMenu = false; warned = false }
+                GameRow { r: r; showImg: true }
+              }
+            }
+          }
+          Text { text: lastCheck > 0 ? "prices checked ${fmtTime(lastCheck, "EEE HH:mm")} · tap a game for where to buy it" : "tap a game for where to buy it"; style: small; color: muted; align: center }
+        }
+
+        // search the store
+        if tab == "search" {
+          Input { placeholder: "search Steam games and DLC, e.g. dayz"; text: q; focus: tab == "search"; onSubmit: q = trim(value) }
+          Column {
+            weight: 1
+            scroll: true
+            gap: 4
+            if q != "" && found != null && len(results) == 0 {
+              Text { text: "no matches for “${q}”"; color: muted; padding: [0, 12] }
+            }
+            if q == "" {
+              Text { text: "type a name and press search on the keyboard"; color: muted; padding: [0, 12] }
+            }
+            for it in results key it.id {
+              Box {
+                onTap: {
+                  let ex = tracked.find(t => t.id == int(it.id))
+                  sel = {id: int(it.id), name: it.name}
+                  selMode = ex.mode ?? "pct"
+                  selInit = ex == null ? "" : str(ex.target)
+                  selTarget = selInit
+                  modeMenu = false
+                  warned = false
+                }
+                Row {
+                  gap: 8
+                  align: center
+                  padding: [8, 6]
+                  radius: 6 * corners
+                  background: alpha(surface, 0.55)
+                  Image { src: "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${enc(str(it.id))}/capsule_184x69.jpg"; width: 80; height: 30; fit: cover; radius: 3 * corners }
+                  Text { text: it.name; weight: 1; maxLines: 2 }
+                  if ids.contains(int(it.id)) {
+                    Text { text: "✓"; color: green; bold: true }
+                  }
+                  Column {
+                    gap: 2
+                    align: end
+                    Text { text: it.price == null ? "—" : it.price.final == 0 ? "free" : "${fixed(it.price.final / 100, 2)} ${it.price.currency}"; style: small; bold: true }
+                    if it.price != null && it.price.initial > it.price.final {
+                      Badge { label: "-${round((1 - it.price.final / it.price.initial) * 100)}%" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // the user's public wishlist
+        if tab == "wishlist" {
+          if steamId == "" {
+            Column {
+              gap: 8
+              Text { text: "use your Steam wishlist"; style: title }
+              Text { text: "Paste your SteamID64 (17 digits, starts with 7656) or your steamcommunity.com/profiles/… link. Your profile's game details must be public for the wishlist to load. No password is needed or kept."; color: muted }
+              Input {
+                placeholder: "SteamID64 or profile link"
+                onSubmit: {
+                  let m = match(trim(value), "(7656[0-9]{13})")
+                  if m != null && len(m) > 0 {
+                    steamId = m[0]
+                    idMsg = ""
+                  } else {
+                    idMsg = "that doesn't look like a SteamID64"
+                  }
+                }
+              }
+              if idMsg != "" { Text { text: idMsg; style: small; color: red } }
+            }
+          } else {
+            Row {
+              align: center
+              Text { text: "wishlist · ${len(wlIds)} games"; style: label; color: muted; weight: 1 }
+              Text { text: "disconnect"; style: small; color: red; onTap: steamId = "" }
+            }
+            Column {
+              weight: 1
+              scroll: true
+              gap: 4
+              onPull: refresh()
+              if wl != null && len(wlIds) == 0 {
+                Text { text: wl.ok == false ? "couldn't load the wishlist (${wl.code ?? "offline"})" : "the wishlist is empty or private"; color: muted; padding: [0, 12] }
+              }
+              for w in wlRows key w.id {
+                Box {
+                  onTap: {
+                    let ex = tracked.find(t => t.id == w.id)
+                    sel = {id: w.id, name: w.name}
+                    selMode = ex.mode ?? "pct"
+                    selInit = ex == null ? "" : str(ex.target)
+                    selTarget = selInit
+                    modeMenu = false
+                    warned = false
+                  }
+                  Row {
+                    gap: 8
+                    align: center
+                    padding: [8, 6]
+                    radius: 6 * corners
+                    background: alpha(surface, 0.55)
+                    Image { src: "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${enc(str(w.id))}/capsule_184x69.jpg"; width: 80; height: 30; fit: cover; radius: 3 * corners }
+                    Text { text: w.name; weight: 1; maxLines: 2 }
+                    if w.have {
+                      Text { text: "✓"; color: green; bold: true }
+                    }
+                    Column {
+                      gap: 2
+                      align: end
+                      Text { text: w.po == null ? "—" : w.po.final_formatted; style: small; bold: true }
+                      if (w.po.discount_percent ?? 0) > 0 {
+                        Badge { label: "-${w.po.discount_percent}%" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // settings
+        if tab == "settings" {
+          Column {
+            weight: 1
+            scroll: true
+            gap: 8
+            Text { text: "store country"; style: label; color: muted }
+            Input { placeholder: "two letters, e.g. us, gb, de"; text: cc; onSubmit: { let c = lower(trim(value)); if match(c, "^[a-z]{2}$") != null { cc = c } } }
+            Text { text: "Steam's prices, targets and sales use this store's currency. Now: ${upper(cc)}."; style: small; color: muted }
+            Spacer { height: 8 }
+
+            Text { text: "where prices come from"; style: label; color: muted }
+            Flow {
+              gap: 6
+              Text { text: "CheapShark"; style: small; color: priceSrc == "cs" ? background : foreground; background: priceSrc == "cs" ? accent : alpha(surface, 0.9); border: priceSrc == "cs" ? 0 : 1; borderColor: border; padding: [12, 6]; radius: 14 * corners; onTap: priceSrc = "cs" }
+              Text { text: "IsThereAnyDeal"; style: small; color: priceSrc == "itad" ? background : foreground; background: priceSrc == "itad" ? accent : alpha(surface, 0.9); border: priceSrc == "itad" ? 0 : 1; borderColor: border; padding: [12, 6]; radius: 14 * corners; onTap: priceSrc = "itad" }
+            }
+            Text { text: "CheapShark is free and needs no account. It checks Steam and 9 stores that sell publisher-licensed Steam keys: GamersGate, Green Man Gaming, Humble Store, Fanatical, WinGameStore, GameBillet, Gamesplanet, IndieGala and DreamGame. Its prices are in US dollars, so outside the US they count only toward % targets."; style: small; color: muted }
+
+            // IsThereAnyDeal: more stores, but it needs a key
+            Column {
+              gap: 6; padding: 10; radius: 8 * corners; background: alpha(surface, 0.7); border: 1; borderColor: alpha(border, 0.6)
+              Text { text: "more stores with IsThereAnyDeal"; bold: true }
+              Text { text: "IsThereAnyDeal adds more licensed stores (Nuuvem, DLGamer, AllYouPlay, JoyBuggy, Gamesload and others), shows prices in your store country's currency, and checks that each deal is a Steam key. It needs a free API key: sign in there, register an app (any name), and paste the app's API key below."; style: small; color: muted }
+              Button { text: "get a free API key"; color: accent; onTap: url("https://isthereanydeal.com/apps/my/") }
+              if itadKey == null {
+                Input { placeholder: "paste your IsThereAnyDeal API key"; password: true; onSubmit: { if trim(value) != "" { itadKey = trim(value); itadOn = true; priceSrc = "itad" } } }
+              } else {
+                Row {
+                  align: center
+                  Text { text: wantItad && itadRes != null && itadRes.ok == false ? (itadRes.code == 401 || itadRes.code == 403 ? "IsThereAnyDeal refused the key; using CheapShark" : "IsThereAnyDeal didn't answer (${itadRes.code}); using CheapShark for now") : priceSrc == "itad" ? "key saved · in use" : "key saved · pick IsThereAnyDeal above to use it"; style: small; color: wantItad && itadRes.ok == false ? red : green; weight: 1 }
+                  Text { text: "remove key"; style: small; color: red; onTap: { itadKey = null; itadOn = false; priceSrc = "cs"; itadRes = null; itadGids = null } }
+                }
+              }
+              if priceSrc == "itad" && itadKey == null {
+                Text { text: "Until a key is saved, prices come from CheapShark."; style: small; color: yellow }
+              }
+            }
+            Text { text: "Key resellers such as G2A, Kinguin and Eneba are never checked: keys there can be resold from elsewhere and revoked later."; style: small; color: muted }
+            Spacer { height: 8 }
+
+            Text { text: "wishlist"; style: label; color: muted }
+            Text { text: steamId == "" ? "not connected" : "connected as ${steamId}"; style: small }
+            if steamId != "" {
+              Text { text: "disconnect"; style: small; color: red; onTap: steamId = "" }
+            }
+            Spacer { height: 8 }
+            Text { text: "how it works"; style: label; color: muted }
+            Text { text: "Prices are checked about hourly while this home page is on screen. A game is on target when Steam or any licensed key store meets your target, and you get a notification when it first does. Recent discounts are Steam's own, logged as the widget sees each sale."; style: small; color: muted }
+          }
+        }
+      } else {
+        // ---- one game: where to buy it, and its alert ----
+        Column {
+          weight: 1
+          scroll: true
+          gap: 10
+          Text { text: "‹ back"; color: accent; onTap: { sel = null; modeMenu = false; warned = false } }
+          Image { src: "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${enc(str(sel.id))}/header.jpg"; fill: width; height: 150; fit: cover; radius: 8 * corners }
+          Text { text: selName; style: title; maxLines: 2 }
+
+          // the three cheapest places to buy it now
+          Column {
+            gap: 6; padding: 10; radius: 8 * corners; background: alpha(surface, 0.7); border: 1; borderColor: alpha(border, 0.6)
+            Text { text: "cheapest right now"; style: label; color: muted }
+            if !ready {
+              Text { text: "…"; style: title }
+            }
+            if ready && len(selTop) == 0 {
+              Text { text: (selData.is_free ?? false) ? "free to play" : "no store sells a Steam key for it right now"; style: body; color: muted }
+            }
+            for o in selTop {
+              Box {
+                onTap: url(o.url)
+                Row {
+                  gap: 8
+                  align: center
+                  padding: [10, 8]
+                  radius: 6 * corners
+                  background: alpha(surface, 0.55)
+                  Column {
+                    gap: 1
+                    weight: 1
+                    Text { text: o.store; bold: true; maxLines: 1 }
+                    Text { text: o.cut > 0 ? "-${o.cut}% off" : "full price"; style: small; color: o.cut > 0 ? green : muted }
+                  }
+                  Text { text: o.fmt; style: body; bold: true; color: o.cut > 0 ? green : foreground }
+                  Text { text: "open ›"; style: small; color: accent }
+                }
+              }
+            }
+            Text { text: usingItad ? "prices from IsThereAnyDeal" : "prices from Steam and CheapShark (US dollars)"; style: small; color: muted; onTap: url(usingItad ? "https://isthereanydeal.com/" : "https://www.cheapshark.com/") }
+          }
+
+          // recent discounts, and the lowest ever
+          Column {
+            gap: 6; padding: 10; radius: 8 * corners; background: alpha(surface, 0.7); border: 1; borderColor: alpha(border, 0.6)
+            Text { text: "recent Steam discounts"; style: label; color: muted }
+            if len(selSales) == 0 {
+              Text { text: isTracked ? "none seen yet: each sale is logged here as the widget spots it" : "track this game to log its sales here"; style: small; color: muted }
+            }
+            for s in selSales {
+              Row {
+                align: center
+                Text { text: fmtTime(s.t, "d MMM yyyy"); style: small; weight: 1 }
+                Text { text: s.fmt; style: small; bold: true }
+                Badge { label: "-${s.p}%" }
+              }
+            }
+            if selLowFmt != null {
+              Row {
+                gap: 6
+                align: center
+                Text { text: "lowest ever, any store"; style: small; color: muted; weight: 1 }
+                Text { text: selLowCut != null && selLowCut > 0 ? "${selLowFmt} (-${selLowCut}%)" : selLowFmt; style: small; bold: true }
+                if selLow.date != null {
+                  Text { text: fmtTime(num(selLow.date, 0), "MMM yyyy"); style: small; color: muted }
+                }
+              }
+            }
+          }
+
+          // alert criteria
+          Column {
+            gap: 6; padding: 10; radius: 8 * corners; background: alpha(surface, 0.7); border: 1; borderColor: alpha(border, 0.6)
+            Text { text: "alert me when any store's"; style: label; color: muted }
+            Box {
+              Row {
+                gap: 6
+                align: center
+                padding: [10, 8]
+                radius: 6 * corners
+                border: 1
+                borderColor: border
+                onTap: modeMenu = !modeMenu
+                Text { text: selMode == "pct" ? "discount is at least…" : "price drops to…"; weight: 1 }
+                Text { text: "▾"; color: muted }
+              }
+              Popup {
+                visible: modeMenu
+                onDismiss: modeMenu = false
+                Column {
+                  gap: 2
+                  padding: 4
+                  Text { text: "discount is at least… (%)"; padding: [10, 8]; color: selMode == "pct" ? accent : foreground; onTap: { selMode = "pct"; modeMenu = false; warned = false } }
+                  Text { text: "price drops to… (${selPo.currency ?? homeCur})"; padding: [10, 8]; color: selMode == "price" ? accent : foreground; onTap: { selMode = "price"; modeMenu = false; warned = false } }
+                }
+              }
+            }
+            Row {
+              gap: 8
+              align: center
+              Input { text: selInit; placeholder: selMode == "pct" ? "e.g. 50" : "e.g. 14.99"; weight: 1; onChange: { selTarget = value; warned = false } }
+              Text { text: selMode == "pct" ? "% off" : (selPo.currency ?? homeCur); color: muted }
+            }
+            if tv > 0 && selPo != null {
+              Text {
+                text: selMode == "pct" ? "≈ ${fixed(selPo.initial * (1 - min(tv, 100) / 100) / 100, 2)} ${selPo.currency} or less" : tv * 100 >= selPo.initial ? "that's at or above Steam's full price" : "≈ ${round((1 - tv * 100 / selPo.initial) * 100)}% off Steam's full price"
+                style: small
+                color: muted
+              }
+            }
+            if neverHit && !warned {
+              Text { text: selMode == "pct" ? "No store has ever gone past about ${selLowCut}% off." : "No store has ever sold it below ${selLowFmt}."; style: small; color: yellow }
+            }
+            if selTarget != "" && (tv <= 0 || (selMode == "pct" && tv > 100)) {
+              Text { text: selMode == "pct" ? "enter a percentage from 1 to 100" : "enter a price above 0"; style: small; color: red }
+            }
+          }
+
+          // asked before tracking a target the game has never reached
+          if warned {
+            Column {
+              gap: 6; padding: 10; radius: 8 * corners; background: alpha(yellow, 0.12); border: 1; borderColor: alpha(yellow, 0.6)
+              Text { text: "this may never happen"; bold: true; color: yellow }
+              Text { text: selMode == "pct" ? "${selName} has never been more than about ${selLowCut}% off at any store (lowest ever: ${selLowFmt}). Track it at ${tv}% off anyway, or pick a target it has reached before?" : "${selName} has never sold for less than ${selLowFmt} at any store. Track it at ${fixed(tv, 2)} ${selPo.currency ?? homeCur} anyway, or pick a target it has reached before?"; style: small }
+            }
+          }
+
+          Flow {
+            gap: 8
+            Button {
+              text: warned ? "track anyway" : isTracked ? "save alert" : "track"
+              color: warned ? yellow : accent
+              onTap: {
+                if tv > 0 && !(selMode == "pct" && tv > 100) {
+                  if neverHit && !warned {
+                    warned = true
+                  } else {
+                    if isTracked {
+                      tracked = tracked.map(t => t.id == sel.id ? merge(t, {mode: selMode, target: tv, met: false, name: selName}) : t)
+                    } else {
+                      tracked = tracked + [{id: int(sel.id), name: selName, mode: selMode, target: tv, pin: true, met: false, onSale: false, sales: []}]
+                    }
+                    warned = false
+                    sel = null
+                    tab = "tracked"
+                  }
+                }
+              }
+            }
+            if warned {
+              Button { text: "change target"; onTap: warned = false }
+            }
+            if isTracked && !warned {
+              Button {
+                text: (selEntry.pin ?? false) ? "★ starred" : "☆ star"
+                onTap: tracked = tracked.map(t => t.id == sel.id ? merge(t, {pin: !(t.pin ?? false)}) : t)
+              }
+              Button {
+                text: "stop tracking"
+                color: red
+                onTap: { tracked = tracked.filter(t => t.id != sel.id); sel = null }
+              }
+            }
+          }
+          Text { text: "open in Steam"; style: small; color: accent; onTap: url("https://store.steampowered.com/app/${enc(str(sel.id))}/") }
+        }
+      }
+    }
+  }
+}
