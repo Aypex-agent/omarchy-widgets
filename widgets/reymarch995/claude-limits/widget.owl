@@ -1,0 +1,86 @@
+widget "claude limits" {
+  size: 6x3
+  minSize: 3x2
+  meta { owl: 4; description: "Claude Code usage limits: 5-hour session and weekly limits, with reset times. Uses Claude Code's login on this device"; version: "1.5"; license: "MIT"; category: "dev" }
+  requires { pacman: ["bash", "jq", "curl", "coreutils", "grep", "sed"] }
+  source now = clock every 30s
+  source u = cmd("""
+    d=$(date +%s)
+    mkdir -p ~/.cache
+    c=~/.cache/claude-limits.json
+    fail() { [ -s "$c" ] && jq -c --arg e "$1" '. + {error: $e}' "$c" || echo "{\"error\":\"$1\",\"updated\":$d}"; }
+    b=$(cat ~/.cache/claude-limits.backoff 2>/dev/null || echo 0)
+    [ "$d" -lt "$b" ] && { fail "rate limited, retry in $(( (b - d + 59) / 60 ))m"; exit 0; }
+    t=$(jq -r '.claudeAiOauth.accessToken // empty' ~/.claude/.credentials.json 2>/dev/null)
+    [ -n "$t" ] || { fail "not logged in"; exit 0; }
+    r=$(printf 'Authorization: Bearer %s\n' "$t" |
+      curl -s -m 15 -D ~/.cache/claude-limits.hdr -w '\n%{http_code}' -H @- -H 'anthropic-beta: oauth-2025-04-20' https://api.anthropic.com/api/oauth/usage)
+    ra=$(grep -i '^retry-after:' ~/.cache/claude-limits.hdr 2>/dev/null | tr -dc 0-9)
+    l=~/.cache/claude-limits.log
+    echo "$d $(printf %s "$r" | tail -n 1) $ra" >> "$l"
+    [ "$(wc -l < "$l")" -gt 200 ] && sed -i 1,100d "$l"
+    case $(printf %s "$r" | tail -n 1) in
+      200) o=$(printf %s "$r" | sed '$d' |
+        jq -c --argjson d "$d" '
+          def ts: if . then sub("\\.[0-9]+"; "") | sub("\\+00:00$"; "Z") | fromdateiso8601 else null end;
+          {updated: $d, limits: ([.limits[] | {
+            label: (if .kind == "session" then "5h session" elif .kind == "weekly_all" then "week" else "week \(.scope.model.display_name // "")" end),
+            short: (if .kind == "session" then "5h" elif .kind == "weekly_all" then "wk" else (.scope.model.display_name // "wk") end),
+            pct: .percent,
+            resets: (.resets_at | ts)}])}') &&
+        { printf '%s\n' "$o" > "$c"; printf '%s\n' "$o"; } || fail "usage unavailable" ;;
+      401) fail "login expired: open Claude Code" ;;
+      429) echo $(( d + ${ra:-300} )) > ~/.cache/claude-limits.backoff
+        fail "rate limited, retry in $(( (${ra:-300} + 59) / 60 ))m" ;;
+      *) fail "usage unavailable" ;;
+    esac
+  """) every 5m json timeout 30s
+  let limits = (u.limits ?? []).map(l => {label: l.label, short: l.short, pct: l.resets != null && l.resets <= now ? 0 : l.pct, resets: l.resets})
+  let five = limits.find(l => l.short == "5h")
+  let week = limits.find(l => l.short == "wk")
+  let compact = cols == null || cols < 3 || rows == null || rows < 3
+  let fiveReset = five.resets == null ? null : five.resets <= now ? "full" : fmtTime(five.resets, compact ? "HH:mm" : "EEE, MMM d · HH:mm")
+  let weekReset = week.resets == null ? null : week.resets <= now ? "full" : fmtTime(week.resets, compact ? "MMM d HH:mm" : "EEE, MMM d · HH:mm")
+  component Limit(label, used, reset, mark = false, compact = false) {
+    Column {
+      gap: compact ? 1 : 2
+      Row {
+        gap: 0
+        align: center
+        if mark {
+          Canvas {
+            width: compact ? 22 : 26; height: compact ? 22 : 26
+            for i in range(4) {
+              rotate(i * 45, width / 2, height / 2) { line(width / 2, 4, width / 2, height - 4, stroke: #da7756, width: 1.8, cap: round) }
+            }
+          }
+        }
+        Text { text: label; fontSize: compact ? 15 : 18; font: mono; color: foreground; width: compact ? 64 : 100; bold: true }
+        Text { text: used == null ? "—" : "${round(100 - used)}%"; fontSize: compact ? 14 : 16; color: foreground; align: end; weight: 1 }
+      }
+      Progress {
+        value: used == null ? 0 : 100 - used
+        color: accent
+        track: alpha(muted, 0.22)
+        height: compact ? 4 : 7
+        fill: width
+        animate value: spring()
+      }
+      Text {
+        text: reset == null ? "waiting for Claude data" : reset == "full" ? "full" : "resets ${reset}"
+        style: small
+        color: foreground
+        maxLines: 1
+      }
+    }
+  }
+  onTap: refresh()
+  Column {
+    gap: compact ? 5 : 10
+    Limit { label: "5h"; used: five.pct; reset: fiveReset; mark: true; compact: compact }
+    Limit { label: "1week"; used: week.pct; reset: weekReset; compact: compact }
+    if u.error != null {
+      Text { text: u.error; color: red; fontSize: 10; maxLines: 1 }
+    }
+  }
+}
