@@ -1,0 +1,147 @@
+widget "month calendar" {
+  size: 3x3
+  minSize: 3x3
+
+  meta { owl: 18; description: "This month at a glance, today marked and a dot under days with events from the phone's calendars, Google ones too. The arrows change month, the title comes back, the gear opens settings and events."; version: "1.1"; license: "MIT"; category: "productivity" }
+
+  // Months away from this one, changed by the arrows.
+  state off = 0
+  // Names of calendars turned off in settings.
+  state hidden = [] persist
+  // The day tapped on the tile, "yyyy-MM-dd"; "" shows settings and the next two weeks.
+  state sel = ""
+
+  source now = clock every 1m
+  // The phone's calendars, synced Google accounts included; the next 14 days.
+  source c = android.calendar
+
+  let y0 = int(fmtTime(now, "yyyy"))
+  let m0 = int(fmtTime(now, "M")) - 1 + off
+  let y = y0 + floor(m0 / 12)
+  let m = m0 - floor(m0 / 12) * 12 + 1
+  let first = parseTime("${y}-${pad(m, 2, "0")}-01 12:00", "yyyy-MM-dd HH:mm")
+  // Monday first.
+  let lead = indexOf(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], fmtTime(first, "EEE", null, "en"))
+  let days = 27 + count(range(28, 32), n => fmtTime(first + (n - 1) * 86400, "d") == str(n))
+  let today = off == 0 ? int(fmtTime(now, "d")) : 0
+  let cells = flatten([range(lead).map(i => 0), range(1, days + 1), range(42 - lead - days).map(i => 0)])
+  let rawNames = range(7).map(i => fmtTime(parseTime("2024-01-0${i + 1}"), "EEE"))
+  let names = rawNames.map(s => match(s, "([0-9])$") != null ? "T" + last(match(s, "([0-9])$")) : sub(s, 0, 2))
+
+  let cals = unique(c.events.map(e => e.calendar)).sort()
+  let shown = c.events.filter(e => indexOf(hidden, e.calendar) < 0)
+  // Every day an event touches; an all-day one ends at midnight, so stop just before.
+  let evDays = unique(flatten(shown.map(e => range(0, max(1, ceil((e.end - (e.allDay ? 60 : 0) - e.start) / 86400 + 0.0001)), 1).map(k => fmtTime(e.start + k * 86400, "yyyy-MM-dd")))))
+  let ym = "${y}-${pad(m, 2, "0")}-"
+
+  Column {
+    gap: 4
+    fill: true
+    Row {
+      align: center
+      Text { text: "‹"; style: title; color: accent; onTap: off = off - 1 }
+      Text { text: fmtTime(first, "MMMM yyyy"); bold: true; align: center; weight: 1; maxLines: 1; onTap: off = 0 }
+      Text { text: "›"; style: title; color: accent; onTap: off = off + 1 }
+      Text { text: "⚙"; color: muted; onTap: { sel = ""; screen() } }
+    }
+    Row {
+      gap: 2
+      for n in names {
+        Text { text: n; style: label; align: center; color: muted; weight: 1 }
+      }
+    }
+    // Always six weeks, each row an equal share of the height.
+    Column {
+      gap: 2
+      weight: 1
+      for w in chunk(cells, 7) {
+        Row {
+          gap: 2
+          weight: 1
+          for d in w {
+            let isToday = d > 0 && d == today
+            let has = d > 0 && indexOf(evDays, ym + pad(d, 2, "0")) >= 0
+            Column {
+              gap: 1
+              align: center
+              justify: center
+              weight: 1
+              fill: true
+              radius: 12 * corners
+              onTap: { if has { sel = ym + pad(d, 2, "0"); screen() } }
+              background: isToday ? accent : alpha(background, 0)
+              Text {
+                text: d > 0 ? str(d) : ""
+                align: center
+                bold: isToday
+                color: isToday ? background : foreground
+              }
+              Text { text: "●"; fontSize: 10; align: center; color: has ? (isToday ? background : accent) : alpha(background, 0) }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  screen {
+    title: sel != "" ? fmtTime(parseTime(sel + " 12:00", "yyyy-MM-dd HH:mm"), "EEEE d MMMM") : "calendar settings"
+    Column {
+      gap: 12
+      scroll: true
+      if sel != "" {
+        let dayStart = parseTime(sel + " 00:00", "yyyy-MM-dd HH:mm")
+        for e in shown.filter(e => e.start < dayStart + 86400 && e.end > dayStart) key e.id {
+          Row {
+            gap: 10
+            align: center
+            onTap: calendar("open", e)
+            Text { text: "●"; color: e.color; fontSize: 14 }
+            Column {
+              gap: 0
+              weight: 1
+              Text { text: e.title; bold: true; maxLines: 2 }
+              Text { text: (e.allDay ? "all day" : fmtTime(e.start, "HH:mm") + " – " + fmtTime(e.end, "HH:mm")) + (e.location != "" ? " · " + e.location : ""); style: small; maxLines: 1 }
+              Text { text: e.calendar; style: label; maxLines: 1 }
+            }
+          }
+        }
+        Button { text: "settings and all events"; onTap: sel = "" }
+      } else {
+      if !c.granted {
+        Text { text: "Allow the calendar to see your events. Google Calendar shows here once its account syncs to the phone (Android settings, Accounts, Google, Calendar on)."; style: body }
+        Button { text: "allow calendar"; onTap: calendar("request") }
+      } else {
+        Text { text: "calendars"; style: muted }
+        if len(cals) == 0 {
+          Text { text: "No events in the next two weeks. To add Google Calendar, turn on calendar sync for your Google account in Android settings, Accounts."; style: small }
+        }
+        for n in cals key n {
+          let on = indexOf(hidden, n) < 0
+          Row {
+            align: center
+            onTap: hidden = on ? flatten([hidden, [n]]) : hidden.filter(x => x != n)
+            Text { text: on ? "☑" : "☐"; color: on ? accent : muted }
+            Text { text: n; weight: 1; maxLines: 1 }
+          }
+        }
+        Text { text: "next two weeks"; style: muted }
+        for e in shown key e.id {
+          Row {
+            gap: 8
+            onTap: calendar("open", e)
+            Text { text: "●"; color: e.color }
+            Column {
+              gap: 0
+              weight: 1
+              Text { text: e.allDay ? fmtTime(e.start, "EEE d MMM") : fmtTime(e.start, "EEE d MMM HH:mm"); style: label; maxLines: 1 }
+              Text { text: e.title; bold: true; maxLines: 1 }
+            }
+          }
+        }
+        Button { text: "open calendar app"; onTap: calendar("open") }
+      }
+      }
+    }
+  }
+}
